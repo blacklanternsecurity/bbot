@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "bbot"
+version = "0.1.0"
+description = ""
+authors = ["TheTechromancer"]
+license = "GPL-3.0"
+repository = "https://github.com/blacklanternsecurity/bbot"
+homepage = "https://github.com/blacklanternsecurity/bbot"
+
+[tool.poetry.scripts]
+bbot = 'bbot.cli:main'
+
+[tool.poetry.dependencies]
+python = "^3.7"
+omegaconf = "^2.1.1"
+nmappalyzer = {git = "https://github.com/blacklanternsecurity/nmappalyzer", rev = "main"}
+tldextract = "^3.2.0"
+psutil = "^5.9.0"
+wordninja = "^2.0.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
