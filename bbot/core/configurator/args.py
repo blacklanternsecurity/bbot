@@ -16,7 +16,8 @@ parser = argparse.ArgumentParser(description="Bighuge BLS OSINT Tool")
 dummy_parser = DummyArgumentParser(description="Bighuge BLS OSINT Tool")
 for p in (parser, dummy_parser):
     p.add_argument(
-        "configuration",
+        "-c",
+        "--configuration",
         nargs="*",
         help="additional configuration options in key=value format",
     )
@@ -40,7 +41,8 @@ with suppress(Exception):
 def get_config():
     cli_config = []
     with suppress(Exception):
-        cli_config = cli_options.configuration
+        if cli_options.configuration:
+            cli_config = cli_options.configuration
     with suppress(Exception):
         return OmegaConf.from_cli(cli_config)
     return OmegaConf.create()

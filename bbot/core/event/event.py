@@ -30,7 +30,7 @@ class Event:
 
     _dummy = False
 
-    def __init__(self, data, event_type=None, source=None):
+    def __init__(self, data, event_type=None, source=None, module=None):
 
         if event_type is None:
             event_type = get_event_type(data)
@@ -42,6 +42,10 @@ class Event:
             raise ValidationError(
                 f'Unable to autodetect event type from "{data}": please specify event_type'
             )
+
+        if module is None:
+            module = 'module'
+        self.module = str(module)
 
         self.source = None
         if type(source) == Event:
@@ -158,7 +162,7 @@ class Event:
         return False
 
     def __iter__(self):
-        for i in ("type", "data", "source", "id"):
+        for i in ("type", "data", "module", "source", "id"):
             v = getattr(self, i, "")
             if v:
                 yield (i, v)

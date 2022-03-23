@@ -13,13 +13,13 @@ class dnsx(BaseModule):
 
     def handle_batch(self, *events):
 
-        subdomains = ["www", "mail"]
+        subdomains = ["www", "mail", "pentest3", "redirector4"]
         command = [
             "dnsx",
             "-silent",
             "-json",
             "-d",
-            ",".join([str(e) for e in events]),
+            ",".join([str(e.data) for e in events]),
             "-w",
             ",".join(subdomains),
         ]

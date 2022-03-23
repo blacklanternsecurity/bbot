@@ -1,5 +1,3 @@
-### LOGGING ###
-
 import sys
 import atexit
 import logging
@@ -16,10 +14,10 @@ log_dir = Path.home() / ".bbot"
 log_dir.mkdir(parents=True, exist_ok=True)
 
 
-### PRETTY COLORS ###
-
-
 class ColoredFormatter(logging.Formatter):
+    '''
+    Pretty colors for terminal
+    '''
 
     color_mapping = {
         "DEBUG": 242,  # grey
