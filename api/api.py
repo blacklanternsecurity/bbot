@@ -27,10 +27,12 @@ class EventInDB(BaseModel):
 # FastAPI specific code
 app = FastAPI()
 
+
 @app.get("/events", response_model=List[EventInDB])
 def get_events():
     collection = get_collection()
     return list(collection.find({}))
+
 
 @app.put("/events")
 def put_event(event: Event):
