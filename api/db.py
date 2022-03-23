@@ -10,8 +10,7 @@ def get_collection():
 
 def insert_event(event):
     events = get_collection()
-    event["_id"] = event.pop("id")
-    _id = event.pop("_id")
+    _id = event.pop("id")
     source = event.pop("source")
     module = event.get("module")
     query = {"$set": event, "$addToSet": {"sources": source}}
