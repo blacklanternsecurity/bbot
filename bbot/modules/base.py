@@ -67,7 +67,7 @@ class BaseModule:
                 self.pool_execute(self.handle_batch, *events)
 
     def emit_event(self, *args, **kwargs):
-        kwargs['module'] = self.name
+        kwargs["module"] = self.name
         event = make_event(*args, **kwargs)
         self.log.debug(f'module "{self.name}" raised {event}')
         self.scan.manager.queue_event(event)
