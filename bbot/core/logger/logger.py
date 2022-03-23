@@ -12,7 +12,7 @@ from logging.handlers import QueueHandler, QueueListener
 from bbot import config
 
 
-log_dir = Path.home() / '.bbot'
+log_dir = Path.home() / ".bbot"
 log_dir.mkdir(parents=True, exist_ok=True)
 
 
@@ -22,27 +22,27 @@ log_dir.mkdir(parents=True, exist_ok=True)
 class ColoredFormatter(logging.Formatter):
 
     color_mapping = {
-        'DEBUG': 242,  # grey
-        'VERBOSE': 242,  # grey
-        'INFO': 69,  # blue
-        'SUCCESS': 118,  # green
-        'WARNING': 208,  # orange
-        'ERROR': 196,  # red
-        'CRITICAL': 196,  # red
+        "DEBUG": 242,  # grey
+        "VERBOSE": 242,  # grey
+        "INFO": 69,  # blue
+        "SUCCESS": 118,  # green
+        "WARNING": 208,  # orange
+        "ERROR": 196,  # red
+        "CRITICAL": 196,  # red
     }
 
     char_mapping = {
-        'DEBUG': 'DBUG',
-        'VERBOSE': 'VERB',
-        'INFO': 'INFO',
-        'SUCCESS': 'SUCC',
-        'WARNING': 'WARN',
-        'ERROR': 'ERRR',
-        'CRITICAL': 'CRIT',
+        "DEBUG": "DBUG",
+        "VERBOSE": "VERB",
+        "INFO": "INFO",
+        "SUCCESS": "SUCC",
+        "WARNING": "WARN",
+        "ERROR": "ERRR",
+        "CRITICAL": "CRIT",
     }
 
-    prefix = '\033[1;38;5;'
-    suffix = '\033[0m'
+    prefix = "\033[1;38;5;"
+    suffix = "\033[0m"
 
     def __init__(self, pattern):
 
@@ -52,18 +52,18 @@ class ColoredFormatter(logging.Formatter):
 
         colored_record = copy(record)
         levelname = colored_record.levelname
-        levelchar = self.char_mapping.get(levelname, 'INFO')
+        levelchar = self.char_mapping.get(levelname, "INFO")
         seq = self.color_mapping.get(levelname, 15)  # default white
-        colored_levelname = f'{self.prefix}{seq}m[{levelchar}]{self.suffix}'
-        if levelname == 'CRITICAL':
-            colored_record.msg = f'{self.prefix}{seq}m{colored_record.msg}{self.suffix}'
+        colored_levelname = f"{self.prefix}{seq}m[{levelchar}]{self.suffix}"
+        if levelname == "CRITICAL":
+            colored_record.msg = f"{self.prefix}{seq}m{colored_record.msg}{self.suffix}"
         colored_record.levelname = colored_levelname
 
         return logging.Formatter.format(self, colored_record)
 
 
 def addLoggingLevel(levelName, levelNum, methodName=None):
-    '''
+    """
     Comprehensively adds a new logging level to the `logging` module and the
     currently configured logging class.
 
@@ -86,16 +86,16 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
     >>> logging.TRACE
     5
 
-    '''
+    """
     if not methodName:
         methodName = levelName.lower()
 
     if hasattr(logging, levelName):
-        raise AttributeError('{} already defined in logging module'.format(levelName))
+        raise AttributeError("{} already defined in logging module".format(levelName))
     if hasattr(logging, methodName):
-        raise AttributeError('{} already defined in logging module'.format(methodName))
+        raise AttributeError("{} already defined in logging module".format(methodName))
     if hasattr(logging.getLoggerClass(), methodName):
-        raise AttributeError('{} already defined in logger class'.format(methodName))
+        raise AttributeError("{} already defined in logger class".format(methodName))
 
     # This method was inspired by the answers to Stack Overflow post
     # http://stackoverflow.com/q/2183233/2988730, especially
@@ -114,9 +114,9 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
 
 
 # custom logging levels
-addLoggingLevel('SUCCESS', 25)
-addLoggingLevel('VERBOSE', 15)
-addLoggingLevel('STDOUT', 1)
+addLoggingLevel("SUCCESS", 25)
+addLoggingLevel("VERBOSE", 15)
+addLoggingLevel("STDOUT", 1)
 
 
 def stop_listener(listener):
@@ -125,10 +125,10 @@ def stop_listener(listener):
 
 
 def log_worker_setup(logging_queue):
-    '''
+    """
     This needs to be run whenever a new multiprocessing.Process() is spawned
-    '''
-    log = logging.getLogger('bbot')
+    """
+    log = logging.getLogger("bbot")
     # Don't do this more than once
     if len(log.handlers) == 0:
         log.setLevel(1)
@@ -139,8 +139,13 @@ def log_worker_setup(logging_queue):
 
 def log_listener_setup(logging_queue):
 
-    debug = any([config.get(x, False) in [True, None] for x in ['verbose', 'debug', '-v', '--verbose', '--debug']])
-    log_level = (logging.DEBUG if debug else logging.INFO)
+    debug = any(
+        [
+            config.get(x, False) in [True, None]
+            for x in ["verbose", "debug", "-v", "--verbose", "--debug"]
+        ]
+    )
+    log_level = logging.DEBUG if debug else logging.INFO
 
     # Log to stderr
     stderr_handler = logging.StreamHandler(sys.stderr)
@@ -150,45 +155,54 @@ def log_listener_setup(logging_queue):
 
     # Log debug messages to file
     debug_handler = logging.handlers.TimedRotatingFileHandler(
-        f'{log_dir}/bbot.debug.log',
-        when='d',
-        interval=1,
-        backupCount=30
+        f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=30
     )
 
     # Log error messages to file
     error_handler = logging.handlers.TimedRotatingFileHandler(
-        f'{log_dir}/bbot.error.log',
-        when='d',
-        interval=1,
-        backupCount=30
+        f"{log_dir}/bbot.error.log", when="d", interval=1, backupCount=30
     )
 
     # Filter by log level
-    stderr_handler.addFilter(lambda x: x.levelno >= log_level)
+    from bbot.core.configurator.args import cli_options
+
+    stderr_loglevel = logging.INFO
+    if cli_options is not None:
+        if cli_options.verbose:
+            stderr_loglevel = logging.VERBOSE
+        if cli_options.debug:
+            stderr_loglevel = logging.DEBUG
+    stderr_handler.addFilter(lambda x: x.levelno >= stderr_loglevel)
     stdout_handler.addFilter(lambda x: x.levelno == 1)
     debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
     error_handler.addFilter(lambda x: x.levelno >= logging.WARN)
 
     # Set log format
-    debug_format = logging.Formatter('%(asctime)s [%(levelname)s] %(filename)s:%(lineno)s : %(message)s')
+    debug_format = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(filename)s:%(lineno)s : %(message)s"
+    )
     debug_handler.setFormatter(debug_format)
     error_handler.setFormatter(debug_format)
-    stderr_handler.setFormatter(ColoredFormatter('%(levelname)s %(message)s'))
-    stdout_handler.setFormatter(logging.Formatter('%(message)s'))
+    stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(message)s"))
+    stdout_handler.setFormatter(logging.Formatter("%(message)s"))
 
     handlers = [stderr_handler, stdout_handler, debug_handler, error_handler]
 
     log_listener = QueueListener(logging_queue, *handlers)
     log_listener.start()
     atexit.register(stop_listener, log_listener)
-    return {'stderr': stderr_handler, 'stdout': stdout_handler, 'file_debug': debug_handler, 'file_error': error_handler}
+    return {
+        "stderr": stderr_handler,
+        "stdout": stdout_handler,
+        "file_debug": debug_handler,
+        "file_error": error_handler,
+    }
 
 
 def init_logging():
-    '''
+    """
     Initializes logging, returns logging queue and dictionary containing log handlers
-    '''
+    """
 
     logging_queue = Queue()
     handlers = log_listener_setup(logging_queue)

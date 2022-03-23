@@ -1,5 +1,5 @@
 # events
-from .event import Event
+from .event import event
 
 # targets
 from .target import ScanTarget

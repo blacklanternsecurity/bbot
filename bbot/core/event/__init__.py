@@ -1,1 +1,1 @@
-from .event import Event, DummyEvent
+from .event import make_event
