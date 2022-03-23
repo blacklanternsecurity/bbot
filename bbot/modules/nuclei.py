@@ -3,15 +3,16 @@ import subprocess
 
 from .base import BaseModule
 
+
 class nuclei(BaseModule):
 
-    watched_events = ['URL']
-    produced_events = ['VULNERABILITY']
+    watched_events = ["URL"]
+    produced_events = ["VULNERABILITY"]
     max_threads = 5
     batch_size = 10
 
     def handle_batch(self, *events):
-        '''
+        """
         {
           "template": "technologies/tech-detect.yaml",
           "template-url": "https://github.com/projectdiscovery/nuclei-templates/blob/master/technologies/tech-detect.yaml",
@@ -37,17 +38,19 @@ class nuclei(BaseModule):
           "matcher-status": true,
           "matched-line": null
         }
-        '''
+        """
 
-        command = ['nuclei', '-silent', '-json', '-tags', 'tech', '-u'] + [str(e.data) for e in events]
-        self.debug(' '.join(command))
+        command = ["nuclei", "-silent", "-json", "-tags", "tech", "-u"] + [
+            str(e.data) for e in events
+        ]
+        self.debug(" ".join(command))
         proc = subprocess.run(command, text=True, stdout=subprocess.PIPE)
         for line in proc.stdout.splitlines():
             j = json.loads(line)
-            template = j.get('template-id', '')
-            name = j.get('matcher-name', '')
-            severity = j.get('info', {}).get('severity', '').upper()
-            host = j.get('host', '')
+            template = j.get("template-id", "")
+            name = j.get("matcher-name", "")
+            severity = j.get("info", {}).get("severity", "").upper()
+            host = j.get("host", "")
 
             source_event = None
             if template and name and severity and host:
@@ -56,4 +59,6 @@ class nuclei(BaseModule):
                         source_event = event
                         break
 
-                self.emit_event(f'[{severity}] {template}:{name}', 'VULNERABILITY', source_event)
+                self.emit_event(
+                    f"[{severity}] {template}:{name}", "VULNERABILITY", source_event
+                )

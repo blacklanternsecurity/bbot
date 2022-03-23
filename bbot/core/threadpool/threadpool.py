@@ -8,13 +8,12 @@ from .worker import ThreadPoolWorker
 
 
 class ThreadPool:
-
     def __init__(self, threads=100, qsize=10, name=None):
 
         if name is None:
-            name = ''
+            name = ""
 
-        self.log = logging.getLogger(f'bbot.core.threadpool.{name}')
+        self.log = logging.getLogger(f"bbot.core.threadpool.{name}")
         self.numthreads = int(threads)
         self.qsize = int(qsize)
         self.pool = [None] * self.numthreads
@@ -26,9 +25,11 @@ class ThreadPool:
         self._lock = threading.Lock()
 
     def start(self):
-        self.log.debug(f'Starting thread pool "{self.name}" with {self.numthreads:,} threads')
+        self.log.debug(
+            f'Starting thread pool "{self.name}" with {self.numthreads:,} threads'
+        )
         for i in range(self.numthreads):
-            t = ThreadPoolWorker(pool=self, name=f'{self.name}_worker_{i + 1}')
+            t = ThreadPoolWorker(pool=self, name=f"{self.name}_worker_{i + 1}")
             t.start()
             self.pool[i] = t
 
@@ -38,21 +39,21 @@ class ThreadPool:
 
     @stop.setter
     def stop(self, val):
-        assert val in (True, False), 'stop must be either True or False'
+        assert val in (True, False), "stop must be either True or False"
         for t in self.pool:
             with suppress(Exception):
                 t.stop = val
         self._stop = val
 
     def shutdown(self, wait=True):
-        '''Shut down the pool.
+        """Shut down the pool.
 
         Args:
             wait (bool): Whether to wait for the pool to finish executing
 
         Returns:
             results (dict): (unordered) results in the format: {'task_name': [returnvalue1, returnvalue2, ...]}
-        '''
+        """
         results = dict()
         self.log.debug(f'Shutting down thread pool "{self.name}" with wait={wait}')
         if wait:
@@ -65,7 +66,7 @@ class ThreadPool:
                         results[task_name] += moduleResults
                     except KeyError:
                         results[task_name] = moduleResults
-                sleep(.1)
+                sleep(0.1)
         self.stop = True
         # make sure input queues are empty
         with self._lock:
@@ -90,17 +91,19 @@ class ThreadPool:
         return results
 
     def submit(self, callback, *args, **kwargs):
-        '''
+        """
         Submit a callback to the pool.
         The 'task_name' and 'max_threads' arguments are optional.
-        '''
-        task_name = kwargs.get('task_name', 'default')
-        max_threads = kwargs.pop('max_threads', 100)
+        """
+        task_name = kwargs.get("task_name", "default")
+        max_threads = kwargs.pop("max_threads", 100)
         # block if this module's thread limit has been reached
         while self.num_total_tasks(task_name) >= max_threads:
-            sleep(.01)
+            sleep(0.01)
             continue
-        self.log.debug(f'Submitting function \'{callback.__name__}\' from module \'{task_name}\' to thread pool \'{self.name}\'')
+        self.log.debug(
+            f"Submitting function '{callback.__name__}' from module '{task_name}' to thread pool '{self.name}'"
+        )
         self.input_queue(task_name).put((callback, args, kwargs))
 
     def num_queued_tasks(self, task_name):
@@ -120,14 +123,14 @@ class ThreadPool:
     def num_total_tasks(self, task_name):
         return self.num_running_tasks(task_name) + self.num_queued_tasks(task_name)
 
-    def input_queue(self, task_name='default'):
+    def input_queue(self, task_name="default"):
         try:
             return self.input_queues[task_name]
         except KeyError:
             self.input_queues[task_name] = queue.Queue(self.qsize)
             return self.input_queues[task_name]
 
-    def output_queue(self, task_name='default'):
+    def output_queue(self, task_name="default"):
         try:
             return self.output_queues[task_name]
         except KeyError:
@@ -135,7 +138,7 @@ class ThreadPool:
             return self.output_queues[task_name]
 
     def map(self, callback, iterable, *args, **kwargs):  # noqa: A003
-        '''
+        """
         Args:
             iterable: each entry will be passed as the first argument to the function
             callback: the function to thread
@@ -144,15 +147,17 @@ class ThreadPool:
 
         Yields:
             return values from completed callback function
-        '''
-        task_name = kwargs.get('task_name', 'default')
-        self.input_thread = threading.Thread(target=self.feed_queue, args=(callback, iterable, args, kwargs))
+        """
+        task_name = kwargs.get("task_name", "default")
+        self.input_thread = threading.Thread(
+            target=self.feed_queue, args=(callback, iterable, args, kwargs)
+        )
         self.input_thread.start()
         self.start()
-        sleep(.1)
+        sleep(0.1)
         yield from self.results(task_name, wait=True)
 
-    def results(self, task_name='default', wait=False):
+    def results(self, task_name="default", wait=False):
         while 1:
             result = False
             with suppress(Exception):
@@ -163,7 +168,7 @@ class ThreadPool:
                 break
             if not result:
                 # sleep briefly to save CPU
-                sleep(.1)
+                sleep(0.1)
 
     def feed_queue(self, callback, iterable, args, kwargs):
         for i in iterable:
@@ -182,7 +187,11 @@ class ThreadPool:
             except AttributeError:
                 input_threadAlive = False
             input_queuesEmpty = [q.empty() for q in self.input_queues.values()]
-            return not input_threadAlive and all(input_queuesEmpty) and all(finishedThreads)
+            return (
+                not input_threadAlive
+                and all(input_queuesEmpty)
+                and all(finishedThreads)
+            )
 
     def __enter__(self):
         return self
