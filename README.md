@@ -24,21 +24,20 @@ $ poetry run pytest
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-v] [-t TARGETS [TARGETS ...]] [-m {nuclei,nmap,naabu,httpx,dnsx} [{nuclei,nmap,naabu,httpx,dnsx} ...]] [configuration ...]
+usage: bbot [-h] [-c [CONFIGURATION ...]] [-v] [-d] [-t TARGETS [TARGETS ...]] [-m {all} [{all} ...]]
 
 Bighuge BLS OSINT Tool
 
-positional arguments:
-  configuration         additional configuration options in key=value format
-
 options:
   -h, --help            show this help message and exit
-  -v, --verbose, --debug
-                        Be more verbose
+  -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
+                        additional configuration options in key=value format
+  -v, --verbose         Be more verbose
+  -d, --debug           Enable debugging
   -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
                         Scan target
-  -m {nuclei,nmap,naabu,httpx,dnsx} [{nuclei,nmap,naabu,httpx,dnsx} ...], --modules {nuclei,nmap,naabu,httpx,dnsx} [{nuclei,nmap,naabu,httpx,dnsx} ...]
-                        Modules
+  -m {all} [{all} ...], --modules {all} [{all} ...]
+                        Modules (specify keyword "all" to enable all modules)
 ~~~
 
 ## Writing modules
