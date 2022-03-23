@@ -1,4 +1,4 @@
-name: BBOT Tests
+name: test
 on:
   push:
     branches:
