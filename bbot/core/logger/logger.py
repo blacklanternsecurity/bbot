@@ -15,9 +15,9 @@ log_dir.mkdir(parents=True, exist_ok=True)
 
 
 class ColoredFormatter(logging.Formatter):
-    '''
+    """
     Pretty colors for terminal
-    '''
+    """
 
     color_mapping = {
         "DEBUG": 242,  # grey

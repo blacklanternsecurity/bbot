@@ -44,7 +44,7 @@ class Event:
             )
 
         if module is None:
-            module = 'module'
+            module = "module"
         self.module = str(module)
 
         self.source = None
