@@ -1,5 +1,4 @@
 from bbot.core.event import make_event
-from bbot.core.target import ScanTarget
 
 
 def test_events():

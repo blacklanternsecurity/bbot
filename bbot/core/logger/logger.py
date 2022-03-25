@@ -7,8 +7,6 @@ from contextlib import suppress
 from multiprocessing import Queue
 from logging.handlers import QueueHandler, QueueListener
 
-from bbot import config
-
 
 log_dir = Path.home() / ".bbot"
 log_dir.mkdir(parents=True, exist_ok=True)
@@ -136,14 +134,6 @@ def log_worker_setup(logging_queue):
 
 
 def log_listener_setup(logging_queue):
-
-    debug = any(
-        [
-            config.get(x, False) in [True, None]
-            for x in ["verbose", "debug", "-v", "--verbose", "--debug"]
-        ]
-    )
-    log_level = logging.DEBUG if debug else logging.INFO
 
     # Log to stderr
     stderr_handler = logging.StreamHandler(sys.stderr)

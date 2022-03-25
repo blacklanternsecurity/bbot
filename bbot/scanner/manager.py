@@ -2,6 +2,7 @@ import json
 import queue
 import logging
 from time import sleep
+from contextlib import suppress
 
 log = logging.getLogger("bbot.scanner.manager")
 

@@ -4,7 +4,7 @@ from contextlib import suppress
 from urllib.parse import urlparse
 
 from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
-from bbot.core.helpers import sha1, is_domain, is_subdomain, smart_decode, host_in_host
+from bbot.core.helpers import sha1, is_domain, smart_decode
 
 log = logging.getLogger("bbot.core.event.helpers")
 
