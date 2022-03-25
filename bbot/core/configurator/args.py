@@ -1,4 +1,3 @@
-import sys
 import argparse
 from omegaconf import OmegaConf
 from contextlib import suppress

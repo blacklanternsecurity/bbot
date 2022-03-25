@@ -1,4 +1,3 @@
-import os
 import psutil
 import signal
 import logging
@@ -6,9 +5,9 @@ import ipaddress
 import wordninja
 from contextlib import suppress
 import tldextract as _tldextract
+from urllib.parse import urlparse
 from itertools import combinations
 from hashlib import sha1 as hashlib_sha1
-from urllib.parse import urlparse, urlunparse
 
 from .regexes import word_regexes, event_type_regexes
 
