@@ -17,8 +17,13 @@ poetry run bbot -m naabu httpx nuclei -t evilcorp.com 1.2.3.4/28 4.3.2.1
 ~~~
 
 ## Run tests
-~~~
-$ poetry run pytest
+~~~bash
+# test
+poetry run pytest
+# format
+poetry run black
+# lint
+poetry run flake8 --select F --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
 ~~~
 
 ## Usage
