@@ -1,5 +1,6 @@
 import logging
 import requests
+from time import sleep
 from requests.exceptions import RequestException
 
 log = logging.getLogger("bbot.core.helpers.web")
@@ -23,7 +24,6 @@ def request(self, *args, **kwargs):
         args = []
 
     url = kwargs.get("url", "")
-    method = kwargs.get("method", "GET")
     retries = kwargs.pop("retries", 0)
     session = kwargs.pop("session", None)
 

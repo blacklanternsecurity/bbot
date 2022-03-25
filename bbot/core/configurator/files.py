@@ -9,7 +9,7 @@ secrets_filename = root_dir / "secrets.yaml"
 def _get_config(filename):
     try:
         return OmegaConf.load(str(filename))
-    except Exception as e:
+    except Exception:
         return OmegaConf.create()
 
 

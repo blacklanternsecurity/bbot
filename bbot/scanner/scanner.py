@@ -44,10 +44,12 @@ class Scanner:
                 try:
                     self.modules[module_name] = module_class(self)
                     self.info(f'Loaded module "{module_name}"')
-                except Exception as e:
+                except Exception:
                     import traceback
 
-                    self.error(f"Failed to load module {module_class}\n{e}")
+                    self.error(
+                        f"Failed to load module {module_class}\n{traceback.format_exc()}"
+                    )
             else:
                 self.error(f'Failed to load unknown module "{module_name}"')
         self.modules = OrderedDict(
@@ -70,7 +72,7 @@ class Scanner:
             for module_name, module in self.modules.items():
                 try:
                     module.setup()
-                except Exception as e:
+                except Exception:
                     module.set_error_state()
                     import traceback
 
@@ -98,7 +100,7 @@ class Scanner:
             self.stop()
             failed = False
 
-        except Exception as e:
+        except Exception:
             import traceback
 
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")

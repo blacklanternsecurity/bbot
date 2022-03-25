@@ -153,8 +153,6 @@ class Event:
             return True
         # if hosts match
         if self.host and other.host:
-            self_host = str(self.host)
-            other_host = str(other.host)
             if self.host == other.host:
                 return True
             # hostnames and IPs
