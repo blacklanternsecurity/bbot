@@ -2,7 +2,7 @@ import logging
 
 from .helpers import *
 from bbot.core.errors import *
-from bbot.core.helpers import extract_words, tldextract, make_host, host_in_host
+from bbot.core.helpers import extract_words, tldextract, make_host, host_in_host, is_domain, is_subdomain
 
 
 log = logging.getLogger("bbot.core.event")
