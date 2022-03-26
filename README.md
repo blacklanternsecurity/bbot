@@ -54,6 +54,7 @@ if not self.helpers.is_domain(event.data):
 # Access module config
 if not self.config.api_key:
     self.error(f"No API key specified for module.{self.name}!")
+    self.set_error_state()
 
 # Download a file
 filename = self.helpers.download(self.config.get("wordlist"), cache_hrs=720)

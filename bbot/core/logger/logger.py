@@ -167,11 +167,11 @@ def log_listener_setup(logging_queue):
 
     # Set log format
     debug_format = logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(filename)s:%(lineno)s : %(message)s"
+        "%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s"
     )
     debug_handler.setFormatter(debug_format)
     error_handler.setFormatter(debug_format)
-    stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(message)s"))
+    stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
     stdout_handler.setFormatter(logging.Formatter("%(message)s"))
 
     handlers = [stderr_handler, stdout_handler, debug_handler, error_handler]

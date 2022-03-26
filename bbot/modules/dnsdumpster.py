@@ -28,10 +28,12 @@ class dnsdumpster(BaseModule):
         # first, get the CSRF tokens
         url = "https://dnsdumpster.com"
         res1 = self.helpers.request(url)
-        if res1.status_code not in [200]:
-            self.error(f'Bad response code "{res1.status_code}" from DNSDumpster')
+        status_code = getattr(res1, "status_code", 0)
+        if status_code not in [200]:
+            self.error(f'Bad response code "{status_code}" from DNSDumpster')
+            return ret
         else:
-            self.debug(f'Valid response code "{res1.status_code}" from DNSDumpster')
+            self.debug(f'Valid response code "{status_code}" from DNSDumpster')
         html = BeautifulSoup(res1.content, features="lxml")
         csrftoken = None
         csrfmiddlewaretoken = None
@@ -71,8 +73,9 @@ class dnsdumpster(BaseModule):
                 "referer": "https://dnsdumpster.com/",
             },
         )
-        if res2.status_code not in [200]:
-            self.error(f'Bad response code "{res2.status_code}" from DNSDumpster')
+        status_code = getattr(res2, "status_code", 0)
+        if status_code not in [200]:
+            self.error(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
 
         html = BeautifulSoup(res2.content, features="lxml")
