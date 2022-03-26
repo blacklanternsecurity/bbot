@@ -12,7 +12,7 @@ from .misc import sha1
 log = logging.getLogger("bbot.core.helpers.web")
 
 cache_dir = Path.home() / ".bbot" / "cache"
-cache_dir.mkdir(exist_ok=True)
+cache_dir.mkdir(parents=True, exist_ok=True)
 
 
 def download(self, url, **kwargs):
