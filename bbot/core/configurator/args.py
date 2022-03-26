@@ -14,14 +14,6 @@ class DummyArgumentParser(argparse.ArgumentParser):
 parser = argparse.ArgumentParser(description="Bighuge BLS OSINT Tool")
 dummy_parser = DummyArgumentParser(description="Bighuge BLS OSINT Tool")
 for p in (parser, dummy_parser):
-    p.add_argument(
-        "-c",
-        "--configuration",
-        nargs="*",
-        help="additional configuration options in key=value format",
-    )
-    p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
-    p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
     p.add_argument("-t", "--targets", nargs="+", default=[], help="Scan target")
     p.add_argument(
         "-m",
@@ -31,6 +23,16 @@ for p in (parser, dummy_parser):
         default=[],
         help='Modules (specify keyword "all" to enable all modules)',
     )
+    p.add_argument(
+        "-c",
+        "--configuration",
+        nargs="*",
+        help="additional configuration options in key=value format",
+    )
+    p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
+    p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
+    p.add_argument("--show-config", action="store_true", help="Display current config")
+
 
 cli_options = None
 with suppress(Exception):

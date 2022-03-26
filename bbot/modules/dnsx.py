@@ -9,7 +9,6 @@ class dnsx(BaseModule):
     watched_events = ["DOMAIN"]
     produced_events = ["SUBDOMAIN"]
     options = {
-        # "wordlist": "https://wordlists-cdn.assetnote.io/data/automated/httparchive_subdomains_2022_02_28.txt"
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt"
     }
     options_desc = {"wordlist": "Subdomain wordlist URL"}
