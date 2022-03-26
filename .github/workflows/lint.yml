@@ -10,4 +10,4 @@ jobs:
       - uses: psf/black@stable
       - name: flake8
         run: |
-          poetry run flake8 --select F --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
+          flake8 --select F --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
