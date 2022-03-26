@@ -66,6 +66,3 @@ class Nmap(BaseModule):
                         self.emit_event(
                             f"{host.address}:{port}", "OPEN_TCP_PORT", source_event
                         )
-
-    def finish(self):
-        self.success("Nmap finished")

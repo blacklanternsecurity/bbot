@@ -37,7 +37,10 @@ class Event:
 
     _dummy = False
 
-    def __init__(self, data, event_type=None, source=None, module=None):
+    def __init__(self, data, event_type=None, source=None, module=None, tags=None):
+
+        if tags is None:
+            tags = set()
 
         if event_type is None:
             event_type = get_event_type(data)
@@ -63,6 +66,7 @@ class Event:
             raise ValidationError(f"Must specify event source")
 
         self.type = str(event_type).strip().upper()
+        self.tags = set(tags)
         self.data = data
         for sanitizer in event_sanitizers.get(self.type, []):
             self.data = sanitizer(self.data)
