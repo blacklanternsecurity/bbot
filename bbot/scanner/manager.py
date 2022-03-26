@@ -11,7 +11,8 @@ class EventManager:
     def __init__(self, scan):
         self.scan = scan
         self.event_queue = queue.Queue()
-        self.event_hashes = set()
+        # tracks processed events
+        self.events_processed = set()
         self.word_cloud = dict()
 
     def init_events(self):
@@ -29,20 +30,23 @@ class EventManager:
         """
         Queue event with manager
         """
-        if hash(event) in self.event_hashes:
-            self.scan.verbose(f"Duplicate event: {event}")
-        else:
-            self.absorb_words(event)
-            self.event_hashes.add(hash(event))
-            self.event_queue.put(event)
+        self.event_queue.put(event)
         log.stdout(json.dumps(dict(event)))
 
     def distribute_event(self, event):
         """
         Queue event with modules
         """
+        dup = False
+        event_hash = hash(event)
+        if event_hash in self.events_processed:
+            self.scan.verbose(f"Duplicate event: {event}")
+            dup = True
+        else:
+            self.absorb_words(event)
+            self.events_processed.add(event_hash)
         for mod in self.scan.modules.values():
-            if event.type in mod.watched_events:
+            if event.type in mod.watched_events and (not dup or mod.accept_dupes):
                 mod.queue_event(event)
 
     def loop_until_finished(self):
