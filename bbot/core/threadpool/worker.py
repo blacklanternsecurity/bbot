@@ -32,12 +32,11 @@ class ThreadPoolWorker(threading.Thread):
                     try:
                         result = callback(*args, **kwargs)
                         ran = True
-                    except Exception:
+                    except Exception as e:
                         import traceback
 
-                        self.log.error(
-                            f"Error in thread worker {self.name}:\n{traceback.format_exc()}"
-                        )
+                        self.log.error(f"Error in thread worker {self.name}: {e}")
+                        self.log.debug(traceback.format_exc())
                         break
                     if save_result:
                         self.pool.outputQueue(self.task_name).put(result)
