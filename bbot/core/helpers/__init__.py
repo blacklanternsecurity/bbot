@@ -8,7 +8,7 @@ log = logging.getLogger("bbot.core.helpers")
 class Helpers:
 
     from . import misc
-    from .web import request
+    from .web import request, download
 
     def __init__(self, config):
         self.config = config

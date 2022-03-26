@@ -1,15 +1,73 @@
+import os
+import time
 import logging
 import requests
 from time import sleep
+from pathlib import Path
+from requests_cache import CachedSession
 from requests.exceptions import RequestException
 
+from .misc import sha1
+
 log = logging.getLogger("bbot.core.helpers.web")
+
+cache_dir = Path.home() / ".bbot" / "cache"
+cache_dir.mkdir(exist_ok=True)
+
+
+def download(self, url, **kwargs):
+    """
+    Downloads file, returns full path of filename
+
+    Caching supported via "cache_hrs"
+    """
+    cache_hrs = float(kwargs.pop("cache_hrs", -1))
+    filename = sha1(url).hexdigest()
+    log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
+    cache_file = cache_dir / filename
+    retrieve = True
+    if cache_file.is_file():
+        (m, i, d, n, u, g, sz, atime, mtime, ctime) = os.stat(cache_file)
+        valid = mtime > time.time() - cache_hrs * 3600
+        if not valid:
+            log.debug(f"Deleting expired cache content for {url}")
+            cache_file.unlink()
+        elif cache_hrs != -1 and sz > 0:
+            log.debug(f"Using cached content for {url}")
+            retrieve = False
+
+    if retrieve:
+        with requests.request(method="GET", url=url, stream=True, **kwargs) as response:
+            content = getattr(response, "content", b"")
+            status_code = getattr(response, "status_code", 0)
+            log.debug(f"Download result: HTTP {status_code}, Size: {len(content)}")
+            if status_code != 0:
+                response.raise_for_status()
+                with open(cache_file, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+
+    return str(cache_file.resolve())
 
 
 def request(self, *args, **kwargs):
     """
     Multipurpose function for making web requests
+
+    Supports custom sessions
+        session Request.Session()
+
+    To cache response content, use cache_for
+        cache_for (Union[None, int, float, str, datetime, timedelta]) – Time after which cached items will expire
     """
+
+    cache_for = kwargs.pop("cache_for", None)
+    if cache_for is not None:
+        log.debug(f"Caching HTTP session with expire_after={cache_for}")
+        session = CachedSession(expire_after=cache_for)
+
+    if kwargs.pop("session", None):
+        session = kwargs.pop("session", None)
 
     http_timeout = self.config.get("http_timeout", 10)
     user_agent = self.config.get(
@@ -25,7 +83,6 @@ def request(self, *args, **kwargs):
 
     url = kwargs.get("url", "")
     retries = kwargs.pop("retries", 0)
-    session = kwargs.pop("session", None)
 
     if not args and "method" not in kwargs:
         kwargs["method"] = "GET"

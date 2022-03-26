@@ -8,12 +8,20 @@ class dnsx(BaseModule):
 
     watched_events = ["DOMAIN"]
     produced_events = ["SUBDOMAIN"]
+    options = {
+        # "wordlist": "https://wordlists-cdn.assetnote.io/data/automated/httparchive_subdomains_2022_02_28.txt"
+        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt"
+    }
+    options_desc = {"wordlist": "Subdomain wordlist URL"}
     max_threads = 5
     batch_size = 10
 
     def handle_batch(self, *events):
 
-        subdomains = ["www", "mail", "pentest3", "redirector4"]
+        subdomain_file = self.helpers.download(
+            self.config.get("wordlist"), cache_hrs=720
+        )
+
         command = [
             "dnsx",
             "-silent",
@@ -21,7 +29,7 @@ class dnsx(BaseModule):
             "-d",
             ",".join([str(e.data) for e in events]),
             "-w",
-            ",".join(subdomains),
+            subdomain_file,
         ]
         self.debug(" ".join(command))
         proc = subprocess.run(
