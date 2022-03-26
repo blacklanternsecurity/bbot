@@ -13,6 +13,8 @@ class BaseModule:
     watched_events = []
     # Event types to produce
     produced_events = []
+    # Whether to accept duplicate events
+    accept_dupes = False
     # Options, e.g. {"api_key": ""}
     options = {}
     # Options description, e.g. {"api_key": "API Key"}
@@ -137,7 +139,7 @@ class BaseModule:
                     except queue.Empty:
                         sleep(0.3333)
                         continue
-                    self.debug(f"{self.name}._worker() got {e.__repr__()}")
+                    self.debug(f"{self.name}._worker() got {e}")
                     # if we receive the special "FINISHED" event
                     if type(e) == str and e == "FINISHED":
                         self._handle_batch(force=True)
