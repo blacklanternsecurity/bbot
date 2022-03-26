@@ -56,7 +56,7 @@ if not self.config.api_key:
     self.error(f"No API key specified for module.{self.name}!")
 
 # Download a file
-filename = self.helpers.download(self.config.get('wordlist'), cache_hrs=720)
+filename = self.helpers.download(self.config.get("wordlist"), cache_hrs=720)
 
 # Make a web request
 response = self.helpers.request("https://evilcorp.com")
