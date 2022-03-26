@@ -41,7 +41,7 @@ options:
 ~~~
 
 ## Writing modules
-From within a module, you can easily access scan information and helper functions:
+Modules have easy access to scan information and helper functions:
 ~~~python
 # Access scan target:
 if event in self.scan.target:
@@ -50,6 +50,13 @@ if event in self.scan.target:
 # Use a helper function
 if not self.helpers.is_domain(event.data):
     self.warning(f"{event} is not a domain.")
+
+# Access module config
+if not self.config.api_key:
+    self.error(f"No API key specified for module.{self.name}!")
+
+# Download a file
+filename = self.helpers.download(self.config.get('wordlist'), cache_hrs=720)
 
 # Make a web request
 response = self.helpers.request("https://evilcorp.com")
