@@ -115,6 +115,17 @@ class BaseModule:
         """
         return
 
+    def _setup(self):
+
+        try:
+            self.setup()
+        except Exception:
+            self.set_error_state()
+            import traceback
+
+            self.error(f"Failed to set up module {self.name}")
+            self.debug(traceback.format_exc())
+
     def _worker(self):
         # keep track of how long we've been running
         iterations = 0
@@ -228,7 +239,7 @@ class BaseModule:
     @property
     def log(self):
         if self._log is None:
-            self._log = logging.getLogger(f"bbot.agent.modules.{self.name}")
+            self._log = logging.getLogger(f"bbot.modules.{self.name}")
         return self._log
 
     def debug(self, *args, **kwargs):

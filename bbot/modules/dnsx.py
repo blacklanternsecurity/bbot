@@ -15,12 +15,18 @@ class dnsx(BaseModule):
     options_desc = {"wordlist": "Subdomain wordlist URL"}
     max_threads = 5
     batch_size = 10
+    subdomain_file = None
 
-    def handle_batch(self, *events):
+    def setup(self):
 
-        subdomain_file = self.helpers.download(
+        self.subdomain_file = self.helpers.download(
             self.config.get("wordlist"), cache_hrs=720
         )
+        if not self.subdomain_file:
+            self.error("Failed to download wordlist")
+            self.set_error_state()
+
+    def handle_batch(self, *events):
 
         command = [
             "dnsx",
@@ -29,7 +35,7 @@ class dnsx(BaseModule):
             "-d",
             ",".join([str(e.data) for e in events]),
             "-w",
-            subdomain_file,
+            self.subdomain_file,
         ]
         self.debug(" ".join(command))
         proc = subprocess.run(

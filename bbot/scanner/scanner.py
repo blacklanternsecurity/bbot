@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 from contextlib import suppress
 from collections import OrderedDict
 
@@ -70,15 +71,11 @@ class Scanner:
 
             self.info(f"Setting up modules")
             for module_name, module in self.modules.items():
-                try:
-                    module.setup()
-                except Exception:
-                    module.set_error_state()
-                    import traceback
+                self.shared_thread_pool.submit(module._setup, task_name="module_setup")
+            while self.shared_thread_pool.num_total_tasks("module_setup") > 0:
+                sleep(0.1)
+            self.info(f"Finished setting up modules")
 
-                    self.error(
-                        f"Failed to setup module {module_name}:\n{traceback.format_exc()}"
-                    )
             if not self.modules:
                 self.error(f"No modules loaded")
                 self._status = "ERROR_FAILED"

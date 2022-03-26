@@ -11,6 +11,10 @@ from .misc import sha1
 
 log = logging.getLogger("bbot.core.helpers.web")
 
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 cache_dir = Path.home() / ".bbot" / "cache"
 cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -37,15 +41,21 @@ def download(self, url, **kwargs):
             retrieve = False
 
     if retrieve:
-        with requests.request(method="GET", url=url, stream=True, **kwargs) as response:
-            content = getattr(response, "content", b"")
-            status_code = getattr(response, "status_code", 0)
-            log.debug(f"Download result: HTTP {status_code}, Size: {len(content)}")
-            if status_code != 0:
-                response.raise_for_status()
-                with open(cache_file, "wb") as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
+        method = kwargs.get("method", "GET")
+        try:
+            with request(
+                self, method=method, url=url, stream=True, raise_error=True, **kwargs
+            ) as response:
+                content = getattr(response, "content", b"")
+                status_code = getattr(response, "status_code", 0)
+                log.debug(f"Download result: HTTP {status_code}, Size: {len(content)}")
+                if status_code != 0:
+                    response.raise_for_status()
+                    with open(cache_file, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+        except RequestException:
+            return
 
     return str(cache_file.resolve())
 
@@ -57,19 +67,21 @@ def request(self, *args, **kwargs):
     Supports custom sessions
         session Request.Session()
 
-    To cache response content, use cache_for
-        cache_for (Union[None, int, float, str, datetime, timedelta]) – Time after which cached items will expire
+    Arguments
+        cache_for (Union[None, int, float, str, datetime, timedelta]): Cache response for <int> seconds
+        raise_error (bool): Whether to raise exceptions (default: False)
     """
+    raise_error = kwargs.pop("raise_error", False)
 
     cache_for = kwargs.pop("cache_for", None)
     if cache_for is not None:
         log.debug(f"Caching HTTP session with expire_after={cache_for}")
         session = CachedSession(expire_after=cache_for)
 
-    if kwargs.pop("session", None):
+    if kwargs.pop("session", None) or not cache_for:
         session = kwargs.pop("session", None)
 
-    http_timeout = self.config.get("http_timeout", 10)
+    http_timeout = self.config.get("http_timeout", 20)
     user_agent = self.config.get(
         "user_agent",
         "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
@@ -119,4 +131,5 @@ def request(self, *args, **kwargs):
                 log.warning(f'Error requesting "{url}", retrying...')
                 sleep(2)
             else:
-                return e
+                if raise_error:
+                    raise e

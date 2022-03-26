@@ -102,7 +102,7 @@ class ThreadPool:
             sleep(0.01)
             continue
         self.log.debug(
-            f"Submitting function '{callback.__name__}' from module '{task_name}' to thread pool '{self.name}'"
+            f'Submitting function "{callback.__name__}" from module "{task_name}"'
         )
         self.input_queue(task_name).put((callback, args, kwargs))
 
