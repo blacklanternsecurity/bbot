@@ -29,7 +29,8 @@ def main():
         from . import config
         from omegaconf import OmegaConf
 
-        log.info(f"Config:\n{OmegaConf.to_yaml(config)}")
+        if options.show_config:
+            log.stdout(f"{OmegaConf.to_yaml(config)}")
 
         # scan test
         from bbot.scanner import Scanner
