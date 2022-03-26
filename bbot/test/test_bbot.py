@@ -42,6 +42,7 @@ def test_events():
     assert "cafe::babe" not in netv6_event
     assert emoji_event not in ipv4_event
     assert emoji_event not in netv6_event
+    assert netv6_event not in emoji_event
 
     # hostname tests
     assert domain_event.host == "evilcorp.com"
@@ -57,6 +58,7 @@ def test_events():
     assert not ipv4_event in domain_event
     assert not netv6_event in domain_event
     assert emoji_event not in domain_event
+    assert domain_event not in emoji_event
 
     # url tests
     assert url_event.host == "url.www.evilcorp.com"
@@ -70,6 +72,7 @@ def test_events():
     assert ipv6_url_event in netv6_event
     assert emoji_event not in url_event
     assert emoji_event not in ipv6_url_event
+    assert url_event not in emoji_event
 
     # open port tests
     assert open_port_event in domain_event
@@ -83,3 +86,4 @@ def test_events():
     assert ipv6_open_port_event in netv6_event
     assert "cafe::babe" not in ipv6_open_port_event
     assert emoji_event not in ipv6_open_port_event
+    assert ipv6_open_port_event not in emoji_event
