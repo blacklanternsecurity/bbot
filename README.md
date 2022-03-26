@@ -18,12 +18,7 @@ poetry run bbot -m naabu httpx nuclei -t evilcorp.com 1.2.3.4/28 4.3.2.1
 
 ## Run tests
 ~~~bash
-# test
-poetry run pytest
-# format
-poetry run black
-# lint
-poetry run flake8 --select F --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
+poetry run bbot/test/run_tests.sh
 ~~~
 
 ## Usage
@@ -50,11 +45,11 @@ From within a module, you can easily access scan information and helper function
 ~~~python
 # Access scan target:
 if event in self.scan.target:
-    self.info(f"Event {event} is part of target!")
+    self.info(f"{event} is part of target!")
 
 # Use a helper function
 if not self.helpers.is_domain(event.data):
-    self.warning(f"Event {event} is not a domain.")
+    self.warning(f"{event} is not a domain.")
 
 # Make a web request
 response = self.helpers.request("https://evilcorp.com")
