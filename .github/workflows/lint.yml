@@ -8,6 +8,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
+      - name: Install Python 3
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Install dependencies
+        run: |
+          pip install flake8
       - name: flake8
         run: |
           flake8 --select F --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
