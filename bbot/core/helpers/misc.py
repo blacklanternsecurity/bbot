@@ -28,6 +28,15 @@ def is_subdomain(d):
     return False
 
 
+def is_ip(d):
+    try:
+        ipaddress.ip_address(str(d))
+        return True
+    except Exception:
+        pass
+    return False
+
+
 def is_email(d):
     if event_type_regexes["EMAIL_ADDRESS"].match(str(d)):
         return True
