@@ -61,4 +61,10 @@ filename = self.helpers.download(self.config.get("wordlist"), cache_hrs=720)
 
 # Make a web request
 response = self.helpers.request("https://evilcorp.com")
+
+# Make a DNS query
+mx_records = self.helpers.resolve("evilcorp.com", type="mx")
+
+# Reverse resolve IP
+ptrs = self.helpers.resolve("8.8.8.8")
 ~~~
