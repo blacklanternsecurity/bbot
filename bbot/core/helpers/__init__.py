@@ -1,15 +1,15 @@
 import logging
+from . import dns
+from . import misc
 from .misc import *
 from . import regexes
+from .web import request, download
+
 
 log = logging.getLogger("bbot.core.helpers")
 
 
 class Helpers:
-
-    from . import misc
-    from .web import request, download
-
     def __init__(self, config):
         self.config = config
 
@@ -17,4 +17,8 @@ class Helpers:
         """
         Allow static functions from .misc to be accessed via Helpers class
         """
-        return getattr(misc, attr)
+        method = getattr(misc, attr, None)
+        if method:
+            return method
+        else:
+            return getattr(dns, attr)

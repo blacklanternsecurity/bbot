@@ -175,6 +175,8 @@ class Event:
             v = getattr(self, i, "")
             if v:
                 yield (i, v)
+        if self.tags:
+            yield ("tags", list(self.tags))
 
     def __eq__(self, other):
         return hash(self) == hash(other)

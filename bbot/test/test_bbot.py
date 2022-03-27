@@ -1,4 +1,10 @@
+import logging
+import ipaddress
+
+from bbot.scanner import Scanner
 from bbot.core.event import make_event
+
+log = logging.getLogger(f"bbot.test")
 
 
 def test_events():
@@ -87,3 +93,30 @@ def test_events():
     assert "cafe::babe" not in ipv6_open_port_event
     assert emoji_event not in ipv6_open_port_event
     assert ipv6_open_port_event not in emoji_event
+
+
+def test_helpers():
+
+    scanner = Scanner("test", modules=[], config={})
+
+    ### MISC ###
+    assert scanner.helpers.is_domain("evilcorp.co.uk")
+    assert not scanner.helpers.is_domain("www.evilcorp.co.uk")
+    assert scanner.helpers.is_subdomain("www.evilcorp.co.uk")
+    assert not scanner.helpers.is_subdomain("evilcorp.co.uk")
+    assert scanner.helpers.is_ip("127.0.0.1")
+    assert not scanner.helpers.is_ip("evilcorp.com")
+
+    ### DNS ###
+    assert all(
+        [scanner.helpers.is_ip(i) for i in scanner.helpers.resolve("scanme.nmap.org")]
+    )
+    assert "dns.google." in scanner.helpers.resolve("8.8.8.8")
+    assert any(
+        [
+            scanner.helpers.is_subdomain(h)
+            for h in scanner.helpers.resolve("google.com", type="mx")
+        ]
+    )
+    v6_ips = scanner.helpers.resolve("www.google.com", type="AAAA")
+    assert all([i.version == 6 for i in [ipaddress.ip_address(_) for _ in v6_ips]])
