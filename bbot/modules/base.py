@@ -13,6 +13,8 @@ class BaseModule:
     watched_events = []
     # Event types to produce
     produced_events = []
+    # Flags
+    flags = []
     # Whether to accept duplicate events
     accept_dupes = False
     # Options, e.g. {"api_key": ""}

@@ -3,8 +3,8 @@ import ipaddress
 from contextlib import suppress
 from urllib.parse import urlparse
 
-from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
 from bbot.core.helpers import sha1, is_domain, smart_decode
+from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
 
 log = logging.getLogger("bbot.core.event.helpers")
 
