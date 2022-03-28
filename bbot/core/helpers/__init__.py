@@ -3,13 +3,15 @@ from . import dns
 from . import misc
 from .misc import *
 from . import regexes
-from .web import request, download
 
 
 log = logging.getLogger("bbot.core.helpers")
 
 
 class Helpers:
+
+    from .web import request, download
+
     def __init__(self, config):
         self.config = config
 

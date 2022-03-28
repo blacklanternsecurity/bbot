@@ -19,7 +19,7 @@ class ScanTarget:
                 for k, v in t._events.items():
                     self._events[k].update(v)
             else:
-                event = make_event(t, source=self.root_event)
+                event = make_event(t, source=self.root_event, tags=["target"])
                 try:
                     self._events[event.host].add(event)
                 except KeyError:
