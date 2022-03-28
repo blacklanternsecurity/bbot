@@ -31,7 +31,7 @@ event_type_regexes = OrderedDict(
             ),
             (
                 "HOSTNAME",
-                r"^(([A-Z0-9]|[A-Z0-9][A-Z0-9\-]*[A-Z0-9])\.)+([A-Z0-9]|[A-Z0-9][A-Z0-9\-]*[A-Z0-9])$",
+                r"^(([A-Z0-9_]|[A-Z0-9_][A-Z0-9\-_]*[A-Z0-9])\.)+([A-Z0-9_]|[A-Z0-9_][A-Z0-9\-_]*[A-Z0-9])$",
             ),
             (
                 "OPEN_TCP_PORT",
