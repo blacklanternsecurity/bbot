@@ -97,26 +97,26 @@ def test_events():
 
 def test_helpers():
 
-    scanner = Scanner("test", modules=[], config={})
+    scan = Scanner("test", modules=[], config={})
+    helpers = scan.helpers
 
     ### MISC ###
-    assert scanner.helpers.is_domain("evilcorp.co.uk")
-    assert not scanner.helpers.is_domain("www.evilcorp.co.uk")
-    assert scanner.helpers.is_subdomain("www.evilcorp.co.uk")
-    assert not scanner.helpers.is_subdomain("evilcorp.co.uk")
-    assert scanner.helpers.is_ip("127.0.0.1")
-    assert not scanner.helpers.is_ip("evilcorp.com")
+    assert helpers.is_domain("evilcorp.co.uk")
+    assert not helpers.is_domain("www.evilcorp.co.uk")
+    assert helpers.is_subdomain("www.evilcorp.co.uk")
+    assert not helpers.is_subdomain("evilcorp.co.uk")
+    assert helpers.is_ip("127.0.0.1")
+    assert not helpers.is_ip("evilcorp.com")
 
     ### DNS ###
-    assert all(
-        [scanner.helpers.is_ip(i) for i in scanner.helpers.resolve("scanme.nmap.org")]
-    )
-    assert "dns.google." in scanner.helpers.resolve("8.8.8.8")
+    assert all([helpers.is_ip(i) for i in helpers.resolve("scanme.nmap.org")])
+    assert "dns.google." in helpers.resolve("8.8.8.8")
     assert any(
-        [
-            scanner.helpers.is_subdomain(h)
-            for h in scanner.helpers.resolve("google.com", type="mx")
-        ]
+        [helpers.is_subdomain(h) for h in helpers.resolve("google.com", type="mx")]
     )
-    v6_ips = scanner.helpers.resolve("www.google.com", type="AAAA")
+    v6_ips = helpers.resolve("www.google.com", type="AAAA")
     assert all([i.version == 6 for i in [ipaddress.ip_address(_) for _ in v6_ips]])
+
+    assert helpers.is_wildcard("blacklanternsecurity.github.io")
+    assert "github.io" in scan.helpers.dns.wildcards
+    assert not helpers.is_wildcard("mail.google.com")

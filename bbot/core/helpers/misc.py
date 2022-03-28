@@ -1,5 +1,7 @@
 import psutil
+import random
 import signal
+import string
 import logging
 import ipaddress
 import wordninja
@@ -26,6 +28,30 @@ def is_subdomain(d):
     if extracted.domain and extracted.subdomain:
         return True
     return False
+
+
+def domain_parents(d):
+    """
+    Returns all parents of a subdomain
+        test.www.evilcorp.com --> [www.evilcorp.com, evilcorp.com]
+    """
+    parent = str(d)
+    while 1:
+        parent = parent_domain(parent)
+        if is_subdomain(parent):
+            yield parent
+            continue
+        elif is_domain(parent):
+            yield parent
+        break
+
+
+def parent_domain(d):
+    split_domain = str(d).split(".")
+    if len(split_domain) == 1:
+        return "."
+    else:
+        return ".".join(split_domain[1:])
 
 
 def is_ip(d):
@@ -70,6 +96,7 @@ def host_in_host(host1, host2):
     if not host1 or not host2:
         return False
 
+    # check if hosts are IP types
     host1_ip_type = hasattr(host1, "is_multicast")
     host2_ip_type = hasattr(host2, "is_multicast")
     # if both hosts are IP types
@@ -110,6 +137,13 @@ def smart_decode(data):
 
 def tldextract(data):
     return _tldextract.extract(smart_decode(data))
+
+
+rand_pool = string.ascii_lowercase + string.digits
+
+
+def rand_string(length=10):
+    return "".join([random.choice(rand_pool) for _ in range(int(length))])
 
 
 def extract_words(data, max_length=100):

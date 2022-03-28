@@ -1,5 +1,6 @@
 import logging
 
+from bbot.core.errors import *
 from bbot.core.event import make_event
 from bbot.core.helpers import sha1, host_in_host
 from bbot.core.event.helpers import make_event_id
@@ -45,7 +46,10 @@ class ScanTarget:
             return all([e in self for e in other.events])
         else:
             # otherwise, make it an event
-            other = make_event(other, dummy=True)
+            try:
+                other = make_event(other, dummy=True)
+            except ValidationError:
+                return False
             if other.host:
                 # check if the event's host matches any of ours
                 for host in self._events:
