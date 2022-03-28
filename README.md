@@ -24,20 +24,22 @@ poetry run bbot/test/run_tests.sh
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-c [CONFIGURATION ...]] [-v] [-d] [-t TARGETS [TARGETS ...]] [-m {all} [{all} ...]]
+usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m {nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} [{nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} ...]] [-c [CONFIGURATION ...]] [-v] [-d]
+            [--show-config]
 
 Bighuge BLS OSINT Tool
 
 options:
   -h, --help            show this help message and exit
+  -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
+                        Scan target
+  -m {nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} [{nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} ...], --modules {nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} [{nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} ...]
+                        Modules (specify keyword "all" to enable all modules)
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
                         additional configuration options in key=value format
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
-  -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
-                        Scan target
-  -m {all} [{all} ...], --modules {all} [{all} ...]
-                        Modules (specify keyword "all" to enable all modules)
+  --show-config         Display current config
 ~~~
 
 ## Writing modules
