@@ -1,8 +1,9 @@
 import logging
-from . import dns
+
 from . import misc
 from .misc import *
 from . import regexes
+from .dns import DNSHelper
 
 
 log = logging.getLogger("bbot.core.helpers")
@@ -14,6 +15,7 @@ class Helpers:
 
     def __init__(self, config):
         self.config = config
+        self.dns = DNSHelper(config)
 
     def __getattr__(self, attr):
         """
@@ -23,4 +25,4 @@ class Helpers:
         if method:
             return method
         else:
-            return getattr(dns, attr)
+            return getattr(self.dns, attr)
