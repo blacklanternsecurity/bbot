@@ -73,6 +73,12 @@ class BaseModule:
     def emit_event(self, *args, **kwargs):
         kwargs["module"] = self.name
         event = make_event(*args, **kwargs)
+
+        # special DNS validation
+        if event.type in ("DOMAIN", "SUBDOMAIN"):
+            if self.helpers.is_wildcard(event.data):
+                event.tags.add("wildcard")
+
         self.log.debug(f'module "{self.name}" raised {event}')
         self.scan.manager.queue_event(event)
 

@@ -37,7 +37,9 @@ class Event:
 
     _dummy = False
 
-    def __init__(self, data, event_type=None, source=None, module=None, tags=None):
+    def __init__(
+        self, data, event_type=None, source=None, module=None, tags=None, confidence=100
+    ):
 
         if tags is None:
             tags = set()
@@ -67,6 +69,7 @@ class Event:
 
         self.type = str(event_type).strip().upper()
         self.tags = set(tags)
+        self.confidence = int(confidence)
         self.data = data
         for sanitizer in event_sanitizers.get(self.type, []):
             self.data = sanitizer(self.data)
@@ -80,6 +83,7 @@ class Event:
         self._port = None
         self._words = None
 
+        # hostname validation
         if self.type == "DOMAIN" and is_subdomain(self.data):
             self.type = "SUBDOMAIN"
         elif self.type == "SUBDOMAIN" and is_domain(self.data):
