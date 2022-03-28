@@ -79,7 +79,6 @@ class Event:
         self._host = None
         self._port = None
         self._words = None
-        self._data_obj = None
 
         if self.type == "DOMAIN" and is_subdomain(self.data):
             self.type = "SUBDOMAIN"

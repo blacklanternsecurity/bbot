@@ -19,6 +19,10 @@ def main():
 
     try:
 
+        if len(sys.argv) == 1:
+            parser.print_help()
+            sys.exit(1)
+
         log.info(f'Command: {" ".join(sys.argv)}')
         # note: command line arguments are in bbot/core/configurator/args.py
         options = parser.parse_args()

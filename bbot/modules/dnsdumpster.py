@@ -11,7 +11,7 @@ class dnsdumpster(BaseModule):
 
     def handle_event(self, event):
         # only process targets
-        if not any([event == t for t in self.scan.target]):
+        if not "target" in event.tags:
             return
 
         query = str(event.data).lower()
