@@ -20,6 +20,7 @@ wordninja = "^2.0.0"
 beautifulsoup4 = "^4.10.0"
 requests-cache = "^0.9.3"
 dnspython = "^2.2.1"
+pyOpenSSL = "^22.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
