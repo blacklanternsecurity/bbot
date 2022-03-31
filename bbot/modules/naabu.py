@@ -10,8 +10,7 @@ class naabu(BaseModule):
         "IPV6_ADDRESS",
         "IPV4_RANGE",
         "IPV6_RANGE",
-        "DOMAIN",
-        "SUBDOMAIN",
+        "HOSTNAME",
     ]
     produced_events = ["OPEN_TCP_PORT"]
     max_threads = 5

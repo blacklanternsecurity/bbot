@@ -3,8 +3,8 @@ from .base import BaseModule
 
 class sublist3r(BaseModule):
 
-    watched_events = ["DOMAIN", "SUBDOMAIN"]
-    produced_events = ["SUBDOMAIN"]
+    watched_events = ["HOSTNAME"]
+    produced_events = ["HOSTNAME"]
 
     def handle_event(self, event):
         # only process targets
@@ -22,7 +22,7 @@ class sublist3r(BaseModule):
             if json:
                 for hostname in json:
                     if hostname in self.scan.target and not hostname == event:
-                        self.emit_event(hostname, "SUBDOMAIN", event)
+                        self.emit_event(hostname, "HOSTNAME", event)
                     else:
                         self.debug(f"Invalid subdomain: {hostname}")
         except Exception as e:

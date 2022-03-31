@@ -83,10 +83,11 @@ class Event:
         self._words = None
 
         # hostname validation
-        if self.type == "DOMAIN" and is_subdomain(self.data):
-            self.type = "SUBDOMAIN"
-        elif self.type == "SUBDOMAIN" and is_domain(self.data):
-            self.type = "DOMAIN"
+        if self.type == "HOSTNAME":
+            if is_subdomain(self.data):
+                self.tags.add("subdomain")
+            elif is_domain(self.data):
+                self.tags.add("domain")
 
     @property
     def host(self):
@@ -137,7 +138,7 @@ class Event:
         """
         if self._words is None:
             self._words = set()
-            if self.type in ("DOMAIN", "SUBDOMAIN", "EMAIL_ADDRESS", "URL"):
+            if self.type in ("HOSTNAME", "EMAIL_ADDRESS", "URL"):
                 self._words.update(extract_words(self.host_stem))
         return self._words
 
