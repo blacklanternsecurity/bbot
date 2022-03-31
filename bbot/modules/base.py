@@ -77,12 +77,12 @@ class BaseModule:
         event = make_event(*args, **kwargs)
 
         # special DNS validation
-        if event.type == "HOSTNAME":
+        if event.type == "DNS_NAME":
             resolved = self.helpers.resolve(event.data)
             if not resolved:
                 event.tags.add("unresolved")
-            # if self.helpers.is_wildcard(event.data):
-            #    event.tags.add("wildcard")
+            if self.helpers.is_wildcard(event.data):
+                event.tags.add("wildcard")
 
         self.log.debug(f'module "{self.name}" raised {event}')
         self.scan.manager.queue_event(event)

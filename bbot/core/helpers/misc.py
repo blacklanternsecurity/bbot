@@ -17,7 +17,7 @@ log = logging.getLogger("bbot.core.helpers.misc")
 
 
 def is_hostname(d):
-    r = event_type_regexes["HOSTNAME"]
+    r = event_type_regexes["DNS_NAME"]
     if r.match(d):
         return True
     return False

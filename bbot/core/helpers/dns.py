@@ -2,7 +2,7 @@ import json
 import logging
 import dns.resolver
 
-from .misc import is_ip, domain_parents, rand_string
+from .misc import is_ip, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
@@ -16,6 +16,7 @@ class DNSHelper:
 
         self.parent_helper = parent_helper
         self.wildcards = dict()
+        self._cache = dict()
         self.resolver = dns.resolver.Resolver()
         self._resolver_list = None
 
@@ -135,8 +136,12 @@ class DNSHelper:
 
     def is_wildcard(self, query):
         orig_results = self.resolve(query)
+        parent = parent_domain(query)
         parents = set(domain_parents(query))
+        is_wildcard = False
 
+        if parent in self._cache:
+            return self._cache[parent]
         for parent in parents:
             if parent in self.wildcards:
                 return True
@@ -163,6 +168,7 @@ class DNSHelper:
             and wildcard_ips
             and all([ip in wildcard_ips for ip in orig_results])
         ):
-            return True
+            is_wildcard = True
 
-        return False
+        self._cache[parent] = is_wildcard
+        return is_wildcard

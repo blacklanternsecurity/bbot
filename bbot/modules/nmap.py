@@ -10,7 +10,7 @@ class Nmap(BaseModule):
         "IPV6_ADDRESS",
         "IPV4_RANGE",
         "IPV6_RANGE",
-        "HOSTNAME",
+        "DNS_NAME",
         "OPEN_TCP_PORT",
     ]
     produced_events = ["OPEN_TCP_PORT", "SERVICE"]
@@ -27,7 +27,7 @@ class Nmap(BaseModule):
                 "IPV6_ADDRESS",
                 "IPV4_RANGE",
                 "IPV6_RANGE",
-                "HOSTNAME",
+                "DNS_NAME",
             ]:
                 portscan[event.data] = event
 

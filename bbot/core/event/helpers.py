@@ -23,7 +23,7 @@ def sanitize_open_port(d):
 
 
 event_sanitizers = {
-    "HOSTNAME": [str.strip, str.lower],
+    "DNS_NAME": [str.strip, str.lower],
     "EMAIL_ADDRESS": [str.strip, str.lower],
     "IPV4_ADDRESS": [sanitize_ip_address],
     "IPV6_ADDRESS": [sanitize_ip_address],
@@ -74,7 +74,7 @@ def make_event_id(data, event_type):
     return f"{sha1(data).hexdigest()}:{event_type}"
 
 
-host_types = ("URL", "HOSTNAME", "EMAIL_ADDRESS")
+host_types = ("URL", "DNS_NAME", "EMAIL_ADDRESS")
 
 port_types = ("OPEN_TCP_PORT", "OPEN_UDP_PORT")
 

@@ -30,7 +30,7 @@ event_type_regexes = OrderedDict(
                 r"^([A-Z0-9][\w\-\.\+]{,100})@([A-Z0-9][\w\-\.]{,100})\.([A-Z]{2,8})$",
             ),
             (
-                "HOSTNAME",
+                "DNS_NAME",
                 r"^(([A-Z0-9\-_]+)\.)+([A-Z0-9\-_]+)$",
             ),
             (
