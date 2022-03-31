@@ -16,6 +16,13 @@ from .regexes import word_regexes, event_type_regexes
 log = logging.getLogger("bbot.core.helpers.misc")
 
 
+def is_hostname(d):
+    r = event_type_regexes["HOSTNAME"]
+    if r.match(d):
+        return True
+    return False
+
+
 def is_domain(d):
     extracted = tldextract(d)
     if extracted.domain and not extracted.subdomain:

@@ -77,7 +77,7 @@ class BaseModule:
         event = make_event(*args, **kwargs)
 
         # special DNS validation
-        if event.type in ("DOMAIN", "SUBDOMAIN"):
+        if event.type == "HOSTNAME":
             resolved = self.helpers.resolve(event.data)
             if not resolved:
                 event.tags.add("unresolved")
@@ -123,8 +123,12 @@ class BaseModule:
 
     def run_async(self, callback, *args, **kwargs):
         # make sure we don't exceed max threads
-        while self.num_running_tasks > self.max_threads:
-            sleep(0.1)
+        # NOTE: here, we're pulling from the config instead of self.max_threads
+        # so the user can change the value if they want
+        max_threads = self.config.get("max_threads", None)
+        if max_threads is not None:
+            while self.num_running_tasks > max_threads:
+                sleep(0.1)
         future = self.scan.thread_pool.submit(callback, *args, **kwargs)
         self._futures.add(future)
         return future
