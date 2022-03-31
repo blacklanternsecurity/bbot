@@ -113,7 +113,7 @@ def test_helpers():
     ### DNS ###
     # resolution
     assert all([helpers.is_ip(i) for i in helpers.resolve("scanme.nmap.org")])
-    assert "dns.google." in helpers.resolve("8.8.8.8")
+    assert "dns.google" in helpers.resolve("8.8.8.8")
     assert any(
         [helpers.is_subdomain(h) for h in helpers.resolve("google.com", type="mx")]
     )

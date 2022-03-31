@@ -129,7 +129,7 @@ class DNSHelper:
         answers = set()
         try:
             for host in list(dns.resolver.resolve_address(query, **kwargs)):
-                answers.add(str(host).lower())
+                answers.add(str(host).lower().rstrip('.'))
         except Exception as e:
             log.debug(f"Error resolving {query} with kwargs={kwargs}: {e}")
         return answers
