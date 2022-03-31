@@ -1,7 +1,6 @@
 import logging
 from time import sleep
 import concurrent.futures
-from contextlib import suppress
 from collections import OrderedDict
 
 from .manager import EventManager
