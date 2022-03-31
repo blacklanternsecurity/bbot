@@ -6,8 +6,8 @@ from OpenSSL import SSL
 
 class sslcert(BaseModule):
 
-    watched_events = ["HOSTNAME", "IPV6_ADDRESS", "IPV4_ADDRESS"]
-    produced_events = ["HOSTNAME"]
+    watched_events = ["DNS_NAME", "IPV6_ADDRESS", "IPV4_ADDRESS"]
+    produced_events = ["DNS_NAME"]
     max_threads = 10
 
     def handle_event(self, event):
@@ -41,7 +41,7 @@ class sslcert(BaseModule):
         for c in set(cert_results):
             if c != host:
                 self.debug(f"Discovered new domain via SSL certificate parsing: [{c}]")
-                self.emit_event(c, "HOSTNAME", event)
+                self.emit_event(c, "DNS_NAME", event)
 
     @staticmethod
     def get_cert_sans(cert):
