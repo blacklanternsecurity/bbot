@@ -83,7 +83,7 @@ class Event:
         self._words = None
 
         # hostname validation
-        if self.type == "HOSTNAME":
+        if self.type == "DNS_NAME":
             if is_subdomain(self.data):
                 self.tags.add("subdomain")
             elif is_domain(self.data):
@@ -138,7 +138,7 @@ class Event:
         """
         if self._words is None:
             self._words = set()
-            if self.type in ("HOSTNAME", "EMAIL_ADDRESS", "URL"):
+            if self.type in ("DNS_NAME", "EMAIL_ADDRESS", "URL"):
                 self._words.update(extract_words(self.host_stem))
         return self._words
 

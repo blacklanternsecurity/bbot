@@ -6,8 +6,8 @@ from .base import BaseModule
 
 class dnsdumpster(BaseModule):
 
-    watched_events = ["HOSTNAME"]
-    produced_events = ["HOSTNAME"]
+    watched_events = ["DNS_NAME"]
+    produced_events = ["DNS_NAME"]
 
     # def setup(self):
 
@@ -22,7 +22,7 @@ class dnsdumpster(BaseModule):
 
         for hostname in self.query(query):
             if hostname in self.scan.target and not hostname == event:
-                self.emit_event(hostname, "HOSTNAME", event)
+                self.emit_event(hostname, "DNS_NAME", event)
             else:
                 self.debug(f"Invalid subdomain: {hostname}")
 

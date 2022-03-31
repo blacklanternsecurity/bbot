@@ -6,8 +6,8 @@ from .base import BaseModule
 
 class dnsx(BaseModule):
 
-    watched_events = ["HOSTNAME"]
-    produced_events = ["HOSTNAME"]
+    watched_events = ["DNS_NAME"]
+    produced_events = ["DNS_NAME"]
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt"
     }
@@ -50,4 +50,4 @@ class dnsx(BaseModule):
                         source_event = event
                         break
 
-                self.emit_event(host, "HOSTNAME", source_event)
+                self.emit_event(host, "DNS_NAME", source_event)

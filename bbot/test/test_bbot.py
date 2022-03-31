@@ -29,9 +29,9 @@ def test_events():
     assert ipv6_event.type == "IPV6_ADDRESS"
     assert netv4_event.type == "IPV4_RANGE"
     assert netv6_event.type == "IPV6_RANGE"
-    assert domain_event.type == "HOSTNAME"
+    assert domain_event.type == "DNS_NAME"
     assert "domain" in domain_event.tags
-    assert subdomain_event.type == "HOSTNAME"
+    assert subdomain_event.type == "DNS_NAME"
     assert "subdomain" in subdomain_event.tags
     assert open_port_event.type == "OPEN_TCP_PORT"
     assert url_event.type == "URL"
