@@ -37,7 +37,7 @@ class sslcert(BaseModule):
         cert_results.append(str(subject))
         for san in sans:
             san = san.lstrip("*.").lower()
-            cert_results.append(str(san))
+            cert_results.append(san)
         for c in set(cert_results):
             if c != host:
                 self.debug(f"Discovered new domain via SSL certificate parsing: [{c}]")
@@ -53,5 +53,5 @@ class sslcert(BaseModule):
             if "subjectAltName" in str(ext.get_short_name()):
                 raw_sans = str(ext)
         for raw_san in raw_sans.split(","):
-            sans.append(raw_san.lstrip().replace("DNS:", ""))
+            sans.append(raw_san.split(":")[-1].strip())
         return sans

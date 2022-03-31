@@ -31,7 +31,11 @@ for p in (parser, dummy_parser):
     )
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
-    p.add_argument("--show-config", action="store_true", help="Display current config")
+    p.add_argument(
+        "--current-config",
+        action="store_true",
+        help="Show current config in YAML format",
+    )
 
 
 cli_options = None

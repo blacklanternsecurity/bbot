@@ -21,11 +21,18 @@ poetry run bbot -m naabu httpx nuclei -t evilcorp.com 1.2.3.4/28 4.3.2.1
 poetry run bbot/test/run_tests.sh
 ~~~
 
+## Adding a dependency
+~~~
+1. poetry add <package>
+2. poetry export -f requirements.txt --without-hashes > requirements.txt
+3. poetry export --dev -f requirements.txt --without-hashes > requirements-dev.txt
+~~~
+
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m {nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} [{nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} ...]] [-c [CONFIGURATION ...]] [-v] [-d]
-            [--show-config]
+usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m {sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} [{sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} ...]]
+            [-c [CONFIGURATION ...]] [-v] [-d] [--current-config]
 
 Bighuge BLS OSINT Tool
 
@@ -33,13 +40,19 @@ options:
   -h, --help            show this help message and exit
   -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
                         Scan target
-  -m {nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} [{nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} ...], --modules {nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} [{nuclei,nmap,naabu,httpx,dnsx,dnsdumpster,all} ...]
+  -m {sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} [{sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} ...], --modules {sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} [{sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} ...]
                         Modules (specify keyword "all" to enable all modules)
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
                         additional configuration options in key=value format
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
-  --show-config         Display current config
+  --current-config      Show current config in YAML format
+~~~
+
+## Generate config
+To generate a full config file from the current config (including module defaults, etc.), run the following command:
+~~~
+$ bbot --current-config > bbot.conf
 ~~~
 
 ## Writing modules
@@ -69,4 +82,16 @@ mx_records = self.helpers.resolve("evilcorp.com", type="mx")
 
 # Reverse resolve IP
 ptrs = self.helpers.resolve("8.8.8.8")
+
+# Use the shared thread pool
+futures = {}
+for url in urls:
+    future = self.helpers.run_async(self.helpers.request, url)
+    futures[future] = url
+
+for future in self.helpers.as_completed(futures):
+    url = futures[future]
+    response = future.result()
+    if getattr(response, "status_code", 0) == 200:
+        log.success(f"Found URL: {url}")
 ~~~

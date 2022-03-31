@@ -1,7 +1,7 @@
 from .base import BaseModule
 
 
-class dnsdumpster(BaseModule):
+class sublist3r(BaseModule):
 
     watched_events = ["DOMAIN", "SUBDOMAIN"]
     produced_events = ["SUBDOMAIN"]
@@ -19,10 +19,11 @@ class dnsdumpster(BaseModule):
 
         try:
             json = results.json()
-            for hostname in json:
-                if hostname in self.scan.target and not hostname == event:
-                    self.emit_event(hostname, "SUBDOMAIN", event)
-                else:
-                    self.debug(f"Invalid subdomain: {hostname}")
+            if json:
+                for hostname in json:
+                    if hostname in self.scan.target and not hostname == event:
+                        self.emit_event(hostname, "SUBDOMAIN", event)
+                    else:
+                        self.debug(f"Invalid subdomain: {hostname}")
         except Exception as e:
             self.error(f"Error retrieving sublist3r domains: {e}")

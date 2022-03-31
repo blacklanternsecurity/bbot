@@ -87,10 +87,10 @@ class EventManager:
                         # save on CPU
                         sleep(0.1)
                     counter += 1
+                    continue
 
                 # distribute event to modules
-                for mod in self.scan.modules.values():
-                    mod.queue_event(event)
+                self.distribute_event(event)
 
         finally:
             # tell the modules to stop
@@ -114,7 +114,7 @@ class EventManager:
         while passes > 0:
 
             queued_events = dict()
-            queued_tasks = dict()
+            running_tasks = dict()
             modules_running = []
             modules_errored = []
 
@@ -122,7 +122,7 @@ class EventManager:
                 try:
                     if m.event_queue:
                         queued_events[m.name] = m.num_queued_events
-                    queued_tasks[m.name] = m.num_queued_tasks
+                    running_tasks[m.name] = m.num_running_tasks
                     if m.running:
                         modules_running.append(m.name)
                     if m.errored:
@@ -135,8 +135,8 @@ class EventManager:
             queued_events = sorted(
                 queued_events.items(), key=lambda x: x[-1], reverse=True
             )
-            queued_tasks = sorted(
-                queued_tasks.items(), key=lambda x: x[-1], reverse=True
+            running_tasks = sorted(
+                running_tasks.items(), key=lambda x: x[-1], reverse=True
             )
             queues_empty = [qsize == 0 for m, qsize in queued_events]
 
@@ -161,7 +161,7 @@ class EventManager:
             if not events_queued:
                 events_queued = "None"
             tasks_queued = ", ".join(
-                [f"{mod}: {qsize:,}" for mod, qsize in queued_tasks[:5] if qsize > 0]
+                [f"{mod}: {qsize:,}" for mod, qsize in running_tasks[:5] if qsize > 0]
             )
             if not tasks_queued:
                 tasks_queued = "None"
@@ -169,7 +169,7 @@ class EventManager:
                 f"Events queued: {sum([m[-1] for m in queued_events]):,} ({events_queued})"
             )
             self.scan.verbose(
-                f"Tasks queued: {sum([m[-1] for m in queued_tasks]):,} ({tasks_queued})"
+                f"Tasks queued: {sum([m[-1] for m in running_tasks]):,} ({tasks_queued})"
             )
             if modules_running:
                 self.scan.verbose(
@@ -183,7 +183,7 @@ class EventManager:
         return {
             "running": modules_running,
             "queued_events": queued_events,
-            "queued_tasks": queued_tasks,
+            "running_tasks": running_tasks,
             "errored": modules_errored,
             "finished": finished,
         }

@@ -97,7 +97,7 @@ def test_events():
 
 def test_helpers():
 
-    scan = Scanner("test", modules=[], config={})
+    scan = Scanner("test", modules=[], config={"max_threads": 250})
     helpers = scan.helpers
 
     ### MISC ###
@@ -109,6 +109,7 @@ def test_helpers():
     assert not helpers.is_ip("evilcorp.com")
 
     ### DNS ###
+    # resolution
     assert all([helpers.is_ip(i) for i in helpers.resolve("scanme.nmap.org")])
     assert "dns.google." in helpers.resolve("8.8.8.8")
     assert any(
@@ -116,7 +117,10 @@ def test_helpers():
     )
     v6_ips = helpers.resolve("www.google.com", type="AAAA")
     assert all([i.version == 6 for i in [ipaddress.ip_address(_) for _ in v6_ips]])
-
+    assert not helpers.resolve(f"{helpers.rand_string(length=30)}.com")
+    # wildcards
     assert helpers.is_wildcard("blacklanternsecurity.github.io")
     assert "github.io" in scan.helpers.dns.wildcards
     assert not helpers.is_wildcard("mail.google.com")
+    # resolvers
+    assert "8.8.8.8" in helpers.resolver_list()
