@@ -3,7 +3,7 @@ import ipaddress
 from contextlib import suppress
 from urllib.parse import urlparse
 
-from bbot.core.helpers import sha1, is_domain, smart_decode
+from bbot.core.helpers import sha1, smart_decode
 from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
 
 log = logging.getLogger("bbot.core.event.helpers")
@@ -23,8 +23,7 @@ def sanitize_open_port(d):
 
 
 event_sanitizers = {
-    "DOMAIN": [str.strip, str.lower],
-    "SUBDOMAIN": [str.strip, str.lower],
+    "HOSTNAME": [str.strip, str.lower],
     "EMAIL_ADDRESS": [str.strip, str.lower],
     "IPV4_ADDRESS": [sanitize_ip_address],
     "IPV6_ADDRESS": [sanitize_ip_address],
@@ -62,13 +61,7 @@ def get_event_type(data):
     # Everything else
     for t, r in event_type_regexes.items():
         if r.match(data):
-            if t == "HOSTNAME":
-                if is_domain(data):
-                    return "DOMAIN"
-                else:
-                    return "SUBDOMAIN"
-            else:
-                return t
+            return t
 
 
 def is_event_id(s):
@@ -81,7 +74,7 @@ def make_event_id(data, event_type):
     return f"{sha1(data).hexdigest()}:{event_type}"
 
 
-host_types = ("URL", "DOMAIN", "SUBDOMAIN", "EMAIL_ADDRESS")
+host_types = ("URL", "HOSTNAME", "EMAIL_ADDRESS")
 
 port_types = ("OPEN_TCP_PORT", "OPEN_UDP_PORT")
 
