@@ -1,6 +1,7 @@
 import queue
 import logging
 import threading
+import traceback
 from time import sleep
 from contextlib import suppress
 
@@ -54,11 +55,35 @@ class BaseModule:
         """
         pass
 
+    def filter_event(self, event):
+        """
+        Override this method if you need more granular control
+        over which events
+        """
+
     def handle_batch(self, *events):
         """
         Override this method if batch_size > 1.
         """
         pass
+
+    def finish(self):
+        """
+        Perform final functions when scan is nearing completion
+        Note that this method may be called multiple times
+        Optionally override this method.
+        """
+        return
+
+    def catch(self, callback, *args, **kwargs):
+        """
+        Wrapper to ensure error messages get surfaced to the user
+        """
+        try:
+            return callback(*args, **kwargs)
+        except Exception as e:
+            self.error(f"Encountered error in {callback.__name__}(): {e}")
+            self.debug(traceback.format_exc())
 
     def _handle_batch(self, force=False):
         if self.num_queued_events > 0 and (
@@ -70,7 +95,7 @@ class BaseModule:
             )
             events = list(self.events_waiting)
             if events:
-                self.run_async(self.handle_batch, *events)
+                self.run_async(self.catch, self.handle_batch, *events)
 
     def emit_event(self, *args, **kwargs):
         kwargs["module"] = self.name
@@ -137,14 +162,6 @@ class BaseModule:
         self.thread = threading.Thread(target=self._worker)
         self.thread.start()
 
-    def finish(self):
-        """
-        Perform final functions when scan is nearing completion
-        Note that this method may be called multiple times
-        Optionally override this method.
-        """
-        return
-
     def _setup(self):
 
         self.debug(f"Setting up module {self.name}")
@@ -153,8 +170,6 @@ class BaseModule:
             self.debug(f"Finished setting up module {self.name}")
         except Exception:
             self.set_error_state()
-            import traceback
-
             self.error(f"Failed to set up module {self.name}")
             self.debug(traceback.format_exc())
 
@@ -187,16 +202,14 @@ class BaseModule:
                     # if we receive the special "FINISHED" event
                     if type(e) == str and e == "FINISHED":
                         self._handle_batch(force=True)
-                        self.run_async(self.finish)
+                        self.run_async(self.catch, self.finish)
                     else:
-                        self.run_async(self.handle_event, e)
+                        self.run_async(self.catch, self.handle_event, e)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")
             self.scan.stop()
         except Exception as e:
-            import traceback
-
             self.error(
                 f"Exception ({e.__class__.__name__}) in module {self.name}:\n{traceback.format_exc()}"
             )
