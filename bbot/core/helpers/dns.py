@@ -2,8 +2,6 @@ import json
 import logging
 import dns.resolver
 
-import concurrent.futures
-
 from .misc import is_ip, domain_parents, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
