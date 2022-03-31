@@ -101,6 +101,9 @@ class BaseModule:
                 self.run_async(self.catch, self.handle_batch, *events)
 
     def emit_event(self, *args, **kwargs):
+        self.helpers.run_async(self._emit_event, *args, **kwargs)
+
+    def _emit_event(self, *args, **kwargs):
         kwargs["module"] = self.name
         event = make_event(*args, **kwargs)
 
