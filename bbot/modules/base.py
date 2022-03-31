@@ -39,6 +39,8 @@ class BaseModule:
         self._log = None
         self._event_queue = None
         self._batch_idle = 0
+        self._futures = set()
+        self._future_lock = threading.Lock()
 
     def setup(self):
         """
@@ -68,7 +70,7 @@ class BaseModule:
             )
             events = list(self.events_waiting)
             if events:
-                self.pool_execute(self.handle_batch, *events)
+                self.run_async(self.handle_batch, *events)
 
     def emit_event(self, *args, **kwargs):
         kwargs["module"] = self.name
@@ -76,8 +78,11 @@ class BaseModule:
 
         # special DNS validation
         if event.type in ("DOMAIN", "SUBDOMAIN"):
-            if self.helpers.is_wildcard(event.data):
-                event.tags.add("wildcard")
+            resolved = self.helpers.resolve(event.data)
+            if not resolved:
+                event.tags.add("unresolved")
+            #if self.helpers.is_wildcard(event.data):
+            #    event.tags.add("wildcard")
 
         self.log.debug(f'module "{self.name}" raised {event}')
         self.scan.manager.queue_event(event)
@@ -106,10 +111,23 @@ class BaseModule:
         return 0
 
     @property
-    def num_queued_tasks(self):
-        return self.scan.shared_thread_pool.num_queued_tasks(
-            f"{self.name}_threadworker"
-        ) + self.scan.shared_thread_pool.num_running_tasks(f"{self.name}_threadworker")
+    def num_running_tasks(self):
+
+        running_futures = set()
+        with self._future_lock:
+            for f in self._futures:
+                if not f.done():
+                    running_futures.add(f)
+            self._futures = running_futures
+        return len(running_futures)
+
+    def run_async(self, callback, *args, **kwargs):
+        # make sure we don't exceed max threads
+        while self.num_running_tasks > self.max_threads:
+            sleep(0.1)
+        future = self.scan.thread_pool.submit(callback, *args, **kwargs)
+        self._futures.add(future)
+        return future
 
     def start(self):
         self.thread = threading.Thread(target=self._worker)
@@ -118,15 +136,17 @@ class BaseModule:
     def finish(self):
         """
         Perform final functions when scan is nearing completion
-        Note that this function may be called multiple times
+        Note that this method may be called multiple times
         Optionally override this method.
         """
         return
 
     def _setup(self):
 
+        self.debug(f"Setting up module {self.name}")
         try:
             self.setup()
+            self.debug(f"Finished setting up module {self.name}")
         except Exception:
             self.set_error_state()
             import traceback
@@ -155,6 +175,7 @@ class BaseModule:
                             self.debug(
                                 f'Event queue for module "{self.name}" is in bad state'
                             )
+                            return
                     except queue.Empty:
                         sleep(0.3333)
                         continue
@@ -162,9 +183,9 @@ class BaseModule:
                     # if we receive the special "FINISHED" event
                     if type(e) == str and e == "FINISHED":
                         self._handle_batch(force=True)
-                        self.pool_execute(self.finish)
+                        self.run_async(self.finish)
                     else:
-                        self.pool_execute(self.handle_event, e)
+                        self.run_async(self.handle_event, e)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")
@@ -179,30 +200,14 @@ class BaseModule:
 
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:
-            if (
-                type(e) == str
-                and e == "FINISHED"
-                or any(
-                    t in self.watched_events for t in ["*", getattr(e, "type", None)]
-                )
+            if (type(e) == str and e == "FINISHED") or any(
+                t in self.watched_events for t in ["*", getattr(e, "type", None)]
             ):
                 self.event_queue.put(e)
         else:
             self.log.debug(
                 f"Module {self.name} is not in an acceptable state to queue event"
             )
-
-    def pool_execute(self, callback, *args, **kwargs):
-        """
-        Execute a callback within the shared thread pool.
-        """
-        self.scan.shared_thread_pool.submit(
-            callback,
-            *args,
-            task_name=f"{self.name}_threadworker",
-            max_threads=self.max_threads,
-            **kwargs,
-        )
 
     def set_error_state(self):
         if not self.errored:
@@ -231,7 +236,7 @@ class BaseModule:
         """
         Indicates whether the module is currently processing data.
         """
-        running = (self.num_queued_tasks + self.num_queued_events) > 0
+        running = (self.num_running_tasks + self.num_queued_events) > 0
         return running
 
     @property

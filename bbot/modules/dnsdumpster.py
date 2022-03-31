@@ -9,6 +9,10 @@ class dnsdumpster(BaseModule):
     watched_events = ["DOMAIN", "SUBDOMAIN"]
     produced_events = ["SUBDOMAIN"]
 
+    # def setup(self):
+
+    #    self.critical(self.helpers.resolver_list())
+
     def handle_event(self, event):
         # only process targets
         if not "target" in event.tags:
