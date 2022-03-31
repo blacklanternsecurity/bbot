@@ -80,7 +80,6 @@ class Event:
         self._id = None
         self._hash = None
         self._host = None
-        self._port = None
         self._words = None
 
         # hostname validation

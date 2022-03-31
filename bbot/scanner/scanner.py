@@ -1,12 +1,12 @@
 import logging
 from time import sleep
+import concurrent.futures
 from contextlib import suppress
 from collections import OrderedDict
 
 from .manager import EventManager
 from bbot.core.helpers import Helpers
 from bbot.core.target import ScanTarget
-from bbot.core.threadpool import ThreadPool
 from bbot.core.configurator import available_modules
 
 log = logging.getLogger("bbot.scanner")
@@ -28,16 +28,16 @@ class Scanner:
             self.error(f"No scan targets specified")
 
         self.manager = EventManager(self)
-        self.helpers = Helpers(self.config)
+        self.helpers = Helpers(config=self.config, scan=self)
 
         # Set up shared thread pool
-        self.shared_thread_pool = ThreadPool(
-            threads=config.get("max_threads", 100), name="scanner_shared_thread_pool"
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.config.get("max_threads", 100)
         )
 
         # Load modules
         self.modules = dict()
-        self.info(f"Loading {len(modules):,} modules")
+        self.info(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
         for module_name in [str(m) for m in modules]:
 
             module_class = available_modules.get(module_name, None)
@@ -54,7 +54,7 @@ class Scanner:
             else:
                 self.error(f'Failed to load unknown module "{module_name}"')
         self.modules = OrderedDict(
-            sorted(self.modules.items(), key=lambda x: getattr(x[-1], "priority", 0))
+            sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0))
         )
         if self.modules:
             self.success(f"Loaded {len(self.modules):,} modules")
@@ -67,12 +67,11 @@ class Scanner:
             self._status = "STARTING"
             self.info(f"Starting scan {self.id}")
 
-            self.shared_thread_pool.start()
-
             self.info(f"Setting up modules")
-            for module_name, module in self.modules.items():
-                self.shared_thread_pool.submit(module._setup, task_name="module_setup")
-            while self.shared_thread_pool.num_total_tasks("module_setup") > 0:
+            module_setups = [
+                self.thread_pool.submit(m._setup) for m in self.modules.values()
+            ]
+            while not all([f.done() for f in module_setups]):
                 sleep(0.1)
             self.info(f"Finished setting up modules")
 
@@ -105,8 +104,7 @@ class Scanner:
 
         finally:
             # Shut down shared thread pool
-            with suppress(Exception):
-                self.shared_thread_pool.shutdown(wait=True)
+            self.thread_pool.shutdown(wait=True)
 
             # Set status
             if failed:
@@ -126,8 +124,11 @@ class Scanner:
     def stop(self):
         self.warning(f"Aborting scan")
         self._status = "ABORTING"
-        self.shared_thread_pool.stop = True
-        self.helpers.misc.kill_children()
+        self.debug(f"Shutting down thread pool")
+        self.thread_pool.shutdown(wait=False, cancel_futures=True)
+
+        self.debug(f"Finished shutting down thread pool")
+        self.helpers.kill_children()
 
     @property
     def status(self):

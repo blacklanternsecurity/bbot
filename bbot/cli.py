@@ -23,7 +23,6 @@ def main():
             parser.print_help()
             sys.exit(1)
 
-        log.info(f'Command: {" ".join(sys.argv)}')
         # note: command line arguments are in bbot/core/configurator/args.py
         options = parser.parse_args()
         if "all" in options.modules:
@@ -33,8 +32,11 @@ def main():
         from . import config
         from omegaconf import OmegaConf
 
-        if options.show_config:
+        if options.current_config:
             log.stdout(f"{OmegaConf.to_yaml(config)}")
+            sys.exit(0)
+
+        log.info(f'Command: {" ".join(sys.argv)}')
 
         # scan test
         from bbot.scanner import Scanner
@@ -50,12 +52,12 @@ def main():
         sys.exit(2)
 
     except Exception as e:
-        if options.verbose:
+        if options.debug:
             import traceback
 
             log.error(traceback.format_exc())
         else:
-            log.error(f"Encountered error (-v to debug): {e}")
+            log.error(f"Encountered error (-d to debug): {e}")
 
     except KeyboardInterrupt:
         log.error("Interrupted")
