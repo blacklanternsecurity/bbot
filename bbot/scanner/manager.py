@@ -46,9 +46,7 @@ class EventManager:
             self.absorb_words(event)
             self.events_processed.add(event_hash)
         for mod in self.scan.modules.values():
-            if (event.type in mod.watched_events or "*" in mod.watched_events) and (
-                not dup or mod.accept_dupes
-            ):
+            if not dup or mod.accept_dupes:
                 mod.queue_event(event)
 
     def loop_until_finished(self):
