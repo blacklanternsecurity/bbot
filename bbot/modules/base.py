@@ -57,9 +57,12 @@ class BaseModule:
 
     def filter_event(self, event):
         """
+        Accept/reject events based on custom criteria
+
         Override this method if you need more granular control
-        over which events
+        over which events your module consumes
         """
+        return True
 
     def handle_batch(self, *events):
         """
@@ -217,6 +220,11 @@ class BaseModule:
 
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:
+            if not self.filter_event(e):
+                self.debug(
+                    f"Event {e} does not meet module critera (filter_event() returned False)"
+                )
+                return
             if (type(e) == str and e == "FINISHED") or any(
                 t in self.watched_events for t in ["*", getattr(e, "type", None)]
             ):

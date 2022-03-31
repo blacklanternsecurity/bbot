@@ -18,10 +18,6 @@ class dnsresolve(BaseModule):
     }
 
     def handle_event(self, event):
-        # only process targets
-        if not "target" in event.tags:
-            return
-
         if event.type == "DNS_NAME":
 
             self.debug(f"trying to resolve {event.data}")
