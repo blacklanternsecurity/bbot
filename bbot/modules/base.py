@@ -81,7 +81,7 @@ class BaseModule:
             resolved = self.helpers.resolve(event.data)
             if not resolved:
                 event.tags.add("unresolved")
-            #if self.helpers.is_wildcard(event.data):
+            # if self.helpers.is_wildcard(event.data):
             #    event.tags.add("wildcard")
 
         self.log.debug(f'module "{self.name}" raised {event}')
