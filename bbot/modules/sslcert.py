@@ -4,6 +4,8 @@ import socket
 from OpenSSL import SSL
 
 
+# TODO: emit open port
+
 class sslcert(BaseModule):
 
     watched_events = ["DNS_NAME", "IPV6_ADDRESS", "IPV4_ADDRESS"]
@@ -18,8 +20,8 @@ class sslcert(BaseModule):
         port = 443
         host = str(event.data)
 
-        if event.host and event.port:
-            host, port = event.host, event.port
+        if event.type == "OPEN_PORT":
+            host, port = event.data.split(":")
 
         cert_results = []
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
