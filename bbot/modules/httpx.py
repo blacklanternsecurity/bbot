@@ -19,19 +19,10 @@ class httpx(BaseModule):
 
         stdin = "\n".join([str(e.data) for e in events])
         command = ["httpx", "-silent", "-json"]
-        self.debug(" ".join(command))
-        proc = subprocess.run(
-            command,
-            input=stdin,
-            text=True,
-            stderr=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-        )
-        for line in proc.stdout.splitlines():
+        for line in self.helpers.run_live(command, input=stdin, stderr=subprocess.DEVNULL):
             j = json.loads(line)
             url = j.get("url")
             title = j.get("title", "")
-
             source_event = None
             for event in events:
                 if url in event:
