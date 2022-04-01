@@ -96,6 +96,26 @@ def test_events():
     assert emoji_event not in ipv6_open_port_event
     assert ipv6_open_port_event not in emoji_event
 
+    # attribute tests
+    assert ipv4_event.host == ipaddress.ip_address("192.168.1.1")
+    assert ipv4_event.port is None
+    assert ipv6_event.host == ipaddress.ip_address("dead::beef")
+    assert ipv6_event.port is None
+    assert domain_event.port is None
+    assert subdomain_event.port is None
+    assert open_port_event.host == "port.www.evilcorp.com"
+    assert open_port_event.port == 777
+    assert ipv4_open_port_event.host == ipaddress.ip_address("192.168.1.1")
+    assert ipv4_open_port_event.port == 80
+    assert ipv6_open_port_event.host == ipaddress.ip_address("dead::beef")
+    assert ipv6_open_port_event.port == 80
+    assert url_event.host == "url.www.evilcorp.com"
+    assert url_event.port == 666
+    assert ipv4_url_event.host == ipaddress.ip_address("192.168.1.1")
+    assert ipv4_url_event.port == 666
+    assert ipv6_url_event.host == ipaddress.ip_address("dead::beef")
+    assert ipv6_url_event.port == 666
+
 
 def test_helpers():
 
