@@ -5,7 +5,7 @@ from bbot.core.errors import *
 from bbot.core.helpers import (
     extract_words,
     tldextract,
-    make_host,
+    split_host_port,
     host_in_host,
     is_domain,
     is_subdomain,
@@ -80,6 +80,7 @@ class Event:
         self._id = None
         self._hash = None
         self._host = None
+        self._port = None
         self._words = None
 
         # hostname validation
@@ -114,8 +115,13 @@ class Event:
                 else:
                     if self.type == "EMAIL_ADDRESS":
                         data = str(self.data).split("@")[-1]
-                    self._host = make_host(data)
+                    self._host, self._port = split_host_port(data)
         return self._host
+
+    @property
+    def port(self):
+        self.host
+        return self._port
 
     @property
     def host_stem(self):

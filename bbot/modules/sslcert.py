@@ -18,8 +18,8 @@ class sslcert(BaseModule):
         port = 443
         host = str(event.data)
 
-        if event.type == "OPEN_PORT":
-            host, port = event.data.split(":")
+        if event.host and event.port:
+            host, port = event.host, event.port
 
         cert_results = []
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -37,6 +37,13 @@ def is_subdomain(d):
     return False
 
 
+def split_host_port(d):
+    if not "://" in d:
+        d = f"d://{d}"
+    parsed = urlparse(d)
+    return make_ip_type(parsed.hostname), parsed.port
+
+
 def domain_parents(d):
     """
     Returns all parents of a subdomain
@@ -74,15 +81,6 @@ def is_email(d):
     if event_type_regexes["EMAIL_ADDRESS"].match(str(d)):
         return True
     return False
-
-
-def make_host(s):
-    s = str(s)
-    if "://" in s:
-        parsed = urlparse(s)
-    else:
-        parsed = urlparse(f"d://{s}")
-    return make_ip_type(parsed.hostname)
 
 
 def make_ip_type(s):
