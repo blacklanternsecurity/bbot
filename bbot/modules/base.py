@@ -18,6 +18,10 @@ class BaseModule:
     flags = []
     # Whether to accept duplicate events
     accept_dupes = False
+    # Only accept explicitly in-scope events
+    in_scope_only = False
+    # Only accept the initial target event(s)
+    target_only = False
     # Options, e.g. {"api_key": ""}
     options = {}
     # Options description, e.g. {"api_key": "API Key"}
@@ -87,11 +91,12 @@ class BaseModule:
         except Exception as e:
             self.error(f"Encountered error in {callback.__name__}(): {e}")
             self.debug(traceback.format_exc())
+        except KeyboardInterrupt:
+            self.debug(f"Interrupted module {self.name}")
+            self.scan.stop()
 
     def _handle_batch(self, force=False):
-        if self.num_queued_events > 0 and (
-            force or self.num_queued_events >= self.batch_size
-        ):
+        if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
             self._batch_idle = 0
             self.debug(
                 f'Handling batch of {self.num_queued_events:,} events for module "{self.name}"'
@@ -189,7 +194,7 @@ class BaseModule:
                 if self.batch_size > 1:
                     if iterations % 3 == 0:
                         self._batch_idle += 1
-                    force = self._batch_idle >= self.batch_wait
+                    force = self._batch_idle >= self.batch_wait or self.scan.status == "FINISHING"
                     self._handle_batch(force=force)
 
                 else:
@@ -197,9 +202,7 @@ class BaseModule:
                         if self.event_queue:
                             e = self.event_queue.get_nowait()
                         else:
-                            self.debug(
-                                f'Event queue for module "{self.name}" is in bad state'
-                            )
+                            self.debug(f'Event queue for module "{self.name}" is in bad state')
                             return
                     except queue.Empty:
                         sleep(0.3333)
@@ -207,7 +210,6 @@ class BaseModule:
                     self.debug(f"{self.name}._worker() got {e}")
                     # if we receive the special "FINISHED" event
                     if type(e) == str and e == "FINISHED":
-                        self._handle_batch(force=True)
                         self.run_async(self.catch, self.finish)
                     else:
                         self.run_async(self.catch, self.handle_event, e)
@@ -221,21 +223,28 @@ class BaseModule:
             )
             self.set_error_state()
 
+    def _filter_event(self, e):
+        if type(e) == str:
+            if e == "FINISHED":
+                return True
+            else:
+                return False
+        if not any(t in self.watched_events for t in ["*", e.type]):
+            return False
+        if self.target_only and "target" not in e.tags:
+            return False
+        if self.in_scope_only and e not in self.scan.target:
+            return False
+        if not self.filter_event(e):
+            return False
+        return True
+
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:
-            if not self.filter_event(e):
-                self.debug(
-                    f"Event {e} does not meet module critera (filter_event() returned False)"
-                )
-                return
-            if (type(e) == str and e == "FINISHED") or any(
-                t in self.watched_events for t in ["*", getattr(e, "type", None)]
-            ):
+            if self._filter_event(e):
                 self.event_queue.put(e)
         else:
-            self.log.debug(
-                f"Module {self.name} is not in an acceptable state to queue event"
-            )
+            self.log.debug(f"Module {self.name} is not in an acceptable state to queue event")
 
     def set_error_state(self):
         if not self.errored:

@@ -15,19 +15,17 @@ class naabu(BaseModule):
     produced_events = ["OPEN_TCP_PORT"]
     max_threads = 5
     batch_size = 10
+    in_scope_only = True
 
     def handle_batch(self, *events):
 
         command = ["naabu", "-silent", "-json"] + [str(e.data) for e in events]
         self.debug(" ".join(command))
-        proc = subprocess.Popen(
-            command, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE
-        )
-        while 1:
-            line = proc.stdout.readline()
-            if not line:
-                break
-            j = json.loads(line)
+        for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL):
+            try:
+                j = json.loads(line)
+            except Exception as e:
+                self.debug(f'Error parsing line "{line}" as JSON: {e}')
             host = j.get("host", j.get("ip"))
             port = j.get("port")
 

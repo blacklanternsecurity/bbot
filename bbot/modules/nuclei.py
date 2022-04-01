@@ -10,6 +10,7 @@ class nuclei(BaseModule):
     produced_events = ["VULNERABILITY"]
     max_threads = 5
     batch_size = 10
+    in_scope_only = True
 
     def handle_batch(self, *events):
         """
@@ -59,6 +60,4 @@ class nuclei(BaseModule):
                         source_event = event
                         break
 
-                self.emit_event(
-                    f"[{severity}] {template}:{name}", "VULNERABILITY", source_event
-                )
+                self.emit_event(f"[{severity}] {template}:{name}", "VULNERABILITY", source_event)

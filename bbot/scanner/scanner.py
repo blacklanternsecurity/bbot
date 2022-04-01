@@ -47,9 +47,7 @@ class Scanner:
                 except Exception:
                     import traceback
 
-                    self.error(
-                        f"Failed to load module {module_class}\n{traceback.format_exc()}"
-                    )
+                    self.error(f"Failed to load module {module_class}\n{traceback.format_exc()}")
             else:
                 self.error(f'Failed to load unknown module "{module_name}"')
         self.modules = OrderedDict(
@@ -67,9 +65,7 @@ class Scanner:
             self.info(f"Starting scan {self.id}")
 
             self.info(f"Setting up modules")
-            module_setups = [
-                self.thread_pool.submit(m._setup) for m in self.modules.values()
-            ]
+            module_setups = [self.thread_pool.submit(m._setup) for m in self.modules.values()]
             while not all([f.done() for f in module_setups]):
                 sleep(0.1)
             self.info(f"Finished setting up modules")

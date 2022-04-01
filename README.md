@@ -16,9 +16,13 @@ poetry install
 poetry run bbot -m naabu httpx nuclei -t evilcorp.com 1.2.3.4/28 4.3.2.1
 ~~~
 
-## Run tests
+## Tests
 ~~~bash
+# run tests
 poetry run bbot/test/run_tests.sh
+
+# format with black
+black -l 100 .
 ~~~
 
 ## Adding a dependency

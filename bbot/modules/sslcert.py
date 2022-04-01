@@ -4,13 +4,12 @@ import socket
 from OpenSSL import SSL
 
 
-# TODO: emit open port
-
-
 class sslcert(BaseModule):
 
-    watched_events = ["DNS_NAME", "IPV6_ADDRESS", "IPV4_ADDRESS"]
+    watched_events = ["DNS_NAME", "IPV6_ADDRESS", "IPV4_ADDRESS", "OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME"]
+    options = {"timeout": 5.0}
+    options_desc = {"timeout": "Socket connect timeout in seconds"}
     max_threads = 10
 
     def handle_event(self, event):
@@ -21,23 +20,33 @@ class sslcert(BaseModule):
         port = 443
         host = str(event.data)
 
-        if event.type == "OPEN_PORT":
-            host, port = event.data.split(":")
+        if event.host and event.port:
+            host, port = event.host, event.port
 
         cert_results = []
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        timeout = self.config.get("timeout", 5.0)
+        sock.settimeout(timeout)
         context = SSL.Context(PROTOCOL_TLSv1)
-        sock.connect((host, port))
+        try:
+            sock.connect((host, port))
+        except Exception as e:
+            self.debug(f"Error connecting to {host} on port {port}: {e}")
+            return
         connection = SSL.Connection(context, sock)
         connection.set_tlsext_host_name(host.encode())
         connection.set_connect_state()
-        connection.do_handshake()
+        try:
+            connection.do_handshake()
+        except Exception as e:
+            self.debug(f"Error with SSL handshake on {host} port {port}: {e}")
+            return
         cert = connection.get_peer_certificate()
         sock.close()
         subject = cert.get_subject().commonName
         sans = self.get_cert_sans(cert)
 
-        cert_results.append(str(subject))
+        cert_results.append(str(subject).lstrip("*.").lower())
         for san in sans:
             san = san.lstrip("*.").lower()
             cert_results.append(san)

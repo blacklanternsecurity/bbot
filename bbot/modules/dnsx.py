@@ -2,6 +2,7 @@ import json
 import subprocess
 
 from .base import BaseModule
+from bbot.core.errors import ValidationError
 
 
 class dnsx(BaseModule):
@@ -15,12 +16,11 @@ class dnsx(BaseModule):
     max_threads = 5
     batch_size = 10
     subdomain_file = None
+    target_only = True
 
     def setup(self):
 
-        self.subdomain_file = self.helpers.download(
-            self.config.get("wordlist"), cache_hrs=720
-        )
+        self.subdomain_file = self.helpers.download(self.config.get("wordlist"), cache_hrs=720)
         if not self.subdomain_file:
             self.error("Failed to download wordlist")
             self.set_error_state()
@@ -37,9 +37,7 @@ class dnsx(BaseModule):
             self.subdomain_file,
         ]
         self.debug(" ".join(command))
-        proc = subprocess.run(
-            command, text=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE
-        )
+        proc = subprocess.run(command, text=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
         for line in proc.stdout.splitlines():
             j = json.loads(line)
             host = j.get("host", "")
@@ -50,4 +48,7 @@ class dnsx(BaseModule):
                         source_event = event
                         break
 
-                self.emit_event(host, "DNS_NAME", source_event)
+                try:
+                    self.emit_event(host, "DNS_NAME", source_event)
+                except ValidationError as e:
+                    self.debug(f"Error validating {host}: {e}")

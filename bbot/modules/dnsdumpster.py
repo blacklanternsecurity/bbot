@@ -8,15 +8,9 @@ class dnsdumpster(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-
-    # def setup(self):
-
-    #    self.critical(self.helpers.resolver_list())
+    target_only = True
 
     def handle_event(self, event):
-        # only process targets
-        if not "target" in event.tags:
-            return
 
         query = str(event.data).lower()
 
@@ -46,15 +40,15 @@ class dnsdumpster(BaseModule):
                 k, v = cookie.split("=", 1)
                 if k == "csrftoken":
                     csrftoken = str(v)
-            csrfmiddlewaretoken = html.find(
-                "input", {"name": "csrfmiddlewaretoken"}
-            ).attrs.get("value", None)
+            csrfmiddlewaretoken = html.find("input", {"name": "csrfmiddlewaretoken"}).attrs.get(
+                "value", None
+            )
         except AttributeError:
             pass
 
         # Abort if we didn't get the tokens
         if not csrftoken or not csrfmiddlewaretoken:
-            self.error("Error obtaining CSRF tokens")
+            self.verbose("Error obtaining CSRF tokens")
             self.errorState = True
             return ret
         else:
@@ -79,7 +73,7 @@ class dnsdumpster(BaseModule):
         )
         status_code = getattr(res2, "status_code", 0)
         if status_code not in [200]:
-            self.error(f'Bad response code "{status_code}" from DNSDumpster')
+            self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
 
         html = BeautifulSoup(res2.content, features="lxml")

@@ -37,9 +37,7 @@ class Event:
 
     _dummy = False
 
-    def __init__(
-        self, data, event_type=None, source=None, module=None, tags=None, confidence=100
-    ):
+    def __init__(self, data, event_type=None, source=None, module=None, tags=None, confidence=100):
 
         if tags is None:
             tags = set()
@@ -47,9 +45,7 @@ class Event:
         if event_type is None:
             event_type = get_event_type(data)
             if not self._dummy:
-                log.debug(
-                    f'Autodetected event type "{event_type}" based on data: "{data}"'
-                )
+                log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
         if event_type is None:
             raise ValidationError(
                 f'Unable to autodetect event type from "{data}": please specify event_type'
@@ -131,9 +127,7 @@ class Event:
         """
         if type(self.host) == str:
             parsed = tldextract(self.data)
-            return f".".join(
-                parsed.subdomain.split(".") + parsed.domain.split(".")
-            ).strip(".")
+            return f".".join(parsed.subdomain.split(".") + parsed.domain.split(".")).strip(".")
         else:
             return f"{self.host}"
 
