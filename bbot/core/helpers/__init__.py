@@ -13,6 +13,7 @@ log = logging.getLogger("bbot.core.helpers")
 class Helpers:
 
     from .web import request, download
+    from .command import execute_command
 
     def __init__(self, config, scan=None):
         self.config = config
