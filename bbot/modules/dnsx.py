@@ -36,9 +36,7 @@ class dnsx(BaseModule):
             "-w",
             self.subdomain_file,
         ]
-        self.debug(" ".join(command))
-        proc = subprocess.run(command, text=True, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
-        for line in proc.stdout.splitlines():
+        for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL):
             j = json.loads(line)
             host = j.get("host", "")
             if host:

@@ -22,7 +22,7 @@ poetry run bbot -m naabu httpx nuclei -t evilcorp.com 1.2.3.4/28 4.3.2.1
 poetry run bbot/test/run_tests.sh
 
 # format with black
-black -l 100 .
+black .
 ~~~
 
 ## Adding a dependency
