@@ -12,7 +12,7 @@ log = logging.getLogger("bbot.core.helpers")
 
 class Helpers:
 
-    from .web import request, download
+    from .web import request, download, validate_url
     from .command import execute_command
 
     def __init__(self, config, scan=None):
