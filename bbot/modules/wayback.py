@@ -32,10 +32,7 @@ class wayback(BaseModule):
                     uris.add(p._replace(fragment="").geturl())
                     endpoints.add(p._replace(fragment="", query="").geturl())
                     dirs.add(
-                        "/".join(
-                            p._replace(fragment="", query="").geturl().split("/")[:-1]
-                        )
-                        + "/"
+                        "/".join(p._replace(fragment="", query="").geturl().split("/")[:-1]) + "/"
                     )
 
         for dir in dirs:

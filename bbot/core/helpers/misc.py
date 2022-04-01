@@ -110,12 +110,8 @@ def host_in_host(host1, host2):
         host2_net = ipaddress.ip_network(host2)
         if host1_net.num_addresses <= host2_net.num_addresses:
             netmask = host2_net.prefixlen
-            host1_net = ipaddress.ip_network(
-                f"{host1_net.network_address}/{netmask}", strict=False
-            )
-            host2_net = ipaddress.ip_network(
-                f"{host2_net.network_address}/{netmask}", strict=False
-            )
+            host1_net = ipaddress.ip_network(f"{host1_net.network_address}/{netmask}", strict=False)
+            host2_net = ipaddress.ip_network(f"{host2_net.network_address}/{netmask}", strict=False)
             return host1_net == host2_net
 
     # else hostnames

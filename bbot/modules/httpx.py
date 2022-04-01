@@ -13,9 +13,7 @@ class httpx(BaseModule):
 
     options = {"allow_skip_portscan": False}
 
-    options_desc = {
-        "allow_skip_portscan": "Allow ingest from non-portscan even types (IP and DNS)"
-    }
+    options_desc = {"allow_skip_portscan": "Allow ingest from non-portscan even types (IP and DNS)"}
 
     def handle_batch(self, *events):
 

@@ -13,9 +13,7 @@ class dnsresolve(BaseModule):
     ]
     produced_events = ["IPV4_ADDRESS", "IPV6_ADDRESS", "DNS_NAME"]
     options = {"max_hosts": 65536}
-    options_desc = {
-        "max_hosts": "Define the max number of hosts a network range can contain"
-    }
+    options_desc = {"max_hosts": "Define the max number of hosts a network range can contain"}
 
     def handle_event(self, event):
         if event.type == "DNS_NAME":

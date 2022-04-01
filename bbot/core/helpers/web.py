@@ -1,5 +1,3 @@
-import os
-import time
 import logging
 import requests
 from time import sleep
@@ -7,8 +5,6 @@ from pathlib import Path
 from urllib.parse import urlparse
 from requests_cache import CachedSession
 from requests.exceptions import RequestException
-
-from .misc import sha1
 
 log = logging.getLogger("bbot.core.helpers.web")
 
@@ -34,39 +30,31 @@ def download(self, url, **kwargs):
 
     Caching supported via "cache_hrs"
     """
+    filename = self.cache_filename(url)
     cache_hrs = float(kwargs.pop("cache_hrs", -1))
-    filename = sha1(url).hexdigest()
     log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
-    cache_file = cache_dir / filename
-    retrieve = True
-    if cache_file.is_file():
-        (m, i, d, n, u, g, sz, atime, mtime, ctime) = os.stat(cache_file)
-        valid = mtime > time.time() - cache_hrs * 3600
-        if not valid:
-            log.debug(f"Deleting expired cache content for {url}")
-            cache_file.unlink()
-        elif cache_hrs != -1 and sz > 0:
-            log.debug(f"Using cached content for {url}")
-            retrieve = False
-
-    if retrieve:
+    if cache_hrs > 0 and self.is_cached(url):
+        log.debug(f"{url} is cached")
+    else:
         method = kwargs.get("method", "GET")
         try:
             with request(
                 self, method=method, url=url, stream=True, raise_error=True, **kwargs
             ) as response:
-                content = getattr(response, "content", b"")
                 status_code = getattr(response, "status_code", 0)
-                log.debug(f"Download result: HTTP {status_code}, Size: {len(content)}")
+                log.debug(f"Download result: HTTP {status_code}")
                 if status_code != 0:
                     response.raise_for_status()
-                    with open(cache_file, "wb") as f:
+                    with open(filename, "wb") as f:
                         for chunk in response.iter_content(chunk_size=8192):
                             f.write(chunk)
-        except RequestException:
+        except RequestException as e:
+            log.debug(f"Failed to download {url}: {e}")
+            return
+        except AttributeError:
             return
 
-    return str(cache_file.resolve())
+    return str(filename.resolve())
 
 
 def request(self, *args, **kwargs):

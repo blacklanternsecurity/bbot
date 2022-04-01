@@ -36,16 +36,12 @@ class DNSHelper:
         if self._resolver_list is None:
             nameservers = set()
             nameservers_url = "https://public-dns.info/nameserver/nameservers.json"
-            nameservers_file = self.parent_helper.download(
-                nameservers_url, cache_hrs=72
-            )
+            nameservers_file = self.parent_helper.download(nameservers_url, cache_hrs=72)
             nameservers_json = []
             try:
                 nameservers_json = json.loads(open(nameservers_file).read())
             except Exception as e:
-                log.error(
-                    f"Failed to populate nameserver list from {nameservers_url}: {e}"
-                )
+                log.error(f"Failed to populate nameserver list from {nameservers_url}: {e}")
             for entry in nameservers_json:
                 ip = str(entry.get("ip", "")).strip()
                 try:
@@ -66,9 +62,7 @@ class DNSHelper:
             timeout (int): timeout for dns query
         """
         log.debug(f"Verifying {len(nameservers):,} nameservers")
-        futures = [
-            self.parent_helper.run_async(self.verify_nameserver, n) for n in nameservers
-        ]
+        futures = [self.parent_helper.run_async(self.verify_nameserver, n) for n in nameservers]
 
         valid_nameservers = set()
         for future in self.parent_helper.as_completed(futures):
@@ -100,7 +94,9 @@ class DNSHelper:
         try:
             resolver.resolve("www.google.com", "A")
         except Exception:
-            error = f"Nameserver {nameserver} failed to resolve basic query within {timeout} seconds"
+            error = (
+                f"Nameserver {nameserver} failed to resolve basic query within {timeout} seconds"
+            )
 
         # then, make sure it isn't feeding us garbage data
         randhost = f"{rand_string(10)}.google.com"
@@ -163,11 +159,7 @@ class DNSHelper:
                     self.wildcards[parent] = ips
                 wildcard_ips.update(ips)
 
-        if (
-            orig_results
-            and wildcard_ips
-            and all([ip in wildcard_ips for ip in orig_results])
-        ):
+        if orig_results and wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):
             is_wildcard = True
 
         self._cache[parent] = is_wildcard
