@@ -1,3 +1,4 @@
+import os
 import logging
 import ipaddress
 
@@ -20,9 +21,7 @@ def test_events():
     ipv6_open_port_event = make_event("[dead::beef]:80", "OPEN_TCP_PORT", dummy=True)
     url_event = make_event("https://url.www.evilcorp.com:666/hellofriend", dummy=True)
     ipv4_url_event = make_event("https://192.168.1.1:666/hellofriend", dummy=True)
-    ipv6_url_event = make_event(
-        "https://[dead::beef]:666/hellofriend", "URL", dummy=True
-    )
+    ipv6_url_event = make_event("https://[dead::beef]:666/hellofriend", "URL", dummy=True)
     emoji_event = make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
 
     assert ipv4_event.type == "IPV4_ADDRESS"
@@ -130,13 +129,29 @@ def test_helpers():
     assert helpers.is_ip("127.0.0.1")
     assert not helpers.is_ip("evilcorp.com")
 
+    ### CACHE ###
+    helpers.cache_put("string", "wat")
+    helpers.cache_put("binary", b"wat")
+    assert helpers.cache_get("string") == "wat"
+    assert helpers.cache_get("binary") == "wat"
+    assert helpers.cache_get("binary", text=False) == b"wat"
+    cache_filename = helpers.cache_filename("string")
+    (m, i, d, n, u, g, sz, atime, mtime, ctime) = os.stat(str(cache_filename))
+    # change modified time to be 10 days in the past
+    os.utime(str(cache_filename), times=(atime, mtime - (3600 * 24 * 10)))
+    assert helpers.cache_get("string", cache_hrs=24 * 7) is None
+    assert helpers.cache_get("string", cache_hrs=24 * 14) == "wat"
+
+    ### WEB ###
+    assert getattr(helpers.request("https://api.publicapis.org/health"), "text", "").startswith("{")
+    helpers.download("https://api.publicapis.org/health", cache_hrs=1)
+    assert helpers.is_cached("https://api.publicapis.org/health")
+
     ### DNS ###
     # resolution
     assert all([helpers.is_ip(i) for i in helpers.resolve("scanme.nmap.org")])
     assert "dns.google" in helpers.resolve("8.8.8.8")
-    assert any(
-        [helpers.is_subdomain(h) for h in helpers.resolve("google.com", type="mx")]
-    )
+    assert any([helpers.is_subdomain(h) for h in helpers.resolve("google.com", type="mx")])
     v6_ips = helpers.resolve("www.google.com", type="AAAA")
     assert all([i.version == 6 for i in [ipaddress.ip_address(_) for _ in v6_ips]])
     assert not helpers.resolve(f"{helpers.rand_string(length=30)}.com")

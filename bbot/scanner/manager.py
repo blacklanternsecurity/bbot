@@ -66,15 +66,13 @@ class EventManager:
                     event = self.event_queue.get_nowait()
                     event_counter += 1
                 except queue.Empty:
-                    finished = self.modules_status(_log=log_status).get(
-                        "finished", False
-                    )
+                    finished = self.modules_status(_log=log_status).get("finished", False)
                     # If the scan finished
                     if finished:
                         # If new events were generated in the last iteration
                         if event_counter > 0:
-                            # Trigger .finished() on every module and start over
                             self._status = "FINISHING"
+                            # Trigger .finished() on every module and start over
                             for mod in self.scan.modules.values():
                                 mod.queue_event("FINISHED")
                             event_counter = 0
@@ -130,12 +128,8 @@ class EventManager:
                     with suppress(Exception):
                         m.set_error_state()
 
-            queued_events = sorted(
-                queued_events.items(), key=lambda x: x[-1], reverse=True
-            )
-            running_tasks = sorted(
-                running_tasks.items(), key=lambda x: x[-1], reverse=True
-            )
+            queued_events = sorted(queued_events.items(), key=lambda x: x[-1], reverse=True)
+            running_tasks = sorted(running_tasks.items(), key=lambda x: x[-1], reverse=True)
             queues_empty = [qsize == 0 for m, qsize in queued_events]
 
             for mod in self.scan.modules.values():
@@ -143,9 +137,7 @@ class EventManager:
                     with suppress(Exception):
                         mod.set_error_state()
 
-            finished = not self.event_queue or (
-                not modules_running and all(queues_empty)
-            )
+            finished = not self.event_queue or (not modules_running and all(queues_empty))
             if finished:
                 sleep(0.1)
             else:

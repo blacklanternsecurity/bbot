@@ -5,7 +5,7 @@ echo -e "[+] BBOT dir: $bbot_dir\n"
 
 echo "[+] Checking code formatting with black"
 echo "======================================="
-black --check "$bbot_dir"
+black --check -l 100 "$bbot_dir"
 echo
 
 echo "[+] Linting with flake8"

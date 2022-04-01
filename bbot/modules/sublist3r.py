@@ -5,17 +5,13 @@ class sublist3r(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    target_only = True
 
     def handle_event(self, event):
-        # only process targets
-        if not "target" in event.tags:
-            return
 
         query = str(event.data).lower()
 
-        results = self.helpers.request(
-            f"https://api.sublist3r.com/search.php?domain={query}"
-        )
+        results = self.helpers.request(f"https://api.sublist3r.com/search.php?domain={query}")
 
         try:
             json = results.json()

@@ -14,10 +14,9 @@ class aspnet_viewstate(BaseModule):
 
         result = self.helpers.request(event.data)
         if not result:
-            self.debug(f"aspnet_viewstate module could not connect to url {event.data}")
+            self.debug(f"Could not connect to url {event.data}")
             return
-
-        self.debug(f"aspnet_viewstate successfully connected to host")
+        self.debug(f"Successfully connected to host")
 
         generator_match = self.generator_regex.search(result.text)
         viewstate_match = self.viewstate_regex.search(result.text)
@@ -28,9 +27,19 @@ class aspnet_viewstate(BaseModule):
             self.debug(f"Discovered viewstate for URL {event.data}")
             data = f"[INFO] ASP.NET Web Application"
             self.emit_event(data, "VULNERABILITY", event, tags=["info"])
-            command = f"mono /opt/blacklist3r/AspDotNetWrapper.exe --keypath /opt/blacklist3r/MachineKeys.txt --encrypteddata {viewstate} --purpose=viewstate --modifier={generator} --macdecode"
-            output = str(self.helpers.execute_command(command.split(" ")))
-            self.debug(output)
+            command = [
+                "mono",
+                "/opt/blacklist3r/AspDotNetWrapper.exe",
+                "--keypath",
+                "/opt/blacklist3r/MachineKeys.txt",
+                "--encrypteddata",
+                f"{viewstate}",
+                "--purpose=viewstate",
+                f"--modifier={generator}",
+                "--macdecode",
+            ]
+            output = self.helpers.run(command).stdout
+            self.debug(f"blacklist3r output: {output}")
             if "Keys found!!" in output:
                 for x in output.split("\n"):
                     if "DecryptionKey" in x:

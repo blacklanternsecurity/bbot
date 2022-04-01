@@ -1,38 +1,33 @@
-import subprocess
+import io
 import logging
+import subprocess
 
 log = logging.getLogger("bbot.core.helpers.command")
 
 
-def execute_command_live(self, cmdargs):
+def run_live(self, command, *args, **kwargs):
 
-    #   cmd = ['/bin/ping','-c','8','google.com']
+    if not "stdout" in kwargs:
+        kwargs["stdout"] = subprocess.PIPE
+    if not "stderr" in kwargs:
+        kwargs["stderr"] = subprocess.PIPE
 
-    log.debug(f"Executing command {' '.join(cmdargs)}")
+    log.debug(f"Running command: {' '.join(command)}")
 
-    # fulloutput = b""
-
-    with subprocess.Popen(
-        cmdargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    ) as p:
-        for line in io.TextIOWrapper(p.stdout, encoding="utf-8", errors="ignore"):
+    with subprocess.Popen(command, *args, **kwargs) as process:
+        for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
             yield line
-    #    char = p.stdout.read(1)
 
 
-#     while char != b'':
-#         char = p.stdout.read(1)
-#         fulloutput += char
+def run(self, command, *args, **kwargs):
 
-# log.debug(f"command completed")
-# return fulloutput.decode()
+    if not "stdout" in kwargs:
+        kwargs["stdout"] = subprocess.PIPE
+    if not "stderr" in kwargs:
+        kwargs["stderr"] = subprocess.PIPE
+    if not "text" in kwargs:
+        kwargs["text"] = True
 
-
-def execute_command(self, cmdargs):
-
-    #   cmd = ['/bin/ping','-c','8','google.com']
-    log.debug(f"Executing command {' '.join(cmdargs)}")
-    result = subprocess.run(
-        cmdargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-    )
-    return result.stdout
+    log.debug(f"Running command: {' '.join(command)}")
+    result = subprocess.run(command, *args, **kwargs)
+    return result

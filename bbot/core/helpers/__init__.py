@@ -1,5 +1,6 @@
 import logging
 from time import sleep
+from pathlib import Path
 import concurrent.futures
 
 from . import misc
@@ -13,13 +14,17 @@ log = logging.getLogger("bbot.core.helpers")
 class Helpers:
 
     from .web import request, download, validate_url
-    from .command import execute_command
+    from .command import run, run_live
+    from .cache import cache_get, cache_put, cache_filename, is_cached
 
     def __init__(self, config, scan=None):
         self.config = config
         self.scan = scan
         self._thread_pool = None
         self.dns = DNSHelper(self)
+        self.bbot_path = Path(__file__).parent.parent.parent.parent
+        self.home = Path.home() / ".bbot"
+        self.cache_dir = self.home / "cache"
 
     def run_async(self, *args, **kwargs):
         return self.thread_pool.submit(*args, **kwargs)
