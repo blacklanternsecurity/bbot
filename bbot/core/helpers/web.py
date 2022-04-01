@@ -4,6 +4,7 @@ import logging
 import requests
 from time import sleep
 from pathlib import Path
+from urllib.parse import urlparse
 from requests_cache import CachedSession
 from requests.exceptions import RequestException
 
@@ -17,6 +18,14 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 cache_dir = Path.home() / ".bbot" / "cache"
 cache_dir.mkdir(parents=True, exist_ok=True)
+
+
+def validate_url(self, url):
+    extension_blacklist = self.config.get("url_extension_blacklist", [])
+    p = urlparse(url)
+    if p.path.split(".")[-1].lower() in extension_blacklist:
+        return False
+    return True
 
 
 def download(self, url, **kwargs):
