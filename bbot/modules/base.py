@@ -41,7 +41,7 @@ class BaseModule:
     def __init__(self, scan):
         self.scan = scan
         self.errored = False
-        self._log = None
+        self.__log = None
         self._event_queue = None
         self._batch_idle = 0
         self._futures = set()
@@ -106,7 +106,9 @@ class BaseModule:
                 self.run_async(self.catch, self.handle_batch, *events)
 
     def emit_event(self, *args, **kwargs):
-        self.helpers.run_async(self._emit_event, *args, **kwargs)
+        # don't raise an exception if the thread pool has been shutdown
+        with suppress(RuntimeError):
+            self.helpers.run_async(self._emit_event, *args, **kwargs)
 
     def _emit_event(self, *args, **kwargs):
         kwargs["module"] = self.name
@@ -120,7 +122,7 @@ class BaseModule:
             if self.helpers.is_wildcard(event.data):
                 event.tags.add("wildcard")
 
-        self.log.debug(f'module "{self.name}" raised {event}')
+        self.debug(f'module "{self.name}" raised {event}')
         self.scan.manager.queue_event(event)
 
     @property
@@ -244,7 +246,7 @@ class BaseModule:
             if self._filter_event(e):
                 self.event_queue.put(e)
         else:
-            self.log.debug(f"Module {self.name} is not in an acceptable state to queue event")
+            self.debug(f"Module {self.name} is not in an acceptable state to queue event")
 
     def set_error_state(self):
         if not self.errored:
@@ -287,28 +289,28 @@ class BaseModule:
         return self._event_queue
 
     @property
-    def log(self):
-        if self._log is None:
-            self._log = logging.getLogger(f"bbot.modules.{self.name}")
-        return self._log
+    def _log(self):
+        if self.__log is None:
+            self.__log = logging.getLogger(f"bbot.modules.{self.name}")
+        return self.__log
 
     def debug(self, *args, **kwargs):
-        self.log.debug(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log.debug(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def verbose(self, *args, **kwargs):
-        self.log.verbose(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log.verbose(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def info(self, *args, **kwargs):
-        self.log.info(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log.info(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def success(self, *args, **kwargs):
-        self.log.success(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log.success(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def warning(self, *args, **kwargs):
-        self.log.warning(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log.warning(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def error(self, *args, **kwargs):
-        self.log.error(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log.error(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def critical(self, *args, **kwargs):
-        self.log.critical(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log.critical(*args, extra={"scan_id": self.scan.id}, **kwargs)

@@ -136,6 +136,12 @@ def smart_decode(data):
         return str(data)
 
 
+def smart_encode(data):
+    if type(data) == bytes:
+        return data
+    return str(data).encode("utf-8", errors="ignore")
+
+
 def tldextract(data):
     return _tldextract.extract(smart_decode(data))
 

@@ -117,13 +117,14 @@ class Scanner:
                     self.success(f"Scan {self.id} completed with status {self.status}")
 
     def stop(self):
-        self.warning(f"Aborting scan")
-        self._status = "ABORTING"
-        self.debug(f"Shutting down thread pool")
-        self.thread_pool.shutdown(wait=False, cancel_futures=True)
+        if self._status != "ABORTING":
+            self._status = "ABORTING"
+            self.warning(f"Aborting scan")
+            self.debug(f"Shutting down thread pool")
+            self.thread_pool.shutdown(wait=False, cancel_futures=True)
 
-        self.debug(f"Finished shutting down thread pool")
-        self.helpers.kill_children()
+            self.debug(f"Finished shutting down thread pool")
+            self.helpers.kill_children()
 
     @property
     def status(self):
