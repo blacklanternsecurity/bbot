@@ -6,6 +6,7 @@ from OpenSSL import SSL
 
 # TODO: emit open port
 
+
 class sslcert(BaseModule):
 
     watched_events = ["DNS_NAME", "IPV6_ADDRESS", "IPV4_ADDRESS"]
