@@ -285,7 +285,7 @@ class BaseModule:
     @property
     def event_queue(self):
         if self._event_queue is None:
-            self._event_queue = queue.Queue()
+            self._event_queue = queue.SimpleQueue()
         return self._event_queue
 
     @property
