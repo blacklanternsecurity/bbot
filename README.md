@@ -87,6 +87,10 @@ mx_records = self.helpers.resolve("evilcorp.com", type="mx")
 # Reverse resolve IP
 ptrs = self.helpers.resolve("8.8.8.8")
 
+# Execute a shell command
+process = self.helpers.run(["ls", "-lah"])
+log.info(process.stdout)
+
 # Use the shared thread pool
 futures = {}
 for url in urls:
