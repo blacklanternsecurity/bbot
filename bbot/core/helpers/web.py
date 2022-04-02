@@ -8,10 +8,6 @@ from requests.exceptions import RequestException
 
 log = logging.getLogger("bbot.core.helpers.web")
 
-import urllib3
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 cache_dir = Path.home() / ".bbot" / "cache"
 cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -83,7 +79,6 @@ def request(self, *args, **kwargs):
         "user_agent",
         "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
     )
-    ssl_verify = self.config.get("ssl_verify", True)
 
     # in case of URL only, assume GET request
     if len(args) == 1:
@@ -104,9 +99,6 @@ def request(self, *args, **kwargs):
     if "User-Agent" not in headers:
         headers.update({"User-Agent": user_agent})
     kwargs["headers"] = headers
-
-    if not "verify" in kwargs:
-        kwargs["verify"] = ssl_verify
 
     while retries == "infinite" or retries >= 0:
         try:
