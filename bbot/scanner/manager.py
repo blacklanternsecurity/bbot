@@ -10,7 +10,7 @@ log = logging.getLogger("bbot.scanner.manager")
 class EventManager:
     def __init__(self, scan):
         self.scan = scan
-        self.event_queue = queue.Queue()
+        self.event_queue = queue.SimpleQueue()
         # tracks processed events
         self.events_processed = set()
         self.word_cloud = dict()
