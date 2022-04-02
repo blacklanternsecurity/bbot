@@ -16,9 +16,8 @@ from .regexes import word_regexes, event_type_regexes
 log = logging.getLogger("bbot.core.helpers.misc")
 
 
-def is_hostname(d):
-    r = event_type_regexes["DNS_NAME"]
-    if r.match(d):
+def is_dns_name(d):
+    if event_type_regexes["DNS_NAME"].match(d):
         return True
     return False
 
