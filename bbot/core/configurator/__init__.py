@@ -28,6 +28,7 @@ if http_proxy:
 
 # ssl verification
 import urllib3
+
 urllib3.disable_warnings()
 ssl_verify = config.get("ssl_verify", False)
 if not ssl_verify:
