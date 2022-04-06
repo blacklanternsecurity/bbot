@@ -37,7 +37,16 @@ class Event:
 
     _dummy = False
 
-    def __init__(self, data, event_type=None, source=None, module=None, tags=None, confidence=100):
+    def __init__(
+        self,
+        data,
+        event_type=None,
+        source=None,
+        module=None,
+        scan_id=None,
+        tags=None,
+        confidence=100,
+    ):
 
         if tags is None:
             tags = set()
@@ -52,6 +61,7 @@ class Event:
             )
 
         self.module = module
+        self.scan_id = scan_id
 
         self.source = None
         if type(source) == Event:
@@ -181,6 +191,8 @@ class Event:
             yield ("tags", list(self.tags))
         if self.module:
             yield ("module", str(self.module))
+        if self.scan_id:
+            yield ("scan_id", str(self.scan_id))
 
     def __eq__(self, other):
         return hash(self) == hash(other)

@@ -38,7 +38,7 @@ def main():
         # scan test
         from bbot.scanner import Scanner
 
-        scanner = Scanner("asdf", *options.targets, modules=options.modules, config=config)
+        scanner = Scanner(*options.targets, modules=options.modules, config=config)
         scanner.start()
 
     except bbot.core.errors.ArgumentError as e:

@@ -5,8 +5,6 @@ import traceback
 from time import sleep
 from contextlib import suppress
 
-from bbot.core.event import make_event
-
 
 class BaseModule:
 
@@ -112,7 +110,7 @@ class BaseModule:
 
     def _emit_event(self, *args, **kwargs):
         kwargs["module"] = self
-        event = make_event(*args, **kwargs)
+        event = self.scan.make_event(*args, **kwargs)
 
         # special DNS validation
         if event.type == "DNS_NAME":

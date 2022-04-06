@@ -9,9 +9,10 @@ log = logging.getLogger("bbot.core.target")
 
 
 class ScanTarget:
-    def __init__(self, *targets):
+    def __init__(self, scan, *targets):
+        self.scan = scan
         # create pseudo root event
-        self.root_event = make_event(
+        self.root_event = self.scan.make_event(
             data="TARGET", event_type="TARGET", source=make_event_id("TARGET", "TARGET")
         )
         self._events = dict()
@@ -20,7 +21,7 @@ class ScanTarget:
                 for k, v in t._events.items():
                     self._events[k].update(v)
             else:
-                event = make_event(t, source=self.root_event, tags=["target"])
+                event = self.scan.make_event(t, source=self.root_event, tags=["target"])
                 try:
                     self._events[event.host].add(event)
                 except KeyError:
