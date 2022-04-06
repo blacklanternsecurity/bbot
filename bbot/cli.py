@@ -45,11 +45,10 @@ def main():
         log.error(e)
         sys.exit(2)
 
-    except Exception as e:
-        log.error(f"Encountered unknown error: {e}")
+    except Exception:
         import traceback
 
-        log.debug(traceback.format_exc())
+        log.error(f"Encountered unknown error: {traceback.format_exc()}")
 
     except KeyboardInterrupt:
         log.error("Interrupted")

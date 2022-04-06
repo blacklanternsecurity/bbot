@@ -51,9 +51,7 @@ class Event:
                 f'Unable to autodetect event type from "{data}": please specify event_type'
             )
 
-        if module is None:
-            module = "module"
-        self.module = str(module)
+        self.module = module
 
         self.source = None
         if type(source) == Event:
@@ -174,12 +172,15 @@ class Event:
         return False
 
     def __iter__(self):
-        for i in ("type", "data", "module", "source", "id"):
+
+        for i in ("type", "data", "source", "id"):
             v = getattr(self, i, "")
             if v:
                 yield (i, v)
         if self.tags:
             yield ("tags", list(self.tags))
+        if self.module:
+            yield ("module", str(self.module))
 
     def __eq__(self, other):
         return hash(self) == hash(other)

@@ -1,3 +1,4 @@
+import os
 import psutil
 import random
 import signal
@@ -5,6 +6,7 @@ import string
 import logging
 import ipaddress
 import wordninja
+from pathlib import Path
 from contextlib import suppress
 import tldextract as _tldextract
 from urllib.parse import urlparse
@@ -192,3 +194,38 @@ def kill_children(parent_pid=None, sig=signal.SIGTERM):
         log.debug(f"Killing child with PID {child.pid}")
         if child.name != "python":
             child.send_signal(sig)
+
+
+def str_or_file(s):
+    try:
+        with open(s, errors="ignore") as f:
+            yield from f
+    except OSError:
+        yield s
+
+
+def chain_lists(l, try_files=False):
+    """
+    Chain together list, splitting entries on comma
+    Optionally try to open entries as files and add their content to the list
+    """
+    final_list = dict()
+    for entry in l:
+        for s in entry.split(","):
+            f = s.strip()
+            if try_files:
+                for line in str_or_file(f):
+                    final_list[line.strip()] = None
+            else:
+                final_list[f] = None
+
+    return list(final_list)
+
+
+def list_files(directory, filter=lambda x: True):
+    directory = Path(directory)
+    if directory.is_dir():
+        for file in os.listdir(directory):
+            file = directory / file
+            if file.is_file() and filter(file):
+                yield file

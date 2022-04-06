@@ -2,39 +2,12 @@ import logging
 import argparse
 from omegaconf import OmegaConf
 from contextlib import suppress
-from bbot.modules import list_module_stems
 
 from ..errors import ArgumentError
-
-available_modules = list(list_module_stems())
+from ...modules import module_stems
+from ..helpers.misc import chain_lists
 
 log = logging.getLogger("bbot.core.configurator.args")
-
-
-def chain_lists(l, try_files=False):
-    """
-    Chain together list, splitting entries on comma
-    Optionally try to open entries as files and add their content to the list
-    """
-    final_list = dict()
-    for entry in l:
-        for s in entry.split(","):
-            f = s.strip()
-            if try_files:
-                for line in str_or_file(f):
-                    final_list[line.strip()] = None
-            else:
-                final_list[f] = None
-
-    return list(final_list)
-
-
-def str_or_file(s):
-    try:
-        with open(s, errors="ignore") as f:
-            yield from f
-    except OSError:
-        yield s
 
 
 class BBOTArgumentParser(argparse.ArgumentParser):
@@ -49,12 +22,12 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.modules = chain_lists(ret.modules)
         ret.targets = chain_lists(ret.targets, try_files=True)
         if "all" in ret.modules:
-            ret.modules = available_modules
+            ret.modules = module_stems
         else:
             for m in ret.modules:
-                if not m in available_modules and not self._dummy:
+                if not m in module_stems and not self._dummy:
                     raise ArgumentError(
-                        f'Module "{m}" is not valid. Choose from: {",".join(available_modules)}'
+                        f'Module "{m}" is not valid. Choose from: {",".join(module_stems)}'
                     )
         return ret
 
@@ -75,7 +48,7 @@ for p in (parser, dummy_parser):
         "--modules",
         nargs="+",
         default=[],
-        help=f'Modules (specify keyword "all" to enable all modules). Choices: {",".join(available_modules)}',
+        help=f'Modules (specify keyword "all" to enable all modules). Choices: {",".join(module_stems)}',
     )
     p.add_argument(
         "-c",
