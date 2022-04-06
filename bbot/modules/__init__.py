@@ -1,50 +1,33 @@
-import os
-import importlib
 from pathlib import Path
-from .base import BaseModule
+from ..core.helpers.misc import list_files
+
+
+def module_filter(file):
+    return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
+
 
 module_dir = Path(__file__).parent
-module_files = list(os.listdir(module_dir))
-
-
-def list_module_stems():
-    """
-    Simpler function to list files only
-    Avoids circular imports
-    """
-
-    for file in module_files:
-        file = module_dir / file
-        if (
-            file.is_file()
-            and file.suffix.lower() == ".py"
-            and file.stem not in ["base", "__init__"]
-        ):
-            yield file.stem
+module_files = list(list_files(module_dir, filter=module_filter))
+module_stems = [file.stem for file in module_files]
 
 
 def get_modules():
+
+    import importlib
+    from .base import BaseModule
+
     available_modules = {}
     for file in module_files:
-
-        file = module_dir / file
         name = f"{file.stem}"
+        modules = importlib.import_module(f"bbot.modules.{name}", "bbot")
 
-        if (
-            file.is_file()
-            and file.suffix.lower() == ".py"
-            and file.stem not in ["base", "__init__"]
-        ):
-
-            modules = importlib.import_module(f"bbot.modules.{name}", "bbot")
-
-            for m in modules.__dict__.keys():
-                module = getattr(modules, m)
-                try:
-                    if BaseModule in module.__bases__:
-                        module._name = name
-                        available_modules[name] = module
-                        break
-                except AttributeError:
-                    continue
+        for m in modules.__dict__.keys():
+            module = getattr(modules, m)
+            try:
+                if BaseModule in getattr(module, "__bases__", []):
+                    module._name = name
+                    available_modules[name] = module
+                    break
+            except AttributeError:
+                continue
     return available_modules

@@ -1,9 +1,9 @@
 from pathlib import Path
 from omegaconf import OmegaConf
 
-root_dir = Path(__file__).parent.parent.parent.parent
-config_filename = root_dir / "bbot.conf"
-secrets_filename = root_dir / "secrets.conf"
+home_dir = Path(__file__).parent.parent.parent.parent
+config_filename = home_dir / "bbot.conf"
+secrets_filename = home_dir / "secrets.conf"
 
 
 def _get_config(filename):
