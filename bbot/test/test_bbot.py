@@ -3,26 +3,29 @@ import logging
 import ipaddress
 
 from bbot.scanner import Scanner
-from bbot.core.event import make_event
 
 log = logging.getLogger(f"bbot.test")
 
 
+scan = Scanner("test", modules=[], config={"max_threads": 250})
+helpers = scan.helpers
+
+
 def test_events():
 
-    ipv4_event = make_event("192.168.1.1", dummy=True)
-    netv4_event = make_event("192.168.1.1/24", dummy=True)
-    ipv6_event = make_event("dead::beef", dummy=True)
-    netv6_event = make_event("dead::beef/64", dummy=True)
-    domain_event = make_event("evilcorp.com", dummy=True)
-    subdomain_event = make_event("www.evilcorp.com", dummy=True)
-    open_port_event = make_event("port.www.evilcorp.com:777", dummy=True)
-    ipv4_open_port_event = make_event("192.168.1.1:80", dummy=True)
-    ipv6_open_port_event = make_event("[dead::beef]:80", "OPEN_TCP_PORT", dummy=True)
-    url_event = make_event("https://url.www.evilcorp.com:666/hellofriend", dummy=True)
-    ipv4_url_event = make_event("https://192.168.1.1:666/hellofriend", dummy=True)
-    ipv6_url_event = make_event("https://[dead::beef]:666/hellofriend", "URL", dummy=True)
-    emoji_event = make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
+    ipv4_event = scan.make_event("192.168.1.1", dummy=True)
+    netv4_event = scan.make_event("192.168.1.1/24", dummy=True)
+    ipv6_event = scan.make_event("dead::beef", dummy=True)
+    netv6_event = scan.make_event("dead::beef/64", dummy=True)
+    domain_event = scan.make_event("evilcorp.com", dummy=True)
+    subdomain_event = scan.make_event("www.evilcorp.com", dummy=True)
+    open_port_event = scan.make_event("port.www.evilcorp.com:777", dummy=True)
+    ipv4_open_port_event = scan.make_event("192.168.1.1:80", dummy=True)
+    ipv6_open_port_event = scan.make_event("[dead::beef]:80", "OPEN_TCP_PORT", dummy=True)
+    url_event = scan.make_event("https://url.www.evilcorp.com:666/hellofriend", dummy=True)
+    ipv4_url_event = scan.make_event("https://192.168.1.1:666/hellofriend", dummy=True)
+    ipv6_url_event = scan.make_event("https://[dead::beef]:666/hellofriend", "URL", dummy=True)
+    emoji_event = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
 
     assert ipv4_event.type == "IPV4_ADDRESS"
     assert ipv6_event.type == "IPV6_ADDRESS"
@@ -38,7 +41,7 @@ def test_events():
     assert ipv6_url_event.type == "URL"
 
     # ip tests
-    assert ipv4_event == make_event("192.168.1.1", dummy=True)
+    assert ipv4_event == scan.make_event("192.168.1.1", dummy=True)
     assert "192.168.1.1" in ipv4_event
     assert "192.168.1.1" in netv4_event
     assert "192.168.1.2" not in ipv4_event
@@ -117,9 +120,6 @@ def test_events():
 
 
 def test_helpers():
-
-    scan = Scanner("test", modules=[], config={"max_threads": 250})
-    helpers = scan.helpers
 
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
