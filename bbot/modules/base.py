@@ -111,7 +111,7 @@ class BaseModule:
             self.helpers.run_async(self._emit_event, *args, **kwargs)
 
     def _emit_event(self, *args, **kwargs):
-        kwargs["module"] = self.name
+        kwargs["module"] = self
         event = make_event(*args, **kwargs)
 
         # special DNS validation
@@ -293,6 +293,9 @@ class BaseModule:
         if self.__log is None:
             self.__log = logging.getLogger(f"bbot.modules.{self.name}")
         return self.__log
+
+    def __str__(self):
+        return self.name
 
     def debug(self, *args, **kwargs):
         self._log.debug(*args, extra={"scan_id": self.scan.id}, **kwargs)

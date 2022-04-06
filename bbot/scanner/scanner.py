@@ -4,9 +4,9 @@ import concurrent.futures
 from collections import OrderedDict
 
 from .manager import EventManager
-from bbot.core.helpers import Helpers
 from bbot.core.target import ScanTarget
 from bbot.core.configurator import available_modules
+from bbot.core.helpers.helper import ConfigAwareHelper
 
 log = logging.getLogger("bbot.scanner")
 
@@ -27,7 +27,7 @@ class Scanner:
             self.error(f"No scan targets specified")
 
         self.manager = EventManager(self)
-        self.helpers = Helpers(config=self.config, scan=self)
+        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
         # Set up shared thread pool
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(
