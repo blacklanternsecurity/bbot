@@ -1,9 +1,11 @@
 import logging
+from uuid import uuid4
 from time import sleep
 import concurrent.futures
 from collections import OrderedDict
 
 from .manager import EventManager
+from bbot.core.event import make_event
 from bbot.core.target import ScanTarget
 from bbot.core.configurator import available_modules
 from bbot.core.helpers.helper import ConfigAwareHelper
@@ -12,17 +14,20 @@ log = logging.getLogger("bbot.scanner")
 
 
 class Scanner:
-    def __init__(self, scan_id, *targets, modules=None, config=None):
+    def __init__(self, *targets, scan_id=None, modules=None, config=None):
         if modules is None:
             modules = []
         if config is None:
             config = {}
 
-        self.id = str(scan_id)
+        if scan_id is not None:
+            self.id = str(scan_id)
+        else:
+            self.id = str(uuid4())
         self.config = config
         self._status = "NOT_STARTED"
 
-        self.target = ScanTarget(*targets)
+        self.target = ScanTarget(self, *targets)
         if not self.target:
             self.error(f"No scan targets specified")
 
@@ -129,6 +134,14 @@ class Scanner:
     @property
     def status(self):
         return self._status
+
+    def make_event(self, *args, **kwargs):
+        """
+        If data is already an event, simply return it
+        Handle dummy event type
+        """
+        kwargs["scan_id"] = self.id
+        return make_event(*args, **kwargs)
 
     @property
     def log(self):
