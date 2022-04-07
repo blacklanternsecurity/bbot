@@ -3,7 +3,6 @@ import logging
 from bbot.core.errors import *
 from bbot.core.event import make_event
 from bbot.core.helpers import sha1, host_in_host
-from bbot.core.event.helpers import make_event_id
 
 log = logging.getLogger("bbot.core.target")
 
@@ -12,16 +11,13 @@ class ScanTarget:
     def __init__(self, scan, *targets):
         self.scan = scan
         # create pseudo root event
-        self.root_event = self.scan.make_event(
-            data="TARGET", event_type="TARGET", source=make_event_id("TARGET", "TARGET")
-        )
         self._events = dict()
         for t in targets:
             if type(t) == self.__class__:
                 for k, v in t._events.items():
                     self._events[k].update(v)
             else:
-                event = self.scan.make_event(t, source=self.root_event, tags=["target"])
+                event = self.scan.make_event(t, source=self.scan.root_event, tags=["target"])
                 try:
                     self._events[event.host].add(event)
                 except KeyError:
@@ -37,6 +33,9 @@ class ScanTarget:
         for _events in self._events.values():
             events.update(_events)
         return events
+
+    def __str__(self):
+        return ",".join([str(e.data) for e in self.events][:5])
 
     def __iter__(self):
         yield from self.events

@@ -2,12 +2,18 @@ import os
 import logging
 import ipaddress
 
+# logging
+from bbot.core.logger import init_logging
+
+logging_queue, logging_handlers = init_logging()
+
 from bbot.scanner import Scanner
+from bbot.core.configurator import available_modules
 
 log = logging.getLogger(f"bbot.test")
 
 
-scan = Scanner("test", modules=[], config={"max_threads": 250})
+scan = Scanner("test", modules=list(available_modules), config={"max_threads": 250})
 helpers = scan.helpers
 
 
@@ -161,3 +167,12 @@ def test_helpers():
     assert not helpers.is_wildcard("mail.google.com")
     # resolvers - disabled because github's dns is wack
     # assert "8.8.8.8" in helpers.resolver_list()
+
+
+def test_modules():
+
+    for module_name, module in scan.modules.items():
+        assert type(module.watched_events) == list
+        assert type(module.produced_events) == list
+        assert all([type(t) == str for t in module.watched_events])
+        assert all([type(t) == str for t in module.produced_events])

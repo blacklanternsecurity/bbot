@@ -92,9 +92,10 @@ process = self.helpers.run(["ls", "-lah"])
 log.info(process.stdout)
 
 # Use the shared thread pool
+# limit threads by setting self.max_threads
 futures = {}
 for url in urls:
-    future = self.helpers.run_async(self.helpers.request, url)
+    future = self.submit_task(self.helpers.request, url)
     futures[future] = url
 
 for future in self.helpers.as_completed(futures):

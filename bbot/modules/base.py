@@ -24,7 +24,9 @@ class BaseModule:
     options = {}
     # Options description, e.g. {"api_key": "API Key"}
     options_desc = {}
-    # Maximum threads (how many instances of handle_event() can be running at once)
+    # Maximum concurrent instances of handle_event() or handle_batch()
+    max_event_handlers = 1
+    # Max number of concurrent calls to submit_task()
     max_threads = 1
     # Batch size
     # If batch size > 1, override handle_batch() instead of handle_event()
@@ -101,12 +103,12 @@ class BaseModule:
             )
             events = list(self.events_waiting)
             if events:
-                self.run_async(self.catch, self.handle_batch, *events)
+                self.submit_task(self.catch, self.handle_batch, *events)
 
     def emit_event(self, *args, **kwargs):
         # don't raise an exception if the thread pool has been shutdown
         with suppress(RuntimeError):
-            self.helpers.run_async(self._emit_event, *args, **kwargs)
+            self.helpers.submit_task(self._emit_event, *args, **kwargs)
 
     def _emit_event(self, *args, **kwargs):
         kwargs["module"] = self
@@ -148,7 +150,6 @@ class BaseModule:
 
     @property
     def num_running_tasks(self):
-
         running_futures = set()
         with self._future_lock:
             for f in self._futures:
@@ -157,14 +158,12 @@ class BaseModule:
             self._futures = running_futures
         return len(running_futures)
 
-    def run_async(self, callback, *args, **kwargs):
-        # make sure we don't exceed max threads
+    def submit_task(self, callback, *args, **kwargs):
+        # make sure we don't exceed max threads for module
         # NOTE: here, we're pulling from the config instead of self.max_threads
         # so the user can change the value if they want
-        max_threads = self.config.get("max_threads", None)
-        if max_threads is not None:
-            while self.num_running_tasks > max_threads:
-                sleep(0.1)
+        while self.num_running_tasks > self.max_threads:
+            sleep(0.1)
         future = self.scan.thread_pool.submit(callback, *args, **kwargs)
         self._futures.add(future)
         return future
@@ -210,9 +209,9 @@ class BaseModule:
                     self.debug(f"{self.name}._worker() got {e}")
                     # if we receive the special "FINISHED" event
                     if type(e) == str and e == "FINISHED":
-                        self.run_async(self.catch, self.finish)
+                        self.submit_task(self.catch, self.finish)
                     else:
-                        self.run_async(self.catch, self.handle_event, e)
+                        self.submit_task(self.catch, self.handle_event, e)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")
@@ -278,7 +277,10 @@ class BaseModule:
 
     @property
     def config(self):
-        return self.scan.config.get("modules", {}).get(self.name, {})
+        config = self.scan.config.get("modules", {}).get(self.name, {})
+        if config is None:
+            config = {}
+        return config
 
     @property
     def event_queue(self):
