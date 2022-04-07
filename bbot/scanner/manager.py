@@ -19,6 +19,7 @@ class EventManager:
         """
         seed scanner with target events
         """
+        self.queue_event(self.scan.root_event)
         for event in self.scan.target.events:
             self.scan.info(f"Target: {event}")
             self.queue_event(event)

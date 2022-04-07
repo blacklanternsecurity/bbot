@@ -1,6 +1,13 @@
 import logging
 
-from .helpers import *
+from .helpers import (
+    make_event_id,
+    is_event_id,
+    event_sanitizers,
+    get_event_type,
+    event_data_constructors,
+    scopable_types,
+)
 from bbot.core.errors import *
 from bbot.core.helpers import (
     extract_words,
@@ -64,11 +71,11 @@ class Event:
         self.scan_id = scan_id
 
         self.source = None
-        if type(source) == Event:
+        if type(source) in (Event, DummyEvent):
             self.source = source.id
         elif is_event_id(source):
             self.source = str(source)
-        if not self.source and not self._dummy:
+        if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
 
         self.type = str(event_type).strip().upper()
@@ -181,18 +188,23 @@ class Event:
             return host_in_host(other.host, self.host)
         return False
 
-    def __iter__(self):
-
+    @property
+    def json(self):
+        j = dict()
         for i in ("type", "data", "source", "id"):
             v = getattr(self, i, "")
             if v:
-                yield (i, v)
+                j.update({i: v})
         if self.tags:
-            yield ("tags", list(self.tags))
+            j.update({"tags": list(self.tags)})
         if self.module:
-            yield ("module", str(self.module))
+            j.update({"module": str(self.module)})
         if self.scan_id:
-            yield ("scan_id", str(self.scan_id))
+            j.update({"scan_id": str(self.scan_id)})
+        return j
+
+    def __iter__(self):
+        yield from self.json.items()
 
     def __eq__(self, other):
         return hash(self) == hash(other)

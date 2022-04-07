@@ -5,16 +5,16 @@ import concurrent.futures
 from collections import OrderedDict
 
 from .manager import EventManager
-from bbot.core.event import make_event
 from bbot.core.target import ScanTarget
 from bbot.core.configurator import available_modules
+from bbot.core.event import make_event, make_event_id
 from bbot.core.helpers.helper import ConfigAwareHelper
 
 log = logging.getLogger("bbot.scanner")
 
 
 class Scanner:
-    def __init__(self, *targets, scan_id=None, modules=None, config=None):
+    def __init__(self, *targets, scan_id=None, name=None, modules=None, config=None):
         if modules is None:
             modules = []
         if config is None:
@@ -30,6 +30,10 @@ class Scanner:
         self.target = ScanTarget(self, *targets)
         if not self.target:
             self.error(f"No scan targets specified")
+        if name is None:
+            self.name = str(self.target)
+        else:
+            self.name = str(name)
 
         self.manager = EventManager(self)
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
@@ -152,6 +156,27 @@ class Scanner:
     @property
     def stopping(self):
         return self.status not in ["RUNNING", "FINISHING"]
+
+    @property
+    def root_event(self):
+        data = f"SCAN:{self.id}"
+        return self.make_event(
+            data=data, event_type="SCAN", dummy=True, source=make_event_id(data, "SCAN")
+        )
+
+    @property
+    def json(self):
+        j = dict()
+        for i in ("id", "name"):
+            v = getattr(self, i, "")
+            if v:
+                j.update({i: v})
+        if self.target:
+            j.update({"targets": [str(e.data) for e in self.target]})
+        if self.modules:
+            j.update({"modules": [str(m) for m in self.modules]})
+        # j.update({"config": self.config})
+        return j
 
     def debug(self, *args, **kwargs):
         log.debug(*args, extra={"scan_id": self.id}, **kwargs)

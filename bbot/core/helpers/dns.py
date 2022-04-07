@@ -1,6 +1,7 @@
 import json
 import logging
 import dns.resolver
+from threading import Lock
 
 from .misc import is_ip, domain_parents, parent_domain, rand_string
 
@@ -9,7 +10,7 @@ log = logging.getLogger("bbot.core.helpers.dns")
 
 class DNSHelper:
     """
-    For automatic wildcard detection
+    For automatic wildcard detection, nameserver validation, etc.
     """
 
     def __init__(self, parent_helper):
@@ -19,6 +20,12 @@ class DNSHelper:
         self._cache = dict()
         self.resolver = dns.resolver.Resolver()
         self._resolver_list = None
+
+        # since wildcard detection takes some time, these are to prevent multiple
+        # modules from kicking off wildcard detection for the same domain at the same time
+        # ensuring that subsequent calls to is_wildcard() will use the cached value
+        self.__wildcard_lock = Lock()
+        self._wildcard_locks = dict()
 
     def resolve(self, query, **kwargs):
         """
@@ -62,7 +69,7 @@ class DNSHelper:
             timeout (int): timeout for dns query
         """
         log.debug(f"Verifying {len(nameservers):,} nameservers")
-        futures = [self.parent_helper.run_async(self.verify_nameserver, n) for n in nameservers]
+        futures = [self.parent_helper.submit_task(self.verify_nameserver, n) for n in nameservers]
 
         valid_nameservers = set()
         for future in self.parent_helper.as_completed(futures):
@@ -131,36 +138,47 @@ class DNSHelper:
         return answers
 
     def is_wildcard(self, query):
-        orig_results = self.resolve(query)
         parent = parent_domain(query)
-        parents = set(domain_parents(query))
-        is_wildcard = False
+        with self._wildcard_lock(parent):
+            orig_results = self.resolve(query)
+            parents = set(domain_parents(query))
+            is_wildcard = False
 
-        if parent in self._cache:
-            return self._cache[parent]
-        for parent in parents:
-            if parent in self.wildcards:
-                return True
+            if parent in self._cache:
+                return self._cache[parent]
+            for parent in parents:
+                if parent in self.wildcards:
+                    return True
 
-        futures = dict()
-        for parent in parents:
-            for _ in range(self.parent_helper.config.get("dns_wildcard_tests", 5)):
-                rand_query = f"{rand_string(length=10)}.{parent}"
-                futures[self.parent_helper.run_async(self.resolve, rand_query)] = parent
+            futures = dict()
+            for parent in parents:
+                for _ in range(self.parent_helper.config.get("dns_wildcard_tests", 5)):
+                    rand_query = f"{rand_string(length=10)}.{parent}"
+                    future = self.parent_helper.submit_task(self.resolve, rand_query)
+                    futures[future] = parent
 
-        wildcard_ips = set()
-        for future in self.parent_helper.as_completed(futures):
-            parent = futures[future]
-            ips = future.result()
-            if ips:
-                try:
-                    self.wildcards[parent].update(ips)
-                except KeyError:
-                    self.wildcards[parent] = ips
-                wildcard_ips.update(ips)
+            wildcard_ips = set()
+            for future in self.parent_helper.as_completed(futures):
+                parent = futures[future]
+                ips = future.result()
+                if ips:
+                    try:
+                        self.wildcards[parent].update(ips)
+                    except KeyError:
+                        self.wildcards[parent] = ips
+                    wildcard_ips.update(ips)
 
-        if orig_results and wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):
-            is_wildcard = True
+            if orig_results and wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):
+                is_wildcard = True
 
-        self._cache[parent] = is_wildcard
+            self._cache.update({parent: is_wildcard})
         return is_wildcard
+
+    def _wildcard_lock(self, domain):
+        with self.__wildcard_lock:
+            try:
+                return self._wildcard_locks[domain]
+            except KeyError:
+                lock = Lock()
+                self._wildcard_locks[domain] = lock
+                return lock

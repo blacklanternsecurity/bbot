@@ -25,7 +25,7 @@ class ConfigAwareHelper:
         self.home = Path.home() / ".bbot"
         self.cache_dir = self.home / "cache"
 
-    def run_async(self, *args, **kwargs):
+    def submit_task(self, *args, **kwargs):
         return self.thread_pool.submit(*args, **kwargs)
 
     @property
