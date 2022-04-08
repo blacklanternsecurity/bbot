@@ -26,6 +26,9 @@ class Neo4j:
 
         for event in events:
             event_node = self.make_node(event.json)
+            if event.id in event_nodes:
+                event_node = event_nodes[event.id] | event_node
+            event_node = self.make_node(event.json)
             event_nodes[event.id] = event_node
             event_list.append(event_node)
 
@@ -46,6 +49,8 @@ class Neo4j:
     @staticmethod
     def make_node(event):
         event = dict(event)
+        if "scan_id" in event:
+            event["scan_ids"] = [event.pop("scan_id")]
         event_type = event.pop("type")
         event_node = py2neo.Node(event_type, **event)
         event_node.__primarylabel__ = "data"

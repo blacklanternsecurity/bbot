@@ -49,9 +49,12 @@ class BaseModule:
 
     def setup(self):
         """
+        Perform setup functions at the beginning of the scan.
         Optionally override this method.
+
+        Must return True or False based on whether the setup was successful
         """
-        pass
+        return True
 
     def handle_event(self, event):
         """
@@ -104,6 +107,8 @@ class BaseModule:
             events = list(self.events_waiting)
             if events:
                 self.submit_task(self.catch, self.handle_batch, *events)
+                return True
+        return False
 
     def emit_event(self, *args, **kwargs):
         # don't raise an exception if the thread pool has been shutdown
@@ -164,7 +169,7 @@ class BaseModule:
         # so the user can change the value if they want
         while self.num_running_tasks > self.max_threads:
             sleep(0.1)
-        future = self.scan.thread_pool.submit(callback, *args, **kwargs)
+        future = self.scan._thread_pool.submit(callback, *args, **kwargs)
         self._futures.add(future)
         return future
 
@@ -179,8 +184,7 @@ class BaseModule:
             self.setup()
             self.debug(f"Finished setting up module {self.name}")
         except Exception:
-            self.set_error_state()
-            self.error(f"Failed to set up module {self.name}")
+            self.set_error_state(f"Failed to set up module {self.name}")
             self.debug(traceback.format_exc())
 
     def _worker(self):
@@ -188,13 +192,16 @@ class BaseModule:
         iterations = 0
         try:
             while not self.scan.stopping:
-
                 iterations += 1
                 if self.batch_size > 1:
                     if iterations % 3 == 0:
                         self._batch_idle += 1
                     force = self._batch_idle >= self.batch_wait or self.scan.status == "FINISHING"
-                    self._handle_batch(force=force)
+                    if force:
+                        self._batch_idle = 0
+                    submitted = self._handle_batch(force=force)
+                    if not submitted:
+                        sleep(0.3333)
 
                 else:
                     try:
@@ -217,10 +224,9 @@ class BaseModule:
             self.debug(f"Interrupted module {self.name}")
             self.scan.stop()
         except Exception as e:
-            self.error(
+            self.set_error_state(
                 f"Exception ({e.__class__.__name__}) in module {self.name}:\n{traceback.format_exc()}"
             )
-            self.set_error_state()
 
     def _filter_event(self, e):
         if type(e) == str:
@@ -245,7 +251,9 @@ class BaseModule:
         else:
             self.debug(f"Module {self.name} is not in an acceptable state to queue event")
 
-    def set_error_state(self):
+    def set_error_state(self, message=None):
+        if message is not None:
+            self.error(str(message))
         if not self.errored:
             self.debug(f"Setting error state for module {self.name}")
             self.errored = True

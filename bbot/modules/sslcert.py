@@ -48,7 +48,7 @@ class sslcert(BaseModule):
                     continue
                 break
         except Exception as e:
-            self.debug(f"Error with SSL handshake on {host} port {port}: {e}")
+            self.verbose(f"Error with SSL handshake on {host} port {port}: {e}")
             return
         cert = connection.get_peer_certificate()
         sock.close()

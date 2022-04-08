@@ -31,7 +31,7 @@ class naabu(BaseModule):
 
             source_event = None
             for event in events:
-                if host in event:
+                if host == str(event.host):
                     source_event = event
                     break
 
