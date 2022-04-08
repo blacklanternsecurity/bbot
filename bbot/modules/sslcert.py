@@ -27,6 +27,7 @@ class sslcert(BaseModule):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         timeout = self.config.get("timeout", 5.0)
         sock.settimeout(timeout)
+        sock.setblocking(1)
         context = SSL.Context(PROTOCOL_TLSv1)
         try:
             sock.connect((host, port))
@@ -65,5 +66,6 @@ class sslcert(BaseModule):
             if "subjectAltName" in str(ext.get_short_name()):
                 raw_sans = str(ext)
         for raw_san in raw_sans.split(","):
-            sans.append(raw_san.split(":")[-1].strip())
+            hostname = raw_san.split(":")[-1].strip()
+            sans.append(hostname)
         return sans
