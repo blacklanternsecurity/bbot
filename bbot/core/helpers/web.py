@@ -34,8 +34,8 @@ def download(self, url, **kwargs):
     else:
         method = kwargs.get("method", "GET")
         try:
-            with request(
-                self, method=method, url=url, stream=True, raise_error=True, **kwargs
+            with self.request(
+                method=method, url=url, stream=True, raise_error=True, **kwargs
             ) as response:
                 status_code = getattr(response, "status_code", 0)
                 log.debug(f"Download result: HTTP {status_code}")

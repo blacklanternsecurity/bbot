@@ -19,24 +19,24 @@ class ConfigAwareHelper:
     def __init__(self, config, scan=None):
         self.config = config
         self.scan = scan
-        self._thread_pool = None
+        self.__thread_pool = None
         self.dns = DNSHelper(self)
         self.bbot_path = Path(__file__).parent.parent.parent.parent
         self.home = Path.home() / ".bbot"
         self.cache_dir = self.home / "cache"
 
     def submit_task(self, *args, **kwargs):
-        return self.thread_pool.submit(*args, **kwargs)
+        return self._thread_pool.submit(*args, **kwargs)
 
     @property
-    def thread_pool(self):
+    def _thread_pool(self):
         if self.scan is None:
-            self._thread_pool = concurrent.futures.ThreadPoolExecutor(
+            self.__thread_pool = concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.config.get("max_threads", 100)
             )
         else:
-            self._thread_pool = self.scan.thread_pool
-        return self._thread_pool
+            self.__thread_pool = self.scan._thread_pool
+        return self.__thread_pool
 
     @staticmethod
     def as_completed(fs):

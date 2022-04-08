@@ -125,9 +125,8 @@ class EventManager:
                     if m.errored:
                         modules_errored.append(m.name)
                 except Exception as e:
-                    log.error(f'Error encountered while polling module "{m.name}": {e}')
                     with suppress(Exception):
-                        m.set_error_state()
+                        m.set_error_state(f'Error encountered while polling module "{m.name}": {e}')
 
             queued_events = sorted(queued_events.items(), key=lambda x: x[-1], reverse=True)
             running_tasks = sorted(running_tasks.items(), key=lambda x: x[-1], reverse=True)
