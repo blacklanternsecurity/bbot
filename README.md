@@ -1,7 +1,7 @@
 ![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)
 
-# BBOT
-(**BEE·bot**): OSINT automation for hackers.
+# BEE·bot
+### OSINT automation for hackers.
 
 [![Python Version](https://img.shields.io/badge/python-3.7+-blue)](https://www.python.org) [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/workflows/tests/badge.svg)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -35,8 +35,7 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m {sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} [{sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} ...]]
-            [-c [CONFIGURATION ...]] [-v] [-d] [--current-config]
+usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config]
 
 Bighuge BLS OSINT Tool
 
@@ -44,8 +43,8 @@ options:
   -h, --help            show this help message and exit
   -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
                         Scan target
-  -m {sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} [{sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} ...], --modules {sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} [{sslcert,nuclei,nmap,naabu,httpx,dnsx,sublist3r,dnsdumpster,all} ...]
-                        Modules (specify keyword "all" to enable all modules)
+  -m MODULES [MODULES ...], --modules MODULES [MODULES ...]
+                        Modules (specify keyword "all" to enable all modules). Choices: sslcert,aspnet_viewstate,neo4j,nuclei,naabu,httpx,wayback,dnsx,dnsresolve,sublist3r,dnsdumpster
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
                         additional configuration options in key=value format
   -v, --verbose         Be more verbose
