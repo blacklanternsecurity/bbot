@@ -90,9 +90,9 @@ class EventManager:
                 self.distribute_event(event)
 
         finally:
-            # tell the modules to stop
+            # clean up modules
             for mod in self.scan.modules.values():
-                mod._stop = True
+                mod._cleanup()
 
     def absorb_words(self, event):
         for word in event.words:
@@ -101,12 +101,15 @@ class EventManager:
             except KeyError:
                 self.word_cloud[word] = 1
 
-    def modules_status(self, _log=False):
+    def modules_status(self, _log=False, passes=None):
 
         finished = False
-        # If status is determined to be finished, check an additional five times to ensure that it really is
-        # There is a very small chance of a race condition, which this helps to avoid
-        passes = 5
+        # If scan looks to be finished, check an additional five times to ensure that it really is
+        # There is a tiny chance of a race condition, which this helps to avoid
+        if passes is None:
+            passes = 5
+        else:
+            passes = int(passes)
 
         while passes > 0:
 
@@ -116,14 +119,15 @@ class EventManager:
             modules_errored = []
 
             for m in self.scan.modules.values():
+                task_waiting = m._submit_task_lock.locked()
                 try:
                     if m.event_queue:
-                        queued_events[m.name] = m.num_queued_events
+                        queued_events[m.name] = m.num_queued_events + (1 if task_waiting else 0)
                     running_tasks[m.name] = m.num_running_tasks
                     if m.running:
-                        modules_running.append(m.name)
+                        modules_running.append(m)
                     if m.errored:
-                        modules_errored.append(m.name)
+                        modules_errored.append(m)
                 except Exception as e:
                     with suppress(Exception):
                         m.set_error_state(f'Error encountered while polling module "{m.name}": {e}')
@@ -163,11 +167,11 @@ class EventManager:
             )
             if modules_running:
                 self.scan.verbose(
-                    f'Modules running: {len(modules_running):,} ({", ".join(modules_running)})'
+                    f'Modules running: {len(modules_running):,} ({", ".join([m.name for m in modules_running])})'
                 )
             if modules_errored:
                 self.scan.verbose(
-                    f'Modules errored: {len(modules_errored):,} ({", ".join(modules_errored)})'
+                    f'Modules errored: {len(modules_errored):,} ({", ".join([m.name for m in modules_errored])})'
                 )
 
         return {
