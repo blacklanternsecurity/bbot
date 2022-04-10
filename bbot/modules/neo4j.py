@@ -14,6 +14,7 @@ class neo4j(BaseModule):
         "username": "Neo4j username",
         "password": "Neo4j password",
     }
+    batch_size = 50
     accept_dupes = True
 
     def setup(self):
@@ -30,33 +31,11 @@ class neo4j(BaseModule):
             import traceback
 
             self.debug(traceback.format_exc())
-            self.set_error_state()
+            return False
         return True
 
     def handle_event(self, event):
         self.neo4j.insert_event(event)
 
     def handle_batch(self, *events):
-        """
-        Todo: Fix error with larger batch sizes
-            File "/home/bls/Downloads/code/bbot/bbot/modules/base.py", line 90, in catch
-                return callback(*args, **kwargs)
-              File "/home/bls/Downloads/code/bbot/bbot/modules/neo4j.py", line 42, in handle_batch
-                self.neo4j.insert_events(events)
-              File "/home/bls/Downloads/code/bbot/bbot/db/neo4j.py", line 44, in insert_events
-                self.graph.merge(subgraph)
-              File "/home/bls/.cache/pypoetry/virtualenvs/bbot-yxGMlPK5-py3.10/lib/python3.10/site-packages/py2neo/database.py", line 678, in merge
-                self.update(lambda tx: tx.merge(subgraph, label, *property_keys))
-              File "/home/bls/.cache/pypoetry/virtualenvs/bbot-yxGMlPK5-py3.10/lib/python3.10/site-packages/py2neo/database.py", line 445, in update
-                self._update(cypher, timeout=timeout)
-              File "/home/bls/.cache/pypoetry/virtualenvs/bbot-yxGMlPK5-py3.10/lib/python3.10/site-packages/py2neo/database.py", line 470, in _update
-                value = f(tx)
-              File "/home/bls/.cache/pypoetry/virtualenvs/bbot-yxGMlPK5-py3.10/lib/python3.10/site-packages/py2neo/database.py", line 678, in <lambda>
-                self.update(lambda tx: tx.merge(subgraph, label, *property_keys))
-              File "/home/bls/.cache/pypoetry/virtualenvs/bbot-yxGMlPK5-py3.10/lib/python3.10/site-packages/py2neo/database.py", line 1132, in merge
-                merge(self, primary_label, primary_key)
-              File "/home/bls/.cache/pypoetry/virtualenvs/bbot-yxGMlPK5-py3.10/lib/python3.10/site-packages/py2neo/data.py", line 320, in __db_merge__
-                raise UniquenessError("Found %d matching nodes for primary label %r and primary "
-            py2neo.data.UniquenessError: Found 2 matching nodes for primary label 'data' and primary key 'id' with labels {'DNS_NAME'} but merging requires no more than one
-        """
         self.neo4j.insert_events(events)
