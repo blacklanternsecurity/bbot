@@ -9,7 +9,7 @@ from omegaconf import OmegaConf
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 config = OmegaConf.merge(default_config, test_config)
 
-scan = Scanner("test", modules=list(available_modules), config={"max_threads": 250})
+scan = Scanner("test", modules=list(available_modules), config=config)
 helpers = scan.helpers
 
 ipv4_event = scan.make_event("192.168.1.1", dummy=True)
