@@ -2,6 +2,10 @@ class BBotError(Exception):
     pass
 
 
+class ScanCancelledError(BBotError):
+    pass
+
+
 class ArgumentError(BBotError):
     pass
 

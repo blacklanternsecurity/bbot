@@ -20,10 +20,13 @@ class dnsx(BaseModule):
 
     def setup(self):
 
-        self.subdomain_file = self.helpers.download(self.config.get("wordlist"), cache_hrs=720)
+        self.subdomain_file = self.helpers.download(
+            self.config.get("wordlist", self.options.get("wordlist")), cache_hrs=720
+        )
         if not self.subdomain_file:
             self.error("Failed to download wordlist")
-            self.set_error_state()
+            return False
+        return True
 
     def handle_batch(self, *events):
 

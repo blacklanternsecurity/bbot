@@ -2,36 +2,13 @@ import os
 import logging
 import ipaddress
 
-# logging
-from bbot.core.logger import init_logging
-
-logging_queue, logging_handlers = init_logging()
-
-from bbot.scanner import Scanner
-from bbot.core.configurator import available_modules
+import bbot.core.logger  # noqa: F401
+from .scan import *
 
 log = logging.getLogger(f"bbot.test")
 
 
-scan = Scanner("test", modules=list(available_modules), config={"max_threads": 250})
-helpers = scan.helpers
-
-
 def test_events():
-
-    ipv4_event = scan.make_event("192.168.1.1", dummy=True)
-    netv4_event = scan.make_event("192.168.1.1/24", dummy=True)
-    ipv6_event = scan.make_event("dead::beef", dummy=True)
-    netv6_event = scan.make_event("dead::beef/64", dummy=True)
-    domain_event = scan.make_event("evilcorp.com", dummy=True)
-    subdomain_event = scan.make_event("www.evilcorp.com", dummy=True)
-    open_port_event = scan.make_event("port.www.evilcorp.com:777", dummy=True)
-    ipv4_open_port_event = scan.make_event("192.168.1.1:80", dummy=True)
-    ipv6_open_port_event = scan.make_event("[dead::beef]:80", "OPEN_TCP_PORT", dummy=True)
-    url_event = scan.make_event("https://url.www.evilcorp.com:666/hellofriend", dummy=True)
-    ipv4_url_event = scan.make_event("https://192.168.1.1:666/hellofriend", dummy=True)
-    ipv6_url_event = scan.make_event("https://[dead::beef]:666/hellofriend", "URL", dummy=True)
-    emoji_event = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
 
     assert ipv4_event.type == "IPV4_ADDRESS"
     assert ipv6_event.type == "IPV6_ADDRESS"
@@ -171,8 +148,36 @@ def test_helpers():
 
 def test_modules():
 
+    method_futures = {"setup": {}, "finish": {}, "cleanup": {}}
+    filter_futures = {}
     for module_name, module in scan.modules.items():
+        # attribute checks
         assert type(module.watched_events) == list
         assert type(module.produced_events) == list
         assert all([type(t) == str for t in module.watched_events])
         assert all([type(t) == str for t in module.produced_events])
+
+        # test setups and cleanups etc.
+        for method_name in ("setup", "finish", "cleanup"):
+            method = getattr(module, method_name)
+            future = helpers.submit_task(method)
+            method_futures[method_name][future] = module
+
+        # module event filters
+        filter_future = helpers.submit_task(module.filter_event, emoji_event)
+        filter_futures[filter_future] = module
+
+    for method_name, futures in method_futures.items():
+        if method_name in ("setup"):
+            expected_return_values = (True, False)
+        else:
+            expected_return_values = (None,)
+        for future in helpers.as_completed(futures):
+            module = futures[future]
+            log.info(f"Testing {module.name}.{method_name}()")
+            assert future.result() in expected_return_values
+
+    for filter_future in helpers.as_completed(filter_futures):
+        module = filter_futures[filter_future]
+        log.info(f"Testing {module.name}.filter_event()")
+        assert filter_future.result() in (True, False)
