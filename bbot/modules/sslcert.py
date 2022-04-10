@@ -1,5 +1,6 @@
 from .base import BaseModule
 from ssl import PROTOCOL_TLSv1
+import select
 import socket
 from OpenSSL import SSL
 
@@ -27,7 +28,6 @@ class sslcert(BaseModule):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         timeout = self.config.get("timeout", 5.0)
         sock.settimeout(timeout)
-        sock.setblocking(1)
         context = SSL.Context(PROTOCOL_TLSv1)
         try:
             sock.connect((host, port))
@@ -38,9 +38,17 @@ class sslcert(BaseModule):
         connection.set_tlsext_host_name(host.encode())
         connection.set_connect_state()
         try:
-            connection.do_handshake()
+            while True:
+                try:
+                    connection.do_handshake()
+                except SSL.WantReadError:
+                    rd, _, _ = select.select([sock], [], [], sock.gettimeout())
+                    if not rd:
+                        raise timeout("select timed out")
+                    continue
+                break
         except Exception as e:
-            self.debug(f"Error with SSL handshake on {host} port {port}: {e}")
+            self.verbose(f"Error with SSL handshake on {host} port {port}: {e}")
             return
         cert = connection.get_peer_certificate()
         sock.close()

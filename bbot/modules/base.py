@@ -5,6 +5,8 @@ import traceback
 from time import sleep
 from contextlib import suppress
 
+from ..core.errors import ScanCancelledError
+
 
 class BaseModule:
 
@@ -46,12 +48,16 @@ class BaseModule:
         self._batch_idle = 0
         self._futures = set()
         self._future_lock = threading.Lock()
+        self._submit_task_lock = threading.Lock()
 
     def setup(self):
         """
+        Perform setup functions at the beginning of the scan.
         Optionally override this method.
+
+        Must return True or False based on whether the setup was successful
         """
-        pass
+        return True
 
     def handle_event(self, event):
         """
@@ -77,7 +83,15 @@ class BaseModule:
     def finish(self):
         """
         Perform final functions when scan is nearing completion
-        Note that this method may be called multiple times
+        Note that this method may be called multiple times, because it may raise events.
+        Optionally override this method.
+        """
+        return
+
+    def cleanup(self):
+        """
+        Perform final cleanup after the scan has finished
+        This method is called only once, and may not raise events.
         Optionally override this method.
         """
         return
@@ -86,14 +100,19 @@ class BaseModule:
         """
         Wrapper to ensure error messages get surfaced to the user
         """
+        ret = None
+        on_finish_callback = kwargs.pop("on_finish_callback", None)
         try:
-            return callback(*args, **kwargs)
+            ret = callback(*args, **kwargs)
         except Exception as e:
             self.error(f"Encountered error in {callback.__name__}(): {e}")
             self.debug(traceback.format_exc())
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")
             self.scan.stop()
+        if callable(on_finish_callback):
+            on_finish_callback()
+        return ret
 
     def _handle_batch(self, force=False):
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
@@ -101,9 +120,16 @@ class BaseModule:
             self.debug(
                 f'Handling batch of {self.num_queued_events:,} events for module "{self.name}"'
             )
-            events = list(self.events_waiting)
+            on_finish_callback = None
+            events, finish = self.events_waiting
+            if finish:
+                on_finish_callback = self.finish
             if events:
-                self.submit_task(self.catch, self.handle_batch, *events)
+                self.submit_task(
+                    self.catch, self.handle_batch, *events, on_finish_callback=on_finish_callback
+                )
+                return True
+        return False
 
     def emit_event(self, *args, **kwargs):
         # don't raise an exception if the thread pool has been shutdown
@@ -130,17 +156,20 @@ class BaseModule:
         """
         yields all events in queue, up to maximum batch size
         """
+        events = []
+        finish = False
         left = int(self.batch_size)
         while left > 0:
             try:
                 event = self.event_queue.get_nowait()
                 if type(event) == str and event == "FINISHED":
-                    self.finish()
+                    finish = True
                 else:
                     left -= 1
-                    yield event
+                    events.append(event)
             except queue.Empty:
                 break
+        return events, finish
 
     @property
     def num_queued_events(self):
@@ -162,10 +191,14 @@ class BaseModule:
         # make sure we don't exceed max threads for module
         # NOTE: here, we're pulling from the config instead of self.max_threads
         # so the user can change the value if they want
-        while self.num_running_tasks > self.max_threads:
-            sleep(0.1)
-        future = self.scan.thread_pool.submit(callback, *args, **kwargs)
-        self._futures.add(future)
+        with self._submit_task_lock:
+            while self.num_running_tasks > self.max_threads:
+                sleep(0.1)
+            try:
+                future = self.scan._thread_pool.submit(callback, *args, **kwargs)
+            except RuntimeError as e:
+                raise ScanCancelledError(e)
+            self._futures.add(future)
         return future
 
     def start(self):
@@ -179,22 +212,42 @@ class BaseModule:
             self.setup()
             self.debug(f"Finished setting up module {self.name}")
         except Exception:
-            self.set_error_state()
-            self.error(f"Failed to set up module {self.name}")
+            self.set_error_state(f"Failed to set up module {self.name}")
             self.debug(traceback.format_exc())
+
+    @property
+    def _force_batch(self):
+        """
+        Determine whether a batch should be forcefully submitted
+        """
+        # if we've been idle long enough
+        if self._batch_idle >= self.batch_wait:
+            return True
+        # if scan is finishing
+        if self.scan.status == "FINISHING":
+            return True
+        # if there's a batch stalemate
+        modules_status = self.scan.manager.modules_status(passes=1)
+        modules_running = modules_status.get("modules_running", [])
+        if all([(not m.running) and (m.batch_size > 1) for m in modules_running]):
+            return True
+        return False
 
     def _worker(self):
         # keep track of how long we've been running
         iterations = 0
         try:
             while not self.scan.stopping:
-
                 iterations += 1
                 if self.batch_size > 1:
                     if iterations % 3 == 0:
                         self._batch_idle += 1
-                    force = self._batch_idle >= self.batch_wait or self.scan.status == "FINISHING"
-                    self._handle_batch(force=force)
+                    force = self._force_batch
+                    if force:
+                        self._batch_idle = 0
+                    submitted = self._handle_batch(force=force)
+                    if not submitted:
+                        sleep(0.3333)
 
                 else:
                     try:
@@ -216,11 +269,12 @@ class BaseModule:
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")
             self.scan.stop()
+        except ScanCancelledError as e:
+            self.verbose(f"Scan cancelled, {e}")
         except Exception as e:
-            self.error(
+            self.set_error_state(
                 f"Exception ({e.__class__.__name__}) in module {self.name}:\n{traceback.format_exc()}"
             )
-            self.set_error_state()
 
     def _filter_event(self, e):
         if type(e) == str:
@@ -238,6 +292,9 @@ class BaseModule:
             return False
         return True
 
+    def _cleanup(self):
+        self.submit_task(self.catch, self.cleanup)
+
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:
             if self._filter_event(e):
@@ -245,7 +302,9 @@ class BaseModule:
         else:
             self.debug(f"Module {self.name} is not in an acceptable state to queue event")
 
-    def set_error_state(self):
+    def set_error_state(self, message=None):
+        if message is not None:
+            self.error(str(message))
         if not self.errored:
             self.debug(f"Setting error state for module {self.name}")
             self.errored = True

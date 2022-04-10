@@ -39,7 +39,7 @@ class Scanner:
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
         # Set up shared thread pool
-        self.thread_pool = concurrent.futures.ThreadPoolExecutor(
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.config.get("max_threads", 100)
         )
 
@@ -74,7 +74,7 @@ class Scanner:
             self.info(f"Starting scan {self.id}")
 
             self.info(f"Setting up modules")
-            module_setups = [self.thread_pool.submit(m._setup) for m in self.modules.values()]
+            module_setups = [self._thread_pool.submit(m._setup) for m in self.modules.values()]
             while not all([f.done() for f in module_setups]):
                 sleep(0.1)
             self.info(f"Finished setting up modules")
@@ -108,7 +108,7 @@ class Scanner:
 
         finally:
             # Shut down shared thread pool
-            self.thread_pool.shutdown(wait=True)
+            self._thread_pool.shutdown(wait=True)
 
             # Set status
             if failed:
@@ -130,7 +130,7 @@ class Scanner:
             self._status = "ABORTING"
             self.warning(f"Aborting scan")
             self.debug(f"Shutting down thread pool")
-            self.thread_pool.shutdown(wait=False, cancel_futures=True)
+            self._thread_pool.shutdown(wait=False, cancel_futures=True)
 
             self.debug(f"Finished shutting down thread pool")
             self.helpers.kill_children()
