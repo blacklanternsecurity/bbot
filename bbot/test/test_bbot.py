@@ -2,11 +2,7 @@ import os
 import logging
 import ipaddress
 
-# logging
-from bbot.core.logger import init_logging
-
-logging_queue, logging_handlers = init_logging()
-
+import bbot.core.logger  # noqa: F401
 from .scan import *
 
 log = logging.getLogger(f"bbot.test")
@@ -152,8 +148,8 @@ def test_helpers():
 
 def test_modules():
 
-    setup_futures = dict()
-    filter_futures = dict()
+    method_futures = {"setup": {}, "finish": {}, "cleanup": {}}
+    filter_futures = {}
     for module_name, module in scan.modules.items():
         # attribute checks
         assert type(module.watched_events) == list
@@ -161,20 +157,27 @@ def test_modules():
         assert all([type(t) == str for t in module.watched_events])
         assert all([type(t) == str for t in module.produced_events])
 
-        # module setups
-        setup_future = helpers.submit_task(module.setup)
-        setup_futures[setup_future] = module_name
+        # test setups and cleanups etc.
+        for method_name in ("setup", "finish", "cleanup"):
+            method = getattr(module, method_name)
+            future = helpers.submit_task(method)
+            method_futures[method_name][future] = module
 
         # module event filters
-        filter_future = helpers.submit_task(module.filter_event, ipv4_event)
-        filter_futures[filter_future] = module_name
+        filter_future = helpers.submit_task(module.filter_event, emoji_event)
+        filter_futures[filter_future] = module
 
-    for setup_future in helpers.as_completed(setup_futures):
-        module_name = setup_futures[setup_future]
-        log.info(f"Testing {module_name}.setup()")
-        assert setup_future.result() in (True, False)
+    for method_name, futures in method_futures.items():
+        if method_name in ("setup"):
+            expected_return_values = (True, False)
+        else:
+            expected_return_values = (None,)
+        for future in helpers.as_completed(futures):
+            module = futures[future]
+            log.info(f"Testing {module.name}.{method_name}()")
+            assert future.result() in expected_return_values
 
     for filter_future in helpers.as_completed(filter_futures):
-        module_name = filter_futures[filter_future]
-        log.info(f"Testing {module_name}.filter_event()")
+        module = filter_futures[filter_future]
+        log.info(f"Testing {module.name}.filter_event()")
         assert filter_future.result() in (True, False)
