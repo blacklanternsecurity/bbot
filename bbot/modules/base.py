@@ -207,13 +207,15 @@ class BaseModule:
 
     def _setup(self):
 
+        ret = False
         self.debug(f"Setting up module {self.name}")
         try:
-            self.setup()
+            ret = self.setup()
             self.debug(f"Finished setting up module {self.name}")
         except Exception:
             self.set_error_state(f"Failed to set up module {self.name}")
             self.debug(traceback.format_exc())
+        return ret
 
     @property
     def _force_batch(self):

@@ -1,6 +1,5 @@
 import logging
 from uuid import uuid4
-from time import sleep
 import concurrent.futures
 from collections import OrderedDict
 
@@ -52,7 +51,7 @@ class Scanner:
             if module_class:
                 try:
                     self.modules[module_name] = module_class(self)
-                    self.info(f'Loaded module "{module_name}"')
+                    self.verbose(f'Loaded module "{module_name}"')
                 except Exception:
                     import traceback
 
@@ -74,15 +73,23 @@ class Scanner:
             self.info(f"Starting scan {self.id}")
 
             self.info(f"Setting up modules")
-            module_setups = [self._thread_pool.submit(m._setup) for m in self.modules.values()]
-            while not all([f.done() for f in module_setups]):
-                sleep(0.1)
-            self.info(f"Finished setting up modules")
+            setup_futures = dict()
+            for module_name, module in self.modules.items():
+                future = self._thread_pool.submit(module._setup)
+                setup_futures[future] = module_name
+            for future in self.helpers.as_completed(setup_futures):
+                module_name = setup_futures[future]
+                result = future.result()
+                if not result == True:
+                    self.error(f'Setup failed for module "{module_name}"')
+                    self.modules.pop(module_name)
 
             if not self.modules:
                 self.error(f"No modules loaded")
                 self._status = "ERROR_FAILED"
                 return
+            else:
+                self.success(f"Successfully set up {len(self.modules):,} modules")
 
             # distribute seed events
             self.manager.init_events()
