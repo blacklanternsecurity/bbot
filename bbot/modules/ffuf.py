@@ -45,6 +45,8 @@ class ffuf(BaseModule):
     def setup(self):
 
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
+        self.tempfile_dir = self.sanity_canary + "_DUMMY"
+        self.tempfile_files = self.sanity_canary + "_DUMMY"
         self.extension_list = self.config.get("extension_list")
         joined_extension_list = " ".join(self.extension_list)
         self.debug(f"Loaded extension list: [{joined_extension_list}]")
