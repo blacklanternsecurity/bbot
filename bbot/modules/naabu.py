@@ -30,9 +30,16 @@ class naabu(BaseModule):
             port = j.get("port")
 
             source_event = None
+            # check exact matches first
             for event in events:
                 if host == str(event.host):
                     source_event = event
                     break
+            # then make a broader check, for cidrs etc.
+            if source_event is None:
+                for event in events:
+                    if host in event:
+                        source_event = event
+                        break
 
             self.emit_event(f"{host}:{port}", "OPEN_TCP_PORT", source_event)
