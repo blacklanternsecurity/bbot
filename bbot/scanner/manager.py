@@ -8,6 +8,10 @@ log = logging.getLogger("bbot.scanner.manager")
 
 
 class EventManager:
+    """
+    Manages modules and events during a scan
+    """
+
     def __init__(self, scan):
         self.scan = scan
         self.event_queue = queue.SimpleQueue()
@@ -119,10 +123,9 @@ class EventManager:
             modules_errored = []
 
             for m in self.scan.modules.values():
-                task_waiting = m._submit_task_lock.locked()
                 try:
                     if m.event_queue:
-                        queued_events[m.name] = m.num_queued_events + (1 if task_waiting else 0)
+                        queued_events[m.name] = m.num_queued_events
                     running_tasks[m.name] = m.num_running_tasks
                     if m.running:
                         modules_running.append(m)
