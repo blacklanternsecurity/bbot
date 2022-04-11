@@ -39,5 +39,5 @@ class dnsresolve(BaseModule):
             futures.append(future)
         for future in self.helpers.as_completed(futures):
             r_set = future.result()
-            if r_set:
-                self.emit_event(list(r_set)[0], source=event, tags=["resolved"])
+            for r in r_set:
+                self.emit_event(r, source=event, tags=["resolved"])
