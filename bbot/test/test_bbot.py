@@ -4,6 +4,7 @@ import ipaddress
 from contextlib import suppress
 
 import bbot.core.logger  # noqa: F401
+from bbot.core.configurator import available_modules, available_output_modules
 from .scan import *
 from .patches import *
 
@@ -192,12 +193,20 @@ def test_modules():
 def test_scan():
 
     scan2 = Scanner(
-        "test2", "blacklanternsecurity.com", "8.8.8.8", modules=["dnsresolve"], config=config
+        "test2",
+        "blacklanternsecurity.com",
+        "8.8.8.8",
+        modules=["dnsresolve"],
+        output_modules=list(available_output_modules),
+        config=config,
     )
     scan2.start()
 
     scan3 = Scanner(
-        "test3", "blacklanternsecurity.com", modules=list(available_modules), config=config
+        "test3",
+        "blacklanternsecurity.com",
+        modules=list(available_modules),
+        config=config,
     )
     scan3.setup_modules(remove_failed=False)
 

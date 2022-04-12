@@ -1,10 +1,9 @@
 from pathlib import Path
-
-from bbot import config as default_config
-from bbot.scanner import Scanner
-from bbot.core.configurator import available_modules
-
 from omegaconf import OmegaConf
+
+from bbot.scanner import Scanner
+from bbot import config as default_config
+from bbot.core.configurator import available_modules
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 config = OmegaConf.merge(default_config, test_config)
