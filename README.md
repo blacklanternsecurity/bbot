@@ -35,7 +35,7 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config]
+usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-om MODULES [MODULES ...]] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config]
 
 Bighuge BLS OSINT Tool
 
@@ -44,7 +44,10 @@ options:
   -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
                         Scan target
   -m MODULES [MODULES ...], --modules MODULES [MODULES ...]
-                        Modules (specify keyword "all" to enable all modules). Choices: sslcert,aspnet_viewstate,neo4j,nuclei,naabu,httpx,wayback,dnsx,dnsresolve,sublist3r,dnsdumpster
+                        Modules (specify keyword "all" to enable all modules). Choices:
+                        ffuf,sslcert,aspnet_viewstate,nuclei,telerik,naabu,httpx,wayback,dnsx,dnsresolve,sublist3r,dnsdumpster
+  -om MODULES [MODULES ...], --output-modules MODULES [MODULES ...]
+                        Output module(s). Choices: json,neo4j,csv,human
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
                         additional configuration options in key=value format
   -v, --verbose         Be more verbose
