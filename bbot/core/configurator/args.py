@@ -3,6 +3,7 @@ import argparse
 from omegaconf import OmegaConf
 from contextlib import suppress
 
+from ...modules import output
 from ..errors import ArgumentError
 from ...modules import module_stems
 from ..helpers.misc import chain_lists
@@ -20,6 +21,7 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         """
         ret = super().parse_args(*args, **kwargs)
         ret.modules = chain_lists(ret.modules)
+        ret.output_modules = chain_lists(ret.output_modules)
         ret.targets = chain_lists(ret.targets, try_files=True)
         if "all" in ret.modules:
             ret.modules = module_stems
@@ -29,6 +31,11 @@ class BBOTArgumentParser(argparse.ArgumentParser):
                     raise ArgumentError(
                         f'Module "{m}" is not valid. Choose from: {",".join(module_stems)}'
                     )
+        for m in ret.output_modules:
+            if not m in output.module_stems and not self._dummy:
+                raise ArgumentError(
+                    f'Output module "{m}" is not valid. Choose from: {",".join(output.module_stems)}'
+                )
         return ret
 
 
@@ -49,6 +56,14 @@ for p in (parser, dummy_parser):
         nargs="+",
         default=[],
         help=f'Modules (specify keyword "all" to enable all modules). Choices: {",".join(module_stems)}',
+    )
+    p.add_argument(
+        "-om",
+        "--output-modules",
+        nargs="+",
+        default=["human"],
+        help=f'Output module(s). Choices: {",".join(output.module_stems)}',
+        metavar="MODULES",
     )
     p.add_argument(
         "-c",

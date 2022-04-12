@@ -5,18 +5,23 @@ import concurrent.futures
 from collections import OrderedDict
 
 from .manager import EventManager
+from bbot.core.errors import ScanError
 from bbot.core.target import ScanTarget
-from bbot.core.configurator import available_modules
 from bbot.core.event import make_event, make_event_id
 from bbot.core.helpers.helper import ConfigAwareHelper
+from bbot.core.configurator import available_modules, available_output_modules
 
 log = logging.getLogger("bbot.scanner")
 
 
 class Scanner:
-    def __init__(self, *targets, scan_id=None, name=None, modules=None, config=None):
+    def __init__(
+        self, *targets, scan_id=None, name=None, modules=None, output_modules=None, config=None
+    ):
         if modules is None:
             modules = []
+        if output_modules is None:
+            output_modules = ["json"]
         if config is None:
             config = {}
 
@@ -64,6 +69,27 @@ class Scanner:
                     self.error(f"Failed to load module {module_class}\n{traceback.format_exc()}")
             else:
                 self.error(f'Failed to load unknown module "{module_name}"')
+
+        # Load output modules
+        self.info(
+            f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}"
+        )
+        for module_name in [str(m) for m in output_modules]:
+
+            module_class = available_output_modules.get(module_name, None)
+            if module_class:
+                try:
+                    self.modules[module_name] = module_class(self)
+                    self.verbose(f'Loaded output module "{module_name}"')
+                except Exception:
+                    import traceback
+
+                    self.error(
+                        f"Failed to load output module {module_class}\n{traceback.format_exc()}"
+                    )
+            else:
+                self.error(f'Failed to load unknown output module "{module_name}"')
+
         self.modules = OrderedDict(
             sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0))
         )
@@ -100,6 +126,9 @@ class Scanner:
         except KeyboardInterrupt:
             self.stop()
             failed = False
+
+        except ScanError as e:
+            self.critical(str(e))
 
         except Exception:
             import traceback
@@ -143,6 +172,9 @@ class Scanner:
             if remove_failed and not result == True:
                 self.error(f'Setup failed for module "{module_name}"')
                 self.modules.pop(module_name)
+        num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
+        if num_output_modules < 1:
+            raise ScanError("Failed to load output modules. Aborting.")
 
     def stop(self):
         if self._status != "ABORTING":

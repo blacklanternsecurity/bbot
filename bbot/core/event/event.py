@@ -153,8 +153,10 @@ class Event:
         """
         if self._words is None:
             self._words = set()
-            if self.type in ("DNS_NAME", "EMAIL_ADDRESS", "URL"):
-                self._words.update(extract_words(self.host_stem))
+            # Skip DNS wildcards
+            if not (self.type == "DNS_NAME" and "wildcard" in self.tags):
+                if self.type in ("DNS_NAME", "EMAIL_ADDRESS", "URL"):
+                    self._words.update(extract_words(self.host_stem))
         return self._words
 
     @property
