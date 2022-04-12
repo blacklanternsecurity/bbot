@@ -78,17 +78,7 @@ class Scanner:
             self._status = "STARTING"
             self.info(f"Starting scan {self.id}")
 
-            self.info(f"Setting up modules")
-            setup_futures = dict()
-            for module_name, module in self.modules.items():
-                future = self._thread_pool.submit(module._setup)
-                setup_futures[future] = module_name
-            for future in self.helpers.as_completed(setup_futures):
-                module_name = setup_futures[future]
-                result = future.result()
-                if not result == True:
-                    self.error(f'Setup failed for module "{module_name}"')
-                    self.modules.pop(module_name)
+            self.setup_modules()
 
             if not self.modules:
                 self.error(f"No modules loaded")
@@ -101,9 +91,7 @@ class Scanner:
             self.manager.init_events()
 
             self._status = "RUNNING"
-            self.info(f"Starting modules")
-            for module_name, module in self.modules.items():
-                module.start()
+            self.start_modules()
             self.info(f"{len(self.modules):,} modules started")
 
             self.manager.loop_until_finished()
@@ -137,6 +125,24 @@ class Scanner:
                 else:
                     self._status = "FINISHED"
                     self.success(f"Scan {self.id} completed with status {self.status}")
+
+    def start_modules(self):
+        self.info(f"Starting modules")
+        for module_name, module in self.modules.items():
+            module.start()
+
+    def setup_modules(self, remove_failed=True):
+        self.info(f"Setting up modules")
+        setup_futures = dict()
+        for module_name, module in self.modules.items():
+            future = self._thread_pool.submit(module._setup)
+            setup_futures[future] = module_name
+        for future in self.helpers.as_completed(setup_futures):
+            module_name = setup_futures[future]
+            result = future.result()
+            if remove_failed and not result == True:
+                self.error(f'Setup failed for module "{module_name}"')
+                self.modules.pop(module_name)
 
     def stop(self):
         if self._status != "ABORTING":

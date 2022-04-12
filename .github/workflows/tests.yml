@@ -22,4 +22,10 @@ jobs:
           poetry install
       - name: Run tests with pytest
         run: |
-          poetry run pytest
+          poetry run pytest --disable-warnings --cov-report xml:cov.xml --cov=bbot .
+      - uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./cov.xml
+          fail_ci_if_error: true
+          verbose: true

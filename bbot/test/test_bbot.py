@@ -1,9 +1,11 @@
 import os
 import logging
 import ipaddress
+from contextlib import suppress
 
 import bbot.core.logger  # noqa: F401
 from .scan import *
+from .patches import *
 
 log = logging.getLogger(f"bbot.test")
 
@@ -112,6 +114,10 @@ def test_helpers():
     assert helpers.is_ip("127.0.0.1")
     assert not helpers.is_ip("evilcorp.com")
 
+    ### COMMAND ###
+    assert "bin" in helpers.run(["ls", "/"], text=True).stdout.split("\n")
+    assert "bin" in list(helpers.run_live(["ls", "/"]))[0].split("\n")
+
     ### CACHE ###
     helpers.cache_put("string", "wat")
     helpers.cache_put("binary", b"wat")
@@ -185,5 +191,38 @@ def test_modules():
 
 def test_scan():
 
-    testscan = Scanner("test2", "blacklanternsecurity.com", modules=["dnsresolve"], config=config)
-    testscan.start()
+    scan2 = Scanner(
+        "test2", "blacklanternsecurity.com", "8.8.8.8", modules=["dnsresolve"], config=config
+    )
+    scan2.start()
+
+    scan3 = Scanner(
+        "test3", "blacklanternsecurity.com", modules=list(available_modules), config=config
+    )
+    scan3.setup_modules(remove_failed=False)
+
+    # nuke web requests
+    patch_requests()
+
+    futures = []
+    for module in scan3.modules.values():
+        module.emit_event = lambda *args, **kwargs: None
+        events_to_submit = [e for e in all_events if e.type in module.watched_events]
+        if module.batch_size > 1:
+            log.debug(f"Testing {module.name}.handle_batch()")
+            future = scan3.helpers.submit_task(module.handle_batch, *events_to_submit)
+            futures.append(future)
+            # with suppress(AttributeError):
+            #    module.handle_batch(*events_to_submit)
+        else:
+            for e in events_to_submit:
+                log.debug(f"Testing {module.name}.handle_event()")
+                future = scan3.helpers.submit_task(module.handle_event, e)
+                futures.append(future)
+                # with suppress(AttributeError):
+                #    module.handle_event(e)
+    for future in helpers.as_completed(futures):
+        with suppress(AttributeError):
+            assert future.result() is None
+
+    scan3._thread_pool.shutdown(wait=True)
