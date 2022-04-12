@@ -22,4 +22,4 @@ class sublist3r(BaseModule):
                     else:
                         self.debug(f"Invalid subdomain: {hostname}")
         except Exception as e:
-            self.error(f"Error retrieving sublist3r domains: {e}")
+            self.warning(f"Error retrieving sublist3r domains: {e.__class.__.__name__}")
