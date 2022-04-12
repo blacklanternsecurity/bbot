@@ -49,6 +49,8 @@ class BaseModule:
         self._futures = set()
         self._future_lock = threading.Lock()
         self._submit_task_lock = threading.Lock()
+        # additional callbacks to be executed alongside self.cleanup()
+        self.cleanup_callbacks = []
 
     def setup(self):
         """
@@ -65,24 +67,28 @@ class BaseModule:
         """
         pass
 
-    def filter_event(self, event):
-        """
-        Accept/reject events based on custom criteria
-
-        Override this method if you need more granular control
-        over which events your module consumes
-        """
-        return True
-
     def handle_batch(self, *events):
         """
         Override this method if batch_size > 1.
         """
         pass
 
+    def filter_event(self, event):
+        """
+        Accept/reject events based on custom criteria
+
+        Override this method if you need more granular control
+        over which events are distributed to your module
+        """
+        return True
+
     def finish(self):
         """
         Perform final functions when scan is nearing completion
+
+        For example,  if your module relies on the word cloud, you may choose to wait until
+        the scan is finished (and the word cloud is most complete) before running an operation.
+
         Note that this method may be called multiple times, because it may raise events.
         Optionally override this method.
         """
@@ -101,15 +107,23 @@ class BaseModule:
         Wrapper to ensure error messages get surfaced to the user
         """
         ret = None
-        on_finish_callback = kwargs.pop("on_finish_callback", None)
+        on_finish_callback = kwargs.pop("_on_finish_callback", None)
+        lock_brutes = kwargs.pop("_lock_brutes", False) and "brute_force" in self.flags
+        lock_acquired = False
         try:
-            ret = callback(*args, **kwargs)
+            if lock_brutes:
+                lock_acquired = self.scan._brute_lock.acquire()
+            if not self.scan.stopping:
+                ret = callback(*args, **kwargs)
         except Exception as e:
             self.error(f"Encountered error in {callback.__name__}(): {e}")
             self.debug(traceback.format_exc())
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")
             self.scan.stop()
+        finally:
+            if lock_brutes and lock_acquired:
+                self.scan._brute_lock.release()
         if callable(on_finish_callback):
             on_finish_callback()
         return ret
@@ -126,7 +140,11 @@ class BaseModule:
                 on_finish_callback = self.finish
             if events:
                 self.submit_task(
-                    self.catch, self.handle_batch, *events, on_finish_callback=on_finish_callback
+                    self.catch,
+                    self.handle_batch,
+                    *events,
+                    _on_finish_callback=on_finish_callback,
+                    _lock_brutes=True,
                 )
                 return True
         return False
@@ -173,9 +191,12 @@ class BaseModule:
 
     @property
     def num_queued_events(self):
+        ret = 0
         if self.event_queue:
-            return self.event_queue.qsize()
-        return 0
+            ret = self.event_queue.qsize()
+        if self.task_waiting:
+            ret += 1
+        return ret
 
     @property
     def num_running_tasks(self):
@@ -266,7 +287,7 @@ class BaseModule:
                     if type(e) == str and e == "FINISHED":
                         self.submit_task(self.catch, self.finish)
                     else:
-                        self.submit_task(self.catch, self.handle_event, e)
+                        self.submit_task(self.catch, self.handle_event, e, _lock_brutes=True)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")
@@ -279,23 +300,44 @@ class BaseModule:
             )
 
     def _filter_event(self, e):
+        # special "FINISHED" event
         if type(e) == str:
             if e == "FINISHED":
                 return True
             else:
                 return False
+        # exclude non-watched types
         if not any(t in self.watched_events for t in ["*", e.type]):
             return False
+        # optionally exclude non-targets
         if self.target_only and "target" not in e.tags:
             return False
+        # optionally exclude out-of-scope targets
         if self.in_scope_only and e not in self.scan.target:
             return False
+        # special case for IPs that originated from a CIDR
+        # if the event is an IP address and came from the enricher module
+        module_name = getattr(getattr(e, "module", None), "name", "")
+        if hasattr(e.host, "is_multicast") and module_name == "enricher":
+            # and the current module listens for both ranges and CIDRs
+            if all(
+                [
+                    x in self.watched_events
+                    for x in [f"IPV{e.version}_RANGE", f"IPV{e.version}_ADDRESS"]
+                ]
+            ):
+                # then skip the event.
+                # this avoids double-portscanning both an individual IP and its parent CIDR.
+                return False
+        # custom filtering
         if not self.filter_event(e):
             return False
         return True
 
     def _cleanup(self):
-        self.submit_task(self.catch, self.cleanup)
+        for callback in [self.cleanup] + self.cleanup_callbacks:
+            if callable(callback):
+                self.submit_task(self.catch, callback)
 
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:
@@ -333,8 +375,15 @@ class BaseModule:
         """
         Indicates whether the module is currently processing data.
         """
-        running = (self.num_running_tasks + self.num_queued_events) > 0
+        running = (self.num_running_tasks + self.num_queued_events) > 0 or self.task_waiting
         return running
+
+    @property
+    def task_waiting(self):
+        """
+        Whether a task is waiting to submitted
+        """
+        return self._submit_task_lock.locked()
 
     @property
     def config(self):

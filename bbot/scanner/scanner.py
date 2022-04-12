@@ -1,4 +1,5 @@
 import logging
+import threading
 from uuid import uuid4
 import concurrent.futures
 from collections import OrderedDict
@@ -36,6 +37,11 @@ class Scanner:
 
         self.manager = EventManager(self)
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
+
+        # prevent too many brute force modules from running at one time
+        # because they can bypass the global thread limit
+        self.max_brute_forcers = int(self.config.get("max_brute_forcers", 1))
+        self._brute_lock = threading.Semaphore(self.max_brute_forcers)
 
         # Set up shared thread pool
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(
@@ -136,6 +142,8 @@ class Scanner:
         if self._status != "ABORTING":
             self._status = "ABORTING"
             self.warning(f"Aborting scan")
+            for i in range(max(10, self.max_brute_forcers * 10)):
+                self._brute_lock.release()
             self.debug(f"Shutting down thread pool")
             self._thread_pool.shutdown(wait=False, cancel_futures=True)
 

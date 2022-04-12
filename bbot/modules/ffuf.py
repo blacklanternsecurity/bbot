@@ -10,6 +10,7 @@ class ffuf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL"]
     in_scope_only = True
+    flags = ["brute_force"]
     options = {
         "wordlist_dir": "/opt/wordlists/raft-small-directories.txt",
         "wordlist_files": "/opt/wordlists/raft-small-words.txt",
