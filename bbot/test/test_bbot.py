@@ -212,17 +212,13 @@ def test_scan():
             log.debug(f"Testing {module.name}.handle_batch()")
             future = scan3.helpers.submit_task(module.handle_batch, *events_to_submit)
             futures.append(future)
-            # with suppress(AttributeError):
-            #    module.handle_batch(*events_to_submit)
         else:
             for e in events_to_submit:
                 log.debug(f"Testing {module.name}.handle_event()")
                 future = scan3.helpers.submit_task(module.handle_event, e)
                 futures.append(future)
-                # with suppress(AttributeError):
-                #    module.handle_event(e)
     for future in helpers.as_completed(futures):
-        with suppress(AttributeError):
+        with suppress(AttributeError, FileNotFoundError):
             assert future.result() is None
 
     scan3._thread_pool.shutdown(wait=True)
