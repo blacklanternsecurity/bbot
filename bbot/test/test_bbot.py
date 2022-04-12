@@ -181,3 +181,9 @@ def test_modules():
         module = filter_futures[filter_future]
         log.info(f"Testing {module.name}.filter_event()")
         assert filter_future.result() in (True, False)
+
+
+def test_scan():
+
+    testscan = Scanner("test2", "blacklanternsecurity.com", modules=["dnsresolve"], config=config)
+    testscan.start()

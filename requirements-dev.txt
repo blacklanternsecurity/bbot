@@ -9,7 +9,8 @@ certifi==2021.10.8; python_version >= "3.7" and python_full_version < "3.0.0" an
 cffi==1.15.0; python_version >= "3.6"
 charset-normalizer==2.0.12; python_full_version >= "3.6.0" and python_version >= "3.7" and python_version < "4.0"
 click==8.1.1; python_version >= "3.7" and python_full_version >= "3.6.2"
-colorama==0.4.4; sys_platform == "win32" and python_version >= "3.7" and python_full_version >= "3.6.2" and platform_system == "Windows"
+colorama==0.4.4; sys_platform == "win32" and python_version >= "3.7" and python_full_version >= "3.6.2" and platform_system == "Windows" and (python_version >= "3.7" and python_full_version < "3.0.0" and sys_platform == "win32" or sys_platform == "win32" and python_version >= "3.7" and python_full_version >= "3.5.0")
+coverage==6.3.2; python_version >= "3.7"
 cryptography==36.0.2; python_version >= "3.6"
 dnspython==2.2.1; python_version >= "3.6" and python_version < "4.0"
 filelock==3.6.0; python_version >= "3.7"
@@ -38,6 +39,7 @@ pyflakes==2.4.0; python_version >= "3.6" and python_full_version < "3.0.0" or py
 pygments==2.11.2; python_version >= "3.5"
 pyopenssl==22.0.0; python_version >= "3.6"
 pyparsing==3.0.7; python_version >= "3.7"
+pytest-cov==3.0.0; python_version >= "3.6"
 pytest==7.1.1; python_version >= "3.7"
 pytz==2022.1
 pyyaml==6.0; python_version >= "3.6"
