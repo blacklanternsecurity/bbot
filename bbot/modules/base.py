@@ -39,6 +39,8 @@ class BaseModule:
     _priority = 0
     # Name, overridden automatically in __init__.py
     _name = "base"
+    # Type, for differentiating between normal modules and output modules, etc.
+    _type = "base"
 
     def __init__(self, scan):
         self.scan = scan
@@ -406,6 +408,9 @@ class BaseModule:
 
     def __str__(self):
         return self.name
+
+    def stdout(self, *args, **kwargs):
+        self._log.stdout(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def debug(self, *args, **kwargs):
         self._log.debug(*args, extra={"scan_id": self.scan.id}, **kwargs)
