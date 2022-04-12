@@ -28,7 +28,7 @@ class dnsdumpster(BaseModule):
         res1 = self.helpers.request(url)
         status_code = getattr(res1, "status_code", 0)
         if status_code not in [200]:
-            self.error(f'Bad response code "{status_code}" from DNSDumpster')
+            self.warning(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
         else:
             self.debug(f'Valid response code "{status_code}" from DNSDumpster')
@@ -37,7 +37,11 @@ class dnsdumpster(BaseModule):
         csrfmiddlewaretoken = None
         try:
             for cookie in res1.headers.get("set-cookie", "").split(";"):
-                k, v = cookie.split("=", 1)
+                try:
+                    k, v = cookie.split("=", 1)
+                except ValueError:
+                    self.warning("Error retrieving cookie")
+                    return ret
                 if k == "csrftoken":
                     csrftoken = str(v)
             csrfmiddlewaretoken = html.find("input", {"name": "csrfmiddlewaretoken"}).attrs.get(
