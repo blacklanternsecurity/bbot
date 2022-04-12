@@ -99,6 +99,9 @@ class EventManager:
                 mod._cleanup()
 
     def absorb_words(self, event):
+        # Skip DNS wildcards
+        if event.type == "DNS_NAME" and "wildcard" in event.flags:
+            return
         for word in event.words:
             try:
                 self.word_cloud[word] += 1
