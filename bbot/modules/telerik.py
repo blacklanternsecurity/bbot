@@ -146,11 +146,18 @@ class telerik(BaseModule):
 
         result = self.test_detector(event.data, "Telerik.Web.UI.SpellCheckHandler.axd")
         try:
+            # The standard behavior for the spellcheck handler without parameters is a 500
             if result.status_code == 500:
-                self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
-                self.emit_event(
-                    "Telerik SpellCheckHandler detected", "VULNERABILITY", event, tags=["info"]
-                )
+                # Sometimes webapps will just return 500 for everything, so rule out the false positive
+                validate_result = self.test_detector(event.data, self.helpers.rand_string())
+                self.debug(validate_result)
+                if validate_result.status_code != 500:
+                    self.debug(
+                        f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)"
+                    )
+                    self.emit_event(
+                        "Telerik SpellCheckHandler detected", "VULNERABILITY", event, tags=["info"]
+                    )
         except:
             pass
 
@@ -161,7 +168,7 @@ class telerik(BaseModule):
             url = f"{baseurl}/{detector}"
         else:
             url = f"{baseurl}{detector}"
-        result = self.helpers.request(url, timeout=5)
+        result = self.helpers.request(url)
         return result
 
     def filter_event(self, event):
