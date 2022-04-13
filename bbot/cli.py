@@ -46,8 +46,11 @@ def main():
         )
         scanner.start()
 
-    except bbot.core.errors.ArgumentError as e:
+    except bbot.core.errors.BBOTError as e:
+        import traceback
+
         log.error(e)
+        log.debug(traceback.format_exc())
         sys.exit(2)
 
     except Exception:

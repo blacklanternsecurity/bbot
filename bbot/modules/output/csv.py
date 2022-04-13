@@ -31,7 +31,7 @@ class CSV(BaseOutputModule):
                 getattr(event, "type", ""),
                 getattr(event, "data", ""),
                 getattr(event, "id", ""),
-                json.dumps(getattr(event, "tags", [])),
+                json.dumps(list(getattr(event, "tags", []))),
                 getattr(event, "source", ""),
             ]
         )

@@ -1,18 +1,18 @@
-class BBotError(Exception):
+class BBOTError(Exception):
     pass
 
 
-class ScanError(BBotError):
+class ScanError(BBOTError):
     pass
 
 
-class ScanCancelledError(BBotError):
+class ScanCancelledError(BBOTError):
     pass
 
 
-class ArgumentError(BBotError):
+class ArgumentError(BBOTError):
     pass
 
 
-class ValidationError(BBotError):
+class ValidationError(BBOTError):
     pass
