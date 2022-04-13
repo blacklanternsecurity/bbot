@@ -5,8 +5,8 @@ import concurrent.futures
 from collections import OrderedDict
 
 from .manager import EventManager
-from bbot.core.errors import ScanError
 from bbot.core.target import ScanTarget
+from bbot.core.errors import BBOTError, ScanError
 from bbot.core.event import make_event, make_event_id
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.configurator import available_modules, available_output_modules
@@ -127,7 +127,7 @@ class Scanner:
             self.stop()
             failed = False
 
-        except ScanError as e:
+        except BBOTError as e:
             self.critical(str(e))
 
         except Exception:

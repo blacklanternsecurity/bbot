@@ -21,5 +21,8 @@ class sublist3r(BaseModule):
                         self.emit_event(hostname, "DNS_NAME", event)
                     else:
                         self.debug(f"Invalid subdomain: {hostname}")
-        except Exception as e:
-            self.warning(f"Error retrieving sublist3r domains: {e.__class.__.__name__}")
+        except Exception:
+            import traceback
+
+            self.warning(f"Error retrieving sublist3r domains")
+            self.debug(traceback.format_exc())
