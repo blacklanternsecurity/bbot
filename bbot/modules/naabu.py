@@ -17,7 +17,7 @@ class naabu(BaseModule):
 
     def handle_batch(self, *events):
 
-        command = ["naabu", "-silent", "-json"] + [str(e.data) for e in events]
+        command = ["naabu", "-silent", "-json", "-host"] + [str(e.data) for e in events]
         self.debug(" ".join(command))
         for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL):
             try:
