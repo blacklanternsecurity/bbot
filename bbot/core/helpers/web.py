@@ -113,7 +113,7 @@ def request(self, *args, **kwargs):
             )
             return response
         except RequestException as e:
-            log.debug(f"Web error: {e}")
+            log.debug(f"Error with request: {e}")
             if retries != "infinite":
                 retries -= 1
             if retries == "infinite" or retries >= 0:

@@ -10,3 +10,10 @@ class BaseOutputModule(BaseModule):
 
     def _filter_event(self, event):
         return True
+
+    @property
+    def config(self):
+        config = self.scan.config.get("output_modules", {}).get(self.name, {})
+        if config is None:
+            config = {}
+        return config
