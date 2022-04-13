@@ -5,13 +5,11 @@ import ipaddress
 class dnsresolve(BaseModule):
 
     watched_events = [
-        "IPV4_ADDRESS",
-        "IPV4_RANGE",
-        "IPV6_ADDRESS",
-        "IPV6_RANGE",
+        "IP_ADDRESS",
+        "IP_RANGE",
         "DNS_NAME",
     ]
-    produced_events = ["IPV4_ADDRESS", "IPV6_ADDRESS", "DNS_NAME"]
+    produced_events = ["IP_ADDRESS", "DNS_NAME"]
     options = {"max_hosts": 65536}
     options_desc = {"max_hosts": "Define the max number of hosts a network range can contain"}
 
@@ -23,7 +21,7 @@ class dnsresolve(BaseModule):
 
         else:
             net = ipaddress.ip_network(event.data)
-            if (event.type == "IPV4_RANGE") or (event.type == "IPV6_RANGE"):
+            if event.type == "IP_RANGE":
                 config_max_hosts = self.config.get("max_hosts", 65536)
                 if net.num_addresses > config_max_hosts:
                     self.debug(
