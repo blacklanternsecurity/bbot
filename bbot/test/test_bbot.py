@@ -1,7 +1,6 @@
 import os
 import logging
 import ipaddress
-from contextlib import suppress
 
 import bbot.core.logger  # noqa: F401
 from bbot.core.configurator import available_modules, available_output_modules
@@ -193,8 +192,7 @@ def test_modules():
 def test_scan():
 
     scan2 = Scanner(
-        "test2",
-        "blacklanternsecurity.com",
+        "scanme.nmap.org",
         "8.8.8.8",
         modules=["dnsresolve"],
         output_modules=list(available_output_modules),
@@ -203,8 +201,7 @@ def test_scan():
     scan2.start()
 
     scan3 = Scanner(
-        "test3",
-        "blacklanternsecurity.com",
+        "scanme.nmap.org",
         modules=list(available_modules),
         config=config,
     )
@@ -212,6 +209,7 @@ def test_scan():
 
     # nuke web requests
     patch_requests()
+    patch_commands()
 
     futures = []
     for module in scan3.modules.values():
@@ -227,7 +225,6 @@ def test_scan():
                 future = scan3.helpers.submit_task(module.handle_event, e)
                 futures.append(future)
     for future in helpers.as_completed(futures):
-        with suppress(AttributeError, FileNotFoundError):
-            assert future.result() is None
+        assert future.result() is None
 
     scan3._thread_pool.shutdown(wait=True)

@@ -178,7 +178,10 @@ class Event:
             if some_event in other_event:
                 ...
         """
-        other = make_event(other, dummy=True)
+        try:
+            other = make_event(other, dummy=True)
+        except ValidationError:
+            return False
         # if hashes match
         if other == self:
             return True
