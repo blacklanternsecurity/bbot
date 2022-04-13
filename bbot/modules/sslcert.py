@@ -7,7 +7,7 @@ from OpenSSL import SSL
 
 class sslcert(BaseModule):
 
-    watched_events = ["DNS_NAME", "IPV6_ADDRESS", "IPV4_ADDRESS", "OPEN_TCP_PORT"]
+    watched_events = ["DNS_NAME", "IP_ADDRESS", "OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME"]
     options = {"timeout": 5.0}
     options_desc = {"timeout": "Socket connect timeout in seconds"}

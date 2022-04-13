@@ -6,10 +6,8 @@ from .base import BaseModule
 class naabu(BaseModule):
 
     watched_events = [
-        "IPV4_ADDRESS",
-        "IPV6_ADDRESS",
-        "IPV4_RANGE",
-        "IPV6_RANGE",
+        "IP_ADDRESS",
+        "IP_RANGE",
         "DNS_NAME",
     ]
     produced_events = ["OPEN_TCP_PORT"]
