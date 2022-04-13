@@ -12,10 +12,10 @@ log = logging.getLogger(f"bbot.test")
 
 def test_events():
 
-    assert ipv4_event.type == "IPV4_ADDRESS"
-    assert ipv6_event.type == "IPV6_ADDRESS"
-    assert netv4_event.type == "IPV4_RANGE"
-    assert netv6_event.type == "IPV6_RANGE"
+    assert ipv4_event.type == "IP_ADDRESS"
+    assert ipv6_event.type == "IP_ADDRESS"
+    assert netv4_event.type == "IP_RANGE"
+    assert netv6_event.type == "IP_RANGE"
     assert domain_event.type == "DNS_NAME"
     assert "domain" in domain_event.tags
     assert subdomain_event.type == "DNS_NAME"
@@ -217,13 +217,15 @@ def test_scan():
         events_to_submit = [e for e in all_events if e.type in module.watched_events]
         if module.batch_size > 1:
             log.debug(f"Testing {module.name}.handle_batch()")
-            future = scan3.helpers.submit_task(module.handle_batch, *events_to_submit)
-            futures.append(future)
+            # future = scan3.helpers.submit_task(module.handle_batch, *events_to_submit)
+            # futures.append(future)
+            module.handle_batch(*events_to_submit)
         else:
             for e in events_to_submit:
                 log.debug(f"Testing {module.name}.handle_event()")
-                future = scan3.helpers.submit_task(module.handle_event, e)
-                futures.append(future)
+                # future = scan3.helpers.submit_task(module.handle_event, e)
+                # futures.append(future)
+                module.handle_event(e)
     for future in helpers.as_completed(futures):
         assert future.result() is None
 

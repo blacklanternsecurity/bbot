@@ -320,7 +320,7 @@ class BaseModule:
         # special case for IPs that originated from a CIDR
         # if the event is an IP address and came from the enricher module
         module_name = getattr(getattr(e, "module", None), "name", "")
-        if hasattr(e.host, "is_multicast") and module_name == "enricher":
+        if e.type == "IP_ADDRESS" and module_name == "enricher":
             # and the current module listens for both ranges and CIDRs
             if all(
                 [
