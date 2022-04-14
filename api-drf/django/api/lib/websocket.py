@@ -1,3 +1,4 @@
+import json
 import time
 import logging
 from asgiref.sync import async_to_sync
@@ -6,6 +7,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer, JsonWebsocket
 from channels.layers import get_channel_layer
 
 log = logging.getLogger(__name__)
+
 
 class EventConsumer(AsyncJsonWebsocketConsumer):
     groups = ["scan_results_group"]
@@ -21,6 +23,8 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
             engagement_id = self.scope["url_route"]["kwargs"]["pk"]
             self.groups.add(engagement_id)
             await self.channel_layer.group_add("scan_results_group", self.channel_name)
+            resp = {"command": "do-the-thing.sh", "arguments": {"foo": "bar"}}
+            await self.send(json.dumps(resp))
 
     async def receive_json(self, content):
         log.debug(f"EventConsumer.receive_json(): {content}")
@@ -30,4 +34,6 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
 
     async def event_update(self, content):
         log.debug(f"EventConsumer.send(): {content}")
+
+
 #       await self.send(str(content))
