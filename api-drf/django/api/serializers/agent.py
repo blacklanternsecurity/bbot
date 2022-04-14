@@ -12,7 +12,6 @@ class AgentSessionSerializer(FlexFieldsModelSerializer):
         fields = ('id', 'agent')
 
 class AgentSerializer(FlexFieldsModelSerializer):
-    sessions = AgentSessionSerializer(many=True)
     class Meta:
         model = Agent
         fields = ('agent_id', 'username')
