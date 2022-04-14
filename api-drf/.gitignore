@@ -3,22 +3,22 @@ django/api/migrations/
 
 # React 
 ## dependencies
-/node_modules
-/src/coreui-new
-/src/coreui-icons
-/src/coreui-charts
+react/node_modules
+react/src/coreui-new
+react/src/coreui-icons
+react/src/coreui-charts
 
 ## testing
-/coverage
-/src/coreui-new
-/src/coreui-icons
-/src/coreui-charts
+react/coverage
+react/src/coreui-new
+react/src/coreui-icons
+react/src/coreui-charts
 
 ## production
-/build
-/src/coreui-new
-/src/coreui-icons
-/src/coreui-charts
+react/build
+react/src/coreui-new
+react/src/coreui-icons
+react/src/coreui-charts
 
 ## debug
 npm-debug.log*
