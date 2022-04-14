@@ -25,3 +25,9 @@ class BaseOutputModule(BaseModule):
         if config is None:
             config = {}
         return config
+
+    @property
+    def _log(self):
+        if self.__log is None:
+            self.__log = logging.getLogger(f"bbot.modules.output.{self.name}")
+        return self.__log
