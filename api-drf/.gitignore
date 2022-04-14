@@ -1,0 +1,34 @@
+# Django
+django/api/migrations/
+
+# React 
+## dependencies
+/node_modules
+/src/coreui-new
+/src/coreui-icons
+/src/coreui-charts
+
+## testing
+/coverage
+/src/coreui-new
+/src/coreui-icons
+/src/coreui-charts
+
+## production
+/build
+/src/coreui-new
+/src/coreui-icons
+/src/coreui-charts
+
+## debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## misc
+.DS_Store
+.idea
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

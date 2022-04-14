@@ -1,0 +1,82 @@
+version: '3.3'
+
+networks: 
+  bbot_net:
+
+volumes: 
+  db-data:
+
+services:
+  react:
+    build: 
+      context: './react'
+    working_dir: '/app'
+    stdin_open: true
+    volumes: 
+      - ./react:/app
+    environment:
+      HOST: react
+      NODE_PATH: "/app/node_modules/"
+    command: "npm start"
+    expose: 
+      - 3000
+    networks:
+      bbot_net:
+
+  django:
+    build: 
+      context: './django'
+    working_dir: '/app'
+    command: bash -c "
+      ./manage.py makemigrations && 
+      ./manage.py makemigrations api && 
+      ./manage.py migrate &&
+      gunicorn --bind 0.0.0.0:8000 api.asgi -w 4 -k uvicorn.workers.UvicornWorker --reload --timeout 60"
+#     ./manage.py runserver 0.0.0.0:8000"
+#     uvicorn api.asgi:application --host 0.0.0.0 --port 8000 --reload --lifespan off"
+    environment:
+      COLORTERM: truecolor
+      TERM: xterm-256color
+      DJANGO_SETTINGS_MODULE: api.settings
+    volumes:
+      - ./django:/app
+    networks:
+      bbot_net:
+    depends_on:
+      - postgres
+    expose:
+      - 8000
+
+  postgres:
+    environment:
+      PGDATA: /var/lib/postgresql/data/bbot_db
+      POSTGRES_DB: bbot_db
+      POSTGRES_PASSWORD: 'f~DyV3YSJTvr3OUYH+)qDJSa6D~<86|P'
+      POSTGRES_USER: bbot_user
+    image: postgres
+    networks:
+      bbot_net:
+    restart: always
+    volumes:
+      - ./scripts/db:/docker-entrypoint-initdb.d:ro
+      - db-data:/var/lib/postgresql/data:rw
+
+  nginx:
+    restart: always
+    image: nginx
+    volumes:
+#     - ./nginx/ssl/self.cert:/etc/nginx/ssl/self.cert:ro
+#     - ./nginx/ssl/self-ssl.key:/etc/nginx/ssl/self-ssl.key:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/site.template:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/proxy.template:/etc/nginx/proxy.conf:ro
+    ports:
+      - 80:80
+    links:
+      - django
+      - react
+    networks:
+      bbot_net:
+    command: /bin/bash -c "nginx-debug -g 'daemon off;'"
+    dns:
+      - 127.0.0.11
