@@ -190,6 +190,11 @@ class DefaultEvent(BaseEvent):
 
 
 class IPAddressEvent(BaseEvent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ip = ipaddress.ip_address(self.data)
+        self.tags.add(f"ipv{ip.version}")
+
     def _sanitize_data(self, data):
         return str(ipaddress.ip_address(str(data)))
 
@@ -198,6 +203,11 @@ class IPAddressEvent(BaseEvent):
 
 
 class IPRangeEvent(BaseEvent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        net = ipaddress.ip_network(self.data, strict=False)
+        self.tags.add(f"ipv{net.version}")
+
     def _sanitize_data(self, data):
         return str(ipaddress.ip_network(str(data), strict=False))
 

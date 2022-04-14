@@ -113,12 +113,21 @@ class Scanner:
             else:
                 self.success(f"Successfully set up {len(self.modules):,} modules")
 
+            if self.stopping:
+                return
+
             # distribute seed events
             self.manager.init_events()
+
+            if self.stopping:
+                return
 
             self._status = "RUNNING"
             self.start_modules()
             self.info(f"{len(self.modules):,} modules started")
+
+            if self.stopping:
+                return
 
             self.manager.loop_until_finished()
             failed = False
@@ -145,10 +154,7 @@ class Scanner:
                 self._status = "FAILED"
                 self.error(f"Scan {self.id} completed with status {self.status}")
             else:
-                if self.status == "STOPPING":
-                    self._status = "STOPPED"
-                    self.warning(f"Scan {self.id} completed with status {self.status}")
-                elif self.status == "ABORTING":
+                if self.status == "ABORTING":
                     self._status = "ABORTED"
                     self.warning(f"Scan {self.id} completed with status {self.status}")
                 else:
@@ -176,21 +182,28 @@ class Scanner:
         if num_output_modules < 1:
             raise ScanError("Failed to load output modules. Aborting.")
 
-    def stop(self):
+    def stop(self, wait=False):
         if self._status != "ABORTING":
             self._status = "ABORTING"
             self.warning(f"Aborting scan")
             for i in range(max(10, self.max_brute_forcers * 10)):
                 self._brute_lock.release()
             self.debug(f"Shutting down thread pool")
-            self._thread_pool.shutdown(wait=False, cancel_futures=True)
-
+            self._thread_pool.shutdown(wait=wait, cancel_futures=True)
             self.debug(f"Finished shutting down thread pool")
             self.helpers.kill_children()
 
     @property
     def status(self):
         return self._status
+
+    @status.setter
+    def status(self, status):
+        """
+        Block setting after status has been set to "ABORTING"
+        """
+        if (not self.status == "ABORTING") or (status == "ABORTED"):
+            self._status = status
 
     def make_event(self, *args, **kwargs):
         """
@@ -208,7 +221,7 @@ class Scanner:
 
     @property
     def stopping(self):
-        return self.status not in ["RUNNING", "FINISHING"]
+        return self.status not in ["STARTING", "RUNNING", "FINISHING"]
 
     @property
     def root_event(self):
