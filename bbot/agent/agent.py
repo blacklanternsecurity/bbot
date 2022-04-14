@@ -1,16 +1,22 @@
 import rel
 import json
 import logging
+import threading
 import websocket
+from omegaconf import OmegaConf
 
-# from . import messages
+from . import messages
+from bbot.scanner import Scanner
 
-log = logging.getLogger("bbot.core.event")
+log = logging.getLogger("bbot.core.agent")
 
 
 class Agent:
     def __init__(self, config):
         self.config = config
+        self.scan = None
+        self.thread = None
+        self._scan_lock = threading.Lock()
 
     def setup(self):
         websocket.enableTrace(True)
@@ -36,7 +42,17 @@ class Agent:
         except Exception as e:
             log.warning(f'Failed to JSON-decode message "{message}": {e}')
             return
-        log.success(f"{message} ({type(message)})")
+        log.success(f"{message}")
+        message = messages.Message(**message)
+        try:
+            command_type = getattr(messages, message.command)
+        except AttributeError:
+            log.warning(f'Invalid command: "{message.command}"')
+        command_args = command_type(**message.arguments)
+        command_fn = getattr(self, message.command)
+        response = self.err_handle(command_fn, **command_args.dict())
+        log.info(str(response))
+        ws.send(json.dumps({"conversation": str(message.conversation), "message": response}))
 
     def on_error(self, ws, error):
         log.error(error)
@@ -46,3 +62,60 @@ class Agent:
 
     def on_open(self, ws):
         log.success("Opened connection")
+
+    def start_scan(self, targets=[], modules=[], output_modules=[], config={}):
+        with self._scan_lock:
+            if self.scan is None:
+                log.success(
+                    f"Starting scan with targets={targets}, modules={modules}, output_modules={output_modules}"
+                )
+                config = OmegaConf.create(config)
+                config = OmegaConf.merge(self.config, config)
+                self.scan = Scanner(
+                    *targets, modules=modules, output_modules=output_modules, config=config
+                )
+                self.thread = threading.Thread(target=self.scan.start)
+                self.thread.start()
+                return {"success": f"Started scan", "scan_id": self.scan.id}
+            else:
+                msg = f"Scan {self.scan.id} already in progress"
+                log.warning(msg)
+                return {"error": msg, "scan_id": self.scan.id}
+
+    def stop_scan(self):
+        try:
+            with self._scan_lock:
+                if self.scan is None:
+                    msg = "Scan not in progress"
+                    log.warning(msg)
+                    return {"error": msg}
+                self.scan.stop(wait=True)
+                msg = f"Stopped scan {self.scan.id}"
+                log.warning(msg)
+                scan_id = str(self.scan.id)
+                self.scan = None
+                return {"success": msg, "scan_id": scan_id}
+        finally:
+            self.scan = None
+            self.thread = None
+
+    def scan_status(self):
+        with self._scan_lock:
+            if self.scan is None:
+                self.thread = None
+                msg = "Scan not in progress"
+                log.warning(msg)
+                return {"error": msg}
+        return {"success": "Polled scan", "scan_status": self.scan.status}
+
+    @staticmethod
+    def err_handle(callback, *args, **kwargs):
+        try:
+            return callback(*args, **kwargs)
+        except Exception as e:
+            msg = f"Error in Agent.{callback.__name__}: {e}"
+            log.error(msg)
+            import traceback
+
+            log.debug(traceback.format_exc())
+            return {"error": msg}

@@ -176,7 +176,7 @@ class EventManager:
                 )
 
         return {
-            "running": modules_running,
+            "modules_running": modules_running,
             "queued_events": queued_events,
             "running_tasks": running_tasks,
             "errored": modules_errored,
