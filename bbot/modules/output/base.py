@@ -1,3 +1,5 @@
+import logging
+
 from ..base import BaseModule
 
 
@@ -27,7 +29,7 @@ class BaseOutputModule(BaseModule):
         return config
 
     @property
-    def _log(self):
-        if self.__log is None:
-            self.__log = logging.getLogger(f"bbot.modules.output.{self.name}")
-        return self.__log
+    def log(self):
+        if self._log is None:
+            self._log = logging.getLogger(f"bbot.modules.output.{self.name}")
+        return self._log
