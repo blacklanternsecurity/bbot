@@ -19,4 +19,8 @@ class start_scan(BaseModel):
 
 
 class stop_scan(BaseModel):
-    id: UUID
+    pass
+
+
+class scan_status(BaseModel):
+    pass
