@@ -35,16 +35,26 @@ def main():
 
         log.info(f'Command: {" ".join(sys.argv)}')
 
-        # scan test
-        from bbot.scanner import Scanner
+        if options.agent_mode:
+            from bbot.agent import Agent
 
-        scanner = Scanner(
-            *options.targets,
-            modules=options.modules,
-            output_modules=options.output_modules,
-            config=config,
-        )
-        scanner.start()
+            agent = Agent(config)
+            agent.setup()
+            try:
+                agent.start()
+            finally:
+                agent.stop()
+
+        else:
+            from bbot.scanner import Scanner
+
+            scanner = Scanner(
+                *options.targets,
+                modules=options.modules,
+                output_modules=options.output_modules,
+                config=config,
+            )
+            scanner.start()
 
     except bbot.core.errors.BBOTError as e:
         import traceback
