@@ -37,6 +37,7 @@ def main():
 
         if options.agent_mode:
             from bbot.agent import Agent
+
             agent = Agent(config)
             agent.setup()
             try:

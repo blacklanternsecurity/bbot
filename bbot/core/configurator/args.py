@@ -65,11 +65,7 @@ for p in (parser, dummy_parser):
         help=f'Output module(s). Choices: {",".join(output.module_stems)}',
         metavar="MODULES",
     )
-    p.add_argument(
-        "-a",
-        "--agent-mode",
-        action="store_true"
-    )
+    p.add_argument("-a", "--agent-mode", action="store_true")
     p.add_argument(
         "-c",
         "--configuration",
