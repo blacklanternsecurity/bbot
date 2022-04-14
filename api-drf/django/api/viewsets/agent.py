@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 
+from api.lib.encoders import UUIDEncoder
 from api.serializers.agent import *
 
 log = logging.getLogger(__name__)
@@ -26,7 +27,11 @@ class AgentSessionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def send(self, request, pk):
         session = AgentSession.objects.get(id=pk)
-        msg = request.data["message"]
-        log.debug(f"Sending message: {msg}")
-        result = session.send(msg)
+
+        serializer = self.get_serializer_class()
+        s = serializer(data=request.data)
+        if s.is_valid():
+            msg = json.dumps(s.validated_data, cls=UUIDEncoder)
+            log.debug(f"Sending message: {msg}")
+            result = session.send(msg)
         return Response({"data": str(type(result))})
