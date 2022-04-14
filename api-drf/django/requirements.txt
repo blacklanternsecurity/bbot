@@ -14,4 +14,4 @@ pyyaml
 channels
 gunicorn
 uvicorn[standard]
-websockets
+websockets==10.1
