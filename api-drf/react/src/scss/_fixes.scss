@@ -1,0 +1,22 @@
+// todo: disabled button styles
+button {
+  &:disabled {
+    cursor: default;
+  }
+  &.disabled {
+    cursor: default;
+  }
+}
+
+// todo: temp c-dark-theme plumbing for select option
+.c-dark-theme option {
+  background-color: #34343b;
+  border: 1px solid #23282c;
+}
+
+// todo: brand button icon margin
+.btn-brand:not(:only-child) {
+  .c-icon {
+    margin-top: 0 !important;
+  }
+}

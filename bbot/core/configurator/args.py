@@ -58,13 +58,14 @@ for p in (parser, dummy_parser):
         help=f'Modules (specify keyword "all" to enable all modules). Choices: {",".join(module_stems)}',
     )
     p.add_argument(
-        "-om",
+        "-o",
         "--output-modules",
         nargs="+",
         default=["human"],
         help=f'Output module(s). Choices: {",".join(output.module_stems)}',
         metavar="MODULES",
     )
+    p.add_argument("-a", "--agent-mode", action="store_true")
     p.add_argument(
         "-c",
         "--configuration",

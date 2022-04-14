@@ -45,7 +45,7 @@ class BaseModule:
     def __init__(self, scan):
         self.scan = scan
         self.errored = False
-        self.__log = None
+        self._log = None
         self._event_queue = None
         self._batch_idle = 0
         self._futures = set()
@@ -401,34 +401,34 @@ class BaseModule:
         return self._event_queue
 
     @property
-    def _log(self):
-        if self.__log is None:
-            self.__log = logging.getLogger(f"bbot.modules.{self.name}")
-        return self.__log
+    def log(self):
+        if self._log is None:
+            self._log = logging.getLogger(f"bbot.modules.{self.name}")
+        return self._log
 
     def __str__(self):
         return self.name
 
     def stdout(self, *args, **kwargs):
-        self._log.stdout(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self.log.stdout(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def debug(self, *args, **kwargs):
-        self._log.debug(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self.log.debug(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def verbose(self, *args, **kwargs):
-        self._log.verbose(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self.log.verbose(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def info(self, *args, **kwargs):
-        self._log.info(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self.log.info(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def success(self, *args, **kwargs):
-        self._log.success(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self.log.success(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def warning(self, *args, **kwargs):
-        self._log.warning(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self.log.warning(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def error(self, *args, **kwargs):
-        self._log.error(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self.log.error(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def critical(self, *args, **kwargs):
-        self._log.critical(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self.log.critical(*args, extra={"scan_id": self.scan.id}, **kwargs)

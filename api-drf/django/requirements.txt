@@ -1,0 +1,17 @@
+ansi2html
+coreapi
+django
+django-cors-headers
+django-model-utils
+django-python3-ldap
+django-rest-framework
+drf-flex-fields
+graphlib
+netaddr
+psycopg2
+requests
+pyyaml
+channels
+gunicorn
+uvicorn[standard]
+websockets==10.1

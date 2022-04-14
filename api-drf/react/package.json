@@ -1,0 +1,85 @@
+{
+  "name": "@coreui/coreui-pro-react-admin-template-starter",
+  "version": "3.2.0",
+  "description": "CoreUI Pro React Admin Template Starter",
+  "author": {
+    "name": "CoreUI",
+    "url": "https://coreui.io",
+    "github": "https://github.com/coreui",
+    "twitter": "https://twitter.com/core_ui"
+  },
+  "contributors": [
+    {
+      "name": "CoreUI Team",
+      "url": "https://github.com/orgs/coreui/people"
+    }
+  ],
+  "homepage": ".",
+  "copyright": "Copyright 2017-2020 creativeLabs Łukasz Holeczek",
+  "license": "https://coreui.io/pro/license/",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:coreui/coreui-pro-react-admin-template-starter.git"
+  },
+  "dependencies": {
+    "@coreui/coreui-pro": "^3.2.0",
+    "@coreui/icons": "^2.0.0-rc.0",
+    "@coreui/icons-pro": "^2.0.3",
+    "@coreui/icons-react": "^1.1.0",
+    "@coreui/react": "^3.4.0",
+    "@wojtekmaj/enzyme-adapter-react-17": "^0.3.2",
+    "axios": "^0.24.0",
+    "classnames": "^2.2.6",
+    "core-js": "^3.8.1",
+    "enzyme": "^3.11.0",
+    "node-sass": "^4.14.1",
+    "react": "^17.0.1",
+    "react-app-polyfill": "^2.0.0",
+    "react-dom": "^17.0.1",
+    "react-redux": "^7.2.2",
+    "react-router-config": "^5.1.1",
+    "react-router-dom": "^5.2.0",
+    "redux": "4.0.5"
+  },
+  "devDependencies": {
+    "auto-changelog": "2.2.0",
+    "mutationobserver-shim": "^0.3.7",
+    "react-scripts": "^4.0.3"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "clearCache": "jest --clearCache",
+    "test:cov": "npm test -- --coverage --watchAll=false",
+    "test:debug": "react-scripts --inspect-brk test --runInBand",
+    "eject": "react-scripts eject",
+    "zip": "git archive -o coreui-pro-react-admin-template-starter-v$npm_package_version.zip -9 HEAD",
+    "zip-v2": "git archive -o coreui-pro-react-admin-template-starter-v2.zip -9 origin/v2"
+  },
+  "bugs": {
+    "url": "https://github.com/coreui/coreui-pro-react-admin-template-starter/issues"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 10",
+    "not op_mini all"
+  ],
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!**/*index.js",
+      "!src/serviceWorker.js",
+      "!src/polyfill.js"
+    ]
+  },
+  "engines": {
+    "node": ">=10",
+    "npm": ">=6"
+  }
+}
