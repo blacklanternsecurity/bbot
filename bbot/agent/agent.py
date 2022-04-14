@@ -3,7 +3,7 @@ import json
 import logging
 import websocket
 
-from . import messages
+# from . import messages
 
 log = logging.getLogger("bbot.core.event")
 
@@ -20,7 +20,7 @@ class Agent:
             on_message=self.on_message,
             on_error=self.on_error,
             on_close=self.on_close,
-            header={"Authorization": f"Bearer {self.config.agent_token}"}
+            header={"Authorization": f"Bearer {self.config.agent_token}"},
         )
 
     def start(self):
@@ -34,10 +34,9 @@ class Agent:
         try:
             message = json.loads(message)
         except Exception as e:
-            log.warning(f'Failed to JSON-decode message "{message}"')
+            log.warning(f'Failed to JSON-decode message "{message}": {e}')
             return
         log.success(f"{message} ({type(message)})")
-
 
     def on_error(self, ws, error):
         log.error(error)
