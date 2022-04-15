@@ -12,6 +12,7 @@ import bbot.core.errors
 from bbot.core.configurator.args import parser
 
 log = logging.getLogger("bbot.cli")
+sys.stdout.reconfigure(line_buffering=True)
 
 
 def main():
