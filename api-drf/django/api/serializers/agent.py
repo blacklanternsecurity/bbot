@@ -47,4 +47,6 @@ class MessageSerializer(serializers.Serializer):
         if "arguments" not in data or data["arguments"] is None:
             data["arguments"] = {}
 
-        return super().validate(data)
+        s = super().validate(data)
+        log.debug(s)
+        return s
