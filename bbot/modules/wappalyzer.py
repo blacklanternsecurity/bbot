@@ -2,7 +2,12 @@ from .base import BaseModule
 from Wappalyzer import Wappalyzer, WebPage
 
 import warnings
-warnings.filterwarnings("ignore", message="""Caught 'unbalanced parenthesis at position 119' compiling regex""", category=UserWarning )
+
+warnings.filterwarnings(
+    "ignore",
+    message="""Caught 'unbalanced parenthesis at position 119' compiling regex""",
+    category=UserWarning,
+)
 
 
 class wappalyzer(BaseModule):
