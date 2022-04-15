@@ -6,7 +6,7 @@ from contextlib import suppress
 log = logging.getLogger("bbot.scanner.manager")
 
 
-class EventManager:
+class ScanManager:
     """
     Manages modules and events during a scan
     """

@@ -7,6 +7,7 @@ from omegaconf import OmegaConf
 
 from . import messages
 from bbot.scanner import Scanner
+from bbot.scanner.dispatcher import Dispatcher
 
 log = logging.getLogger("bbot.core.agent")
 
@@ -15,14 +16,22 @@ class Agent:
     def __init__(self, config):
         self.config = config
         self.url = self.config.get("agent_url", "")
+        self.token = self.config.get("agent_token", "")
         self.scan = None
         self.thread = None
         self._scan_lock = threading.Lock()
+
+        self.dispatcher = Dispatcher()
+        self.dispatcher.on_status = self.on_scan_status
+        self.dispatcher.on_finish = self.on_scan_finish
 
     def setup(self):
         websocket.enableTrace(True)
         if not self.url:
             log.error(f"Must specify agent_url")
+            return False
+        if not self.token:
+            log.error(f"Must specify agent_token")
             return False
         self.ws = websocket.WebSocketApp(
             self.url,
@@ -30,7 +39,7 @@ class Agent:
             on_message=self.on_message,
             on_error=self.on_error,
             on_close=self.on_close,
-            header={"Authorization": f"Bearer {self.config.agent_token}"},
+            header={"Authorization": f"Bearer {self.token}"},
         )
         return True
 
@@ -41,6 +50,16 @@ class Agent:
             if not not_keyboardinterrupt:
                 break
             sleep(1)
+
+    def send(self, message):
+        while 1:
+            try:
+                self.ws.send(json.dumps(message))
+                break
+            except Exception as e:
+                log.warning(f"Error sending message: {e}, retrying")
+                sleep(1)
+                continue
 
     def on_message(self, ws, message):
         try:
@@ -58,10 +77,10 @@ class Agent:
         command_fn = getattr(self, message.command)
         response = self.err_handle(command_fn, **command_args.dict())
         log.info(str(response))
-        ws.send(json.dumps({"conversation": str(message.conversation), "message": response}))
+        self.send({"conversation": str(message.conversation), "message": response})
 
     def on_error(self, ws, error):
-        log.warning(error)
+        log.warning(f"on_error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
         log.warning("Closed connection")
@@ -78,7 +97,11 @@ class Agent:
                 config = OmegaConf.create(config)
                 config = OmegaConf.merge(self.config, config)
                 self.scan = Scanner(
-                    *targets, modules=modules, output_modules=output_modules, config=config
+                    *targets,
+                    modules=modules,
+                    output_modules=output_modules,
+                    config=config,
+                    dispatcher=self.dispatcher,
                 )
                 self.thread = threading.Thread(target=self.scan.start)
                 self.thread.start()
@@ -113,6 +136,13 @@ class Agent:
                 log.warning(msg)
                 return {"error": msg}
         return {"success": "Polled scan", "scan_status": self.scan.status}
+
+    def on_scan_status(self, status, scan_id):
+        self.send({"status": str(status), "scan_id": scan_id})
+
+    def on_scan_finish(self, scan):
+        self.scan = None
+        self.thread = None
 
     @staticmethod
     def err_handle(callback, *args, **kwargs):
