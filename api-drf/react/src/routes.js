@@ -5,8 +5,8 @@ const ListView   = React.lazy(() => import('./views/ListView'))
 const DetailView = React.lazy(() => import('./views/DetailView'))
 
 const GenericViews = [
-    { type: ListView,   path: "/engagements",        name: "Engagements",       component: "EngagementList" },
-    { type: DetailView, path: "/engagements/:engId", name: "Engagement Detail", component: "EngagementDetail" },
+    { type: ListView,   path: "/campaigns",          name: "Campaigns",         component: "CampaignList" },
+    { type: DetailView, path: "/campaigns/:cmpId",   name: "Campaign Detail",   component: "CampaignDetail" },
     { type: ListView,   path: "/plugins",            name: "Plugins",           component: "PluginList" },
     { type: DetailView, path: "/plugins/:plgId",     name: "Plugin Detail",     component: "PluginDetail" },
     { type: ListView,   path: "/agents",             name: "Agents",            component: "AgentList" },

@@ -14,20 +14,20 @@ import Api from './ApiUtil'
 //import MessageBox from './MessageBox'
 //import ConfirmDialog from './ConfirmDialog'
 
-class EngagementList extends React.Component {
+class CampaignList extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
       loading: true,
-      engagements: [],
+      campaigns: [],
     }
   }
 
   componentDidMount() {
-    Api.get("/engagements/")
+    Api.get("/campaigns/")
     .then(res => { 
       this.setState({
-        engagements: res.data,
+        campaigns: res.data,
         loading: false
       })
     })
@@ -40,9 +40,9 @@ class EngagementList extends React.Component {
     return (
       <>
         <div className="d-flex mb-2 justify-content-between">
-          <h4>Engagements</h4>
-          <CLink className="mt-2 float-right" to="/engagements/new">
-            <CTooltip content="New Engagement">
+          <h4>Campaigns</h4>
+          <CLink className="mt-2 float-right" to="/campaigns/new">
+            <CTooltip content="New Campaign">
               <CButton variant="outline" size="sm" color="success">
                 <CIcon name="cilPlus" />
               </CButton>
@@ -54,7 +54,7 @@ class EngagementList extends React.Component {
             <CCard>
               <CCardBody>
                 <CDataTable
-                  items={this.state.engagements ? this.state.engagements : []}
+                  items={this.state.campaigns ? this.state.campaigns : []}
                   fields={this.state.fields}
                   itemsPerPage={10}
                   hover
@@ -65,7 +65,7 @@ class EngagementList extends React.Component {
                   scopedSlots={{
                     'name': (item: any, i: number) => (                         
                       <td>                                                      
-                        <CLink to={`/engagements/${item.id}`}>{item.name}</CLink>      
+                        <CLink to={`/campaigns/${item.id}`}>{item.name}</CLink>      
                       </td>                                                     
                     ),                                                          
                   }}
@@ -79,4 +79,4 @@ class EngagementList extends React.Component {
   }
 }
 
-export default EngagementList
+export default CampaignList

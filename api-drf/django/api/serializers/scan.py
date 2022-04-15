@@ -11,8 +11,8 @@ log = logging.getLogger(__name__)
 class ScanSerializer(FlexFieldsModelSerializer):
     class Meta:
         model = Scan
-        fields = ("id", "engagement", "name", "status")
+        fields = ("id", "campaign", "name", "status")
 
         expandable_fields = {
-            "engagement": ("api.serializers.engagement.EngagementSerializer"),
+            "campaign": ("api.serializers.campaign.CampaignSerializer"),
         }

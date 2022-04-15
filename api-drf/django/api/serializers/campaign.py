@@ -2,12 +2,12 @@ import logging
 from rest_framework import serializers
 from rest_flex_fields import FlexFieldsModelSerializer
 
-from api.models.engagement import Engagement
+from api.models.campaign import Campaign
 
 log = logging.getLogger(__name__)
 
 
-class EngagementSerializer(FlexFieldsModelSerializer):
+class CampaignSerializer(FlexFieldsModelSerializer):
     class Meta:
-        model = Engagement
+        model = Campaign
         fields = "__all__"

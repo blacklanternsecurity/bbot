@@ -15,6 +15,6 @@ class Scan(models.Model):
         CANCELED = "4", "Canceled"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    engagement = models.ForeignKey("api.Engagement", related_name="scans", on_delete=models.CASCADE)
+    campaign = models.ForeignKey("api.Campaign", related_name="scans", on_delete=models.CASCADE)
     name = models.CharField(max_length=64)
     status = models.CharField(max_length=1, choices=ScanStatus.choices, default=ScanStatus.PENDING)

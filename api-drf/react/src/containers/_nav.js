@@ -7,8 +7,8 @@ const _nav = [
   },
   {
     _tag: 'CSidebarNavItem',
-    name: 'Engagements',
-    to: '/engagements',
+    name: 'Campaigns',
+    to: '/campaigns',
     icon: 'cil-city',
   },
   {
