@@ -1,6 +1,7 @@
 import os
 import logging
 import ipaddress
+from time import sleep
 
 import bbot.core.logger  # noqa: F401
 from bbot.core.configurator import available_modules, available_output_modules
@@ -230,3 +231,32 @@ def test_scan():
         assert future.result() is None
 
     scan3._thread_pool.shutdown(wait=True)
+
+
+def test_agent():
+    class WebSocketApp:
+        def __init__(*args, **kwargs):
+            return
+
+        def send(self, message):
+            assert type(message) == str
+
+        def run_forever(*args, **kwargs):
+            return False
+
+    from bbot import agent
+
+    agent = agent.Agent({"agent_url": "test", "agent_token": "test"})
+    agent.setup()
+    agent.ws = WebSocketApp()
+    agent.start()
+    agent.on_error(agent.ws, "test")
+    agent.on_close(agent.ws, "test", "test")
+    agent.on_open(agent.ws)
+    agent.on_message(
+        agent.ws,
+        '{"conversation": "test", "command": "start_scan", "arguments": {"targets": ["www.blacklanternsecurity.com"], "modules": ["dnsresolve"], "output_modules": ["human"]}',
+    )
+    sleep(0.5)
+    agent.scan_status()
+    agent.stop_scan()
