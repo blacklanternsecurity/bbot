@@ -1,4 +1,3 @@
-import json
 import uuid
 import logging
 from django.db import models

@@ -40,7 +40,7 @@ class TokenAuthMiddleware(BaseMiddleware):
             token = header_val.split(b" ")[1].decode()
             log.debug(f"Token: {token}")
         except ValueError:
-            token_key = None
+            token = None
 
         scope["user"] = AnonymousUser() if token is None else await self.get_user(token)
         return await super().__call__(scope, receive, send)

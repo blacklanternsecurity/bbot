@@ -1,11 +1,7 @@
-import json
-import time
 import logging
-from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from channels.db import database_sync_to_async
-from channels.consumer import SyncConsumer, AsyncConsumer
-from channels.generic.websocket import AsyncJsonWebsocketConsumer, JsonWebsocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 from api.models.agent import Agent, AgentSession
 
@@ -80,6 +76,7 @@ class EventConsumer(BaseConsumer):
             await self.channel_layer.group_add(str(session.id), self.channel_name)
         elif channel_type == "scan":
             scan_id = url_params["pk"]
+            log.debug(f"scan_id: {scan_id}")
 
         log.debug(f"Opened {channel_type} channel {self.channel_name}")
 

@@ -1,9 +1,7 @@
-import uuid
 import logging
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
 
 from api.lib.encoders import UUIDEncoder
 from api.serializers.agent import *
