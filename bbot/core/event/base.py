@@ -302,7 +302,7 @@ def make_event(
     """
 
     if BaseEvent in data.__class__.__bases__:
-        if scan_id is not None:
+        if scan_id is not None and not data.scan_id:
             data.scan_id = scan_id
         if module is not None:
             data.module = module
