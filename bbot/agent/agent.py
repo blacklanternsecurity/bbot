@@ -1,8 +1,8 @@
-import rel
 import json
 import logging
 import threading
 import websocket
+from time import sleep
 from omegaconf import OmegaConf
 
 from . import messages
@@ -14,27 +14,33 @@ log = logging.getLogger("bbot.core.agent")
 class Agent:
     def __init__(self, config):
         self.config = config
+        self.url = self.config.get("agent_url", "")
         self.scan = None
         self.thread = None
         self._scan_lock = threading.Lock()
 
     def setup(self):
         websocket.enableTrace(True)
+        if not self.url:
+            log.error(f"Must specify agent_url")
+            return False
         self.ws = websocket.WebSocketApp(
-            self.config.agent_url,
+            self.url,
             on_open=self.on_open,
             on_message=self.on_message,
             on_error=self.on_error,
             on_close=self.on_close,
             header={"Authorization": f"Bearer {self.config.agent_token}"},
         )
+        return True
 
     def start(self):
-        self.ws.run_forever(dispatcher=rel)  # Set dispatcher to automatic reconnection
-        rel.dispatch()
-
-    def stop(self):
-        rel.abort()
+        not_keyboardinterrupt = False
+        while 1:
+            not_keyboardinterrupt = self.ws.run_forever()
+            if not not_keyboardinterrupt:
+                break
+            sleep(1)
 
     def on_message(self, ws, message):
         try:
@@ -55,10 +61,10 @@ class Agent:
         ws.send(json.dumps({"conversation": str(message.conversation), "message": response}))
 
     def on_error(self, ws, error):
-        log.error(error)
+        log.warning(error)
 
     def on_close(self, ws, close_status_code, close_msg):
-        log.info("### closed ###")
+        log.warning("Closed connection")
 
     def on_open(self, ws):
         log.success("Opened connection")
