@@ -40,11 +40,9 @@ def main():
             from bbot.agent import Agent
 
             agent = Agent(config)
-            agent.setup()
-            try:
+            success = agent.setup()
+            if success:
                 agent.start()
-            finally:
-                agent.stop()
 
         else:
             from bbot.scanner import Scanner
