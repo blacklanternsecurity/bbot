@@ -6,6 +6,10 @@ class iis_shortnames(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
     in_scope_only = True
+    options = {"detect_only": False}
+    options_desc = {
+        "detect_only": "Only detect the vulnerability and do not run the shortname scanner"
+    }
 
     def setup(self):
         iis_shortname_jar = (
@@ -33,27 +37,27 @@ class iis_shortnames(BaseModule):
                 event,
                 tags=["low"],
             )
-
-            command = [
-                "java",
-                "-jar",
-                self.iis_scanner_jar,
-                "0",
-                "8",
-                normalized_url,
-                self.iis_scanner_config,
-            ]
-            output = self.helpers.run(command).stdout
-            self.debug(output)
-            discovered_directories, discovered_files = self.shortname_parse(output)
-            for d in discovered_directories:
-                if d[-2] == "~":
-                    d = d.split("~")[:-1][0]
-                self.emit_event(normalized_url + d, "URL_HINT", event, tags=["directory"])
-            for f in discovered_files:
-                if f[-2] == "~":
-                    f = f.split("~")[:-1][0]
-                self.emit_event(normalized_url + f, "URL_HINT", event, tags=["file"])
+            if not self.config.get("detect_only"):
+                command = [
+                    "java",
+                    "-jar",
+                    self.iis_scanner_jar,
+                    "0",
+                    "8",
+                    normalized_url,
+                    self.iis_scanner_config,
+                ]
+                output = self.helpers.run(command).stdout
+                self.debug(output)
+                discovered_directories, discovered_files = self.shortname_parse(output)
+                for d in discovered_directories:
+                    if d[-2] == "~":
+                        d = d.split("~")[:-1][0]
+                    self.emit_event(normalized_url + d, "URL_HINT", event, tags=["directory"])
+                for f in discovered_files:
+                    if f[-2] == "~":
+                        f = f.split("~")[:-1][0]
+                    self.emit_event(normalized_url + f, "URL_HINT", event, tags=["file"])
 
     def detect(self, url):
 
