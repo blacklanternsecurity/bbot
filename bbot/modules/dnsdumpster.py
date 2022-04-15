@@ -44,9 +44,7 @@ class dnsdumpster(BaseModule):
                     return ret
                 if k == "csrftoken":
                     csrftoken = str(v)
-            csrfmiddlewaretoken = html.find("input", {"name": "csrfmiddlewaretoken"}).attrs.get(
-                "value", None
-            )
+            csrfmiddlewaretoken = html.find("input", {"name": "csrfmiddlewaretoken"}).attrs.get("value", None)
         except AttributeError:
             pass
 

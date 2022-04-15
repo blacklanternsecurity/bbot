@@ -95,11 +95,7 @@ class Agent:
                     f"Starting scan with targets={targets}, modules={modules}, output_modules={output_modules}"
                 )
                 output_module_config = OmegaConf.create(
-                    {
-                        "output_modules": {
-                            "websocket": {"url": f"{self.url}/scan/{scan_id}/", "token": self.token}
-                        }
-                    }
+                    {"output_modules": {"websocket": {"url": f"{self.url}/scan/{scan_id}/", "token": self.token}}}
                 )
                 config = OmegaConf.create(config)
                 config = OmegaConf.merge(self.config, config, output_module_config)
