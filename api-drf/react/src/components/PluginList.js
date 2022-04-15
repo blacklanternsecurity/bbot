@@ -1,7 +1,5 @@
 import React from 'react'
 import { 
-  CButton,
-  CTooltip,
   CCard, 
   CCardBody,
   CDataTable,
@@ -9,7 +7,6 @@ import {
   CRow,
   CCol,
 } from '@coreui/react'
-import CIcon from '@coreui/icons-react'
 import Api from './ApiUtil'
 //import MessageBox from './MessageBox'
 //import ConfirmDialog from './ConfirmDialog'

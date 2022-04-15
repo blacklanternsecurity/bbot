@@ -13,6 +13,8 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 
+import bbotLogo from'../assets/icons/bbot_banner_thin.png'
+
 // sidebar nav config
 import navigation from './_nav'
 
@@ -27,11 +29,7 @@ const TheSidebar = () => {
       onShowChange={(val) => dispatch({type: 'set', sidebarShow: val })}
     >
       <CSidebarBrand className="d-md-down-none" to="/">
-        <CIcon
-          className="c-sidebar-brand-full"
-          name="logo-negative"
-          height={35}
-        />
+        <img style={{width: "10em", height: "auto"}} src={bbotLogo}/>
         <CIcon
           className="c-sidebar-brand-minimized"
           name="sygnet"

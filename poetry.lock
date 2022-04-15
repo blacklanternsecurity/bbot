@@ -545,14 +545,6 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
-name = "rel"
-version = "0.4.7"
-description = "Registered Event Listener. Provides standard (pyevent) interface and functionality without external dependencies"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "requests"
 version = "2.27.1"
 description = "Python HTTP for Humans."
@@ -731,7 +723,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "edd1903499fb50a22cdd67e441886acf80144f39a29d0eeb8658dcc81064cbab"
+content-hash = "a3ba4130e5f0122f347ce5656dc43eada95400c0b556512451f775ab6d461aa5"
 
 [metadata.files]
 antlr4-python3-runtime = [
@@ -1192,11 +1184,6 @@ pyyaml = [
     {file = "PyYAML-6.0-cp39-cp39-win32.whl", hash = "sha256:b5b9eccad747aabaaffbc6064800670f0c297e52c12754eb1d976c57e4f74dcb"},
     {file = "PyYAML-6.0-cp39-cp39-win_amd64.whl", hash = "sha256:b3d267842bf12586ba6c734f89d1f5b871df0273157918b0ccefa29deb05c21c"},
     {file = "PyYAML-6.0.tar.gz", hash = "sha256:68fb519c14306fec9720a2a5b45bc9f0c8d1b9c72adf45c37baedfcd949c35a2"},
-]
-rel = [
-    {file = "rel-0.4.7-py2.py3-none-any.whl", hash = "sha256:3d06e3630739406723944207177f163a0e615e5a46434e5288c9e63d2b9d16de"},
-    {file = "rel-0.4.7-py3-none-any.whl", hash = "sha256:451e39acdeeda458402d078add1c60be36b72ee5747ea5274831a8e46d765768"},
-    {file = "rel-0.4.7-py3.9.egg", hash = "sha256:5f46ed6ef381b1a81d650abe321894f59020d18f347df3005f16ca1758589599"},
 ]
 requests = [
     {file = "requests-2.27.1-py2.py3-none-any.whl", hash = "sha256:f22fa1e554c9ddfd16e6e41ac79759e17be9e492b3587efa038054674760e72d"},

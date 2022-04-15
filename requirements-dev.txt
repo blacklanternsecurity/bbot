@@ -53,7 +53,6 @@ pytest==7.1.1; python_version >= "3.7"
 python-wappalyzer==0.3.1
 pytz==2022.1
 pyyaml==6.0; python_version >= "3.6"
-rel==0.4.7
 requests-cache==0.9.3; python_version >= "3.7" and python_version < "4.0"
 requests-file==1.5.1; python_version >= "3.7"
 requests==2.27.1; python_version >= "3.7" and python_full_version < "3.0.0" and python_version < "4.0" or python_full_version >= "3.6.0" and python_version >= "3.7" and python_version < "4.0"

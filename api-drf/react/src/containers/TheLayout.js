@@ -24,6 +24,7 @@ const TheLayout = () => {
         <TheHeader/>
         <div className="c-body">
           <TheContent/>
+	      <div id='alert-container' className='mt-5 col-md-auto col-3 fixed-top' />
         </div>
         <TheFooter/>
       </div>

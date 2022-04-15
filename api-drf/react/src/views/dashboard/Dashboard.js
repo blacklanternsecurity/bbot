@@ -1,11 +1,11 @@
 import React from 'react'
-import EngagementList from '../../components/EngagementList'
+import CampaignList from '../../components/CampaignList'
 
 const Dashboard = () => {
 
   return (
     <>
-      <EngagementList />
+      <CampaignList />
     </>
   )
 }

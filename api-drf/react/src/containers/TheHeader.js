@@ -15,6 +15,8 @@ import CIcon from '@coreui/icons-react'
 // routes config
 import routes from '../routes'
 
+import bbotLogo from'../assets/icons/bbot_banner_thin.png';
+
 const TheHeader = () => {
   const dispatch = useDispatch()
 //const asideShow = useSelector(state => state.asideShow)
@@ -44,7 +46,7 @@ const TheHeader = () => {
         onClick={toggleSidebar}
       />
       <CHeaderBrand className="mx-auto d-lg-none" to="/">
-        <CIcon name="logo" height="48" alt="Logo"/>
+        <img style={{width: "10em", height: "auto"}} src={bbotLogo}/>
       </CHeaderBrand>
 
       <CHeaderNav className="d-md-down-none mr-auto">

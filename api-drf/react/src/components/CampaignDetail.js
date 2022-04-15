@@ -1,33 +1,28 @@
 import React from 'react'
 import { 
-  CButton,
-  CTooltip,
   CCard, 
   CCardBody,
-  CDataTable,
-  CLink,
   CRow,
   CCol,
 } from '@coreui/react'
-import CIcon from '@coreui/icons-react'
 import Api from './ApiUtil'
 //import MessageBox from './MessageBox'
 //import ConfirmDialog from './ConfirmDialog'
 
-class EngagementDetail extends React.Component {
+class CampaignDetail extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
       loading: true,
-      engagement: null,
+      campaign: null,
     }
   }
 
   componentDidMount() {
-    Api.get(`/engagements/${this.props.engId}/`)
+    Api.get(`/campaigns/${this.props.cmpId}/`)
     .then(res => { 
       this.setState({
-        engagement: res.data,
+        campaign: res.data,
         loading: false
       })
     })
@@ -37,17 +32,17 @@ class EngagementDetail extends React.Component {
   }
 
   render () {
-    if (!this.state || !this.state.engagement) return null
+    if (!this.state || !this.state.campaign) return null
     return (
       <>
         <div className="d-flex mb-2 justify-content-between">
-          <h4>{this.state.engagement.name}</h4>
+          <h4>{this.state.campaign.name}</h4>
         </div>
         <CRow>
           <CCol xs="12" md="12" className="mb-4">
             <CCard>
               <CCardBody>
-                {this.state.engagement.id}
+                {this.state.campaign.id}
               </CCardBody>
             </CCard>
           </CCol>
@@ -57,4 +52,4 @@ class EngagementDetail extends React.Component {
   }
 }
 
-export default EngagementDetail
+export default CampaignDetail

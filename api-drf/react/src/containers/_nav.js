@@ -7,8 +7,8 @@ const _nav = [
   },
   {
     _tag: 'CSidebarNavItem',
-    name: 'Engagements',
-    to: '/engagements',
+    name: 'Campaigns',
+    to: '/campaigns',
     icon: 'cil-city',
   },
   {
@@ -16,6 +16,12 @@ const _nav = [
     name: 'Plugins',
     to: '/plugins',
     icon: 'cil-puzzle',
+  },
+  {
+    _tag: 'CSidebarNavItem',
+    name: 'Agents',
+    to: '/agents',
+    icon: 'cil-lan',
   },
 ]
 

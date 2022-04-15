@@ -11,7 +11,8 @@ from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "api.settings")
 asgi_app = ASGIStaticFilesHandler(get_asgi_application())
 
-from api.lib.websocket import EventConsumer
+from api.lib.websocket import AgentStatusConsumer, EventConsumer
+
 
 class TokenAuthMiddleware(BaseMiddleware):
     @database_sync_to_async
@@ -19,6 +20,7 @@ class TokenAuthMiddleware(BaseMiddleware):
         from django.contrib.auth.models import AnonymousUser
         from rest_framework.authtoken.models import Token
         from api.models.agent import Agent
+
         try:
             token = Token.objects.get(key=token_key)
             log.debug(f"User: {token.user}")
@@ -32,14 +34,15 @@ class TokenAuthMiddleware(BaseMiddleware):
 
     async def __call__(self, scope, receive, send):
         from django.contrib.auth.models import AnonymousUser
+
         try:
-            header_val = next(filter(lambda x: x[0] == b'authorization', scope['headers']))[1]
+            header_val = next(filter(lambda x: x[0] == b"authorization", scope["headers"]))[1]
             token = header_val.split(b" ")[1].decode()
             log.debug(f"Token: {token}")
         except ValueError:
-            token_key = None
+            token = None
 
-        scope['user'] = AnonymousUser() if token is None else await self.get_user(token)
+        scope["user"] = AnonymousUser() if token is None else await self.get_user(token)
         return await super().__call__(scope, receive, send)
 
 
@@ -49,7 +52,12 @@ application = ProtocolTypeRouter(
         "websocket": TokenAuthMiddleware(
             URLRouter(
                 [
-                    re_path(r"^ws/(?P<pk>\S+)/$", EventConsumer.as_asgi()),
+                    re_path(r"^ws/(?P<channel_type>control)/$", EventConsumer.as_asgi()),
+                    re_path(r"^ws/<?P<channel_type>scan)/(?P<pk>\S+)/$", EventConsumer.as_asgi()),
+                    re_path(
+                        r"^ws/(?P<channel_type>agent_status)/(?P<pk>\S+)/$",
+                        AgentStatusConsumer.as_asgi(),
+                    ),
                 ]
             )
         ),
