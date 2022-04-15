@@ -34,7 +34,7 @@ class Agent:
             log.error(f"Must specify agent_token")
             return False
         self.ws = websocket.WebSocketApp(
-            self.url,
+            f"{self.url}/control/",
             on_open=self.on_open,
             on_message=self.on_message,
             on_error=self.on_error,
@@ -88,16 +88,25 @@ class Agent:
     def on_open(self, ws):
         log.success("Opened connection")
 
-    def start_scan(self, targets=[], modules=[], output_modules=[], config={}):
+    def start_scan(self, scan_id="", targets=[], modules=[], output_modules=[], config={}):
         with self._scan_lock:
             if self.scan is None:
                 log.success(
                     f"Starting scan with targets={targets}, modules={modules}, output_modules={output_modules}"
                 )
+                output_module_config = OmegaConf.create(
+                    {
+                        "output_modules": {
+                            "websocket": {"url": f"{self.url}/scan/{scan_id}/", "token": self.token}
+                        }
+                    }
+                )
                 config = OmegaConf.create(config)
-                config = OmegaConf.merge(self.config, config)
+                config = OmegaConf.merge(self.config, config, output_module_config)
+                output_modules = list(set(output_modules + ["websocket"]))
                 self.scan = Scanner(
                     *targets,
+                    scan_id=scan_id,
                     modules=modules,
                     output_modules=output_modules,
                     config=config,
@@ -146,6 +155,7 @@ class Agent:
 
     @staticmethod
     def err_handle(callback, *args, **kwargs):
+        log.critical(f"{callback}, {args}, {kwargs}")
         try:
             return callback(*args, **kwargs)
         except Exception as e:

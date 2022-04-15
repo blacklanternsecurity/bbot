@@ -1,0 +1,49 @@
+import json
+import threading
+import websocket
+from time import sleep
+
+from .base import BaseOutputModule
+
+
+class Websocket(BaseOutputModule):
+
+    options = {"url": "", "token": ""}
+    options_desc = {"url": "Web URL", "token": "Authorization Bearer token"}
+
+    def setup(self):
+        self.url = self.config.get("url", "")
+        if not self.url:
+            self.warning("Must set URL")
+            return False
+        kwargs = {}
+        self.token = self.config.get("token", "")
+        if self.token:
+            kwargs.update({"header": {"Authorization": f"Bearer {self.token}"}})
+        self.ws = websocket.WebSocketApp(self.url, **kwargs)
+        self.thread = threading.Thread(target=self.start_websocket, daemon=True)
+        self.thread.start()
+        return True
+
+    def start_websocket(self):
+        not_keyboardinterrupt = False
+        while not self.scan.stopping:
+            not_keyboardinterrupt = self.ws.run_forever()
+            if not not_keyboardinterrupt:
+                break
+            sleep(1)
+
+    def handle_event(self, event):
+        event_json = event.json
+        event_json.pop("scan_id", "")
+        self.send(event_json)
+
+    def send(self, message):
+        while 1:
+            try:
+                self.ws.send(json.dumps(message))
+                break
+            except Exception as e:
+                self.warning(f"Error sending message: {e}, retrying")
+                sleep(1)
+                continue

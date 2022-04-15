@@ -53,7 +53,7 @@ application = ProtocolTypeRouter(
             URLRouter(
                 [
                     re_path(r"^ws/(?P<channel_type>control)/$", EventConsumer.as_asgi()),
-                    re_path(r"^ws/<?P<channel_type>scan)/(?P<pk>\S+)/$", EventConsumer.as_asgi()),
+                    re_path(r"^ws/(?P<channel_type>scan)/(?P<pk>\S+)/$", EventConsumer.as_asgi()),
                     re_path(
                         r"^ws/(?P<channel_type>agent_status)/(?P<pk>\S+)/$",
                         AgentStatusConsumer.as_asgi(),

@@ -125,7 +125,7 @@ class Scanner:
                 self.status = "ERROR_FAILED"
                 return
             else:
-                self.success(f"Successfully set up {len(self.modules):,} modules")
+                self.success(f"Setup succeeded for {len(self.modules):,} modules")
 
             if self.stopping:
                 return
@@ -184,6 +184,7 @@ class Scanner:
 
     def setup_modules(self, remove_failed=True):
         self.info(f"Setting up modules")
+        setups_failed = 0
         setup_futures = dict()
         for module_name, module in self.modules.items():
             future = self._thread_pool.submit(module._setup)
@@ -192,11 +193,14 @@ class Scanner:
             module_name = setup_futures[future]
             result = future.result()
             if remove_failed and not result == True:
-                self.error(f'Setup failed for module "{module_name}"')
+                self.warning(f'Setup failed for module "{module_name}"')
                 self.modules.pop(module_name)
+                setups_failed += 1
         num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
         if num_output_modules < 1:
             raise ScanError("Failed to load output modules. Aborting.")
+        if setups_failed > 0:
+            self.warning(f"Setup failed for {setups_failed:,} modules")
 
     def stop(self, wait=False):
         if self.status != "ABORTING":

@@ -12,8 +12,9 @@ class Message(BaseModel):
 
 
 class start_scan(BaseModel):
-    targets: list = []
-    modules: list = []
+    scan_id: str
+    targets: list
+    modules: list
     output_modules: list = []
     config: dict = {}
 
