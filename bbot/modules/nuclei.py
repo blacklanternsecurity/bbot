@@ -41,9 +41,7 @@ class nuclei(BaseModule):
         }
         """
 
-        command = ["nuclei", "-silent", "-json", "-tags", "tech", "-u"] + [
-            str(e.data) for e in events
-        ]
+        command = ["nuclei", "-silent", "-json", "-tags", "tech", "-u"] + [str(e.data) for e in events]
         for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL):
             j = json.loads(line)
             template = j.get("template-id", "")

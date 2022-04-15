@@ -26,6 +26,4 @@ class AgentSession(models.Model):
         from api.lib.websocket import EventConsumer
 
         ec = EventConsumer()
-        async_to_sync(ec.send_to_channel)(
-            str(self.id), {"type": "dispatch_job", "data": json.dumps(message)}
-        )
+        async_to_sync(ec.send_to_channel)(str(self.id), {"type": "dispatch_job", "data": json.dumps(message)})

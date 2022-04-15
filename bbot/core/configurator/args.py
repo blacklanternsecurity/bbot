@@ -28,14 +28,10 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         else:
             for m in ret.modules:
                 if not m in module_stems and not self._dummy:
-                    raise ArgumentError(
-                        f'Module "{m}" is not valid. Choose from: {",".join(module_stems)}'
-                    )
+                    raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(module_stems)}')
         for m in ret.output_modules:
             if not m in output.module_stems and not self._dummy:
-                raise ArgumentError(
-                    f'Output module "{m}" is not valid. Choose from: {",".join(output.module_stems)}'
-                )
+                raise ArgumentError(f'Output module "{m}" is not valid. Choose from: {",".join(output.module_stems)}')
         return ret
 
 

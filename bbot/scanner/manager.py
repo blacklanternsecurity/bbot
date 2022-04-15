@@ -150,22 +150,14 @@ class ScanManager:
             passes -= 1
 
         if _log:
-            events_queued = ", ".join(
-                [f"{mod}: {qsize:,}" for mod, qsize in queued_events[:5] if qsize > 0]
-            )
+            events_queued = ", ".join([f"{mod}: {qsize:,}" for mod, qsize in queued_events[:5] if qsize > 0])
             if not events_queued:
                 events_queued = "None"
-            tasks_queued = ", ".join(
-                [f"{mod}: {qsize:,}" for mod, qsize in running_tasks[:5] if qsize > 0]
-            )
+            tasks_queued = ", ".join([f"{mod}: {qsize:,}" for mod, qsize in running_tasks[:5] if qsize > 0])
             if not tasks_queued:
                 tasks_queued = "None"
-            self.scan.verbose(
-                f"Events queued: {sum([m[-1] for m in queued_events]):,} ({events_queued})"
-            )
-            self.scan.verbose(
-                f"Tasks queued: {sum([m[-1] for m in running_tasks]):,} ({tasks_queued})"
-            )
+            self.scan.verbose(f"Events queued: {sum([m[-1] for m in queued_events]):,} ({events_queued})")
+            self.scan.verbose(f"Tasks queued: {sum([m[-1] for m in running_tasks]):,} ({tasks_queued})")
             if modules_running:
                 self.scan.verbose(
                     f'Modules running: {len(modules_running):,} ({", ".join([m.name for m in modules_running])})'

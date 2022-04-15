@@ -34,9 +34,7 @@ def download(self, url, **kwargs):
     else:
         method = kwargs.get("method", "GET")
         try:
-            with self.request(
-                method=method, url=url, stream=True, raise_error=True, **kwargs
-            ) as response:
+            with self.request(method=method, url=url, stream=True, raise_error=True, **kwargs) as response:
                 status_code = getattr(response, "status_code", 0)
                 log.debug(f"Download result: HTTP {status_code}")
                 if status_code != 0:
@@ -108,9 +106,7 @@ def request(self, *args, **kwargs):
                 response = session.request(*args, **kwargs)
             else:
                 response = requests.request(*args, **kwargs)
-            log.debug(
-                f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}"
-            )
+            log.debug(f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}")
             return response
         except RequestException as e:
             log.debug(f"Error with request: {e}")
