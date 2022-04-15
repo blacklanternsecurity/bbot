@@ -107,6 +107,8 @@ def host_in_host(host1, host2):
     host2_ip_type = hasattr(host2, "is_multicast")
     # if both hosts are IP types
     if host1_ip_type and host2_ip_type:
+        if not host1.version == host2.version:
+            return False
         host1_net = ipaddress.ip_network(host1)
         host2_net = ipaddress.ip_network(host2)
         if host1_net.num_addresses <= host2_net.num_addresses:

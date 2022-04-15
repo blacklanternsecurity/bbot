@@ -43,7 +43,11 @@ class nuclei(BaseModule):
 
         command = ["nuclei", "-silent", "-json", "-tags", "tech", "-u"] + [str(e.data) for e in events]
         for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL):
-            j = json.loads(line)
+            try:
+                j = json.loads(line)
+            except json.decoder.JSONDecodeError:
+                self.debug(f"Failed to decode line: {line}")
+                continue
             template = j.get("template-id", "")
             name = j.get("matcher-name", "")
             severity = j.get("info", {}).get("severity", "").upper()
