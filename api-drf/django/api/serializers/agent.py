@@ -22,7 +22,7 @@ class AgentSerializer(FlexFieldsModelSerializer):
     sessions = AgentSessionSerializer(many=True, read_only=True)
     class Meta:
         model = Agent
-        fields = ('agent_id', 'username', 'sessions')
+        fields = ('agent_id', 'username', 'sessions', 'connected')
 
 class MessageSerializer(serializers.Serializer):
     conversation = serializers.UUIDField(default=uuid.uuid4, read_only=True)

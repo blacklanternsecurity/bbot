@@ -45,7 +45,7 @@ server {
         include proxy.conf;
     }
 
-    location /sockjs-node/ {
+    location /sockjs-node {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host localhost;
         proxy_set_header Origin http://localhost;

@@ -51,10 +51,6 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
             
             await self.channel_layer.group_add(str(session.id), self.channel_name)
 
-            resp = {"command": "do-the-thing.sh", "arguments": {"foo": "bar"}}
-            await self.send(json.dumps(resp))
-
-
     async def disconnect(self, close_code):
         log.debug(f"Disconnected: {close_code}")
         await self.delete_session()

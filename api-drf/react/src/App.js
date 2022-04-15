@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { HashRouter, Route, Switch } from 'react-router-dom';
+import { HashRouter, Route, Switch, Redirect } from 'react-router-dom';
 import './scss/style.scss';
 
 const loading = (
@@ -14,10 +14,13 @@ const TheLayout = React.lazy(() => import('./containers/TheLayout'));
 class App extends Component {
 
   render() {
+    const pathname = window.location.hash.slice(1)
+    console.log(pathname)
     return (
       <HashRouter>
           <React.Suspense fallback={loading}>
           <Switch>
+            <Redirect from="/:url*(/+)" to={pathname.slice(0, -1)} />
             <Route path="/" name="Home" render={props => <TheLayout {...props}/>} />
           </Switch>
         </React.Suspense>

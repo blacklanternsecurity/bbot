@@ -17,6 +17,12 @@ const _nav = [
     to: '/plugins',
     icon: 'cil-puzzle',
   },
+  {
+    _tag: 'CSidebarNavItem',
+    name: 'Agents',
+    to: '/agents',
+    icon: 'cil-lan',
+  },
 ]
 
 export default _nav
