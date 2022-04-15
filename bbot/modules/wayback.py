@@ -31,9 +31,7 @@ class wayback(BaseModule):
 
                     uris.add(p._replace(fragment="").geturl())
                     endpoints.add(p._replace(fragment="", query="").geturl())
-                    dirs.add(
-                        "/".join(p._replace(fragment="", query="").geturl().split("/")[:-1]) + "/"
-                    )
+                    dirs.add("/".join(p._replace(fragment="", query="").geturl().split("/")[:-1]) + "/")
 
         for dir in dirs:
             self.emit_event(dir, "URL", event, tags=["dir"])

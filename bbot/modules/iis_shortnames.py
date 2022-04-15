@@ -7,17 +7,11 @@ class iis_shortnames(BaseModule):
     produced_events = ["URL_HINT"]
     in_scope_only = True
     options = {"detect_only": False}
-    options_desc = {
-        "detect_only": "Only detect the vulnerability and do not run the shortname scanner"
-    }
+    options_desc = {"detect_only": "Only detect the vulnerability and do not run the shortname scanner"}
 
     def setup(self):
-        iis_shortname_jar = (
-            "https://github.com/irsdl/IIS-ShortName-Scanner/raw/master/iis_shortname_scanner.jar"
-        )
-        iis_shortname_config = (
-            "https://raw.githubusercontent.com/irsdl/IIS-ShortName-Scanner/master/config.xml"
-        )
+        iis_shortname_jar = "https://github.com/irsdl/IIS-ShortName-Scanner/raw/master/iis_shortname_scanner.jar"
+        iis_shortname_config = "https://raw.githubusercontent.com/irsdl/IIS-ShortName-Scanner/master/config.xml"
         self.iis_scanner_jar = self.helpers.download(iis_shortname_jar, cache_hrs=720)
         self.iis_scanner_config = self.helpers.download(iis_shortname_config, cache_hrs=720)
         if self.iis_scanner_jar and self.iis_scanner_config:
@@ -64,9 +58,7 @@ class iis_shortnames(BaseModule):
         detected = False
         http_methods = ["GET", "OPTIONS", "DEBUG"]
         for http_method in http_methods:
-            control = self.helpers.request(
-                url.rstrip("/") + "/" + "N0t4xist*~1*/a.aspx", method=http_method
-            )
+            control = self.helpers.request(url.rstrip("/") + "/" + "N0t4xist*~1*/a.aspx", method=http_method)
             test = self.helpers.request(url.rstrip("/") + "/" + "*~1*/a.aspx", method=http_method)
             if (control != None) and (test != None):
                 if (control.status_code != 404) and (test.status_code == 404):
