@@ -48,5 +48,4 @@ class MessageSerializer(serializers.Serializer):
             data["arguments"] = {}
 
         s = super().validate(data)
-        log.debug(s)
         return s

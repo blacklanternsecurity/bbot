@@ -3,7 +3,6 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
-from api.lib.encoders import UUIDEncoder
 from api.serializers.agent import *
 
 log = logging.getLogger(__name__)
@@ -28,11 +27,12 @@ class AgentViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer_class()
             s = serializer(data=request.data)
             if s.is_valid():
-                msg = json.dumps(s.validated_data, cls=UUIDEncoder)
-                log.debug(f"Sending message: {msg}")
-                x = session.send(msg)
-                if x is not None:
-                    res.append(x)
+                msg = s.data
+                sent = session.send(msg)
+                if sent is not None:
+                    res.append({str(session.id): sent})
+            else:
+                log.warning(f"Invalid data passed to serializer class: {request.data}")
 
         if len(res):
             result = "".join(res)
@@ -57,7 +57,9 @@ class AgentSessionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer_class()
         s = serializer(data=request.data)
         if s.is_valid():
-            msg = json.dumps(s.validated_data, cls=UUIDEncoder)
+            msg = s.data
             log.debug(f"Sending message: {msg}")
             result = session.send(msg)
+        else:
+            log.warning(f"Invalid data passed to serializer class: {request.data}")
         return Response({"data": str(type(result))})
