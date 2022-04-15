@@ -4,7 +4,8 @@ from uuid import uuid4
 import concurrent.futures
 from collections import OrderedDict
 
-from .manager import EventManager
+from .manager import ScanManager
+from .dispatcher import Dispatcher
 from bbot.core.target import ScanTarget
 from bbot.core.errors import BBOTError, ScanError
 from bbot.core.event import make_event, make_event_id
@@ -16,7 +17,14 @@ log = logging.getLogger("bbot.scanner")
 
 class Scanner:
     def __init__(
-        self, *targets, scan_id=None, name=None, modules=None, output_modules=None, config=None
+        self,
+        *targets,
+        scan_id=None,
+        name=None,
+        modules=None,
+        output_modules=None,
+        config=None,
+        dispatcher=None,
     ):
         if modules is None:
             modules = []
@@ -40,7 +48,13 @@ class Scanner:
         else:
             self.name = str(name)
 
-        self.manager = EventManager(self)
+        if dispatcher is None:
+            self.dispatcher = Dispatcher()
+        else:
+            self.dispatcher = dispatcher
+        self.dispatcher.set_scan(self)
+
+        self.manager = ScanManager(self)
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
         # prevent too many brute force modules from running at one time
@@ -101,14 +115,14 @@ class Scanner:
         failed = True
 
         try:
-            self._status = "STARTING"
+            self.status = "STARTING"
             self.info(f"Starting scan {self.id}")
 
             self.setup_modules()
 
             if not self.modules:
                 self.error(f"No modules loaded")
-                self._status = "ERROR_FAILED"
+                self.status = "ERROR_FAILED"
                 return
             else:
                 self.success(f"Successfully set up {len(self.modules):,} modules")
@@ -122,7 +136,7 @@ class Scanner:
             if self.stopping:
                 return
 
-            self._status = "RUNNING"
+            self.status = "RUNNING"
             self.start_modules()
             self.info(f"{len(self.modules):,} modules started")
 
@@ -143,7 +157,7 @@ class Scanner:
             import traceback
 
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
-            self._status = "ERROR_FAILED"
+            self.status = "ERROR_FAILED"
 
         finally:
             # Shut down shared thread pool
@@ -151,15 +165,17 @@ class Scanner:
 
             # Set status
             if failed:
-                self._status = "FAILED"
+                self.status = "FAILED"
                 self.error(f"Scan {self.id} completed with status {self.status}")
             else:
                 if self.status == "ABORTING":
-                    self._status = "ABORTED"
+                    self.status = "ABORTED"
                     self.warning(f"Scan {self.id} completed with status {self.status}")
                 else:
-                    self._status = "FINISHED"
+                    self.status = "FINISHED"
                     self.success(f"Scan {self.id} completed with status {self.status}")
+
+            self.dispatcher.on_finish(self)
 
     def start_modules(self):
         self.info(f"Starting modules")
@@ -183,8 +199,8 @@ class Scanner:
             raise ScanError("Failed to load output modules. Aborting.")
 
     def stop(self, wait=False):
-        if self._status != "ABORTING":
-            self._status = "ABORTING"
+        if self.status != "ABORTING":
+            self.status = "ABORTING"
             self.warning(f"Aborting scan")
             for i in range(max(10, self.max_brute_forcers * 10)):
                 self._brute_lock.release()
@@ -204,6 +220,9 @@ class Scanner:
         """
         if (not self.status == "ABORTING") or (status == "ABORTED"):
             self._status = status
+            self.dispatcher.on_status(self._status, self.id)
+        else:
+            self.debug(f"Attempt to set invalid status on aborted scan")
 
     def make_event(self, *args, **kwargs):
         """
