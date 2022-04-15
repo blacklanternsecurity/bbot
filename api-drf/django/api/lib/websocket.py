@@ -11,11 +11,44 @@ from api.models.agent import Agent, AgentSession
 
 log = logging.getLogger(__name__)
 
-class EventConsumer(AsyncJsonWebsocketConsumer):
+class BaseConsumer(AsyncJsonWebsocketConsumer):
+    async def connect(self):
+        if self.scope["user"].is_anonymous:
+            log.debug("closing anonymous connection")
+            await self.close()
+            return None
+        else:
+            await self.accept()
+            self.groups = set()
+            url_params = self.scope["url_route"]["kwargs"]
+            log.debug(url_params)
+            return url_params
+
+    async def disconnect(self, close_code):
+        log.debug(f"Disconnected: {close_code}")
+        await self.delete_session()
+
+    async def receive_json(self, content):
+        log.debug(f"EventConsumer.receive_json(): {content}")
+
+    async def receive(self, text_data):
+        log.debug(f"EventConsumer.receive(): {text_data}")
+
+    async def event_update(self, content):
+        log.debug(f"EventConsumer.send(): {content}")
+#       await self.send(str(content))
+
+class AgentStatusConsumer(BaseConsumer):
+    async def connect(self):
+        url_params = await super().connect()
+        log.debug("AgentStatusConsumer connected")
+        if url_params is None:
+            return
+
+class EventConsumer(BaseConsumer):
     groups = []
 
     def __init__(self, *args, **kwargs):
-        log.debug("init called")
         super().__init__(*args, **kwargs)
 
     @database_sync_to_async
@@ -37,33 +70,19 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
             agent = agent
         ).delete()
 
-
     async def connect(self):
-        if self.scope["user"].is_anonymous:
-            log.debug("closing anonymous connection")
-            await self.close()
-        else:
-            await self.accept()
-            self.groups = set()
-            engagement_id = self.scope["url_route"]["kwargs"]["pk"]
-            log.debug(f"Opened channel {self.channel_name}")
+        url_params = await super().connect()
+        if url_params is None:
+            return
+
+        channel_type = url_params["channel_type"]
+        if channel_type == "control":
             session = await self.store_session()
-            
             await self.channel_layer.group_add(str(session.id), self.channel_name)
+        elif channel_type == "scan":
+            scan_id = url_params["pk"]
 
-    async def disconnect(self, close_code):
-        log.debug(f"Disconnected: {close_code}")
-        await self.delete_session()
-
-    async def receive_json(self, content):
-        log.debug(f"EventConsumer.receive_json(): {content}")
-
-    async def receive(self, text_data):
-        log.debug(f"EventConsumer.receive(): {text_data}")
-
-    async def event_update(self, content):
-        log.debug(f"EventConsumer.send(): {content}")
-#       await self.send(str(content))
+        log.debug(f"Opened {channel_type} channel {self.channel_name}")
 
     async def send_to_channel(self, session_id, data):
         res = await get_channel_layer().group_send(session_id, data)

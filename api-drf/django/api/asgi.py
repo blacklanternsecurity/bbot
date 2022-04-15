@@ -11,7 +11,7 @@ from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "api.settings")
 asgi_app = ASGIStaticFilesHandler(get_asgi_application())
 
-from api.lib.websocket import EventConsumer
+from api.lib.websocket import AgentStatusConsumer, EventConsumer
 
 class TokenAuthMiddleware(BaseMiddleware):
     @database_sync_to_async
@@ -49,7 +49,9 @@ application = ProtocolTypeRouter(
         "websocket": TokenAuthMiddleware(
             URLRouter(
                 [
-                    re_path(r"^ws/(?P<pk>\S+)/$", EventConsumer.as_asgi()),
+                    re_path(r"^ws/(?P<channel_type>control)/$", EventConsumer.as_asgi()),
+                    re_path(r"^ws/<?P<channel_type>scan)/(?P<pk>\S+)/$", EventConsumer.as_asgi()),
+                    re_path(r"^ws/(?P<channel_type>agent_status)/(?P<pk>\S+)/$", AgentStatusConsumer.as_asgi()),
                 ]
             )
         ),

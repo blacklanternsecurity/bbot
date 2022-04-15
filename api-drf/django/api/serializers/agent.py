@@ -16,13 +16,19 @@ AGENT_COMMANDS = [
 class AgentSessionSerializer(FlexFieldsModelSerializer):
     class Meta:
         model = AgentSession
-        fields = ('id', 'agent')
+        fields = ('id', 'agent', 'channel_name', 'url')
 
-class AgentSerializer(FlexFieldsModelSerializer):
+        expandable_fields = {
+            'agent': ('api.serializers.agent.AgentSerializer'),
+        }
+
+class AgentSerializer(FlexFieldsModelSerializer, serializers.HyperlinkedModelSerializer):
     sessions = AgentSessionSerializer(many=True, read_only=True)
     class Meta:
         model = Agent
         fields = ('agent_id', 'username', 'sessions', 'connected')
+
+AgentSessionSerializer.agent = AgentSerializer(read_only=True)
 
 class MessageSerializer(serializers.Serializer):
     conversation = serializers.UUIDField(default=uuid.uuid4, read_only=True)
