@@ -11,6 +11,7 @@ from api.models.agent import Agent, AgentSession
 
 log = logging.getLogger(__name__)
 
+
 class BaseConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         if self.scope["user"].is_anonymous:
@@ -36,7 +37,10 @@ class BaseConsumer(AsyncJsonWebsocketConsumer):
 
     async def event_update(self, content):
         log.debug(f"EventConsumer.send(): {content}")
+
+
 #       await self.send(str(content))
+
 
 class AgentStatusConsumer(BaseConsumer):
     async def connect(self):
@@ -44,6 +48,7 @@ class AgentStatusConsumer(BaseConsumer):
         log.debug("AgentStatusConsumer connected")
         if url_params is None:
             return
+
 
 class EventConsumer(BaseConsumer):
     groups = []
@@ -55,20 +60,14 @@ class EventConsumer(BaseConsumer):
     def store_session(self):
         log.debug(f"Storing session object for {self.channel_name}")
         agent = Agent.objects.get(pk=self.scope["user"].id)
-        session = AgentSession.objects.create(
-            channel_name = self.channel_name,
-            agent = agent
-        )
+        session = AgentSession.objects.create(channel_name=self.channel_name, agent=agent)
         return session
 
     @database_sync_to_async
     def delete_session(self):
         log.debug(f"Removing session object for {self.channel_name}")
         agent = Agent.objects.get(pk=self.scope["user"].id)
-        AgentSession.objects.filter(
-            channel_name = self.channel_name,
-            agent = agent
-        ).delete()
+        AgentSession.objects.filter(channel_name=self.channel_name, agent=agent).delete()
 
     async def connect(self):
         url_params = await super().connect()

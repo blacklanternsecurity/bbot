@@ -10,13 +10,12 @@ from api.viewsets.scan import *
 log = logging.getLogger(__name__)
 
 router = routers.SimpleRouter()
-router.register('agents', AgentViewSet)
-router.register('sessions', AgentSessionViewSet)
-router.register('engagements', EngagementViewSet)
-router.register('scans', ScanViewSet)
+router.register("agents", AgentViewSet)
+router.register("sessions", AgentSessionViewSet)
+router.register("engagements", EngagementViewSet)
+router.register("scans", ScanViewSet)
 
 urlpatterns = [
-    path('api/', include(router.urls)),
-    path('admin/', admin.site.urls),
+    path("api/", include(router.urls)),
+    path("admin/", admin.site.urls),
 ]
-
