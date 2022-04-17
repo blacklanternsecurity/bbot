@@ -18,7 +18,9 @@ ENV LANGUAGE en_US.UTF-8
 
 # Install Python packages
 COPY ./requirements.txt /tmp/requirements.txt
+COPY ./requirements-bbot.txt /tmp/requirements-bbot.txt
 RUN pip3 install --upgrade pip                                  \
+    && pip3 install -r /tmp/requirements-bbot.txt               \
     && pip3 install -r /tmp/requirements.txt
 
 WORKDIR /app

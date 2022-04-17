@@ -1,6 +1,8 @@
 import logging
+from rest_framework import serializers
 from rest_flex_fields import FlexFieldsModelSerializer
 
+from api.models.agent import Agent
 from api.models.campaign import Campaign
 
 log = logging.getLogger(__name__)
@@ -9,4 +11,9 @@ log = logging.getLogger(__name__)
 class CampaignSerializer(FlexFieldsModelSerializer):
     class Meta:
         model = Campaign
-        fields = "__all__"
+        fields = ("id", "name", "agents", "scans", "url")
+
+        expandable_fields = {
+            "agents": ("api.serializers.agent.AgentSerializer", {"many": True}),
+            "scans": ("api.serializers.scan.ScanSerializer", {"many": True}),
+        }

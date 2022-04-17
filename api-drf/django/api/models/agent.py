@@ -2,15 +2,19 @@ import json
 import uuid
 import logging
 from django.db import models
+from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 
-from asgiref.sync import async_to_sync
+from api.lib.encoders import UUIDEncoder
 
 log = logging.getLogger(__name__)
 
 
 class Agent(User):
     agent_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+
+    from api.models.campaign import Campaign
+    campaigns = models.ManyToManyField(Campaign, related_name="agents")
 
     @property
     def connected(self):
@@ -27,5 +31,5 @@ class AgentSession(models.Model):
 
         ec = EventConsumer()
         async_to_sync(ec.send_to_channel)(
-            str(self.id), {"type": "dispatch_job", "data": json.dumps(message)}
+            str(self.id), {"type": "dispatch_job", "data": json.dumps(message, cls=UUIDEncoder)}
         )

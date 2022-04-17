@@ -10,7 +10,6 @@ import {
   CToggler,
   CBreadcrumbRouter,
 } from '@coreui/react'
-import CIcon from '@coreui/icons-react'
 
 // routes config
 import routes from '../routes'
@@ -46,7 +45,7 @@ const TheHeader = () => {
         onClick={toggleSidebar}
       />
       <CHeaderBrand className="mx-auto d-lg-none" to="/">
-        <img style={{width: "10em", height: "auto"}} src={bbotLogo}/>
+        <img style={{width: "10em", height: "auto"}} src={bbotLogo} alt="bbot-logo"/>
       </CHeaderBrand>
 
       <CHeaderNav className="d-md-down-none mr-auto">

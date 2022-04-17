@@ -29,7 +29,7 @@ const TheSidebar = () => {
       onShowChange={(val) => dispatch({type: 'set', sidebarShow: val })}
     >
       <CSidebarBrand className="d-md-down-none" to="/">
-        <img style={{width: "10em", height: "auto"}} src={bbotLogo}/>
+        <img style={{width: "10em", height: "auto"}} src={bbotLogo} alt="bbot-logo"/>
         <CIcon
           className="c-sidebar-brand-minimized"
           name="sygnet"

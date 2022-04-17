@@ -28,6 +28,7 @@ services:
       context: './django'
     working_dir: '/app'
     command: bash -c "
+      pip install psutil && 
       ./manage.py makemigrations && 
       ./manage.py makemigrations api && 
       ./manage.py migrate &&
@@ -40,6 +41,8 @@ services:
       DJANGO_SETTINGS_MODULE: api.settings
     volumes:
       - ./django:/app
+      - ../pyproject.toml:/opt/bbot/pyproject.toml
+      - ../bbot:/app/bbot
     networks:
       bbot_net:
     depends_on:

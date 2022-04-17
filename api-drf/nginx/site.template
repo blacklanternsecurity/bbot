@@ -57,6 +57,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         access_log off;
+        resolver 127.0.0.11;
     }
 
     location / {

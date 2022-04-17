@@ -1,8 +1,10 @@
+import json
 import logging
 from channels.layers import get_channel_layer
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
+from api.models.scan import Scan
 from api.models.agent import Agent, AgentSession
 
 log = logging.getLogger(__name__)
@@ -48,23 +50,32 @@ class AgentStatusConsumer(BaseConsumer):
 
 class EventConsumer(BaseConsumer):
     groups = []
+    __agent = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    @property
+    def agent(self):
+        if self.__agent is None:
+            self.__agent = Agent.objects.get(pk=self.scope["user"].id)
+        return self.__agent
+
     @database_sync_to_async
     def store_session(self):
         log.debug(f"Storing session object for {self.channel_name}")
-        agent = Agent.objects.get(pk=self.scope["user"].id)
-        session = AgentSession.objects.create(channel_name=self.channel_name, agent=agent)
+        session = AgentSession.objects.create(channel_name=self.channel_name, agent=self.agent)
         return session
 
     @database_sync_to_async
     def delete_session(self):
         log.debug(f"Removing session object for {self.channel_name}")
-        agent = Agent.objects.get(pk=self.scope["user"].id)
-        AgentSession.objects.filter(channel_name=self.channel_name, agent=agent).delete()
+        AgentSession.objects.filter(channel_name=self.channel_name, agent=self.agent).delete()
 
+    @database_sync_to_async
+    def get_scan(self, scan_id):
+        return self.agent.scans.get(pk=scan_id)
+    
     async def connect(self):
         url_params = await super().connect()
         if url_params is None:
@@ -89,3 +100,18 @@ class EventConsumer(BaseConsumer):
         res = await self.send(event["data"])
         log.debug(f"Sent: {res}")
         return res
+
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+            if "message_type" not in data.keys():
+                raise ValueError("No message_type specified in incoming message")
+            elif data["message_type"] == "scan_status_change":
+                scan = await self.get_scan(data["scan_id"])
+                log.debug(scan)
+
+        except Exception as e:
+            log.debug(text_data)
+            log.debug(e)
+            log.debug(type(e))
+

@@ -28,6 +28,8 @@
     "@coreui/icons-pro": "^2.0.3",
     "@coreui/icons-react": "^1.1.0",
     "@coreui/react": "^3.4.0",
+    "@emotion/react": "^11.9.0",
+    "@emotion/styled": "^11.8.1",
     "@wojtekmaj/enzyme-adapter-react-17": "^0.3.2",
     "axios": "^0.24.0",
     "classnames": "^2.2.6",
@@ -40,6 +42,7 @@
     "react-redux": "^7.2.2",
     "react-router-config": "^5.1.1",
     "react-router-dom": "^5.2.0",
+    "react-select": "^5.3.0",
     "redux": "4.0.5"
   },
   "devDependencies": {
@@ -81,5 +84,13 @@
   "engines": {
     "node": ">=10",
     "npm": ">=6"
+  },
+  "watch": {
+    "build": {
+      "patterns": [
+        "src"
+      ],
+      "extensions": "js,jsx,tsx,scss"
+    }
   }
 }

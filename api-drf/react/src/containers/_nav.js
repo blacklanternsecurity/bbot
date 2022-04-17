@@ -13,15 +13,21 @@ const _nav = [
   },
   {
     _tag: 'CSidebarNavItem',
-    name: 'Plugins',
-    to: '/plugins',
-    icon: 'cil-puzzle',
-  },
-  {
-    _tag: 'CSidebarNavItem',
     name: 'Agents',
     to: '/agents',
     icon: 'cil-lan',
+  },
+  {
+    _tag: 'CSidebarNavItem',
+    name: 'Scans',
+    to: '/scans',
+    icon: 'cil-task',
+  },
+  {
+    _tag: 'CSidebarNavItem',
+    name: 'Modules',
+    to: '/modules',
+    icon: 'cil-puzzle',
   },
 ]
 

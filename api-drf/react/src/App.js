@@ -15,7 +15,6 @@ class App extends Component {
 
   render() {
     const pathname = window.location.hash.slice(1)
-    console.log(pathname)
     return (
       <HashRouter>
           <React.Suspense fallback={loading}>
