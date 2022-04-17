@@ -5,6 +5,7 @@ from api.models.scan import *
 
 log = logging.getLogger(__name__)
 
+
 class ScanTargetSerializer(FlexFieldsModelSerializer):
     class Meta:
         model = ScanTarget
@@ -13,6 +14,7 @@ class ScanTargetSerializer(FlexFieldsModelSerializer):
         expandable_fields = {
             "scan": ("api.serializers.scan.ScanSerializer"),
         }
+
 
 class ScanModuleSerializer(FlexFieldsModelSerializer):
     class Meta:
@@ -23,6 +25,7 @@ class ScanModuleSerializer(FlexFieldsModelSerializer):
             "scan": ("api.serializers.scan.ScanSerializer"),
         }
 
+
 class ScanSerializer(FlexFieldsModelSerializer):
     class Meta:
         model = Scan
@@ -31,6 +34,6 @@ class ScanSerializer(FlexFieldsModelSerializer):
         expandable_fields = {
             "campaign": ("api.serializers.campaign.CampaignSerializer"),
             "agent": ("api.serializers.agent.AgentSerializer"),
-            "targets": ("api.serializers.scan.ScanTargetSerializer", { "many": True }),
-            "modules": ("api.serializers.scan.ScanModuleSerializer", { "many": True }),
+            "targets": ("api.serializers.scan.ScanTargetSerializer", {"many": True}),
+            "modules": ("api.serializers.scan.ScanModuleSerializer", {"many": True}),
         }

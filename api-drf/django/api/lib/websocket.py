@@ -75,7 +75,7 @@ class EventConsumer(BaseConsumer):
     @database_sync_to_async
     def get_scan(self, scan_id):
         return self.agent.scans.get(pk=scan_id)
-    
+
     async def connect(self):
         url_params = await super().connect()
         if url_params is None:
@@ -114,4 +114,3 @@ class EventConsumer(BaseConsumer):
             log.debug(text_data)
             log.debug(e)
             log.debug(type(e))
-

@@ -13,6 +13,7 @@ class ScanTargetViewSet(viewsets.ModelViewSet):
     serializer_class = ScanTargetSerializer
     queryset = ScanTargetSerializer.Meta.model.objects.all()
 
+
 class ScanViewSet(viewsets.ModelViewSet):
     serializer_class = ScanSerializer
     queryset = ScanSerializer.Meta.model.objects.all()
@@ -31,26 +32,22 @@ class ScanViewSet(viewsets.ModelViewSet):
 
             targets = []
             for target in raw_targets:
-                targets.append({
-                    "scan": serializer.data["id"],
-                    "value": target
-                })
+                targets.append({"scan": serializer.data["id"], "value": target})
             t_serializer = ScanTargetSerializer(data=targets, many=True)
             t_serializer.is_valid(raise_exception=True)
             self.perform_create(t_serializer)
 
             modules = []
             for module in raw_modules:
-                modules.append({
-                    "scan": serializer.data["id"],
-                    "value": module
-                })
+                modules.append({"scan": serializer.data["id"], "value": module})
             m_serializer = ScanModuleSerializer(data=modules, many=True)
             m_serializer.is_valid(raise_exception=True)
             self.perform_create(m_serializer)
 
         if instance is not None:
-            scan_create.send(sender=self.serializer_class.Meta.model, instance=instance, created = True)
+            scan_create.send(
+                sender=self.serializer_class.Meta.model, instance=instance, created=True
+            )
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

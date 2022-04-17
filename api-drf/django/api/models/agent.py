@@ -14,6 +14,7 @@ class Agent(User):
     agent_id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
 
     from api.models.campaign import Campaign
+
     campaigns = models.ManyToManyField(Campaign, related_name="agents")
 
     @property
