@@ -8,6 +8,7 @@ http = urllib3.PoolManager()
 dummy_resp1 = http.request("GET", example_url)
 dummy_resp2 = requests.get(example_url)
 
+
 def patch_requests():
 
     urllib3.connectionpool.urlopen = lambda *args, **kwargs: dummy_resp1
