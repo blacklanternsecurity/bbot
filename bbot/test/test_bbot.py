@@ -214,6 +214,8 @@ def test_scan():
         config=config,
     )
     scan3.setup_modules(remove_failed=False)
+    scan3.helpers.request = lambda *args, **kwargs: dummy_resp2
+    scan3.helpers.download = lambda *args, **kwargs: "nope"
 
     futures = []
     for module in scan3.modules.values():
