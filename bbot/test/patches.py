@@ -1,20 +1,20 @@
+import urllib3
+import requests
+
 import bbot.core.helpers.web
 
+example_url = "https://api.publicapis.org/health"
+http = urllib3.PoolManager()
+dummy_resp1 = http.request("GET", example_url)
+dummy_resp2 = requests.get(example_url)
 
 def patch_requests():
-    import urllib3
-    import requests
 
-    example_url = "https://example.com"
-    http = urllib3.PoolManager()
-    resp1 = http.request("GET", example_url)
-    resp2 = requests.get(example_url)
+    urllib3.connectionpool.urlopen = lambda *args, **kwargs: dummy_resp1
+    urllib3.poolmanager.PoolManager.urlopen = lambda *args, **kwargs: dummy_resp1
 
-    urllib3.connectionpool.urlopen = lambda *args, **kwargs: resp1
-    urllib3.poolmanager.PoolManager.urlopen = lambda *args, **kwargs: resp1
-
-    requests.adapters.HTTPAdapter.send = lambda *args, **kwargs: resp2
-    bbot.core.helpers.web.request = lambda *args, **kwargs: resp2
+    requests.adapters.HTTPAdapter.send = lambda *args, **kwargs: dummy_resp2
+    bbot.core.helpers.web.request = lambda *args, **kwargs: dummy_resp2
 
 
 sample_output = [
