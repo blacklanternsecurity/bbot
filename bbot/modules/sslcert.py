@@ -12,11 +12,9 @@ class sslcert(BaseModule):
     options = {"timeout": 5.0}
     options_desc = {"timeout": "Socket connect timeout in seconds"}
     max_threads = 10
+    in_scope_only = True
 
     def handle_event(self, event):
-        # only process targets
-        if not event in self.scan.target:
-            return
 
         port = 443
         host = str(event.data)
@@ -62,7 +60,10 @@ class sslcert(BaseModule):
         for c in set(cert_results):
             if c != host:
                 self.debug(f"Discovered new domain via SSL certificate parsing: [{c}]")
-                self.emit_event(c, "DNS_NAME", event)
+                if self.helpers.is_ip(c):
+                    self.emit_event(c, "IP_ADDRESS", event)
+                else:
+                    self.emit_event(c, "DNS_NAME", event)
 
     @staticmethod
     def get_cert_sans(cert):
