@@ -1,12 +1,10 @@
 import json
 import uuid
 import logging
-import functools
 from channels.layers import get_channel_layer
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
-from api.models.scan import Scan
 from api.models.agent import Agent, AgentSession
 
 log = logging.getLogger(__name__)

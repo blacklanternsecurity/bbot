@@ -1,10 +1,7 @@
-import json
 import uuid
 import logging
 from django.db import models
 from django.dispatch import Signal
-from django.dispatch import receiver
-from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 
 log = logging.getLogger(__name__)

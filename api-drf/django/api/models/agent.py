@@ -1,11 +1,8 @@
-import json
 import uuid
 import logging
 from django.db import models
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
-
-from api.lib.encoders import UUIDEncoder
 
 log = logging.getLogger(__name__)
 
