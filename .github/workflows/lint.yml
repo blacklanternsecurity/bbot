@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
         with:
-          options: "-l 100 --check"
+          options: "--check"
       - name: Install Python 3
         uses: actions/setup-python@v1
         with:

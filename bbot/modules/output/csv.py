@@ -19,9 +19,7 @@ class CSV(BaseOutputModule):
     def setup(self):
         self.line = Line()
         self.writer = csv.writer(self.line)
-        self.writer.writerow(
-            ["Event type", "Event data", "Event ID", "Event Tags", "Source Event ID"]
-        )
+        self.writer.writerow(["Event type", "Event data", "Event ID", "Event Tags", "Source Event ID"])
         self.stdout(self.line.read().strip())
         return True
 
