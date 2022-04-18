@@ -8,7 +8,7 @@ from bbot.core.configurator import available_modules
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 config = OmegaConf.merge(default_config, test_config)
 
-scan = Scanner("scanme.nmap.org", modules=list(available_modules), config=config)
+scan = Scanner("api.publicapis.org", modules=list(available_modules), config=config)
 helpers = scan.helpers
 
 ipv4_event = scan.make_event("8.8.8.8", dummy=True)
