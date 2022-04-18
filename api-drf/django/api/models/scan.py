@@ -1,8 +1,11 @@
+import json
 import uuid
 import logging
 from django.db import models
 from django.dispatch import Signal
 from django.dispatch import receiver
+from asgiref.sync import async_to_sync
+from channels.db import database_sync_to_async
 
 log = logging.getLogger(__name__)
 
@@ -41,10 +44,34 @@ class Scan(models.Model):
     name = models.CharField(max_length=64)
     status = models.CharField(max_length=1, choices=ScanStatus.choices, default=ScanStatus.PENDING)
 
-    def launch_scan(sender, instance, created, **kwargs):
+    accepted = False
+
+    @database_sync_to_async
+    def get_target_list(self):
+        return [t.value for t in self.targets.all()]
+
+    @database_sync_to_async
+    def get_module_list(self):
+        return [m.value for m in self.modules.all()]
+
+    def solicit_scan(sender, instance, created, **kwargs):
         if created:
-            log.debug(f"Scan would be launched: {str(instance.id)}")
+            for session in instance.agent.sessions.all():
+                session.ping(callback=instance.launch_scan)
+
+    async def launch_scan(self, sender):
+        if self.accepted == False:
+            self.accepted = True
+            scan_data = {
+                "scan_id": str(self.id),
+                "targets": await self.get_target_list(),
+                "modules": await self.get_module_list(),
+            }
+
+            await sender.start_scan({"data": scan_data})
+        else:
+            log.debug("Scan already started; ignoring")
 
 
 scan_create = Signal()
-scan_create.connect(Scan.launch_scan, sender=Scan)
+scan_create.connect(Scan.solicit_scan, sender=Scan)
