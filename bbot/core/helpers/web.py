@@ -67,7 +67,11 @@ def request(self, *args, **kwargs):
     cache_for = kwargs.pop("cache_for", None)
     if cache_for is not None:
         log.debug(f"Caching HTTP session with expire_after={cache_for}")
-        session = CachedSession(expire_after=cache_for)
+        try:
+            session = self.cache_sessions[cache_for]
+        except KeyError:
+            session = CachedSession(expire_after=cache_for)
+            self.cache_sessions[cache_for] = session
 
     if kwargs.pop("session", None) or not cache_for:
         session = kwargs.pop("session", None)
@@ -98,15 +102,18 @@ def request(self, *args, **kwargs):
         headers.update({"User-Agent": user_agent})
     kwargs["headers"] = headers
 
+    web_debug = self.config.get("web_debug", False)
     while retries == "infinite" or retries >= 0:
         try:
-            logstr = f"Web request: {str(args)}, {str(kwargs)}"
-            log.debug(logstr)
+            if web_debug:
+                logstr = f"Web request: {str(args)}, {str(kwargs)}"
+                log.debug(logstr)
             if session is not None:
                 response = session.request(*args, **kwargs)
             else:
                 response = requests.request(*args, **kwargs)
-            log.debug(f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}")
+            if web_debug:
+                log.debug(f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}")
             return response
         except RequestException as e:
             log.debug(f"Error with request: {e}")

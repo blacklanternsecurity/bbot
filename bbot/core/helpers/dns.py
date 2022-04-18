@@ -36,8 +36,14 @@ class DNSHelper:
         if is_ip(query):
             return self._resolve_ip(query, **kwargs)
         else:
-            kwargs["rdtype"] = kwargs.pop("type", "A")
-            return self._resolve_hostname(query, **kwargs)
+            results = set()
+            types = ["A", "AAAA"]
+            kwargs.pop("rdtype", None)
+            if "type" in kwargs:
+                types = [kwargs.pop("type")]
+            for t in types:
+                results.update(self._resolve_hostname(query, rdtype=t, **kwargs))
+            return results
 
     def resolver_list(self, min_reliability=0.99):
         if self._resolver_list is None:

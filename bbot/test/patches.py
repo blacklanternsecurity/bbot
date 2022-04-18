@@ -25,8 +25,12 @@ sample_output = [
     """{"template":"technologies/tech-detect.yaml","template-url":"https://github.com/projectdiscovery/nuclei-templates/blob/master/technologies/tech-detect.yaml","template-id":"tech-detect","info":{"name":"Wappalyzer Technology Detection","author":["hakluke"],"tags":["tech"],"reference":null,"severity":"info"},"matcher-name":"caddy","type":"http","host":"https://api.publicapis.org/health","matched-at":"https://api.publicapis.org:443/health","ip":"138.197.231.124","timestamp":"2022-04-15T17:09:01.021589723-04:00","curl-command":"curl -X 'GET' -d '' -H 'Accept: */*' -H 'Accept-Language: en' -H 'User-Agent: Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2226.0 Safari/537.36' 'https://api.publicapis.org/health'","matcher-status":true,"matched-line":null}""",
     # dnsx
     """{"host":"api.publicapis.org","resolver":["1.0.0.1:53"],"a":["138.197.231.124"],"has_internal_ips":false,"status_code":"NOERROR","timestamp":"2022-04-15T17:11:24.746370988-04:00"}""",
-    # urls
-    """https://api.publicapis.org:443/health""",
+    # url
+    "https://api.publicapis.org:443/health",
+    # open port
+    "api.publicapis.org:443",
+    # host
+    "api.publicapis.org",
 ]
 
 
