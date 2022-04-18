@@ -26,7 +26,7 @@ class Agent:
         self.dispatcher.on_finish = self.on_scan_finish
 
     def setup(self):
-        websocket.enableTrace(True)
+        websocket.enableTrace(False)
         if not self.url:
             log.error(f"Must specify agent_url")
             return False
@@ -67,12 +67,18 @@ class Agent:
         except Exception as e:
             log.warning(f'Failed to JSON-decode message "{message}": {e}')
             return
-        log.success(f"{message}")
         message = messages.Message(**message)
+
+        if message.command == "ping":
+            self.send({"conversation": str(message.conversation), "message_type": "pong"})
+            return
+
+        command_type = None
         try:
             command_type = getattr(messages, message.command)
         except AttributeError:
             log.warning(f'Invalid command: "{message.command}"')
+
         command_args = command_type(**message.arguments)
         command_fn = getattr(self, message.command)
         response = self.err_handle(command_fn, **command_args.dict())
@@ -147,7 +153,7 @@ class Agent:
         return {"success": "Polled scan", "scan_status": self.scan.status}
 
     def on_scan_status(self, status, scan_id):
-        self.send({"status": str(status), "scan_id": scan_id})
+        self.send({"message_type": "scan_status_change", "status": str(status), "scan_id": scan_id})
 
     def on_scan_finish(self, scan):
         self.scan = None
