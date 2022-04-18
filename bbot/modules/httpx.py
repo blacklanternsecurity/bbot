@@ -20,7 +20,11 @@ class httpx(BaseModule):
         stdin = "\n".join([str(e.data) for e in events])
         command = ["httpx", "-silent", "-json"]
         for line in self.helpers.run_live(command, input=stdin, stderr=subprocess.DEVNULL):
-            j = json.loads(line)
+            try:
+                j = json.loads(line)
+            except json.decoder.JSONDecodeError:
+                self.debug(f"Failed to decode line: {line}")
+                continue
             url = j.get("url")
             title = j.get("title", "")
             source_event = None

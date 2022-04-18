@@ -101,9 +101,7 @@ class DNSHelper:
         try:
             resolver.resolve("www.google.com", "A")
         except Exception:
-            error = (
-                f"Nameserver {nameserver} failed to resolve basic query within {timeout} seconds"
-            )
+            error = f"Nameserver {nameserver} failed to resolve basic query within {timeout} seconds"
 
         # then, make sure it isn't feeding us garbage data
         randhost = f"{rand_string(10)}.google.com"

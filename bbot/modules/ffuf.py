@@ -65,16 +65,12 @@ class ffuf(BaseModule):
         self.config_max_depth = self.config.get("max_depth")
         self.config_lines_dir = self.config.get("lines_dir")
         self.config_lines_files = self.config.get("lines_files")
-        self.config_wordlist_dir = self.helpers.download(
-            self.config.get("wordlist_dir"), cache_hrs=720
-        )
+        self.config_wordlist_dir = self.helpers.download(self.config.get("wordlist_dir"), cache_hrs=720)
         if not self.config_wordlist_dir:
             f"Directory wordlist [{self.config_wordlist_dir}] did not load, exiting module"
             return False
 
-        self.config_wordlist_files = self.helpers.download(
-            self.config.get("wordlist_files"), cache_hrs=720
-        )
+        self.config_wordlist_files = self.helpers.download(self.config.get("wordlist_files"), cache_hrs=720)
         if not self.config_wordlist_files:
             f"Files wordlist [{self.config_wordlist_files}] did not load, exiting module"
             return False
@@ -88,18 +84,12 @@ class ffuf(BaseModule):
 
     def provision_default_wordlists(self):
 
-        tempfile_dir = self.writeTempWordlist(
-            self.config_wordlist_dir, self.config_lines_dir, self.sanity_canary
-        )
-        self.debug(
-            f"Wrote temp DIR wordlist with {str(self.config_lines_dir)} lines to: {tempfile_dir}"
-        )
+        tempfile_dir = self.writeTempWordlist(self.config_wordlist_dir, self.config_lines_dir, self.sanity_canary)
+        self.debug(f"Wrote temp DIR wordlist with {str(self.config_lines_dir)} lines to: {tempfile_dir}")
         tempfile_files = self.writeTempWordlist(
             self.config_wordlist_files, self.config_lines_files, self.sanity_canary
         )
-        self.debug(
-            f"Wrote temp WORDS wordlist with {str(self.config_lines_files)} lines to: {tempfile_files}"
-        )
+        self.debug(f"Wrote temp WORDS wordlist with {str(self.config_lines_files)} lines to: {tempfile_files}")
         return tempfile_dir, tempfile_files
 
     def handle_event(self, event):
@@ -140,9 +130,7 @@ class ffuf(BaseModule):
                 if last_node:
                     prefixes = self.findPrefixes(last_node)
                     for p in prefixes:
-                        self.debug(
-                            f"found prefix [{p}] in last node [{last_node}], running new FFUF with prefix"
-                        )
+                        self.debug(f"found prefix [{p}] in last node [{last_node}], running new FFUF with prefix")
                         self.execute_ffuf(
                             default_tempfile_dir,
                             default_tempfile_files,
@@ -210,9 +198,7 @@ class ffuf(BaseModule):
             last_node = None
         return last_node
 
-    def execute_ffuf(
-        self, tempfile_dir, tempfile_files, event, url, prefix="", skip_dir_check=False
-    ):
+    def execute_ffuf(self, tempfile_dir, tempfile_files, event, url, prefix="", skip_dir_check=False):
 
         if len(prefix) > 0:
             url = url + prefix
@@ -223,9 +209,7 @@ class ffuf(BaseModule):
             command = ["ffuf", "-ac", "-s", "-w", tempfile_dir, "-u", fuzz_url + "/"]
             for found_dir in self.helpers.run_live(command):
                 if found_dir.rstrip() == self.sanity_canary:
-                    self.debug(
-                        "Found sanity canary! aborting remainder of run to avoid junk data..."
-                    )
+                    self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
                     break
                 self.emit_event(f"{url}{found_dir.rstrip()}/", "URL", source=event, tags=["dir"])
 
@@ -236,9 +220,7 @@ class ffuf(BaseModule):
                 command = ["ffuf", "-ac", "-s", "-w", tempfile_files, "-u", file_fuzz_url]
                 for found_file in self.helpers.run_live(command):
                     if found_file.rstrip() == self.sanity_canary:
-                        self.debug(
-                            "Found sanity canary! aborting remainder of run to avoid junk data..."
-                        )
+                        self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
                         break
                     found_file_uri = f"{found_file.rstrip()}.{extension}"
                     self.debug(found_file_uri)
@@ -317,12 +299,7 @@ class ffuf(BaseModule):
 
                 elif word.startswith(hint):
                     # check difference in length
-                    if (
-                        (len(hint) > 3)
-                        and ("_" not in word)
-                        and ("-" not in word)
-                        and ("." not in word)
-                    ):
+                    if (len(hint) > 3) and ("_" not in word) and ("-" not in word) and ("." not in word):
                         max_distance = 3
                         if (len(word) - len(hint)) <= max_distance:
                             node_prefixes.append(word)

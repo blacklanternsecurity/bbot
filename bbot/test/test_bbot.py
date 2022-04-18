@@ -27,26 +27,26 @@ def test_events():
     assert ipv6_url_event.type == "URL"
 
     # ip tests
-    assert ipv4_event == scan.make_event("192.168.1.1", dummy=True)
-    assert "192.168.1.1" in ipv4_event
-    assert "192.168.1.1" in netv4_event
-    assert "192.168.1.2" not in ipv4_event
-    assert "192.168.2.1" not in netv4_event
-    assert "dead::beef" in ipv6_event
-    assert "dead::beef" in netv6_event
-    assert "dead::babe" not in ipv6_event
-    assert "cafe::babe" not in netv6_event
+    assert ipv4_event == scan.make_event("8.8.8.8", dummy=True)
+    assert "8.8.8.8" in ipv4_event
+    assert "8.8.8.8" in netv4_event
+    assert "8.8.8.9" not in ipv4_event
+    assert "8.8.9.8" not in netv4_event
+    assert "2001:4860:4860::8888" in ipv6_event
+    assert "2001:4860:4860::8888" in netv6_event
+    assert "2001:4860:4860::8889" not in ipv6_event
+    assert "2002:4860:4860::8888" not in netv6_event
     assert emoji_event not in ipv4_event
     assert emoji_event not in netv6_event
     assert netv6_event not in emoji_event
 
     # hostname tests
-    assert domain_event.host == "evilcorp.com"
-    assert subdomain_event.host == "www.evilcorp.com"
-    assert domain_event.host_stem == "evilcorp"
-    assert subdomain_event.host_stem == "www.evilcorp"
-    assert "www.evilcorp.com" in domain_event
-    assert "www.evilcorp.com" in subdomain_event
+    assert domain_event.host == "publicapis.org"
+    assert subdomain_event.host == "api.publicapis.org"
+    assert domain_event.host_stem == "publicapis"
+    assert subdomain_event.host_stem == "api.publicapis"
+    assert "api.publicapis.org" in domain_event
+    assert "api.publicapis.org" in subdomain_event
     assert "fsocie.ty" not in domain_event
     assert "fsocie.ty" not in subdomain_event
     assert subdomain_event in domain_event
@@ -57,11 +57,11 @@ def test_events():
     assert domain_event not in emoji_event
 
     # url tests
-    assert url_event.host == "url.www.evilcorp.com"
+    assert url_event.host == "api.publicapis.org"
     assert url_event in domain_event
     assert url_event in subdomain_event
-    assert "url.www.evilcorp.com:666" in url_event
-    assert "www.evilcorp.com" not in url_event
+    assert "api.publicapis.org:443" in url_event
+    assert "publicapis.org" not in url_event
     assert ipv4_url_event in ipv4_event
     assert ipv4_url_event in netv4_event
     assert ipv6_url_event in ipv6_event
@@ -72,37 +72,37 @@ def test_events():
 
     # open port tests
     assert open_port_event in domain_event
-    assert "port.www.evilcorp.com:777" in open_port_event
-    assert "bad.www.evilcorp.com:777" not in open_port_event
-    assert "www.evilcorp.com:777" not in open_port_event
+    assert "api.publicapis.org:443" in open_port_event
+    assert "bad.publicapis.org:443" not in open_port_event
+    assert "publicapis.org:443" not in open_port_event
     assert ipv4_open_port_event in ipv4_event
     assert ipv4_open_port_event in netv4_event
-    assert "192.168.1.2" not in ipv4_open_port_event
+    assert "8.8.8.9" not in ipv4_open_port_event
     assert ipv6_open_port_event in ipv6_event
     assert ipv6_open_port_event in netv6_event
-    assert "cafe::babe" not in ipv6_open_port_event
+    assert "2002:4860:4860::8888" not in ipv6_open_port_event
     assert emoji_event not in ipv6_open_port_event
     assert ipv6_open_port_event not in emoji_event
 
     # attribute tests
-    assert ipv4_event.host == ipaddress.ip_address("192.168.1.1")
+    assert ipv4_event.host == ipaddress.ip_address("8.8.8.8")
     assert ipv4_event.port is None
-    assert ipv6_event.host == ipaddress.ip_address("dead::beef")
+    assert ipv6_event.host == ipaddress.ip_address("2001:4860:4860::8888")
     assert ipv6_event.port is None
     assert domain_event.port is None
     assert subdomain_event.port is None
-    assert open_port_event.host == "port.www.evilcorp.com"
-    assert open_port_event.port == 777
-    assert ipv4_open_port_event.host == ipaddress.ip_address("192.168.1.1")
-    assert ipv4_open_port_event.port == 80
-    assert ipv6_open_port_event.host == ipaddress.ip_address("dead::beef")
-    assert ipv6_open_port_event.port == 80
-    assert url_event.host == "url.www.evilcorp.com"
-    assert url_event.port == 666
-    assert ipv4_url_event.host == ipaddress.ip_address("192.168.1.1")
-    assert ipv4_url_event.port == 666
-    assert ipv6_url_event.host == ipaddress.ip_address("dead::beef")
-    assert ipv6_url_event.port == 666
+    assert open_port_event.host == "api.publicapis.org"
+    assert open_port_event.port == 443
+    assert ipv4_open_port_event.host == ipaddress.ip_address("8.8.8.8")
+    assert ipv4_open_port_event.port == 443
+    assert ipv6_open_port_event.host == ipaddress.ip_address("2001:4860:4860::8888")
+    assert ipv6_open_port_event.port == 443
+    assert url_event.host == "api.publicapis.org"
+    assert url_event.port == 443
+    assert ipv4_url_event.host == ipaddress.ip_address("8.8.8.8")
+    assert ipv4_url_event.port == 443
+    assert ipv6_url_event.host == ipaddress.ip_address("2001:4860:4860::8888")
+    assert ipv6_url_event.port == 443
 
 
 def test_helpers():
@@ -113,7 +113,7 @@ def test_helpers():
     assert helpers.is_subdomain("www.evilcorp.co.uk")
     assert not helpers.is_subdomain("evilcorp.co.uk")
     assert helpers.is_ip("127.0.0.1")
-    assert not helpers.is_ip("evilcorp.com")
+    assert not helpers.is_ip("publicapis.org")
 
     ### COMMAND ###
     assert "bin" in helpers.run(["ls", "/"], text=True).stdout.split("\n")
@@ -193,28 +193,34 @@ def test_modules():
 def test_scan():
 
     scan2 = Scanner(
-        "scanme.nmap.org",
+        "publicapis.org",
         "8.8.8.8",
+        "2001:4860:4860::8888",
         modules=["dnsresolve"],
         output_modules=list(available_output_modules),
         config=config,
     )
     scan2.start()
 
-    scan3 = Scanner(
-        "scanme.nmap.org",
-        modules=list(available_modules),
-        config=config,
-    )
-    scan3.setup_modules(remove_failed=False)
-
     # nuke web requests
     patch_requests()
     patch_commands()
 
+    scan3 = Scanner(
+        "publicapis.org",
+        "8.8.8.8/32",
+        "2001:4860:4860::8888/128",
+        modules=list(available_modules),
+        config=config,
+    )
+    scan3.setup_modules(remove_failed=False)
+    scan3.helpers.request = lambda *args, **kwargs: dummy_resp2
+    scan3.helpers.download = lambda *args, **kwargs: "nope"
+
     futures = []
     for module in scan3.modules.values():
         module.emit_event = lambda *args, **kwargs: None
+        module._filter_event = lambda *args, **kwargs: True
         events_to_submit = [e for e in all_events if e.type in module.watched_events]
         if module.batch_size > 1:
             log.debug(f"Testing {module.name}.handle_batch()")

@@ -31,9 +31,7 @@ class ConfigAwareHelper:
     @property
     def _thread_pool(self):
         if self.scan is None:
-            self.__thread_pool = concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.config.get("max_threads", 100)
-            )
+            self.__thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.get("max_threads", 100))
         else:
             self.__thread_pool = self.scan._thread_pool
         return self.__thread_pool

@@ -166,9 +166,7 @@ def log_listener_setup(logging_queue):
     error_handler.addFilter(lambda x: x.levelno >= logging.WARN)
 
     # Set log format
-    debug_format = logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s"
-    )
+    debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
     debug_handler.setFormatter(debug_format)
     error_handler.setFormatter(debug_format)
     stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
