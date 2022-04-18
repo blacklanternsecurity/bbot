@@ -41,7 +41,11 @@ class dnsx(BaseModule):
             self.subdomain_file,
         ]
         for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL):
-            j = json.loads(line)
+            try:
+                j = json.loads(line)
+            except json.decoder.JSONDecodeError:
+                self.debug(f"Failed to decode line: {line}")
+                continue
             host = j.get("host", "")
             if host:
                 source_event = None

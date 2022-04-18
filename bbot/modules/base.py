@@ -133,9 +133,7 @@ class BaseModule:
     def _handle_batch(self, force=False):
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
             self._batch_idle = 0
-            self.debug(
-                f'Handling batch of {self.num_queued_events:,} events for module "{self.name}"'
-            )
+            self.debug(f'Handling batch of {self.num_queued_events:,} events for module "{self.name}"')
             on_finish_callback = None
             events, finish = self.events_waiting
             if finish:
@@ -322,12 +320,7 @@ class BaseModule:
         module_name = getattr(getattr(e, "module", None), "name", "")
         if e.type == "IP_ADDRESS" and module_name == "enricher":
             # and the current module listens for both ranges and CIDRs
-            if all(
-                [
-                    x in self.watched_events
-                    for x in [f"IPV{e.version}_RANGE", f"IPV{e.version}_ADDRESS"]
-                ]
-            ):
+            if all([x in self.watched_events for x in [f"IPV{e.version}_RANGE", f"IPV{e.version}_ADDRESS"]]):
                 # then skip the event.
                 # this avoids double-portscanning both an individual IP and its parent CIDR.
                 return False

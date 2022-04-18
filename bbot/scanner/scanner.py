@@ -63,9 +63,7 @@ class Scanner:
         self._brute_lock = threading.Semaphore(self.max_brute_forcers)
 
         # Set up shared thread pool
-        self._thread_pool = concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.config.get("max_threads", 100)
-        )
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.get("max_threads", 100))
 
         # Load modules
         self.modules = dict()
@@ -85,9 +83,7 @@ class Scanner:
                 self.error(f'Failed to load unknown module "{module_name}"')
 
         # Load output modules
-        self.info(
-            f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}"
-        )
+        self.info(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
         for module_name in [str(m) for m in output_modules]:
 
             module_class = available_output_modules.get(module_name, None)
@@ -98,15 +94,11 @@ class Scanner:
                 except Exception:
                     import traceback
 
-                    self.error(
-                        f"Failed to load output module {module_class}\n{traceback.format_exc()}"
-                    )
+                    self.error(f"Failed to load output module {module_class}\n{traceback.format_exc()}")
             else:
                 self.error(f'Failed to load unknown output module "{module_name}"')
 
-        self.modules = OrderedDict(
-            sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0))
-        )
+        self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
         if self.modules:
             self.success(f"Loaded {len(self.modules):,} modules")
 
@@ -249,9 +241,7 @@ class Scanner:
     @property
     def root_event(self):
         data = f"SCAN:{self.id}"
-        return self.make_event(
-            data=data, event_type="SCAN", dummy=True, source=make_event_id(data, "SCAN")
-        )
+        return self.make_event(data=data, event_type="SCAN", dummy=True, source=make_event_id(data, "SCAN"))
 
     @property
     def json(self):
