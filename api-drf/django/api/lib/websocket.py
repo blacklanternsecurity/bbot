@@ -37,6 +37,7 @@ class ChannelManager:
 
 class BaseConsumer(AsyncJsonWebsocketConsumer):
     __agent = None
+
     async def connect(self):
         if self.scope["user"].is_anonymous:
             log.debug("closing anonymous connection")
@@ -79,6 +80,7 @@ class AgentStatusConsumer(BaseConsumer):
 
 class ScanStatusConsumer(BaseConsumer):
     scan = None
+
     async def connect(self):
         url_params = await super().connect()
         try:
@@ -148,8 +150,6 @@ class EventConsumer(BaseConsumer):
             manager = ChannelManager.get_channel_manager()
             manager.save(str(session.id), self)
             await self.channel_layer.group_add(str(session.id), self.channel_name)
-        elif channel_type == "scan":
-            scan_id = url_params["pk"]
 
     async def send_to_channel(self, session_id, data):
         res = await get_channel_layer().group_send(session_id, data)
@@ -195,8 +195,8 @@ class EventConsumer(BaseConsumer):
                     m = data["message"]
                     if "error" in m:
                         log.error(m)
-#                   elif "success" in m:
-#                       log.info(m)
+                #   elif "success" in m:
+                #       log.info(m)
                 else:
                     raise ValueError("No message_type specified in incoming message")
             elif data["message_type"] == "scan_status_change":
