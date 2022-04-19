@@ -1,5 +1,6 @@
 import os
 import sys
+import pytest
 import logging
 import ipaddress
 from time import sleep
@@ -271,6 +272,38 @@ def test_agent():
     sleep(0.5)
     agent.scan_status()
     agent.stop_scan()
+
+
+class NeoGraph:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def merge(self, *args, **kwargs):
+        return True
+
+
+@pytest.fixture
+def neograph():
+    return NeoGraph
+
+
+def test_db(monkeypatch, neograph):
+    from bbot.db.neo4j import Neo4j
+    import py2neo
+
+    monkeypatch.setattr(py2neo, "Graph", neograph)
+    n = Neo4j(uri="bolt://127.0.0.1:1111")
+    n.insert_event(ipv4_event)
+    n.insert_events([ipv4_event])
+
+    scan4 = Scanner(
+        "publicapis.org",
+        "dns.google",
+        modules=["dnsresolve"],
+        output_modules=["neo4j"],
+        config=config,
+    )
+    scan4.start()
 
 
 def test_cli(monkeypatch):
