@@ -5,6 +5,7 @@ networks:
 
 volumes: 
   db-data:
+  neo4j-data:
 
 services:
   react:
@@ -39,6 +40,9 @@ services:
       COLORTERM: truecolor
       TERM: xterm-256color
       DJANGO_SETTINGS_MODULE: api.settings
+      NEO4J_URL: "bolt://neo4j:7687"
+      NEO4J_USER: "neo4j"
+      NEO4J_PASS: "igshoojlot?ojupofHelrirrOonVish9"
     volumes:
       - ./django:/app
       - ../pyproject.toml:/opt/bbot/pyproject.toml
@@ -47,6 +51,7 @@ services:
       bbot_net:
     depends_on:
       - postgres
+      - neo4j
     expose:
       - 8000
 
@@ -63,6 +68,25 @@ services:
     volumes:
       - ./scripts/db:/docker-entrypoint-initdb.d:ro
       - db-data:/var/lib/postgresql/data:rw
+
+  neo4j:
+    image: neo4j:4.0
+    networks:
+      bbot_net:
+    restart: always
+    volumes:
+      - neo4j-data:/data
+      - ./neo4j/plugins:/plugins
+      - ./neo4j/import:/var/lib/neo4j/import
+    environment:
+      NEO4J_apoc_export_file_enabled: true
+      NEO4J_apoc_import_file_enabled: true
+      NEO4J_apoc_import_file_use__neo4j__config: true
+      NEO4JLABS_PLUGINS: '["apoc"]'
+      NEO4J_AUTH: neo4j/igshoojlot?ojupofHelrirrOonVish9
+    ports:
+      - 7474:7474
+      - 7687:7687
 
   nginx:
     restart: always

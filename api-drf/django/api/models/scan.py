@@ -1,12 +1,15 @@
 import uuid
 import logging
 from django.db import models
+from django.conf import settings
 from django.dispatch import Signal
 from channels.db import database_sync_to_async
 
+from bbot.db.neo4j import Neo4j
+
 log = logging.getLogger(__name__)
 
-# log.debug(bbot.modules.get_modules())
+neo4j = Neo4j(uri=settings.NEO4J_URL, username=settings.NEO4J_USER, password=settings.NEO4J_PASS)
 
 
 class ScanManager(models.Manager):
@@ -39,6 +42,20 @@ class Scan(models.Model):
         FINISHED = "Finished"
         FAILED = "Failed"
         CANCELED = "Canceled"
+
+    class Event:
+        __data = None
+
+        def __init__(self, data):
+            self.__data = data
+
+        @property
+        def id(self):
+            return self.__data["id"].split(":")[0]
+
+        @property
+        def json(self):
+            return self.__data
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     campaign = models.ForeignKey("api.Campaign", related_name="scans", on_delete=models.CASCADE)
@@ -78,6 +95,7 @@ class Scan(models.Model):
 
     def scan_event(sender, instance, event, *args, **kwargs):
         log.debug(event)
+        neo4j.insert_events([sender.Event(event)])
 
 
 scan_create = Signal()

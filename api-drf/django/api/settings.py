@@ -78,6 +78,10 @@ DATABASES = {
     }
 }
 
+NEO4J_URL = os.environ.get("NEO4J_URL")
+NEO4J_USER = os.environ.get("NEO4J_USER")
+NEO4J_PASS = os.environ.get("NEO4J_PASS")
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
