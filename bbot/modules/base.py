@@ -210,10 +210,11 @@ class BaseModule:
 
     def submit_task(self, callback, *args, **kwargs):
         # make sure we don't exceed max threads for module
-        # NOTE: here, we're pulling from the config instead of self.max_threads
-        # so the user can change the value if they want
+        # NOTE: here, we're pulling from the module config first, then self.max_threads
+        # so the user can override the value if they want
+        max_threads = self.config.get("max_threads", self.max_threads)
         with self._submit_task_lock:
-            while self.num_running_tasks > self.max_threads:
+            while self.num_running_tasks > max_threads:
                 sleep(0.1)
             try:
                 future = self.scan._thread_pool.submit(callback, *args, **kwargs)

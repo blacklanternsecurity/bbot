@@ -1,4 +1,7 @@
 import py2neo
+import logging
+
+log = logging.getLogger("bbot.db.neo4j")
 
 # docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
 
@@ -10,7 +13,11 @@ class Neo4j:
     def insert_event(self, event):
         event_json = event.json
 
-        source_id = event_json.pop("source")
+        try:
+            source_id = event_json.pop("source")
+        except KeyError:
+            log.warning(f"Skipping event without source: {event_json}")
+            return
         source_type = source_id.split(":")[-1]
         source_node = self.make_node({"type": source_type, "id": source_id})
 
@@ -35,7 +42,11 @@ class Neo4j:
         subgraph = list(event_nodes.values())[0]
         for dest_event in event_list:
             module = dest_event.pop("module", "TARGET")
-            source_id = dest_event.pop("source")
+            try:
+                source_id = dest_event.pop("source")
+            except KeyError:
+                log.warning(f"Skipping event without source: {dest_event}")
+                continue
             source_type = source_id.split(":")[-1]
             try:
                 source_event = event_nodes[source_id]
