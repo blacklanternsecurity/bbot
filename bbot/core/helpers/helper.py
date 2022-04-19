@@ -24,6 +24,8 @@ class ConfigAwareHelper:
         self.bbot_path = Path(__file__).parent.parent.parent.parent
         self.home = Path.home() / ".bbot"
         self.cache_dir = self.home / "cache"
+        # holds requests CachedSession() objects for duration of scan
+        self.cache_sessions = dict()
 
     def submit_task(self, *args, **kwargs):
         return self._thread_pool.submit(*args, **kwargs)

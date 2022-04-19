@@ -47,3 +47,6 @@ class Websocket(BaseOutputModule):
                 self.warning(f"Error sending message: {e}, retrying")
                 sleep(1)
                 continue
+
+    def cleanup(self):
+        self.ws.close()

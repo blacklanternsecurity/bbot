@@ -51,11 +51,7 @@ class ScanViewSet(viewsets.ModelViewSet):
             instance = serializer.save()
 
         if instance is not None:
-            scan_create.send(
-                sender=self.serializer_class.Meta.model, instance=instance, created=True
-            )
+            scan_create.send(sender=self.serializer_class.Meta.model, instance=instance, created=True)
 
         headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

@@ -157,7 +157,6 @@ class Agent:
 
     @staticmethod
     def err_handle(callback, *args, **kwargs):
-        log.critical(f"{callback}, {args}, {kwargs}")
         try:
             return callback(*args, **kwargs)
         except Exception as e:
