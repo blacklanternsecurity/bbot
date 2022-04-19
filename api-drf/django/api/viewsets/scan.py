@@ -25,14 +25,11 @@ class ScanViewSet(viewsets.ModelViewSet):
 
         instance = None
         serializer = self.get_serializer(data=request.data)
-#       serializer.is_valid(raise_exception=True)
+        #       serializer.is_valid(raise_exception=True)
         with transaction.atomic():
             targets = []
             for target in raw_targets:
-                targets.append({
-                    "campaign": serializer.initial_data["campaign"],
-                    "value": target
-                })
+                targets.append({"campaign": serializer.initial_data["campaign"], "value": target})
             t_serializer = ScanTargetSerializer(data=targets, many=True)
             t_serializer.is_valid(raise_exception=True)
             self.perform_create(t_serializer)
@@ -44,8 +41,8 @@ class ScanViewSet(viewsets.ModelViewSet):
             m_serializer.is_valid(raise_exception=True)
             self.perform_create(m_serializer)
 
-            serializer.initial_data["targets"] = [ t["id"] for t in t_serializer.data ]
-            serializer.initial_data["modules"] = [ m["id"] for m in m_serializer.data ]
+            serializer.initial_data["targets"] = [t["id"] for t in t_serializer.data]
+            serializer.initial_data["modules"] = [m["id"] for m in m_serializer.data]
 
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()

@@ -22,12 +22,8 @@ class ScanTarget(models.Model):
     objects = ScanManager()
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields = ['campaign_id', 'value'], 
-                name = "unique_target_per_campaign"
-            )
-        ]
+        constraints = [models.UniqueConstraint(fields=["campaign_id", "value"], name="unique_target_per_campaign")]
+
 
 class ScanModule(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

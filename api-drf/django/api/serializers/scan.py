@@ -14,6 +14,7 @@ class ParentCampaignValidator:
             if target.campaign.id != campaign.id:
                 raise serializers.ValidationError("Scan campaign and target campaign must be the same")
 
+
 class ScanSerializer(FlexFieldsModelSerializer):
     class Meta:
         model = Scan
@@ -26,12 +27,12 @@ class ScanSerializer(FlexFieldsModelSerializer):
             "modules": ("api.serializers.scan.ScanModuleSerializer", {"many": True}),
         }
 
-        validators = [
-            ParentCampaignValidator
-        ]
+        validators = [ParentCampaignValidator]
+
 
 class ScanModuleSerializer(FlexFieldsModelSerializer):
     scans = ScanSerializer(many=True, read_only=True)
+
     class Meta:
         model = ScanModule
         fields = ("id", "scans", "value")
@@ -43,6 +44,7 @@ class ScanModuleSerializer(FlexFieldsModelSerializer):
 
 class ScanTargetSerializer(FlexFieldsModelSerializer):
     scans = ScanSerializer(many=True, read_only=True)
+
     class Meta:
         model = ScanTarget
         fields = ("id", "campaign", "scans", "value")

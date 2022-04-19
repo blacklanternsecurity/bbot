@@ -67,6 +67,7 @@ class AgentStatusConsumer(BaseConsumer):
         if url_params is None:
             return
 
+
 class ScanStatusConsumer(BaseConsumer):
     async def connect(self):
         url_params = await super().connect()
