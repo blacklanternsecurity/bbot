@@ -1,4 +1,6 @@
 import os
+import sys
+import pytest
 import logging
 import ipaddress
 from time import sleep
@@ -141,6 +143,10 @@ def test_helpers():
     # resolution
     assert all([helpers.is_ip(i) for i in helpers.resolve("scanme.nmap.org")])
     assert "dns.google" in helpers.resolve("8.8.8.8")
+    assert "dns.google" in helpers.resolve("2001:4860:4860::8888")
+    resolved_ips = helpers.resolve("dns.google")
+    assert "2001:4860:4860::8888" in resolved_ips
+    assert "8.8.8.8" in resolved_ips
     assert any([helpers.is_subdomain(h) for h in helpers.resolve("google.com", type="mx")])
     v6_ips = helpers.resolve("www.google.com", type="AAAA")
     assert all([i.version == 6 for i in [ipaddress.ip_address(_) for _ in v6_ips]])
@@ -266,3 +272,48 @@ def test_agent():
     sleep(0.5)
     agent.scan_status()
     agent.stop_scan()
+
+
+class NeoGraph:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def merge(self, *args, **kwargs):
+        return True
+
+
+@pytest.fixture
+def neograph():
+    return NeoGraph
+
+
+def test_db(monkeypatch, neograph):
+    from bbot.db.neo4j import Neo4j
+    import py2neo
+
+    monkeypatch.setattr(py2neo, "Graph", neograph)
+    n = Neo4j(uri="bolt://127.0.0.1:1111")
+    n.insert_event(ipv4_event)
+    n.insert_events([ipv4_event])
+
+    scan4 = Scanner(
+        "publicapis.org",
+        "dns.google",
+        modules=["dnsresolve"],
+        output_modules=["neo4j"],
+        config=config,
+    )
+    scan4.start()
+
+
+def test_cli(monkeypatch):
+
+    from bbot import cli
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "api.publicapis.org", "-m", "dnsresolve"])
+    cli.main()
+    monkeypatch.setattr(sys, "argv", ["bbot", "--current-config"])
+    cli.main()
+    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "api.publicapis.org", "-m", "plumbus"])
+    cli.main()
