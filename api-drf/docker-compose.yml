@@ -32,9 +32,9 @@ services:
       ./manage.py makemigrations && 
       ./manage.py makemigrations api && 
       ./manage.py migrate &&
-      gunicorn --bind 0.0.0.0:8000 api.asgi -w 1 -k uvicorn.workers.UvicornWorker --reload --timeout 60"
+      uvicorn api.asgi:application --host 0.0.0.0 --port 8000 --reload --lifespan off --no-access-log"
 #     ./manage.py runserver 0.0.0.0:8000"
-#     uvicorn api.asgi:application --host 0.0.0.0 --port 8000 --reload --lifespan off"
+#     gunicorn --bind 0.0.0.0:8000 api.asgi -w 1 -k uvicorn.workers.UvicornWorker --reload --timeout 60"
     environment:
       COLORTERM: truecolor
       TERM: xterm-256color

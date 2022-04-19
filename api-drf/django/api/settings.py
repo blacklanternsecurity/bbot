@@ -10,6 +10,7 @@ ALLOWED_HOSTS = [
     "bbot",
     "bbot.blacklanternsecurity.com",
     "localhost",
+    "172.16.50.190",
 ]
 
 REST_FRAMEWORK = {

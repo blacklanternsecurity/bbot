@@ -5,6 +5,7 @@ from channels.layers import get_channel_layer
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
+from api.models.scan import Scan
 from api.models.agent import Agent, AgentSession
 
 log = logging.getLogger(__name__)
@@ -43,7 +44,6 @@ class BaseConsumer(AsyncJsonWebsocketConsumer):
             await self.accept()
             self.groups = set()
             url_params = self.scope["url_route"]["kwargs"]
-            log.debug(url_params)
             return url_params
 
     async def disconnect(self, close_code):
@@ -64,6 +64,13 @@ class AgentStatusConsumer(BaseConsumer):
     async def connect(self):
         url_params = await super().connect()
         log.debug("AgentStatusConsumer connected")
+        if url_params is None:
+            return
+
+class ScanStatusConsumer(BaseConsumer):
+    async def connect(self):
+        url_params = await super().connect()
+        log.debug("ScanStatusConsumer connected")
         if url_params is None:
             return
 
@@ -106,6 +113,14 @@ class EventConsumer(BaseConsumer):
     @database_sync_to_async
     def get_scan(self, scan_id):
         return self.agent.scans.get(pk=scan_id)
+
+    @database_sync_to_async
+    def update_scan(self, scan, status_str):
+        status = Scan.ScanStatus._member_map_.get(status_str, None)
+        if status is None:
+            raise KeyError(f"Received invalid scan status {status_str}")
+        scan.status = status
+        scan.save()
 
     async def connect(self):
         url_params = await super().connect()
@@ -168,7 +183,8 @@ class EventConsumer(BaseConsumer):
                 raise ValueError("No message_type specified in incoming message")
             elif data["message_type"] == "scan_status_change":
                 scan = await self.get_scan(data["scan_id"])
-                log.debug(scan)
+                await self.update_scan(scan, data["status"])
+
             elif data["message_type"] == "pong":
                 await self.pong(data)
 

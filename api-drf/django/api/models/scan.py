@@ -9,37 +9,48 @@ log = logging.getLogger(__name__)
 # log.debug(bbot.modules.get_modules())
 
 
+class ScanManager(models.Manager):
+    def create(self, *args, **kwargs):
+        res = self.model.objects.get_or_create(*args, **kwargs)
+        return res[0]
+
+
 class ScanTarget(models.Model):
-    #   class ScanTargetType(models.TextChoices):
-    #       DOMAIN = "0", "Domain"
-    #       IP = "1", "IP"
-    #       SUBNET = "2", "Subnet"
-    #       URL = "3", "URL"
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    scan = models.ForeignKey("api.Scan", related_name="targets", on_delete=models.CASCADE)
+    campaign = models.ForeignKey("api.Campaign", on_delete=models.CASCADE)
     value = models.CharField(max_length=256)
+    objects = ScanManager()
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields = ['campaign_id', 'value'], 
+                name = "unique_target_per_campaign"
+            )
+        ]
 
 class ScanModule(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    scan = models.ForeignKey("api.Scan", related_name="modules", on_delete=models.CASCADE)
     value = models.CharField(max_length=256)
+    objects = ScanManager()
 
 
 class Scan(models.Model):
     class ScanStatus(models.TextChoices):
-        PENDING = "0", "Pending"
-        RUNNING = "1", "Running"
-        COMPLETED = "2", "Completed"
-        FAILED = "3", "Failed"
-        CANCELED = "4", "Canceled"
+        PENDING = "Pending"
+        STARTING = "Starting"
+        RUNNING = "Running"
+        FINISHED = "Finished"
+        FAILED = "Failed"
+        CANCELED = "Canceled"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     campaign = models.ForeignKey("api.Campaign", related_name="scans", on_delete=models.CASCADE)
     agent = models.ForeignKey("api.Agent", related_name="scans", on_delete=models.CASCADE)
     name = models.CharField(max_length=64)
-    status = models.CharField(max_length=1, choices=ScanStatus.choices, default=ScanStatus.PENDING)
+    targets = models.ManyToManyField(ScanTarget, related_name="scans", blank=True)
+    modules = models.ManyToManyField(ScanModule, related_name="scans", blank=True)
+    status = models.CharField(max_length=10, choices=ScanStatus.choices, default=ScanStatus.PENDING)
 
     accepted = False
 

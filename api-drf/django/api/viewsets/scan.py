@@ -4,7 +4,6 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 
 from api.serializers.scan import *
-from api.serializers.scan import scan_create
 
 log = logging.getLogger(__name__)
 
@@ -24,25 +23,32 @@ class ScanViewSet(viewsets.ModelViewSet):
         request.data["targets"] = []
         request.data["modules"] = []
 
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         instance = None
+        serializer = self.get_serializer(data=request.data)
+#       serializer.is_valid(raise_exception=True)
         with transaction.atomic():
-            instance = serializer.save()
-
             targets = []
             for target in raw_targets:
-                targets.append({"scan": serializer.data["id"], "value": target})
+                targets.append({
+                    "campaign": serializer.initial_data["campaign"],
+                    "value": target
+                })
             t_serializer = ScanTargetSerializer(data=targets, many=True)
             t_serializer.is_valid(raise_exception=True)
             self.perform_create(t_serializer)
 
             modules = []
             for module in raw_modules:
-                modules.append({"scan": serializer.data["id"], "value": module})
+                modules.append({"value": module})
             m_serializer = ScanModuleSerializer(data=modules, many=True)
             m_serializer.is_valid(raise_exception=True)
             self.perform_create(m_serializer)
+
+            serializer.initial_data["targets"] = [ t["id"] for t in t_serializer.data ]
+            serializer.initial_data["modules"] = [ m["id"] for m in m_serializer.data ]
+
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
 
         if instance is not None:
             scan_create.send(
