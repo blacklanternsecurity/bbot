@@ -23,7 +23,6 @@ class TokenAuthMiddleware(BaseMiddleware):
 
         try:
             token = Token.objects.get(key=token_key)
-            log.debug(f"User: {token.user}")
             return token.user
         except Token.DoesNotExist:
             log.debug(f"No token found: {token_key}")
@@ -53,8 +52,7 @@ application = ProtocolTypeRouter(
             URLRouter(
                 [
                     re_path(r"^ws/(?P<channel_type>control)/$", EventConsumer.as_asgi()),
-                    re_path(r"^ws/(?P<channel_type>scan)/(?P<pk>\S+)/$", EventConsumer.as_asgi()),
-                    re_path(r"^ws/<?P<channel_type>scan_status)/(?P<pk>\S+)/$", ScanStatusConsumer.as_asgi()),
+                    re_path(r"^ws/(?P<channel_type>scan)/(?P<pk>\S+)/$", ScanStatusConsumer.as_asgi()),
                     re_path(
                         r"^ws/(?P<channel_type>agent_status)/(?P<pk>\S+)/$",
                         AgentStatusConsumer.as_asgi(),

@@ -1,11 +1,12 @@
 import json
 import uuid
 import logging
+from asgiref.sync import sync_to_async
 from channels.layers import get_channel_layer
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
-from api.models.scan import Scan
+from api.models.scan import Scan, scan_event
 from api.models.agent import Agent, AgentSession
 
 log = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class ChannelManager:
 
 
 class BaseConsumer(AsyncJsonWebsocketConsumer):
+    __agent = None
     async def connect(self):
         if self.scope["user"].is_anonymous:
             log.debug("closing anonymous connection")
@@ -46,10 +48,6 @@ class BaseConsumer(AsyncJsonWebsocketConsumer):
             url_params = self.scope["url_route"]["kwargs"]
             return url_params
 
-    async def disconnect(self, close_code):
-        log.debug(f"Disconnected: {close_code}")
-        await self.delete_session()
-
     async def receive_json(self, content):
         log.debug(f"EventConsumer.receive_json(): {content}")
 
@@ -59,26 +57,48 @@ class BaseConsumer(AsyncJsonWebsocketConsumer):
     async def event_update(self, content):
         log.debug(f"EventConsumer.send(): {content}")
 
+    @database_sync_to_async
+    def get_scan(self, scan_id):
+        return self.agent.scans.get(pk=scan_id)
+
+    @property
+    def agent(self):
+        if self.__agent is None:
+            self.__agent = Agent.objects.get(pk=self.scope["user"].id)
+        return self.__agent
+
 
 class AgentStatusConsumer(BaseConsumer):
     async def connect(self):
         url_params = await super().connect()
         log.debug("AgentStatusConsumer connected")
+        log.debug(f"url_params: {url_params}")
         if url_params is None:
             return
 
 
 class ScanStatusConsumer(BaseConsumer):
+    scan = None
     async def connect(self):
         url_params = await super().connect()
-        log.debug("ScanStatusConsumer connected")
-        if url_params is None:
-            return
+        try:
+            self.scan = await self.get_scan(url_params["pk"])
+        except Exception as e:
+            log.debug(type(e))
+            log.debug(str(e))
+
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+            await sync_to_async(scan_event.send)(sender=Scan, instance=self.scan, event=data)
+        except Exception as e:
+            log.debug(text_data)
+            log.debug(e)
+            log.debug(type(e))
 
 
 class EventConsumer(BaseConsumer):
     groups = []
-    __agent = None
     __callbacks = None
 
     @classmethod
@@ -94,11 +114,9 @@ class EventConsumer(BaseConsumer):
         super().__init__(*args, **kwargs)
         self.__callbacks = {}
 
-    @property
-    def agent(self):
-        if self.__agent is None:
-            self.__agent = Agent.objects.get(pk=self.scope["user"].id)
-        return self.__agent
+    async def disconnect(self, close_code):
+        log.debug(f"Disconnected: {close_code}")
+        await self.delete_session()
 
     @database_sync_to_async
     def store_session(self):
@@ -110,10 +128,6 @@ class EventConsumer(BaseConsumer):
     def delete_session(self):
         log.debug(f"Removing session object for {self.channel_name}")
         AgentSession.objects.filter(channel_name=self.channel_name, agent=self.agent).delete()
-
-    @database_sync_to_async
-    def get_scan(self, scan_id):
-        return self.agent.scans.get(pk=scan_id)
 
     @database_sync_to_async
     def update_scan(self, scan, status_str):
@@ -136,9 +150,6 @@ class EventConsumer(BaseConsumer):
             await self.channel_layer.group_add(str(session.id), self.channel_name)
         elif channel_type == "scan":
             scan_id = url_params["pk"]
-            log.debug(f"scan_id: {scan_id}")
-
-        log.debug(f"Opened {channel_type} channel {self.channel_name}")
 
     async def send_to_channel(self, session_id, data):
         res = await get_channel_layer().group_send(session_id, data)
@@ -154,7 +165,6 @@ class EventConsumer(BaseConsumer):
                 }
             )
         )
-        log.debug(f"Sent: {res}")
         return res
 
     async def ping(self, callback=None):
@@ -181,7 +191,14 @@ class EventConsumer(BaseConsumer):
         try:
             data = json.loads(text_data)
             if "message_type" not in data.keys():
-                raise ValueError("No message_type specified in incoming message")
+                if "message" in data.keys():
+                    m = data["message"]
+                    if "error" in m:
+                        log.error(m)
+#                   elif "success" in m:
+#                       log.info(m)
+                else:
+                    raise ValueError("No message_type specified in incoming message")
             elif data["message_type"] == "scan_status_change":
                 scan = await self.get_scan(data["scan_id"])
                 await self.update_scan(scan, data["status"])

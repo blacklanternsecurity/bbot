@@ -70,7 +70,8 @@ class Agent:
         message = messages.Message(**message)
 
         if message.command == "ping":
-            self.send({"conversation": str(message.conversation), "message_type": "pong"})
+            if self.scan is None:
+                self.send({"conversation": str(message.conversation), "message_type": "pong"})
             return
 
         command_type = None
@@ -116,6 +117,7 @@ class Agent:
                 )
                 self.thread = threading.Thread(target=self.scan.start)
                 self.thread.start()
+
                 return {"success": f"Started scan", "scan_id": self.scan.id}
             else:
                 msg = f"Scan {self.scan.id} already in progress"

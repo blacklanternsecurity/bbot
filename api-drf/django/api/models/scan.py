@@ -76,6 +76,12 @@ class Scan(models.Model):
         else:
             log.debug("Scan already started; ignoring")
 
+    def scan_event(sender, instance, event, *args, **kwargs):
+        log.debug(event)
+
 
 scan_create = Signal()
 scan_create.connect(Scan.solicit_scan, sender=Scan)
+
+scan_event = Signal()
+scan_event.connect(Scan.scan_event, sender=Scan)
