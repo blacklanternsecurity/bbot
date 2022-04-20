@@ -15,10 +15,12 @@ def run_live(self, command, *args, **kwargs):
     if not "stderr" in kwargs:
         kwargs["stderr"] = subprocess.PIPE
     _input = kwargs.pop("input", "")
+    input_msg = ""
     if _input:
         kwargs["stdin"] = subprocess.PIPE
+        input_msg = " (with stdin)"
 
-    log.debug(f"Running command: {' '.join(command)}")
+    log.debug(f"run_live{input_msg}: {' '.join(command)}")
 
     with subprocess.Popen(command, *args, **kwargs) as process:
         if _input:
@@ -38,6 +40,6 @@ def run(self, command, *args, **kwargs):
     if not "text" in kwargs:
         kwargs["text"] = True
 
-    log.debug(f"Running command: {' '.join(command)}")
+    log.debug(f"run: {' '.join(command)}")
     result = subprocess.run(command, *args, **kwargs)
     return result

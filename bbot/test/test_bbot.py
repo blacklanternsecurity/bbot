@@ -297,8 +297,7 @@ def test_db(monkeypatch, neograph):
     n.insert_events([ipv4_event])
 
     scan4 = Scanner(
-        "publicapis.org",
-        "dns.google",
+        "doesnot.exist",
         modules=["dnsresolve"],
         output_modules=["neo4j"],
         config=config,
@@ -311,9 +310,9 @@ def test_cli(monkeypatch):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "api.publicapis.org", "-m", "dnsresolve"])
+    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "doesnot.exist", "-m", "dnsresolve"])
     cli.main()
     monkeypatch.setattr(sys, "argv", ["bbot", "--current-config"])
     cli.main()
-    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "api.publicapis.org", "-m", "plumbus"])
+    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "doesnot.exist", "-m", "plumbus"])
     cli.main()
