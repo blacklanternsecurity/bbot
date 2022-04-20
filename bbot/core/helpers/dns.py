@@ -1,6 +1,7 @@
 import json
 import logging
 import dns.resolver
+import dns.exception
 from threading import Lock
 
 from .misc import is_ip, domain_parents, parent_domain, rand_string
@@ -45,27 +46,42 @@ class DNSHelper:
                 results.update(self._resolve_hostname(query, rdtype=t, **kwargs))
             return results
 
-    def resolver_list(self, min_reliability=0.99):
-        if self._resolver_list is None:
-            nameservers = set()
-            nameservers_url = "https://public-dns.info/nameserver/nameservers.json"
-            nameservers_file = self.parent_helper.download(nameservers_url, cache_hrs=72)
-            nameservers_json = []
+    def get_valid_resolvers(self, min_reliability=0.99):
+        nameservers = set()
+        nameservers_url = "https://public-dns.info/nameserver/nameservers.json"
+        nameservers_file = self.parent_helper.download(nameservers_url, cache_hrs=72)
+        nameservers_json = []
+        try:
+            nameservers_json = json.loads(open(nameservers_file).read())
+        except Exception as e:
+            log.error(f"Failed to populate nameserver list from {nameservers_url}: {e}")
+        for entry in nameservers_json:
+            ip = str(entry.get("ip", "")).strip()
             try:
-                nameservers_json = json.loads(open(nameservers_file).read())
-            except Exception as e:
-                log.error(f"Failed to populate nameserver list from {nameservers_url}: {e}")
-            for entry in nameservers_json:
-                ip = str(entry.get("ip", "")).strip()
-                try:
-                    reliability = float(entry.get("reliability", 0))
-                except ValueError:
-                    continue
-                if reliability >= min_reliability and is_ip(ip):
-                    nameservers.add(ip)
-            log.debug(f"Loaded {len(nameservers):,} nameservers from {nameservers_url}")
-            self._resolver_list = self.verify_nameservers(nameservers)
+                reliability = float(entry.get("reliability", 0))
+            except ValueError:
+                continue
+            if reliability >= min_reliability and is_ip(ip, version=4):
+                nameservers.add(ip)
+        log.debug(f"Loaded {len(nameservers):,} nameservers from {nameservers_url}")
+        resolver_list = self.verify_nameservers(nameservers)
+        return resolver_list
+
+    @property
+    def resolvers(self):
+        if self._resolver_list is None:
+            file_content = self.parent_helper.cache_get("resolver_list")
+            if file_content is not None:
+                self._resolver_list = set([l for l in file_content.splitlines() if l])
+            if not self._resolver_list:
+                self._resolver_list = self.get_valid_resolvers()
+                self.parent_helper.cache_put("resolver_list", "\n".join(self._resolver_list))
         return self._resolver_list
+
+    @property
+    def resolver_file(self):
+        self.resolvers
+        return self.parent_helper.cache_filename("resolver_list")
 
     def verify_nameservers(self, nameservers, timeout=2):
         """Check each resolver to make sure it can actually resolve DNS names
@@ -85,6 +101,7 @@ class DNSHelper:
                 valid_nameservers.add(nameserver)
             else:
                 log.debug(str(error))
+        log.debug(f"Verified {len(valid_nameservers):,}/{len(nameservers):,} nameservers")
 
         return valid_nameservers
 
@@ -105,19 +122,20 @@ class DNSHelper:
 
         # first, make sure it can resolve google.com
         try:
-            resolver.resolve("www.google.com", "A")
+            resolver.resolve("www.example.com", "A")
         except Exception:
             error = f"Nameserver {nameserver} failed to resolve basic query within {timeout} seconds"
 
         # then, make sure it isn't feeding us garbage data
-        randhost = f"{rand_string(10)}.google.com"
-        try:
-            results = list(self.resolve(randhost, "A"))
-            if results:
+
+        if error is None:
+            randhost = f"{rand_string(9)}.{rand_string(10)}.com"
+            try:
+                resolver.resolve(randhost, "A")
                 error = f"Nameserver {nameserver} returned garbage data"
-        except Exception:
-            # Garbage query to nameserver failed successfully ;)
-            pass
+            except dns.exception.DNSException:
+                pass
+                # Garbage query to nameserver failed successfully ;)
 
         return nameserver, error
 

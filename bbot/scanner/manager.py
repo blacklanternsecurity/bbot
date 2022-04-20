@@ -58,6 +58,8 @@ class ScanManager:
         event_counter = 0
 
         try:
+            self.scan.dispatcher.on_start(self.scan)
+
             # watch for newly-generated events
             while 1:
 
@@ -74,7 +76,7 @@ class ScanManager:
                     if finished:
                         # If new events were generated in the last iteration
                         if event_counter > 0:
-                            self._status = "FINISHING"
+                            self.scan.status = "FINISHING"
                             # Trigger .finished() on every module and start over
                             for mod in self.scan.modules.values():
                                 mod.queue_event("FINISHED")
@@ -93,6 +95,7 @@ class ScanManager:
 
         finally:
             # clean up modules
+            self.scan.status = "CLEANING_UP"
             for mod in self.scan.modules.values():
                 mod._cleanup()
 

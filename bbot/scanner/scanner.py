@@ -114,7 +114,7 @@ class Scanner:
 
             if not self.modules:
                 self.error(f"No modules loaded")
-                self.status = "ERROR_FAILED"
+                self.status = "FAILED"
                 return
             else:
                 self.success(f"Setup succeeded for {len(self.modules):,} modules")
@@ -143,13 +143,16 @@ class Scanner:
             failed = False
 
         except BBOTError as e:
-            self.critical(str(e))
+            import traceback
+
+            self.critical(f"Error during scan: {e}")
+            self.debug(traceback.format_exc())
 
         except Exception:
             import traceback
 
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
-            self.status = "ERROR_FAILED"
+            self.status = "FAILED"
 
         finally:
             # Shut down shared thread pool

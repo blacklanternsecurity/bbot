@@ -5,7 +5,7 @@ import traceback
 from time import sleep
 from contextlib import suppress
 
-from ..core.errors import ScanCancelledError
+from ..core.errors import ScanCancelledError, ValidationError
 
 
 class BaseModule:
@@ -155,19 +155,24 @@ class BaseModule:
             self.helpers.submit_task(self._emit_event, *args, **kwargs)
 
     def _emit_event(self, *args, **kwargs):
-        kwargs["module"] = self
-        event = self.scan.make_event(*args, **kwargs)
+        try:
+            kwargs["module"] = self
+            event = self.scan.make_event(*args, **kwargs)
 
-        # special DNS validation
-        if event.type == "DNS_NAME":
-            resolved = self.helpers.resolve(event.data)
-            if not resolved:
-                event.tags.add("unresolved")
-            if self.helpers.is_wildcard(event.data):
-                event.tags.add("wildcard")
+            # special DNS validation
+            if event.type == "DNS_NAME":
+                resolved = self.helpers.resolve(event.data)
+                if resolved:
+                    event.tags.add("resolved")
+                else:
+                    event.tags.add("unresolved")
+                if self.helpers.is_wildcard(event.data):
+                    event.tags.add("wildcard")
 
-        self.debug(f'module "{self.name}" raised {event}')
-        self.scan.manager.queue_event(event)
+            self.debug(f'module "{self.name}" raised {event}')
+            self.scan.manager.queue_event(event)
+        except ValidationError as e:
+            self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
 
     @property
     def events_waiting(self):
