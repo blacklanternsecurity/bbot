@@ -69,10 +69,11 @@ def parent_domain(d):
         return ".".join(split_domain[1:])
 
 
-def is_ip(d):
+def is_ip(d, version=None):
     try:
-        ipaddress.ip_address(str(d))
-        return True
+        ip = ipaddress.ip_address(str(d))
+        if version is None or ip.version == version:
+            return True
     except Exception:
         pass
     return False

@@ -6,6 +6,9 @@ class Dispatcher:
     def set_scan(self, scan):
         self.scan = scan
 
+    def on_start(self, scan):
+        return
+
     def on_finish(self, scan):
         return
 
