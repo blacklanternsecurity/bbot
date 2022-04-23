@@ -46,31 +46,36 @@ class ScanTarget:
     def __contains__(self, other):
         # if "other" is a ScanTarget
         if type(other) == self.__class__:
-            return all([e in self for e in other.events])
+            contained_in_self = [self._contains(e, ignore_tags=True) for e in other.events]
+            return all(contained_in_self)
         else:
-            # otherwise, make it an event
-            try:
-                other = make_event(other, dummy=True)
-            except ValidationError:
-                return False
-            if any([t in other.tags for t in ("in_scope", "target")]):
-                return True
-            if other.host:
-                # check if the event's host matches any of ours
-                for host in self._events:
-                    if host and host_in_host(other.host, host):
-                        return True
-                # check if the event matches any of ours
-                for e in self._events.get("", []):
-                    if e.host and host_in_host(other.host, e.host):
-                        return True
+            return self._contains(other)
+
+    def _contains(self, other, ignore_tags=False):
+        try:
+            other = make_event(other, dummy=True)
+        except ValidationError:
+            return False
+        if not ignore_tags and any([t in other.tags for t in ("in_scope", "target")]):
+            return True
+        if other.host:
+            # check if the event's host matches any of ours
+            for host in self._events:
+                if host and host_in_host(other.host, host):
+                    return True
+            # check if the event matches any of ours
+            for e in self._events.get("", []):
+                if e.host and host_in_host(other.host, e.host):
+                    return True
         return False
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
     def __hash__(self):
         if self._hash is None:
-            events = sorted(list(self.events), key=lambda e: e.id)
-            event_hashes = "_".join([e.id for e in events])
-            return sha1(event_hashes)
+            events = tuple(sorted(list(self.events), key=lambda e: hash(e)))
+            return hash(events)
 
     def __bool__(self):
         return len(self.events) > 0

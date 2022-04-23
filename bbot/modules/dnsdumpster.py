@@ -31,11 +31,11 @@ class dnsdumpster(BaseModule):
         if query not in self.processed:
             self.processed.add(query)
 
-        for hostname in self.query(query):
-            if not hostname == event:
-                self.emit_event(hostname, "DNS_NAME", event)
-            else:
-                self.debug(f"Invalid subdomain: {hostname}")
+            for hostname in self.query(query):
+                if not hostname == event:
+                    self.emit_event(hostname, "DNS_NAME", event)
+                else:
+                    self.debug(f"Invalid subdomain: {hostname}")
 
     def query(self, domain):
 

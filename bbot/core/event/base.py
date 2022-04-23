@@ -171,6 +171,10 @@ class BaseEvent:
         yield from self.json.items()
 
     def __eq__(self, other):
+        try:
+            other = make_event(other, dummy=True)
+        except ValidationError:
+            return False
         return hash(self) == hash(other)
 
     def __hash__(self):
