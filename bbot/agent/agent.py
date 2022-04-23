@@ -115,7 +115,7 @@ class Agent:
                     config=config,
                     dispatcher=self.dispatcher,
                 )
-                self.thread = threading.Thread(target=self.scan.start)
+                self.thread = threading.Thread(target=self.scan.start, daemon=True)
                 self.thread.start()
 
                 return {"success": f"Started scan", "scan_id": self.scan.id}
@@ -125,6 +125,7 @@ class Agent:
                 return {"error": msg, "scan_id": self.scan.id}
 
     def stop_scan(self):
+        log.warning("Stopping scan")
         try:
             with self._scan_lock:
                 if self.scan is None:
@@ -137,6 +138,11 @@ class Agent:
                 scan_id = str(self.scan.id)
                 self.scan = None
                 return {"success": msg, "scan_id": scan_id}
+        except Exception as e:
+            import traceback
+
+            log.warning(f"Error while stopping scan: {e}")
+            log.debug(traceback.format_exc())
         finally:
             self.scan = None
             self.thread = None

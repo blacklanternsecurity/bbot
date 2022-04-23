@@ -268,7 +268,7 @@ def test_scan(monkeypatch):
     scan3._thread_pool.shutdown(wait=True)
 
 
-def test_agent():
+def test_agent(monkeypatch):
     class WebSocketApp:
         def __init__(*args, **kwargs):
             return
@@ -280,21 +280,24 @@ def test_agent():
             return False
 
     from bbot import agent
+    from bbot.modules.output.websocket import Websocket
 
-    agent = agent.Agent({"agent_url": "test", "agent_token": "test"})
-    agent.setup()
-    agent.ws = WebSocketApp()
-    agent.start()
-    agent.on_error(agent.ws, "test")
-    agent.on_close(agent.ws, "test", "test")
-    agent.on_open(agent.ws)
-    agent.on_message(
-        agent.ws,
-        '{"conversation": "test", "command": "start_scan", "arguments": {"targets": ["www.blacklanternsecurity.com"], "modules": ["dnsresolve"], "output_modules": ["human"]}',
+    monkeypatch.setattr(Websocket, "send", lambda *args, **kwargs: True)
+
+    test_agent = agent.Agent({"agent_url": "test", "agent_token": "test"})
+    test_agent.setup()
+    monkeypatch.setattr(test_agent, "ws", WebSocketApp())
+    test_agent.start()
+    test_agent.on_error(test_agent.ws, "test")
+    test_agent.on_close(test_agent.ws, "test", "test")
+    test_agent.on_open(test_agent.ws)
+    test_agent.on_message(
+        test_agent.ws,
+        '{"conversation": "90196cc1-299f-4555-82a0-bc22a4247590", "command": "start_scan", "arguments": {"scan_id": "90196cc1-299f-4555-82a0-bc22a4247590", "targets": ["www.blacklanternsecurity.com"], "modules": ["dnsresolve"], "output_modules": ["human"]}}',
     )
     sleep(0.5)
-    agent.scan_status()
-    agent.stop_scan()
+    test_agent.scan_status()
+    test_agent.stop_scan()
 
 
 class NeoGraph:
