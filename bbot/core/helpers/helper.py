@@ -84,12 +84,7 @@ class ConfigAwareHelper:
         try:
             return super().__getattribute__(attr)
         except AttributeError:
-            a = getattr(misc, attr, None)
-            if a:
-                return a
-            else:
-                a = getattr(self.dns, attr, None)
-            if a:
-                return a
-            else:
-                raise
+            try:
+                return getattr(misc, attr)
+            except AttributeError:
+                return getattr(self.dns, attr)
