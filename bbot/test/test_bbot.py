@@ -226,6 +226,7 @@ def test_scan(monkeypatch):
         output_modules=list(available_output_modules),
         config=config,
     )
+    scan2.json
     scan2.start()
 
     scan3 = Scanner(

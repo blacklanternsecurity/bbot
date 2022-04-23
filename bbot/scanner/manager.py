@@ -61,7 +61,16 @@ class ScanManager:
             self.scan.dispatcher.on_start(self.scan)
 
             # watch for newly-generated events
-            while self.scan.status != "ABORTING":
+            while 1:
+
+                if self.scan.status == "ABORTING":
+                    while 1:
+                        try:
+                            # Empty event queue
+                            self.event_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                    break
 
                 event = False
                 # print status every 2 seconds
