@@ -8,14 +8,31 @@ class dnsdumpster(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    target_only = True
+    in_scope_only = True
+
+    def setup(self):
+        self.processed = set()
+        return True
+
+    def filter_event(self, event):
+        if "target" in event.tags:
+            return True
+        elif self.helpers.parent_domain(event.data) not in self.processed:
+            return True
+        return False
 
     def handle_event(self, event):
 
-        query = str(event.data).lower()
+        if not "target" in event.tags:
+            query = self.helpers.parent_domain(event.data).lower()
+        else:
+            query = str(event.data).lower()
+
+        if query not in self.processed:
+            self.processed.add(query)
 
         for hostname in self.query(query):
-            if hostname in self.scan.target and not hostname == event:
+            if not hostname == event:
                 self.emit_event(hostname, "DNS_NAME", event)
             else:
                 self.debug(f"Invalid subdomain: {hostname}")
