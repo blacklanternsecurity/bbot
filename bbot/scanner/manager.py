@@ -61,7 +61,7 @@ class ScanManager:
             self.scan.dispatcher.on_start(self.scan)
 
             # watch for newly-generated events
-            while 1:
+            while self.scan.status != "ABORTING":
 
                 event = False
                 # print status every 2 seconds

@@ -2,7 +2,7 @@ import logging
 
 from bbot.core.errors import *
 from bbot.core.event import make_event
-from bbot.core.helpers import sha1, host_in_host
+from bbot.core.helpers import host_in_host
 
 log = logging.getLogger("bbot.core.target")
 
