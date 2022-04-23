@@ -56,7 +56,10 @@ class DNSHelper:
         except Exception as e:
             log.error(f"Failed to populate nameserver list from {nameservers_url}: {e}")
         for entry in nameservers_json:
-            ip = str(entry.get("ip", "")).strip()
+            try:
+                ip = str(entry.get("ip", "")).strip()
+            except Exception:
+                continue
             try:
                 reliability = float(entry.get("reliability", 0))
             except ValueError:
