@@ -117,6 +117,8 @@ class BaseModule:
                 lock_acquired = self.scan._brute_lock.acquire()
             if not self.scan.stopping:
                 ret = callback(*args, **kwargs)
+        except ScanCancelledError as e:
+            self.debug(f"Encountered ScanCancelledError: {e}")
         except Exception as e:
             self.error(f"Encountered error in {callback.__name__}(): {e}")
             self.debug(traceback.format_exc())
