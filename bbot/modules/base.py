@@ -133,12 +133,12 @@ class BaseModule:
     def _handle_batch(self, force=False):
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
             self._batch_idle = 0
-            self.debug(f'Handling batch of {self.num_queued_events:,} events for module "{self.name}"')
             on_finish_callback = None
             events, finish = self.events_waiting
             if finish:
                 on_finish_callback = self.finish
             if events:
+                self.debug(f"Handling batch of {len(events):,} events")
                 self.submit_task(
                     self.catch,
                     self.handle_batch,
@@ -162,6 +162,8 @@ class BaseModule:
             # special DNS validation
             if event.type == "DNS_NAME":
                 resolved = self.helpers.resolve(event.data)
+                if any([self.scan.target.in_scope(i) for i in resolved]):
+                    event.tags.add("in_scope")
                 if resolved:
                     event.tags.add("resolved")
                 else:
@@ -283,12 +285,12 @@ class BaseModule:
                         if self.event_queue:
                             e = self.event_queue.get_nowait()
                         else:
-                            self.debug(f'Event queue for module "{self.name}" is in bad state')
+                            self.debug(f"Event queue is in bad state")
                             return
                     except queue.Empty:
                         sleep(0.3333)
                         continue
-                    self.debug(f"{self.name}._worker() got {e}")
+                    self.debug(f"Got {e}")
                     # if we receive the special "FINISHED" event
                     if type(e) == str and e == "FINISHED":
                         self.submit_task(self.catch, self.finish)
@@ -296,7 +298,7 @@ class BaseModule:
                         self.submit_task(self.catch, self.handle_event, e, _lock_brutes=True)
 
         except KeyboardInterrupt:
-            self.debug(f"Interrupted module {self.name}")
+            self.debug(f"Interrupted")
             self.scan.stop()
         except ScanCancelledError as e:
             self.verbose(f"Scan cancelled, {e}")
@@ -319,7 +321,7 @@ class BaseModule:
         if self.target_only and "target" not in e.tags:
             return False
         # optionally exclude out-of-scope targets
-        if self.in_scope_only and e not in self.scan.target:
+        if self.in_scope_only and not self.scan.target.in_scope(e):
             return False
         # special case for IPs that originated from a CIDR
         # if the event is an IP address and came from the enricher module
@@ -345,7 +347,7 @@ class BaseModule:
             if self._filter_event(e):
                 self.event_queue.put(e)
         else:
-            self.debug(f"Module {self.name} is not in an acceptable state to queue event")
+            self.debug(f"Not in an acceptable state to queue event")
 
     def set_error_state(self, message=None):
         if message is not None:
@@ -355,7 +357,7 @@ class BaseModule:
             self.errored = True
             # clear incoming queue
             if self.event_queue:
-                self.debug(f"Emptying {self.name}.event_queue")
+                self.debug(f"Emptying event_queue")
                 with suppress(queue.Empty):
                     while 1:
                         self.event_queue.get_nowait()

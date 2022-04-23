@@ -4,9 +4,9 @@ from uuid import uuid4
 import concurrent.futures
 from collections import OrderedDict
 
+from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
-from bbot.core.target import ScanTarget
 from bbot.core.errors import BBOTError, ScanError
 from bbot.core.event import make_event, make_event_id
 from bbot.core.helpers.helper import ConfigAwareHelper

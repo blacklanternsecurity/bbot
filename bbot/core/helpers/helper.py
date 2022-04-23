@@ -2,9 +2,11 @@ import logging
 from time import sleep
 from pathlib import Path
 import concurrent.futures
+from threading import Lock
 
 from . import misc
 from .dns import DNSHelper
+from ..errors import ScanCancelledError
 
 log = logging.getLogger("bbot.core.helpers")
 
@@ -26,9 +28,30 @@ class ConfigAwareHelper:
         self.cache_dir = self.home / "cache"
         # holds requests CachedSession() objects for duration of scan
         self.cache_sessions = dict()
+        self._futures = set()
+        self._future_lock = Lock()
 
-    def submit_task(self, *args, **kwargs):
-        return self._thread_pool.submit(*args, **kwargs)
+    @property
+    def num_running_tasks(self):
+        running_futures = set()
+        with self._future_lock:
+            for f in self._futures:
+                if not f.done():
+                    running_futures.add(f)
+            self._futures = running_futures
+        return len(running_futures)
+
+    @property
+    def num_queued_tasks(self):
+        return self._thread_pool._work_queue.qsize()
+
+    def submit_task(self, callback, *args, **kwargs):
+        try:
+            future = self.scan._thread_pool.submit(callback, *args, **kwargs)
+        except RuntimeError as e:
+            raise ScanCancelledError(e)
+        self._futures.add(future)
+        return future
 
     @property
     def _thread_pool(self):
