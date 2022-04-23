@@ -123,6 +123,8 @@ class ScanManager:
             modules_running = []
             modules_errored = []
 
+            shared_pool_tasks = self.scan.helpers.num_running_tasks + self.scan.helpers.num_queued_tasks
+
             for m in self.scan.modules.values():
                 try:
                     if m.event_queue:
@@ -145,7 +147,7 @@ class ScanManager:
                     with suppress(Exception):
                         mod.set_error_state()
 
-            finished = not self.event_queue or (not modules_running and all(queues_empty))
+            finished = not self.event_queue or (not modules_running and shared_pool_tasks == 0 and all(queues_empty))
             if finished:
                 sleep(0.1)
             else:

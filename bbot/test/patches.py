@@ -1,21 +1,22 @@
 import urllib3
 import requests
 
-import bbot.core.helpers.web
+from bbot.core.helpers import helper
+from bbot.core.helpers import command
 
 example_url = "https://api.publicapis.org/health"
 http = urllib3.PoolManager()
-dummy_resp1 = http.request("GET", example_url)
-dummy_resp2 = requests.get(example_url)
+urllib_response = http.request("GET", example_url)
+requests_response = requests.get(example_url)
 
 
-def patch_requests():
+def patch_requests(monkeypatch):
 
-    urllib3.connectionpool.urlopen = lambda *args, **kwargs: dummy_resp1
-    urllib3.poolmanager.PoolManager.urlopen = lambda *args, **kwargs: dummy_resp1
-
-    requests.adapters.HTTPAdapter.send = lambda *args, **kwargs: dummy_resp2
-    bbot.core.helpers.web.request = lambda *args, **kwargs: dummy_resp2
+    monkeypatch.setattr("urllib3.connectionpool.HTTPConnectionPool.urlopen", lambda *args, **kwargs: urllib_response)
+    monkeypatch.setattr("urllib3.poolmanager.PoolManager.urlopen", lambda *args, **kwargs: urllib_response)
+    monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
+    monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
+    monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: "nope")
 
 
 sample_output = [
@@ -34,7 +35,7 @@ sample_output = [
 ]
 
 
-def patch_commands():
+def patch_commands(monkeypatch):
     def run(*args, **kwargs):
         text = kwargs.get("text", True)
         output = "\n".join(sample_output)
@@ -47,11 +48,7 @@ def patch_commands():
         for line in sample_output:
             yield line
 
-    from bbot.core.helpers import command
-
-    command.run = run
-    command.run_live = run_live
-    from bbot.core.helpers import helper
-
-    helper.ConfigAwareHelper.run = run
-    helper.ConfigAwareHelper.run_live = run_live
+    monkeypatch.setattr(command, "run", run)
+    monkeypatch.setattr(command, "run_live", run_live)
+    monkeypatch.setattr(helper.ConfigAwareHelper, "run", run)
+    monkeypatch.setattr(helper.ConfigAwareHelper, "run_live", run_live)

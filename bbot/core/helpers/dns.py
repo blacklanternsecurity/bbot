@@ -4,7 +4,7 @@ import dns.resolver
 import dns.exception
 from threading import Lock
 
-from .misc import is_ip, domain_parents, parent_domain, rand_string
+from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
@@ -160,6 +160,8 @@ class DNSHelper:
         return answers
 
     def is_wildcard(self, query):
+        if is_domain(query):
+            return False
         parent = parent_domain(query)
         with self._wildcard_lock(parent):
             orig_results = self.resolve(query)

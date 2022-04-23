@@ -62,11 +62,14 @@ def domain_parents(d):
 
 
 def parent_domain(d):
-    split_domain = str(d).split(".")
-    if len(split_domain) == 1:
-        return "."
+    if is_domain(d):
+        return d
     else:
-        return ".".join(split_domain[1:])
+        split_domain = str(d).split(".")
+        if len(split_domain) == 1:
+            return "."
+        else:
+            return ".".join(split_domain[1:])
 
 
 def is_ip(d, version=None):
