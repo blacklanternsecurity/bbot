@@ -107,7 +107,7 @@ def test_events():
     assert ipv6_url_event.port == 443
 
 
-def test_helpers():
+def test_helpers(monkeypatch):
 
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
@@ -156,7 +156,9 @@ def test_helpers():
     assert "github.io" in scan.helpers.dns.wildcards
     assert not helpers.is_wildcard("mail.google.com")
     # resolvers - disabled because github's dns is wack
-    # assert "8.8.8.8" in helpers.resolver_list()
+    patch_requests(monkeypatch)
+    assert type(helpers.resolvers) == set
+    assert hasattr(helpers.resolver_file, "is_file")
 
 
 def test_modules():
@@ -196,7 +198,7 @@ def test_modules():
         assert filter_future.result() in (True, False)
 
 
-def test_scan():
+def test_scan(monkeypatch):
 
     scan2 = Scanner(
         "publicapis.org",
@@ -208,10 +210,6 @@ def test_scan():
     )
     scan2.start()
 
-    # nuke web requests
-    patch_requests()
-    patch_commands()
-
     scan3 = Scanner(
         "publicapis.org",
         "8.8.8.8/32",
@@ -219,9 +217,16 @@ def test_scan():
         modules=list(available_modules),
         config=config,
     )
+
+    # nuke web requests
+    patch_requests(monkeypatch)
+    patch_commands(monkeypatch)
+
+    monkeypatch.setattr(scan3.helpers, "request", lambda *args, **kwargs: requests_response)
+    Path("/tmp/nope").touch()
+    monkeypatch.setattr(scan3.helpers, "download", lambda *args, **kwargs: "/tmp/nope")
+
     scan3.setup_modules(remove_failed=False)
-    scan3.helpers.request = lambda *args, **kwargs: dummy_resp2
-    scan3.helpers.download = lambda *args, **kwargs: "nope"
 
     futures = []
     for module in scan3.modules.values():

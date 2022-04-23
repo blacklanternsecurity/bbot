@@ -27,6 +27,9 @@ class ScanTarget:
 
         self._hash = None
 
+    def in_scope(self, e):
+        return e in self
+
     @property
     def events(self):
         events = set()
@@ -50,6 +53,8 @@ class ScanTarget:
                 other = make_event(other, dummy=True)
             except ValidationError:
                 return False
+            if any([t in other.tags for t in ("in_scope", "target")]):
+                return True
             if other.host:
                 # check if the event's host matches any of ours
                 for host in self._events:
