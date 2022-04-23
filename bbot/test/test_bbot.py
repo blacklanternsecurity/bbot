@@ -31,6 +31,7 @@ def test_events():
     # ip tests
     assert ipv4_event == scan.make_event("8.8.8.8", dummy=True)
     assert "8.8.8.8" in ipv4_event
+    assert "8.8.8.8" == ipv4_event
     assert "8.8.8.8" in netv4_event
     assert "8.8.8.9" not in ipv4_event
     assert "8.8.9.8" not in netv4_event
@@ -157,8 +158,8 @@ def test_helpers(monkeypatch):
     assert not helpers.is_wildcard("mail.google.com")
     # resolvers - disabled because github's dns is wack
     patch_requests(monkeypatch)
-    assert type(helpers.resolvers) == set
-    assert hasattr(helpers.resolver_file, "is_file")
+    assert type(helpers.dns.resolvers) == set
+    assert hasattr(helpers.dns.resolver_file, "is_file")
 
 
 def test_modules():
@@ -196,6 +197,23 @@ def test_modules():
         module = filter_futures[filter_future]
         log.info(f"Testing {module.name}.filter_event()")
         assert filter_future.result() in (True, False)
+
+
+def test_target():
+    scan1 = Scanner("publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
+    scan2 = Scanner("8.8.8.8/30", "publicapis.org", "2001:4860:4860::8888/126")
+    scan3 = Scanner("8.8.8.8/31")
+    assert "8.8.8.9" in scan1.target
+    assert not "8.8.8.12" in scan1.target
+    assert "2001:4860:4860::8889" in scan1.target
+    assert not "2001:4860:4860::888c" in scan1.target
+    assert "api.publicapis.org" in scan1.target
+    assert scan1.target in scan2.target
+    assert scan1.target == scan2.target
+    assert scan2.target in scan1.target
+    assert scan3.target in scan1.target
+    assert not scan1.target in scan3.target
+    assert scan3.target != scan1.target
 
 
 def test_scan(monkeypatch):

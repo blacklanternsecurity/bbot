@@ -84,12 +84,12 @@ class ConfigAwareHelper:
         try:
             return super().__getattribute__(attr)
         except AttributeError:
-            method = getattr(misc, attr, None)
-            if method:
-                return method
+            a = getattr(misc, attr, None)
+            if a:
+                return a
             else:
-                method = getattr(self.dns, attr, None)
-            if method:
-                return method
+                a = getattr(self.dns, attr, None)
+            if a:
+                return a
             else:
                 raise
