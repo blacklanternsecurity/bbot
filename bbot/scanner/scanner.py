@@ -7,9 +7,9 @@ from collections import OrderedDict
 from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
-from bbot.core.errors import BBOTError, ScanError
 from bbot.core.event import make_event, make_event_id
 from bbot.core.helpers.helper import ConfigAwareHelper
+from bbot.core.errors import BBOTError, ScanError, ScanCancelledError
 from bbot.core.configurator import available_modules, available_output_modules
 
 log = logging.getLogger("bbot.scanner")
@@ -141,6 +141,9 @@ class Scanner:
         except KeyboardInterrupt:
             self.stop()
             failed = False
+
+        except ScanCancelledError:
+            self.debug("Scan cancelled")
 
         except BBOTError as e:
             import traceback
