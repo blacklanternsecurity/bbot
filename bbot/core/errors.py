@@ -16,3 +16,7 @@ class ArgumentError(BBOTError):
 
 class ValidationError(BBOTError):
     pass
+
+
+class ModuleLoadError(BBOTError):
+    pass
