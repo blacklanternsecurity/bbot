@@ -16,6 +16,10 @@ class BaseModule:
     produced_events = []
     # Flags
     flags = []
+    # python dependencies (pip install ____)
+    deps_python = []
+    # other dependences as shell commands
+    deps_shell = []
     # Whether to accept duplicate events
     accept_dupes = False
     # Only accept explicitly in-scope events

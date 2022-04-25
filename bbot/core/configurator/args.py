@@ -5,8 +5,8 @@ from contextlib import suppress
 
 from ...modules import output
 from ..errors import ArgumentError
-from ...modules import module_stems
 from ..helpers.misc import chain_lists
+from ...modules import modules_preloaded
 
 log = logging.getLogger("bbot.core.configurator.args")
 
@@ -24,14 +24,16 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.output_modules = chain_lists(ret.output_modules)
         ret.targets = chain_lists(ret.targets, try_files=True)
         if "all" in ret.modules:
-            ret.modules = module_stems
+            ret.modules = list(modules_preloaded)
         else:
             for m in ret.modules:
-                if not m in module_stems and not self._dummy:
-                    raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(module_stems)}')
+                if not m in modules_preloaded and not self._dummy:
+                    raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(list(modules_preloaded))}')
         for m in ret.output_modules:
-            if not m in output.module_stems and not self._dummy:
-                raise ArgumentError(f'Output module "{m}" is not valid. Choose from: {",".join(output.module_stems)}')
+            if not m in output.modules_preloaded and not self._dummy:
+                raise ArgumentError(
+                    f'Output module "{m}" is not valid. Choose from: {",".join(list(output.modules_preloaded))}'
+                )
         return ret
 
 
@@ -51,14 +53,14 @@ for p in (parser, dummy_parser):
         "--modules",
         nargs="+",
         default=[],
-        help=f'Modules (specify keyword "all" to enable all modules). Choices: {",".join(module_stems)}',
+        help=f'Modules (specify keyword "all" to enable all modules). Choices: {",".join(list(modules_preloaded))}',
     )
     p.add_argument(
         "-o",
         "--output-modules",
         nargs="+",
         default=["human"],
-        help=f'Output module(s). Choices: {",".join(output.module_stems)}',
+        help=f'Output module(s). Choices: {",".join(list(output.modules_preloaded))}',
         metavar="MODULES",
     )
     p.add_argument("-a", "--agent-mode", action="store_true")
