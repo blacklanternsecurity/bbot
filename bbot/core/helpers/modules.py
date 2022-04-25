@@ -28,7 +28,7 @@ def preload_module(module_file):
                 if type(class_attr) == ast.Assign and type(class_attr.value) == ast.Dict:
                     # module options
                     if any([target.id == "options" for target in class_attr.targets]):
-                        config.update(ast.literal_eval(ast.unparse(class_attr.value)))
+                        config.update(ast.literal_eval(class_attr.value))
                 # class attributes that are lists
                 if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
                     # python dependencies
