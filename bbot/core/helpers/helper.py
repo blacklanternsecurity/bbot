@@ -23,9 +23,9 @@ class ConfigAwareHelper:
         self.scan = scan
         self.__thread_pool = None
         self.dns = DNSHelper(self)
-        self.bbot_path = Path(__file__).parent.parent.parent.parent
-        self.home = Path.home() / ".bbot"
+        self.home = Path(self.config.get("bbot_home", "~/.bbot")).expanduser().resolve()
         self.cache_dir = self.home / "cache"
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         # holds requests CachedSession() objects for duration of scan
         self.cache_sessions = dict()
         self._futures = set()

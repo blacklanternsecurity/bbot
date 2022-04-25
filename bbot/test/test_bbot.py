@@ -137,6 +137,7 @@ def test_helpers(monkeypatch):
 
     ### WEB ###
     assert getattr(helpers.request("https://api.publicapis.org/health"), "text", "").startswith("{")
+    assert getattr(helpers.request("https://api.publicapis.org/health", cache_for=60), "text", "").startswith("{")
     helpers.download("https://api.publicapis.org/health", cache_hrs=1)
     assert helpers.is_cached("https://api.publicapis.org/health")
 
