@@ -1,15 +1,11 @@
 import logging
 import requests
 from time import sleep
-from pathlib import Path
 from urllib.parse import urlparse
 from requests_cache import CachedSession
 from requests.exceptions import RequestException
 
 log = logging.getLogger("bbot.core.helpers.web")
-
-cache_dir = Path.home() / ".bbot" / "cache"
-cache_dir.mkdir(parents=True, exist_ok=True)
 
 
 def validate_url(self, url):
@@ -70,7 +66,8 @@ def request(self, *args, **kwargs):
         try:
             session = self.cache_sessions[cache_for]
         except KeyError:
-            session = CachedSession(expire_after=cache_for)
+            db_path = str(self.cache_dir / "requests-cache.sqlite")
+            session = CachedSession(expire_after=cache_for, db_path=db_path)
             self.cache_sessions[cache_for] = session
 
     if kwargs.pop("session", None) or not cache_for:
