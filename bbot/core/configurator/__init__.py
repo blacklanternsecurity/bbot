@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from omegaconf import OmegaConf
 
 from . import files, args
@@ -25,6 +26,11 @@ config = OmegaConf.merge(
     # finally, pull from CLI arguments
     args.get_config(),
 )
+
+# ensure bbot_home
+if not "bbot_home" in config:
+    config["bbot_home"] = "~/.bbot"
+config["bbot_home"] = str(Path(config["bbot_home"]).expanduser().resolve())
 
 # handle HTTP proxy
 http_proxy = config.get("http_proxy", "")
