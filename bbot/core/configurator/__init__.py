@@ -2,20 +2,19 @@ import os
 from omegaconf import OmegaConf
 
 from . import files, args
-from ...modules import get_modules
-from ...modules.output import get_modules as get_output_modules
+from ...modules import output, module_dir, modules_preloaded
 
-available_modules = get_modules()
-available_output_modules = get_output_modules()
 
+available_modules = list(modules_preloaded)
 modules_config = OmegaConf.create()
-for module_name, module in available_modules.items():
-    module_config = OmegaConf.create(getattr(module, "options", {}))
+for module_name, preloaded in modules_preloaded.items():
+    module_config = OmegaConf.create(preloaded.get("config", {}))
     modules_config[module_name] = module_config
 
+available_output_modules = list(output.modules_preloaded)
 output_modules_config = OmegaConf.create()
-for module_name, module in available_output_modules.items():
-    module_config = OmegaConf.create(getattr(module, "options", {}))
+for module_name, preloaded in output.modules_preloaded.items():
+    module_config = OmegaConf.create(preloaded.get("config", {}))
     output_modules_config[module_name] = module_config
 
 config = OmegaConf.merge(

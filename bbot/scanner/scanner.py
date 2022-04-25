@@ -7,10 +7,10 @@ from collections import OrderedDict
 from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
+from bbot.core.helpers.modules import load_modules
 from bbot.core.event import make_event, make_event_id
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError
-from bbot.core.configurator import available_modules, available_output_modules
 
 log = logging.getLogger("bbot.scanner")
 
@@ -67,40 +67,23 @@ class Scanner:
 
         # Load modules
         self.modules = dict()
+        failed_modules = 0
+        # Load scan modules
         self.info(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
-        for module_name in [str(m) for m in modules]:
-
-            module_class = available_modules.get(module_name, None)
-            if module_class:
-                try:
-                    self.modules[module_name] = module_class(self)
-                    self.verbose(f'Loaded module "{module_name}"')
-                except Exception:
-                    import traceback
-
-                    self.error(f"Failed to load module {module_class}\n{traceback.format_exc()}")
-            else:
-                self.error(f'Failed to load unknown module "{module_name}"')
-
+        loaded_modules, failed = self.load_modules(modules, "bbot.modules")
+        failed_modules += len(failed)
+        self.modules.update(loaded_modules)
         # Load output modules
         self.info(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
-        for module_name in [str(m) for m in output_modules]:
+        loaded_output_modules, failed_output = self.load_modules(output_modules, "bbot.modules.output")
+        failed_modules += len(failed_output)
+        self.modules.update(loaded_output_modules)
 
-            module_class = available_output_modules.get(module_name, None)
-            if module_class:
-                try:
-                    self.modules[module_name] = module_class(self)
-                    self.verbose(f'Loaded output module "{module_name}"')
-                except Exception:
-                    import traceback
-
-                    self.error(f"Failed to load output module {module_class}\n{traceback.format_exc()}")
-            else:
-                self.error(f'Failed to load unknown output module "{module_name}"')
-
+        if failed_modules > 0:
+            self.warning(f"Failed to load {len(failed_modules):,} modules: {','.join(failed + failed_output)}")
         self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
         if self.modules:
-            self.success(f"Loaded {len(self.modules):,} modules")
+            self.success(f"Loaded {len(self.modules):,}/{len(modules)+len(output_modules):,} modules")
 
     def start(self):
 
@@ -283,3 +266,22 @@ class Scanner:
 
     def critical(self, *args, **kwargs):
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
+
+    def load_modules(self, modules, namespace):
+        modules = [str(m) for m in modules]
+        loaded_modules = {}
+        failed = set()
+        for module_name, module_class in load_modules(modules, namespace).items():
+            if module_class:
+                try:
+                    loaded_modules[module_name] = module_class(self)
+                    self.verbose(f'Loaded module "{module_name}"')
+                    continue
+                except Exception:
+                    import traceback
+
+                    self.warning(f"Failed to load module {module_class}\n{traceback.format_exc()}")
+            else:
+                self.warning(f'Failed to load unknown module "{module_name}"')
+            failed.add(module_name)
+        return loaded_modules, failed
