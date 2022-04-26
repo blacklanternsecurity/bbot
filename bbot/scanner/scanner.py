@@ -195,6 +195,10 @@ class Scanner:
             self.helpers.kill_children()
 
     @property
+    def word_cloud(self):
+        return self.helpers.word_cloud
+
+    @property
     def status(self):
         return self._status
 
