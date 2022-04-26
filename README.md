@@ -28,8 +28,8 @@ black .
 ## Adding a dependency
 ~~~
 1. poetry add <package>
-2. poetry export -f requirements.txt --without-hashes > requirements.txt
-3. poetry export --dev -f requirements.txt --without-hashes > requirements-dev.txt
+2. poetry export --without-hashes > requirements.txt
+3. poetry export --dev --without-hashes > requirements-dev.txt
 ~~~
 
 ## Usage
@@ -104,4 +104,24 @@ for future in self.helpers.as_completed(futures):
     response = future.result()
     if getattr(response, "status_code", 0) == 200:
         log.success(f"Found URL: {url}")
+
+# Access the global word cloud
+# The word cloud contains commonly-encountered words from the scan
+# These words come from dns names, etc., and you can use them for 
+# smart brute-forcing of subdomains, vhosts, storage buckets, etc.
+self.helpers.word_cloud
+# {"www": 1, black": 3, "lantern": 1, "security": 1, ...}
+self.helpers.word_cloud.modifiers()
+# {"1", "2", "3", "dev", "api", "test", "qa", ...}
+self.helpers.word_cloud.mutations("word")
+"""
+[
+    ("word", "dev"),
+    ("dev", "word"),
+    ("word", "api"),
+    ("api", "word"),
+    ("word", "1"),
+    ("1", "word")
+]
+"""
 ~~~

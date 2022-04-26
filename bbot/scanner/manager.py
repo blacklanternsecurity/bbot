@@ -16,7 +16,6 @@ class ScanManager:
         self.event_queue = queue.SimpleQueue()
         # tracks processed events
         self.events_processed = set()
-        self.word_cloud = dict()
 
     def init_events(self):
         """
@@ -46,7 +45,7 @@ class ScanManager:
             self.scan.verbose(f"Duplicate event: {event}")
             dup = True
         else:
-            self.absorb_words(event)
+            self.scan.word_cloud.absorb_event(event)
             self.events_processed.add(event_hash)
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:
@@ -107,13 +106,6 @@ class ScanManager:
             self.scan.status = "CLEANING_UP"
             for mod in self.scan.modules.values():
                 mod._cleanup()
-
-    def absorb_words(self, event):
-        for word in event.words:
-            try:
-                self.word_cloud[word] += 1
-            except KeyError:
-                self.word_cloud[word] = 1
 
     def modules_status(self, _log=False, passes=None):
 

@@ -163,6 +163,23 @@ def test_helpers(monkeypatch):
     assert hasattr(helpers.dns.resolver_file, "is_file")
 
 
+def test_word_cloud():
+
+    number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
+    assert "base0_p013" in number_mutations
+    assert "base7_p013" in number_mutations
+    assert "base8_p013" not in number_mutations
+    assert "base2_p008" in number_mutations
+    assert "base2_p007" not in number_mutations
+    assert "base2_p018" in number_mutations
+    assert "base2_p0134" in number_mutations
+    assert "base2_p0135" not in number_mutations
+
+    permutations = helpers.word_cloud.mutations("_base", numbers=1)
+    assert ("_base", "dev") in permutations
+    assert ("dev", "_base") in permutations
+
+
 def test_modules():
 
     method_futures = {"setup": {}, "finish": {}, "cleanup": {}}

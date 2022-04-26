@@ -1,10 +1,12 @@
 import os
+import atexit
 import psutil
 import random
 import signal
 import string
 import logging
 import ipaddress
+import threading
 import wordninja
 from pathlib import Path
 from contextlib import suppress
@@ -235,3 +237,40 @@ def list_files(directory, filter=lambda x: True):
             file = directory / file
             if file.is_file() and filter(file):
                 yield file
+
+
+def _rm_at_exit(path):
+    with suppress(Exception):
+        Path(path).unlink()
+
+
+def rm_at_exit(path):
+    atexit.register(_rm_at_exit, path)
+
+
+def _feed_pipe(pipe, content):
+    if type(content) not in (set, list, tuple):
+        content = (content,)
+    with suppress(Exception):
+        with open(pipe, "w") as p:
+            for c in content:
+                p.write(smart_decode(c))
+
+
+def feed_pipe(pipe, content):
+    t = threading.Thread(target=_feed_pipe, args=(pipe, content), daemon=True)
+    t.start()
+
+
+def read_file(filename):
+    with open(filename, errors="ignore") as f:
+        for line in f:
+            yield line.rstrip("\r\n")
+
+
+def gen_numbers(n, padding=2):
+    results = set()
+    for i in range(n):
+        for p in range(1, padding + 1):
+            results.add(str(i).zfill(p))
+    return results

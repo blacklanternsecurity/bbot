@@ -1,3 +1,5 @@
+import atexit
+import shutil
 import logging
 from time import sleep
 from pathlib import Path
@@ -6,6 +8,7 @@ from threading import Lock
 
 from . import misc
 from .dns import DNSHelper
+from .wordcloud import WordCloud
 from ..errors import ScanCancelledError
 
 log = logging.getLogger("bbot.core.helpers")
@@ -14,7 +17,7 @@ log = logging.getLogger("bbot.core.helpers")
 class ConfigAwareHelper:
 
     from .web import request, download, validate_url
-    from .command import run, run_live
+    from .command import run, run_live, tempfile
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from . import regexes
 
@@ -26,10 +29,15 @@ class ConfigAwareHelper:
         self.home = Path(self.config.get("bbot_home", "~/.bbot")).expanduser().resolve()
         self.cache_dir = self.home / "cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.temp_dir = self.home / "temp"
+        self.temp_dir.mkdir(parents=True, exist_ok=True)
+        atexit.register(self.empty_temp_dir)
         # holds requests CachedSession() objects for duration of scan
         self.cache_sessions = dict()
         self._futures = set()
         self._future_lock = Lock()
+
+        self.word_cloud = WordCloud(self)
 
     @property
     def num_running_tasks(self):
@@ -52,6 +60,12 @@ class ConfigAwareHelper:
             raise ScanCancelledError(e)
         self._futures.add(future)
         return future
+
+    def temp_filename(self):
+        return self.temp_dir / self.rand_string(20)
+
+    def empty_temp_dir(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     @property
     def _thread_pool(self):
