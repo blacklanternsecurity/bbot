@@ -10,7 +10,11 @@ def file_filter(file):
 def preload_modules(module_dir):
     preloaded_modules = dict()
     for module_file in list_files(module_dir, filter=file_filter):
-        preloaded_modules[module_file.stem] = preload_module(module_file)
+        try:
+            preloaded_modules[module_file.stem] = preload_module(module_file)
+        except Exception as e:
+            print(f"\n[ERRR] Error parsing {module_file.name}: {e.args[0]}\n")
+            continue
     return preloaded_modules
 
 
@@ -29,6 +33,7 @@ def preload_module(module_file):
                     # module options
                     if any([target.id == "options" for target in class_attr.targets]):
                         config.update(ast.literal_eval(class_attr.value))
+
                 # class attributes that are lists
                 if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
                     # python dependencies
