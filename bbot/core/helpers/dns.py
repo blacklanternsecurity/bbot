@@ -123,7 +123,7 @@ class DNSHelper:
         resolver.lifetime = timeout
         resolver.nameservers = [nameserver]
 
-        # first, make sure it can resolve google.com
+        # first, make sure it can resolve a valid hostname
         try:
             resolver.resolve("www.example.com", "A")
         except Exception:

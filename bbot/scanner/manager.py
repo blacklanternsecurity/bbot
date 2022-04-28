@@ -89,6 +89,7 @@ class ScanManager:
                             for mod in self.scan.modules.values():
                                 mod.queue_event("FINISHED")
                             event_counter = 0
+                            sleep(1)
                         else:
                             # Otherwise stop the scan if no new events were generated in this iteration
                             break
@@ -106,6 +107,9 @@ class ScanManager:
             self.scan.status = "CLEANING_UP"
             for mod in self.scan.modules.values():
                 mod._cleanup()
+            finished = False
+            while not finished:
+                finished = self.modules_status(_log=log_status).get("finished", False)
 
     def modules_status(self, _log=False, passes=None):
 

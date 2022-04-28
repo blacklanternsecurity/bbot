@@ -155,6 +155,11 @@ def tldextract(data):
     return _tldextract.extract(smart_decode(data))
 
 
+def split_domain(hostname):
+    parsed = tldextract(hostname)
+    return (parsed.subdomain, parsed.registered_domain)
+
+
 rand_pool = string.ascii_lowercase + string.digits
 
 
@@ -248,17 +253,29 @@ def rm_at_exit(path):
     atexit.register(_rm_at_exit, path)
 
 
-def _feed_pipe(pipe, content):
-    if type(content) not in (set, list, tuple):
-        content = (content,)
+def _feed_pipe(pipe, content, text=True):
+    if text:
+        decode_fn = smart_decode
+        newline = "\n"
+    else:
+        decode_fn = smart_encode
+        newline = b"\n"
     with suppress(Exception):
-        with open(pipe, "w") as p:
-            for c in content:
-                p.write(smart_decode(c))
+        if hasattr(pipe, "write"):
+            try:
+                for c in content:
+                    pipe.write(decode_fn(c) + newline)
+            finally:
+                with suppress(Exception):
+                    pipe.close()
+        else:
+            with open(pipe, "w") as p:
+                for c in content:
+                    p.write(decode_fn(c) + newline)
 
 
-def feed_pipe(pipe, content):
-    t = threading.Thread(target=_feed_pipe, args=(pipe, content), daemon=True)
+def feed_pipe(pipe, content, text=True):
+    t = threading.Thread(target=_feed_pipe, args=(pipe, content), kwargs={"text": text}, daemon=True)
     t.start()
 
 
