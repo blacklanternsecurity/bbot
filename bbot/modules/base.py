@@ -22,6 +22,8 @@ class BaseModule:
     deps_shell = []
     # Whether to accept duplicate events
     accept_dupes = False
+    # Whether to block outgoing duplicate events
+    suppress_dupes = True
     # Only accept explicitly in-scope events
     in_scope_only = False
     # Only accept the initial target event(s)
@@ -55,6 +57,7 @@ class BaseModule:
         self._futures = set()
         self._future_lock = threading.Lock()
         self._submit_task_lock = threading.Lock()
+        self._emitted_events = set()
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []
 
@@ -162,8 +165,16 @@ class BaseModule:
 
     def _emit_event(self, *args, **kwargs):
         try:
+            on_success_callback = kwargs.pop("on_success_callback", None)
             kwargs["module"] = self
+            abort_if_tagged = kwargs.pop("abort_if_tagged", tuple())
+            if type(abort_if_tagged) == str:
+                abort_if_tagged = (abort_if_tagged,)
             event = self.scan.make_event(*args, **kwargs)
+            if self.suppress_dupes and hash(event) in self._emitted_events:
+                self.debug(f"Not raising duplicate event {event}")
+                return
+            self._emitted_events.add(hash(event))
 
             # special DNS validation
             if event.type == "DNS_NAME":
@@ -177,8 +188,15 @@ class BaseModule:
                 if self.helpers.is_wildcard(event.data):
                     event.tags.add("wildcard")
 
+            for tag in abort_if_tagged:
+                if tag in event.tags:
+                    self.debug(f'Not raising event due to unwanted tag "{tag}"')
+                    return
+
             self.debug(f'module "{self.name}" raised {event}')
             self.scan.manager.queue_event(event)
+            if callable(on_success_callback):
+                on_success_callback(event)
         except ValidationError as e:
             self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
 

@@ -12,8 +12,12 @@ def preload_modules(module_dir):
     for module_file in list_files(module_dir, filter=file_filter):
         try:
             preloaded_modules[module_file.stem] = preload_module(module_file)
-        except Exception as e:
-            print(f"\n[ERRR] Error parsing {module_file.name}: {e.args[0]}\n")
+        except Exception:
+            # if there's a parsing error, try importing the module to give the user the most info
+            namespace = "bbot.modules"
+            if module_dir.name == "output":
+                namespace = "bbot.modules.output"
+            load_modules([module_file.stem], namespace=namespace)
             continue
     return preloaded_modules
 
