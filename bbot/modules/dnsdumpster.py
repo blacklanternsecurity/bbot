@@ -44,7 +44,9 @@ class dnsdumpster(BaseModule):
         url = "https://dnsdumpster.com"
         res1 = self.helpers.request(url)
         status_code = getattr(res1, "status_code", 0)
-        if status_code not in [200]:
+        if status_code in [429]:
+            self.warning(f'Too many requests "{status_code}"')
+        elif status_code not in [200]:
             self.warning(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
         else:

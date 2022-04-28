@@ -1,6 +1,7 @@
 import os
 import sys
 import pytest
+import shutil
 import logging
 import ipaddress
 from time import sleep
@@ -119,8 +120,21 @@ def test_helpers(monkeypatch):
     assert not helpers.is_ip("publicapis.org")
 
     ### COMMAND ###
-    assert "bin" in helpers.run(["ls", "/"], text=True).stdout.split("\n")
-    assert "bin" in list(helpers.run_live(["ls", "/"]))[0].split("\n")
+    assert "plumbus\n" in helpers.run(["echo", "plumbus"], text=True).stdout
+    assert "plumbus\n" in list(helpers.run_live(["echo", "plumbus"]))
+    assert "plumbus\n" in list(helpers.run_live(["cat"], input="lumbus\nplumbus"))
+
+    def plumbus_generator():
+        yield "lumbus"
+        yield "plumbus"
+
+    assert "plumbus\n" in list(helpers.run_live(["cat"], input=plumbus_generator()))
+    tempfile = helpers.tempfile(("lumbus", "plumbus"), pipe=True)
+    with open(tempfile) as f:
+        assert "plumbus\n" in list(f)
+    tempfile = helpers.tempfile(("lumbus", "plumbus"), pipe=False)
+    with open(tempfile) as f:
+        assert "plumbus\n" in list(f)
 
     ### CACHE ###
     helpers.cache_put("string", "wat")
@@ -361,3 +375,9 @@ def test_cli(monkeypatch):
     cli.main()
     monkeypatch.setattr(sys, "argv", ["bbot", "-t", "doesnot.exist", "-m", "plumbus"])
     cli.main()
+
+
+# wipe out bbot home dir
+import atexit
+
+atexit.register(shutil.rmtree, "/tmp/.bbot_test", ignore_errors=True)

@@ -30,12 +30,15 @@ dr
 dv
 ext
 external
+fail
+failover
 gateway
 go
 gw
 home
 id
 info
+int
 internal
 intranet
 it
@@ -83,6 +86,7 @@ train
 training
 trial
 ts
+tst
 ua
 uat
 v1

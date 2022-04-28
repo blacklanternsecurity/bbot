@@ -19,11 +19,14 @@ class WordCloud(dict):
     ):
         if type(words) not in (set, list, tuple):
             words = (words,)
-        results = set(words)
+        results = set()
+        for word in words:
+            results.add((word,))
         if numbers > 0:
             if substitute_numbers:
                 for word in words:
-                    results.update(self.get_number_mutations(word, n=numbers, padding=number_padding))
+                    for number_mutation in self.get_number_mutations(word, n=numbers, padding=number_padding):
+                        results.add((number_mutation,))
         for word in words:
             for modifier in self.modifiers(
                 devops=devops, cloud=cloud, letters=letters, numbers=numbers, number_padding=number_padding
