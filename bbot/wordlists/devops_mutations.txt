@@ -46,8 +46,10 @@ lab
 legacy
 lib
 login
+mail
 mirror
 mobile
+mx
 my
 new
 old

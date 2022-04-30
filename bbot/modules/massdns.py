@@ -120,21 +120,26 @@ class massdns(BaseModule):
                     yield hostname.rstrip(".")
 
     def finish(self):
+        found = list(self.found.items())
+
         base_mutations = set()
-        for domain, subdomains in list(self.found.items()):
+        for domain, subdomains in found:
             base_mutations.update(set([s[0] for s in subdomains]))
 
-        for domain, subdomains in list(self.found.items()):
+        for i, (domain, subdomains) in enumerate(found):
+            if self.scan.stopping:
+                return
             mutations = set(base_mutations)
             for mutation in self.helpers.word_cloud.mutations(set([s[0] for s in subdomains])):
                 for delimiter in ("", ".", "-"):
                     mutations.add(delimiter.join(mutation))
+            self.verbose(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
             for hostname in self.massdns(domain, mutations):
-                event = next(iter(self.found[domain]))[-1]
+                source_event = next(iter(self.found[domain]))[-1]
                 self.emit_event(
                     hostname,
                     "DNS_NAME",
-                    event,
+                    source_event,
                     abort_if_tagged=("wildcard", "unresolved"),
                     on_success_callback=self.add_found,
                 )
