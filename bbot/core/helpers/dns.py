@@ -36,7 +36,6 @@ class DNSHelper:
 
         # we need our own threadpool because using the shared one can lead to deadlocks
         max_workers = self.parent_helper.config.get("max_threads", 100)
-        # max_workers = 1000
         executor = ThreadPoolExecutor(max_workers=max_workers)
         self._thread_pool = ThreadPoolWrapper(executor, max_workers=max_workers)
 
