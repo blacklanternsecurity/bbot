@@ -120,81 +120,85 @@ class ScanManager:
 
     def modules_status(self, _log=False, passes=None):
 
-        finished = False
         # If scan looks to be finished, check an additional five times to ensure that it really is
         # There is a tiny chance of a race condition, which this helps to avoid
         if passes is None:
             passes = 5
         else:
-            passes = int(passes)
+            passes = max(1, int(passes))
 
+        finished = True
         while passes > 0:
 
-            queued_events = dict()
-            running_tasks = dict()
-            modules_running = []
-            modules_errored = []
+            status = {"modules": {}, "scan": self.scan.status_detailed}
 
-            shared_pool_total = self.scan.helpers.num_queued_tasks
+            if self.event_queue.qsize() > 0:
+                finished = False
+
+            for num_tasks in status["scan"]["queued_tasks"].values():
+                if num_tasks > 0:
+                    finished = False
 
             for m in self.scan.modules.values():
-                try:
-                    if m.event_queue:
-                        queued_events[m.name] = m.num_queued_events
-                    running_tasks[m.name] = m.num_running_tasks
-                    if m.running:
-                        modules_running.append(m)
-                    if m.errored:
-                        modules_errored.append(m)
-                except Exception as e:
-                    with suppress(Exception):
-                        m.set_error_state(f'Error encountered while polling module "{m.name}": {e}')
-
-            queued_events = sorted(queued_events.items(), key=lambda x: x[-1], reverse=True)
-            running_tasks = sorted(running_tasks.items(), key=lambda x: x[-1], reverse=True)
-            queues_empty = [qsize == 0 for m, qsize in queued_events]
+                mod_status = m.status
+                if mod_status["running"]:
+                    finished = False
+                status["modules"][m.name] = mod_status
 
             for mod in self.scan.modules.values():
                 if mod.errored and mod.event_queue not in [None, False]:
                     with suppress(Exception):
                         mod.set_error_state()
 
-            finished = not self.event_queue or (not modules_running and shared_pool_total == 0 and all(queues_empty))
             if finished:
                 sleep(0.1)
             else:
                 break
             passes -= 1
 
-        if _log:
-            events_queued = ", ".join([f"{mod}: {qsize:,}" for mod, qsize in queued_events[:5] if qsize > 0])
-            if not events_queued:
-                events_queued = "None"
-            tasks_queued = ", ".join([f"{mod}: {qsize:,}" for mod, qsize in running_tasks[:5] if qsize > 0])
-            if not tasks_queued:
-                tasks_queued = "None"
+        status["finished"] = finished
 
-            num_events_queued = sum([m[-1] for m in queued_events])
-            self.scan.verbose(f"Events queued: {num_events_queued:,} (modules: {events_queued})")
-            num_tasks_queued = sum([m[-1] for m in running_tasks])
-            self.scan.verbose(f"Module tasks queued: {num_tasks_queued:,} (modules: {tasks_queued})")
-            shared_pool_queued = self.scan.helpers._thread_pool._work_queue.qsize()
-            shared_pool_running = max(0, shared_pool_total - shared_pool_queued)
-            self.scan.verbose(f"Shared thread pool: Running: {shared_pool_running:,} Queued: {shared_pool_queued:,}")
+        modules_running = [m for m, s in status["modules"].items() if s["running"]]
+        modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
+
+        if _log:
+            events_queued = [(m, s["events"]["queued"]) for m, s in status["modules"].items()]
+            events_queued.sort(key=lambda x: x[-1], reverse=True)
+            events_queued = [(m, q) for m, q in events_queued if q > 0][:5]
+            events_queued_str = ""
+            if events_queued:
+                events_queued_str = " (" + ", ".join([f"{m}: {q:,}" for m, q in events_queued]) + ")"
+            tasks_queued = [(m, s["tasks"]["total"]) for m, s in status["modules"].items()]
+            tasks_queued.sort(key=lambda x: x[-1], reverse=True)
+            tasks_queued = [(m, q) for m, q in tasks_queued if q > 0][:5]
+            tasks_queued_str = ""
+            if tasks_queued:
+                tasks_queued_str = " (" + ", ".join([f"{m}: {q:,}" for m, q in tasks_queued]) + ")"
+
+            num_events_queued = sum([m[-1] for m in events_queued])
+            self.scan.verbose(f"Events queued: {num_events_queued:,}{events_queued_str}")
+
+            num_tasks_queued = sum([m[-1] for m in tasks_queued])
+            self.scan.verbose(f"Module tasks queued: {num_tasks_queued:,}{tasks_queued_str}")
+
+            num_scan_tasks = status["scan"]["queued_tasks"]["total"]
+            dns_tasks = status["scan"]["queued_tasks"]["dns"]
+            event_tasks = status["scan"]["queued_tasks"]["event"]
+            main_tasks = status["scan"]["queued_tasks"]["main"]
+            internal_tasks = status["scan"]["queued_tasks"]["internal"]
+            self.scan.verbose(
+                f"Scan tasks queued: {num_scan_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
+            )
+
             if modules_running:
                 self.scan.verbose(
-                    f'Modules running: {len(modules_running):,} ({", ".join([m.name for m in modules_running])})'
+                    f'Modules running: {len(modules_running):,} ({", ".join([m for m in modules_running])})'
                 )
             if modules_errored:
                 self.scan.verbose(
-                    f'Modules errored: {len(modules_errored):,} ({", ".join([m.name for m in modules_errored])})'
+                    f'Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
                 )
 
-        status = {
-            "modules_running": modules_running,
-            "queued_events": queued_events,
-            "running_tasks": running_tasks,
-            "errored": modules_errored,
-            "finished": finished,
-        }
+        status.update({"modules_running": len(modules_running), "modules_errored": len(modules_errored)})
+
         return status

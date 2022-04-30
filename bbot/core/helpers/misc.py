@@ -188,6 +188,9 @@ def extract_words(data, max_length=100):
             if e - s <= max_slice_length:
                 subword_slice = "".join(subwords[s:e])
                 words.add(subword_slice)
+        # blacklanternsecurity --> bls
+        if len(subwords) > 1:
+            words.add("".join([c[0] for c in subwords if len(c) > 0]))
 
     return words
 

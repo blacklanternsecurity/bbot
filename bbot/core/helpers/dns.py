@@ -5,6 +5,7 @@ import dns.exception
 from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 
+from ..threadpool import ThreadPoolWrapper
 from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
@@ -34,8 +35,10 @@ class DNSHelper:
         self._wildcard_locks = dict()
 
         # we need our own threadpool because using the shared one can lead to deadlocks
-        max_workers = self.parent_helper.config.get("max_threads", 250)
-        self._thread_pool = ThreadPoolExecutor(max_workers=max_workers)
+        max_workers = self.parent_helper.config.get("max_threads", 100)
+        # max_workers = 1000
+        executor = ThreadPoolExecutor(max_workers=max_workers)
+        self._thread_pool = ThreadPoolWrapper(executor, max_workers=max_workers)
 
         self._debug = self.parent_helper.config.get("dns_debug", False)
 
@@ -53,11 +56,8 @@ class DNSHelper:
             kwargs.pop("rdtype", None)
             if "type" in kwargs:
                 types = [kwargs.pop("type")]
-            futures = []
             for t in types:
-                futures.append(self._thread_pool.submit(self._resolve_hostname, query, rdtype=t, **kwargs))
-            for future in self.parent_helper.as_completed(futures):
-                results.update(future.result())
+                results.update(self._resolve_hostname(query, rdtype=t, **kwargs))
 
             return results
 
@@ -109,7 +109,7 @@ class DNSHelper:
             timeout (int): timeout for dns query
         """
         log.verbose(f"Verifying {len(nameservers):,} nameservers")
-        futures = [self._thread_pool.submit(self.verify_nameserver, n) for n in nameservers]
+        futures = [self._thread_pool.submit_task(self.verify_nameserver, n) for n in nameservers]
 
         valid_nameservers = set()
         for future in self.parent_helper.as_completed(futures):
@@ -175,33 +175,35 @@ class DNSHelper:
         try:
             return callback(*args, **kwargs)
         except dns.exception.Timeout:
-            self.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
+            log.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
         except dns.exception.DNSException as e:
-            self.debug(f"{e} (args={args}, kwargs={kwargs})")
+            log.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception:
-            self.debug(f"Error in {callback.__name__} with args={args}, kwargs={kwargs}")
+            log.debug(f"Error in {callback.__name__} with args={args}, kwargs={kwargs}")
         return set()
 
     def is_wildcard(self, query):
         if is_domain(query):
             return False
         parent = parent_domain(query)
+
+        if parent in self._cache:
+            return self._cache[parent]
+
         with self._wildcard_lock(parent):
             orig_results = self.resolve(query)
             parents = set(domain_parents(query))
             is_wildcard = False
 
-            if parent in self._cache:
-                return self._cache[parent]
-            for parent in parents:
-                if parent in self.wildcards:
+            for p in parents:
+                if p in self.wildcards:
                     return True
 
             futures = dict()
             for parent in parents:
                 for _ in range(self.wildcard_tests):
                     rand_query = f"{rand_string(length=10)}.{parent}"
-                    future = self._thread_pool.submit(self.resolve, rand_query)
+                    future = self._thread_pool.submit_task(self.resolve, rand_query)
                     futures[future] = parent
 
             wildcard_ips = set()

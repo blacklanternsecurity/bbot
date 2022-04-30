@@ -5,6 +5,7 @@ import traceback
 from time import sleep
 from contextlib import suppress
 
+from ..core.threadpool import ThreadPoolWrapper
 from ..core.errors import ScanCancelledError, ValidationError
 
 
@@ -54,9 +55,10 @@ class BaseModule:
         self._log = None
         self._event_queue = None
         self._batch_idle = 0
-        self._futures = set()
-        self._future_lock = threading.Lock()
-        self._submit_task_lock = threading.Lock()
+        self.thread_pool = ThreadPoolWrapper(self.scan._thread_pool.executor, max_workers=self.max_threads)
+        self._internal_thread_pool = ThreadPoolWrapper(
+            self.scan._internal_thread_pool.executor, max_workers=self.config.get("max_threads", 1)
+        )
         self._emitted_events = set()
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []
@@ -150,7 +152,7 @@ class BaseModule:
                 on_finish_callback = self.finish
             if events:
                 self.debug(f"Handling batch of {len(events):,} events")
-                self.submit_task(
+                self._internal_thread_pool.submit_task(
                     self.catch,
                     self.handle_batch,
                     *events,
@@ -163,7 +165,7 @@ class BaseModule:
     def emit_event(self, *args, **kwargs):
         # don't raise an exception if the thread pool has been shutdown
         with suppress(RuntimeError):
-            self.helpers.submit_task(self._emit_event, *args, **kwargs)
+            self.scan._event_thread_pool.submit_task(self._emit_event, *args, **kwargs)
 
     def _emit_event(self, *args, **kwargs):
         try:
@@ -227,34 +229,7 @@ class BaseModule:
         ret = 0
         if self.event_queue:
             ret = self.event_queue.qsize()
-        if self.task_waiting:
-            ret += 1
         return ret
-
-    @property
-    def num_running_tasks(self):
-        running_futures = set()
-        with self._future_lock:
-            for f in self._futures:
-                if not f.done():
-                    running_futures.add(f)
-            self._futures = running_futures
-        return len(running_futures)
-
-    def submit_task(self, callback, *args, **kwargs):
-        # make sure we don't exceed max threads for module
-        # NOTE: here, we're pulling from the module config first, then self.max_threads
-        # so the user can override the value if they want
-        max_threads = self.config.get("max_threads", self.max_threads)
-        with self._submit_task_lock:
-            while self.num_running_tasks > max_threads:
-                sleep(0.1)
-            try:
-                future = self.scan._thread_pool.submit(callback, *args, **kwargs)
-            except RuntimeError as e:
-                raise ScanCancelledError(e)
-            self._futures.add(future)
-        return future
 
     def start(self):
         self.thread = threading.Thread(target=self._worker)
@@ -284,9 +259,8 @@ class BaseModule:
         if self.scan.status == "FINISHING":
             return True
         # if there's a batch stalemate
-        modules_status = self.scan.manager.modules_status(passes=1)
-        modules_running = modules_status.get("modules_running", [])
-        if all([(not m.running) and (m.batch_size > 1) for m in modules_running]):
+        batch_modules = [m for m in self.scan.modules.values() if m.batch_size > 1]
+        if all([(not m.running) for m in batch_modules]):
             return True
         return False
 
@@ -319,12 +293,12 @@ class BaseModule:
                     self.debug(f"Got {e}")
                     # if we receive the special "FINISHED" event
                     if type(e) == str and e == "FINISHED":
-                        self.submit_task(self.catch, self.finish)
+                        self._internal_thread_pool.submit_task(self.catch, self.finish)
                     else:
                         if self._type == "output":
                             self.catch(self.handle_event, e)
                         else:
-                            self.submit_task(self.catch, self.handle_event, e, _lock_brutes=True)
+                            self._internal_thread_pool.submit_task(self.catch, self.handle_event, e, _lock_brutes=True)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted")
@@ -369,7 +343,7 @@ class BaseModule:
     def _cleanup(self):
         for callback in [self.cleanup] + self.cleanup_callbacks:
             if callable(callback):
-                self.submit_task(self.catch, callback)
+                self._internal_thread_pool.submit_task(self.catch, callback)
 
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:
@@ -403,19 +377,34 @@ class BaseModule:
         return self.scan.helpers
 
     @property
+    def status(self):
+        main_pool = self.thread_pool.num_tasks
+        internal_pool = self._internal_thread_pool.num_tasks
+        pool_total = main_pool + internal_pool
+        status = {
+            "events": {"queued": self.event_queue.qsize()},
+            "tasks": {"main_pool": main_pool, "internal_pool": internal_pool, "total": pool_total},
+            "errored": self.errored,
+        }
+        status["running"] = self._is_running(status)
+        return status
+
+    @staticmethod
+    def _is_running(module_status):
+        for status, count in module_status["events"].items():
+            if count > 0:
+                return True
+        for pool, count in module_status["tasks"].items():
+            if count > 0:
+                return True
+        return False
+
+    @property
     def running(self):
         """
         Indicates whether the module is currently processing data.
         """
-        running = (self.num_running_tasks + self.num_queued_events) > 0 or self.task_waiting
-        return running
-
-    @property
-    def task_waiting(self):
-        """
-        Whether a task is waiting to submitted
-        """
-        return self._submit_task_lock.locked()
+        return self._is_running(self.status)
 
     @property
     def config(self):

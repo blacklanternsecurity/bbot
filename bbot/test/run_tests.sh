@@ -10,7 +10,7 @@ echo
 
 echo "[+] Linting with flake8"
 echo "======================="
-flake8 --select F --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403" "$bbot_dir" || exit 1
+flake8 --select F,E722 --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403" "$bbot_dir" || exit 1
 echo
 
 echo "[+] Testing with pytest"
