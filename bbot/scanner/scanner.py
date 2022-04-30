@@ -143,18 +143,17 @@ class Scanner:
         finally:
             # Shut down shared thread pool
             self._thread_pool.shutdown(wait=True)
+            self.helpers.dns._thread_pool.shutdown(wait=True)
 
-            # Set status
-            if failed:
+            if self.status == "ABORTING":
+                self.status = "ABORTED"
+                self.warning(f"Scan {self.id} completed with status {self.status}")
+            elif failed:
                 self.status = "FAILED"
                 self.error(f"Scan {self.id} completed with status {self.status}")
             else:
-                if self.status == "ABORTING":
-                    self.status = "ABORTED"
-                    self.warning(f"Scan {self.id} completed with status {self.status}")
-                else:
-                    self.status = "FINISHED"
-                    self.success(f"Scan {self.id} completed with status {self.status}")
+                self.status = "FINISHED"
+                self.success(f"Scan {self.id} completed with status {self.status}")
 
             self.dispatcher.on_finish(self)
 
@@ -189,9 +188,10 @@ class Scanner:
             self.warning(f"Aborting scan")
             for i in range(max(10, self.max_brute_forcers * 10)):
                 self._brute_lock.release()
-            self.debug(f"Shutting down thread pool")
+            self.debug(f"Shutting down thread pool with wait={wait}")
+            self.helpers.dns._thread_pool.shutdown(wait=wait, cancel_futures=True)
             self._thread_pool.shutdown(wait=wait, cancel_futures=True)
-            self.debug(f"Finished shutting down thread pool")
+            self.debug("Finished shutting down thread pool")
             self.helpers.kill_children()
 
     @property
@@ -218,7 +218,7 @@ class Scanner:
         If data is already an event, simply return it
         Handle dummy event type
         """
-        kwargs["scan_id"] = self.id
+        kwargs["scan"] = self
         return make_event(*args, **kwargs)
 
     @property

@@ -125,7 +125,9 @@ class BaseModule:
             if not self.scan.stopping:
                 ret = callback(*args, **kwargs)
         except ScanCancelledError as e:
-            self.debug(f"Encountered ScanCancelledError: {e}")
+            self.debug(f"Encountered ScanCancelledError in {callback.__name__}(): {e}")
+        except BrokenPipeError as e:
+            self.debug(f"Encountered BrokenPipeError in {callback.__name__}(): {e}")
         except Exception as e:
             self.error(f"Encountered error in {callback.__name__}(): {e}")
             self.debug(traceback.format_exc())
@@ -319,7 +321,10 @@ class BaseModule:
                     if type(e) == str and e == "FINISHED":
                         self.submit_task(self.catch, self.finish)
                     else:
-                        self.submit_task(self.catch, self.handle_event, e, _lock_brutes=True)
+                        if self._type == "output":
+                            self.catch(self.handle_event, e)
+                        else:
+                            self.submit_task(self.catch, self.handle_event, e, _lock_brutes=True)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted")

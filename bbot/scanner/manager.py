@@ -102,14 +102,21 @@ class ScanManager:
                 # distribute event to modules
                 self.distribute_event(event)
 
+        except KeyboardInterrupt:
+            self.scan.stop()
+
         finally:
             # clean up modules
             self.scan.status = "CLEANING_UP"
             for mod in self.scan.modules.values():
                 mod._cleanup()
             finished = False
-            while not finished:
-                finished = self.modules_status(_log=log_status).get("finished", False)
+            while 1:
+                finished = self.modules_status().get("finished", False)
+                if finished:
+                    break
+                else:
+                    sleep(0.1)
 
     def modules_status(self, _log=False, passes=None):
 
@@ -128,7 +135,7 @@ class ScanManager:
             modules_running = []
             modules_errored = []
 
-            shared_pool_tasks = self.scan.helpers.num_running_tasks + self.scan.helpers.num_queued_tasks
+            shared_pool_total = self.scan.helpers.num_queued_tasks
 
             for m in self.scan.modules.values():
                 try:
@@ -152,7 +159,7 @@ class ScanManager:
                     with suppress(Exception):
                         mod.set_error_state()
 
-            finished = not self.event_queue or (not modules_running and shared_pool_tasks == 0 and all(queues_empty))
+            finished = not self.event_queue or (not modules_running and shared_pool_total == 0 and all(queues_empty))
             if finished:
                 sleep(0.1)
             else:
@@ -166,8 +173,14 @@ class ScanManager:
             tasks_queued = ", ".join([f"{mod}: {qsize:,}" for mod, qsize in running_tasks[:5] if qsize > 0])
             if not tasks_queued:
                 tasks_queued = "None"
-            self.scan.verbose(f"Events queued: {sum([m[-1] for m in queued_events]):,} ({events_queued})")
-            self.scan.verbose(f"Tasks queued: {sum([m[-1] for m in running_tasks]):,} ({tasks_queued})")
+
+            num_events_queued = sum([m[-1] for m in queued_events])
+            self.scan.verbose(f"Events queued: {num_events_queued:,} (modules: {events_queued})")
+            num_tasks_queued = sum([m[-1] for m in running_tasks])
+            self.scan.verbose(f"Module tasks queued: {num_tasks_queued:,} (modules: {tasks_queued})")
+            shared_pool_queued = self.scan.helpers._thread_pool._work_queue.qsize()
+            shared_pool_running = max(0, shared_pool_total - shared_pool_queued)
+            self.scan.verbose(f"Shared thread pool: Running: {shared_pool_running:,} Queued: {shared_pool_queued:,}")
             if modules_running:
                 self.scan.verbose(
                     f'Modules running: {len(modules_running):,} ({", ".join([m.name for m in modules_running])})'
@@ -177,10 +190,11 @@ class ScanManager:
                     f'Modules errored: {len(modules_errored):,} ({", ".join([m.name for m in modules_errored])})'
                 )
 
-        return {
+        status = {
             "modules_running": modules_running,
             "queued_events": queued_events,
             "running_tasks": running_tasks,
             "errored": modules_errored,
             "finished": finished,
         }
+        return status
