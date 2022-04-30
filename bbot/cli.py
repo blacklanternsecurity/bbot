@@ -3,6 +3,9 @@
 import sys
 import logging
 
+# fix tee buffering
+sys.stdout.reconfigure(line_buffering=True)
+
 # logging
 from bbot.core.logger import init_logging
 

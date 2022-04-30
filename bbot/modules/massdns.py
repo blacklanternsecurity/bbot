@@ -10,9 +10,9 @@ class massdns(BaseModule):
     produced_events = ["DNS_NAME"]
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
-        "max_threads": 1000,
+        "max_resolvers": 1000,
     }
-    options_desc = {"wordlist": "Subdomain wordlist URL", "max_threads": "Number of concurrent massdns resolves"}
+    options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
     subdomain_file = None
     target_only = True
     flags = ["brute_force"]
@@ -41,12 +41,16 @@ class massdns(BaseModule):
     def handle_event(self, event):
 
         if not "target" in event.tags:
-            query = self.helpers.parent_domain(event.data).lower()
+            query = self.helpers.parent_domain(event.data)
         else:
             query = str(event.data).lower()
 
         if query not in self.processed:
             self.processed.add(query)
+
+        if self.helpers.is_wildcard(f"geezrick.{query}"):
+            self.debug(f"Skipping wildcard: {query}")
+            return
 
         for hostname in self.massdns(query, self.subdomain_file):
             self.emit_event(
@@ -85,12 +89,16 @@ class massdns(BaseModule):
           "resolver": "168.215.165.186:53"
         }
         """
+        if self.scan.stopping:
+            return
+
+        self.debug(f"Brute-forcing subdomains for {domain}")
         command = (
             "massdns",
             "-r",
             self.helpers.dns.resolver_file,
             "-s",
-            self.config.get("max_threads", 1000),
+            self.config.get("max_resolvers", 1000),
             "-t",
             "A",
             "-o",

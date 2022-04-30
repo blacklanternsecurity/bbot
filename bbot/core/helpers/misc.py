@@ -6,7 +6,6 @@ import signal
 import string
 import logging
 import ipaddress
-import threading
 import wordninja
 from pathlib import Path
 from contextlib import suppress
@@ -251,32 +250,6 @@ def _rm_at_exit(path):
 
 def rm_at_exit(path):
     atexit.register(_rm_at_exit, path)
-
-
-def _feed_pipe(pipe, content, text=True):
-    if text:
-        decode_fn = smart_decode
-        newline = "\n"
-    else:
-        decode_fn = smart_encode
-        newline = b"\n"
-    with suppress(Exception):
-        if hasattr(pipe, "write"):
-            try:
-                for c in content:
-                    pipe.write(decode_fn(c) + newline)
-            finally:
-                with suppress(Exception):
-                    pipe.close()
-        else:
-            with open(pipe, "w") as p:
-                for c in content:
-                    p.write(decode_fn(c) + newline)
-
-
-def feed_pipe(pipe, content, text=True):
-    t = threading.Thread(target=_feed_pipe, args=(pipe, content), kwargs={"text": text}, daemon=True)
-    t.start()
 
 
 def read_file(filename):

@@ -3,6 +3,7 @@ import logging
 import dns.resolver
 import dns.exception
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
 
 from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
 
@@ -18,8 +19,12 @@ class DNSHelper:
 
         self.parent_helper = parent_helper
         self.wildcards = dict()
+        self.wildcard_tests = self.parent_helper.config.get("dns_wildcard_tests", 5)
         self._cache = dict()
         self.resolver = dns.resolver.Resolver()
+        self.timeout = self.parent_helper.config.get("dns_timeout", 10)
+        self.resolver.timeout = self.timeout
+        self.resolver.lifetime = self.timeout
         self._resolver_list = None
 
         # since wildcard detection takes some time, these are to prevent multiple
@@ -27,6 +32,12 @@ class DNSHelper:
         # ensuring that subsequent calls to is_wildcard() will use the cached value
         self.__wildcard_lock = Lock()
         self._wildcard_locks = dict()
+
+        # we need our own threadpool because using the shared one can lead to deadlocks
+        max_workers = self.parent_helper.config.get("max_threads", 250)
+        self._thread_pool = ThreadPoolExecutor(max_workers=max_workers)
+
+        self._debug = self.parent_helper.config.get("dns_debug", False)
 
     def resolve(self, query, **kwargs):
         """
@@ -42,8 +53,12 @@ class DNSHelper:
             kwargs.pop("rdtype", None)
             if "type" in kwargs:
                 types = [kwargs.pop("type")]
+            futures = []
             for t in types:
-                results.update(self._resolve_hostname(query, rdtype=t, **kwargs))
+                futures.append(self._thread_pool.submit(self._resolve_hostname, query, rdtype=t, **kwargs))
+            for future in self.parent_helper.as_completed(futures):
+                results.update(future.result())
+
             return results
 
     def get_valid_resolvers(self, min_reliability=0.99):
@@ -66,7 +81,7 @@ class DNSHelper:
                 continue
             if reliability >= min_reliability and is_ip(ip, version=4):
                 nameservers.add(ip)
-        log.debug(f"Loaded {len(nameservers):,} nameservers from {nameservers_url}")
+        log.verbose(f"Loaded {len(nameservers):,} nameservers from {nameservers_url}")
         resolver_list = self.verify_nameservers(nameservers)
         return resolver_list
 
@@ -93,18 +108,18 @@ class DNSHelper:
             nameservers (list): nameservers to verify
             timeout (int): timeout for dns query
         """
-        log.debug(f"Verifying {len(nameservers):,} nameservers")
-        futures = [self.parent_helper.submit_task(self.verify_nameserver, n) for n in nameservers]
+        log.verbose(f"Verifying {len(nameservers):,} nameservers")
+        futures = [self._thread_pool.submit(self.verify_nameserver, n) for n in nameservers]
 
         valid_nameservers = set()
         for future in self.parent_helper.as_completed(futures):
             nameserver, error = future.result()
             if error is None:
-                log.debug(f'Nameserver "{nameserver}" is valid')
+                self.debug(f'Nameserver "{nameserver}" is valid')
                 valid_nameservers.add(nameserver)
             else:
-                log.debug(str(error))
-        log.debug(f"Verified {len(valid_nameservers):,}/{len(nameservers):,} nameservers")
+                self.debug(str(error))
+        log.verbose(f"Verified {len(valid_nameservers):,}/{len(nameservers):,} nameservers")
 
         return valid_nameservers
 
@@ -115,7 +130,7 @@ class DNSHelper:
             nameserver (str): nameserver to verify
             timeout (int): timeout for dns query
         """
-        log.debug(f'Verifying nameserver "{nameserver}"')
+        self.debug(f'Verifying nameserver "{nameserver}"')
         error = None
 
         resolver = dns.resolver.Resolver()
@@ -143,24 +158,29 @@ class DNSHelper:
         return nameserver, error
 
     def _resolve_hostname(self, query, **kwargs):
-        log.debug(f"Resolving {query} with kwargs={kwargs}")
+        self.debug(f"Resolving {query} with kwargs={kwargs}")
         answers = set()
-        try:
-            for ip in list(dns.resolver.resolve(query, **kwargs)):
-                answers.add(str(ip))
-        except Exception as e:
-            log.debug(f"Error resolving {query} with kwargs={kwargs}: {e}")
+        for ip in list(self._catch(self.resolver.resolve, query, **kwargs)):
+            answers.add(str(ip))
         return answers
 
     def _resolve_ip(self, query, **kwargs):
-        log.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
+        self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
         answers = set()
-        try:
-            for host in list(dns.resolver.resolve_address(query, **kwargs)):
-                answers.add(str(host).lower().rstrip("."))
-        except Exception as e:
-            log.debug(f"Error resolving {query} with kwargs={kwargs}: {e}")
+        for host in list(self._catch(self.resolver.resolve_address, query, **kwargs)):
+            answers.add(str(host).lower().rstrip("."))
         return answers
+
+    def _catch(self, callback, *args, **kwargs):
+        try:
+            return callback(*args, **kwargs)
+        except dns.exception.Timeout:
+            self.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
+        except dns.exception.DNSException as e:
+            self.debug(f"{e} (args={args}, kwargs={kwargs})")
+        except Exception:
+            self.debug(f"Error in {callback.__name__} with args={args}, kwargs={kwargs}")
+        return set()
 
     def is_wildcard(self, query):
         if is_domain(query):
@@ -179,9 +199,9 @@ class DNSHelper:
 
             futures = dict()
             for parent in parents:
-                for _ in range(self.parent_helper.config.get("dns_wildcard_tests", 5)):
+                for _ in range(self.wildcard_tests):
                     rand_query = f"{rand_string(length=10)}.{parent}"
-                    future = self.parent_helper.submit_task(self.resolve, rand_query)
+                    future = self._thread_pool.submit(self.resolve, rand_query)
                     futures[future] = parent
 
             wildcard_ips = set()
@@ -209,3 +229,7 @@ class DNSHelper:
                 lock = Lock()
                 self._wildcard_locks[domain] = lock
                 return lock
+
+    def debug(self, *args, **kwargs):
+        if self._debug:
+            log.debug(*args, **kwargs)
