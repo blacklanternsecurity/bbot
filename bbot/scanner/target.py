@@ -12,6 +12,7 @@ class ScanTarget:
         self.scan = scan
         # create pseudo root event
         self._events = dict()
+        log.info(f"Creating events from {len(targets):,} targets")
         for t in targets:
             if type(t) == self.__class__:
                 for k, v in t._events.items():

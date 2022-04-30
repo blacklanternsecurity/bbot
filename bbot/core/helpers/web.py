@@ -99,17 +99,17 @@ def request(self, *args, **kwargs):
         headers.update({"User-Agent": user_agent})
     kwargs["headers"] = headers
 
-    web_debug = self.config.get("web_debug", False)
+    http_debug = self.config.get("http_debug", False)
     while retries == "infinite" or retries >= 0:
         try:
-            if web_debug:
+            if http_debug:
                 logstr = f"Web request: {str(args)}, {str(kwargs)}"
                 log.debug(logstr)
             if session is not None:
                 response = session.request(*args, **kwargs)
             else:
                 response = requests.request(*args, **kwargs)
-            if web_debug:
+            if http_debug:
                 log.debug(f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}")
             return response
         except RequestException as e:

@@ -17,7 +17,7 @@ log = logging.getLogger("bbot.core.helpers")
 class ConfigAwareHelper:
 
     from .web import request, download, validate_url
-    from .command import run, run_live, tempfile
+    from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from . import regexes
 
@@ -40,25 +40,23 @@ class ConfigAwareHelper:
         self.word_cloud = WordCloud(self)
 
     @property
-    def num_running_tasks(self):
-        running_futures = set()
+    def num_queued_tasks(self):
+        queued_futures = set()
         with self._future_lock:
             for f in self._futures:
                 if not f.done():
-                    running_futures.add(f)
-            self._futures = running_futures
-        return len(running_futures)
-
-    @property
-    def num_queued_tasks(self):
-        return self._thread_pool._work_queue.qsize()
+                    queued_futures.add(f)
+            self._futures = queued_futures
+        num_queued_tasks = len(queued_futures)
+        return num_queued_tasks
 
     def submit_task(self, callback, *args, **kwargs):
         try:
             future = self.scan._thread_pool.submit(callback, *args, **kwargs)
         except RuntimeError as e:
             raise ScanCancelledError(e)
-        self._futures.add(future)
+        with self._future_lock:
+            self._futures.add(future)
         return future
 
     def temp_filename(self):

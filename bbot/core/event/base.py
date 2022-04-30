@@ -32,7 +32,7 @@ class BaseEvent:
         event_type=None,
         source=None,
         module=None,
-        scan_id=None,
+        scan=None,
         tags=None,
         confidence=100,
         _dummy=False,
@@ -45,7 +45,7 @@ class BaseEvent:
             tags = set()
 
         self.module = module
-        self.scan_id = scan_id
+        self.scan = scan
 
         self.source = None
         if BaseEvent in source.__class__.__bases__:
@@ -66,6 +66,9 @@ class BaseEvent:
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
+
+        if not self._dummy:
+            self._setup()
 
         self._id = None
         self._hash = None
@@ -130,6 +133,11 @@ class BaseEvent:
     def _sanitize_data(self, data):
         return data
 
+    def _setup(self):
+        """
+        Perform optional setup, e.g. adding custom tags
+        """
+
     def __contains__(self, other):
         """
         Allows events to be compared using the "in" operator:
@@ -163,8 +171,8 @@ class BaseEvent:
             j.update({"tags": list(self.tags)})
         if self.module:
             j.update({"module": str(self.module)})
-        if self.scan_id:
-            j.update({"scan_id": str(self.scan_id)})
+        if self.scan:
+            j.update({"scan_id": str(self.scan.id)})
         return j
 
     def __iter__(self):
@@ -296,7 +304,7 @@ def make_event(
     event_type=None,
     source=None,
     module=None,
-    scan_id=None,
+    scan=None,
     tags=None,
     confidence=100,
     dummy=False,
@@ -306,8 +314,8 @@ def make_event(
     """
 
     if BaseEvent in data.__class__.__bases__:
-        if scan_id is not None and not data.scan_id:
-            data.scan_id = scan_id
+        if scan is not None and not data.scan:
+            data.scan = scan
         if module is not None:
             data.module = module
         return data
@@ -327,7 +335,7 @@ def make_event(
             event_type=event_type,
             source=source,
             module=module,
-            scan_id=scan_id,
+            scan=scan,
             tags=tags,
             confidence=confidence,
             _dummy=dummy,
