@@ -33,7 +33,7 @@ class dnsresolve(BaseModule):
     def resolve_arr(self, arr, event):
         futures = []
         for x in arr:
-            future = self.thread_pool.submit_task(self.helpers.resolve, str(x))
+            future = self.submit_task(self.helpers.resolve, str(x))
             futures.append(future)
         for future in self.helpers.as_completed(futures):
             r_set = future.result()
