@@ -118,6 +118,12 @@ def test_helpers(monkeypatch):
     assert not helpers.is_subdomain("evilcorp.co.uk")
     assert helpers.is_ip("127.0.0.1")
     assert not helpers.is_ip("publicapis.org")
+    extracted_words = helpers.extract_words("blacklanternsecurity")
+    assert "black" in extracted_words
+    assert "blacklantern" in extracted_words
+    assert "lanternsecurity" in extracted_words
+    assert "blacklanternsecurity" in extracted_words
+    assert "bls" in extracted_words
 
     ### COMMAND ###
     assert "plumbus\n" in helpers.run(["echo", "plumbus"], text=True).stdout
@@ -208,11 +214,11 @@ def test_modules():
         # test setups and cleanups etc.
         for method_name in ("setup", "finish", "cleanup"):
             method = getattr(module, method_name)
-            future = helpers.submit_task(method)
+            future = scan._thread_pool.submit_task(method)
             method_futures[method_name][future] = module
 
         # module event filters
-        filter_future = helpers.submit_task(module.filter_event, emoji_event)
+        filter_future = scan._thread_pool.submit_task(module.filter_event, emoji_event)
         filter_futures[filter_future] = module
 
     for method_name, futures in method_futures.items():
@@ -286,13 +292,13 @@ def test_scan(monkeypatch):
         events_to_submit = [e for e in all_events if e.type in module.watched_events]
         if module.batch_size > 1:
             log.debug(f"Testing {module.name}.handle_batch()")
-            # future = scan3.helpers.submit_task(module.handle_batch, *events_to_submit)
+            # future = scan3.scan._thread_pool.submit_task(module.handle_batch, *events_to_submit)
             # futures.append(future)
             module.handle_batch(*events_to_submit)
         else:
             for e in events_to_submit:
                 log.debug(f"Testing {module.name}.handle_event()")
-                # future = scan3.helpers.submit_task(module.handle_event, e)
+                # future = scan3.scan._thread_pool.submit_task(module.handle_event, e)
                 # futures.append(future)
                 module.handle_event(e)
     for future in helpers.as_completed(futures):
