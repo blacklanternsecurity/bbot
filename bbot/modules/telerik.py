@@ -148,7 +148,7 @@ class telerik(BaseModule):
                 if validate_result.status_code != 500:
                     self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
                     self.emit_event("Telerik SpellCheckHandler detected", "VULNERABILITY", event, tags=["info"])
-        except:
+        except Exception:
             pass
 
     def test_detector(self, baseurl, detector):

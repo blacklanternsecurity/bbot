@@ -7,6 +7,7 @@ from collections import OrderedDict
 from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
+from bbot.core.threadpool import ThreadPoolWrapper
 from bbot.core.helpers.modules import load_modules
 from bbot.core.event import make_event, make_event_id
 from bbot.core.helpers.helper import ConfigAwareHelper
@@ -62,8 +63,14 @@ class Scanner:
         self.max_brute_forcers = int(self.config.get("max_brute_forcers", 1))
         self._brute_lock = threading.Semaphore(self.max_brute_forcers)
 
-        # Set up shared thread pool
-        self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.get("max_threads", 100))
+        # Set up thread pools
+        max_workers = self.config.get("max_threads", 100)
+        # Shared thread pool, for module use
+        self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
+        # Event thread pool, for event construction, initialization
+        self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=1000))
+        # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
+        self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
 
         # Load modules
         self.modules = dict()
@@ -141,9 +148,11 @@ class Scanner:
             self.status = "FAILED"
 
         finally:
-            # Shut down shared thread pool
-            self._thread_pool.shutdown(wait=True)
+            # Shut down thread pools
             self.helpers.dns._thread_pool.shutdown(wait=True)
+            self._event_thread_pool.shutdown(wait=True)
+            self._thread_pool.shutdown(wait=True)
+            self._internal_thread_pool.shutdown(wait=True)
 
             if self.status == "ABORTING":
                 self.status = "ABORTED"
@@ -167,7 +176,7 @@ class Scanner:
         setups_failed = 0
         setup_futures = dict()
         for module_name, module in self.modules.items():
-            future = self._thread_pool.submit(module._setup)
+            future = self._internal_thread_pool.submit_task(module._setup)
             setup_futures[future] = module_name
         for future in self.helpers.as_completed(setup_futures):
             module_name = setup_futures[future]
@@ -188,10 +197,21 @@ class Scanner:
             self.warning(f"Aborting scan")
             for i in range(max(10, self.max_brute_forcers * 10)):
                 self._brute_lock.release()
-            self.debug(f"Shutting down thread pool with wait={wait}")
-            self.helpers.dns._thread_pool.shutdown(wait=wait, cancel_futures=True)
-            self._thread_pool.shutdown(wait=wait, cancel_futures=True)
-            self.debug("Finished shutting down thread pool")
+            self.helpers.kill_children()
+            self.debug(f"Shutting down thread pools with wait={wait}")
+            threads = []
+            for pool in [
+                self._internal_thread_pool,
+                self.helpers.dns._thread_pool,
+                self._event_thread_pool,
+                self._thread_pool,
+            ]:
+                t = threading.Thread(target=pool.shutdown, kwargs={"wait": wait, "cancel_futures": True}, daemon=True)
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join()
+            self.debug("Finished shutting down thread pools")
             self.helpers.kill_children()
 
     @property
@@ -211,7 +231,25 @@ class Scanner:
             self._status = status
             self.dispatcher.on_status(self._status, self.id)
         else:
-            self.debug(f"Attempt to set invalid status on aborted scan")
+            self.debug(f'Attempt to set invalid status "{status}" on aborted scan')
+
+    @property
+    def status_detailed(self):
+        main_tasks = self._thread_pool.num_tasks
+        dns_tasks = self.helpers.dns._thread_pool.num_tasks
+        event_tasks = self._event_thread_pool.num_tasks
+        internal_tasks = self._internal_thread_pool.num_tasks
+        total_tasks = main_tasks + dns_tasks + event_tasks + internal_tasks
+        status = {
+            "queued_tasks": {
+                "main": main_tasks,
+                "dns": dns_tasks,
+                "internal": internal_tasks,
+                "event": event_tasks,
+                "total": total_tasks,
+            }
+        }
+        return status
 
     def make_event(self, *args, **kwargs):
         """
