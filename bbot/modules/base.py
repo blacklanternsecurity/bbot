@@ -113,6 +113,9 @@ class BaseModule:
         """
         return
 
+    def submit_task(self, *args, **kwargs):
+        return self.thread_pool.submit_task(*args, **kwargs)
+
     def catch(self, callback, *args, **kwargs):
         """
         Wrapper to ensure error messages get surfaced to the user
