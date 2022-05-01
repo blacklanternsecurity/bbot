@@ -21,6 +21,7 @@ class massdns(BaseModule):
 
         self.processed = set()
         self.found = dict()
+        self.mutations_tried = set()
         self.subdomain_file = self.helpers.download(
             self.config.get("wordlist", self.options.get("wordlist")), cache_hrs=720
         )
@@ -34,7 +35,7 @@ class massdns(BaseModule):
             return False
         if "target" in event.tags:
             return True
-        elif self.helpers.parent_domain(event.data) not in self.processed:
+        elif hash(self.helpers.parent_domain(event.data)) not in self.processed:
             return True
         return False
 
@@ -45,8 +46,8 @@ class massdns(BaseModule):
         else:
             query = str(event.data).lower()
 
-        if query not in self.processed:
-            self.processed.add(query)
+        if hash(query) not in self.processed:
+            self.processed.add(hash(query))
 
         if self.helpers.is_wildcard(f"geezrick.{query}"):
             self.debug(f"Skipping wildcard: {query}")
@@ -132,7 +133,11 @@ class massdns(BaseModule):
             mutations = set(base_mutations)
             for mutation in self.helpers.word_cloud.mutations(set([s[0] for s in subdomains])):
                 for delimiter in ("", ".", "-"):
-                    mutations.add(delimiter.join(mutation))
+                    m = delimiter.join(mutation)
+                    h = hash((m, domain))
+                    if h not in self.mutations_tried:
+                        mutations.add(m)
+                        self.mutations_tried.add(h)
             self.verbose(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
             for hostname in self.massdns(domain, mutations):
                 source_event = next(iter(self.found[domain]))[-1]

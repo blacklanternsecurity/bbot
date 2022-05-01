@@ -28,6 +28,7 @@ development
 download
 dr
 dv
+eu
 ext
 external
 fail
@@ -51,6 +52,7 @@ mirror
 mobile
 mx
 my
+na
 new
 old
 online
@@ -68,6 +70,7 @@ production
 proxy
 qa
 rest
+sa
 secure
 server
 service
