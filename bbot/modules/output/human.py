@@ -7,4 +7,4 @@ class Human(BaseOutputModule):
         event_tags = ""
         if event.tags:
             event_tags = f'\t({", ".join(getattr(event, "tags", []))})'
-        self.stdout(f"{event_type:<20}\t{event.data}{event_tags}")
+        self.stdout(f"{event_type:<20}\t{event.data}\t{event.module}{event_tags}")

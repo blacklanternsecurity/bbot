@@ -14,7 +14,7 @@ class massdns(BaseModule):
     }
     options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
     subdomain_file = None
-    target_only = True
+    in_scope_only = True
     flags = ["brute_force"]
 
     def setup(self):
@@ -22,6 +22,7 @@ class massdns(BaseModule):
         self.processed = set()
         self.found = dict()
         self.mutations_tried = set()
+        self.source_events = dict()
         self.subdomain_file = self.helpers.download(
             self.config.get("wordlist", self.options.get("wordlist")), cache_hrs=720
         )
@@ -46,10 +47,12 @@ class massdns(BaseModule):
         else:
             query = str(event.data).lower()
 
-        if hash(query) not in self.processed:
-            self.processed.add(hash(query))
+        h = hash(query)
+        self.processed.add(h)
+        if not h in self.source_events:
+            self.source_events[h] = event
 
-        if self.helpers.is_wildcard(f"geezrick.{query}"):
+        if self.helpers.is_wildcard(f"ohgeezrickidontknowaboutthisone.{query}"):
             self.debug(f"Skipping wildcard: {query}")
             return
 
@@ -125,13 +128,13 @@ class massdns(BaseModule):
 
         base_mutations = set()
         for domain, subdomains in found:
-            base_mutations.update(set([s[0] for s in subdomains]))
+            base_mutations.update(set(subdomains))
 
         for i, (domain, subdomains) in enumerate(found):
             if self.scan.stopping:
                 return
             mutations = set(base_mutations)
-            for mutation in self.helpers.word_cloud.mutations(set([s[0] for s in subdomains])):
+            for mutation in self.helpers.word_cloud.mutations(subdomains):
                 for delimiter in ("", ".", "-"):
                     m = delimiter.join(mutation)
                     h = hash((m, domain))
@@ -140,22 +143,23 @@ class massdns(BaseModule):
                         self.mutations_tried.add(h)
             self.verbose(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
             for hostname in self.massdns(domain, mutations):
-                source_event = next(iter(self.found[domain]))[-1]
-                self.emit_event(
-                    hostname,
-                    "DNS_NAME",
-                    source_event,
-                    abort_if_tagged=("wildcard", "unresolved"),
-                    on_success_callback=self.add_found,
-                )
+                source_event = self.get_source_event(hostname)
+                if not hostname == source_event:
+                    self.emit_event(
+                        hostname,
+                        "DNS_NAME",
+                        source_event,
+                        abort_if_tagged=("wildcard", "unresolved"),
+                        on_success_callback=self.add_found,
+                    )
 
     def add_found(self, event):
         if self.helpers.is_subdomain(event.data):
             subdomain, domain = event.data.split(".", 1)
             try:
-                self.found[domain].add((subdomain, event))
+                self.found[domain].add(subdomain)
             except KeyError:
-                self.found[domain] = set(((subdomain, event),))
+                self.found[domain] = set((subdomain,))
 
     def is_found(self, hostname):
         subdomain, domain = self.helpers.split_domain(hostname)
@@ -164,3 +168,10 @@ class massdns(BaseModule):
     def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
             yield f"{p}.{domain}"
+
+    def get_source_event(self, hostname):
+        for p in self.helpers.domain_parents(hostname):
+            try:
+                return self.source_events[hash(p)]
+            except KeyError:
+                continue

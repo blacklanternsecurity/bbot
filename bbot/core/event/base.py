@@ -8,14 +8,7 @@ from .helpers import (
     get_event_type,
 )
 from bbot.core.errors import *
-from bbot.core.helpers import (
-    extract_words,
-    tldextract,
-    split_host_port,
-    host_in_host,
-    is_domain,
-    is_subdomain,
-)
+from bbot.core.helpers import extract_words, tldextract, split_host_port, host_in_host, is_domain, is_subdomain, is_ip
 
 
 log = logging.getLogger("bbot.core.event")
@@ -328,6 +321,11 @@ def make_event(
             raise ValidationError(f'Unable to autodetect event type from "{data}": please specify event_type')
 
         event_type = str(event_type).strip().upper()
+
+        # Catch this common whoopsie
+        if event_type == "DNS_NAME" and is_ip(data):
+            event_type = "IP_ADDRESS"
+
         event_class = event_classes.get(event_type, DefaultEvent)
 
         return event_class(

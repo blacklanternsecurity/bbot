@@ -21,19 +21,29 @@ class WordCloud(dict):
             words = (words,)
         results = set()
         for word in words:
-            results.add((word,))
+            h = hash(word)
+            if not h in results:
+                results.add(h)
+                yield (word,)
         if numbers > 0:
             if substitute_numbers:
                 for word in words:
                     for number_mutation in self.get_number_mutations(word, n=numbers, padding=number_padding):
-                        results.add((number_mutation,))
+                        h = hash(number_mutation)
+                        if not h in results:
+                            results.add(h)
+                            yield (number_mutation,)
         for word in words:
             for modifier in self.modifiers(
                 devops=devops, cloud=cloud, letters=letters, numbers=numbers, number_padding=number_padding
             ):
-                results.add((word, modifier))
-                results.add((modifier, word))
-        return results
+                a = (word, modifier)
+                b = (modifier, word)
+                for _ in (a, b):
+                    h = hash(_)
+                    if h not in results:
+                        results.add(h)
+                        yield _
 
     def modifiers(self, devops=True, cloud=True, letters=True, numbers=5, number_padding=2):
         modifiers = set()
@@ -101,8 +111,10 @@ class WordCloud(dict):
                 # skip if there's already a number
                 if len(after) > 1 and not after[0].isdigit():
                     results.add(f"{before}{suffix}{after}")
-        # basic case so we don't miss anything
+        # basic cases so we don't miss anything
         for s in number_suffixes:
             results.add(f"{base}{s}")
+            results.add(base)
+            results.add(s)
 
         return results
