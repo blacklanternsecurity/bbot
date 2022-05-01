@@ -11,7 +11,7 @@ class sslcert(BaseModule):
     produced_events = ["DNS_NAME"]
     options = {"timeout": 5.0}
     options_desc = {"timeout": "Socket connect timeout in seconds"}
-    max_threads = 10
+    max_threads = 25
     in_scope_only = True
 
     def handle_event(self, event):
