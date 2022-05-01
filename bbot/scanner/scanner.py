@@ -64,7 +64,7 @@ class Scanner:
         self._brute_lock = threading.Semaphore(self.max_brute_forcers)
 
         # Set up thread pools
-        max_workers = self.config.get("max_threads", 100)
+        max_workers = max(1, self.config.get("max_threads", 100))
         # Shared thread pool, for module use
         self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
         # Event thread pool, for event construction, initialization
