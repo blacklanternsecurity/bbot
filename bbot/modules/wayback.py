@@ -46,7 +46,7 @@ class wayback(BaseModule):
                     if self.config.get("include_params"):
                         if uri not in self.uris:
                             self.uris.add(uri)
-                            test_request = self.helpers.request(uri, cache_for=3600)
+                            test_request = self.helpers.request(uri)
                             if test_request:
                                 if (test_request.status_code == 200) or (test_request.status_code == 500):
                                     pass
@@ -56,7 +56,7 @@ class wayback(BaseModule):
 
                     if endpoint not in self.endpoints:
                         self.endpoints.add(endpoint)
-                        test_request = self.helpers.request(endpoint, cache_for=3600)
+                        test_request = self.helpers.request(endpoint)
                         if test_request:
                             if (test_request.status_code == 200) or (test_request.status_code == 500):
                                 self.emit_event(endpoint, "URL", event, tags=["endpoint"])
@@ -66,7 +66,7 @@ class wayback(BaseModule):
                     if dir != "https://" and dir != "http://":
                         if dir not in self.dirs:
                             self.dirs.add(dir)
-                            test_request = self.helpers.request(u, cache_for=3600)
+                            test_request = self.helpers.request(u)
                             if test_request:
                                 if (
                                     (test_request.status_code == 200)
