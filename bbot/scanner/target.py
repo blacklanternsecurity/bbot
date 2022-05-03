@@ -29,7 +29,7 @@ class ScanTarget:
         self._hash = None
 
     def in_scope(self, e):
-        return e in self
+        return "in_scope" in e.tags or e in self
 
     @property
     def events(self):

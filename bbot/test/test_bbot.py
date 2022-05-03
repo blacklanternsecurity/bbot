@@ -124,6 +124,10 @@ def test_helpers(monkeypatch):
     assert "lanternsecurity" in extracted_words
     assert "blacklanternsecurity" in extracted_words
     assert "bls" in extracted_words
+    ipv4_netloc = helpers.make_netloc("192.168.1.1", 80)
+    assert ipv4_netloc == "192.168.1.1:80"
+    ipv6_netloc = helpers.make_netloc("dead::beef", "443")
+    assert ipv6_netloc == "[dead::beef]:443"
 
     ### COMMAND ###
     assert "plumbus\n" in helpers.run(["echo", "plumbus"], text=True).stdout
