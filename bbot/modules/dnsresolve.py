@@ -1,6 +1,4 @@
 from .base import BaseModule
-import ipaddress
-
 
 class dnsresolve(BaseModule):
 
