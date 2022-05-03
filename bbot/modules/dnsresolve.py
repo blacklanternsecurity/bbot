@@ -1,5 +1,6 @@
 from .base import BaseModule
 
+
 class dnsresolve(BaseModule):
 
     watched_events = ["IP_ADDRESS", "DNS_NAME"]
