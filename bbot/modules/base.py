@@ -208,6 +208,11 @@ class BaseModule:
                 on_success_callback(event)
         except ValidationError as e:
             self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
+        except Exception as e:
+            import traceback
+
+            self.error(f"Error in _emit_event(): {e}")
+            self.debug(traceback.format_exc())
 
     @property
     def events_waiting(self):
@@ -341,8 +346,14 @@ class BaseModule:
                 # this avoids double-portscanning both an individual IP and its parent CIDR.
                 return False
         # custom filtering
-        if not self.filter_event(e):
-            return False
+        try:
+            if not self.filter_event(e):
+                return False
+        except Exception as e:
+            import traceback
+
+            self.error(f"Error in filter_event(): {e}")
+            self.debug(traceback.format_exc())
         return True
 
     def _cleanup(self):
