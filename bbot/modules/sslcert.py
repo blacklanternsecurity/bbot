@@ -69,12 +69,14 @@ class sslcert(BaseModule):
     def get_cert_sans(cert):
 
         sans = []
+        raw_sans = None
         ext_count = cert.get_extension_count()
         for i in range(0, ext_count):
             ext = cert.get_extension(i)
             if "subjectAltName" in str(ext.get_short_name()):
                 raw_sans = str(ext)
-        for raw_san in raw_sans.split(","):
-            hostname = raw_san.split(":")[-1].strip()
-            sans.append(hostname)
+        if raw_sans is not None:
+            for raw_san in raw_sans.split(","):
+                hostname = raw_san.split(":")[-1].strip()
+                sans.append(hostname)
         return sans

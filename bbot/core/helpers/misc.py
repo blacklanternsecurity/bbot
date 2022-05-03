@@ -75,7 +75,7 @@ def parent_domain(d):
 
 def is_ip(d, version=None):
     try:
-        ip = ipaddress.ip_address(str(d))
+        ip = ipaddress.ip_address(d)
         if version is None or ip.version == version:
             return True
     except Exception:
@@ -267,3 +267,9 @@ def gen_numbers(n, padding=2):
         for p in range(1, padding + 1):
             results.add(str(i).zfill(p))
     return results
+
+
+def make_netloc(host, port):
+    if is_ip(host, version=6):
+        host = f"[{host}]"
+    return f"{host}:{port}"

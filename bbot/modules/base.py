@@ -186,7 +186,9 @@ class BaseModule:
             # special DNS validation
             if event.type == "DNS_NAME":
                 resolved = self.helpers.resolve(event.data)
-                if any([self.scan.target.in_scope(i) for i in resolved]):
+                if event in self.scan.target:
+                    event.tags.add("in_scope")
+                elif any([self.scan.target.in_scope(i) for i in resolved]):
                     event.tags.add("in_scope")
                 if resolved:
                     event.tags.add("resolved")
