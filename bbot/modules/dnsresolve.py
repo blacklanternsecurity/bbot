@@ -4,8 +4,8 @@ import ipaddress
 
 class dnsresolve(BaseModule):
 
-    watched_events = ["IP_ADDRESS","DNS_NAME"]
-    produced_events = ["IP_ADDRESS","DNS_NAME"]
+    watched_events = ["IP_ADDRESS", "DNS_NAME"]
+    produced_events = ["IP_ADDRESS", "DNS_NAME"]
     max_threads = 25
 
     def handle_event(self, event):
