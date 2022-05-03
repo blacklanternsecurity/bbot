@@ -20,6 +20,7 @@ class httpx(BaseModule):
         in_scope_only = self.config.get("in_scope_only", True)
         if in_scope_only and not self.scan.target.in_scope(event):
             return False
+        return True
 
     def handle_batch(self, *events):
 
