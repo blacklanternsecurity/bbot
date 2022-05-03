@@ -17,7 +17,7 @@ log = logging.getLogger("bbot.core.event")
 class BaseEvent:
 
     _dummy = False
-    _internal_only = False
+    _internal = False
 
     def __init__(
         self,
@@ -29,10 +29,12 @@ class BaseEvent:
         tags=None,
         confidence=100,
         _dummy=False,
+        _internal=False,
     ):
 
         # for creating one-off events without enforcing source requirement
         self._dummy = _dummy
+        self._internal = _internal
 
         if tags is None:
             tags = set()
@@ -49,7 +51,7 @@ class BaseEvent:
             raise ValidationError(f"Must specify event source")
 
         # if the event is internal, erase it from the chain of events
-        if self._internal_only:
+        if self._internal:
             self._id = self.source
 
         self.type = event_type
@@ -255,9 +257,9 @@ class OpenTCPPortEvent(BaseEvent):
 
 class URLEvent(BaseEvent):
     def _sanitize_data(self, data):
-        parsed = urlparse(data.strip())
-        parsed = parsed._replace(netloc=str(parsed.netloc).lower())
-        return urlunparse(parsed)
+        self.parsed = urlparse(data.strip())
+        self.parsed = self.parsed._replace(netloc=str(self.parsed.netloc).lower())
+        return urlunparse(self.parsed)
 
     def _host(self):
         host, self._port = split_host_port(self.data)
@@ -265,6 +267,18 @@ class URLEvent(BaseEvent):
 
     def _words(self):
         return extract_words(self.host_stem)
+
+    @property
+    def port(self):
+        port = super().port
+        if port is not None:
+            return port
+        else:
+            if self.data.startswith("https://"):
+                self._port = 443
+            elif self.data.startswith("http://"):
+                self._port = 80
+        return self._port
 
 
 class EmailAddressEvent(BaseEvent):
@@ -278,7 +292,7 @@ class EmailAddressEvent(BaseEvent):
 
 
 class HTTPResponseEvent(BaseEvent):
-    _internal_only = True
+    _internal = True
 
 
 event_classes = {

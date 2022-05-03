@@ -209,8 +209,9 @@ class Scanner:
                 t = threading.Thread(target=pool.shutdown, kwargs={"wait": wait, "cancel_futures": True}, daemon=True)
                 t.start()
                 threads.append(t)
-            for t in threads:
-                t.join()
+            if wait:
+                for t in threads:
+                    t.join()
             self.debug("Finished shutting down thread pools")
             self.helpers.kill_children()
 

@@ -9,7 +9,7 @@ class massdns(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     options = {
-        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
+        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "max_resolvers": 1000,
     }
     options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
@@ -57,13 +57,14 @@ class massdns(BaseModule):
             return
 
         for hostname in self.massdns(query, self.subdomain_file):
-            self.emit_event(
-                hostname,
-                "DNS_NAME",
-                event,
-                abort_if_tagged=("wildcard", "unresolved"),
-                on_success_callback=self.add_found,
-            )
+            if not hostname == event:
+                self.emit_event(
+                    hostname,
+                    "DNS_NAME",
+                    event,
+                    abort_if_tagged=("wildcard", "unresolved"),
+                    on_success_callback=self.add_found,
+                )
 
     def massdns(self, domain, subdomains):
         """
@@ -131,13 +132,14 @@ class massdns(BaseModule):
             base_mutations.update(set(subdomains))
 
         for i, (domain, subdomains) in enumerate(found):
+            domain_hash = hash(domain)
             if self.scan.stopping:
                 return
             mutations = set(base_mutations)
             for mutation in self.helpers.word_cloud.mutations(subdomains):
                 for delimiter in ("", ".", "-"):
                     m = delimiter.join(mutation)
-                    h = hash((m, domain))
+                    h = hash((m, domain_hash))
                     if h not in self.mutations_tried:
                         mutations.add(m)
                         self.mutations_tried.add(h)
