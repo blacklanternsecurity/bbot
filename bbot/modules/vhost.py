@@ -38,7 +38,7 @@ class vhost(BaseModule):
                 mutations_list_file = self.mutations_check(vhost_dict["vhost"])
                 command = ["ffuf", "-ac", "-s", "-w", mutations_list_file, "-u", host, "-H", f"Host: FUZZ{basehost}"]
                 for vhost_dict in self.ffuf_vhost(command, host):
-                    if vhost_dict['vhost'] != host:
+                    if vhost_dict["vhost"] != host:
                         self.emit_event(vhost_dict, "VHOST", source=event, tags=["vhost"])
                         self.emit_event(f"{vhost_dict['vhost']}{basehost}", "DNS_HOST", source=event, tags=["vhost"])
 
@@ -48,7 +48,7 @@ class vhost(BaseModule):
 
             command = ["ffuf", "-ac", "-s", "-w", mutations_list_file, "-u", host, "-H", f"Host: FUZZ{basehost}"]
             for vhost_dict in self.ffuf_vhost(command, host):
-                if vhost_dict['vhost'] != host:
+                if vhost_dict["vhost"] != host:
                     self.emit_event(vhost_dict, "VHOST", source=event, tags=["vhost"])
                     self.emit_event(f"{vhost_dict['vhost']}{basehost}", "DNS_HOST", source=event, tags=["vhost"])
 
@@ -65,8 +65,6 @@ class vhost(BaseModule):
             found_vhost = found_vhost.rstrip()
             vhost_dict = {"host": host, "vhost": found_vhost}
             yield vhost_dict
-
-            
 
     def mutations_check(self, vhost):
         mutations_list = []
