@@ -87,7 +87,7 @@ class Scanner:
         self.modules.update(loaded_output_modules)
 
         if failed_modules > 0:
-            self.warning(f"Failed to load {len(failed_modules):,} modules: {','.join(failed + failed_output)}")
+            self.warning(f"Failed to load {failed_modules:,} modules: {','.join(failed.union(failed_output))}")
         self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
         if self.modules:
             self.success(f"Loaded {len(self.modules):,}/{len(modules)+len(output_modules):,} modules")
@@ -268,7 +268,11 @@ class Scanner:
 
     @property
     def stopping(self):
-        return self.status not in ["STARTING", "RUNNING", "FINISHING"]
+        return self.status not in ("STARTING", "RUNNING", "FINISHING")
+
+    @property
+    def running(self):
+        return self.status in ("STARTING", "RUNNING", "FINISHING")
 
     @property
     def root_event(self):
