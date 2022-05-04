@@ -311,14 +311,7 @@ event_classes = {
 
 
 def make_event(
-    data,
-    event_type=None,
-    source=None,
-    module=None,
-    scan=None,
-    tags=None,
-    confidence=100,
-    dummy=False,
+    data, event_type=None, source=None, module=None, scan=None, tags=None, confidence=100, dummy=False, internal=False
 ):
     """
     If data is already an event, simply return it
@@ -355,4 +348,5 @@ def make_event(
             tags=tags,
             confidence=confidence,
             _dummy=dummy,
+            _internal=internal,
         )
