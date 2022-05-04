@@ -29,12 +29,15 @@ class BaseEvent:
         tags=None,
         confidence=100,
         _dummy=False,
-        _internal=False,
+        _internal=None,
     ):
 
         # for creating one-off events without enforcing source requirement
         self._dummy = _dummy
-        self._internal = _internal
+
+        # for internal-only events
+        if _internal is not None:
+            self._internal = _internal
 
         if tags is None:
             tags = set()
@@ -77,8 +80,9 @@ class BaseEvent:
         An abbreviated representation of the data that allows comparison with other events.
         For host types, this is a hostname.
         This allows comparison of an email or a URL with a domain, and vice versa
-            bob@evilcorp.com --> evilcorp.com
-            https://evilcorp.com --> evilcorp.com
+            bob@evilcorp.com        --> evilcorp.com
+            https://evilcorp.com    --> evilcorp.com
+            evilcorp.com:80         --> evilcorp.com
 
         For IPV*_* types, this is an instantiated object representing the event's data
         E.g. for IP_ADDRESS, it's an ipaddress.IPv4Address() object
