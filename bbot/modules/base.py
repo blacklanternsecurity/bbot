@@ -55,9 +55,11 @@ class BaseModule:
         self._log = None
         self._event_queue = None
         self._batch_idle = 0
-        self.thread_pool = ThreadPoolWrapper(self.scan._thread_pool.executor, max_workers=self.max_threads)
+        self.thread_pool = ThreadPoolWrapper(
+            self.scan._thread_pool.executor, max_workers=self.config.get("max_threads", 1)
+        )
         self._internal_thread_pool = ThreadPoolWrapper(
-            self.scan._internal_thread_pool.executor, max_workers=self.config.get("max_threads", 1)
+            self.scan._internal_thread_pool.executor, max_workers=self.max_threads
         )
         self._emitted_events = set()
         # additional callbacks to be executed alongside self.cleanup()
@@ -148,7 +150,9 @@ class BaseModule:
             except Exception as e:
                 import traceback
 
-                self.error(f"Error in {on_finish_callback.__name__}(): {e}")
+                self.error(
+                    f"Error in on_finish_callback {on_finish_callback.__name__}() after {callback.__name__}(): {e}"
+                )
                 self.debug(traceback.format_exc())
         return ret
 
