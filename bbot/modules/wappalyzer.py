@@ -22,4 +22,4 @@ class wappalyzer(BaseModule):
         w = WebPage.new_from_response(r)
         res_set = wappalyzer.analyze(w)
         for res in res_set:
-            self.emit_event(res, "TECHNOLOGY", event, tags=["web"])
+            self.emit_event(f"[{event.data}] {res}", "TECHNOLOGY", event, tags=["web"])

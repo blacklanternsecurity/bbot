@@ -25,7 +25,7 @@ class aspnet_viewstate(BaseModule):
             generator = generator_match.group(1)
             viewstate = viewstate_match.group(1)
             self.debug(f"Discovered viewstate for URL {event.data}")
-            self.emit_event("Microsoft ASP.NET", "TECHNOLOGY", event, tags=["web"])
+            self.emit_event(f"[{event.data}] Microsoft ASP.NET", "TECHNOLOGY", event, tags=["web"])
             command = [
                 "mono",
                 "/opt/blacklist3r/AspDotNetWrapper.exe",
