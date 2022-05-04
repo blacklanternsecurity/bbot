@@ -130,11 +130,11 @@ class BaseModule:
             if not self.scan.stopping:
                 ret = callback(*args, **kwargs)
         except ScanCancelledError as e:
-            self.debug(f"Encountered ScanCancelledError in {callback.__name__}(): {e}")
+            self.debug(f"ScanCancelledError in {callback.__name__}(): {e}")
         except BrokenPipeError as e:
-            self.debug(f"Encountered BrokenPipeError in {callback.__name__}(): {e}")
+            self.debug(f"BrokenPipeError in {callback.__name__}(): {e}")
         except Exception as e:
-            self.error(f"Encountered error in {callback.__name__}(): {e}")
+            self.error(f"Error in {callback.__name__}(): {e}")
             self.debug(traceback.format_exc())
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")
@@ -143,7 +143,13 @@ class BaseModule:
             if lock_brutes and lock_acquired:
                 self.scan._brute_lock.release()
         if callable(on_finish_callback):
-            on_finish_callback()
+            try:
+                on_finish_callback()
+            except Exception as e:
+                import traceback
+
+                self.error(f"Error in {on_finish_callback.__name__}(): {e}")
+                self.debug(traceback.format_exc())
         return ret
 
     def _handle_batch(self, force=False):
@@ -168,7 +174,7 @@ class BaseModule:
     def emit_event(self, *args, **kwargs):
         # don't raise an exception if the thread pool has been shutdown
         with suppress(RuntimeError):
-            self.scan._event_thread_pool.submit_task(self._emit_event, *args, **kwargs)
+            self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, *args, **kwargs)
 
     def _emit_event(self, *args, **kwargs):
         try:
@@ -205,14 +211,9 @@ class BaseModule:
             self.debug(f'module "{self.name}" raised {event}')
             self.scan.manager.queue_event(event)
             if callable(on_success_callback):
-                on_success_callback(event)
+                self.catch(on_success_callback, event)
         except ValidationError as e:
             self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
-        except Exception as e:
-            import traceback
-
-            self.error(f"Error in _emit_event(): {e}")
-            self.debug(traceback.format_exc())
 
     @property
     def events_waiting(self):
@@ -252,8 +253,8 @@ class BaseModule:
         try:
             ret = self.setup()
             self.debug(f"Finished setting up module {self.name}")
-        except Exception:
-            self.set_error_state(f"Failed to set up module {self.name}")
+        except Exception as e:
+            self.set_error_state(f"Failed to set up module {self.name}: {e}")
             self.debug(traceback.format_exc())
         return ret
 
@@ -316,9 +317,8 @@ class BaseModule:
         except ScanCancelledError as e:
             self.verbose(f"Scan cancelled, {e}")
         except Exception as e:
-            self.set_error_state(
-                f"Exception ({e.__class__.__name__}) in module {self.name}:\n{traceback.format_exc()}"
-            )
+            self.set_error_state(f"Exception ({e.__class__.__name__}) in module {self.name}:\n{e}")
+            self.debug(traceback.format_exc())
 
     def _filter_event(self, e):
         # special "FINISHED" event
