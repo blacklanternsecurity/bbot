@@ -35,13 +35,13 @@ class vhost(BaseModule):
                 self.debug(f"Starting mutations check for {vhost}")
                 mutations_list_file = self.mutations_check(vhost)
                 command = ["ffuf", "-ac", "-s", "-w", mutations_list_file, "-u", host, "-H", f"Host: FUZZ{basehost}"]
-                self.ffuf_vhost(command, host, parsed_host, event, basehost)     
+                self.ffuf_vhost(command, host, parsed_host, event, basehost)
 
             # check existing host for mutations
             self.debug("Checking for vhost mutations on main host")
             mutations_list_file = self.mutations_check(parsed_host.netloc.split(".")[0])
             command = ["ffuf", "-ac", "-s", "-w", mutations_list_file, "-u", host, "-H", f"Host: FUZZ{basehost}"]
-            self.ffuf_vhost(command, host, parsed_host, basehost,  event)
+            self.ffuf_vhost(command, host, parsed_host, basehost, event)
 
             # special vhost list
             self.debug("Checking special vhost list")
@@ -50,8 +50,7 @@ class vhost(BaseModule):
             command = ["ffuf", "-ac", "-s", "-w", special_vhost_list_file, "-u", host, "-H", f"Host: FUZZ"]
             self.ffuf_vhost(command, host, parsed_host, basehost, event, skip_dns_host=True)
 
-
-    def ffuf_vhost(self, command, host, parsed_host,basehost, event, skip_dns_host=False):
+    def ffuf_vhost(self, command, host, parsed_host, basehost, event, skip_dns_host=False):
         for found_vhost in self.helpers.run_live(command):
             found_vhost = found_vhost.rstrip()
             vhost_dict = {"host": host, "vhost": found_vhost}
@@ -59,7 +58,7 @@ class vhost(BaseModule):
                 self.emit_event(vhost_dict, "VHOST", source=event, tags=["vhost"])
                 if skip_dns_host == False:
                     self.emit_event(f"{vhost_dict['vhost']}{basehost}", "DNS_HOST", source=event, tags=["vhost"])
-                yield vhost_dict['vhost']
+                yield vhost_dict["vhost"]
 
     def mutations_check(self, vhost):
         mutations_list = []
