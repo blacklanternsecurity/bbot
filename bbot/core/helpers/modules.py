@@ -17,6 +17,8 @@ def preload_modules(module_dir):
             namespace = "bbot.modules"
             if module_dir.name == "output":
                 namespace = "bbot.modules.output"
+            if module_dir.name == "internal":
+                namespace = "bbot.modules.internal"
             load_modules([module_file.stem], namespace=namespace)
             continue
     return preloaded_modules
@@ -65,6 +67,10 @@ def load_modules(module_names, namespace):
         from ...modules.output.base import BaseOutputModule
 
         base_module_class = BaseOutputModule
+    elif namespace == "bbot.modules.internal":
+        from ...modules.internal.base import BaseInternalModule
+
+        base_module_class = BaseInternalModule
     else:
         raise ModuleLoadError(f'Invalid module namespace "{namespace}"')
 
