@@ -76,7 +76,7 @@ def request(self, *args, **kwargs):
     http_timeout = self.config.get("http_timeout", 20)
     user_agent = self.config.get(
         "user_agent",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
+        "BBOT",
     )
 
     # in case of URL only, assume GET request

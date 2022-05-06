@@ -39,7 +39,7 @@ class HTTP(BaseOutputModule):
             url=self.config.get("url"),
             method=self.config.get("method", "POST"),
         )
-        r.headers["User-Agent"] = self.scan.config.get("user_agent", "BBOT")
+        r.headers["User-Agent"] = self.scan.useragent
         r.json = dict(event)
         username = self.config.get("username", "")
         password = self.config.get("password", "")

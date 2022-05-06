@@ -411,9 +411,6 @@ class BaseModule:
 
     @staticmethod
     def _is_running(module_status):
-        for status, count in module_status["events"].items():
-            if count > 0:
-                return True
         for pool, count in module_status["tasks"].items():
             if count > 0:
                 return True
