@@ -1,8 +1,12 @@
-from .base import BaseModule
+from .base import BaseInternalModule
 import ipaddress
 
 
-class speculate(BaseModule):
+class speculate(BaseInternalModule):
+    """
+    Bridge the gap between ranges and ips, or ips and open ports
+    in situations where e.g. a port scanner isn't enabled
+    """
 
     watched_events = ["IP_RANGE", "URL", "DNS_NAME", "IP_ADDRESS"]
     produced_events = ["DNS_HOST", "OPEN_TCP_PORT", "IP_ADDRESS"]
@@ -35,8 +39,7 @@ class speculate(BaseModule):
                     )
 
     def filter_event(self, event):
+        # don't accept events from self
         if str(event.module) == "speculate":
-            self.debug("is module speculate")
             return False
-        self.debug("is NOT module speculate")
         return True

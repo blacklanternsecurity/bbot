@@ -7,7 +7,6 @@ class naabu(BaseModule):
 
     watched_events = [
         "IP_ADDRESS",
-        "IP_RANGE",
         "DNS_NAME",
     ]
     produced_events = ["OPEN_TCP_PORT"]
@@ -17,13 +16,14 @@ class naabu(BaseModule):
 
     def handle_batch(self, *events):
 
-        command = ["naabu", "-silent", "-json", "-host"] + [str(e.data) for e in events]
-        self.debug(" ".join(command))
-        for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL):
+        _input = [str(e.data) for e in events]
+        command = ["naabu", "-silent", "-json"]
+        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except Exception as e:
                 self.debug(f'Error parsing line "{line}" as JSON: {e}')
+                break
             host = j.get("host", j.get("ip"))
             port = j.get("port")
 

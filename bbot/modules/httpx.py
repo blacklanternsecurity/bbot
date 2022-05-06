@@ -16,6 +16,10 @@ class httpx(BaseModule):
         "in_scope_only": "Only visit web resources that are in scope.",
     }
 
+    def setup(self):
+        self.timeout = self.scan.config.get("http_timeout", 5)
+        return True
+
     def filter_event(self, event):
         in_scope_only = self.config.get("in_scope_only", True)
         if in_scope_only and not self.scan.target.in_scope(event):
@@ -25,7 +29,7 @@ class httpx(BaseModule):
     def handle_batch(self, *events):
 
         stdin = "\n".join([str(e.data) for e in events])
-        command = ["httpx", "-silent", "-json"]
+        command = ["httpx", "-silent", "-json", "-timeout", self.timeout, "-H", f"User-Agent: {self.scan.useragent}"]
         for line in self.helpers.run_live(command, input=stdin, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
@@ -46,7 +50,7 @@ class httpx(BaseModule):
 
             url_event = self.scan.make_event(url, "URL", source_event)
             self.emit_event(url_event)
-            http_response_event = self.scan.make_event(j, "HTTP_RESPONSE", url_event)
+            http_response_event = self.scan.make_event(j, "HTTP_RESPONSE", url_event, internal=True)
             self.emit_event(http_response_event)
             if title:
                 self.emit_event(title, "HTTP_TITLE", source_event)

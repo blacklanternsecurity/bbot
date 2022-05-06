@@ -31,6 +31,7 @@ class Scanner:
             modules = []
         if output_modules is None:
             output_modules = ["json"]
+        internal_modules = self._internal_modules()
         if config is None:
             config = {}
 
@@ -74,23 +75,37 @@ class Scanner:
 
         # Load modules
         self.modules = dict()
-        failed_modules = 0
+
         # Load scan modules
         self.info(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
         loaded_modules, failed = self.load_modules(modules, "bbot.modules")
-        failed_modules += len(failed)
         self.modules.update(loaded_modules)
+        if len(failed) > 0:
+            self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
+
         # Load output modules
         self.info(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
         loaded_output_modules, failed_output = self.load_modules(output_modules, "bbot.modules.output")
-        failed_modules += len(failed_output)
         self.modules.update(loaded_output_modules)
+        if len(failed_output) > 0:
+            self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
 
-        if failed_modules > 0:
-            self.warning(f"Failed to load {failed_modules:,} modules: {','.join(failed.union(failed_output))}")
+        # Load internal modules
+        self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
+        loaded_internal_modules, failed_internal = self.load_modules(internal_modules, "bbot.modules.internal")
+        self.modules.update(loaded_internal_modules)
+        if len(failed_output) > 0:
+            self.warning(
+                f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
+            )
+
         self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
-        if self.modules:
-            self.success(f"Loaded {len(self.modules):,}/{len(modules)+len(output_modules):,} modules")
+        if loaded_modules:
+            self.success(f"Loaded {len(loaded_modules):,}/{len(modules):,} modules")
+        if loaded_output_modules:
+            self.success(f"Loaded {len(loaded_output_modules):,}/{len(output_modules):,} output modules")
+        if loaded_internal_modules:
+            self.verbose(f"Loaded {len(loaded_internal_modules):,}/{len(internal_modules):,} internal modules")
 
     def start(self):
 
@@ -280,6 +295,10 @@ class Scanner:
         return self.make_event(data=data, event_type="SCAN", dummy=True, source=make_event_id(data, "SCAN"))
 
     @property
+    def useragent(self):
+        return self.config.get("user_agent", "BBOT")
+
+    @property
     def json(self):
         j = dict()
         for i in ("id", "name"):
@@ -290,7 +309,6 @@ class Scanner:
             j.update({"targets": [str(e.data) for e in self.target]})
         if self.modules:
             j.update({"modules": [str(m) for m in self.modules]})
-        # j.update({"config": self.config})
         return j
 
     def debug(self, *args, **kwargs):
@@ -314,6 +332,11 @@ class Scanner:
     def critical(self, *args, **kwargs):
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
 
+    def _internal_modules(self):
+        from bbot.modules.internal import modules_preloaded
+
+        return list(modules_preloaded)
+
     def load_modules(self, modules, namespace):
         modules = [str(m) for m in modules]
         loaded_modules = {}
@@ -327,7 +350,8 @@ class Scanner:
                 except Exception:
                     import traceback
 
-                    self.warning(f"Failed to load module {module_class}\n{traceback.format_exc()}")
+                    self.warning(f"Failed to load module {module_class}")
+                    self.debug(traceback.format_exc())
             else:
                 self.warning(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)

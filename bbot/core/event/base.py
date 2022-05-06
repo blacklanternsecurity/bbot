@@ -311,7 +311,7 @@ event_classes = {
 
 
 def make_event(
-    data, event_type=None, source=None, module=None, scan=None, tags=None, confidence=100, dummy=False, internal=False
+    data, event_type=None, source=None, module=None, scan=None, tags=None, confidence=100, dummy=False, internal=None
 ):
     """
     If data is already an event, simply return it
@@ -322,6 +322,8 @@ def make_event(
             data.scan = scan
         if module is not None:
             data.module = module
+        if internal is not None:
+            data._internal = internal
         return data
     else:
         if event_type is None:
