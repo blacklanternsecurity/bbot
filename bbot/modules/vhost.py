@@ -15,7 +15,7 @@ class vhost(BaseModule):
     }
 
     def handle_event(self, event):
-        if not self.helpers.is_ip(event.host):
+        if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):
 
             subdomain_wordlist = self.helpers.download(self.config.get("subdomain_wordlist"), cache_hrs=720)
             parsed_host = urlparse(event.data)
