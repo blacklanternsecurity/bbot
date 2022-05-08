@@ -10,7 +10,8 @@ class vhost(BaseModule):
     in_scope_only = True
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
     options = {
-        "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt"
+        "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
+        "force_basehost":""
     }
 
     def handle_event(self, event):
@@ -28,7 +29,14 @@ class vhost(BaseModule):
 
             # subdomain vhost check
             self.debug("Main vhost bruteforce")
-            basehostraw = ".".join(parsed_host.netloc.split(".")[-2:])
+            self.debug(self.config.get("force_basehost"))
+            if self.config.get("force_basehost"):
+                basehostraw = self.config.get("force_basehost")
+            else:
+                basehostraw = ".".join(parsed_host.netloc.split(".")[-2:])
+
+
+            self.debug(f"Basehost: {basehostraw}")
             basehost = f".{basehostraw}"
             command = ["ffuf", "-ac", "-s", "-w", subdomain_wordlist, "-u", host, "-H", f"Host: FUZZ{basehost}"]
             for vhost in self.ffuf_vhost(command, host, parsed_host, basehost, event):
