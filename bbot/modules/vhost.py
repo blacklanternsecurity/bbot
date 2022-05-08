@@ -11,7 +11,7 @@ class vhost(BaseModule):
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
     options = {
         "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
-        "force_basehost":""
+        "force_basehost": "",
     }
 
     def handle_event(self, event):
@@ -34,7 +34,6 @@ class vhost(BaseModule):
                 basehostraw = self.config.get("force_basehost")
             else:
                 basehostraw = ".".join(parsed_host.netloc.split(".")[-2:])
-
 
             self.debug(f"Basehost: {basehostraw}")
             basehost = f".{basehostraw}"
