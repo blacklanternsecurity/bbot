@@ -1,5 +1,8 @@
 import ast
-from .misc import list_files
+import importlib
+from contextlib import suppress
+
+from .misc import list_files, sha1
 from ..errors import ModuleLoadError
 
 
@@ -13,6 +16,9 @@ def preload_modules(module_dir):
         try:
             preloaded_modules[module_file.stem] = preload_module(module_file)
         except Exception:
+            import traceback
+
+            print(traceback.format_exc())
             # if there's a parsing error, try importing the module to give the user the most info
             namespace = "bbot.modules"
             if module_dir.name == "output":
@@ -21,13 +27,19 @@ def preload_modules(module_dir):
                 namespace = "bbot.modules.internal"
             load_modules([module_file.stem], namespace=namespace)
             continue
+    # import json
+    # print(json.dumps(preloaded_modules, indent=4))
     return preloaded_modules
 
 
 def preload_module(module_file):
-    python_deps = []
+    pip_deps = []
     shell_deps = []
+    apt_deps = []
+    ansible_tasks = []
     python_code = open(module_file).read()
+    # take a hash of the code so we can keep track of when it changes
+    module_hash = sha1(python_code).hexdigest()
     parsed_code = ast.parse(python_code)
     config = {}
     for root_element in parsed_code.body:
@@ -43,21 +55,30 @@ def preload_module(module_file):
                 # class attributes that are lists
                 if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
                     # python dependencies
-                    if any([target.id == "deps_python" for target in class_attr.targets]):
+                    if any([target.id == "deps_pip" for target in class_attr.targets]):
                         for python_dep in class_attr.value.elts:
                             if type(python_dep.value) == str:
-                                python_deps.append(python_dep.value)
+                                pip_deps.append(python_dep.value)
+                    # apt dependencies
+                    elif any([target.id == "deps_apt" for target in class_attr.targets]):
+                        for apt_dep in class_attr.value.elts:
+                            if type(apt_dep.value) == str:
+                                apt_deps.append(apt_dep.value)
                     # bash dependencies
                     elif any([target.id == "deps_shell" for target in class_attr.targets]):
                         for shell_dep in class_attr.value.elts:
-                            if type(shell_dep.value) == str:
-                                shell_deps.append(shell_dep.value)
-    return {"config": config, "deps": {"python": python_deps, "shell": shell_deps}}
+                            shell_deps.append(ast.literal_eval(shell_dep))
+                    # ansible playbook
+                    elif any([target.id == "deps_ansible" for target in class_attr.targets]):
+                        ansible_tasks = ast.literal_eval(class_attr.value)
+    return {
+        "config": config,
+        "hash": module_hash,
+        "deps": {"pip": pip_deps, "shell": shell_deps, "apt": apt_deps, "ansible": ansible_tasks},
+    }
 
 
 def load_modules(module_names, namespace):
-
-    import importlib
 
     if namespace == "bbot.modules":
         from ...modules.base import BaseModule
@@ -76,14 +97,16 @@ def load_modules(module_names, namespace):
 
     modules = {}
     for module_name in module_names:
-        module_variables = importlib.import_module(f"{namespace}.{module_name}", "bbot")
-        for variable in module_variables.__dict__.keys():
-            value = getattr(module_variables, variable)
-            try:
-                if base_module_class in getattr(value, "__bases__", []):
-                    value._name = module_name
-                    modules[module_name] = value
-                    break
-            except AttributeError:
-                continue
+        module = load_module(module_name, namespace, base_module_class)
+        modules[module_name] = module
     return modules
+
+
+def load_module(module_name, namespace, base_module_class):
+    module_variables = importlib.import_module(f"{namespace}.{module_name}", "bbot")
+    for variable in module_variables.__dict__.keys():
+        value = getattr(module_variables, variable)
+        with suppress(AttributeError):
+            if base_module_class in getattr(value, "__bases__", []):
+                value._name = module_name
+                return value

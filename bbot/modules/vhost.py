@@ -13,6 +13,7 @@ class vhost(BaseModule):
         "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
         "force_basehost": "",
     }
+    options_desc = {"subdomain_wordlist": "Wordlist containing subdomains"}
 
     def handle_event(self, event):
         if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):

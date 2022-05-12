@@ -108,7 +108,10 @@ class DNSHelper:
             timeout (int): timeout for dns query
         """
         log.verbose(f"Verifying {len(nameservers):,} nameservers")
-        futures = [self._thread_pool.submit_task(self.verify_nameserver, n) for n in nameservers]
+        futures = [
+            self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.verify_nameserver, n)
+            for n in nameservers
+        ]
 
         valid_nameservers = set()
         for future in self.parent_helper.as_completed(futures):
@@ -176,7 +179,7 @@ class DNSHelper:
         except dns.exception.Timeout:
             log.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
         except dns.exception.DNSException as e:
-            log.debug(f"{e} (args={args}, kwargs={kwargs})")
+            self.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception:
             log.debug(f"Error in {callback.__name__} with args={args}, kwargs={kwargs}")
         return set()
@@ -202,7 +205,7 @@ class DNSHelper:
             for parent in parents:
                 for _ in range(self.wildcard_tests):
                     rand_query = f"{rand_string(length=10)}.{parent}"
-                    future = self._thread_pool.submit_task(self.resolve, rand_query)
+                    future = self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.resolve, rand_query)
                     futures[future] = parent
 
             wildcard_ips = set()
@@ -230,6 +233,18 @@ class DNSHelper:
                 lock = Lock()
                 self._wildcard_locks[domain] = lock
                 return lock
+
+    def _catch_keyboardinterrupt(self, callback, *args, **kwargs):
+        try:
+            return callback(*args, **kwargs)
+        except Exception as e:
+            import traceback
+
+            log.error(f"Error in {callback.__name__()}: {e}")
+            log.debug(traceback.format_exc())
+        except KeyboardInterrupt:
+            if self.parent_helper.scan:
+                self.parent_helper.scan.stop()
 
     def debug(self, *args, **kwargs):
         if self._debug:

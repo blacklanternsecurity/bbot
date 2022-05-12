@@ -63,7 +63,13 @@ for p in (parser, dummy_parser):
         help=f'Output module(s). Choices: {",".join(list(output.modules_preloaded))}',
         metavar="MODULES",
     )
-    p.add_argument("-a", "--agent-mode", action="store_true")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("--no-deps", action="store_true", help="Don't install module dependencies")
+    g.add_argument("--force-deps", action="store_true", help="Force install module dependencies")
+    p.add_argument(
+        "--ignore-failed-deps", action="store_true", help="Run modules even if their dependency setup failed"
+    )
+    p.add_argument("-a", "--agent-mode", action="store_true", help="Start in agent mode")
     p.add_argument(
         "-c",
         "--configuration",

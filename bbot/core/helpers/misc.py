@@ -2,6 +2,7 @@ import os
 import atexit
 import psutil
 import random
+import shutil
 import signal
 import string
 import logging
@@ -43,6 +44,11 @@ def split_host_port(d):
     if not "://" in d:
         d = f"d://{d}"
     parsed = urlparse(d)
+    if parsed.port is None:
+        if parsed.scheme == "https":
+            port = 443
+        elif port.scheme == "http":
+            port = 80
     return make_ip_type(parsed.hostname), parsed.port
 
 
@@ -132,9 +138,7 @@ def host_in_host(host1, host2):
 
 
 def sha1(data):
-    if type(data) != bytes:
-        data = str(data).encode("utf-8", errors="ignore")
-    return hashlib_sha1(data)
+    return hashlib_sha1(smart_encode(data))
 
 
 def smart_decode(data):
@@ -248,7 +252,7 @@ def list_files(directory, filter=lambda x: True):
 
 def _rm_at_exit(path):
     with suppress(Exception):
-        Path(path).unlink()
+        Path(path).unlink(missing_ok=True)
 
 
 def rm_at_exit(path):
@@ -273,3 +277,14 @@ def make_netloc(host, port):
     if is_ip(host, version=6):
         host = f"[{host}]"
     return f"{host}:{port}"
+
+
+def which(*executables):
+    for e in executables:
+        location = shutil.which(e)
+        if location:
+            return location
+
+
+def validate_port(port):
+    return 0 <= int(str(port)) <= 65535

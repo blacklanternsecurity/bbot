@@ -113,15 +113,15 @@ self.helpers.word_cloud
 # {"www": 1, black": 3, "lantern": 1, "security": 1, ...}
 self.helpers.word_cloud.modifiers()
 # {"1", "2", "3", "dev", "api", "test", "qa", ...}
-self.helpers.word_cloud.mutations("word")
+self.helpers.word_cloud.mutations("www")
 """
 [
-    ("word", "dev"),
-    ("dev", "word"),
-    ("word", "api"),
-    ("api", "word"),
-    ("word", "1"),
-    ("1", "word")
+    ("www", "dev"),
+    ("dev", "www"),
+    ("www", "api"),
+    ("api", "www"),
+    ("www", "1"),
+    ("1", "www")
 ]
 """
 ~~~
