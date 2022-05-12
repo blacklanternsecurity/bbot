@@ -10,11 +10,19 @@ class httpx(BaseModule):
     produced_events = ["URL"]
     max_threads = 2
     batch_size = 10
-    options = {"in_scope_only": True}
-    options_desc = {
-        "allow_skip_portscan": "Allow ingest from non-portscan even types (IP and DNS)",
-        "in_scope_only": "Only visit web resources that are in scope.",
-    }
+    options = {"in_scope_only": True, "version": "1.2.1"}
+    options_desc = {"in_scope_only": "Only visit web resources that are in scope.", "version": "httpx version"}
+    deps_ansible = [
+        {
+            "name": "Download httpx",
+            "unarchive": {
+                "src": "https://github.com/projectdiscovery/httpx/releases/download/v${BBOT_MODULES_HTTPX_VERSION}/httpx_${BBOT_MODULES_HTTPX_VERSION}_linux_amd64.zip",
+                "include": "httpx",
+                "dest": "${BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        }
+    ]
 
     def setup(self):
         self.timeout = self.scan.config.get("http_timeout", 5)

@@ -13,6 +13,7 @@ class neo4j(BaseOutputModule):
         "username": "Neo4j username",
         "password": "Neo4j password",
     }
+    deps_pip = ["py2neo"]
     batch_size = 50
 
     def setup(self):

@@ -33,6 +33,7 @@ class ffuf(BaseModule):
             "html",
             "zip",
         ],
+        "version": "1.4.1",
     }
 
     options_desc = {
@@ -44,6 +45,7 @@ class ffuf(BaseModule):
         "dirs_only": "Skip doing discovery for files with extensions",
         "extension_list": "The list of extensions to use during file discovery",
         "prefix_busting": "Enable searching file URLs for prefix and ffufing with the prefix",
+        "version": "ffuf version",
     }
 
     extension_helper = {
@@ -55,6 +57,18 @@ class ffuf(BaseModule):
         "sht": ["shtml"],
         "php": ["php2", "php3", "php4", "ph5"],
     }
+
+    deps_ansible = [
+        {
+            "name": "Download ffuf",
+            "unarchive": {
+                "src": "https://github.com/ffuf/ffuf/releases/download/v${BBOT_MODULES_FFUF_VERSION}/ffuf_${BBOT_MODULES_FFUF_VERSION}_linux_amd64.tar.gz",
+                "include": "ffuf",
+                "dest": "${BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        }
+    ]
 
     def setup(self):
 
@@ -130,6 +144,8 @@ class ffuf(BaseModule):
                 if last_node:
                     prefixes = self.findPrefixes(last_node)
                     for p in prefixes:
+                        if self.scan.stopping:
+                            break
                         self.debug(f"found prefix [{p}] in last node [{last_node}], running new FFUF with prefix")
                         self.execute_ffuf(
                             default_tempfile_dir,
@@ -208,6 +224,8 @@ class ffuf(BaseModule):
         if tempfile_dir:
             command = ["ffuf", "-ac", "-s", "-w", tempfile_dir, "-u", fuzz_url + "/"]
             for found_dir in self.helpers.run_live(command):
+                if self.scan.stopping:
+                    break
                 if found_dir.rstrip() == self.sanity_canary:
                     self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
                     break
@@ -215,6 +233,8 @@ class ffuf(BaseModule):
 
         if not self.config.get("dirs_only") and tempfile_files:
             for extension in self.extension_list:
+                if self.scan.stopping:
+                    break
                 extension = extension.rstrip()
                 file_fuzz_url = f"{fuzz_url}.{extension}"
                 command = ["ffuf", "-ac", "-s", "-w", tempfile_files, "-u", file_fuzz_url]

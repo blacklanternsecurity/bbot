@@ -9,10 +9,29 @@ class naabu(BaseModule):
         "IP_ADDRESS",
         "DNS_NAME",
     ]
+    options = {
+        "version": "2.0.5",
+    }
+    options_desc = {
+        "version": "naabu version",
+    }
     produced_events = ["OPEN_TCP_PORT"]
     max_threads = 5
     batch_size = 10
     in_scope_only = True
+
+    deps_apt = ["libpcap-dev"]
+    deps_ansible = [
+        {
+            "name": "Download naabu",
+            "unarchive": {
+                "src": "https://github.com/projectdiscovery/naabu/releases/download/v${BBOT_MODULES_NAABU_VERSION}/naabu_${BBOT_MODULES_NAABU_VERSION}_linux_amd64.zip",
+                "include": "naabu",
+                "dest": "${BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        }
+    ]
 
     def handle_batch(self, *events):
 

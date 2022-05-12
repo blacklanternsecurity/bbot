@@ -18,9 +18,14 @@ class BaseModule:
     # Flags
     flags = []
     # python dependencies (pip install ____)
-    deps_python = []
+    deps_pip = []
+    # apt dependencies (apt install ____)
+    deps_apt = []
     # other dependences as shell commands
+    # uses ansible.builtin.shell (https://docs.ansible.com/ansible/latest/collections/ansible/builtin/shell_module.html)
     deps_shell = []
+    # list of ansible tasks for when other dependency installation methods aren't enough
+    deps_ansible = []
     # Whether to accept duplicate events
     accept_dupes = False
     # Whether to block outgoing duplicate events
@@ -136,7 +141,7 @@ class BaseModule:
         except BrokenPipeError as e:
             self.debug(f"BrokenPipeError in {callback.__name__}(): {e}")
         except Exception as e:
-            self.error(f"Error in {callback.__name__}(): {e}")
+            self.error(f"Error in {callback.__name__}(): {e} {traceback.format_exc()}")
             self.debug(traceback.format_exc())
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")

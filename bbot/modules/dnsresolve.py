@@ -11,4 +11,8 @@ class dnsresolve(BaseModule):
         self.debug(f"trying to resolve {event.data}")
         r_set = self.helpers.resolve(str(event.data))
         for r in r_set:
-            self.emit_event(r, source=event)
+            if self.helpers.is_ip(r):
+                event_type = "IP_ADDRESS"
+            else:
+                event_type = "DNS_NAME"
+            self.emit_event(r, event_type, source=event)
