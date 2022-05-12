@@ -16,6 +16,29 @@ class massdns(BaseModule):
     subdomain_file = None
     in_scope_only = True
     flags = ["brute_force"]
+    deps_apt = ["build-essential"]
+    deps_ansible = [
+        {
+            "name": "Download massdns source code",
+            "git": {
+                "repo": "https://github.com/blechschmidt/massdns.git",
+                "dest": "${BBOT_TEMP}/massdns",
+                "single_branch": True,
+                "version": "master",
+            },
+        },
+        {
+            "name": "Build massdns",
+            "command": {"chdir": "${BBOT_TEMP}/massdns", "cmd": "make", "creates": "${BBOT_TEMP}/massdns/bin/massdns"},
+        },
+        {
+            "name": "Install massdns",
+            "command": {
+                "cmd": 'cp "${BBOT_TEMP}/massdns/bin/massdns" "${BBOT_TOOLS}/"',
+                "creates": "${BBOT_TOOLS}/massdns",
+            },
+        },
+    ]
 
     def setup(self):
 
@@ -52,7 +75,7 @@ class massdns(BaseModule):
         if not h in self.source_events:
             self.source_events[h] = event
 
-        if self.helpers.is_wildcard(f"ohgeezrickidontknowaboutthisone.{query}"):
+        if self.helpers.is_wildcard(f"iuasgesaisidfjsfieiq.{query}"):
             self.debug(f"Skipping wildcard: {query}")
             return
 

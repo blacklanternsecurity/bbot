@@ -8,7 +8,18 @@ from .helpers import (
     get_event_type,
 )
 from bbot.core.errors import *
-from bbot.core.helpers import extract_words, tldextract, split_host_port, host_in_host, is_domain, is_subdomain, is_ip
+from bbot.core.helpers import (
+    extract_words,
+    tldextract,
+    split_host_port,
+    host_in_host,
+    is_domain,
+    is_subdomain,
+    is_ip,
+    make_netloc,
+    validate_port,
+    make_ip_type,
+)
 
 
 log = logging.getLogger("bbot.core.event")
@@ -44,6 +55,8 @@ class BaseEvent:
 
         self.module = module
         self.scan = scan
+        if (not self.scan) and (not self._dummy):
+            raise ValidationError(f"Must specify scan")
 
         self.source = None
         if BaseEvent in source.__class__.__bases__:
@@ -248,8 +261,9 @@ class DNSNameEvent(BaseEvent):
 
 class OpenTCPPortEvent(BaseEvent):
     def _sanitize_data(self, data):
-        parsed = urlparse(f"d://{data}")
-        return parsed.netloc
+        host, port = split_host_port(data)
+        if host and validate_port(port):
+            return make_netloc(host, port)
 
     def _host(self):
         host, self._port = split_host_port(self.data)
@@ -263,26 +277,31 @@ class URLEvent(BaseEvent):
     def _sanitize_data(self, data):
         self.parsed = urlparse(data.strip())
         self.parsed = self.parsed._replace(netloc=str(self.parsed.netloc).lower())
-        return urlunparse(self.parsed)
+        # remove ports if they're redundant
+        if (self.parsed.scheme == "http" and self.parsed.port == 80) or (
+            self.parsed.scheme == "https" and self.parsed.port == 443
+        ):
+            hostname = self.parsed.hostname
+            if self.parsed.netloc.startswith("["):
+                hostname = f"[{hostname}]"
+            self.parsed = self.parsed._replace(netloc=hostname)
+        data = urlunparse(self.parsed)
+        return data
 
     def _host(self):
-        host, self._port = split_host_port(self.data)
-        return host
-
-    def _words(self):
-        return extract_words(self.host_stem)
+        return make_ip_type(self.parsed.hostname)
 
     @property
     def port(self):
-        port = super().port
-        if port is not None:
-            return port
-        else:
-            if self.data.startswith("https://"):
-                self._port = 443
-            elif self.data.startswith("http://"):
-                self._port = 80
-        return self._port
+        if self.parsed.port is not None:
+            return self.parsed.port
+        elif self.parsed.scheme == "https":
+            return 443
+        elif self.parsed.scheme == "http":
+            return 80
+
+    def _words(self):
+        return extract_words(self.host_stem)
 
 
 class EmailAddressEvent(BaseEvent):

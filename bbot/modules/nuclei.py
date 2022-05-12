@@ -11,6 +11,19 @@ class nuclei(BaseModule):
     max_threads = 5
     batch_size = 10
     in_scope_only = True
+    options = {"version": "2.7.0"}
+    options_desc = {"version": "nuclei version"}
+    deps_ansible = [
+        {
+            "name": "Download nuclei",
+            "unarchive": {
+                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v${BBOT_MODULES_NUCLEI_VERSION}/nuclei_${BBOT_MODULES_NUCLEI_VERSION}_linux_amd64.zip",
+                "include": "nuclei",
+                "dest": "${BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        }
+    ]
 
     def handle_batch(self, *events):
         """
@@ -41,8 +54,9 @@ class nuclei(BaseModule):
         }
         """
 
-        command = ["nuclei", "-silent", "-json", "-tags", "tech", "-u"] + [str(e.data) for e in events]
-        for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL):
+        _input = [str(e.data) for e in events]
+        command = ["nuclei", "-silent", "-json", "-tags", "tech"]
+        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:

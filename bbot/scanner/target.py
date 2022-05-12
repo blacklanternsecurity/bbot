@@ -61,14 +61,21 @@ class ScanTarget:
         if not ignore_tags and any([t in other.tags for t in ("in_scope", "target")]):
             return True
         if other.host:
+            if other in self.events:
+                return True
+            if not self.scan.helpers.is_ip(other.host):
+                for h in self.scan.helpers.domain_parents(other.host):
+                    if h in self._events:
+                        return True
             # check if the event's host matches any of ours
+            # todo: don't do this
             for host in self._events:
                 if host and host_in_host(other.host, host):
                     return True
             # check if the event matches any of ours
-            for e in self._events.get("", []):
-                if e.host and host_in_host(other.host, e.host):
-                    return True
+            # for e in self._events.get("", []):
+            #    if e.host and host_in_host(other.host, e.host):
+            #        return True
         return False
 
     def __eq__(self, other):

@@ -22,13 +22,16 @@ def run_live(self, command, *args, **kwargs):
 
     command = [str(s) for s in command]
     log.verbose(f"run_live{input_msg}: {' '.join(command)}")
-    with subprocess.Popen(command, *args, **kwargs) as process:
-        if _input:
-            if type(_input) in (str, bytes):
-                _input = (_input,)
-            self.feed_pipe(process.stdin, _input, text=False)
-        for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
-            yield line
+    try:
+        with subprocess.Popen(command, *args, **kwargs) as process:
+            if _input:
+                if type(_input) in (str, bytes):
+                    _input = (_input,)
+                self.feed_pipe(process.stdin, _input, text=False)
+            for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
+                yield line
+    except FileNotFoundError as e:
+        log.error(f"{e} - missing executable?")
 
 
 def run(self, command, *args, **kwargs):
@@ -42,7 +45,10 @@ def run(self, command, *args, **kwargs):
 
     command = [str(s) for s in command]
     log.verbose(f"run: {' '.join(command)}")
-    result = subprocess.run(command, *args, **kwargs)
+    try:
+        result = subprocess.run(command, *args, **kwargs)
+    except FileNotFoundError as e:
+        log.error(f"{e} - missing executable?")
     return result
 
 

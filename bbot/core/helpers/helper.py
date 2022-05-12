@@ -8,6 +8,7 @@ from threading import Lock
 from . import misc
 from .dns import DNSHelper
 from .wordcloud import WordCloud
+from .depsinstaller import DepsInstaller
 
 log = logging.getLogger("bbot.core.helpers")
 
@@ -22,8 +23,7 @@ class ConfigAwareHelper:
     def __init__(self, config, scan=None):
         self.config = config
         self.scan = scan
-        self.dns = DNSHelper(self)
-        self.home = Path(self.config.get("bbot_home", "~/.bbot")).expanduser().resolve()
+        self.home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
         self.cache_dir = self.home / "cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.temp_dir = self.home / "temp"
@@ -34,6 +34,8 @@ class ConfigAwareHelper:
         self._futures = set()
         self._future_lock = Lock()
 
+        self.dns = DNSHelper(self)
+        self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
 
     def temp_filename(self):

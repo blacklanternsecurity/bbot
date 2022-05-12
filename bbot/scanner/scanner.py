@@ -73,6 +73,12 @@ class Scanner:
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
 
+        # install module dependencies
+        succeeded, failed = self.helpers.depsinstaller.install(*modules, *output_modules, *internal_modules)
+        modules = [m for m in modules if m in succeeded]
+        output_modules = [m for m in output_modules if m in succeeded]
+        internal_modules = [m for m in internal_modules if m in succeeded]
+
         # Load modules
         self.modules = dict()
 

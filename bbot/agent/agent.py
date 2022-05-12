@@ -132,10 +132,10 @@ class Agent:
                     msg = "Scan not in progress"
                     log.warning(msg)
                     return {"error": msg}
-                self.scan.stop(wait=True)
-                msg = f"Stopped scan {self.scan.id}"
-                log.warning(msg)
                 scan_id = str(self.scan.id)
+                self.scan.stop(wait=True)
+                msg = f"Stopped scan {scan_id}"
+                log.warning(msg)
                 self.scan = None
                 return {"success": msg, "scan_id": scan_id}
         except Exception as e:
