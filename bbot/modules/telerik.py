@@ -6,7 +6,6 @@ class telerik(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
-    in_scope_only = True
     telerikVersions = [
         "2007.1423",
         "2007.1521",

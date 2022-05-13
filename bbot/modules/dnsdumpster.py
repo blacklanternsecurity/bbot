@@ -8,8 +8,7 @@ class dnsdumpster(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    deps_pip = ["beautifulsoup4"]
-    in_scope_only = True
+    deps_pip = ["beautifulsoup4", "lxml"]
 
     def setup(self):
         self.processed = set()
@@ -18,7 +17,7 @@ class dnsdumpster(BaseModule):
     def filter_event(self, event):
         if "target" in event.tags:
             return True
-        elif self.helpers.parent_domain(event.data) not in self.processed:
+        elif hash(self.helpers.parent_domain(event.data)) not in self.processed:
             return True
         return False
 
@@ -30,7 +29,7 @@ class dnsdumpster(BaseModule):
             query = str(event.data).lower()
 
         if query not in self.processed:
-            self.processed.add(query)
+            self.processed.add(hash(query))
 
             for hostname in self.query(query):
                 if not hostname == event:

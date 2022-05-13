@@ -14,7 +14,6 @@ class massdns(BaseModule):
     }
     options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
     subdomain_file = None
-    in_scope_only = True
     flags = ["brute_force"]
     deps_apt = ["build-essential"]
     deps_ansible = [

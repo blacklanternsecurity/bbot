@@ -7,7 +7,6 @@ class vhost(BaseModule):
     scanned_hosts = []
     watched_events = ["URL"]
     produced_events = ["URL"]
-    in_scope_only = True
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
     options = {
         "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
