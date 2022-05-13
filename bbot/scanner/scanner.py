@@ -8,6 +8,7 @@ from collections import OrderedDict
 from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
+from bbot.modules import modules_preloaded
 from bbot.core.threadpool import ThreadPoolWrapper
 from bbot.core.helpers.modules import load_modules
 from bbot.core.event import make_event, make_event_id
@@ -24,16 +25,26 @@ class Scanner:
         scan_id=None,
         name=None,
         modules=None,
+        module_flags=None,
         output_modules=None,
         config=None,
         dispatcher=None,
     ):
         if modules is None:
             modules = []
+        if module_flags is None:
+            module_flags = []
         if output_modules is None:
             output_modules = ["human"]
         if config is None:
             config = OmegaConf.create({})
+
+        # add modules by flags
+        for m, c in modules_preloaded.items():
+            flags = c.get("flags", [])
+            if any([f in flags for f in module_flags]):
+                modules.append(m)
+        modules = list(set(modules))
 
         self.modules = OrderedDict({})
         self._scan_modules = modules
@@ -47,6 +58,9 @@ class Scanner:
             self.id = str(uuid4())
         self.config = config
         self._status = "NOT_STARTED"
+
+        if not modules:
+            self.warning(f"No modules specified")
 
         self.target = ScanTarget(self, *targets)
         if not self.target:

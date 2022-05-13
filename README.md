@@ -11,9 +11,23 @@ git clone git@github.com:blacklanternsecurity/bbot.git && cd bbot
 poetry install
 ~~~
 
-## Example scan
+## Examples
 ~~~bash
-poetry run bbot -m naabu httpx nuclei -t evilcorp.com 1.2.3.4/28 4.3.2.1
+# subdomain enumeration
+poetry run bbot --flags subdomain-enum --targets evilcorp.com
+
+# custom modules
+poetry run bbot --modules naabu httpx nuclei --targets evilcorp.com 1.2.3.4/28 4.3.2.1
+
+# agent mode
+poetry run bbot --agent-mode
+~~~
+
+## Output to Neo4j
+~~~bash
+docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+
+poetry run bbot -f subdomain-enum -t evilcorp.com -o human neo4j
 ~~~
 
 ## Tests
@@ -35,7 +49,8 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-om MODULES [MODULES ...]] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config]
+usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-f FLAGS [FLAGS ...]] [-o MODULES [MODULES ...]] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config]
+            [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
@@ -44,15 +59,30 @@ options:
   -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
                         Scan target
   -m MODULES [MODULES ...], --modules MODULES [MODULES ...]
-                        Modules (specify keyword "all" to enable all modules). Choices:
-                        ffuf,sslcert,aspnet_viewstate,nuclei,telerik,naabu,httpx,wayback,dnsx,dnsresolve,sublist3r,dnsdumpster
-  -om MODULES [MODULES ...], --output-modules MODULES [MODULES ...]
-                        Output module(s). Choices: json,neo4j,csv,human
+                        Modules ("all" to enable all modules). Choices: ffuf,sslcert,aspnet_viewstate,wappalyzer,nuclei,vhost,massdns,telerik,naabu,httpx,wayback,crt,header_brute,dnsx,dnsr
+                        esolve,hunterio,iis_shortnames,sublist3r,dnsdumpster
+  -f FLAGS [FLAGS ...], --flags FLAGS [FLAGS ...]
+                        Select modules by flag. Choices: brute-force,subdomain-enum
+  -o MODULES [MODULES ...], --output-modules MODULES [MODULES ...]
+                        Output module(s). Choices: json,neo4j,csv,websocket,human,http
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
                         additional configuration options in key=value format
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
   --current-config      Show current config in YAML format
+
+Module dependencies:
+  Control how modules install their dependencies
+
+  --no-deps             Don't install module dependencies
+  --force-deps          Force install all module dependencies
+  --retry-deps          Retry failed module dependencies
+  --ignore-failed-deps  Run modules even if their dependency setup failed
+
+Agent:
+  Report back to a central server
+
+  -a, --agent-mode      Start in agent mode
 ~~~
 
 ## Generate config

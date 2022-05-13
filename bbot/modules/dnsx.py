@@ -17,7 +17,7 @@ class dnsx(BaseModule):
     batch_size = 10
     subdomain_file = None
     target_only = True
-    flags = ["brute_force"]
+    flags = ["brute-force"]
 
     def setup(self):
 

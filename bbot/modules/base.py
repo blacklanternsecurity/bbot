@@ -129,7 +129,7 @@ class BaseModule:
         """
         ret = None
         on_finish_callback = kwargs.pop("_on_finish_callback", None)
-        lock_brutes = kwargs.pop("_lock_brutes", False) and "brute_force" in self.flags
+        lock_brutes = kwargs.pop("_lock_brutes", False) and "brute-force" in self.flags
         lock_acquired = False
         try:
             if lock_brutes:

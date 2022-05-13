@@ -5,6 +5,7 @@ from .base import BaseModule
 
 class crt(BaseModule):
 
+    flags = ["subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
 

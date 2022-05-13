@@ -27,12 +27,13 @@ def preload_modules(module_dir):
                 namespace = "bbot.modules.internal"
             load_modules([module_file.stem], namespace=namespace)
             continue
-    # import json
-    # print(json.dumps(preloaded_modules, indent=4))
     return preloaded_modules
 
 
 def preload_module(module_file):
+    flags = []
+    watched_events = []
+    produced_events = []
     pip_deps = []
     shell_deps = []
     apt_deps = []
@@ -54,6 +55,21 @@ def preload_module(module_file):
 
                 # class attributes that are lists
                 if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
+                    # flags
+                    if any([target.id == "flags" for target in class_attr.targets]):
+                        for flag in class_attr.value.elts:
+                            if type(flag.value) == str:
+                                flags.append(flag.value)
+                    # watched events
+                    if any([target.id == "watched_events" for target in class_attr.targets]):
+                        for event_type in class_attr.value.elts:
+                            if type(event_type.value) == str:
+                                watched_events.append(event_type.value)
+                    # produced events
+                    if any([target.id == "produced_events" for target in class_attr.targets]):
+                        for event_type in class_attr.value.elts:
+                            if type(event_type.value) == str:
+                                produced_events.append(event_type.value)
                     # python dependencies
                     if any([target.id == "deps_pip" for target in class_attr.targets]):
                         for python_dep in class_attr.value.elts:
@@ -72,6 +88,9 @@ def preload_module(module_file):
                     elif any([target.id == "deps_ansible" for target in class_attr.targets]):
                         ansible_tasks = ast.literal_eval(class_attr.value)
     return {
+        "flags": flags,
+        "watched_events": watched_events,
+        "produced_events": produced_events,
         "config": config,
         "hash": module_hash,
         "deps": {"pip": pip_deps, "shell": shell_deps, "apt": apt_deps, "ansible": ansible_tasks},

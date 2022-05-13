@@ -3,6 +3,7 @@ from .base import BaseModule
 
 class sublist3r(BaseModule):
 
+    flags = ["subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
 
