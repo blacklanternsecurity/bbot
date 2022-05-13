@@ -2,6 +2,7 @@ import logging
 import threading
 from uuid import uuid4
 import concurrent.futures
+from omegaconf import OmegaConf
 from collections import OrderedDict
 
 from .target import ScanTarget
@@ -30,10 +31,15 @@ class Scanner:
         if modules is None:
             modules = []
         if output_modules is None:
-            output_modules = ["json"]
-        internal_modules = self._internal_modules()
+            output_modules = ["human"]
         if config is None:
-            config = {}
+            config = OmegaConf.create({})
+
+        self.modules = OrderedDict({})
+        self._scan_modules = modules
+        self._internal_modules = self._internal_modules()
+        self._output_modules = output_modules
+        self._modules_loaded = False
 
         if scan_id is not None:
             self.id = str(scan_id)
@@ -73,46 +79,6 @@ class Scanner:
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
 
-        # install module dependencies
-        succeeded, failed = self.helpers.depsinstaller.install(*modules, *output_modules, *internal_modules)
-        modules = [m for m in modules if m in succeeded]
-        output_modules = [m for m in output_modules if m in succeeded]
-        internal_modules = [m for m in internal_modules if m in succeeded]
-
-        # Load modules
-        self.modules = dict()
-
-        # Load scan modules
-        self.info(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
-        loaded_modules, failed = self.load_modules(modules, "bbot.modules")
-        self.modules.update(loaded_modules)
-        if len(failed) > 0:
-            self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
-
-        # Load output modules
-        self.info(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
-        loaded_output_modules, failed_output = self.load_modules(output_modules, "bbot.modules.output")
-        self.modules.update(loaded_output_modules)
-        if len(failed_output) > 0:
-            self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
-
-        # Load internal modules
-        self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
-        loaded_internal_modules, failed_internal = self.load_modules(internal_modules, "bbot.modules.internal")
-        self.modules.update(loaded_internal_modules)
-        if len(failed_output) > 0:
-            self.warning(
-                f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
-            )
-
-        self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
-        if loaded_modules:
-            self.success(f"Loaded {len(loaded_modules):,}/{len(modules):,} modules")
-        if loaded_output_modules:
-            self.success(f"Loaded {len(loaded_output_modules):,}/{len(output_modules):,} output modules")
-        if loaded_internal_modules:
-            self.verbose(f"Loaded {len(loaded_internal_modules):,}/{len(internal_modules):,} internal modules")
-
     def start(self):
 
         failed = True
@@ -121,6 +87,7 @@ class Scanner:
             self.status = "STARTING"
             self.info(f"Starting scan {self.id}")
 
+            self.load_modules()
             self.setup_modules()
 
             if not self.modules:
@@ -193,6 +160,7 @@ class Scanner:
             module.start()
 
     def setup_modules(self, remove_failed=True):
+        self.load_modules()
         self.info(f"Setting up modules")
         setups_failed = 0
         setup_futures = dict()
@@ -343,7 +311,57 @@ class Scanner:
 
         return list(modules_preloaded)
 
-    def load_modules(self, modules, namespace):
+    def load_modules(self):
+
+        if not self._modules_loaded:
+
+            # install module dependencies
+            succeeded, failed = self.helpers.depsinstaller.install(
+                *self._scan_modules, *self._output_modules, *self._internal_modules
+            )
+            modules = [m for m in self._scan_modules if m in succeeded]
+            output_modules = [m for m in self._output_modules if m in succeeded]
+            internal_modules = [m for m in self._internal_modules if m in succeeded]
+
+            # Load scan modules
+            self.info(f"Loading {len(self._scan_modules):,} modules: {','.join(list(self._scan_modules))}")
+            loaded_modules, failed = self._load_modules(self._scan_modules, "bbot.modules")
+            self.modules.update(loaded_modules)
+            if len(failed) > 0:
+                self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
+
+            # Load output modules
+            self.info(f"Loading {len(self._output_modules):,} output modules: {','.join(list(self._output_modules))}")
+            loaded_output_modules, failed_output = self._load_modules(self._output_modules, "bbot.modules.output")
+            self.modules.update(loaded_output_modules)
+            if len(failed_output) > 0:
+                self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
+
+            # Load internal modules
+            self.verbose(
+                f"Loading {len(self._internal_modules):,} internal modules: {','.join(list(self._internal_modules))}"
+            )
+            loaded_internal_modules, failed_internal = self._load_modules(
+                self._internal_modules, "bbot.modules.internal"
+            )
+            self.modules.update(loaded_internal_modules)
+            if len(failed_output) > 0:
+                self.warning(
+                    f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
+                )
+
+            self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
+            if loaded_modules:
+                self.success(f"Loaded {len(loaded_modules):,}/{len(modules):,} modules")
+            if loaded_output_modules:
+                self.success(f"Loaded {len(loaded_output_modules):,}/{len(output_modules):,} output modules")
+            if loaded_internal_modules:
+                self.verbose(f"Loaded {len(loaded_internal_modules):,}/{len(internal_modules):,} internal modules")
+
+            self._modules_loaded = True
+
+    def _load_modules(self, modules, namespace):
+
         modules = [str(m) for m in modules]
         loaded_modules = {}
         failed = set()

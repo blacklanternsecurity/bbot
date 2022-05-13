@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import shutil
+import signal
 import getpass
 import logging
 from itertools import chain
@@ -16,14 +17,19 @@ log = logging.getLogger("bbot.core.helpers.depsinstaller")
 class DepsInstaller:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self.sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
+        self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.setup_status_cache = self.data_dir / "setup_status.json"
         self.command_status = self.data_dir / "command_status"
         self.command_status.mkdir(exist_ok=True, parents=True)
         self.setup_status = self.read_setup_status()
         self.data_dir.mkdir(exist_ok=True, parents=True)
+
+        self.no_deps = self.parent_helper.config.get("no_deps", False)
         self.ansible_debug = self.parent_helper.config.get("debug", False)
+        self.force_deps = self.parent_helper.config.get("force_deps", False)
+        self.retry_deps = self.parent_helper.config.get("retry_deps", False)
+        self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
 
     def install(self, *modules):
         succeeded = []
@@ -31,7 +37,7 @@ class DepsInstaller:
         try:
             notified = False
             for m in modules:
-                if self.parent_helper.config.get("no_deps", False):
+                if self.no_deps:
                     succeeded.append(m)
                     continue
                 if m not in all_modules_preloaded:
@@ -47,8 +53,8 @@ class DepsInstaller:
                     succeeded.append(m)
                     continue
                 else:
-                    ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
-                    if success is None or self.parent_helper.config.get("force_deps", False):
+
+                    if success is None or (success is False and self.retry_deps) or self.force_deps:
                         if not notified:
                             log.info(
                                 f"Installing dependencies for {len(modules):,} modules. Please be patient, this may take a while."
@@ -57,15 +63,15 @@ class DepsInstaller:
                         log.verbose(f'Installing dependencies for module "{m}"')
                         success = self.install_module(m)
                         self.setup_status[module_hash] = success
-                        if success or ignore_failed_deps:
+                        if success or self.ignore_failed_deps:
                             log.debug(f'Setup succeeded for module "{m}"')
                             succeeded.append(m)
                         else:
                             log.warning(f'Setup failed for module "{m}"')
                             failed.append(m)
                     else:
-                        if success or ignore_failed_deps:
-                            log.verbose(
+                        if success or self.ignore_failed_deps:
+                            log.debug(
                                 f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
                             )
                             succeeded.append(m)
@@ -193,23 +199,30 @@ class DepsInstaller:
             log.debug(json.dumps(playbook, indent=2))
         if envvars is None:
             envvars = dict()
-        if self.sudo_password is not None:
-            envvars["ANSIBLE_BECOME_PASS"] = self.sudo_password
+        if self._sudo_password is not None:
+            envvars["ANSIBLE_BECOME_PASS"] = self._sudo_password
         playbook_hash = self.parent_helper.sha1(str(playbook)).hexdigest()
         data_dir = self.data_dir / (module if module else f"playbook_{playbook_hash}")
         data_dir.mkdir(exist_ok=True, parents=True)
-        res = run(
-            playbook=playbook,
-            private_data_dir=str(data_dir),
-            host_pattern="localhost",
-            inventory={
-                "all": {"hosts": {"localhost": _ansible_args}},
-            },
-            module=module,
-            module_args=module_args,
-            envvars=envvars,
-            quiet=not self.ansible_debug,
-        )
+
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+        try:
+            res = run(
+                playbook=playbook,
+                private_data_dir=str(data_dir),
+                host_pattern="localhost",
+                inventory={
+                    "all": {"hosts": {"localhost": _ansible_args}},
+                },
+                module=module,
+                module_args=module_args,
+                envvars=envvars,
+                quiet=not self.ansible_debug,
+            )
+        finally:
+            # restore default SIGINT handler
+            signal.signal(signal.SIGINT, original_sigint_handler)
+
         success = res.status == "successful"
         err = ""
         for e in res.events:
@@ -233,4 +246,4 @@ class DepsInstaller:
     def ensure_root(self):
         if os.geteuid() != 0 and self.sudo_password is None:
             while not self.sudo_password:
-                self.sudo_password = getpass.getpass(prompt=f"[sudo] password for {os.getlogin()}: ")
+                self._sudo_password = getpass.getpass(prompt=f"[sudo] password for {os.getlogin()}: ")
