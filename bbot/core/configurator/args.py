@@ -10,6 +10,10 @@ from ...modules import modules_preloaded
 
 log = logging.getLogger("bbot.core.configurator.args")
 
+flag_choices = set()
+for m, c in modules_preloaded.items():
+    flag_choices.update(set(c.get("flags", [])))
+
 
 class BBOTArgumentParser(argparse.ArgumentParser):
     _dummy = False
@@ -23,17 +27,21 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.modules = chain_lists(ret.modules)
         ret.output_modules = chain_lists(ret.output_modules)
         ret.targets = chain_lists(ret.targets, try_files=True)
+        ret.flags = chain_lists(ret.flags)
         if "all" in ret.modules:
             ret.modules = list(modules_preloaded)
         else:
             for m in ret.modules:
-                if not m in modules_preloaded and not self._dummy:
+                if m not in modules_preloaded and not self._dummy:
                     raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(list(modules_preloaded))}')
         for m in ret.output_modules:
-            if not m in output.modules_preloaded and not self._dummy:
+            if m not in output.modules_preloaded and not self._dummy:
                 raise ArgumentError(
                     f'Output module "{m}" is not valid. Choose from: {",".join(list(output.modules_preloaded))}'
                 )
+        for f in ret.flags:
+            if f not in flag_choices and not self._dummy:
+                raise ArgumentError(f'Flag "{f}" is not valid. Choose from: {",".join(list(flag_choices))}')
         return ret
 
 
@@ -53,7 +61,14 @@ for p in (parser, dummy_parser):
         "--modules",
         nargs="+",
         default=[],
-        help=f'Modules (specify keyword "all" to enable all modules). Choices: {",".join(list(modules_preloaded))}',
+        help=f'Modules ("all" to enable all modules). Choices: {",".join(list(modules_preloaded))}',
+    )
+    p.add_argument(
+        "-f",
+        "--flags",
+        nargs="+",
+        default=[],
+        help=f'Select modules by flag. Choices: {",".join(list(flag_choices))}',
     )
     p.add_argument(
         "-o",

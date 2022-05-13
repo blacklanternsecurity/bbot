@@ -53,6 +53,7 @@ def main():
             scanner = Scanner(
                 *options.targets,
                 modules=options.modules,
+                module_flags=options.flags,
                 output_modules=options.output_modules,
                 config=config,
             )
