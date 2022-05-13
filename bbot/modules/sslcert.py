@@ -7,6 +7,7 @@ from OpenSSL import SSL
 
 class sslcert(BaseModule):
 
+    flags = ["subdomain-enum"]
     watched_events = ["DNS_NAME", "IP_ADDRESS", "OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME"]
     options = {"timeout": 5.0}

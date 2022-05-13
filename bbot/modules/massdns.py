@@ -6,6 +6,7 @@ from .base import BaseModule
 
 class massdns(BaseModule):
 
+    flags = ["brute-force", "subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     options = {
@@ -14,7 +15,6 @@ class massdns(BaseModule):
     }
     options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
     subdomain_file = None
-    flags = ["brute_force"]
     deps_apt = ["build-essential"]
     deps_ansible = [
         {
