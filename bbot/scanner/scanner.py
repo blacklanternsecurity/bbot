@@ -324,26 +324,22 @@ class Scanner:
             internal_modules = [m for m in self._internal_modules if m in succeeded]
 
             # Load scan modules
-            self.info(f"Loading {len(self._scan_modules):,} modules: {','.join(list(self._scan_modules))}")
-            loaded_modules, failed = self._load_modules(self._scan_modules, "bbot.modules")
+            self.info(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
+            loaded_modules, failed = self._load_modules(modules, "bbot.modules")
             self.modules.update(loaded_modules)
             if len(failed) > 0:
                 self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
 
             # Load output modules
-            self.info(f"Loading {len(self._output_modules):,} output modules: {','.join(list(self._output_modules))}")
-            loaded_output_modules, failed_output = self._load_modules(self._output_modules, "bbot.modules.output")
+            self.info(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
+            loaded_output_modules, failed_output = self._load_modules(output_modules, "bbot.modules.output")
             self.modules.update(loaded_output_modules)
             if len(failed_output) > 0:
                 self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
 
             # Load internal modules
-            self.verbose(
-                f"Loading {len(self._internal_modules):,} internal modules: {','.join(list(self._internal_modules))}"
-            )
-            loaded_internal_modules, failed_internal = self._load_modules(
-                self._internal_modules, "bbot.modules.internal"
-            )
+            self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
+            loaded_internal_modules, failed_internal = self._load_modules(internal_modules, "bbot.modules.internal")
             self.modules.update(loaded_internal_modules)
             if len(failed_output) > 0:
                 self.warning(
@@ -352,11 +348,13 @@ class Scanner:
 
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
             if loaded_modules:
-                self.success(f"Loaded {len(loaded_modules):,}/{len(modules):,} modules")
+                self.success(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} modules")
             if loaded_output_modules:
-                self.success(f"Loaded {len(loaded_output_modules):,}/{len(output_modules):,} output modules")
+                self.success(f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules")
             if loaded_internal_modules:
-                self.verbose(f"Loaded {len(loaded_internal_modules):,}/{len(internal_modules):,} internal modules")
+                self.verbose(
+                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules"
+                )
 
             self._modules_loaded = True
 

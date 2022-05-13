@@ -31,7 +31,7 @@ class BaseModule:
     # Whether to block outgoing duplicate events
     suppress_dupes = True
     # Only accept explicitly in-scope events
-    in_scope_only = False
+    in_scope_only = True
     # Only accept the initial target event(s)
     target_only = False
     # Options, e.g. {"api_key": ""}
@@ -141,7 +141,9 @@ class BaseModule:
         except BrokenPipeError as e:
             self.debug(f"BrokenPipeError in {callback.__name__}(): {e}")
         except Exception as e:
-            self.error(f"Error in {callback.__name__}(): {e} {traceback.format_exc()}")
+            import traceback
+
+            self.error(f"Error in {callback.__name__}(): {e}")
             self.debug(traceback.format_exc())
         except KeyboardInterrupt:
             self.debug(f"Interrupted module {self.name}")

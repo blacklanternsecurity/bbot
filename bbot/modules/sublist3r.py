@@ -5,7 +5,6 @@ class sublist3r(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    in_scope_only = True
 
     def setup(self):
         self.processed = set()
@@ -14,7 +13,7 @@ class sublist3r(BaseModule):
     def filter_event(self, event):
         if "target" in event.tags:
             return True
-        elif self.helpers.parent_domain(event.data) not in self.processed:
+        elif hash(self.helpers.parent_domain(event.data)) not in self.processed:
             return True
         return False
 
@@ -26,7 +25,7 @@ class sublist3r(BaseModule):
             query = str(event.data).lower()
 
         if query not in self.processed:
-            self.processed.add(query)
+            self.processed.add(hash(query))
 
             results = self.helpers.request(f"https://api.sublist3r.com/search.php?domain={query}")
 

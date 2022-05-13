@@ -5,7 +5,6 @@ class hunter_io(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL"]
-    in_scope_only = True
     options = {"api_key": ""}
     options_desc = {"api_key": "Hunter.IO API key"}
     max_threads = 2

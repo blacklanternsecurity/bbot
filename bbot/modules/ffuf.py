@@ -9,7 +9,6 @@ class ffuf(BaseModule):
 
     watched_events = ["URL", "URL_HINT"]
     produced_events = ["URL"]
-    in_scope_only = True
 
     flags = ["brute_force"]
     options = {

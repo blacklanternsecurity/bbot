@@ -3,6 +3,7 @@ from ..base import BaseModule
 
 
 class BaseInternalModule(BaseModule):
+    in_scope_only = False
     _type = "internal"
     _priority = -50
 
