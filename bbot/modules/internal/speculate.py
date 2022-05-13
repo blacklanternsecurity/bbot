@@ -13,7 +13,6 @@ class speculate(BaseInternalModule):
     max_threads = 5
 
     def handle_event(self, event):
-        self.debug(event.type)
         # generate individual IP addresses from IP range
         if event.type == "IP_RANGE":
             net = ipaddress.ip_network(event.data)

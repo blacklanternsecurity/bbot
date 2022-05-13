@@ -53,7 +53,6 @@ class DepsInstaller:
                     succeeded.append(m)
                     continue
                 else:
-
                     if success is None or (success is False and self.retry_deps) or self.force_deps:
                         if not notified:
                             log.info(
@@ -77,7 +76,7 @@ class DepsInstaller:
                             succeeded.append(m)
                         else:
                             log.warning(
-                                f'Skipping dependency install for module "{m}" because it failed previously (--force-deps to retry or --ignore-failed-deps to ignore)'
+                                f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
                             )
                             failed.append(m)
 
@@ -107,7 +106,7 @@ class DepsInstaller:
 
         # ansible tasks
         ansible_tasks = preloaded["deps"]["ansible"]
-        if ansible_tasks is not None:
+        if ansible_tasks:
             success &= self.tasks(module, ansible_tasks)
 
         return success

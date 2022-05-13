@@ -7,6 +7,7 @@ class BaseOutputModule(BaseModule):
 
     watched_events = ["*"]
     accept_dupes = True
+    in_scope_only = False
     _priority = -100
     _type = "output"
 

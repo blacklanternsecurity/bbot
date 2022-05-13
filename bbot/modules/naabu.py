@@ -18,7 +18,6 @@ class naabu(BaseModule):
     produced_events = ["OPEN_TCP_PORT"]
     max_threads = 5
     batch_size = 10
-    in_scope_only = True
 
     deps_apt = ["libpcap-dev"]
     deps_ansible = [

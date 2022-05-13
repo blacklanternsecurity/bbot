@@ -10,6 +10,7 @@ class httpx(BaseModule):
     produced_events = ["URL"]
     max_threads = 2
     batch_size = 10
+    in_scope_only = False
     options = {"in_scope_only": True, "version": "1.2.1"}
     options_desc = {"in_scope_only": "Only visit web resources that are in scope.", "version": "httpx version"}
     deps_ansible = [
