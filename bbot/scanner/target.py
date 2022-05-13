@@ -1,8 +1,8 @@
 import logging
+import ipaddress
 
 from bbot.core.errors import *
 from bbot.core.event import make_event
-from bbot.core.helpers import host_in_host
 
 log = logging.getLogger("bbot.core.target")
 
@@ -12,6 +12,7 @@ class ScanTarget:
         self.scan = scan
         # create pseudo root event
         self._events = dict()
+        self._events_set = None
         log.info(f"Creating events from {len(targets):,} targets")
         for t in targets:
             if type(t) == self.__class__:
@@ -34,10 +35,8 @@ class ScanTarget:
 
     @property
     def events(self):
-        events = set()
         for _events in self._events.values():
-            events.update(_events)
-        return events
+            yield from _events
 
     def __str__(self):
         return ",".join([str(e.data) for e in self.events][:5])
@@ -60,22 +59,19 @@ class ScanTarget:
             return False
         if not ignore_tags and any([t in other.tags for t in ("in_scope", "target")]):
             return True
+        if other in self.events:
+            return True
         if other.host:
-            if other in self.events:
+            if other.host in self._events:
                 return True
-            if not self.scan.helpers.is_ip(other.host):
+            if self.scan.helpers.is_ip_type(other.host):
+                for n in self.scan.helpers.ip_network_parents(other.host, include_self=True):
+                    if n in self._events:
+                        return True
+            else:
                 for h in self.scan.helpers.domain_parents(other.host):
                     if h in self._events:
                         return True
-            # check if the event's host matches any of ours
-            # todo: don't do this
-            for host in self._events:
-                if host and host_in_host(other.host, host):
-                    return True
-            # check if the event matches any of ours
-            # for e in self._events.get("", []):
-            #    if e.host and host_in_host(other.host, e.host):
-            #        return True
         return False
 
     def __eq__(self, other):
@@ -86,5 +82,17 @@ class ScanTarget:
             events = tuple(sorted(list(self.events), key=lambda e: hash(e)))
             return hash(events)
 
+    def __len__(self):
+        """
+        Returns the total number of HOSTS (not events) in the target
+        """
+        num_hosts = 0
+        for host, _events in self._events.items():
+            if type(host) in (ipaddress.IPv4Network, ipaddress.IPv6Network):
+                num_hosts += host.num_addresses
+            else:
+                num_hosts += len(_events)
+        return num_hosts
+
     def __bool__(self):
-        return len(self.events) > 0
+        return len(list(self._events)) > 0
