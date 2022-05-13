@@ -121,7 +121,7 @@ class BaseModule:
         return
 
     def submit_task(self, *args, **kwargs):
-        return self.thread_pool.submit_task(*args, **kwargs)
+        return self.thread_pool.submit_task(self.catch, *args, **kwargs)
 
     def catch(self, callback, *args, **kwargs):
         """
