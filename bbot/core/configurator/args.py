@@ -63,13 +63,6 @@ for p in (parser, dummy_parser):
         help=f'Output module(s). Choices: {",".join(list(output.modules_preloaded))}',
         metavar="MODULES",
     )
-    g = p.add_mutually_exclusive_group()
-    g.add_argument("--no-deps", action="store_true", help="Don't install module dependencies")
-    g.add_argument("--force-deps", action="store_true", help="Force install module dependencies")
-    p.add_argument(
-        "--ignore-failed-deps", action="store_true", help="Run modules even if their dependency setup failed"
-    )
-    p.add_argument("-a", "--agent-mode", action="store_true", help="Start in agent mode")
     p.add_argument(
         "-c",
         "--configuration",
@@ -83,6 +76,18 @@ for p in (parser, dummy_parser):
         action="store_true",
         help="Show current config in YAML format",
     )
+    deps = p.add_argument_group(
+        title="Module dependencies", description="Control how modules install their dependencies"
+    )
+    g = deps.add_mutually_exclusive_group()
+    g.add_argument("--no-deps", action="store_true", help="Don't install module dependencies")
+    g.add_argument("--force-deps", action="store_true", help="Force install all module dependencies")
+    g.add_argument("--retry-deps", action="store_true", help="Retry failed module dependencies")
+    g.add_argument(
+        "--ignore-failed-deps", action="store_true", help="Run modules even if their dependency setup failed"
+    )
+    agent = p.add_argument_group(title="Agent", description="Report back to a central server")
+    agent.add_argument("-a", "--agent-mode", action="store_true", help="Start in agent mode")
 
 
 cli_options = None
