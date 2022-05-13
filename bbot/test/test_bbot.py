@@ -36,10 +36,16 @@ def test_events(events, scan):
     assert "8.8.8.8" in events.netv4
     assert "8.8.8.9" not in events.ipv4
     assert "8.8.9.8" not in events.netv4
+    assert "8.8.8.8/31" in events.netv4
+    assert "8.8.8.8/30" in events.netv4
+    assert "8.8.8.8/29" not in events.netv4
     assert "2001:4860:4860::8888" in events.ipv6
     assert "2001:4860:4860::8888" in events.netv6
     assert "2001:4860:4860::8889" not in events.ipv6
     assert "2002:4860:4860::8888" not in events.netv6
+    assert "2001:4860:4860::8888/127" in events.netv6
+    assert "2001:4860:4860::8888/126" in events.netv6
+    assert "2001:4860:4860::8888/125" not in events.netv6
     assert events.emoji not in events.ipv4
     assert events.emoji not in events.netv6
     assert events.netv6 not in events.emoji
@@ -124,6 +130,19 @@ def test_helpers(patch_requests, patch_commands, helpers):
     assert not helpers.is_domain("www.evilcorp.co.uk")
     assert helpers.is_subdomain("www.evilcorp.co.uk")
     assert not helpers.is_subdomain("evilcorp.co.uk")
+    assert list(helpers.domain_parents("test.www.evilcorp.co.uk")) == ["www.evilcorp.co.uk", "evilcorp.co.uk"]
+    assert list(helpers.domain_parents("www.evilcorp.co.uk", include_self=True)) == [
+        "www.evilcorp.co.uk",
+        "evilcorp.co.uk",
+    ]
+    assert list(helpers.ip_network_parents("0.0.0.0/2")) == [
+        ipaddress.ip_network("0.0.0.0/1"),
+        ipaddress.ip_network("0.0.0.0/0"),
+    ]
+    assert list(helpers.ip_network_parents("0.0.0.0/1", include_self=True)) == [
+        ipaddress.ip_network("0.0.0.0/1"),
+        ipaddress.ip_network("0.0.0.0/0"),
+    ]
     assert helpers.is_ip("127.0.0.1")
     assert not helpers.is_ip("publicapis.org")
     extracted_words = helpers.extract_words("blacklanternsecurity")
@@ -264,20 +283,35 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events):
 def test_target(neuter_ansible, patch_requests, patch_commands):
     from bbot.scanner.scanner import Scanner
 
-    scan1 = Scanner("publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
-    scan2 = Scanner("8.8.8.8/30", "publicapis.org", "2001:4860:4860::8888/126")
-    scan3 = Scanner("8.8.8.8/31")
+    scan1 = Scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
+    scan2 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
+    scan3 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
+    scan4 = Scanner("8.8.8.8/29")
+    scan5 = Scanner()
+    assert not scan5.target
+    assert len(scan1.target) == 9
+    assert len(scan4.target) == 8
     assert "8.8.8.9" in scan1.target
-    assert not "8.8.8.12" in scan1.target
+    assert "8.8.8.12" not in scan1.target
+    assert "8.8.8.8/31" in scan1.target
+    assert "8.8.8.8/30" in scan1.target
+    assert "8.8.8.8/29" not in scan1.target
     assert "2001:4860:4860::8889" in scan1.target
-    assert not "2001:4860:4860::888c" in scan1.target
+    assert "2001:4860:4860::888c" not in scan1.target
+    assert "www.api.publicapis.org" in scan1.target
     assert "api.publicapis.org" in scan1.target
+    assert "publicapis.org" not in scan1.target
+    assert "bob@www.api.publicapis.org" in scan1.target
+    assert "https://www.api.publicapis.org" in scan1.target
+    assert "www.api.publicapis.org:80" in scan1.target
+    assert scan1.make_event("https://[2001:4860:4860::8888]:80", "URL", dummy=True) in scan1.target
+    assert scan1.make_event("[2001:4860:4860::8888]:80", "OPEN_TCP_PORT", dummy=True) in scan1.target
+    assert scan1.make_event("[2001:4860:4860::888c]:80", "OPEN_TCP_PORT", dummy=True) not in scan1.target
     assert scan1.target in scan2.target
-    assert scan1.target == scan2.target
-    assert scan2.target in scan1.target
-    assert scan3.target in scan1.target
-    assert not scan1.target in scan3.target
-    assert scan3.target != scan1.target
+    assert scan2.target not in scan1.target
+    assert scan3.target in scan2.target
+    assert scan2.target == scan3.target
+    assert scan4.target != scan1.target
 
 
 def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers):
@@ -304,24 +338,17 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
 
     scan3.setup_modules(remove_failed=False)
 
-    futures = []
     for module in scan3.modules.values():
         module.emit_event = lambda *args, **kwargs: None
         module._filter = lambda *args, **kwargs: True
         events_to_submit = [e for e in events.all if e.type in module.watched_events]
         if module.batch_size > 1:
             log.debug(f"Testing {module.name}.handle_batch()")
-            # future = scan3._thread_pool.submit_task(module.handle_batch, *events_to_submit)
-            # futures.append(future)
             module.handle_batch(*events_to_submit)
         else:
             for e in events_to_submit:
                 log.debug(f"Testing {module.name}.handle_event()")
-                # future = scan3._thread_pool.submit_task(module.handle_event, e)
-                # futures.append(future)
                 module.handle_event(e)
-    for future in helpers.as_completed(futures):
-        assert future.result() is None
 
     scan3._thread_pool.shutdown(wait=True)
 

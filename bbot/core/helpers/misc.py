@@ -44,20 +44,25 @@ def split_host_port(d):
     if not "://" in d:
         d = f"d://{d}"
     parsed = urlparse(d)
+    port = None
     if parsed.port is None:
         if parsed.scheme == "https":
             port = 443
-        elif port.scheme == "http":
+        elif parsed.scheme == "http":
             port = 80
-    return make_ip_type(parsed.hostname), parsed.port
+    else:
+        port = int(parsed.port)
+    return make_ip_type(parsed.hostname), port
 
 
-def domain_parents(d):
+def domain_parents(d, include_self=False):
     """
     Returns all parents of a subdomain
         test.www.evilcorp.com --> [www.evilcorp.com, evilcorp.com]
     """
     parent = str(d)
+    if include_self:
+        yield parent
     while 1:
         parent = parent_domain(parent)
         if is_subdomain(parent):
@@ -66,6 +71,12 @@ def domain_parents(d):
         elif is_domain(parent):
             yield parent
         break
+
+
+def ip_network_parents(i, include_self=False):
+    net = ipaddress.ip_network(i, strict=False)
+    for i in range(net.prefixlen - (0 if include_self else 1), -1, -1):
+        yield ipaddress.ip_network(f"{net.network_address}/{i}", strict=False)
 
 
 def parent_domain(d):
@@ -80,6 +91,8 @@ def parent_domain(d):
 
 
 def is_ip(d, version=None):
+    if type(d) in (ipaddress.IPv4Address, ipaddress.IPv6Address):
+        return True
     try:
         ip = ipaddress.ip_address(d)
         if version is None or ip.version == version:
@@ -87,6 +100,10 @@ def is_ip(d, version=None):
     except Exception:
         pass
     return False
+
+
+def is_ip_type(i):
+    return hasattr(i, "is_multicast")
 
 
 def is_email(d):
@@ -122,11 +139,7 @@ def host_in_host(host1, host2):
             return False
         host1_net = ipaddress.ip_network(host1)
         host2_net = ipaddress.ip_network(host2)
-        if host1_net.num_addresses <= host2_net.num_addresses:
-            netmask = host2_net.prefixlen
-            host1_net = ipaddress.ip_network(f"{host1_net.network_address}/{netmask}", strict=False)
-            host2_net = ipaddress.ip_network(f"{host2_net.network_address}/{netmask}", strict=False)
-            return host1_net == host2_net
+        return host1_net.subnet_of(host2_net)
 
     # else hostnames
     elif not (host1_ip_type or host2_ip_type):

@@ -50,7 +50,7 @@ class Scanner:
 
         self.target = ScanTarget(self, *targets)
         if not self.target:
-            self.error(f"No scan targets specified")
+            self.warning(f"No scan targets specified")
         if name is None:
             self.name = str(self.target)
         else:
