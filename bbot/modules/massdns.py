@@ -38,6 +38,7 @@ class massdns(BaseModule):
             },
         },
     ]
+    in_scope_only = True
 
     def setup(self):
 

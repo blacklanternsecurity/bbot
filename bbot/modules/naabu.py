@@ -31,6 +31,7 @@ class naabu(BaseModule):
             },
         }
     ]
+    in_scope_only = True
 
     def handle_batch(self, *events):
 

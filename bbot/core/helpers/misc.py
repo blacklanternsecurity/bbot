@@ -45,7 +45,6 @@ def is_subdomain(d):
     """
     "www.evilcorp.co.uk" --> True
     "evilcorp.co.uk" --> False
-    ""
     """
     extracted = tldextract(d)
     if extracted.domain and extracted.subdomain:
