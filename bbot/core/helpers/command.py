@@ -9,11 +9,27 @@ log = logging.getLogger("bbot.core.helpers.command")
 
 
 def run_live(self, command, *args, **kwargs):
+    """
+    Get live output, line by line, as a process executes
+    You can also pass input=<iterator> and pipe data into the process' stdin
+        - This lets you chain processes like so:
+
+            ls_process = run_live(["ls", "/etc"])
+            grep_process = run_live(["grep", "conf"], input=ls_process)
+            for line in grep_process:
+                log.success(line)
+
+        - The above is roughly equivalent to:
+            ls /etc | grep conf
+
+    NOTE: STDERR is hidden by default.
+        If you want to see it, pass stderr=None
+    """
 
     if not "stdout" in kwargs:
         kwargs["stdout"] = subprocess.PIPE
     if not "stderr" in kwargs:
-        kwargs["stderr"] = subprocess.PIPE
+        kwargs["stderr"] = subprocess.DEVNULL
     _input = kwargs.pop("input", "")
     input_msg = ""
     if _input:
@@ -35,7 +51,14 @@ def run_live(self, command, *args, **kwargs):
 
 
 def run(self, command, *args, **kwargs):
+    """
+    Simple helper for running a command, and getting its output as a string
+        process = run(["ls", "/tmp"])
+        process.stdout --> "file1.txt\nfile2.txt"
 
+    NOTE: STDERR is captured (not displayed) by default.
+        If you want to see it, self.debug(process.stderr) or pass stderr=None
+    """
     if not "stdout" in kwargs:
         kwargs["stdout"] = subprocess.PIPE
     if not "stderr" in kwargs:
@@ -54,9 +77,11 @@ def run(self, command, *args, **kwargs):
 
 def tempfile(self, content, pipe=True):
     """
-    if "pipe" is True, a named pipe is used instead
-    This allows python data to be piped directly into the process
-    by effectively "spoofing" a file and without taking up disk space
+    tempfile("temp\nfile\ncontent") --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
+
+    if "pipe" is True (the default), a named pipe is used instead of
+    a true file, which allows python data to be piped directly into the
+    process without taking up disk space
     """
     try:
         filename = self.temp_filename()

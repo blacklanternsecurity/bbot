@@ -86,6 +86,9 @@ class DNSHelper:
 
     @property
     def resolvers(self):
+        """
+        Returns set() of valid DNS servers from public-dns.info
+        """
         if self._resolver_list is None:
             file_content = self.parent_helper.cache_get("resolver_list")
             if file_content is not None:
