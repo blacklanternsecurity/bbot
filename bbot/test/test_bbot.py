@@ -205,6 +205,12 @@ def test_helpers(patch_requests, patch_commands, helpers):
     v6_ips = helpers.resolve("www.google.com", type="AAAA")
     assert all([i.version == 6 for i in [ipaddress.ip_address(_) for _ in v6_ips]])
     assert not helpers.resolve(f"{helpers.rand_string(length=30)}.com")
+    # batch resolution
+    batch_results = list(helpers.resolve_batch("8.8.8.8", "dns.google"))
+    assert len(batch_results) == 2
+    batch_results = dict(batch_results)
+    assert any([x in batch_results["dns.google"] for x in ("8.8.8.8", "8.8.4.4")])
+    assert "dns.google" in batch_results["8.8.8.8"]
     # wildcards
     assert helpers.is_wildcard("blacklanternsecurity.github.io")
     assert "github.io" in helpers.dns.wildcards
