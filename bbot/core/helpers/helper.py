@@ -39,6 +39,9 @@ class ConfigAwareHelper:
         self.word_cloud = WordCloud(self)
 
     def temp_filename(self):
+        """
+        temp_filename() --> "/home/user/.bbot/temp/pgxml13bov87oqrvjz7a"
+        """
         return self.temp_dir / self.rand_string(20)
 
     def empty_temp_dir(self):
