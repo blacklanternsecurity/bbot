@@ -24,6 +24,7 @@ class httpx(BaseModule):
             },
         }
     ]
+    in_scope_only = True
 
     def setup(self):
         self.timeout = self.scan.config.get("http_timeout", 5)

@@ -13,6 +13,7 @@ class vhost(BaseModule):
         "force_basehost": "",
     }
     options_desc = {"subdomain_wordlist": "Wordlist containing subdomains"}
+    in_scope_only = True
 
     def handle_event(self, event):
         if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):

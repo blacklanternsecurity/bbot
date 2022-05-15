@@ -26,12 +26,12 @@ class BaseModule:
     deps_shell = []
     # list of ansible tasks for when other dependency installation methods aren't enough
     deps_ansible = []
-    # Whether to accept duplicate events
+    # Whether to accept incoming duplicate events
     accept_dupes = False
     # Whether to block outgoing duplicate events
     suppress_dupes = True
     # Only accept explicitly in-scope events
-    in_scope_only = True
+    in_scope_only = False
     # Only accept the initial target event(s)
     target_only = False
     # Options, e.g. {"api_key": ""}

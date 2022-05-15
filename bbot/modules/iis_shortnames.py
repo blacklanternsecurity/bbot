@@ -7,6 +7,7 @@ class iis_shortnames(BaseModule):
     produced_events = ["URL_HINT"]
     options = {"detect_only": False}
     options_desc = {"detect_only": "Only detect the vulnerability and do not run the shortname scanner"}
+    in_scope_only = True
 
     def setup(self):
         iis_shortname_jar = "https://github.com/irsdl/IIS-ShortName-Scanner/raw/master/iis_shortname_scanner.jar"

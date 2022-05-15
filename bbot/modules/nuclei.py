@@ -10,7 +10,6 @@ class nuclei(BaseModule):
     produced_events = ["VULNERABILITY"]
     max_threads = 5
     batch_size = 10
-    in_scope_only = True
     options = {"version": "2.7.0"}
     options_desc = {"version": "nuclei version"}
     deps_ansible = [
@@ -24,6 +23,7 @@ class nuclei(BaseModule):
             },
         }
     ]
+    in_scope_only = True
 
     def handle_batch(self, *events):
         """

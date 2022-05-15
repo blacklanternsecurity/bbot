@@ -12,6 +12,7 @@ class header_brute(BaseModule):
     scanned_hosts = []
     header_blacklist = ["content-length", "expect", "transfer-encoding"]
     max_threads = 12
+    in_scope_only = True
 
     def setup(self):
 

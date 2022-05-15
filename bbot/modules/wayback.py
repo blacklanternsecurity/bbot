@@ -7,7 +7,6 @@ from urllib.parse import urlparse, quote
 class wayback(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL"]
-    in_scope_only = False
     scanned_hosts = []
 
     dirs = set()
