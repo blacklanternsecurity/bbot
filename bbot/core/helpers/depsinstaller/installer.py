@@ -118,7 +118,7 @@ class DepsInstaller:
         venv = os.environ.get("VIRTUAL_ENV", None)
         if venv is not None:
             args["virtualenv"] = venv
-            args["virtualenv_python"] = self.parent_helper.which("python3")
+            args["virtualenv_python"] = self.parent_helper.which("python3", "python")
         success, err = self.ansible_run(
             module="pip", args=args, ansible_args={"ansible_python_interpreter": sys.executable}
         )
