@@ -60,6 +60,21 @@ class DNSHelper:
 
             return results
 
+    def resolve_batch(self, *queries, **kwargs):
+        """
+        resolve_batch("www.evilcorp.com", "evilcorp.com") --> [
+            ("www.evilcorp.com", {"1.1.1.1"}),
+            ("evilcorp.com", {"2.2.2.2"})
+        ]
+        """
+        futures = dict()
+        for query in queries:
+            future = self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.resolve, query, **kwargs)
+            futures[future] = query
+        for future in self.parent_helper.as_completed(futures):
+            query = futures[future]
+            yield (query, future.result())
+
     def get_valid_resolvers(self, min_reliability=0.99):
         nameservers = set()
         nameservers_url = "https://public-dns.info/nameserver/nameservers.json"

@@ -100,8 +100,9 @@ def ip_network_parents(i, include_self=False):
 
 def parent_domain(d):
     """
+    "www.internal.evilcorp.co.uk" --> "internal.evilcorp.co.uk"
     "www.evilcorp.co.uk" --> "evilcorp.co.uk"
-    "evilcorpc.co.uk" --> "evilcorp.co.uk"
+    "evilcorp.co.uk" --> "evilcorp.co.uk"
     """
     if is_domain(d):
         return d
