@@ -248,7 +248,10 @@ class DNSNameEvent(BaseEvent):
             self.tags.add("domain")
 
     def _sanitize_data(self, data):
-        return str(data).strip().lower()
+        sanitized = str(data).strip().lower()
+        if sanitized != ".":
+            sanitized = sanitized.rstrip(".")
+        return sanitized
 
     def _host(self):
         return self.data
