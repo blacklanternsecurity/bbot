@@ -10,6 +10,7 @@ class dnsdumpster(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     deps_pip = ["beautifulsoup4", "lxml"]
+    in_scope_only = True
 
     def setup(self):
         self.processed = set()

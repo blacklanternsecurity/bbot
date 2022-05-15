@@ -8,6 +8,7 @@ class hunter_io(BaseModule):
     options = {"api_key": ""}
     options_desc = {"api_key": "Hunter.IO API key"}
     max_threads = 2
+    in_scope_only = True
 
     def setup(self):
         self.limit = 100

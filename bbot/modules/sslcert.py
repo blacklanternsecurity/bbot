@@ -14,6 +14,7 @@ class sslcert(BaseModule):
     options_desc = {"timeout": "Socket connect timeout in seconds"}
     deps_pip = ["pyOpenSSL"]
     max_threads = 20
+    in_scope_only = True
 
     def handle_event(self, event):
 

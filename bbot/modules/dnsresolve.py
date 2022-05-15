@@ -6,7 +6,6 @@ class dnsresolve(BaseModule):
     flags = ["subdomain-enum"]
     watched_events = ["IP_ADDRESS", "DNS_NAME"]
     produced_events = ["IP_ADDRESS", "DNS_NAME"]
-    in_scope_only = False
     max_threads = 20
 
     def handle_event(self, event):

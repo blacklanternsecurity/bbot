@@ -6,6 +6,7 @@ class sublist3r(BaseModule):
     flags = ["subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    in_scope_only = True
 
     def setup(self):
         self.processed = set()

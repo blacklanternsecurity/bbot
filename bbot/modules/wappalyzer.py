@@ -15,6 +15,7 @@ class wappalyzer(BaseModule):
     watched_events = ["URL"]
     produced_events = ["TECHNOLOGY"]
     deps_pip = ["python-Wappalyzer"]
+    in_scope_only = True
 
     def handle_event(self, event):
 

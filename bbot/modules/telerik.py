@@ -97,6 +97,8 @@ class telerik(BaseModule):
     options = {"skip_RAU_confirmation": False}
     options_desc = {"skip_RAU_confirmation": "Do not attempt to confirm any RAU AXD detections are vulnerable"}
 
+    in_scope_only = True
+
     def handle_event(self, event):
 
         result = self.test_detector(event.data, "Telerik.Web.UI.WebResource.axd?type=rau")
