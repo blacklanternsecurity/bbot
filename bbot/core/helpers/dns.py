@@ -186,7 +186,6 @@ class DNSHelper:
             error = f"Nameserver {nameserver} failed to resolve basic query within {timeout} seconds"
 
         # then, make sure it isn't feeding us garbage data
-
         if error is None:
             randhost = f"{rand_string(9)}.{rand_string(10)}.com"
             try:
