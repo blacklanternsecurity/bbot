@@ -43,8 +43,18 @@ class DNSHelper:
 
     def resolve(self, query, **kwargs):
         """
-        Arguments:
-            type: query type (A, AAAA, MX, etc.)
+        "1.2.3.4" --> {"evilcorp.com"}
+        "evilcorp.com" --> {
+            "1.2.3.4",
+            "dead::beef"
+        }
+
+        if type="all", the output is separated by type:
+            "evilcorp.com" --> {
+                ("MX", {"mail.evilcorp.com",}),
+                ("A", {"1.2.3.4",}),
+                ("SOA": {"ns1.evilcorp.com. dns-admin.evilcorp.com. 448778346 900 900 1800 60",})
+            }
         """
         query = str(query).strip()
         if is_ip(query):
@@ -52,11 +62,22 @@ class DNSHelper:
         else:
             results = set()
             types = ["A", "AAAA"]
+            types_all = False
             kwargs.pop("rdtype", None)
             if "type" in kwargs:
-                types = [kwargs.pop("type")]
+                t = kwargs.pop("type")
+                if t.lower() in ("any", "all", "*"):
+                    types_all = True
+                    types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME"]
+                else:
+                    types = [t]
             for t in types:
-                results.update(self._resolve_hostname(query, rdtype=t, **kwargs))
+                r = self._resolve_hostname(query, rdtype=t, **kwargs)
+                if r:
+                    if types_all:
+                        results.add((t, tuple(r)))
+                    else:
+                        results.update(r)
 
             return results
 
