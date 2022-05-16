@@ -28,6 +28,8 @@ class ConfigAwareHelper:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.temp_dir = self.home / "temp"
         self.temp_dir.mkdir(parents=True, exist_ok=True)
+        self.tools_dir = self.home / "tools"
+        self.tools_dir.mkdir(parents=True, exist_ok=True)
         atexit.register(self.empty_temp_dir)
         # holds requests CachedSession() objects for duration of scan
         self.cache_sessions = dict()
@@ -40,7 +42,7 @@ class ConfigAwareHelper:
 
     def temp_filename(self):
         """
-        temp_filename() --> "/home/user/.bbot/temp/pgxml13bov87oqrvjz7a"
+        temp_filename() --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
         """
         return self.temp_dir / self.rand_string(20)
 
