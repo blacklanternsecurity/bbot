@@ -202,15 +202,20 @@ class BaseModule:
 
             # special DNS validation
             if event.type == "DNS_NAME":
-                resolved = self.helpers.resolve(event.data)
+                resolved = dict(self.helpers.resolve(event.data, type="all"))
                 if event in self.scan.target:
-                    event.tags.add("in_scope")
-                elif any([self.scan.target.in_scope(i) for i in resolved]):
                     event.tags.add("in_scope")
                 if resolved:
                     event.tags.add("resolved")
                 else:
                     event.tags.add("unresolved")
+                for rdtype, results in resolved.items():
+                    if rdtype in ("A", "AAAA"):
+                        for r in results:
+                            with suppress(ValidationError):
+                                if self.scan.target.in_scope(r):
+                                    event.tags.add("in_scope")
+                                    break
                 if self.helpers.is_wildcard(event.data):
                     event.tags.add("wildcard")
 
