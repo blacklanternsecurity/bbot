@@ -211,6 +211,9 @@ def test_helpers(patch_requests, patch_commands, helpers):
     batch_results = dict(batch_results)
     assert any([x in batch_results["dns.google"] for x in ("8.8.8.8", "8.8.4.4")])
     assert "dns.google" in batch_results["8.8.8.8"]
+    # "any" type
+    resolved = dict(helpers.resolve("google.com", type="any"))
+    assert any([helpers.is_subdomain(h) for h in resolved["MX"]])
     # wildcards
     assert helpers.is_wildcard("blacklanternsecurity.github.io")
     assert "github.io" in helpers.dns.wildcards
