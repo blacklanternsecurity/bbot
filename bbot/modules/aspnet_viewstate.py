@@ -10,6 +10,36 @@ class aspnet_viewstate(BaseModule):
     generator_regex = re.compile(r'<input.+__VIEWSTATEGENERATOR"\svalue="(\w+)"')
     viewstate_regex = re.compile(r'<input.+__VIEWSTATE"\svalue="(.+)"')
 
+    deps_ansible = [
+        {
+            "name": "apt_key",
+            "apt_key": {
+                "keyserver": "hkp://keyserver.ubuntu.com:80",
+                "id": "3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF",
+            },
+        },
+        {
+            "name": "Add Mono Repo",
+            "apt_repository": {
+                "repo": "deb https://download.mono-project.com/repo/ubuntu stable-focal main",
+            },
+        },
+        {
+            "name": "Install mono-devel",
+            "apt": {"name": ["mono-devel", "zip"], "state": "latest", "update_cache": True},
+        },
+        {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "${BBOT_TOOLS}/blacklist3r/"}},
+        {
+            "name": "Unarchive blacklist3r",
+            "unarchive": {
+                "src": "https://github.com/NotSoSecure/Blacklist3r/releases/download/4.0/AspDotNetWrapper.zip",
+                "include": ["MachineKeys.txt", "CommandLine.dll", "AspDotNetWrapper.exe"],
+                "dest": "${BBOT_TOOLS}/blacklist3r/",
+                "remote_src": True,
+            },
+        },
+    ]
+
     def handle_event(self, event):
 
         result = self.helpers.request(event.data)
@@ -26,11 +56,12 @@ class aspnet_viewstate(BaseModule):
             viewstate = viewstate_match.group(1)
             self.debug(f"Discovered viewstate for URL {event.data}")
             self.emit_event(f"[{event.data}] Microsoft ASP.NET", "TECHNOLOGY", event, tags=["web"])
+            tool_path = self.scan.helpers.tools_dir / "blacklist3r/"
             command = [
                 "mono",
-                "/opt/blacklist3r/AspDotNetWrapper.exe",
+                f"{tool_path}/AspDotNetWrapper.exe",
                 "--keypath",
-                "/opt/blacklist3r/MachineKeys.txt",
+                f"{tool_path}/MachineKeys.txt",
                 "--encrypteddata",
                 f"{viewstate}",
                 "--purpose=viewstate",

@@ -1,5 +1,6 @@
 from .base import BaseModule
 from urllib.parse import urlparse
+from sys import executable
 
 
 class telerik(BaseModule):
@@ -99,6 +100,27 @@ class telerik(BaseModule):
 
     in_scope_only = True
 
+    deps_pip = ["pycryptodome"]
+
+    deps_ansible = [
+        {"name": "Create telerik dir", "file": {"state": "directory", "path": "${BBOT_TOOLS}/telerik/"}},
+        {
+            "file": {
+                "state": "touch",
+                "path": "${BBOT_TOOLS}/telerik/testfile.txt",
+            }
+        },
+        {
+            "name": "Download RAU_crypto",
+            "unarchive": {
+                "src": "https://github.com/bao7uo/RAU_crypto/archive/refs/heads/master.zip",
+                "include": "RAU_crypto-master/RAU_crypto.py",
+                "dest": "${BBOT_TOOLS}/telerik/",
+                "remote_src": True,
+            },
+        },
+    ]
+
     def handle_event(self, event):
 
         result = self.test_detector(event.data, "Telerik.Web.UI.WebResource.axd?type=rau")
@@ -112,14 +134,17 @@ class telerik(BaseModule):
                     hostname = urlparse(event.data).netloc
                     if hostname not in self.RAUConfirmed:
                         self.RAUConfirmed.append(hostname)
+                        root_tool_path = self.scan.helpers.tools_dir / "telerik"
+                        self.debug(root_tool_path)
+
                         for version in self.telerikVersions:
                             command = [
-                                "/usr/local/bin/python3",
-                                "/opt/telerik/RAU_crypto-master/RAU_crypto.py",
+                                executable,
+                                str(root_tool_path / "RAU_crypto-master/RAU_crypto.py"),
                                 "-P",
                                 "C:\\\\Windows\\\\Temp",
                                 version,
-                                "/opt/telerik/testfile.txt",
+                                str(root_tool_path / "testfile.txt"),
                                 result.url,
                             ]
                             output = self.helpers.run(command)
