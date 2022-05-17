@@ -9,6 +9,10 @@ class iis_shortnames(BaseModule):
     options_desc = {"detect_only": "Only detect the vulnerability and do not run the shortname scanner"}
     in_scope_only = True
 
+    deps_ansible = [
+        {"name": "Install Java JRE", "apt": {"name": "default-jre", "state": "latest", "update_cache": True}}
+    ]
+
     def setup(self):
         iis_shortname_jar = "https://github.com/irsdl/IIS-ShortName-Scanner/raw/master/iis_shortname_scanner.jar"
         iis_shortname_config = "https://raw.githubusercontent.com/irsdl/IIS-ShortName-Scanner/master/config.xml"
