@@ -261,7 +261,12 @@ class Scanner:
         Handle dummy event type
         """
         kwargs["scan"] = self
-        return make_event(*args, **kwargs)
+        event = make_event(*args, **kwargs)
+        target = getattr(self, "target", None)
+        if target:
+            if self.target.in_scope(event):
+                event.tags.add("in_scope")
+        return event
 
     @property
     def log(self):

@@ -3,9 +3,11 @@ import logging
 import dns.resolver
 import dns.exception
 from threading import Lock
+from contextlib import suppress
 from concurrent.futures import ThreadPoolExecutor
 
 from ..threadpool import ThreadPoolWrapper
+from bbot.core.errors import ValidationError
 from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
@@ -43,43 +45,74 @@ class DNSHelper:
 
     def resolve(self, query, **kwargs):
         """
-        "1.2.3.4" --> {"evilcorp.com"}
+        "1.2.3.4" --> {
+            "evilcorp.com",
+        }
         "evilcorp.com" --> {
             "1.2.3.4",
             "dead::beef"
         }
-
-        if type="all", the output is separated by type:
-            "evilcorp.com" --> {
-                ("MX", {"mail.evilcorp.com",}),
-                ("A", {"1.2.3.4",}),
-                ("SOA": {"ns1.evilcorp.com. dns-admin.evilcorp.com. 448778346 900 900 1800 60",})
-            }
         """
+        results = set()
+        for rdtype, answers in self.resolve_raw(query, **kwargs):
+            for answer in answers:
+                for t in self.extract_targets(answer):
+                    results.add(t)
+        return results
+
+    def resolve_raw(self, query, **kwargs):
         query = str(query).strip()
         if is_ip(query):
-            return self._resolve_ip(query, **kwargs)
+            kwargs.pop("type", None)
+            kwargs.pop("rdtype", None)
+            return [
+                ("PTR", self._resolve_ip(query, **kwargs)),
+            ]
         else:
-            results = set()
+            results = []
             types = ["A", "AAAA"]
-            types_all = False
             kwargs.pop("rdtype", None)
             if "type" in kwargs:
                 t = kwargs.pop("type")
                 if t.lower() in ("any", "all", "*"):
-                    types_all = True
                     types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME"]
                 else:
                     types = [t]
             for t in types:
                 r = self._resolve_hostname(query, rdtype=t, **kwargs)
                 if r:
-                    if types_all:
-                        results.add((t, tuple(r)))
-                    else:
-                        results.update(r)
+                    results.append((t, r))
 
             return results
+
+    def resolve_event(self, event, make_children=True, check_wildcard=True):
+        """
+        Tag event with appropriate dns record types
+        Optionally create child events from dns resolutions
+        """
+        children = []
+        make_event = self.parent_helper.scan.make_event
+        for rdtype, records in self.resolve_raw(event.data, type="any"):
+            event.tags.add("resolved")
+            rdtype = str(rdtype).upper()
+            module_name = f"dns_{rdtype.lower()}"
+            if rdtype in ("A", "AAAA"):
+                for r in records:
+                    for t in self.extract_targets(r):
+                        with suppress(ValidationError):
+                            if self.parent_helper.scan.target.in_scope(t):
+                                event.tags.add("in_scope")
+                                break
+            if make_children:
+                for r in records:
+                    for t in self.extract_targets(r):
+                        children.append(make_event(t, "DNS_NAME", module=module_name, source=event))
+        if "resolved" not in event.tags:
+            event.tags.add("unresolved")
+        if check_wildcard and event.type == "DNS_NAME":
+            if self.is_wildcard(event.data):
+                event.tags.add("wildcard")
+        return children
 
     def resolve_batch(self, *queries, **kwargs):
         """
@@ -95,6 +128,28 @@ class DNSHelper:
         for future in self.parent_helper.as_completed(futures):
             query = futures[future]
             yield (query, future.result())
+
+    def extract_targets(self, record):
+        """
+        Extract whatever hostnames/IPs a DNS records points to
+        """
+        results = set()
+        rdtype = str(record.rdtype.name).upper()
+        if rdtype in ("A", "AAAA", "NS", "CNAME", "PTR"):
+            results.add(self._clean_dns_record(record))
+        elif rdtype == "SOA":
+            results.add(self._clean_dns_record(record.mname))
+        elif rdtype == "MX":
+            results.add(self._clean_dns_record(record.exchange))
+        elif rdtype == "SRV":
+            results.add(self._clean_dns_record(record.target))
+        else:
+            log.warning(f'Unknown DNS record type "{rdtype}"')
+        return results
+
+    @staticmethod
+    def _clean_dns_record(record):
+        return str(record.to_text()).lower().rstrip(".")
 
     def get_valid_resolvers(self, min_reliability=0.99):
         nameservers = set()
@@ -199,17 +254,11 @@ class DNSHelper:
 
     def _resolve_hostname(self, query, **kwargs):
         self.debug(f"Resolving {query} with kwargs={kwargs}")
-        answers = set()
-        for ip in list(self._catch(self.resolver.resolve, query, **kwargs)):
-            answers.add(str(ip))
-        return answers
+        return list(self._catch(self.resolver.resolve, query, **kwargs))
 
     def _resolve_ip(self, query, **kwargs):
         self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
-        answers = set()
-        for host in list(self._catch(self.resolver.resolve_address, query, **kwargs)):
-            answers.add(str(host).lower().rstrip("."))
-        return answers
+        return list(self._catch(self.resolver.resolve_address, query, **kwargs))
 
     def _catch(self, callback, *args, **kwargs):
         try:
@@ -220,7 +269,7 @@ class DNSHelper:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception:
             log.debug(f"Error in {callback.__name__} with args={args}, kwargs={kwargs}")
-        return set()
+        return list()
 
     def is_wildcard(self, query):
         if is_domain(query):
