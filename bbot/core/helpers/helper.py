@@ -22,7 +22,7 @@ class ConfigAwareHelper:
 
     def __init__(self, config, scan=None):
         self.config = config
-        self.scan = scan
+        self._scan = scan
         self.home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
         self.cache_dir = self.home / "cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -48,6 +48,14 @@ class ConfigAwareHelper:
 
     def empty_temp_dir(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    @property
+    def scan(self):
+        if self._scan is None:
+            from bbot.scanner import Scanner
+
+            self._scan = Scanner()
+        return self._scan
 
     @staticmethod
     def as_completed(fs):

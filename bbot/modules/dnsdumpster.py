@@ -19,9 +19,11 @@ class dnsdumpster(BaseModule):
     def filter_event(self, event):
         if "target" in event.tags:
             return True
-        elif hash(self.helpers.parent_domain(event.data)) not in self.processed:
-            return True
-        return False
+        else:
+            for p in self.helpers.domain_parents(event.data, include_self=True):
+                if hash(p) in self.processed:
+                    return False
+        return True
 
     def handle_event(self, event):
 
@@ -96,7 +98,7 @@ class dnsdumpster(BaseModule):
         )
         status_code = getattr(res2, "status_code", 0)
         if status_code not in [200]:
-            self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
+            self.warning(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
 
         html = BeautifulSoup(res2.content, features="lxml")

@@ -142,6 +142,9 @@ class BaseEvent:
             self._id = make_event_id(self.data, self.type)
         return self._id
 
+    def _host(self):
+        return ""
+
     def _sanitize_data(self, data):
         return data
 
@@ -202,15 +205,12 @@ class BaseEvent:
 
     def __str__(self):
         d = str(self.data)
-        return f'Event("{self.type}", "{d[:50]}{("..." if len(d) > 50 else "")}")'
+        return f'Event("{self.type}", "{d[:50]}{("..." if len(d) > 50 else "")}", tags={self.tags})'
 
 
 class DefaultEvent(BaseEvent):
     def _sanitize_data(self, data):
         return data
-
-    def _host(self):
-        return ""
 
 
 class IPAddressEvent(BaseEvent):
@@ -357,9 +357,12 @@ def make_event(
 
         event_type = str(event_type).strip().upper()
 
-        # Catch this common whoopsie
-        if event_type == "DNS_NAME" and is_ip(data):
+        # Catch these common whoopsies
+        data_is_ip = is_ip(data)
+        if event_type == "DNS_NAME" and data_is_ip:
             event_type = "IP_ADDRESS"
+        elif event_type == "IP_ADDRESS" and not data_is_ip:
+            event_type = "DNS_NAME"
 
         event_class = event_classes.get(event_type, DefaultEvent)
 

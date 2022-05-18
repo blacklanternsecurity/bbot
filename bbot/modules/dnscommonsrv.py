@@ -7,6 +7,7 @@ class dnscommonsrv(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     in_scope_only = True
+    max_threads = 10
 
     common_srvs = [
         # Micro$oft
@@ -35,6 +36,29 @@ class dnscommonsrv(BaseModule):
         "_imaps._tcp",
         "_pop3._tcp",
         "_pop3s._tcp",
+        "_smtp._tcp",
+        # STUN
+        "_stun._tcp",
+        "_stun._udp",
+        "_stuns._tcp",
+        # STUN
+        "_turn._tcp",
+        "_turn._udp",
+        "_turns._tcp",
+        # SIP
+        "_h323be._tcp",
+        "_h323be._udp",
+        "_h323cs._tcp",
+        "_h323cs._udp",
+        "_h323ls._tcp",
+        "_h323ls._udp",
+        "_sip._tcp",
+        "_sip._tls",
+        "_sip._udp",
+        "_sipfederationtls._tcp",
+        "_sipinternal._tcp",
+        "_sipinternaltls._tcp",
+        "_sips._tcp",
         # misc
         "_aix._tcp",
         "_caldav._tcp",
@@ -48,12 +72,6 @@ class dnscommonsrv(BaseModule):
         "_finger._tcp",
         "_ftp._tcp",
         "_gc._tcp",
-        "_h323be._tcp",
-        "_h323be._udp",
-        "_h323cs._tcp",
-        "_h323cs._udp",
-        "_h323ls._tcp",
-        "_h323ls._udp",
         "_hkp._tcp",
         "_hkps._tcp",
         "_http._tcp",
@@ -66,24 +84,10 @@ class dnscommonsrv(BaseModule):
         "_pgpkeys._tcp",
         "_pgprevokations._tcp",
         "_PKIXREP._tcp",
-        "_sip._tcp",
-        "_sip._tls",
-        "_sip._udp",
-        "_sipfederationtls._tcp",
-        "_sipinternal._tcp",
-        "_sipinternaltls._tcp",
-        "_sips._tcp",
-        "_smtp._tcp",
-        "_stun._tcp",
-        "_stun._udp",
-        "_stuns._tcp",
         "_submission._tcp",
         "_svcp._tcp",
         "_telnet._tcp",
         "_test._tcp",
-        "_turn._tcp",
-        "_turn._udp",
-        "_turns._tcp",
         "_whois._tcp",
         "_x-puppet-ca._tcp",
         "_x-puppet._tcp",
