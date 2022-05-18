@@ -190,39 +190,30 @@ class BaseModule:
     def _emit_event(self, *args, **kwargs):
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
-            kwargs["module"] = self
             abort_if_tagged = kwargs.pop("abort_if_tagged", tuple())
             if type(abort_if_tagged) == str:
                 abort_if_tagged = (abort_if_tagged,)
             event = self.scan.make_event(*args, **kwargs)
+            if not event.module:
+                event.module = self
             if self.suppress_dupes and hash(event) in self._emitted_events:
                 self.debug(f"Not raising duplicate event {event}")
                 return
             self._emitted_events.add(hash(event))
 
-            # special DNS validation
-            if event.type == "DNS_NAME":
-                resolved = dict(self.helpers.resolve(event.data, type="all"))
-                if event in self.scan.target:
-                    event.tags.add("in_scope")
-                if resolved:
-                    event.tags.add("resolved")
-                else:
-                    event.tags.add("unresolved")
-                for rdtype, results in resolved.items():
-                    if rdtype in ("A", "AAAA"):
-                        for r in results:
-                            with suppress(ValidationError):
-                                if self.scan.target.in_scope(r):
-                                    event.tags.add("in_scope")
-                                    break
-                if self.helpers.is_wildcard(event.data):
-                    event.tags.add("wildcard")
+            # DNS resolution
+            child_events = []
+            make_children = self.scan.config.get("dns_resolution", False)
+            if event.type in ("DNS_NAME", "IP_ADDRESS"):
+                child_events = list(self.helpers.dns.resolve_event(event, make_children=make_children))
 
             for tag in abort_if_tagged:
                 if tag in event.tags:
                     self.debug(f'Not raising event due to unwanted tag "{tag}"')
                     return
+
+            for child_event in child_events:
+                self.emit_event(child_event)
 
             self.debug(f'module "{self.name}" raised {event}')
             self.scan.manager.queue_event(event)

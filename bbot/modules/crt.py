@@ -41,7 +41,14 @@ class crt(BaseModule):
         base_url = "https://crt.sh?"
         url = f"{base_url}{urlencode(params)}"
         res = self.helpers.request(url)
-        j = res.json()
+        j = {}
+        try:
+            j = res.json()
+        except Exception:
+            import traceback
+
+            self.warning("Error decoding JSON")
+            self.debug(traceback.format_exc())
         for cert_info in j:
             if not type(cert_info) == dict:
                 continue

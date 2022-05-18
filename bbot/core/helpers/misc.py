@@ -120,7 +120,8 @@ def is_ip(d, version=None):
     "evilcorp.com" --> False
     """
     if type(d) in (ipaddress.IPv4Address, ipaddress.IPv6Address):
-        return True
+        if version is None or version == d.version:
+            return True
     try:
         ip = ipaddress.ip_address(d)
         if version is None or ip.version == version:
