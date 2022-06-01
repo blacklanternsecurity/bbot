@@ -67,6 +67,7 @@ class BaseModule:
             self.scan._internal_thread_pool.executor, max_workers=self.max_threads
         )
         self._emitted_events = set()
+        self._emitted_events_lock = threading.Lock()
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []
 
@@ -196,16 +197,22 @@ class BaseModule:
             event = self.scan.make_event(*args, **kwargs)
             if not event.module:
                 event.module = self
-            if self.suppress_dupes and hash(event) in self._emitted_events:
-                self.debug(f"Not raising duplicate event {event}")
-                return
-            self._emitted_events.add(hash(event))
+            with self._emitted_events_lock:
+                if event.module == self:
+                    event_hash = hash((event, str(event.module)))
+                else:
+                    # allow duplicate events from dns resolution as long as their source event is unique
+                    event_hash = hash((event, str(event.module), event.source))
+                if self.suppress_dupes and event_hash in self._emitted_events:
+                    self.debug(f"Not raising duplicate event {event}")
+                    return
+                self._emitted_events.add(event_hash)
 
             # DNS resolution
             child_events = []
             make_children = self.scan.config.get("dns_resolution", False)
             if event.type in ("DNS_NAME", "IP_ADDRESS"):
-                child_events = list(self.helpers.dns.resolve_event(event, make_children=make_children))
+                child_events = list(self.helpers.dns.resolve_event(event))
 
             for tag in abort_if_tagged:
                 if tag in event.tags:
@@ -220,9 +227,10 @@ class BaseModule:
 
             # if the event or one of its children are in scope, emit children
             # otherwise, discard them
-            if self.scan.target.in_scope(event) or any([self.scan.target.in_scope(e) for e in child_events]):
-                for child_event in child_events:
-                    self.emit_event(child_event)
+            if make_children:
+                if self.scan.target.in_scope(event) or any([self.scan.target.in_scope(e) for e in child_events]):
+                    for child_event in child_events:
+                        self.emit_event(child_event)
 
         except ValidationError as e:
             self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
