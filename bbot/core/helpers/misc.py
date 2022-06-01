@@ -408,3 +408,33 @@ def validate_port(port):
     -4 --> False
     """
     return 0 <= int(str(port)) <= 65535
+
+
+sentinel = object()
+
+
+def search_dict_by_key(key, d):
+    """
+    Recursively search a dictionary "d" for a key matching "k" and return the corresponding value
+    raises KeyError if key does not exist
+    """
+    v = _search_dict_by_key(key, d)
+    if v is not sentinel:
+        return v
+    raise KeyError(key)
+
+
+def _search_dict_by_key(key, d):
+    if isinstance(d, dict):
+        if key in d:
+            return d[key]
+        for k, v in d.items():
+            item = _search_dict_by_key(key, v)
+            if item is not sentinel:
+                return item
+    elif isinstance(d, list):
+        for v in d:
+            item = _search_dict_by_key(key, v)
+            if item is not sentinel:
+                return item
+    return sentinel
