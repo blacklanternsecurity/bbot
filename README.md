@@ -49,8 +49,8 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-f FLAGS [FLAGS ...]] [-o MODULES [MODULES ...]] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config]
-            [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps] [-a]
+usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-f FLAGS [FLAGS ...]] [-o MODULES [MODULES ...]] [-c [CONFIGURATION ...]] [-v] [-d]
+            [--current-config] [--ignore-failed-deps] [--no-deps | --force-deps | --retry-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
@@ -59,10 +59,10 @@ options:
   -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
                         Scan target
   -m MODULES [MODULES ...], --modules MODULES [MODULES ...]
-                        Modules ("all" to enable all modules). Choices: ffuf,sslcert,aspnet_viewstate,wappalyzer,nuclei,vhost,massdns,telerik,naabu,httpx,wayback,crt,header_brute,dnsx,dnsr
-                        esolve,hunterio,iis_shortnames,sublist3r,dnsdumpster
+                        Modules ("all" to enable all modules). Choices: ffuf,sslcert,aspnet_viewstate,wappalyzer,nuclei,vhost,massdns,telerik,naabu,httpx,d
+                        nszonetransfer,wayback,crt,header_brute,dnsx,hunterio,iis_shortnames,sublist3r,dnsdumpster,dnscommonsrv
   -f FLAGS [FLAGS ...], --flags FLAGS [FLAGS ...]
-                        Select modules by flag. Choices: brute-force,subdomain-enum
+                        Select modules by flag. Choices: subdomain-enum,brute-force
   -o MODULES [MODULES ...], --output-modules MODULES [MODULES ...]
                         Output module(s). Choices: json,neo4j,csv,websocket,human,http
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
@@ -74,10 +74,10 @@ options:
 Module dependencies:
   Control how modules install their dependencies
 
+  --ignore-failed-deps  Run modules even if their dependency setup failed
   --no-deps             Don't install module dependencies
   --force-deps          Force install all module dependencies
   --retry-deps          Retry failed module dependencies
-  --ignore-failed-deps  Run modules even if their dependency setup failed
 
 Agent:
   Report back to a central server
