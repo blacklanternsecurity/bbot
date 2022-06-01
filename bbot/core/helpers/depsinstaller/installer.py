@@ -5,6 +5,8 @@ import shutil
 import signal
 import getpass
 import logging
+from time import sleep
+import subprocess as sp
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
@@ -37,14 +39,17 @@ class DepsInstaller:
         try:
             notified = False
             for m in modules:
+                # assume success if we're ignoring dependencies
                 if self.no_deps:
                     succeeded.append(m)
                     continue
+                # abort if module name is unknown
                 if m not in all_modules_preloaded:
                     log.verbose(f'Module "{m}" not found')
                     failed.append(m)
                     continue
                 preloaded = all_modules_preloaded[m]
+                # make a hash of the dependencies and check if it's already been handled
                 module_hash = self.parent_helper.sha1(str(preloaded["deps"])).hexdigest()
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
@@ -60,6 +65,10 @@ class DepsInstaller:
                             )
                             notified = True
                         log.verbose(f'Installing dependencies for module "{m}"')
+                        # get sudo access if we need it
+                        if preloaded.get("sudo", False) == True:
+                            log.warning(f'Module "{m}" needs root privileges to install its dependencies.')
+                            self.ensure_root()
                         success = self.install_module(m)
                         self.setup_status[module_hash] = success
                         if success or self.ignore_failed_deps:
@@ -134,7 +143,6 @@ class DepsInstaller:
             for p in packages:
                 log.warning(f" - {p}")
             return True
-        self.ensure_root()
         packages = ",".join(packages)
         log.verbose(f"Installing the following apt packages: {packages}")
         args = {"name": packages, "state": "latest", "update_cache": True, "cache_valid_time": 86400}
@@ -149,6 +157,7 @@ class DepsInstaller:
         if success:
             log.info(f'Successfully installed apt packages "{packages}"')
         else:
+            log.warning(f"Failed to install apt packages: {type(err)}")
             log.warning(f"Failed to install apt packages: {err}")
         return success
 
@@ -182,26 +191,23 @@ class DepsInstaller:
             log.warning(f"Failed to run Ansible tasks for {module}")
         return success
 
-    def ansible_run(self, tasks=None, module=None, args=None, envvars=None, ansible_args=None):
-        _ansible_args = {
-            "ansible_connection": "local",
-        }
+    def ansible_run(self, tasks=None, module=None, args=None, ansible_args=None):
+        _ansible_args = {"ansible_connection": "local"}
         if ansible_args is not None:
             _ansible_args.update(ansible_args)
         module_args = None
         if args:
             module_args = " ".join([f'{k}="{v}"' for k, v in args.items()])
-        log.debug(f"ansible_run(module={module}, args={args}, envvars={envvars}, ansible_args={ansible_args})")
+        log.debug(f"ansible_run(module={module}, args={args}, ansible_args={ansible_args})")
         playbook = None
         if tasks:
             playbook = {"hosts": "all", "tasks": tasks}
             log.debug(json.dumps(playbook, indent=2))
-        if envvars is None:
-            envvars = dict()
         if self._sudo_password is not None:
-            envvars["ANSIBLE_BECOME_PASS"] = self._sudo_password
+            _ansible_args["ansible_become_password"] = self._sudo_password
         playbook_hash = self.parent_helper.sha1(str(playbook)).hexdigest()
         data_dir = self.data_dir / (module if module else f"playbook_{playbook_hash}")
+        shutil.rmtree(data_dir, ignore_errors=True)
         data_dir.mkdir(exist_ok=True, parents=True)
 
         original_sigint_handler = signal.getsignal(signal.SIGINT)
@@ -215,16 +221,20 @@ class DepsInstaller:
                 },
                 module=module,
                 module_args=module_args,
-                envvars=envvars,
                 quiet=not self.ansible_debug,
+                verbosity=(3 if self.ansible_debug else 0),
             )
         finally:
             # restore default SIGINT handler
             signal.signal(signal.SIGINT, original_sigint_handler)
 
+        log.debug(f"Ansible status: {res.status}")
+        log.debug(f"Ansible return code: {res.rc}")
         success = res.status == "successful"
         err = ""
         for e in res.events:
+            if self.ansible_debug and not success:
+                log.debug(json.dumps(e, indent=4))
             if e["event"] == "runner_on_failed":
                 err = e["event_data"]["res"]["msg"]
                 break
@@ -243,6 +253,25 @@ class DepsInstaller:
             json.dump(self.setup_status, f)
 
     def ensure_root(self):
-        if os.geteuid() != 0 and self.sudo_password is None:
-            while not self.sudo_password:
-                self._sudo_password = getpass.getpass(prompt=f"[sudo] password for {os.getlogin()}: ")
+        if os.geteuid() != 0 and self._sudo_password is None:
+            # sleep for a split second to flush previous log messages
+            while not self._sudo_password:
+                sleep(0.1)
+                password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+                if self.verify_sudo_password(password):
+                    self._sudo_password = password
+                else:
+                    log.warning("Incorrect password")
+
+    def verify_sudo_password(self, sudo_pass):
+        try:
+            sp.run(
+                ["sudo", "-S", "true"],
+                input=self.parent_helper.smart_encode(sudo_pass),
+                stderr=sp.DEVNULL,
+                stdout=sp.DEVNULL,
+                check=True,
+            )
+        except sp.CalledProcessError:
+            return False
+        return True

@@ -19,18 +19,17 @@ class dnsdumpster(BaseModule):
     def filter_event(self, event):
         if "target" in event.tags:
             return True
-        else:
-            for p in self.helpers.domain_parents(event.data, include_self=True):
-                if hash(p) in self.processed:
-                    return False
-        return True
+        # include out-of-scope DNS names that resolve to in-scope IPs
+        elif event not in self.scan.target:
+            if hash(self.helpers.parent_domain(event.data)) not in self.processed:
+                return True
+        return False
 
     def handle_event(self, event):
-
-        if not "target" in event.tags:
-            query = self.helpers.parent_domain(event.data).lower()
-        else:
+        if "target" in event.tags:
             query = str(event.data).lower()
+        else:
+            query = self.helpers.parent_domain(event.data).lower()
 
         if query not in self.processed:
             self.processed.add(hash(query))

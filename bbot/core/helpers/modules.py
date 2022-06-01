@@ -2,8 +2,8 @@ import ast
 import importlib
 from contextlib import suppress
 
-from .misc import list_files, sha1
 from ..errors import ModuleLoadError
+from .misc import list_files, sha1, search_dict_by_key
 
 
 def file_filter(file):
@@ -87,14 +87,22 @@ def preload_module(module_file):
                     # ansible playbook
                     elif any([target.id == "deps_ansible" for target in class_attr.targets]):
                         ansible_tasks = ast.literal_eval(class_attr.value)
-    return {
+    preloaded_data = {
         "flags": flags,
         "watched_events": watched_events,
         "produced_events": produced_events,
         "config": config,
         "hash": module_hash,
         "deps": {"pip": pip_deps, "shell": shell_deps, "apt": apt_deps, "ansible": ansible_tasks},
+        "sudo": len(apt_deps) > 0,
     }
+    with suppress(KeyError):
+        if (
+            search_dict_by_key("become", ansible_tasks) == True
+            or search_dict_by_key("ansible_become", ansible_tasks) == True
+        ):
+            preloaded_data["sudo"] = True
+    return preloaded_data
 
 
 def load_modules(module_names, namespace):
