@@ -130,6 +130,8 @@ def test_helpers(patch_requests, patch_commands, helpers):
     assert not helpers.is_domain("www.evilcorp.co.uk")
     assert helpers.is_subdomain("www.evilcorp.co.uk")
     assert not helpers.is_subdomain("evilcorp.co.uk")
+    assert helpers.parent_domain("www.evilcorp.co.uk") == "evilcorp.co.uk"
+    assert helpers.parent_domain("evilcorp.co.uk") == "evilcorp.co.uk"
     assert list(helpers.domain_parents("test.www.evilcorp.co.uk")) == ["www.evilcorp.co.uk", "evilcorp.co.uk"]
     assert list(helpers.domain_parents("www.evilcorp.co.uk", include_self=True)) == [
         "www.evilcorp.co.uk",
@@ -155,6 +157,14 @@ def test_helpers(patch_requests, patch_commands, helpers):
     assert ipv4_netloc == "192.168.1.1:80"
     ipv6_netloc = helpers.make_netloc("dead::beef", "443")
     assert ipv6_netloc == "[dead::beef]:443"
+
+    assert helpers.search_dict_by_key("asdf", {"asdf": "fdsa"}) == "fdsa"
+    assert helpers.search_dict_by_key("asdf", {"wat": {"asdf": "fdsa"}}) == "fdsa"
+    assert helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"asdf": "fdsa"}]}]) == "fdsa"
+    with pytest.raises(KeyError, match=".*asdf.*"):
+        helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"fdsa": "asdf"}]}])
+    with pytest.raises(KeyError, match=".*asdf.*"):
+        helpers.search_dict_by_key("asdf", "asdf")
 
     ### COMMAND ###
     assert "plumbus\n" in old_run(helpers, ["echo", "plumbus"], text=True).stdout

@@ -38,6 +38,7 @@ def neuter_ansible(monkeypatch):
 
     class AnsibleRunnerResult:
         status = "successful"
+        rc = 0
         events = []
 
     def ansible_run(*args, **kwargs):

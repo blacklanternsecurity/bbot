@@ -212,13 +212,18 @@ class BaseModule:
                     self.debug(f'Not raising event due to unwanted tag "{tag}"')
                     return
 
-            for child_event in child_events:
-                self.emit_event(child_event)
-
             self.debug(f'module "{self.name}" raised {event}')
             self.scan.manager.queue_event(event)
+
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
+
+            # if the event or one of its children are in scope, emit children
+            # otherwise, discard them
+            if self.scan.target.in_scope(event) or any([self.scan.target.in_scope(e) for e in child_events]):
+                for child_event in child_events:
+                    self.emit_event(child_event)
+
         except ValidationError as e:
             self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
 

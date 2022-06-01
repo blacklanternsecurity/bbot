@@ -95,7 +95,6 @@ class DNSHelper:
         for rdtype, records in self.resolve_raw(event.data, type="any"):
             event.tags.add("resolved")
             rdtype = str(rdtype).upper()
-            module_name = f"dns_{rdtype.lower()}"
             if rdtype in ("A", "AAAA"):
                 for r in records:
                     for t in self.extract_targets(r):
@@ -106,7 +105,7 @@ class DNSHelper:
             if make_children:
                 for r in records:
                     for t in self.extract_targets(r):
-                        children.append(make_event(t, "DNS_NAME", module=module_name, source=event))
+                        children.append(make_event(t, "DNS_NAME", module=rdtype, source=event))
         if "resolved" not in event.tags:
             event.tags.add("unresolved")
         if check_wildcard and event.type == "DNS_NAME":
