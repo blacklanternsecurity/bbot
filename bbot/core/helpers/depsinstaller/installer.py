@@ -157,7 +157,6 @@ class DepsInstaller:
         if success:
             log.info(f'Successfully installed apt packages "{packages}"')
         else:
-            log.warning(f"Failed to install apt packages: {type(err)}")
             log.warning(f"Failed to install apt packages: {err}")
         return success
 
@@ -266,7 +265,7 @@ class DepsInstaller:
     def verify_sudo_password(self, sudo_pass):
         try:
             sp.run(
-                ["sudo", "-S", "true"],
+                ["sudo", "-S", "-k", "true"],
                 input=self.parent_helper.smart_encode(sudo_pass),
                 stderr=sp.DEVNULL,
                 stdout=sp.DEVNULL,
