@@ -85,7 +85,7 @@ class DNSHelper:
 
             return results
 
-    def resolve_event(self, event, make_children=True, check_wildcard=True):
+    def resolve_event(self, event, check_wildcard=True):
         """
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
@@ -102,10 +102,10 @@ class DNSHelper:
                             if self.parent_helper.scan.target.in_scope(t):
                                 event.tags.add("in_scope")
                                 break
-            if make_children:
-                for r in records:
-                    for t in self.extract_targets(r):
-                        children.append(make_event(t, "DNS_NAME", module=rdtype, source=event))
+            for r in records:
+                for t in self.extract_targets(r):
+                    event.tags.add(f"{rdtype.lower()}_record")
+                    children.append(make_event(t, "DNS_NAME", module=rdtype, source=event))
         if "resolved" not in event.tags:
             event.tags.add("unresolved")
         if check_wildcard and event.type == "DNS_NAME":

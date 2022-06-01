@@ -43,4 +43,7 @@ class speculate(BaseInternalModule):
         # don't accept events from self
         if str(event.module) == "speculate":
             return False
+        if event.type == "DNS_NAME":
+            if not any([x in event.tags for x in ("a_record", "aaaa_record")]):
+                return False
         return True
