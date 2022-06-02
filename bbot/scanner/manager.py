@@ -1,7 +1,10 @@
 import queue
 import logging
+import threading
 from time import sleep
 from contextlib import suppress
+
+from ..core.errors import ScanCancelledError, ValidationError
 
 log = logging.getLogger("bbot.scanner.manager")
 
@@ -14,8 +17,12 @@ class ScanManager:
     def __init__(self, scan):
         self.scan = scan
         self.event_queue = queue.SimpleQueue()
-        # tracks processed events
-        self.events_processed = set()
+        self.events_distributed = set()
+        self.events_distributed_lock = threading.Lock()
+        self.events_accepted = set()
+        self.events_accepted_lock = threading.Lock()
+        self.events_resolved = set()
+        self.events_resolved_lock = threading.Lock()
 
     def init_events(self):
         """
@@ -24,10 +31,106 @@ class ScanManager:
         self.queue_event(self.scan.root_event)
         for event in self.scan.target.events:
             self.scan.info(f"Target: {event}")
-            self.queue_event(event)
+            self.emit_event(event)
         # force submit batches
         for mod in self.scan.modules.values():
             mod._handle_batch(force=True)
+
+    def emit_event(self, *args, **kwargs):
+        # don't raise an exception if the thread pool has been shutdown
+        with suppress(RuntimeError):
+            self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, *args, **kwargs)
+
+    def _emit_event(self, *args, **kwargs):
+        try:
+            on_success_callback = kwargs.pop("on_success_callback", None)
+            abort_if_tagged = kwargs.pop("abort_if_tagged", tuple())
+            if type(abort_if_tagged) == str:
+                abort_if_tagged = (abort_if_tagged,)
+            event = self.scan.make_event(*args, **kwargs)
+            if event.module._type == "DNS":
+                # allow duplicate events from dns resolution as long as their source event is unique
+                event_hash = hash((event, str(event.module), event.source))
+            else:
+                event_hash = hash((event, str(event.module)))
+
+            with self.events_accepted_lock:
+                if event.module.suppress_dupes and event_hash in self.events_accepted:
+                    log.debug(f"{event.module}: not raising duplicate event {event}")
+                    return
+                self.events_accepted.add(event_hash)
+
+            # DNS resolution
+            child_events = []
+            dns_event_hash = hash(event)
+            resolve_event = True
+            # skip DNS resolution if we've already resolved this event
+            with self.events_resolved_lock:
+                if dns_event_hash in self.events_resolved:
+                    resolve_event = False
+            if resolve_event and event.type in ("DNS_NAME", "IP_ADDRESS"):
+                child_events = list(self.scan.helpers.dns.resolve_event(event))
+
+            for tag in abort_if_tagged:
+                if tag in event.tags:
+                    log.debug(f'{event.module}: not raising event {event} due to unwanted tag "{tag}"')
+                    return
+
+            log.debug(f'module "{event.module}" raised {event}')
+            self.queue_event(event)
+
+            if callable(on_success_callback):
+                self.catch(on_success_callback, event)
+
+            # only emit children if the event or one of its children are in scope
+            # this helps prevent runaway dns resolutions that result in junk data
+            emit_children = self.scan.config.get("dns_resolution", False)
+            with self.events_resolved_lock:
+                if emit_children and child_events and dns_event_hash not in self.events_resolved:
+                    self.events_resolved.add(dns_event_hash)
+                    emit_children &= True
+                else:
+                    emit_children &= False
+            if emit_children:
+                if self.scan.target.in_scope(event) or any([self.scan.target.in_scope(e) for e in child_events]):
+                    for child_event in child_events:
+                        self.emit_event(child_event)
+
+        except ValidationError as e:
+            self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
+
+    def catch(self, callback, *args, **kwargs):
+        """
+        Wrapper to ensure error messages get surfaced to the user
+        """
+        ret = None
+        on_finish_callback = kwargs.pop("_on_finish_callback", None)
+        try:
+            if not self.scan.stopping:
+                ret = callback(*args, **kwargs)
+        except ScanCancelledError as e:
+            log.debug(f"ScanCancelledError in {callback.__name__}(): {e}")
+        except BrokenPipeError as e:
+            log.debug(f"BrokenPipeError in {callback.__name__}(): {e}")
+        except Exception as e:
+            import traceback
+
+            log.error(f"Error in {callback.__name__}(): {e}")
+            log.debug(traceback.format_exc())
+        except KeyboardInterrupt:
+            log.debug(f"Interrupted")
+            self.scan.stop()
+        if callable(on_finish_callback):
+            try:
+                on_finish_callback()
+            except Exception as e:
+                import traceback
+
+                log.error(
+                    f"Error in on_finish_callback {on_finish_callback.__name__}() after {callback.__name__}(): {e}"
+                )
+                log.debug(traceback.format_exc())
+        return ret
 
     def queue_event(self, event):
         """
@@ -40,13 +143,15 @@ class ScanManager:
         Queue event with modules
         """
         dup = False
-        event_hash = hash(event)
-        if event_hash in self.events_processed:
-            self.scan.verbose(f"Duplicate event: {event}")
-            dup = True
-        else:
+        with self.events_distributed_lock:
+            event_hash = hash(event)
+            if event_hash in self.events_distributed:
+                self.scan.verbose(f"Duplicate event: {event}")
+                dup = True
+            else:
+                self.events_distributed.add(event_hash)
+        if not dup:
             self.scan.word_cloud.absorb_event(event)
-            self.events_processed.add(event_hash)
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:
                 mod.queue_event(event)
