@@ -6,6 +6,7 @@ from threading import Lock
 from contextlib import suppress
 from concurrent.futures import ThreadPoolExecutor
 
+from ...modules.base import BaseModule
 from ..threadpool import ThreadPoolWrapper
 from bbot.core.errors import ValidationError
 from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
@@ -42,6 +43,9 @@ class DNSHelper:
         self._thread_pool = ThreadPoolWrapper(executor, max_workers=max_workers)
 
         self._debug = self.parent_helper.config.get("dns_debug", False)
+
+        self._dummy_modules = dict()
+        self._dummy_modules_lock = Lock()
 
     def resolve(self, query, **kwargs):
         """
@@ -105,7 +109,8 @@ class DNSHelper:
             for r in records:
                 for t in self.extract_targets(r):
                     event.tags.add(f"{rdtype.lower()}_record")
-                    children.append(make_event(t, "DNS_NAME", module=rdtype, source=event))
+                    module = self._get_dummy_module(rdtype)
+                    children.append(make_event(t, "DNS_NAME", module=module, source=event))
         if "resolved" not in event.tags:
             event.tags.add("unresolved")
         if check_wildcard and event.type == "DNS_NAME":
@@ -180,6 +185,7 @@ class DNSHelper:
         Returns set() of valid DNS servers from public-dns.info
         """
         if self._resolver_list is None:
+            log.info(f"Fetching and validating public DNS servers, this may take a few minutes")
             file_content = self.parent_helper.cache_get("resolver_list")
             if file_content is not None:
                 self._resolver_list = set([l for l in file_content.splitlines() if l])
@@ -335,3 +341,20 @@ class DNSHelper:
     def debug(self, *args, **kwargs):
         if self._debug:
             log.debug(*args, **kwargs)
+
+    def _get_dummy_module(self, name):
+        with self._dummy_modules_lock:
+            try:
+                dummy_module = self._dummy_modules[name]
+            except KeyError:
+                dummy_module = DNSDummyModule(name=name, scan=self.parent_helper.scan)
+                self._dummy_modules[name] = dummy_module
+        return dummy_module
+
+
+class DNSDummyModule(BaseModule):
+    _type = "DNS"
+
+    def __init__(self, *args, **kwargs):
+        self._name = kwargs.pop("name")
+        super().__init__(*args, **kwargs)

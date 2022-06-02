@@ -3,6 +3,7 @@ import ipaddress
 
 from bbot.core.errors import *
 from bbot.core.event import make_event
+from bbot.modules.base import BaseModule
 
 log = logging.getLogger("bbot.core.target")
 
@@ -10,7 +11,7 @@ log = logging.getLogger("bbot.core.target")
 class ScanTarget:
     def __init__(self, scan, *targets):
         self.scan = scan
-        # create pseudo root event
+        self.dummy_module = ScanTargetDummyModule(scan)
         self._events = dict()
         self._events_set = None
         if len(targets) > 0:
@@ -20,7 +21,9 @@ class ScanTarget:
                 for k, v in t._events.items():
                     self._events[k].update(v)
             else:
-                event = self.scan.make_event(t, source=self.scan.root_event, tags=["target", "in_scope"])
+                event = self.scan.make_event(
+                    t, source=self.scan.root_event, module=self.dummy_module, tags=["target", "in_scope"]
+                )
                 try:
                     self._events[event.host].add(event)
                 except KeyError:
@@ -97,3 +100,11 @@ class ScanTarget:
 
     def __bool__(self):
         return len(list(self._events)) > 0
+
+
+class ScanTargetDummyModule(BaseModule):
+    _type = "TARGET"
+    name = "TARGET"
+
+    def __init__(self, scan):
+        self.scan = scan

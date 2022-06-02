@@ -5,8 +5,8 @@ import traceback
 from time import sleep
 from contextlib import suppress
 
+from ..core.errors import ScanCancelledError
 from ..core.threadpool import ThreadPoolWrapper
-from ..core.errors import ScanCancelledError, ValidationError
 
 
 class BaseModule:
@@ -49,7 +49,7 @@ class BaseModule:
     batch_wait = 10
     # Priority, smaller numbers run first
     _priority = 0
-    # Name, overridden automatically in __init__.py
+    # Name, overridden automatically
     _name = "base"
     # Type, for differentiating between normal modules and output modules, etc.
     _type = "base"
@@ -66,8 +66,6 @@ class BaseModule:
         self._internal_thread_pool = ThreadPoolWrapper(
             self.scan._internal_thread_pool.executor, max_workers=self.max_threads
         )
-        self._emitted_events = set()
-        self._emitted_events_lock = threading.Lock()
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []
 
@@ -124,45 +122,16 @@ class BaseModule:
     def submit_task(self, *args, **kwargs):
         return self.thread_pool.submit_task(self.catch, *args, **kwargs)
 
-    def catch(self, callback, *args, **kwargs):
-        """
-        Wrapper to ensure error messages get surfaced to the user
-        """
-        ret = None
-        on_finish_callback = kwargs.pop("_on_finish_callback", None)
-        lock_brutes = kwargs.pop("_lock_brutes", False) and "brute-force" in self.flags
-        lock_acquired = False
+    def catch(self, *args, **kwargs):
         try:
+            lock_brutes = kwargs.pop("_lock_brutes", False) and "brute-force" in self.flags
+            lock_acquired = False
             if lock_brutes:
                 lock_acquired = self.scan._brute_lock.acquire()
-            if not self.scan.stopping:
-                ret = callback(*args, **kwargs)
-        except ScanCancelledError as e:
-            self.debug(f"ScanCancelledError in {callback.__name__}(): {e}")
-        except BrokenPipeError as e:
-            self.debug(f"BrokenPipeError in {callback.__name__}(): {e}")
-        except Exception as e:
-            import traceback
-
-            self.error(f"Error in {callback.__name__}(): {e}")
-            self.debug(traceback.format_exc())
-        except KeyboardInterrupt:
-            self.debug(f"Interrupted module {self.name}")
-            self.scan.stop()
+            self.scan.manager.catch(*args, **kwargs)
         finally:
             if lock_brutes and lock_acquired:
                 self.scan._brute_lock.release()
-        if callable(on_finish_callback):
-            try:
-                on_finish_callback()
-            except Exception as e:
-                import traceback
-
-                self.error(
-                    f"Error in on_finish_callback {on_finish_callback.__name__}() after {callback.__name__}(): {e}"
-                )
-                self.debug(traceback.format_exc())
-        return ret
 
     def _handle_batch(self, force=False):
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
@@ -184,56 +153,12 @@ class BaseModule:
         return False
 
     def emit_event(self, *args, **kwargs):
-        # don't raise an exception if the thread pool has been shutdown
-        with suppress(RuntimeError):
-            self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, *args, **kwargs)
-
-    def _emit_event(self, *args, **kwargs):
-        try:
-            on_success_callback = kwargs.pop("on_success_callback", None)
-            abort_if_tagged = kwargs.pop("abort_if_tagged", tuple())
-            if type(abort_if_tagged) == str:
-                abort_if_tagged = (abort_if_tagged,)
-            event = self.scan.make_event(*args, **kwargs)
-            if not event.module:
-                event.module = self
-            with self._emitted_events_lock:
-                if event.module == self:
-                    event_hash = hash((event, str(event.module)))
-                else:
-                    # allow duplicate events from dns resolution as long as their source event is unique
-                    event_hash = hash((event, str(event.module), event.source))
-                if self.suppress_dupes and event_hash in self._emitted_events:
-                    self.debug(f"Not raising duplicate event {event}")
-                    return
-                self._emitted_events.add(event_hash)
-
-            # DNS resolution
-            child_events = []
-            make_children = self.scan.config.get("dns_resolution", False)
-            if event.type in ("DNS_NAME", "IP_ADDRESS"):
-                child_events = list(self.helpers.dns.resolve_event(event))
-
-            for tag in abort_if_tagged:
-                if tag in event.tags:
-                    self.debug(f'Not raising event due to unwanted tag "{tag}"')
-                    return
-
-            self.debug(f'module "{self.name}" raised {event}')
-            self.scan.manager.queue_event(event)
-
-            if callable(on_success_callback):
-                self.catch(on_success_callback, event)
-
-            # if the event or one of its children are in scope, emit children
-            # otherwise, discard them
-            if make_children:
-                if self.scan.target.in_scope(event) or any([self.scan.target.in_scope(e) for e in child_events]):
-                    for child_event in child_events:
-                        self.emit_event(child_event)
-
-        except ValidationError as e:
-            self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
+        on_success_callback = kwargs.pop("on_success_callback", None)
+        abort_if_tagged = kwargs.pop("abort_if_tagged", tuple())
+        event = self.scan.make_event(*args, **kwargs)
+        if not event.module:
+            event.module = self
+        self.scan.manager.emit_event(event, abort_if_tagged=abort_if_tagged, on_success_callback=on_success_callback)
 
     @property
     def events_waiting(self):
