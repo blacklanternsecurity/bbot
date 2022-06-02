@@ -66,10 +66,6 @@ class BaseEvent:
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
 
-        # if the event is internal, erase it from the chain of events
-        if self._internal:
-            self._id = self.source
-
         self.type = event_type
         self.tags = set(tags)
         self.confidence = int(confidence)
@@ -86,6 +82,10 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self.__words = None
+
+        # if the event is internal, erase it from the chain of events
+        if self._internal:
+            self._id = self.source
 
     @property
     def host(self):
