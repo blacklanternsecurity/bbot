@@ -1,7 +1,7 @@
-from .base import BaseModule
-
 import dns.zone
 import dns.query
+
+from .base import BaseModule
 
 
 class dnszonetransfer(BaseModule):
@@ -12,6 +12,10 @@ class dnszonetransfer(BaseModule):
     max_threads = 5
     suppress_dupes = False
     in_scope_only = True
+
+    def setup(self):
+        self.emitted = set()
+        return True
 
     def filter_event(self, event):
         if any([x in event.tags for x in ("ns_record", "soa_record")]):
@@ -35,13 +39,20 @@ class dnszonetransfer(BaseModule):
                 continue
             self.success(f"Successful zone transfer against {nameserver} for domain {domain}!")
             for name, ttl, rdata in zone.iterate_rdatas():
-                if str(name) != "@":
-                    parent_event = self.scan.make_event(f"{name}.{domain}", "DNS_NAME", event)
+                if str(name) == "@":
+                    parent_data = domain
+                else:
+                    parent_data = f"{name}.{domain}"
+                parent_event = self.scan.make_event(parent_data, "DNS_NAME", event)
+                parent_event_hash = hash(parent_event)
+                if parent_event_hash not in self.emitted:
                     self.emit_event(parent_event)
-                    for t in self.helpers.dns.extract_targets(rdata):
-                        if not self.helpers.is_ip(t):
-                            t = f"{t}.{domain}"
-                        child_event = self.scan.make_event(t, "DNS_NAME", parent_event)
-                        self.emit_event(child_event)
+                    self.emitted.add(parent_event_hash)
+                for rdtype, t in self.helpers.dns.extract_targets(rdata):
+                    if not self.helpers.is_ip(t):
+                        t = f"{t}.{domain}"
+                    module = self.helpers.dns._get_dummy_module(rdtype)
+                    child_event = self.scan.make_event(t, "DNS_NAME", parent_event, module=module)
+                    self.emit_event(child_event)
             else:
                 self.debug(f"No data returned by {nameserver} for domain {domain}")
