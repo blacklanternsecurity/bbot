@@ -60,7 +60,7 @@ class DNSHelper:
         results = set()
         for rdtype, answers in self.resolve_raw(query, **kwargs):
             for answer in answers:
-                for t in self.extract_targets(answer):
+                for _, t in self.extract_targets(answer):
                     results.add(t)
         return results
 
@@ -104,13 +104,13 @@ class DNSHelper:
             rdtype = str(rdtype).upper()
             if rdtype in ("A", "AAAA"):
                 for r in records:
-                    for t in self.extract_targets(r):
+                    for _, t in self.extract_targets(r):
                         with suppress(ValidationError):
                             if self.parent_helper.scan.target.in_scope(t):
                                 event.tags.add("in_scope")
                                 break
             for r in records:
-                for t in self.extract_targets(r):
+                for _, t in self.extract_targets(r):
                     event.tags.add(f"{rdtype.lower()}_record")
                     module = self._get_dummy_module(rdtype)
                     children.append(make_event(t, "DNS_NAME", module=module, source=event))
@@ -143,13 +143,13 @@ class DNSHelper:
         results = set()
         rdtype = str(record.rdtype.name).upper()
         if rdtype in ("A", "AAAA", "NS", "CNAME", "PTR"):
-            results.add(self._clean_dns_record(record))
+            results.add((rdtype, self._clean_dns_record(record)))
         elif rdtype == "SOA":
-            results.add(self._clean_dns_record(record.mname))
+            results.add((rdtype, self._clean_dns_record(record.mname)))
         elif rdtype == "MX":
-            results.add(self._clean_dns_record(record.exchange))
+            results.add((rdtype, self._clean_dns_record(record.exchange)))
         elif rdtype == "SRV":
-            results.add(self._clean_dns_record(record.target))
+            results.add((rdtype, self._clean_dns_record(record.target)))
         else:
             log.warning(f'Unknown DNS record type "{rdtype}"')
         return results
