@@ -78,10 +78,13 @@ class DNSHelper:
             kwargs.pop("rdtype", None)
             if "type" in kwargs:
                 t = kwargs.pop("type")
-                if t.lower() in ("any", "all", "*"):
-                    types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME"]
-                else:
-                    types = [t]
+                if isinstance(t, str):
+                    if t.lower() in ("any", "all", "*"):
+                        types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME"]
+                    else:
+                        types = [t]
+                elif any([isinstance(t, x) for x in (list, tuple)]):
+                    types = [str(_) for _ in t]
             for t in types:
                 r = self._resolve_hostname(query, rdtype=t, **kwargs)
                 if r:
