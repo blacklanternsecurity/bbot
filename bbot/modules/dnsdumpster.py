@@ -1,47 +1,14 @@
 import re
 from bs4 import BeautifulSoup
 
-from .base import BaseModule
+from .crobat import crobat
 
 
-class dnsdumpster(BaseModule):
+class dnsdumpster(crobat):
 
-    flags = ["subdomain-enum"]
-    watched_events = ["DNS_NAME"]
-    produced_events = ["DNS_NAME"]
     deps_pip = ["beautifulsoup4", "lxml"]
-    in_scope_only = True
-
-    def setup(self):
-        self.processed = set()
-        return True
-
-    def filter_event(self, event):
-        if "target" in event.tags:
-            return True
-        # include out-of-scope DNS names that resolve to in-scope IPs
-        elif event not in self.scan.target:
-            if hash(self.helpers.parent_domain(event.data)) not in self.processed:
-                return True
-        return False
-
-    def handle_event(self, event):
-        if "target" in event.tags:
-            query = str(event.data).lower()
-        else:
-            query = self.helpers.parent_domain(event.data).lower()
-
-        if query not in self.processed:
-            self.processed.add(hash(query))
-
-            for hostname in self.query(query):
-                if not hostname == event:
-                    self.emit_event(hostname, "DNS_NAME", event)
-                else:
-                    self.debug(f"Invalid subdomain: {hostname}")
 
     def query(self, domain):
-
         ret = []
         # first, get the CSRF tokens
         url = "https://dnsdumpster.com"

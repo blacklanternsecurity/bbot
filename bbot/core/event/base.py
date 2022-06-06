@@ -82,10 +82,11 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self.__words = None
+        self._made_internal = False
 
         # if the event is internal, erase it from the chain of events
-        if self._internal:
-            self._id = self.source
+        if self._internal and not self._dummy:
+            self.make_internal()
 
     @property
     def host(self):
@@ -98,7 +99,7 @@ class BaseEvent:
             evilcorp.com:80         --> evilcorp.com
 
         For IPV*_* types, this is an instantiated object representing the event's data
-        E.g. for IP_ADDRESS, it's an ipaddress.IPv4Address() object
+        E.g. for IP_ADDRESS, it could be an ipaddress.IPv4Address() or IPv6Address() object
         """
         if self.__host is None:
             self.__host = self._host()
@@ -141,6 +142,13 @@ class BaseEvent:
         if self._id is None:
             self._id = make_event_id(self.data, self.type)
         return self._id
+
+    def make_internal(self):
+        if not self._made_internal:
+            self._internal = True
+            self._id = self.source
+            self.tags.add("internal")
+            self._made_internal = True
 
     def _host(self):
         return ""
@@ -344,8 +352,8 @@ def make_event(
             data.scan = scan
         if module is not None:
             data.module = module
-        if internal is not None:
-            data._internal = internal
+        if internal == True:
+            data.make_internal()
         return data
     else:
         if event_type is None:

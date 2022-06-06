@@ -29,6 +29,7 @@ docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4
 
 poetry run bbot -f subdomain-enum -t evilcorp.com -o human neo4j
 ~~~
+![neo4j](https://user-images.githubusercontent.com/20261699/172188763-fcbbcc57-5410-46f2-a3ff-8c3d40b9a025.png)
 
 ## Tests
 ~~~bash
