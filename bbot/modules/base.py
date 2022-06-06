@@ -155,10 +155,16 @@ class BaseModule:
     def emit_event(self, *args, **kwargs):
         on_success_callback = kwargs.pop("on_success_callback", None)
         abort_if_tagged = kwargs.pop("abort_if_tagged", tuple())
+        abort_if_not_tagged = kwargs.pop("abort_if_not_tagged", tuple())
         event = self.scan.make_event(*args, **kwargs)
         if not event.module:
             event.module = self
-        self.scan.manager.emit_event(event, abort_if_tagged=abort_if_tagged, on_success_callback=on_success_callback)
+        self.scan.manager.emit_event(
+            event,
+            abort_if_tagged=abort_if_tagged,
+            abort_if_not_tagged=abort_if_not_tagged,
+            on_success_callback=on_success_callback,
+        )
 
     @property
     def events_waiting(self):

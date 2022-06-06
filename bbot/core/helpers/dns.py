@@ -122,7 +122,7 @@ class DNSHelper:
                 event.tags.add("wildcard")
         return children
 
-    def resolve_batch(self, *queries, **kwargs):
+    def resolve_batch(self, queries, **kwargs):
         """
         resolve_batch("www.evilcorp.com", "evilcorp.com") --> [
             ("www.evilcorp.com", {"1.1.1.1"}),

@@ -147,7 +147,6 @@ class BaseEvent:
         if not self._made_internal:
             self._internal = True
             self._id = self.source
-            self.tags.add("internal")
             self._made_internal = True
 
     def _host(self):
