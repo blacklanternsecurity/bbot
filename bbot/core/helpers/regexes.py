@@ -24,6 +24,7 @@ word_regexes = [
 word_regex = re.compile(r"[^\d\W_]+")
 word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
+_dns_name_regex = r"(([A-Z0-9\-_]+)\.)+([A-Z0-9\-_]+)"
 
 
 # todo: detect ipv6 addresses in OPEN_TCP_PORT and URL
@@ -37,7 +38,7 @@ event_type_regexes = OrderedDict(
             ),
             (
                 "DNS_NAME",
-                r"^(([A-Z0-9\-_]+)\.)+([A-Z0-9\-_]+)$",
+                rf"^{_dns_name_regex}$",
             ),
             (
                 "OPEN_TCP_PORT",
@@ -52,3 +53,4 @@ event_type_regexes = OrderedDict(
 )
 
 event_id_regex = re.compile(r"[0-9a-f]{40}:[A-Z0-9_]+")
+dns_name_regex = re.compile(_dns_name_regex, re.I)

@@ -2,6 +2,10 @@ from .base import BaseModule
 
 
 class crobat(BaseModule):
+    """
+    A typical API-based subdomain enumeration module
+    Used by several other modules including sublist3r, dnsdumpster, and dnsgrep
+    """
 
     flags = ["subdomain-enum"]
     watched_events = ["DNS_NAME"]
@@ -30,20 +34,23 @@ class crobat(BaseModule):
         if query not in self.processed:
             self.processed.add(hash(query))
 
-            results = self.helpers.request(f"https://sonar.omnisint.io/subdomains/{query}")
-
-            try:
-                json = results.json()
-                if json:
-                    for hostname in json:
-                        if not hostname == event:
-                            self.emit_event(hostname, "DNS_NAME", event)
-                        else:
-                            self.debug(f"Invalid subdomain: {hostname}")
+            for hostname in self.query(query):
+                if not hostname == event:
+                    self.emit_event(hostname, "DNS_NAME", event, abort_if_not_tagged={"in_scope"})
                 else:
-                    self.debug(f'No results for "{query}"')
-            except Exception:
-                import traceback
+                    self.debug(f"Invalid subdomain: {hostname}")
 
-                self.warning(f"Error retrieving crobat domains")
-                self.debug(traceback.format_exc())
+    def query(self, query):
+        results = self.helpers.request(f"https://sonar.omnisint.io/subdomains/{query}")
+        try:
+            json = results.json()
+            if json:
+                for hostname in json:
+                    yield hostname
+            else:
+                self.debug(f'No results for "{query}"')
+        except Exception:
+            import traceback
+
+            self.warning(f"Error retrieving crobat domains")
+            self.debug(traceback.format_exc())

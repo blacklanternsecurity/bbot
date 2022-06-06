@@ -6,6 +6,7 @@ from threading import Lock
 from contextlib import suppress
 from concurrent.futures import ThreadPoolExecutor
 
+from .regexes import dns_name_regex
 from ...modules.base import BaseModule
 from ..threadpool import ThreadPoolWrapper
 from bbot.core.errors import ValidationError
@@ -80,7 +81,7 @@ class DNSHelper:
                 t = kwargs.pop("type")
                 if isinstance(t, str):
                     if t.lower() in ("any", "all", "*"):
-                        types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME"]
+                        types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
                     else:
                         types = [t]
                 elif any([isinstance(t, x) for x in (list, tuple)]):
@@ -150,6 +151,13 @@ class DNSHelper:
             results.add((rdtype, self._clean_dns_record(record.exchange)))
         elif rdtype == "SRV":
             results.add((rdtype, self._clean_dns_record(record.target)))
+        elif rdtype == "TXT":
+            for s in record.strings:
+                s = self.parent_helper.smart_decode(s)
+                for match in dns_name_regex.finditer(s):
+                    start, end = match.span()
+                    host = s[start:end]
+                    results.add((rdtype, host))
         else:
             log.warning(f'Unknown DNS record type "{rdtype}"')
         return results
