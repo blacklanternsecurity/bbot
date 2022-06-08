@@ -80,12 +80,12 @@ class DNSHelper:
             if "type" in kwargs:
                 t = kwargs.pop("type")
                 if isinstance(t, str):
-                    if t.lower() in ("any", "all", "*"):
+                    if t.strip().lower() in ("any", "all", "*"):
                         types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
                     else:
-                        types = [t]
+                        types = [t.strip().upper()]
                 elif any([isinstance(t, x) for x in (list, tuple)]):
-                    types = [str(_) for _ in t]
+                    types = [str(_).strip().upper() for _ in t]
             for t in types:
                 r = self._resolve_hostname(query, rdtype=t, **kwargs)
                 if r:
@@ -108,7 +108,7 @@ class DNSHelper:
                     for _, t in self.extract_targets(r):
                         with suppress(ValidationError):
                             if self.parent_helper.scan.target.in_scope(t):
-                                event.tags.add("in_scope")
+                                event.make_in_scope()
                                 break
             for r in records:
                 for _, t in self.extract_targets(r):
@@ -170,11 +170,14 @@ class DNSHelper:
         nameservers = set()
         nameservers_url = "https://public-dns.info/nameserver/nameservers.json"
         nameservers_file = self.parent_helper.download(nameservers_url, cache_hrs=72)
+        if nameservers_file is None:
+            log.warning(f"Failed to download nameservers from {nameservers_url}")
+            return set()
         nameservers_json = []
         try:
             nameservers_json = json.loads(open(nameservers_file).read())
         except Exception as e:
-            log.error(f"Failed to populate nameserver list from {nameservers_url}: {e}")
+            log.error(f"Failed to load nameserver list from {nameservers_file}: {e}")
         for entry in nameservers_json:
             try:
                 ip = str(entry.get("ip", "")).strip()
@@ -201,8 +204,12 @@ class DNSHelper:
             if file_content is not None:
                 self._resolver_list = set([l for l in file_content.splitlines() if l])
             if not self._resolver_list:
-                self._resolver_list = self.get_valid_resolvers()
-                self.parent_helper.cache_put("resolver_list", "\n".join(self._resolver_list))
+                resolvers = self.get_valid_resolvers()
+                if resolvers:
+                    self._resolver_list = resolvers
+                    self.parent_helper.cache_put("resolver_list", "\n".join(self._resolver_list))
+                else:
+                    return set()
         return self._resolver_list
 
     @property

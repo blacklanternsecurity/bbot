@@ -265,7 +265,7 @@ class Scanner:
         target = getattr(self, "target", None)
         if target:
             if self.target.in_scope(event):
-                event.tags.add("in_scope")
+                event.make_in_scope()
         return event
 
     @property
