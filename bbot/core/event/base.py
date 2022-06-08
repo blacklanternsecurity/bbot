@@ -58,9 +58,13 @@ class BaseEvent:
         if (not self.scan) and (not self._dummy):
             raise ValidationError(f"Must specify scan")
 
+        self.scope_distance = -1
+
         self.source = None
         if BaseEvent in source.__class__.__bases__:
             self.source = source.id
+            if source.scope_distance >= 0:
+                self.scope_distance = source.scope_distance + 1
         elif is_event_id(source):
             self.source = str(source)
         if (not self.source) and (not self._dummy):
@@ -78,6 +82,7 @@ class BaseEvent:
             self._setup()
 
         self._id = None
+        self._id_backup = None
         self._hash = None
         self.__host = None
         self._port = None
@@ -132,22 +137,34 @@ class BaseEvent:
         return set()
 
     @property
-    def data_hash(self):
-        if self._hash is None:
-            self._hash = sha1(self.data)
-        return self._hash
-
-    @property
     def id(self):
         if self._id is None:
             self._id = make_event_id(self.data, self.type)
         return self._id
 
     def make_internal(self):
+        # cache old hash value to avoid confusion
+        hash(self)
+        # substitute ID of source event
         if not self._made_internal:
             self._internal = True
+            self._id_backup = str(self._id)
             self._id = self.source
+            self.tags.add("internal")
             self._made_internal = True
+
+    def unmake_internal(self):
+        if self._made_internal and self._id_backup != None:
+            self._internal = False
+            self._id = str(self._id_backup)
+            self._id_backup = None
+            self.tags.remove("internal")
+            self._made_internal = False
+
+    def make_in_scope(self):
+        self.unmake_internal()
+        self.tags.add("in_scope")
+        self.scope_distance = 0
 
     def _host(self):
         return ""
@@ -208,7 +225,9 @@ class BaseEvent:
         return hash(self) == hash(other)
 
     def __hash__(self):
-        return hash(self.id)
+        if self._hash is None:
+            self._hash = hash(self.id)
+        return self._hash
 
     def __str__(self):
         d = str(self.data)

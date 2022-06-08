@@ -32,6 +32,9 @@ class BaseModule:
     suppress_dupes = True
     # Only accept explicitly in-scope events
     in_scope_only = False
+    # Only accept events that are this close to the scope
+    # -1 == accept everything, 0 == in scope only, 1 == up to one hop away, 2 == up to 2 hops, etc.
+    max_scope_distance = -1
     # Only accept the initial target event(s)
     target_only = False
     # Options, e.g. {"api_key": ""}
@@ -287,6 +290,9 @@ class BaseModule:
         # optionally exclude out-of-scope targets
         if self.in_scope_only and not self.scan.target.in_scope(e):
             return False
+        if self.max_scope_distance > -1:
+            if e.scope_distance < 0 or e.scope_distance > self.max_scope_distance:
+                return False
         # special case for IPs that originated from a CIDR
         # if the event is an IP address and came from the enricher module
         module_name = getattr(getattr(e, "module", None), "name", "")
