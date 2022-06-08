@@ -19,9 +19,11 @@ def validate_url(self, url):
 def download(self, url, **kwargs):
     """
     Downloads file, returns full path of filename
+    If download failed, returns None
 
     Caching supported via "cache_hrs"
     """
+    success = False
     filename = self.cache_filename(url)
     cache_hrs = float(kwargs.pop("cache_hrs", -1))
     log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
@@ -38,13 +40,15 @@ def download(self, url, **kwargs):
                     with open(filename, "wb") as f:
                         for chunk in response.iter_content(chunk_size=8192):
                             f.write(chunk)
+                    success = True
         except RequestException as e:
-            log.debug(f"Failed to download {url}: {e}")
+            log.warning(f"Failed to download {url}: {e}")
             return
         except AttributeError:
             return
 
-    return str(filename.resolve())
+    if success:
+        return str(filename.resolve())
 
 
 def request(self, *args, **kwargs):

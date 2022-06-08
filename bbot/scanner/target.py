@@ -35,7 +35,7 @@ class ScanTarget:
 
     def in_scope(self, e):
         e = make_event(e, dummy=True)
-        return "in_scope" in e.tags or e in self
+        return e.scope_distance == 0 or e in self
 
     @property
     def events(self):
@@ -51,17 +51,17 @@ class ScanTarget:
     def __contains__(self, other):
         # if "other" is a ScanTarget
         if type(other) == self.__class__:
-            contained_in_self = [self._contains(e, ignore_tags=True) for e in other.events]
+            contained_in_self = [self._contains(e, force_check=True) for e in other.events]
             return all(contained_in_self)
         else:
             return self._contains(other)
 
-    def _contains(self, other, ignore_tags=False):
+    def _contains(self, other, force_check=False):
         try:
             other = make_event(other, dummy=True)
         except ValidationError:
             return False
-        if not ignore_tags and any([t in other.tags for t in ("in_scope", "target")]):
+        if not force_check and (other.scope_distance == 0 or "target" in other.tags):
             return True
         if other in self.events:
             return True

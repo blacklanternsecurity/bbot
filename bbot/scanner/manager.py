@@ -51,6 +51,8 @@ class ScanManager:
             if type(abort_if_not_tagged) == str:
                 abort_if_not_tagged = (abort_if_not_tagged,)
             event = self.scan.make_event(*args, **kwargs)
+            log.debug(f"Emitting event: {event}")
+
             if event.module._type == "DNS":
                 # allow duplicate events from dns resolution as long as their source event is unique
                 event_hash = hash((event, str(event.module), event.source))
@@ -89,23 +91,24 @@ class ScanManager:
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
 
-            # only emit children if the event or one of its children are in scope
-            # this helps prevent runaway dns resolutions that result in junk data
             emit_children = self.scan.config.get("dns_resolution", False)
             with self.events_resolved_lock:
-                # if this is is a never-before-seen event
+                # don't emit duplicates
                 if emit_children and child_events and dns_event_hash not in self.events_resolved:
                     self.events_resolved.add(dns_event_hash)
                     emit_children &= True
                 else:
                     emit_children &= False
             if child_events:
-                any_in_scope = self.scan.target.in_scope(event) or any(
-                    [self.scan.target.in_scope(e) for e in child_events]
-                )
-                emit_children &= any_in_scope
+                any_in_scope = any([self.scan.target.in_scope(e) for e in child_events])
+                # only emit children if the source event is less than three hops from the main scope
+                # this helps prevent runaway dns resolutions that result in junk data
+                emit_children &= -1 < event.scope_distance < 3 or any_in_scope
             for child_event in child_events:
-                self.emit_event(child_event, internal=(not emit_children))
+                if emit_children:
+                    # make child events internal if the source event is not in scope
+                    internal_event = event.scope_distance < 0 or event.scope_distance > 0
+                    self.emit_event(child_event, internal=internal_event)
 
         except ValidationError as e:
             self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
@@ -154,10 +157,10 @@ class ScanManager:
         Queue event with modules
         """
         dup = False
+        event_hash = hash(event)
         with self.events_distributed_lock:
-            event_hash = hash(event)
             if event_hash in self.events_distributed:
-                self.scan.verbose(f"Duplicate event: {event}")
+                self.scan.verbose(f"{event.module}: Duplicate event: {event}")
                 dup = True
             else:
                 self.events_distributed.add(event_hash)

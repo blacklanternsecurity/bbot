@@ -67,8 +67,7 @@ class DepsInstaller:
                         log.verbose(f'Installing dependencies for module "{m}"')
                         # get sudo access if we need it
                         if preloaded.get("sudo", False) == True:
-                            log.warning(f'Module "{m}" needs root privileges to install its dependencies.')
-                            self.ensure_root()
+                            self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
                         success = self.install_module(m)
                         self.setup_status[module_hash] = success
                         if success or self.ignore_failed_deps:
@@ -251,8 +250,10 @@ class DepsInstaller:
         with open(self.setup_status_cache, "w") as f:
             json.dump(self.setup_status, f)
 
-    def ensure_root(self):
+    def ensure_root(self, message=""):
         if os.geteuid() != 0 and self._sudo_password is None:
+            if message:
+                log.warning(message)
             # sleep for a split second to flush previous log messages
             while not self._sudo_password:
                 sleep(0.1)
