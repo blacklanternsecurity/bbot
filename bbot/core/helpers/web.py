@@ -29,6 +29,7 @@ def download(self, url, **kwargs):
     log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
     if cache_hrs > 0 and self.is_cached(url):
         log.debug(f"{url} is cached")
+        success = True
     else:
         method = kwargs.get("method", "GET")
         try:

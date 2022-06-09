@@ -162,7 +162,9 @@ class BaseEvent:
             self._made_internal = False
 
     def make_in_scope(self):
-        self.unmake_internal()
+        # if a DNS name or IP address is in scope, make sure it's not internal
+        if self.type in ("DNS_NAME", "IP_ADDRESS"):
+            self.unmake_internal()
         self.tags.add("in_scope")
         self.scope_distance = 0
 
@@ -379,7 +381,7 @@ def make_event(
             if not dummy:
                 log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
         if event_type is None:
-            raise ValidationError(f'Unable to autodetect event type from "{data}": please specify event_type')
+            raise ValidationError(f'Unable to autodetect event type from "{data}"')
 
         event_type = str(event_type).strip().upper()
 

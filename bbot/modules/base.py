@@ -157,15 +157,13 @@ class BaseModule:
 
     def emit_event(self, *args, **kwargs):
         on_success_callback = kwargs.pop("on_success_callback", None)
-        abort_if_tagged = kwargs.pop("abort_if_tagged", tuple())
-        abort_if_not_tagged = kwargs.pop("abort_if_not_tagged", tuple())
+        abort_if = kwargs.pop("abort_if", lambda e: False)
         event = self.scan.make_event(*args, **kwargs)
         if not event.module:
             event.module = self
         self.scan.manager.emit_event(
             event,
-            abort_if_tagged=abort_if_tagged,
-            abort_if_not_tagged=abort_if_not_tagged,
+            abort_if=abort_if,
             on_success_callback=on_success_callback,
         )
 
@@ -282,7 +280,7 @@ class BaseModule:
             else:
                 return False
         # exclude non-watched types
-        if not any(t in self.watched_events for t in ["*", e.type]):
+        if not any(t in self.watched_events for t in ("*", e.type)):
             return False
         # optionally exclude non-targets
         if self.target_only and "target" not in e.tags:
@@ -294,13 +292,12 @@ class BaseModule:
             if e.scope_distance < 0 or e.scope_distance > self.max_scope_distance:
                 return False
         # special case for IPs that originated from a CIDR
-        # if the event is an IP address and came from the enricher module
-        module_name = getattr(getattr(e, "module", None), "name", "")
-        if e.type == "IP_ADDRESS" and module_name == "enricher":
+        # if the event is an IP address and came from the speculate module
+        if e.type == "IP_ADDRESS" and str(e.module) == "speculate":
             # and the current module listens for both ranges and CIDRs
-            if all([x in self.watched_events for x in [f"IPV{e.version}_RANGE", f"IPV{e.version}_ADDRESS"]]):
+            if all([x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")]):
                 # then skip the event.
-                # this avoids double-portscanning both an individual IP and its parent CIDR.
+                # this helps avoid double-portscanning both an individual IP and its parent CIDR.
                 return False
         # custom filtering
         try:
