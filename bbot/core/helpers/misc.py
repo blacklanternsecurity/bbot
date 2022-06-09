@@ -306,12 +306,13 @@ def str_or_file(s):
     """
     try:
         with open(s, errors="ignore") as f:
-            yield from f
+            for line in f:
+                yield line.rstrip("\r\n")
     except OSError:
         yield s
 
 
-def chain_lists(l, try_files=False):
+def chain_lists(l, try_files=False, msg=None):
     """
     Chain together list, splitting entries on comma
         - Optionally try to open entries as files and add their content to the list
@@ -324,9 +325,13 @@ def chain_lists(l, try_files=False):
     for entry in l:
         for s in entry.split(","):
             f = s.strip()
-            if try_files:
+            f_path = Path(f).resolve()
+            if try_files and f_path.is_file():
+                if msg is not None:
+                    msg = str(msg).format(filename=f_path)
+                    log.info(msg)
                 for line in str_or_file(f):
-                    final_list[line.strip()] = None
+                    final_list[line] = None
             else:
                 final_list[f] = None
 

@@ -36,7 +36,7 @@ class crobat(BaseModule):
 
             for hostname in self.query(query):
                 if not hostname == event:
-                    self.emit_event(hostname, "DNS_NAME", event, abort_if_not_tagged={"in_scope"})
+                    self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in_scope" not in e.tags)
                 else:
                     self.debug(f"Invalid subdomain: {hostname}")
 

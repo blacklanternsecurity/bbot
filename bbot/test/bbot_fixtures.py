@@ -71,7 +71,7 @@ def config():
 def scan(neuter_ansible, patch_requests, patch_commands, config):
     from bbot.scanner import Scanner
 
-    bbot_scan = Scanner("127.0.0.1", modules=["dnsresolve"], config=config)
+    bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=config)
     return bbot_scan
 
 
@@ -83,6 +83,7 @@ def helpers(scan):
 @pytest.fixture
 def events(scan):
     class bbot_events:
+        localhost = scan.make_event("127.0.0.1", dummy=True)
         ipv4 = scan.make_event("8.8.8.8", dummy=True)
         netv4 = scan.make_event("8.8.8.8/30", dummy=True)
         ipv6 = scan.make_event("2001:4860:4860::8888", dummy=True)
@@ -99,6 +100,7 @@ def events(scan):
         emoji = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
 
     bbot_events.all = [  # noqa: F841
+        bbot_events.localhost,
         bbot_events.ipv4,
         bbot_events.netv4,
         bbot_events.ipv6,

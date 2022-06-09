@@ -120,6 +120,16 @@ def test_events(events, scan):
     assert events.ipv6_url.host == ipaddress.ip_address("2001:4860:4860::8888")
     assert events.ipv6_url.port == 443
 
+    # scope distance
+    event1 = scan.make_event("1.2.3.4", dummy=True)
+    assert event1.scope_distance == -1
+    event1.make_in_scope()
+    assert event1.scope_distance == 0
+    event2 = scan.make_event("2.3.4.5", source=event1)
+    assert event2.scope_distance == 1
+    event3 = scan.make_event("3.4.5.6", source=event2)
+    assert event3.scope_distance == 2
+
 
 def test_helpers(patch_requests, patch_commands, helpers):
 
@@ -200,7 +210,8 @@ def test_helpers(patch_requests, patch_commands, helpers):
     request, download = patch_requests
     assert getattr(request(helpers, "https://api.publicapis.org/health"), "text", "").startswith("{")
     assert getattr(request(helpers, "https://api.publicapis.org/health", cache_for=60), "text", "").startswith("{")
-    download(helpers, "https://api.publicapis.org/health", cache_hrs=1)
+    filename = download(helpers, "https://api.publicapis.org/health", cache_hrs=1)
+    assert Path(str(filename)).is_file()
     assert helpers.is_cached("https://api.publicapis.org/health")
 
     ### DNS ###
@@ -253,6 +264,52 @@ def test_word_cloud(helpers):
 
 
 def test_modules(patch_requests, patch_commands, scan, helpers, events):
+
+    # base module _filter_event()
+    from bbot.modules.base import BaseModule
+
+    base_module = BaseModule(scan)
+    localhost2 = scan.make_event("127.0.0.2", source=events.subdomain)
+    # base cases
+    assert base_module._filter_event("FINISHED") == True
+    assert base_module._filter_event("WAT") == False
+    base_module.watched_events = ["*"]
+    assert base_module._filter_event("WAT") == False
+    assert base_module._filter_event(events.emoji) == True
+    base_module.watched_events = ["IP_ADDRESS"]
+    assert base_module._filter_event(events.ipv4) == True
+    assert base_module._filter_event(events.domain) == False
+    assert base_module._filter_event(events.localhost) == True
+    assert base_module._filter_event(localhost2) == True
+    # target only
+    base_module.target_only = True
+    assert base_module._filter_event(localhost2) == False
+    localhost2.tags.add("target")
+    assert base_module._filter_event(localhost2) == True
+    base_module.target_only = False
+    # in scope only
+    base_module.in_scope_only = True
+    localhost2.tags.remove("target")
+    assert base_module._filter_event(events.localhost) == True
+    assert base_module._filter_event(localhost2) == False
+    base_module.in_scope_only = False
+    # scope distance
+    base_module.max_scope_distance = 3
+    localhost2.scope_distance = 0
+    assert base_module._filter_event(localhost2) == True
+    localhost2.scope_distance = 3
+    assert base_module._filter_event(localhost2) == True
+    localhost2.scope_distance = 4
+    assert base_module._filter_event(localhost2) == False
+    localhost2.scope_distance = -1
+    assert base_module._filter_event(localhost2) == False
+    base_module.max_scope_distance = -1
+    # special case for IPs and ranges
+    base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
+    localhost2.module = "plumbus"
+    assert base_module._filter_event(localhost2) == True
+    localhost2.module = "speculate"
+    assert base_module._filter_event(localhost2) == False
 
     method_futures = {"setup": {}, "finish": {}, "cleanup": {}}
     filter_futures = {}
@@ -336,15 +393,67 @@ def test_target(neuter_ansible, patch_requests, patch_commands):
 def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers):
     from bbot.scanner.scanner import Scanner
 
+    # test _emit_event
+    results = []
+    success_callback = lambda e: results.append("success")
+    scan1 = Scanner("127.0.0.1", config=config)
+    scan1.status = "RUNNING"
+    scan1.manager.queue_event = lambda e: results.append(e)
+    manager = scan1.manager
+    localhost = scan1.make_event("127.0.0.1", dummy=True)
+
+    class DummyModule1:
+        _type = "output"
+        suppress_dupes = True
+
+    class DummyModule2:
+        _type = "DNS"
+        suppress_dupes = True
+
+    localhost.module = DummyModule1()
+    # test abort_if
+    manager._emit_event(localhost, abort_if=lambda e: e.module._type == "output")
+    assert len(results) == 0
+    manager._emit_event(
+        localhost, on_success_callback=success_callback, abort_if=lambda e: e.module._type == "plumbus"
+    )
+    assert localhost in results
+    assert "success" in results
+    results.clear()
+    # test deduplication
+    manager._emit_event(localhost, on_success_callback=success_callback)
+    assert len(results) == 0
+    # test dns resolution
+    googledns = scan1.make_event("8.8.8.8", dummy=True)
+    googledns.module = DummyModule2()
+    googledns.source = "asdf"
+    googledns.make_in_scope()
+    event_children = []
+    manager.emit_event = lambda e, *args, **kwargs: event_children.append(e)
+    manager._emit_event(googledns)
+    assert len(event_children) > 0
+    assert googledns in results
+    results.clear()
+    event_children.clear()
+    # same dns event
+    manager._emit_event(googledns)
+    assert len(results) == 0
+    assert len(event_children) == 0
+    # same DNS event but different source
+    googledns.source = "fdsa"
+    manager._emit_event(googledns)
+    assert len(event_children) == 0
+    assert googledns in results
+
     scan2 = Scanner(
         "publicapis.org",
         "8.8.8.8",
         "2001:4860:4860::8888",
-        modules=["dnsresolve"],
+        modules=["ipneighbor"],
         output_modules=list(available_output_modules),
         config=config,
     )
-    scan2.json
+    assert "targets" in scan2.json
     scan2.start()
 
     scan3 = Scanner(
@@ -379,7 +488,7 @@ def test_agent(agent):
     agent.on_open(agent.ws)
     agent.on_message(
         agent.ws,
-        '{"conversation": "90196cc1-299f-4555-82a0-bc22a4247590", "command": "start_scan", "arguments": {"scan_id": "90196cc1-299f-4555-82a0-bc22a4247590", "targets": ["www.blacklanternsecurity.com"], "modules": ["dnsresolve"], "output_modules": ["human"]}}',
+        '{"conversation": "90196cc1-299f-4555-82a0-bc22a4247590", "command": "start_scan", "arguments": {"scan_id": "90196cc1-299f-4555-82a0-bc22a4247590", "targets": ["www.blacklanternsecurity.com"], "modules": ["ipneighbor"], "output_modules": ["human"]}}',
     )
     sleep(0.5)
     agent.scan_status()
@@ -391,7 +500,7 @@ def test_db(neuter_ansible, patch_requests, patch_commands, neograph, events, co
 
     scan4 = Scanner(
         "127.0.0.1",
-        modules=["dnsresolve"],
+        modules=["ipneighbor"],
         output_modules=["neo4j"],
         config=config,
     )
@@ -403,7 +512,7 @@ def test_cli(monkeypatch):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "127.0.0.1", "-m", "dnsresolve"])
+    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "127.0.0.1", "-m", "ipneighbor"])
     cli.main()
     monkeypatch.setattr(sys, "argv", ["bbot", "--current-config"])
     cli.main()

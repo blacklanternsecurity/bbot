@@ -86,7 +86,7 @@ class massdns(BaseModule):
                     hostname,
                     "DNS_NAME",
                     event,
-                    abort_if_tagged=("wildcard", "unresolved"),
+                    abort_if=lambda e: any([x in e.tags for x in ("wildcard", "unresolved")]),
                     on_success_callback=self.add_found,
                 )
 
@@ -175,7 +175,7 @@ class massdns(BaseModule):
                         hostname,
                         "DNS_NAME",
                         source_event,
-                        abort_if_tagged=("wildcard", "unresolved"),
+                        abort_if=lambda e: any([x in e.tags for x in ("wildcard", "unresolved")]),
                         on_success_callback=self.add_found,
                     )
 

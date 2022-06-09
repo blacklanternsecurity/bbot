@@ -26,7 +26,7 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret = super().parse_args(*args, **kwargs)
         ret.modules = chain_lists(ret.modules)
         ret.output_modules = chain_lists(ret.output_modules)
-        ret.targets = chain_lists(ret.targets, try_files=True)
+        ret.targets = chain_lists(ret.targets, try_files=True, msg="Reading targets from file: {filename}")
         ret.flags = chain_lists(ret.flags)
         if "all" in ret.modules:
             ret.modules = list(modules_preloaded)

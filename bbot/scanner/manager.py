@@ -44,26 +44,16 @@ class ScanManager:
     def _emit_event(self, *args, **kwargs):
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
-            abort_if_tagged = kwargs.pop("abort_if_tagged", tuple())
-            abort_if_not_tagged = kwargs.pop("abort_if_not_tagged", tuple())
-            if type(abort_if_tagged) == str:
-                abort_if_tagged = (abort_if_tagged,)
-            if type(abort_if_not_tagged) == str:
-                abort_if_not_tagged = (abort_if_not_tagged,)
+            abort_if = kwargs.pop("abort_if", lambda e: False)
             event = self.scan.make_event(*args, **kwargs)
             log.debug(f"Emitting event: {event}")
 
-            if event.module._type == "DNS":
-                # allow duplicate events from dns resolution as long as their source event is unique
-                event_hash = hash((event, str(event.module), event.source))
-            else:
-                event_hash = hash((event, str(event.module)))
-
-            with self.events_accepted_lock:
-                if event.module.suppress_dupes and event_hash in self.events_accepted:
-                    log.debug(f"{event.module}: not raising duplicate event {event}")
+            # accept the event right away if there's no abort condition
+            # if there's an abort condition, we want to wait until DNS
+            # it's been properly tagged and the abort_if callback has run
+            if abort_if is None:
+                if not self.accept_event(event):
                     return
-                self.events_accepted.add(event_hash)
 
             # DNS resolution
             child_events = []
@@ -76,13 +66,13 @@ class ScanManager:
             if resolve_event and event.type in ("DNS_NAME", "IP_ADDRESS"):
                 child_events = list(self.scan.helpers.dns.resolve_event(event))
 
-            for tag in abort_if_tagged:
-                if tag in event.tags:
-                    log.debug(f'{event.module}: not raising event {event} due to unwanted tag "{tag}"')
-                    return
-            for tag in abort_if_not_tagged:
-                if tag not in event.tags:
-                    log.debug(f'{event.module}: not raising event {event} due to missing tag "{tag}"')
+            if abort_if(event):
+                log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
+                return
+
+            # now that the event is tagged, accept it if we didn't already
+            if abort_if is not None:
+                if not self.accept_event(event):
                     return
 
             log.debug(f'module "{event.module}" raised {event}')
@@ -112,6 +102,20 @@ class ScanManager:
 
         except ValidationError as e:
             self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
+
+    def accept_event(self, event):
+        if event.module._type == "DNS":
+            # allow duplicate events from dns resolution as long as their source event is unique
+            event_hash = hash((event, str(event.module), event.source))
+        else:
+            event_hash = hash((event, str(event.module)))
+
+        with self.events_accepted_lock:
+            if event.module.suppress_dupes and event_hash in self.events_accepted:
+                log.debug(f"{event.module}: not raising duplicate event {event}")
+                return False
+            self.events_accepted.add(event_hash)
+        return True
 
     def catch(self, callback, *args, **kwargs):
         """

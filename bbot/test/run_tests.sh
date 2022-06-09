@@ -14,4 +14,4 @@ flake8 --select F,E722 --ignore F403,F405,F541 --per-file-ignores="*/__init__.py
 echo
 
 echo "[+] Testing with pytest"
-pytest --disable-warnings --log-cli-level=CRITICAL "$bbot_dir"
+pytest --disable-warnings --log-cli-level=ERROR "$bbot_dir"

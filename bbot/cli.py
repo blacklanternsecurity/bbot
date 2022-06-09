@@ -27,7 +27,13 @@ def main():
             sys.exit(1)
 
         # note: command line arguments are in bbot/core/configurator/args.py
-        options = parser.parse_args()
+        try:
+            options = parser.parse_args()
+        except bbot.core.errors.ArgumentError as e:
+            log.warning(e)
+            sys.exit(1)
+            # this is intentional since sys.exit() is monkeypatched in the tests
+            return
 
         # config test
         from . import config
