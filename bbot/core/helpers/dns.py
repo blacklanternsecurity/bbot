@@ -177,7 +177,7 @@ class DNSHelper:
         try:
             nameservers_json = json.loads(open(nameservers_file).read())
         except Exception as e:
-            log.error(f"Failed to load nameserver list from {nameservers_file}: {e}")
+            log.warning(f"Failed to load nameserver list from {nameservers_file}: {e}")
         for entry in nameservers_json:
             try:
                 ip = str(entry.get("ip", "")).strip()
