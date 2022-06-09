@@ -130,10 +130,15 @@ def load_modules(module_names, namespace):
 
 
 def load_module(module_name, namespace, base_module_class):
-    module_variables = importlib.import_module(f"{namespace}.{module_name}", "bbot")
+    import_path = f"{namespace}.{module_name}"
+    module_variables = importlib.import_module(import_path, "bbot")
     for variable in module_variables.__dict__.keys():
         value = getattr(module_variables, variable)
         with suppress(AttributeError):
-            if base_module_class in getattr(value, "__bases__", []):
-                value._name = module_name
-                return value
+            if all(
+                type(a) == list
+                for a in (getattr(value, "watched_events", None), getattr(value, "produced_events", None))
+            ):
+                if value.__name__.lower() == module_name.lower():
+                    value._name = module_name
+                    return value

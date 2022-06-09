@@ -5,6 +5,9 @@ from .crobat import crobat
 
 
 class dnsdumpster(crobat):
+    flags = ["subdomain-enum"]
+    watched_events = ["DNS_NAME"]
+    produced_events = ["DNS_NAME"]
 
     deps_pip = ["beautifulsoup4", "lxml"]
 
