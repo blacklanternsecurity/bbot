@@ -199,11 +199,11 @@ class DNSHelper:
         Returns set() of valid DNS servers from public-dns.info
         """
         if self._resolver_list is None:
-            log.info(f"Fetching and validating public DNS servers, this may take a few minutes")
             file_content = self.parent_helper.cache_get("resolver_list")
             if file_content is not None:
                 self._resolver_list = set([l for l in file_content.splitlines() if l])
             if not self._resolver_list:
+                log.info(f"Fetching and validating public DNS servers, this may take a few minutes")
                 resolvers = self.get_valid_resolvers()
                 if resolvers:
                     self._resolver_list = resolvers
