@@ -42,6 +42,12 @@ class urlscan(crobat):
                             url = task.get("url", "")
                             if domain or url:
                                 yield domain, url
+                        page = result.get("page", {})
+                        if page and type(page) == dict:
+                            domain = page.get("domain", "")
+                            url = page.get("url", "")
+                            if domain or url:
+                                yield domain, url
             else:
                 self.debug(f'No results for "{query}"')
         except Exception:
