@@ -52,5 +52,5 @@ class crobat(BaseModule):
         except Exception:
             import traceback
 
-            self.warning(f"Error retrieving crobat domains")
+            self.warning(f"Error retrieving crobat domains for {query}")
             self.debug(traceback.format_exc())

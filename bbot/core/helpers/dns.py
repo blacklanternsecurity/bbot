@@ -99,6 +99,7 @@ class DNSHelper:
         Optionally create child events from dns resolutions
         """
         children = []
+        source_trail = []
         make_event = self.parent_helper.scan.make_event
         for rdtype, records in self.resolve_raw(event.data, type="any"):
             event.tags.add("resolved")
@@ -108,7 +109,8 @@ class DNSHelper:
                     for _, t in self.extract_targets(r):
                         with suppress(ValidationError):
                             if self.parent_helper.scan.target.in_scope(t):
-                                event.make_in_scope()
+                                if not source_trail:
+                                    source_trail = event.make_in_scope()
                                 break
             for r in records:
                 for _, t in self.extract_targets(r):
@@ -120,7 +122,7 @@ class DNSHelper:
         if check_wildcard and event.type == "DNS_NAME":
             if self.is_wildcard(event.data):
                 event.tags.add("wildcard")
-        return children
+        return children, source_trail
 
     def resolve_batch(self, queries, **kwargs):
         """

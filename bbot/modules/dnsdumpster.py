@@ -19,6 +19,7 @@ class dnsdumpster(crobat):
         status_code = getattr(res1, "status_code", 0)
         if status_code in [429]:
             self.warning(f'Too many requests "{status_code}"')
+            return ret
         elif status_code not in [200]:
             self.warning(f'Bad response code "{status_code}" from DNSDumpster')
             return ret

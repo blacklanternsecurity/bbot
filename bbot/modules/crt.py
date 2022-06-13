@@ -16,9 +16,10 @@ class crt(BaseModule):
         return True
 
     def filter_event(self, event):
+        # only include targets
         if "target" in event.tags:
             return True
-        # include out-of-scope DNS names that resolve to in-scope IPs
+        # or out-of-scope DNS names that resolve to in-scope IPs
         elif event not in self.scan.target:
             if hash(self.helpers.parent_domain(event.data)) not in self.processed:
                 return True

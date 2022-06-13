@@ -130,6 +130,27 @@ def test_events(events, scan):
     event3 = scan.make_event("3.4.5.6", source=event2)
     assert event3.scope_distance == 2
 
+    # internal event tracking
+    root_event = scan.make_event("0.0.0.0", dummy=True)
+    internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)
+    assert internal_event1.id == root_event.id
+    assert internal_event1._internal == True
+    assert internal_event1._made_internal == True
+    internal_event1.make_in_scope()
+    assert internal_event1._internal == False
+    internal_event2 = scan.make_event("2.3.4.5", source=internal_event1, internal=True)
+    internal_event3 = scan.make_event("3.4.5.6", source=internal_event2, internal=True)
+    internal_event3_id = str(internal_event3._id_backup)
+    internal_event4 = scan.make_event("4.5.6.7", source=internal_event3, internal=True)
+    internal_event4_id = str(internal_event4._id_backup)
+    assert internal_event4.id == internal_event3.id == internal_event2.id == internal_event1.id
+    source_trail = internal_event4.make_in_scope()
+    assert internal_event4_id == internal_event4.id
+    assert internal_event3_id == internal_event3.id
+    assert len(source_trail) == 2
+    assert internal_event2 in source_trail
+    assert internal_event3 in source_trail
+
 
 def test_helpers(patch_requests, patch_commands, helpers):
 
