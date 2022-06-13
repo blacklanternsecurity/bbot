@@ -256,16 +256,8 @@ class Scanner:
         return status
 
     def make_event(self, *args, **kwargs):
-        """
-        If data is already an event, simply return it
-        Handle dummy event type
-        """
         kwargs["scan"] = self
         event = make_event(*args, **kwargs)
-        target = getattr(self, "target", None)
-        if target:
-            if self.target.in_scope(event):
-                event.make_in_scope()
         return event
 
     @property

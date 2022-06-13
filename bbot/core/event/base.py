@@ -61,12 +61,9 @@ class BaseEvent:
         self.scope_distance = -1
 
         self.source = None
-        if BaseEvent in source.__class__.__bases__:
-            self.source = source.id
-            if source.scope_distance >= 0:
-                self.scope_distance = source.scope_distance + 1
-        elif is_event_id(source):
-            self.source = str(source)
+        # only used with internal events, to preserve the trail of source events
+        self._source_obj = None
+        self.set_source(source)
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
 
@@ -142,31 +139,48 @@ class BaseEvent:
             self._id = make_event_id(self.data, self.type)
         return self._id
 
+    def set_source(self, source):
+        if is_event(source):
+            self.source = source.id
+            self.source_obj = source
+            if source.scope_distance >= 0:
+                self.scope_distance = source.scope_distance + 1
+        elif is_event_id(source):
+            self.source = str(source)
+
     def make_internal(self):
         # cache old hash value to avoid confusion
         hash(self)
-        # substitute ID of source event
         if not self._made_internal:
             self._internal = True
+            # substitute ID of source event
             self._id_backup = str(self._id)
             self._id = self.source
             self.tags.add("internal")
             self._made_internal = True
 
     def unmake_internal(self):
+        source_trail = []
         if self._made_internal and self._id_backup != None:
             self._internal = False
             self._id = str(self._id_backup)
             self._id_backup = None
             self.tags.remove("internal")
             self._made_internal = False
+            if self.source_obj._internal:
+                source_trail.append(self.source_obj)
+                source_trail += self.source_obj.unmake_internal()
+                self.source = self.source_obj.id
+        return source_trail
 
     def make_in_scope(self):
+        source_trail = []
         # if a DNS name or IP address is in scope, make sure it's not internal
         if self.type in ("DNS_NAME", "IP_ADDRESS"):
-            self.unmake_internal()
+            source_trail = self.unmake_internal()
         self.tags.add("in_scope")
         self.scope_distance = 0
+        return source_trail
 
     def _host(self):
         return ""
@@ -234,6 +248,9 @@ class BaseEvent:
     def __str__(self):
         d = str(self.data)
         return f'Event("{self.type}", "{d[:50]}{("..." if len(d) > 50 else "")}", tags={self.tags})'
+
+    def __repr__(self):
+        return str(self)
 
 
 class DefaultEvent(BaseEvent):
@@ -367,12 +384,17 @@ def make_event(
     If data is already an event, simply return it
     """
 
-    if BaseEvent in data.__class__.__bases__:
+    if is_event(data):
         if scan is not None and not data.scan:
             data.scan = scan
         if module is not None:
             data.module = module
-        if internal == True:
+        if source is not None:
+            data.set_source(source)
+        if internal == True and not data._made_internal:
+            if source and data.source_obj is None:
+                assert False
+                raise ValidationError(f"Must specify source if making internal event")
             data.make_internal()
         return data
     else:
@@ -405,3 +427,7 @@ def make_event(
             _dummy=dummy,
             _internal=internal,
         )
+
+
+def is_event(e):
+    return BaseEvent in e.__class__.__bases__
