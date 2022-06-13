@@ -18,5 +18,5 @@ class sublist3r(crobat):
         except Exception:
             import traceback
 
-            self.warning(f"Error retrieving sublist3r domains")
+            self.warning(f"Error retrieving sublist3r domains for {query}")
             self.debug(traceback.format_exc())

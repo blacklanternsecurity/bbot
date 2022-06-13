@@ -22,5 +22,5 @@ class dnsgrep(crobat):
         except Exception:
             import traceback
 
-            self.warning(f"Error retrieving dnsgrep domains")
+            self.warning(f"Error retrieving dnsgrep domains for {query}")
             self.debug(traceback.format_exc())

@@ -48,6 +48,13 @@ class ScanManager:
             event = self.scan.make_event(*args, **kwargs)
             log.debug(f"Emitting event: {event}")
 
+            target = getattr(self.scan, "target", None)
+            if target and not event._dummy:
+                if target.in_scope(event):
+                    source_trail = event.make_in_scope()
+                    for s in source_trail:
+                        self.emit_event(s)
+
             # accept the event right away if there's no abort condition
             # if there's an abort condition, we want to wait until DNS
             # it's been properly tagged and the abort_if callback has run
@@ -64,7 +71,10 @@ class ScanManager:
                 if dns_event_hash in self.events_resolved:
                     resolve_event = False
             if resolve_event and event.type in ("DNS_NAME", "IP_ADDRESS"):
-                child_events = list(self.scan.helpers.dns.resolve_event(event))
+                child_events, source_trail = self.scan.helpers.dns.resolve_event(event)
+                # reveal the trail of source events if we found an in-scope host that was previously internal
+                for s in source_trail:
+                    self.emit_event(s)
 
             if abort_if(event):
                 log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
@@ -101,7 +111,7 @@ class ScanManager:
                     self.emit_event(child_event, internal=internal_event)
 
         except ValidationError as e:
-            self.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
+            log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
 
     def accept_event(self, event):
         if event.module._type == "DNS":
@@ -154,6 +164,9 @@ class ScanManager:
         """
         Queue event with manager
         """
+        # remove reference to source object
+        if not event._internal:
+            event.source_obj = None
         self.event_queue.put(event)
 
     def distribute_event(self, event):
