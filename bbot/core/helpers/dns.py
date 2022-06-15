@@ -100,8 +100,9 @@ class DNSHelper:
         """
         children = []
         source_trail = []
+        event_host = str(event.host)
         make_event = self.parent_helper.scan.make_event
-        for rdtype, records in self.resolve_raw(event.data, type="any"):
+        for rdtype, records in self.resolve_raw(event_host, type="any"):
             event.tags.add("resolved")
             rdtype = str(rdtype).upper()
             if rdtype in ("A", "AAAA"):
@@ -120,7 +121,7 @@ class DNSHelper:
         if "resolved" not in event.tags:
             event.tags.add("unresolved")
         if check_wildcard and event.type == "DNS_NAME":
-            if self.is_wildcard(event.data):
+            if self.is_wildcard(event_host):
                 event.tags.add("wildcard")
         return children, source_trail
 
