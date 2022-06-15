@@ -25,6 +25,7 @@ word_regex = re.compile(r"[^\d\W_]+")
 word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
 _dns_name_regex = r"(([A-Z0-9\-_]+)\.)+([A-Z0-9\-_]+)"
+_hostname_regex = re.compile(r"^[\w-]+$")
 
 
 # todo: detect ipv6 addresses in OPEN_TCP_PORT and URL

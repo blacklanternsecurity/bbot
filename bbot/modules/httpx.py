@@ -8,8 +8,7 @@ class httpx(BaseModule):
 
     watched_events = ["OPEN_TCP_PORT", "IP_ADDRESS", "DNS_NAME"]
     produced_events = ["URL"]
-    max_threads = 2
-    batch_size = 10
+    batch_size = 100
     in_scope_only = False
     options = {"in_scope_only": True, "version": "1.2.1"}
     options_desc = {"in_scope_only": "Only visit web resources that are in scope.", "version": "httpx version"}

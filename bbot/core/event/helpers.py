@@ -3,7 +3,7 @@ import ipaddress
 from contextlib import suppress
 
 from bbot.core.helpers import sha1, smart_decode
-from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
+from bbot.core.helpers.regexes import event_type_regexes, event_id_regex, _hostname_regex
 
 
 log = logging.getLogger("bbot.core.event.helpers")
@@ -14,22 +14,26 @@ def get_event_type(data):
     Attempt to divine event type from data
     """
 
-    data = smart_decode(data)
+    data = smart_decode(data).strip()
 
     # IP address
     with suppress(Exception):
-        ipaddress.ip_address(str(data).strip())
+        ipaddress.ip_address(data)
         return "IP_ADDRESS"
 
     # IP network
     with suppress(Exception):
-        ipaddress.ip_network(str(data).strip(), strict=False)
+        ipaddress.ip_network(data, strict=False)
         return "IP_RANGE"
 
-    # Everything else
+    # Strict regexes
     for t, r in event_type_regexes.items():
         if r.match(data):
             return t
+
+    # Assume DNS_NAME for basic words
+    if _hostname_regex.match(data):
+        return "DNS_NAME"
 
 
 def is_event_id(s):

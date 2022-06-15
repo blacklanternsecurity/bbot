@@ -17,6 +17,11 @@ class ipneighbor(BaseModule):
         self.num_bits = max(1, int(self.config.get("num_bits", 4)))
         return True
 
+    def filter_event(self, event):
+        if str(event.module) == "speculate":
+            return False
+        return True
+
     def handle_event(self, event):
         main_ip = event.host
         netmask = main_ip.max_prefixlen - min(main_ip.max_prefixlen, self.num_bits)

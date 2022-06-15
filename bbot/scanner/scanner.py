@@ -8,10 +8,10 @@ from collections import OrderedDict
 from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
+from bbot.core.event import make_event
 from bbot.modules import modules_preloaded
 from bbot.core.threadpool import ThreadPoolWrapper
 from bbot.core.helpers.modules import load_modules
-from bbot.core.event import make_event, make_event_id
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError
 
@@ -92,6 +92,13 @@ class Scanner:
         self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2))
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
+
+        # scope distance
+        self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 1)))
+        self.dns_search_distance = max(
+            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 3))
+        )
+        self.scope_report_distance = min(self.scope_search_distance, int(self.config.get("scope_report_distance", 0)))
 
     def start(self):
 
@@ -276,8 +283,9 @@ class Scanner:
 
     @property
     def root_event(self):
-        data = f"SCAN:{self.id}"
-        return self.make_event(data=data, event_type="SCAN", dummy=True, source=make_event_id(data, "SCAN"))
+        root_event = self.make_event(data=f"SCAN:{self.id}", event_type="SCAN", dummy=True)
+        root_event.source = root_event
+        return root_event
 
     @property
     def useragent(self):

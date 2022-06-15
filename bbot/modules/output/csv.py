@@ -33,7 +33,7 @@ class CSV(BaseOutputModule):
                 str(getattr(event, "module", "")),
                 getattr(event, "id", ""),
                 json.dumps(list(getattr(event, "tags", []))),
-                getattr(event, "source", ""),
+                getattr(event, "source_id", ""),
             ]
         )
         self.stdout(self.line.read().strip())
