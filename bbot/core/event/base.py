@@ -177,19 +177,20 @@ class BaseEvent:
             if set_scope_distance is not None:
                 self.scope_distance = set_scope_distance
             self._internal = False
-            if self.source._internal:
-                source_scope_distance = None
-                if set_scope_distance is not None:
-                    source_scope_distance = set_scope_distance - 1
-                source_trail.append(self.source)
-                source_trail += self.source.unmake_internal(
-                    set_scope_distance=source_scope_distance, force_output=force_output
-                )
-
             self.tags.remove("internal")
             if force_output:
                 self._force_output = True
             self._made_internal = False
+
+        if getattr(self.source, "_internal", False):
+            source_scope_distance = None
+            if set_scope_distance is not None:
+                source_scope_distance = set_scope_distance - 1
+            source_trail.append(self.source)
+            source_trail += self.source.unmake_internal(
+                set_scope_distance=source_scope_distance, force_output=force_output
+            )
+
         return source_trail
 
     def make_in_scope(self):

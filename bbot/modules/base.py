@@ -284,9 +284,11 @@ class BaseModule:
             return False
         # optionally exclude non-targets
         if self.target_only and "target" not in e.tags:
+            self.debug(f"{e} did not meet target_only filter criteria")
             return False
         # optionally exclude out-of-scope targets
         if self.in_scope_only and not self.scan.target.in_scope(e):
+            self.debug(f"{e} did not meet in_scope_only filter criteria")
             return False
         if self.max_scope_distance > -1:
             if e.scope_distance < 0 or e.scope_distance > self.max_scope_distance:
@@ -305,6 +307,7 @@ class BaseModule:
         # custom filtering
         try:
             if not self.filter_event(e):
+                self.debug(f"{e} did not meet custom filter criteria")
                 return False
         except Exception as e:
             import traceback

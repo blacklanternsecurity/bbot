@@ -333,7 +333,8 @@ def test_helpers(patch_requests, patch_commands, helpers):
     ### COMMAND ###
     assert "plumbus\n" in old_run(helpers, ["echo", "plumbus"], text=True).stdout
     assert "plumbus\n" in list(old_run_live(helpers, ["echo", "plumbus"]))
-    assert "plumbus\n" in list(old_run_live(helpers, ["cat"], input="lumbus\nplumbus"))
+    expected_output = ["lumbus\n", "plumbus\n", "rumbus\n"]
+    assert list(old_run_live(helpers, ["cat"], input="lumbus\nplumbus\nrumbus")) == expected_output
 
     def plumbus_generator():
         yield "lumbus"
