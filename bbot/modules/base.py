@@ -32,7 +32,7 @@ class BaseModule:
     suppress_dupes = True
     # Only accept explicitly in-scope events
     in_scope_only = False
-    # Only accept events that are this close to the scope
+    # Scope distance - only accept events that are this close to the scope
     # -1 == accept everything, 0 == in scope only, 1 == up to one hop away, 2 == up to 2 hops, etc.
     max_scope_distance = -1
     # Only accept the initial target event(s)
@@ -290,6 +290,9 @@ class BaseModule:
             return False
         if self.max_scope_distance > -1:
             if e.scope_distance < 0 or e.scope_distance > self.max_scope_distance:
+                self.debug(
+                    f"Not accepting {e} because its scope distance ({e.scope_distance}) is not compliant with the module's max_scope_distance ({self.max_scope_distance})"
+                )
                 return False
         # special case for IPs that originated from a CIDR
         # if the event is an IP address and came from the speculate module

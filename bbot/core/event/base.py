@@ -2,11 +2,7 @@ import logging
 import ipaddress
 from urllib.parse import urlparse, urlunparse
 
-from .helpers import (
-    make_event_id,
-    is_event_id,
-    get_event_type,
-)
+from .helpers import make_event_id, get_event_type
 from bbot.core.errors import *
 from bbot.core.helpers import (
     extract_words,
@@ -58,12 +54,11 @@ class BaseEvent:
         if (not self.scan) and (not self._dummy):
             raise ValidationError(f"Must specify scan")
 
-        self.scope_distance = -1
+        self._scope_distance = -1
 
-        self.source = None
-        # only used with internal events, to preserve the trail of source events
-        self._source_obj = None
-        self.set_source(source)
+        self._source = None
+        self.source_id = None
+        self.source = source
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
 
@@ -79,16 +74,19 @@ class BaseEvent:
             self._setup()
 
         self._id = None
-        self._id_backup = None
         self._hash = None
         self.__host = None
         self._port = None
         self.__words = None
         self._made_internal = False
+        # whether to force-send to output modules
+        self._force_output = False
 
         # if the event is internal, erase it from the chain of events
-        if self._internal and not self._dummy:
-            self.make_internal()
+        # internal events are not ingested by output modules
+        if not self._dummy:
+            if self._internal or source._internal:
+                self.make_internal()
 
     @property
     def host(self):
@@ -100,7 +98,7 @@ class BaseEvent:
             https://evilcorp.com    --> evilcorp.com
             evilcorp.com:80         --> evilcorp.com
 
-        For IPV*_* types, this is an instantiated object representing the event's data
+        For IP_* types, this is an instantiated object representing the event's data
         E.g. for IP_ADDRESS, it could be an ipaddress.IPv4Address() or IPv6Address() object
         """
         if self.__host is None:
@@ -139,45 +137,65 @@ class BaseEvent:
             self._id = make_event_id(self.data, self.type)
         return self._id
 
-    def set_source(self, source):
+    @property
+    def scope_distance(self):
+        return self._scope_distance
+
+    @scope_distance.setter
+    def scope_distance(self, scope_distance):
+        if scope_distance >= 0:
+            if self.scope_distance == -1:
+                self._scope_distance = scope_distance
+            else:
+                self._scope_distance = min(self.scope_distance, scope_distance)
+
+    @property
+    def source(self):
+        return self._source
+
+    @source.setter
+    def source(self, source):
         if is_event(source):
-            self.source = source.id
-            self.source_obj = source
+            self._source = source
             if source.scope_distance >= 0:
-                self.scope_distance = source.scope_distance + 1
-        elif is_event_id(source):
-            self.source = str(source)
+                new_scope_distance = source.scope_distance + 1
+                self.scope_distance = new_scope_distance
+            self.source_id = str(source.id)
+        elif not self._dummy:
+            log.warning(f"Attempt to set invalid event source on {self}: {source}")
+            assert False
 
     def make_internal(self):
-        # cache old hash value to avoid confusion
-        hash(self)
         if not self._made_internal:
             self._internal = True
-            # substitute ID of source event
-            self._id_backup = str(self._id)
-            self._id = self.source
             self.tags.add("internal")
             self._made_internal = True
 
-    def unmake_internal(self):
+    def unmake_internal(self, set_scope_distance=None, force_output=False):
         source_trail = []
-        if self._made_internal and self._id_backup != None:
+        if self._made_internal:
+            if set_scope_distance is not None:
+                self.scope_distance = set_scope_distance
             self._internal = False
-            self._id = str(self._id_backup)
-            self._id_backup = None
+            if self.source._internal:
+                source_scope_distance = None
+                if set_scope_distance is not None:
+                    source_scope_distance = set_scope_distance - 1
+                source_trail.append(self.source)
+                source_trail += self.source.unmake_internal(
+                    set_scope_distance=source_scope_distance, force_output=force_output
+                )
+
             self.tags.remove("internal")
+            if force_output:
+                self._force_output = True
             self._made_internal = False
-            if self.source_obj._internal:
-                source_trail.append(self.source_obj)
-                source_trail += self.source_obj.unmake_internal()
-                self.source = self.source_obj.id
         return source_trail
 
     def make_in_scope(self):
         source_trail = []
-        # if a DNS name or IP address is in scope, make sure it's not internal
-        if self.type in ("DNS_NAME", "IP_ADDRESS"):
-            source_trail = self.unmake_internal()
+        if getattr(self.module, "_type", "") != "internal":
+            source_trail = self.unmake_internal(set_scope_distance=1, force_output=True)
         self.tags.add("in_scope")
         self.scope_distance = 0
         return source_trail
@@ -218,16 +236,18 @@ class BaseEvent:
     @property
     def json(self):
         j = dict()
-        for i in ("type", "data", "source", "id"):
+        for i in ("type", "data", "id"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
+        j["scope_distance"] = self.scope_distance
+        source = getattr(self, "source_id", "")
+        if source:
+            j["source"] = source
         if self.tags:
             j.update({"tags": list(self.tags)})
         if self.module:
             j.update({"module": str(self.module)})
-        if self.scan:
-            j.update({"scan_id": str(self.scan.id)})
         return j
 
     def __iter__(self):
@@ -392,7 +412,7 @@ def make_event(
         if source is not None:
             data.set_source(source)
         if internal == True and not data._made_internal:
-            if source and data.source_obj is None:
+            if source and data.source is None:
                 assert False
                 raise ValidationError(f"Must specify source if making internal event")
             data.make_internal()

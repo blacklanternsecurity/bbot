@@ -60,8 +60,6 @@ class Neo4j:
     @staticmethod
     def make_node(event):
         event = dict(event)
-        if "scan_id" in event:
-            event["scan_ids"] = [event.pop("scan_id")]
         event_type = event.pop("type")
         event_node = py2neo.Node(event_type, **event)
         event_node.__primarylabel__ = "data"

@@ -35,7 +35,6 @@ class Websocket(BaseOutputModule):
 
     def handle_event(self, event):
         event_json = event.json
-        event_json.pop("scan_id", "")
         self.send(event_json)
 
     def send(self, message):

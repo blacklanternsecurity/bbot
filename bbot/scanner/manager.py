@@ -48,31 +48,35 @@ class ScanManager:
             event = self.scan.make_event(*args, **kwargs)
             log.debug(f"Emitting event: {event}")
 
-            target = getattr(self.scan, "target", None)
-            if target and not event._dummy:
-                if target.in_scope(event):
-                    source_trail = event.make_in_scope()
-                    for s in source_trail:
-                        self.emit_event(s)
-
             # accept the event right away if there's no abort condition
-            # if there's an abort condition, we want to wait until DNS
+            # if there's an abort condition, we want to wait until
             # it's been properly tagged and the abort_if callback has run
             if abort_if is None:
                 if not self.accept_event(event):
                     return
 
+            target = getattr(self.scan, "target", None)
+            if target and not event._dummy and target.in_scope(event):
+                source_trail = event.make_in_scope()
+                for s in source_trail:
+                    self.emit_event(s)
+            else:
+                if event.scope_distance > self.scan.scope_report_distance:
+                    log.debug(
+                        f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                    )
+                    event.make_internal()
+
             # DNS resolution
             child_events = []
-            dns_event_hash = hash(event)
             resolve_event = True
             # skip DNS resolution if we've already resolved this event
             with self.events_resolved_lock:
-                if dns_event_hash in self.events_resolved:
+                if hash(event) in self.events_resolved:
                     resolve_event = False
             if resolve_event and event.type in ("DNS_NAME", "IP_ADDRESS"):
                 child_events, source_trail = self.scan.helpers.dns.resolve_event(event)
-                # reveal the trail of source events if we found an in-scope host that was previously internal
+                # reveal the trail of source events if we found an in-scope host that was an internal event
                 for s in source_trail:
                     self.emit_event(s)
 
@@ -94,8 +98,8 @@ class ScanManager:
             emit_children = self.scan.config.get("dns_resolution", False)
             with self.events_resolved_lock:
                 # don't emit duplicates
-                if emit_children and child_events and dns_event_hash not in self.events_resolved:
-                    self.events_resolved.add(dns_event_hash)
+                if emit_children and child_events and hash(event) not in self.events_resolved:
+                    self.events_resolved.add(hash(event))
                     emit_children &= True
                 else:
                     emit_children &= False
@@ -103,25 +107,24 @@ class ScanManager:
                 any_in_scope = any([self.scan.target.in_scope(e) for e in child_events])
                 # only emit children if the source event is less than three hops from the main scope
                 # this helps prevent runaway dns resolutions that result in junk data
-                emit_children &= -1 < event.scope_distance < 3 or any_in_scope
-            for child_event in child_events:
-                if emit_children:
-                    # make child events internal if the source event is not in scope
-                    internal_event = event.scope_distance < 0 or event.scope_distance > 0
-                    self.emit_event(child_event, internal=internal_event)
+                emit_children &= -1 < event.scope_distance <= self.scan.dns_search_distance or any_in_scope
+            if emit_children:
+                for child_event in child_events:
+                    self.emit_event(child_event)
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
 
     def accept_event(self, event):
-        if event.module._type == "DNS":
+        if getattr(event.module, "_type", "") == "DNS":
             # allow duplicate events from dns resolution as long as their source event is unique
-            event_hash = hash((event, str(event.module), event.source))
+            event_hash = hash((event, str(event.module), event.source_id))
         else:
             event_hash = hash((event, str(event.module)))
 
         with self.events_accepted_lock:
-            if event.module.suppress_dupes and event_hash in self.events_accepted:
+            duplicate_event = getattr(event.module, "suppress_dupes", False) and event_hash in self.events_accepted
+            if duplicate_event and not event._force_output == True:
                 log.debug(f"{event.module}: not raising duplicate event {event}")
                 return False
             self.events_accepted.add(event_hash)
@@ -164,15 +167,16 @@ class ScanManager:
         """
         Queue event with manager
         """
-        # remove reference to source object
-        if not event._internal:
-            event.source_obj = None
         self.event_queue.put(event)
 
     def distribute_event(self, event):
         """
         Queue event with modules
         """
+        # save memory by removing reference to source object
+        if not event._internal:
+            event._source = None
+
         dup = False
         event_hash = hash(event)
         with self.events_distributed_lock:
@@ -185,13 +189,27 @@ class ScanManager:
             self.scan.word_cloud.absorb_event(event)
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:
-                mod.queue_event(event)
+                event_within_scope_distance = (
+                    event.scope_distance <= self.scan.scope_search_distance and event.scope_distance > -1
+                )
+                fail_msg = f"Not distributing {event} because its scope distance ({event.scope_distance}) is not compliant with the scan's scope_search_distance ({self.scan.scope_search_distance})"
+                if mod._type == "output":
+                    if event_within_scope_distance or event._force_output:
+                        mod.queue_event(event)
+                    elif not event_within_scope_distance:
+                        log.debug(fail_msg)
+                else:
+                    if event_within_scope_distance:
+                        mod.queue_event(event)
+                    else:
+                        log.debug(fail_msg)
 
     def loop_until_finished(self):
 
         counter = 0
         event_counter = 0
 
+        err = False
         try:
             self.scan.dispatcher.on_start(self.scan)
 
@@ -239,7 +257,14 @@ class ScanManager:
                 self.distribute_event(event)
 
         except KeyboardInterrupt:
+            err = True
             self.scan.stop()
+
+        except Exception:
+            err = True
+            import traceback
+
+            log.critical(traceback.format_exc())
 
         finally:
             # clean up modules
@@ -247,7 +272,7 @@ class ScanManager:
             for mod in self.scan.modules.values():
                 mod._cleanup()
             finished = False
-            while 1:
+            while not err:
                 finished = self.modules_status().get("finished", False)
                 if finished:
                     break

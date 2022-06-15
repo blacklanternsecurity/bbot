@@ -14,7 +14,7 @@ log = logging.getLogger(f"bbot.test")
 os.environ["BBOT_SUDO_PASS"] = "nah"
 
 
-def test_events(events, scan):
+def test_events(events, scan, config):
 
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
@@ -122,34 +122,167 @@ def test_events(events, scan):
 
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
-    assert event1.scope_distance == -1
+    assert event1._scope_distance == -1
     event1.make_in_scope()
-    assert event1.scope_distance == 0
+    assert event1._scope_distance == 0
     event2 = scan.make_event("2.3.4.5", source=event1)
-    assert event2.scope_distance == 1
+    assert event2._scope_distance == 1
     event3 = scan.make_event("3.4.5.6", source=event2)
-    assert event3.scope_distance == 2
+    assert event3._scope_distance == 2
 
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
     internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)
-    assert internal_event1.id == root_event.id
     assert internal_event1._internal == True
     assert internal_event1._made_internal == True
     internal_event1.make_in_scope()
     assert internal_event1._internal == False
+    assert internal_event1._made_internal == False
     internal_event2 = scan.make_event("2.3.4.5", source=internal_event1, internal=True)
-    internal_event3 = scan.make_event("3.4.5.6", source=internal_event2, internal=True)
-    internal_event3_id = str(internal_event3._id_backup)
-    internal_event4 = scan.make_event("4.5.6.7", source=internal_event3, internal=True)
-    internal_event4_id = str(internal_event4._id_backup)
-    assert internal_event4.id == internal_event3.id == internal_event2.id == internal_event1.id
+    internal_event3 = scan.make_event("3.4.5.6", source=internal_event2)
+    assert internal_event3._internal == True
+    assert internal_event3._made_internal == True
+    internal_event4 = scan.make_event("4.5.6.7", source=internal_event3)
     source_trail = internal_event4.make_in_scope()
-    assert internal_event4_id == internal_event4.id
-    assert internal_event3_id == internal_event3.id
+    assert internal_event4._internal == False
+    assert internal_event3._internal == False
+    assert internal_event2._internal == False
     assert len(source_trail) == 2
     assert internal_event2 in source_trail
     assert internal_event3 in source_trail
+
+
+def test_manager(config):
+    from bbot.scanner import Scanner
+
+    # test _emit_event
+    results = []
+    success_callback = lambda e: results.append("success")
+    scan1 = Scanner("127.0.0.1", config=config)
+    scan1.status = "RUNNING"
+    scan1.manager.queue_event = lambda e: results.append(e)
+    manager = scan1.manager
+    localhost = scan1.make_event("127.0.0.1", dummy=True)
+
+    class DummyModule1:
+        _type = "output"
+        suppress_dupes = True
+
+    class DummyModule2:
+        _type = "DNS"
+        suppress_dupes = True
+
+    localhost.module = DummyModule1()
+    # test abort_if
+    manager._emit_event(localhost, abort_if=lambda e: e.module._type == "output")
+    assert len(results) == 0
+    manager._emit_event(
+        localhost, on_success_callback=success_callback, abort_if=lambda e: e.module._type == "plumbus"
+    )
+    assert localhost in results
+    assert "success" in results
+    results.clear()
+    # test deduplication
+    manager._emit_event(localhost, on_success_callback=success_callback)
+    assert len(results) == 0
+    # test dns resolution
+    googledns = scan1.make_event("8.8.8.8", dummy=True)
+    googledns.module = DummyModule2()
+    googledns.source = "asdf"
+    googledns.make_in_scope()
+    event_children = []
+    manager.emit_event = lambda e, *args, **kwargs: event_children.append(e)
+    manager._emit_event(googledns)
+    assert len(event_children) > 0
+    assert googledns in results
+    results.clear()
+    event_children.clear()
+    # same dns event
+    manager._emit_event(googledns)
+    assert len(results) == 0
+    assert len(event_children) == 0
+    # same dns event but with _force_output
+    googledns._force_output = True
+    manager._emit_event(googledns)
+    assert googledns in results
+    assert len(event_children) == 0
+    googledns._force_output = False
+    results.clear()
+    # same dns event but different source
+    googledns.source_id = "fdsa"
+    manager._emit_event(googledns)
+    assert len(event_children) == 0
+    assert googledns in results
+
+    # event filtering based on scope_distance
+    output_queue = []
+    module_queue = []
+    manager_queue = []
+    scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["human"], config=config)
+    scan1.load_modules()
+    manager = scan1.manager
+    test_event1 = scan1.make_event("1.2.3.4", dummy=True)
+    test_event1.make_in_scope()
+    test_event2 = scan1.make_event("2.3.4.5", source=test_event1)
+    test_event3 = scan1.make_event("3.4.5.6", source=test_event2)
+
+    scan1.manager.queue_event = lambda e: manager_queue.append(e)
+
+    scan1.scope_search_distance = 1
+    scan1.scope_report_distance = 0
+    assert test_event1.scope_distance == 0
+    manager._emit_event(test_event1)
+    assert test_event1 in manager_queue
+    assert test_event1._internal == False
+    assert test_event2.scope_distance == 1
+    manager._emit_event(test_event2)
+    assert test_event2 in manager_queue
+    assert test_event2._internal == True
+    manager_queue.clear()
+    manager.events_accepted.clear()
+
+    scan1.modules["human"].queue_event = lambda e: output_queue.append(e)
+    scan1.modules["ipneighbor"].queue_event = lambda e: module_queue.append(e)
+
+    # in-scope event
+    manager.distribute_event(test_event1)
+    assert hash(test_event1) in manager.events_distributed
+    assert test_event1 in module_queue
+    assert test_event1 in output_queue
+    module_queue.clear()
+    output_queue.clear()
+    # duplicate event
+    manager.distribute_event(test_event1)
+    assert test_event1 not in module_queue
+    assert test_event1 in output_queue
+    module_queue.clear()
+    output_queue.clear()
+    manager.events_distributed.clear()
+    # event.scope_distance == 1
+    assert test_event2.scope_distance == 1
+    manager.distribute_event(test_event2)
+    assert test_event2 in module_queue
+    assert test_event2 in output_queue
+    assert test_event2._internal == True
+    assert test_event2._force_output == False
+    assert scan1.modules["human"]._filter_event(test_event2) == False
+    module_queue.clear()
+    output_queue.clear()
+    manager.events_distributed.clear()
+    # event.scope_distance == 2
+    assert test_event3.scope_distance == 2
+    manager.distribute_event(test_event3)
+    assert test_event3 not in module_queue
+    assert test_event3 not in output_queue
+    module_queue.clear()
+    output_queue.clear()
+    manager.events_distributed.clear()
+    # event.scope_distance == 2 and _force_output == True
+    test_event3._force_output = True
+    assert test_event3.scope_distance == 2
+    manager.distribute_event(test_event3)
+    assert test_event3 not in module_queue
+    assert test_event3 in output_queue
 
 
 def test_helpers(patch_requests, patch_commands, helpers):
@@ -177,7 +310,7 @@ def test_helpers(patch_requests, patch_commands, helpers):
         ipaddress.ip_network("0.0.0.0/0"),
     ]
     assert helpers.is_ip("127.0.0.1")
-    assert not helpers.is_ip("publicapis.org")
+    assert not helpers.is_ip("127.0.0.0.1")
     extracted_words = helpers.extract_words("blacklanternsecurity")
     assert "black" in extracted_words
     assert "blacklantern" in extracted_words
@@ -316,13 +449,13 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events):
     base_module.in_scope_only = False
     # scope distance
     base_module.max_scope_distance = 3
-    localhost2.scope_distance = 0
+    localhost2._scope_distance = 0
     assert base_module._filter_event(localhost2) == True
-    localhost2.scope_distance = 3
+    localhost2._scope_distance = 3
     assert base_module._filter_event(localhost2) == True
-    localhost2.scope_distance = 4
+    localhost2._scope_distance = 4
     assert base_module._filter_event(localhost2) == False
-    localhost2.scope_distance = -1
+    localhost2._scope_distance = -1
     assert base_module._filter_event(localhost2) == False
     base_module.max_scope_distance = -1
     # special case for IPs and ranges
@@ -414,62 +547,10 @@ def test_target(neuter_ansible, patch_requests, patch_commands):
 def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers):
     from bbot.scanner.scanner import Scanner
 
-    # test _emit_event
-    results = []
-    success_callback = lambda e: results.append("success")
-    scan1 = Scanner("127.0.0.1", config=config)
-    scan1.status = "RUNNING"
-    scan1.manager.queue_event = lambda e: results.append(e)
-    manager = scan1.manager
-    localhost = scan1.make_event("127.0.0.1", dummy=True)
-
-    class DummyModule1:
-        _type = "output"
-        suppress_dupes = True
-
-    class DummyModule2:
-        _type = "DNS"
-        suppress_dupes = True
-
-    localhost.module = DummyModule1()
-    # test abort_if
-    manager._emit_event(localhost, abort_if=lambda e: e.module._type == "output")
-    assert len(results) == 0
-    manager._emit_event(
-        localhost, on_success_callback=success_callback, abort_if=lambda e: e.module._type == "plumbus"
-    )
-    assert localhost in results
-    assert "success" in results
-    results.clear()
-    # test deduplication
-    manager._emit_event(localhost, on_success_callback=success_callback)
-    assert len(results) == 0
-    # test dns resolution
-    googledns = scan1.make_event("8.8.8.8", dummy=True)
-    googledns.module = DummyModule2()
-    googledns.source = "asdf"
-    googledns.make_in_scope()
-    event_children = []
-    manager.emit_event = lambda e, *args, **kwargs: event_children.append(e)
-    manager._emit_event(googledns)
-    assert len(event_children) > 0
-    assert googledns in results
-    results.clear()
-    event_children.clear()
-    # same dns event
-    manager._emit_event(googledns)
-    assert len(results) == 0
-    assert len(event_children) == 0
-    # same DNS event but different source
-    googledns.source = "fdsa"
-    manager._emit_event(googledns)
-    assert len(event_children) == 0
-    assert googledns in results
-
     scan2 = Scanner(
         "publicapis.org",
-        "8.8.8.8",
-        "2001:4860:4860::8888",
+        "127.0.0.1",
+        "localhost",
         modules=["ipneighbor"],
         output_modules=list(available_output_modules),
         config=config,
@@ -478,7 +559,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     scan2.start()
 
     scan3 = Scanner(
-        "publicapis.org",
+        "localhost",
         "8.8.8.8/32",
         "2001:4860:4860::8888/128",
         modules=list(available_modules),
