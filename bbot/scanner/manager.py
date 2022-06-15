@@ -21,7 +21,7 @@ class ScanManager:
         self.events_distributed_lock = threading.Lock()
         self.events_accepted = set()
         self.events_accepted_lock = threading.Lock()
-        self.events_resolved = set()
+        self.events_resolved = dict()
         self.events_resolved_lock = threading.Lock()
 
     def init_events(self):
@@ -55,30 +55,36 @@ class ScanManager:
                 if not self.accept_event(event):
                     return
 
+            # DNS resolution
+            child_events = []
+            resolve_event = True
+            event_host_hash = hash(event.host)
             target = getattr(self.scan, "target", None)
-            if target and not event._dummy and target.in_scope(event):
+            # skip DNS resolution if we've already resolved this event
+            event_in_scope, dns_tags = self.events_resolved.get(event_host_hash, (None, set()))
+            if event_in_scope is None:
+                with self.events_resolved_lock:
+                    if event.host and hash(event.host) in self.events_resolved:
+                        resolve_event = False
+                if resolve_event and event.host:
+                    child_events, source_trail = self.scan.helpers.dns.resolve_event(event)
+                    # reveal the trail of source events if we found an in-scope host that was an internal event
+                    for s in source_trail:
+                        self.emit_event(s)
+                event_in_scope = target.in_scope(event)
+                dns_tags = set(event.tags)
+            event.tags.update(dns_tags)
+
+            if target and not event._dummy and event_in_scope:
                 source_trail = event.make_in_scope()
                 for s in source_trail:
                     self.emit_event(s)
-            else:
+            elif not event_in_scope:
                 if event.scope_distance > self.scan.scope_report_distance:
                     log.debug(
                         f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
                     )
                     event.make_internal()
-
-            # DNS resolution
-            child_events = []
-            resolve_event = True
-            # skip DNS resolution if we've already resolved this event
-            with self.events_resolved_lock:
-                if hash(event) in self.events_resolved:
-                    resolve_event = False
-            if resolve_event and event.type in ("DNS_NAME", "IP_ADDRESS"):
-                child_events, source_trail = self.scan.helpers.dns.resolve_event(event)
-                # reveal the trail of source events if we found an in-scope host that was an internal event
-                for s in source_trail:
-                    self.emit_event(s)
 
             if abort_if(event):
                 log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
@@ -98,8 +104,8 @@ class ScanManager:
             emit_children = self.scan.config.get("dns_resolution", False)
             with self.events_resolved_lock:
                 # don't emit duplicates
-                if emit_children and child_events and hash(event) not in self.events_resolved:
-                    self.events_resolved.add(hash(event))
+                if emit_children and child_events and event_host_hash not in self.events_resolved:
+                    self.events_resolved[event_host_hash] = (event_in_scope, dns_tags)
                     emit_children &= True
                 else:
                     emit_children &= False
@@ -192,17 +198,12 @@ class ScanManager:
                 event_within_scope_distance = (
                     event.scope_distance <= self.scan.scope_search_distance and event.scope_distance > -1
                 )
-                fail_msg = f"Not distributing {event} because its scope distance ({event.scope_distance}) is not compliant with the scan's scope_search_distance ({self.scan.scope_search_distance})"
                 if mod._type == "output":
                     if event_within_scope_distance or event._force_output:
                         mod.queue_event(event)
-                    elif not event_within_scope_distance:
-                        log.debug(fail_msg)
                 else:
                     if event_within_scope_distance:
                         mod.queue_event(event)
-                    else:
-                        log.debug(fail_msg)
 
     def loop_until_finished(self):
 

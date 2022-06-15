@@ -37,6 +37,11 @@ class dnscommonsrv(BaseModule):
         "_pop3._tcp",
         "_pop3s._tcp",
         "_smtp._tcp",
+        # MailEnable
+        "_caldav._tcp",
+        "_caldavs._tcp",
+        "_carddav._tcp",
+        "_carddavs._tcp",
         # STUN
         "_stun._tcp",
         "_stun._udp",
@@ -61,10 +66,6 @@ class dnscommonsrv(BaseModule):
         "_sips._tcp",
         # misc
         "_aix._tcp",
-        "_caldav._tcp",
-        "_caldavs._tcp",
-        "_carddav._tcp",
-        "_carddavs._tcp",
         "_certificates._tcp",
         "_cmp._tcp",
         "_crl._tcp",

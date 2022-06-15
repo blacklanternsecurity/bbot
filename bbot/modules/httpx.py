@@ -37,8 +37,8 @@ class httpx(BaseModule):
 
     def handle_batch(self, *events):
 
-        stdin = "\n".join([str(e.data) for e in events])
-        command = ["httpx", "-silent", "-json", "-timeout", self.timeout, "-H", f"User-Agent: {self.scan.useragent}"]
+        stdin = [str(e.data) for e in events]
+        command = ["httpx", "-debug", "-json", "-timeout", self.timeout, "-H", f"User-Agent: {self.scan.useragent}"]
         for line in self.helpers.run_live(command, input=stdin, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
