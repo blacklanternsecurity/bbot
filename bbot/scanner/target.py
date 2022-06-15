@@ -60,7 +60,7 @@ class ScanTarget:
             other = make_event(other, dummy=True)
         except ValidationError:
             return False
-        if not force_check and (other.scope_distance == 0 or "target" in other.tags):
+        if not force_check and "target" in other.tags:
             return True
         if other in self.events:
             return True
