@@ -54,7 +54,7 @@ class httpx(BaseModule):
             except json.decoder.JSONDecodeError:
                 self.debug(f"Failed to decode line: {line}")
                 continue
-            url = j.get("input")
+            url = j.get("url", "")
             title = j.get("title", "")
             source_event = None
             for event in events:
