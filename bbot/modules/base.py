@@ -175,7 +175,7 @@ class BaseModule:
         events = []
         finish = False
         left = int(self.batch_size)
-        while left > 0:
+        while left > 0 and self.event_queue:
             try:
                 event = self.event_queue.get_nowait()
                 if type(event) == str and event == "FINISHED":
@@ -253,7 +253,7 @@ class BaseModule:
                     except queue.Empty:
                         sleep(0.3333)
                         continue
-                    self.debug(f"Got {e}")
+                    self.debug(f"Got {e} from {getattr(e, 'module', e)}")
                     # if we receive the special "FINISHED" event
                     if type(e) == str and e == "FINISHED":
                         self._internal_thread_pool.submit_task(self.catch, self.finish)
@@ -357,8 +357,11 @@ class BaseModule:
         main_pool = self.thread_pool.num_tasks
         internal_pool = self._internal_thread_pool.num_tasks
         pool_total = main_pool + internal_pool
+        event_qsize = 0
+        if self.event_queue:
+            event_qsize = self.event_queue.qsize()
         status = {
-            "events": {"queued": self.event_queue.qsize()},
+            "events": {"queued": event_qsize},
             "tasks": {"main_pool": main_pool, "internal_pool": internal_pool, "total": pool_total},
             "errored": self.errored,
         }

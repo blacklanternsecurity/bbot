@@ -62,14 +62,18 @@ def split_host_port(d):
         d = f"d://{d}"
     parsed = urlparse(d)
     port = None
-    if parsed.port is None:
-        if parsed.scheme == "https":
-            port = 443
-        elif parsed.scheme == "http":
-            port = 80
-    else:
-        port = int(parsed.port)
-    return make_ip_type(parsed.hostname), port
+    host = None
+    with suppress(ValueError):
+        if parsed.port is None:
+            if parsed.scheme == "https":
+                port = 443
+            elif parsed.scheme == "http":
+                port = 80
+        else:
+            port = int(parsed.port)
+    with suppress(ValueError):
+        host = parsed.hostname
+    return make_ip_type(host), port
 
 
 def domain_parents(d, include_self=False):
@@ -104,14 +108,9 @@ def parent_domain(d):
     "www.evilcorp.co.uk" --> "evilcorp.co.uk"
     "evilcorp.co.uk" --> "evilcorp.co.uk"
     """
-    if is_domain(d):
-        return d
-    else:
-        split_domain = str(d).split(".")
-        if len(split_domain) == 1:
-            return "."
-        else:
-            return ".".join(split_domain[1:])
+    if is_subdomain(d):
+        return ".".join(str(d).split(".")[1:])
+    return d
 
 
 def is_ip(d, version=None):
@@ -412,7 +411,10 @@ def validate_port(port):
     77777 --> False
     -4 --> False
     """
-    return 0 <= int(str(port)) <= 65535
+    try:
+        return 0 <= int(str(port)) <= 65535
+    except Exception:
+        return False
 
 
 sentinel = object()

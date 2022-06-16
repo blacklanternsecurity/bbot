@@ -294,7 +294,7 @@ class DNSHelper:
         except dns.exception.DNSException as e:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception:
-            log.debug(f"Error in {callback.__name__} with args={args}, kwargs={kwargs}")
+            log.debug(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}")
         return list()
 
     def is_wildcard(self, query):
@@ -353,7 +353,7 @@ class DNSHelper:
         except Exception as e:
             import traceback
 
-            log.error(f"Error in {callback.__name__()}: {e}")
+            log.error(f"Error in {callback.__qualname__}(): {e}")
             log.debug(traceback.format_exc())
         except KeyboardInterrupt:
             if self.parent_helper.scan:

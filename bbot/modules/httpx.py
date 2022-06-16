@@ -7,7 +7,7 @@ from .base import BaseModule
 class httpx(BaseModule):
 
     watched_events = ["OPEN_TCP_PORT", "IP_ADDRESS", "DNS_NAME"]
-    produced_events = ["URL"]
+    produced_events = ["URL", "HTTP_RESPONSE"]
     batch_size = 100
     in_scope_only = False
     options = {"in_scope_only": True, "version": "1.2.1"}
@@ -54,7 +54,7 @@ class httpx(BaseModule):
             except json.decoder.JSONDecodeError:
                 self.debug(f"Failed to decode line: {line}")
                 continue
-            url = j.get("url")
+            url = j.get("input")
             title = j.get("title", "")
             source_event = None
             for event in events:
