@@ -28,6 +28,10 @@ def test_events(events, scan, config):
     assert events.url.type == "URL"
     assert events.ipv4_url.type == "URL"
     assert events.ipv6_url.type == "URL"
+    assert "" not in events.ipv4
+    assert None not in events.ipv4
+    assert 1 not in events.ipv4
+    assert False not in events.ipv4
 
     # ip tests
     assert events.ipv4 == scan.make_event("8.8.8.8", dummy=True)
@@ -67,6 +71,7 @@ def test_events(events, scan, config):
     assert events.domain not in events.emoji
 
     # url tests
+    assert scan.make_event("http://evilcorp.com", dummy=True) == scan.make_event("http://evilcorp.com/", dummy=True)
     assert events.url.host == "api.publicapis.org"
     assert events.url in events.domain
     assert events.url in events.subdomain
@@ -556,9 +561,9 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     from bbot.scanner.scanner import Scanner
 
     scan2 = Scanner(
-        "publicapis.org",
         "127.0.0.1",
-        "localhost",
+        "127.0.0.2:8443",
+        "https://localhost",
         modules=["ipneighbor"],
         output_modules=list(available_output_modules),
         config=config,

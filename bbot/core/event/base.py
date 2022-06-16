@@ -1,5 +1,6 @@
 import logging
 import ipaddress
+from contextlib import suppress
 from urllib.parse import urlparse, urlunparse
 
 from .helpers import make_event_id, get_event_type
@@ -39,15 +40,20 @@ class BaseEvent:
         _internal=None,
     ):
 
+        if tags is None:
+            tags = set()
+
+        self.data = None
+        self.type = event_type
+        self.tags = set(tags)
+        self.confidence = int(confidence)
+
         # for creating one-off events without enforcing source requirement
         self._dummy = _dummy
 
         # for internal-only events
         if _internal is not None:
             self._internal = _internal
-
-        if tags is None:
-            tags = set()
 
         self.module = module
         self.scan = scan
@@ -62,10 +68,8 @@ class BaseEvent:
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
 
-        self.type = event_type
-        self.tags = set(tags)
-        self.confidence = int(confidence)
-        self.data = self._sanitize_data(data)
+        with suppress(Exception):
+            self.data = self._sanitize_data(data)
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
@@ -162,7 +166,7 @@ class BaseEvent:
                 self.scope_distance = new_scope_distance
             self.source_id = str(source.id)
         elif not self._dummy:
-            log.warning(f"Attempt to set invalid event source on {self}: {source}")
+            log.warning(f"Must set valid source on {self}: (got: {source})")
             assert False
 
     def make_internal(self):
@@ -354,6 +358,8 @@ class URLEvent(BaseEvent):
             if self.parsed.netloc.startswith("["):
                 hostname = f"[{hostname}]"
             self.parsed = self.parsed._replace(netloc=hostname)
+        if self.parsed.path == "":
+            self.parsed = self.parsed._replace(path="/")
         data = urlunparse(self.parsed)
         return data
 
