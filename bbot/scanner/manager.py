@@ -79,7 +79,7 @@ class ScanManager:
                 source_trail = event.make_in_scope()
                 for s in source_trail:
                     self.emit_event(s)
-            elif not event_in_scope:
+            elif event.host and not event_in_scope:
                 if event.scope_distance > self.scan.scope_report_distance:
                     log.debug(
                         f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
