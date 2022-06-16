@@ -89,7 +89,7 @@ class BaseEvent:
         # if the event is internal, erase it from the chain of events
         # internal events are not ingested by output modules
         if not self._dummy:
-            if self._internal or source._internal:
+            if self.host and (self._internal or source._internal):
                 self.make_internal()
 
     @property
