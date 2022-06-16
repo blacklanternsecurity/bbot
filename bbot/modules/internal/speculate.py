@@ -26,10 +26,12 @@ class speculate(BaseInternalModule):
 
         # generate open ports from URLs
         if event.type == "URL":
-            self.emit_event(event.host, "DNS_NAME", source=event, internal=True)
-            self.emit_event(
-                self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
-            )
+            if event.host:
+                self.emit_event(event.host, "DNS_NAME", source=event, internal=True)
+                if event.port:
+                    self.emit_event(
+                        self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
+                    )
 
         # generate open ports from hosts
         if event.type in ["DNS_NAME", "IP_ADDRESS"]:

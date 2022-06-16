@@ -46,7 +46,7 @@ class ScanManager:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", lambda e: False)
             event = self.scan.make_event(*args, **kwargs)
-            log.debug(f"Emitting event: {event}")
+            log.debug(f'module "{event.module}" raised {event}')
 
             # accept the event right away if there's no abort condition
             # if there's an abort condition, we want to wait until
@@ -95,7 +95,6 @@ class ScanManager:
                 if not self.accept_event(event):
                     return
 
-            log.debug(f'module "{event.module}" raised {event}')
             self.queue_event(event)
 
             if callable(on_success_callback):
@@ -146,13 +145,13 @@ class ScanManager:
             if not self.scan.stopping:
                 ret = callback(*args, **kwargs)
         except ScanCancelledError as e:
-            log.debug(f"ScanCancelledError in {callback.__name__}(): {e}")
+            log.debug(f"ScanCancelledError in {callback.__qualname__}(): {e}")
         except BrokenPipeError as e:
-            log.debug(f"BrokenPipeError in {callback.__name__}(): {e}")
+            log.debug(f"BrokenPipeError in {callback.__qualname__}(): {e}")
         except Exception as e:
             import traceback
 
-            log.error(f"Error in {callback.__name__}(): {e}")
+            log.error(f"Error in {callback.__qualname__}(): {e}")
             log.debug(traceback.format_exc())
         except KeyboardInterrupt:
             log.debug(f"Interrupted")
@@ -164,7 +163,7 @@ class ScanManager:
                 import traceback
 
                 log.error(
-                    f"Error in on_finish_callback {on_finish_callback.__name__}() after {callback.__name__}(): {e}"
+                    f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {callback.__qualname__}(): {e}"
                 )
                 log.debug(traceback.format_exc())
         return ret
@@ -199,10 +198,10 @@ class ScanManager:
                     event.scope_distance <= self.scan.scope_search_distance and event.scope_distance > -1
                 )
                 if mod._type == "output":
-                    if event_within_scope_distance or event._force_output:
+                    if event_within_scope_distance or not event.host or event._force_output:
                         mod.queue_event(event)
                 else:
-                    if event_within_scope_distance:
+                    if event_within_scope_distance or not event.host:
                         mod.queue_event(event)
 
     def loop_until_finished(self):
