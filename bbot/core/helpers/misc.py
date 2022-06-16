@@ -25,8 +25,9 @@ def is_dns_name(d):
     "evilcorp.com" --> True
     "bob@evilcorp.com" --> False
     """
-    if event_type_regexes["DNS_NAME"].match(d):
-        return True
+    for r in event_type_regexes["DNS_NAME"]:
+        if r.match(d):
+            return True
     return False
 
 
@@ -144,8 +145,9 @@ def is_email(d):
     "bob@evilcorp.com" --> True
     "evilcorp.com" --> False
     """
-    if event_type_regexes["EMAIL_ADDRESS"].match(str(d)):
-        return True
+    for r in event_type_regexes["EMAIL_ADDRESS"]:
+        if r.match(str(d)):
+            return True
     return False
 
 
