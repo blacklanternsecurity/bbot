@@ -27,9 +27,10 @@ def get_event_type(data):
         return "IP_RANGE"
 
     # Strict regexes
-    for t, r in event_type_regexes.items():
-        if r.match(data):
-            return t
+    for t, regexes in event_type_regexes.items():
+        for r in regexes:
+            if r.match(data):
+                return t
 
     # Assume DNS_NAME for basic words
     if _hostname_regex.match(data):

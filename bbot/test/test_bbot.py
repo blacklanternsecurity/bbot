@@ -564,6 +564,8 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
         "127.0.0.1",
         "127.0.0.2:8443",
         "https://localhost",
+        "[::1]:80",
+        "http://[::1]:8080",
         modules=["ipneighbor"],
         output_modules=list(available_output_modules),
         config=config,
