@@ -1,5 +1,4 @@
 from .base import BaseModule
-import json
 import re
 from jwt import PyJWT
 from jwt.exceptions import DecodeError
@@ -28,5 +27,5 @@ class jwt(BaseModule):
             try:
                 j.decode(jwt_candidate, options={"verify_signature": False})
                 self.emit_event(f"JWT Identified [{jwt_candidate}]]", "INFO", event)
-            except DecodeError as e:
+            except DecodeError:
                 self.debug(f"Error decodeing JWT candidate {jwt_candidate}")
