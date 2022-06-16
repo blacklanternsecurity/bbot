@@ -168,7 +168,7 @@ class Agent:
         try:
             return callback(*args, **kwargs)
         except Exception as e:
-            msg = f"Error in Agent.{callback.__name__}: {e}"
+            msg = f"Error in {callback.__qualname__}(): {e}"
             log.error(msg)
             import traceback
 

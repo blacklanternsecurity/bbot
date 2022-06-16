@@ -296,6 +296,7 @@ def test_helpers(patch_requests, patch_commands, helpers):
     assert not helpers.is_subdomain("evilcorp.co.uk")
     assert helpers.parent_domain("www.evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("evilcorp.co.uk") == "evilcorp.co.uk"
+    assert helpers.parent_domain("localhost") == "localhost"
     assert list(helpers.domain_parents("test.www.evilcorp.co.uk")) == ["www.evilcorp.co.uk", "evilcorp.co.uk"]
     assert list(helpers.domain_parents("www.evilcorp.co.uk", include_self=True)) == [
         "www.evilcorp.co.uk",
@@ -311,6 +312,12 @@ def test_helpers(patch_requests, patch_commands, helpers):
     ]
     assert helpers.is_ip("127.0.0.1")
     assert not helpers.is_ip("127.0.0.0.1")
+    assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
+    assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
+    assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
+    assert helpers.split_host_port("evilcorp.co.uk") == ("evilcorp.co.uk", None)
+    assert helpers.split_host_port("d://wat:wat") == ("wat", None)
+    assert helpers.split_host_port("https://[dead::beef]:8338") == (ipaddress.ip_address("dead::beef"), 8338)
     extracted_words = helpers.extract_words("blacklanternsecurity")
     assert "black" in extracted_words
     assert "blacklantern" in extracted_words

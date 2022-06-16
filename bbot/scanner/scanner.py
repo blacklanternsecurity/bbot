@@ -236,7 +236,7 @@ class Scanner:
     @status.setter
     def status(self, status):
         """
-        Block setting after status has been set to "ABORTING"
+        Block setting after status has been aborted
         """
         if (not self.status == "ABORTING") or (status == "ABORTED"):
             self._status = status
