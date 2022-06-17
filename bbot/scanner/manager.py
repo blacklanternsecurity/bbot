@@ -62,29 +62,26 @@ class ScanManager:
             target = getattr(self.scan, "target", None)
             # skip DNS resolution if we've already resolved this event
             event_in_scope, dns_tags = self.events_resolved.get(event_host_hash, (None, set()))
-            if event_in_scope is None:
+            if event_in_scope is None and target is not None:
                 with self.events_resolved_lock:
                     if event.host and hash(event.host) in self.events_resolved:
                         resolve_event = False
                 if resolve_event and event.host:
-                    child_events, source_trail = self.scan.helpers.dns.resolve_event(event)
-                    # reveal the trail of source events if we found an in-scope host that was an internal event
-                    for s in source_trail:
-                        self.emit_event(s)
+                    child_events = self.scan.helpers.dns.resolve_event(event)
                 event_in_scope = target.in_scope(event)
                 dns_tags = set(event.tags)
             event.tags.update(dns_tags)
 
-            if target and not event._dummy and event_in_scope:
-                source_trail = event.make_in_scope()
-                for s in source_trail:
-                    self.emit_event(s)
+            if event_in_scope and target is not None and not event._dummy:
+                event.make_in_scope()
             elif event.host and not event_in_scope:
                 if event.scope_distance > self.scan.scope_report_distance:
                     log.debug(
                         f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
                     )
                     event.make_internal()
+            elif not event.host:
+                event.unmake_internal()
 
             if abort_if(event):
                 log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
@@ -115,6 +112,9 @@ class ScanManager:
                 emit_children &= -1 < event.scope_distance <= self.scan.dns_search_distance or any_in_scope
             if emit_children:
                 for child_event in child_events:
+                    # this is needed because the children were created before we knew whether the
+                    # event was in scope
+                    child_event.scope_distance = event.scope_distance + 1
                     self.emit_event(child_event)
 
         except ValidationError as e:

@@ -23,7 +23,6 @@ class DNSHelper:
     def __init__(self, parent_helper):
 
         self.parent_helper = parent_helper
-        self.wildcards = dict()
         self.wildcard_tests = self.parent_helper.config.get("dns_wildcard_tests", 5)
         self._cache = dict()
         self.resolver = dns.resolver.Resolver()
@@ -93,7 +92,7 @@ class DNSHelper:
 
             return results
 
-    def resolve_event(self, event, check_wildcard=True):
+    def resolve_event(self, event, check_wildcard=True, emit_trail=True):
         """
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
@@ -112,6 +111,9 @@ class DNSHelper:
                             if self.parent_helper.scan.target.in_scope(t):
                                 if not source_trail:
                                     source_trail = event.make_in_scope()
+                                    if emit_trail and event.scan:
+                                        for e in source_trail:
+                                            event.scan.manager.emit_event(e)
                                 break
             for r in records:
                 for _, t in self.extract_targets(r):
@@ -123,7 +125,7 @@ class DNSHelper:
         if check_wildcard and event.type == "DNS_NAME":
             if self.is_wildcard(event_host):
                 event.tags.add("wildcard")
-        return children, source_trail
+        return children
 
     def resolve_batch(self, queries, **kwargs):
         """
@@ -280,11 +282,15 @@ class DNSHelper:
 
     def _resolve_hostname(self, query, **kwargs):
         self.debug(f"Resolving {query} with kwargs={kwargs}")
-        return list(self._catch(self.resolver.resolve, query, **kwargs))
+        results = list(self._catch(self.resolver.resolve, query, **kwargs))
+        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
+        return results
 
     def _resolve_ip(self, query, **kwargs):
         self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
-        return list(self._catch(self.resolver.resolve_address, query, **kwargs))
+        results = list(self._catch(self.resolver.resolve_address, query, **kwargs))
+        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
+        return results
 
     def _catch(self, callback, *args, **kwargs):
         try:
@@ -294,42 +300,37 @@ class DNSHelper:
         except dns.exception.DNSException as e:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception:
-            log.debug(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}")
+            log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}")
         return list()
 
     def is_wildcard(self, query):
         if is_domain(query):
             return False
         parent = parent_domain(query)
-
-        if parent in self._cache:
-            return self._cache[parent]
+        parents = set(domain_parents(query))
 
         with self._wildcard_lock(parent):
-            orig_results = self.resolve(query)
-            parents = set(domain_parents(query))
-            is_wildcard = False
-
+            if parent in self._cache:
+                return self._cache[parent]
             for p in parents:
-                if p in self.wildcards:
+                if self._cache.get(p, False) == True:
                     return True
 
+            orig_results = self.resolve(query)
+            is_wildcard = False
+
             futures = dict()
-            for parent in parents:
+            for p in parents:
                 for _ in range(self.wildcard_tests):
-                    rand_query = f"{rand_string(length=10)}.{parent}"
+                    rand_query = f"{rand_string(length=10)}.{p}"
                     future = self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.resolve, rand_query)
-                    futures[future] = parent
+                    futures[future] = p
 
             wildcard_ips = set()
             for future in self.parent_helper.as_completed(futures):
-                parent = futures[future]
+                p = futures[future]
                 ips = future.result()
                 if ips:
-                    try:
-                        self.wildcards[parent].update(ips)
-                    except KeyError:
-                        self.wildcards[parent] = ips
                     wildcard_ips.update(ips)
 
             if orig_results and wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):

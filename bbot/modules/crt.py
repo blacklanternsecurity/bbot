@@ -36,8 +36,6 @@ class crt(BaseModule):
             for hostname in self.query(query):
                 if not hostname == event:
                     self.emit_event(hostname, "DNS_NAME", event)
-                else:
-                    self.debug(f"Invalid DNS name: {hostname}")
 
     def query(self, domain):
         params = {"q": domain, "output": "json"}
