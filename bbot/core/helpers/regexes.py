@@ -24,30 +24,36 @@ word_regexes = [
 word_regex = re.compile(r"[^\d\W_]+")
 word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
+_ipv6_regex = r"[A-F0-9:]*:[A-F0-9:]*:[A-F0-9:]*"
+ipv6_regex = re.compile(_ipv6_regex, re.I)
 _dns_name_regex = r"(([A-Z0-9\-_]+)\.)+([A-Z0-9\-_]+)"
 _hostname_regex = re.compile(r"^[\w-]+$")
 
-
-# todo: detect ipv6 addresses in OPEN_TCP_PORT and URL
 event_type_regexes = OrderedDict(
     [
-        (k, re.compile(r, re.I))
-        for k, r in [
+        (k, tuple(re.compile(r, re.I) for r in regexes))
+        for k, regexes in [
             (
                 "EMAIL_ADDRESS",
-                r"^([A-Z0-9][\w\-\.\+]{,100})@([A-Z0-9][\w\-\.]{,100})\.([A-Z]{2,8})$",
+                (r"^([A-Z0-9][\w\-\.\+]{,100})@([A-Z0-9][\w\-\.]{,100})\.([A-Z]{2,8})$",),
             ),
             (
                 "DNS_NAME",
-                rf"^{_dns_name_regex}$",
+                (r"^" + _dns_name_regex + r"$",),
             ),
             (
                 "OPEN_TCP_PORT",
-                r"^(([A-Z0-9]|[A-Z0-9][A-Z0-9\-]*[A-Z0-9])\.)+([A-Z0-9][A-Z0-9\-]*[A-Z0-9]|[A-Z0-9]):[0-9]{1,5}$",
+                (
+                    r"^(([A-Z0-9]|[A-Z0-9][A-Z0-9\-]*[A-Z0-9])\.)+([A-Z0-9][A-Z0-9\-]*[A-Z0-9]|[A-Z0-9]):[0-9]{1,5}$",
+                    r"^\[" + _ipv6_regex + r"\]:[0-9]{1,5}$",
+                ),
             ),
             (
                 "URL",
-                r"^([A-Z]){2,}://(([A-Z0-9]|[A-Z0-9][A-Z0-9\-]*[A-Z0-9])[\.]{0,1})+([A-Z0-9][A-Z0-9\-]*[A-Z0-9]|[A-Z0-9])(:[0-9]{1,5}){0,1}.*$",
+                (
+                    r"^[A-Z]{2,}://(([A-Z0-9]|[A-Z0-9][A-Z0-9\-]*[A-Z0-9])[\.]{0,1})+([A-Z0-9][A-Z0-9\-]*[A-Z0-9]|[A-Z0-9])(:[0-9]{1,5}){0,1}.*$",
+                    r"^[A-Z]{2,}://\[" + _ipv6_regex + r"\](:[0-9]{1,5}){0,1}.*$",
+                ),
             ),
         ]
     ]
