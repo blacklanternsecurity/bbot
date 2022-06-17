@@ -1,14 +1,13 @@
 from .base import BaseModule
 import re
-from jwt import PyJWT
-from jwt.exceptions import DecodeError
+import jwt as j
 
 
 class jwt(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["INFO", "VULNERABILITY"]
-    deps_pip = ["PyJWT"]
+    deps_pip = ["pyjwt"]
     suppress_dupes = False
 
     def handle_event(self, event):
@@ -22,10 +21,14 @@ class jwt(BaseModule):
             jwt_candidates.append(result)
 
         for jwt_candidate in jwt_candidates:
-            j = PyJWT()
 
             try:
                 j.decode(jwt_candidate, options={"verify_signature": False})
-                self.emit_event(f"JWT Identified [{jwt_candidate}]]", "INFO", event)
-            except DecodeError:
-                self.debug(f"Error decodeing JWT candidate {jwt_candidate}")
+                jwt_headers = j.get_unverified_header(jwt_candidate)
+                if jwt_headers["alg"].upper()[0:2] == "HS":
+                    self.emit_event(f"JWT Identified [{jwt_candidate}]]", "INFO", event, tags=["crackable"])
+                else:
+                    self.emit_event(f"JWT Identified [{jwt_candidate}]]", "INFO", event)
+
+            except jwt.exceptions.DecodeError:
+                self.debug(f"Error decoding JWT candidate {jwt_candidate}")
