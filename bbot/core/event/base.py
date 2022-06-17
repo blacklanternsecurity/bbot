@@ -16,6 +16,7 @@ from bbot.core.helpers import (
     make_netloc,
     validate_port,
     make_ip_type,
+    regexes,
 )
 
 
@@ -52,7 +53,7 @@ class BaseEvent:
         self._dummy = _dummy
 
         # for internal-only events
-        if _internal is not None:
+        if _internal in (True, False):
             self._internal = _internal
 
         self.module = module
@@ -348,6 +349,8 @@ class OpenTCPPortEvent(BaseEvent):
 
 class URLEvent(BaseEvent):
     def _sanitize_data(self, data):
+        if not any(r.match(data) for r in regexes.event_type_regexes["URL"]):
+            return None
         self.parsed = urlparse(data.strip())
         self.parsed = self.parsed._replace(netloc=str(self.parsed.netloc).lower())
         # remove ports if they're redundant
