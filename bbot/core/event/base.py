@@ -1,3 +1,4 @@
+import json
 import logging
 import ipaddress
 from contextlib import suppress
@@ -16,6 +17,7 @@ from bbot.core.helpers import (
     make_netloc,
     validate_port,
     make_ip_type,
+    smart_decode,
     regexes,
 )
 
@@ -26,7 +28,7 @@ log = logging.getLogger("bbot.core.event")
 class BaseEvent:
 
     _dummy = False
-    _internal = False
+    _omit = False
 
     def __init__(
         self,
@@ -51,10 +53,7 @@ class BaseEvent:
 
         # for creating one-off events without enforcing source requirement
         self._dummy = _dummy
-
-        # for internal-only events
-        if _internal in (True, False):
-            self._internal = _internal
+        self._internal = False
 
         self.module = module
         self.scan = scan
@@ -68,6 +67,14 @@ class BaseEvent:
         self.source = source
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
+
+        # Catch these common whoopsies
+        if self.type in ("DNS_NAME", "IP_ADDRESS"):
+            data_is_ip = is_ip(data)
+            if self.type == "DNS_NAME" and data_is_ip:
+                self.type = "IP_ADDRESS"
+            elif self.type == "IP_ADDRESS" and not data_is_ip:
+                self.type = "DNS_NAME"
 
         with suppress(Exception):
             self.data = self._sanitize_data(data)
@@ -87,11 +94,12 @@ class BaseEvent:
         # whether to force-send to output modules
         self._force_output = False
 
-        # if the event is internal, erase it from the chain of events
         # internal events are not ingested by output modules
         if not self._dummy:
-            if self.host and (self._internal or source._internal):
+            if self.host and (_internal or source._internal):
                 self.make_internal()
+            elif not self.host:
+                self.unmake_internal()
 
     @property
     def host(self):
@@ -166,6 +174,8 @@ class BaseEvent:
                 new_scope_distance = source.scope_distance + 1
                 self.scope_distance = new_scope_distance
             self.source_id = str(source.id)
+            if source._omit:
+                self.source = source.source
         elif not self._dummy:
             log.warning(f"Must set valid source on {self}: (got: {source})")
             assert False
@@ -176,7 +186,7 @@ class BaseEvent:
             self.tags.add("internal")
             self._made_internal = True
 
-    def unmake_internal(self, set_scope_distance=None, force_output=False):
+    def unmake_internal(self, set_scope_distance=None, force_output=False, emit_trail=True):
         source_trail = []
         if self._made_internal:
             if set_scope_distance is not None:
@@ -191,10 +201,14 @@ class BaseEvent:
             source_scope_distance = None
             if set_scope_distance is not None:
                 source_scope_distance = set_scope_distance - 1
-            source_trail.append(self.source)
             source_trail += self.source.unmake_internal(
                 set_scope_distance=source_scope_distance, force_output=force_output
             )
+            source_trail.append(self.source)
+
+        if emit_trail and self.scan:
+            for e in source_trail:
+                self.scan.manager.emit_event(e)
 
         return source_trail
 
@@ -254,6 +268,13 @@ class BaseEvent:
             j.update({"tags": list(self.tags)})
         if self.module:
             j.update({"module": str(self.module)})
+        # normalize non-primitive python objects
+        for k, v in list(j.items()):
+            if type(v) not in (str, int, bool, type(None)):
+                try:
+                    j[k] = json.dumps(v)
+                except Exception:
+                    j[k] = smart_decode(v)
         return j
 
     def __iter__(self):
@@ -284,7 +305,7 @@ class DefaultEvent(BaseEvent):
         return data
 
 
-class IPAddressEvent(BaseEvent):
+class IP_ADDRESS(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         ip = ipaddress.ip_address(self.data)
@@ -297,7 +318,7 @@ class IPAddressEvent(BaseEvent):
         return ipaddress.ip_address(self.data)
 
 
-class IPRangeEvent(BaseEvent):
+class IP_RANGE(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         net = ipaddress.ip_network(self.data, strict=False)
@@ -310,7 +331,7 @@ class IPRangeEvent(BaseEvent):
         return ipaddress.ip_network(self.data)
 
 
-class DNSNameEvent(BaseEvent):
+class DNS_NAME(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if is_subdomain(self.data):
@@ -333,7 +354,7 @@ class DNSNameEvent(BaseEvent):
         return set()
 
 
-class OpenTCPPortEvent(BaseEvent):
+class OPEN_TCP_PORT(BaseEvent):
     def _sanitize_data(self, data):
         host, port = split_host_port(data)
         if host and validate_port(port):
@@ -347,7 +368,7 @@ class OpenTCPPortEvent(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class URLEvent(BaseEvent):
+class URL(BaseEvent):
     def _sanitize_data(self, data):
         if not any(r.match(data) for r in regexes.event_type_regexes["URL"]):
             return None
@@ -382,7 +403,7 @@ class URLEvent(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class EmailAddressEvent(BaseEvent):
+class EMAIL_ADDRESS(BaseEvent):
     def _host(self):
         data = str(self.data).split("@")[-1]
         host, self._port = split_host_port(data)
@@ -392,19 +413,8 @@ class EmailAddressEvent(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class HTTPResponseEvent(BaseEvent):
-    _internal = True
-
-
-event_classes = {
-    "IP_ADDRESS": IPAddressEvent,
-    "IP_RANGE": IPRangeEvent,
-    "DNS_NAME": DNSNameEvent,
-    "OPEN_TCP_PORT": OpenTCPPortEvent,
-    "URL": URLEvent,
-    "EMAIL_ADDRESS": EmailAddressEvent,
-    "HTTP_RESPONSE": HTTPResponseEvent,
-}
+class HTTP_RESPONSE(BaseEvent):
+    _omit = True
 
 
 def make_event(
@@ -426,6 +436,7 @@ def make_event(
                 assert False
                 raise ValidationError(f"Must specify source if making internal event")
             data.make_internal()
+        event_type = data.type
         return data
     else:
         if event_type is None:
@@ -436,15 +447,7 @@ def make_event(
             raise ValidationError(f'Unable to autodetect event type from "{data}"')
 
         event_type = str(event_type).strip().upper()
-
-        # Catch these common whoopsies
-        data_is_ip = is_ip(data)
-        if event_type == "DNS_NAME" and data_is_ip:
-            event_type = "IP_ADDRESS"
-        elif event_type == "IP_ADDRESS" and not data_is_ip:
-            event_type = "DNS_NAME"
-
-        event_class = event_classes.get(event_type, DefaultEvent)
+        event_class = globals().get(event_type, DefaultEvent)
 
         return event_class(
             data,
