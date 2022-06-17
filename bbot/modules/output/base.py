@@ -17,6 +17,8 @@ class BaseOutputModule(BaseModule):
                 return True
             else:
                 return False
+        if e._omit:
+            return False
         if e._force_output:
             return True
         if e._internal:

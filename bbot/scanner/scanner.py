@@ -182,7 +182,7 @@ class Scanner:
 
     def setup_modules(self, remove_failed=True):
         self.load_modules()
-        self.info(f"Setting up modules")
+        self.verbose(f"Setting up modules")
         setups_failed = 0
         setup_futures = dict()
         for module_name, module in self.modules.items():
@@ -344,14 +344,14 @@ class Scanner:
             internal_modules = [m for m in self._internal_modules if m in succeeded]
 
             # Load scan modules
-            self.info(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
+            self.verbose(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
             loaded_modules, failed = self._load_modules(modules, "bbot.modules")
             self.modules.update(loaded_modules)
             if len(failed) > 0:
                 self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
 
             # Load output modules
-            self.info(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
+            self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
             loaded_output_modules, failed_output = self._load_modules(output_modules, "bbot.modules.output")
             self.modules.update(loaded_output_modules)
             if len(failed_output) > 0:
@@ -368,7 +368,7 @@ class Scanner:
 
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
             if loaded_modules:
-                self.success(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} modules")
+                self.success(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules")
             if loaded_output_modules:
                 self.success(f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules")
             if loaded_internal_modules:

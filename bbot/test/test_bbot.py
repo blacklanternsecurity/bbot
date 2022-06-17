@@ -404,9 +404,11 @@ def test_helpers(patch_requests, patch_commands, helpers):
     assert any([helpers.is_subdomain(h) for h in resolved])
     # wildcards
     assert helpers.is_wildcard("blacklanternsecurity.github.io")
-    assert "github.io" in helpers.dns.wildcards
+    assert "github.io" in helpers.dns._cache
+    assert helpers.dns._cache["github.io"] == True
+    assert helpers.is_wildcard("asdf.asdf.asdf.github.io")
+    assert "asdf.asdf.github.io" not in helpers.dns._cache
     assert not helpers.is_wildcard("mail.google.com")
-    # resolvers - disabled because github's dns is wack
 
 
 def test_dns_resolvers(patch_requests, helpers):
