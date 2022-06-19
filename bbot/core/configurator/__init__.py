@@ -1,8 +1,10 @@
 import os
+import sys
 from pathlib import Path
 from omegaconf import OmegaConf
 
 from . import files, args, environ
+from ..errors import ConfigLoadError
 from ...modules import output, internal, module_dir, modules_preloaded
 
 
@@ -22,14 +24,18 @@ for module_name, preloaded in output.modules_preloaded.items():
     module_config = OmegaConf.create(preloaded.get("config", {}))
     output_modules_config[module_name] = module_config
 
-config = OmegaConf.merge(
-    # first, pull module defaults
-    OmegaConf.create({"modules": modules_config, "output_modules": output_modules_config}),
-    # then look in .yaml files
-    files.get_config(),
-    # finally, pull from CLI arguments
-    args.get_config(),
-)
+try:
+    config = OmegaConf.merge(
+        # first, pull module defaults
+        OmegaConf.create({"modules": modules_config, "output_modules": output_modules_config}),
+        # then look in .yaml files
+        files.get_config(),
+        # finally, pull from CLI arguments
+        args.get_config(),
+    )
+except ConfigLoadError as e:
+    print(f"\n[!!!] {e}\n")
+    sys.exit(2)
 
 # ensure bbot_home
 if not "home" in config:
