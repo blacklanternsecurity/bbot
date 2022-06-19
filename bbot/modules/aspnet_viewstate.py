@@ -22,9 +22,7 @@ class aspnet_viewstate(BaseModule):
         {
             "name": "Add Mono Repo",
             "become": True,
-            "apt_repository": {
-                "repo": "deb https://download.mono-project.com/repo/ubuntu stable-focal main",
-            },
+            "apt_repository": {"repo": "deb https://download.mono-project.com/repo/ubuntu stable-focal main"},
         },
         {
             "name": "Install mono-devel",
