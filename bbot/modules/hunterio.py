@@ -1,7 +1,7 @@
 from .base import BaseModule
 
 
-class hunter_io(BaseModule):
+class hunterio(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL"]
