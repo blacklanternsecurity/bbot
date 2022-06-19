@@ -104,12 +104,7 @@ class telerik(BaseModule):
 
     deps_ansible = [
         {"name": "Create telerik dir", "file": {"state": "directory", "path": "${BBOT_TOOLS}/telerik/"}},
-        {
-            "file": {
-                "state": "touch",
-                "path": "${BBOT_TOOLS}/telerik/testfile.txt",
-            }
-        },
+        {"file": {"state": "touch", "path": "${BBOT_TOOLS}/telerik/testfile.txt"}},
         {
             "name": "Download RAU_crypto",
             "unarchive": {
@@ -128,7 +123,9 @@ class telerik(BaseModule):
             self.debug(result.text)
             if "RadAsyncUpload handler is registered succesfully" in result.text:
                 self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
-                self.emit_event(f"[{event.data}] Telerik RAU AXD Handler detected", "VULNERABILITY", event, tags=["info"])
+                self.emit_event(
+                    f"[{event.data}] Telerik RAU AXD Handler detected", "VULNERABILITY", event, tags=["info"]
+                )
 
                 if self.config.get("skip_RAU_confirmation") == False:
                     hostname = urlparse(event.data).netloc
@@ -162,7 +159,9 @@ class telerik(BaseModule):
         if result:
             if "Cannot deserialize dialog parameters" in result.text:
                 self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.DialogHandler.aspx?dp=1)")
-                self.emit_event(f"[{event.data}] Telerik DialogHandler detected", "VULNERABILITY", event, tags=["info"])
+                self.emit_event(
+                    f"[{event.data}] Telerik DialogHandler detected", "VULNERABILITY", event, tags=["info"]
+                )
 
         result = self.test_detector(event.data, "Telerik.Web.UI.SpellCheckHandler.axd")
         try:
@@ -173,7 +172,9 @@ class telerik(BaseModule):
                 self.debug(validate_result)
                 if validate_result.status_code != 500:
                     self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
-                    self.emit_event(f"[{event.data}] Telerik SpellCheckHandler detected", "VULNERABILITY", event, tags=["info"])
+                    self.emit_event(
+                        f"[{event.data}] Telerik SpellCheckHandler detected", "VULNERABILITY", event, tags=["info"]
+                    )
         except Exception:
             pass
 
