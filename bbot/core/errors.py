@@ -20,3 +20,7 @@ class ValidationError(BBOTError):
 
 class ModuleLoadError(BBOTError):
     pass
+
+
+class ConfigLoadError(BBOTError):
+    pass

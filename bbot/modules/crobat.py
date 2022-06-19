@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from .base import BaseModule
 
 
@@ -41,7 +43,7 @@ class crobat(BaseModule):
                     self.debug(f"Invalid subdomain: {hostname}")
 
     def query(self, query):
-        results = self.helpers.request(f"https://sonar.omnisint.io/subdomains/{query}")
+        results = self.helpers.request(f"https://sonar.omnisint.io/subdomains/{quote(query)}")
         try:
             json = results.json()
             if json:
