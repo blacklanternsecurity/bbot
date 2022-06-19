@@ -13,6 +13,7 @@ class aspnet_viewstate(BaseModule):
     deps_ansible = [
         {
             "name": "apt_key",
+            "become": True,
             "apt_key": {
                 "keyserver": "hkp://keyserver.ubuntu.com:80",
                 "id": "3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF",
@@ -20,6 +21,7 @@ class aspnet_viewstate(BaseModule):
         },
         {
             "name": "Add Mono Repo",
+            "become": True,
             "apt_repository": {
                 "repo": "deb https://download.mono-project.com/repo/ubuntu stable-focal main",
             },

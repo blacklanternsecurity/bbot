@@ -389,7 +389,6 @@ class URL(BaseEvent):
 
     def _host(self):
         return make_ip_type(self.parsed.hostname)
-
     @property
     def port(self):
         if self.parsed.port is not None:
@@ -402,6 +401,8 @@ class URL(BaseEvent):
     def _words(self):
         return extract_words(self.host_stem)
 
+class URL_HINT(URL):
+    pass
 
 class EMAIL_ADDRESS(BaseEvent):
     def _host(self):
