@@ -130,6 +130,8 @@ class massdns(BaseModule):
             self.config.get("max_resolvers", 1000),
             "-t",
             "A",
+            "-t",
+            "AAAA",
             "-o",
             "J",
         )
@@ -142,11 +144,16 @@ class massdns(BaseModule):
             except json.decoder.JSONDecodeError:
                 self.debug(f"Failed to decode line: {line}")
                 continue
-            status = j.get("status", "")
-            if status == "NOERROR":
-                hostname = j.get("name", "")
-                if hostname:
-                    yield hostname.rstrip(".")
+            answers = j.get("data", {}).get("answers", [])
+            if type(answers) == list:
+                for answer in answers:
+                    hostname = answer.get("name", "")
+                    if hostname:
+                        data = answer.get("data", "")
+                        # avoid garbage answers like this:
+                        # 8AAAA queries have been locally blocked by dnscrypt-proxy/Set block_ipv6 to false to disable this feature
+                        if " " not in data:
+                            yield hostname.rstrip(".")
 
     def finish(self):
         found = list(self.found.items())
@@ -170,7 +177,7 @@ class massdns(BaseModule):
             self.verbose(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
             for hostname in self.massdns(domain, mutations):
                 source_event = self.get_source_event(hostname)
-                if not hostname == source_event:
+                if source_event is not None and not hostname == source_event:
                     self.emit_event(
                         hostname,
                         "DNS_NAME",
