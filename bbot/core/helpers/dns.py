@@ -92,40 +92,35 @@ class DNSHelper:
 
             return results
 
-    def resolve_event(self, event, check_wildcard=True, emit_trail=True):
+    def resolve_event(self, event, check_wildcard=True):
         """
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
         """
         children = []
-        source_trail = []
         event_host = str(event.host)
-        make_event = self.parent_helper.scan.make_event
+        event_tags = set()
+        event_in_scope = False
         for rdtype, records in self.resolve_raw(event_host, type="any"):
-            event.tags.add("resolved")
+            event_tags.add("resolved")
             rdtype = str(rdtype).upper()
             if rdtype in ("A", "AAAA"):
                 for r in records:
                     for _, t in self.extract_targets(r):
                         with suppress(ValidationError):
                             if self.parent_helper.scan.target.in_scope(t):
-                                if not source_trail:
-                                    source_trail = event.make_in_scope()
-                                    if emit_trail and event.scan:
-                                        for e in source_trail:
-                                            event.scan.manager.emit_event(e)
+                                event_in_scope = True
                                 break
             for r in records:
                 for _, t in self.extract_targets(r):
-                    event.tags.add(f"{rdtype.lower()}_record")
-                    module = self._get_dummy_module(rdtype)
-                    children.append(make_event(t, "DNS_NAME", module=module, source=event))
-        if "resolved" not in event.tags:
-            event.tags.add("unresolved")
+                    event_tags.add(f"{rdtype.lower()}_record")
+                    children.append((t, rdtype))
+        if "resolved" not in event_tags:
+            event_tags.add("unresolved")
         if check_wildcard and event.type == "DNS_NAME":
             if self.is_wildcard(event_host):
-                event.tags.add("wildcard")
-        return children
+                event_tags.add("wildcard")
+        return children, event_tags, event_in_scope
 
     def resolve_batch(self, queries, **kwargs):
         """

@@ -40,7 +40,7 @@ class crobat(BaseModule):
                 if not hostname == event:
                     self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in_scope" not in e.tags)
                 else:
-                    self.debug(f"Invalid subdomain: {hostname}")
+                    self.debug(f"Excluding self: {hostname}")
 
     def query(self, query):
         results = self.helpers.request(f"https://sonar.omnisint.io/subdomains/{quote(query)}")
