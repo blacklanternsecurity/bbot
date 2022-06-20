@@ -270,7 +270,7 @@ class DNSHelper:
 
         # then, make sure it isn't feeding us garbage data
         if error is None:
-            randhost = f"{rand_string(9)}.{rand_string(10)}.com"
+            randhost = f"www-m.{rand_string(9)}.{rand_string(10)}.com"
             try:
                 resolver.resolve(randhost, "A")
                 error = f"Nameserver {nameserver} returned garbage data"

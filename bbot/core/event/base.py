@@ -170,7 +170,6 @@ class BaseEvent:
                 self.source = source.source
         elif not self._dummy:
             log.warning(f"Must set valid source on {self}: (got: {source})")
-            assert False
 
     def make_internal(self):
         if not self._made_internal:
@@ -192,7 +191,7 @@ class BaseEvent:
         if getattr(self.source, "_internal", False):
             source_scope_distance = None
             if set_scope_distance is not None:
-                source_scope_distance = set_scope_distance - 1
+                source_scope_distance = set_scope_distance + 1
             source_trail += self.source.unmake_internal(
                 set_scope_distance=source_scope_distance, force_output=force_output
             )
@@ -207,7 +206,7 @@ class BaseEvent:
     def make_in_scope(self):
         source_trail = []
         if getattr(self.module, "_type", "") != "internal":
-            source_trail = self.unmake_internal(set_scope_distance=1, force_output=True)
+            source_trail = self.unmake_internal(set_scope_distance=0, force_output=True)
         self.tags.add("in_scope")
         self.scope_distance = 0
         return source_trail
@@ -286,7 +285,7 @@ class BaseEvent:
 
     def __str__(self):
         d = str(self.data)
-        return f'Event("{self.type}", "{d[:50]}{("..." if len(d) > 50 else "")}", tags={self.tags})'
+        return f'{self.type}("{d[:50]}{("..." if len(d) > 50 else "")}", tags={self.tags})'
 
     def __repr__(self):
         return str(self)
@@ -429,7 +428,6 @@ def make_event(
             data.set_source(source)
         if internal == True and not data._made_internal:
             if source and data.source is None:
-                assert False
                 raise ValidationError(f"Must specify source if making internal event")
             data.make_internal()
         event_type = data.type

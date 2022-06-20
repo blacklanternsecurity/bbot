@@ -5,8 +5,8 @@ import traceback
 from time import sleep
 from contextlib import suppress
 
-from ..core.errors import ScanCancelledError
 from ..core.threadpool import ThreadPoolWrapper
+from ..core.errors import ScanCancelledError, ValidationError
 
 
 class BaseModule:
@@ -158,7 +158,11 @@ class BaseModule:
     def emit_event(self, *args, **kwargs):
         on_success_callback = kwargs.pop("on_success_callback", None)
         abort_if = kwargs.pop("abort_if", lambda e: False)
-        event = self.scan.make_event(*args, **kwargs)
+        try:
+            event = self.scan.make_event(*args, **kwargs)
+        except ValidationError as e:
+            self.warning(f"{e}")
+            return
         if not event.module:
             event.module = self
         self.scan.manager.emit_event(

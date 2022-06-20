@@ -38,16 +38,13 @@ def run_live(self, command, *args, **kwargs):
 
     command = [str(s) for s in command]
     log.verbose(f"run_live{input_msg}: {' '.join(command)}")
-    try:
-        with subprocess.Popen(command, *args, **kwargs) as process:
-            if _input:
-                if type(_input) in (str, bytes):
-                    _input = (_input,)
-                self.feed_pipe(process.stdin, _input, text=False)
-            for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
-                yield line
-    except FileNotFoundError as e:
-        log.error(f"{e} - missing executable?")
+    with catch(subprocess.Popen, command, *args, **kwargs) as process:
+        if _input:
+            if type(_input) in (str, bytes):
+                _input = (_input,)
+            self.feed_pipe(process.stdin, _input, text=False)
+        for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
+            yield line
 
 
 def run(self, command, *args, **kwargs):
@@ -68,11 +65,23 @@ def run(self, command, *args, **kwargs):
 
     command = [str(s) for s in command]
     log.verbose(f"run: {' '.join(command)}")
-    try:
-        result = subprocess.run(command, *args, **kwargs)
-    except FileNotFoundError as e:
-        log.error(f"{e} - missing executable?")
+    result = catch(subprocess.run, command, *args, **kwargs)
     return result
+
+
+def catch(callback, *args, **kwargs):
+    try:
+        return callback(*args, **kwargs)
+    except FileNotFoundError as e:
+        import traceback
+
+        log.error(f"{e} - missing executable?")
+        log.debug(traceback.format_exc())
+    except BrokenPipeError as e:
+        import traceback
+
+        log.error(f"Error in subprocess: {e}")
+        log.debug(traceback.format_exc())
 
 
 def tempfile(self, content, pipe=True):
@@ -124,7 +133,11 @@ def _feed_pipe(self, pipe, content, text=True):
                     for c in content:
                         p.write(decode_fn(c) + newline)
         except BrokenPipeError:
-            log.debug("Broken pipe in _feed_pipe()")
+            log.debug(f"Broken pipe in _feed_pipe()")
+        except ValueError:
+            import traceback
+
+            log.debug(f"Error _feed_pipe(): {traceback.format_exc()}")
     except KeyboardInterrupt:
         self.scan.stop()
     except Exception as e:
