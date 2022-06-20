@@ -44,7 +44,7 @@ class ScanManager:
     def _emit_event(self, *args, **kwargs):
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
-            abort_if = kwargs.pop("abort_if", lambda e: False)
+            abort_if = kwargs.pop("abort_if", None)
             event = self.scan.make_event(*args, **kwargs)
             log.debug(f'module "{event.module}" raised {event}')
 
@@ -56,23 +56,24 @@ class ScanManager:
                     return
 
             # DNS resolution
-            child_events = []
+            dns_children = []
             resolve_event = True
             event_host_hash = hash(event.host)
             target = getattr(self.scan, "target", None)
             # skip DNS resolution if we've already resolved this event
             event_in_scope, dns_tags = self.events_resolved.get(event_host_hash, (None, set()))
             if event_in_scope is None and target is not None:
+                event_in_scope = False
                 with self.events_resolved_lock:
                     if event.host and hash(event.host) in self.events_resolved:
                         resolve_event = False
                 if resolve_event and event.host:
-                    child_events = self.scan.helpers.dns.resolve_event(event)
-                event_in_scope = target.in_scope(event)
-                dns_tags = set(event.tags)
+                    dns_children, dns_tags, event_in_scope = self.scan.helpers.dns.resolve_event(event)
+                event_in_scope = event_in_scope | target.in_scope(event)
             event.tags.update(dns_tags)
 
             if event_in_scope and target is not None and not event._dummy:
+                log.debug(f"Making {event} in-scope")
                 event.make_in_scope()
             elif event.host and not event_in_scope:
                 if event.scope_distance > self.scan.scope_report_distance:
@@ -81,14 +82,14 @@ class ScanManager:
                     )
                     event.make_internal()
             elif not event.host:
-                event.unmake_internal()
-
-            if abort_if(event):
-                log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
-                return
+                event.unmake_internal(force_output=True, emit_trail=True)
 
             # now that the event is tagged, accept it if we didn't already
             if abort_if is not None:
+                if abort_if(event):
+                    log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
+                    return
+
                 if not self.accept_event(event):
                     return
 
@@ -97,21 +98,30 @@ class ScanManager:
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
 
+            dns_child_events = []
+            for record, rdtype in dns_children:
+                module = self.scan.helpers.dns._get_dummy_module(rdtype)
+                try:
+                    child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=event)
+                    dns_child_events.append(child_event)
+                except ValidationError as e:
+                    log.warning(f'Event validation failed for DNS child of {event}: "{record}" ({rdtype}): {e}')
+
             emit_children = self.scan.config.get("dns_resolution", False)
             with self.events_resolved_lock:
                 # don't emit duplicates
-                if emit_children and child_events and event_host_hash not in self.events_resolved:
+                if emit_children and dns_child_events and event_host_hash not in self.events_resolved:
                     self.events_resolved[event_host_hash] = (event_in_scope, dns_tags)
                     emit_children &= True
                 else:
                     emit_children &= False
-            if child_events:
-                any_in_scope = any([self.scan.target.in_scope(e) for e in child_events])
+            if dns_child_events:
+                any_in_scope = any([self.scan.target.in_scope(e) for e in dns_child_events])
                 # only emit children if the source event is less than three hops from the main scope
                 # this helps prevent runaway dns resolutions that result in junk data
                 emit_children &= -1 < event.scope_distance <= self.scan.dns_search_distance or any_in_scope
             if emit_children:
-                for child_event in child_events:
+                for child_event in dns_child_events:
                     # this is needed because the children were created before we knew whether the
                     # event was in scope
                     child_event.scope_distance = event.scope_distance + 1
