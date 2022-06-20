@@ -149,10 +149,16 @@ class BaseEvent:
     @scope_distance.setter
     def scope_distance(self, scope_distance):
         if scope_distance >= 0:
+            new_scope_distance = None
             if self.scope_distance == -1:
-                self._scope_distance = scope_distance
+                new_scope_distance = scope_distance
             else:
-                self._scope_distance = min(self.scope_distance, scope_distance)
+                new_scope_distance = min(self.scope_distance, scope_distance)
+            self._scope_distance = new_scope_distance
+            for t in list(self.tags):
+                if t.startswith("distance: "):
+                    self.tags.remove(t)
+            self.tags.add(f"distance: {new_scope_distance}")
 
     @property
     def source(self):
@@ -334,7 +340,10 @@ class DNS_NAME(BaseEvent):
         sanitized = str(data).strip().lower()
         if sanitized != ".":
             sanitized = sanitized.rstrip(".")
-        return sanitized
+        match_1 = any(r.match(sanitized) for r in regexes.event_type_regexes["DNS_NAME"])
+        match_2 = regexes._hostname_regex.match(sanitized)
+        if match_1 or match_2:
+            return sanitized
 
     def _host(self):
         return self.data
