@@ -145,12 +145,12 @@ def log_listener_setup(logging_queue, log_dir=None):
 
     # Log debug messages to file
     debug_handler = logging.handlers.TimedRotatingFileHandler(
-        f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=30
+        f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
     )
 
     # Log error messages to file
     error_handler = logging.handlers.TimedRotatingFileHandler(
-        f"{log_dir}/bbot.error.log", when="d", interval=1, backupCount=30
+        f"{log_dir}/bbot.error.log", when="d", interval=1, backupCount=14
     )
 
     # Filter by log level

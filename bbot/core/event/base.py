@@ -68,14 +68,6 @@ class BaseEvent:
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
 
-        # Catch these common whoopsies
-        if self.type in ("DNS_NAME", "IP_ADDRESS"):
-            data_is_ip = is_ip(data)
-            if self.type == "DNS_NAME" and data_is_ip:
-                self.type = "IP_ADDRESS"
-            elif self.type == "IP_ADDRESS" and not data_is_ip:
-                self.type = "DNS_NAME"
-
         with suppress(Exception):
             self.data = self._sanitize_data(data)
 
@@ -451,6 +443,15 @@ def make_event(
             raise ValidationError(f'Unable to autodetect event type from "{data}"')
 
         event_type = str(event_type).strip().upper()
+
+        # Catch these common whoopsies
+        if event_type in ("DNS_NAME", "IP_ADDRESS"):
+            data_is_ip = is_ip(data)
+            if event_type == "DNS_NAME" and data_is_ip:
+                event_type = "IP_ADDRESS"
+            elif event_type == "IP_ADDRESS" and not data_is_ip:
+                event_type = "DNS_NAME"
+
         event_class = globals().get(event_type, DefaultEvent)
 
         return event_class(
