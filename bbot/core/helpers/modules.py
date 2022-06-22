@@ -142,3 +142,18 @@ def load_module(module_name, namespace, base_module_class):
                 if value.__name__.lower() == module_name.lower():
                     value._name = module_name
                     return value
+
+
+def module_relationships(preloaded_modules):
+    rels = {}
+    for sname, src_module in preloaded_modules.items():
+        if src_module["watched_events"] and "*" not in src_module["watched_events"]:
+            # print(sname)
+            module_rels = set()
+            for dname, dst_module in preloaded_modules.items():
+                for event_type in src_module["produced_events"]:
+                    if event_type in dst_module["watched_events"]:
+                        # print(f"{sname} {dname}")
+                        module_rels.add(dname)
+            rels[sname] = list(module_rels)
+    return rels

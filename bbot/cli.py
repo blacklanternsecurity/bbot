@@ -56,14 +56,23 @@ def main():
         else:
             from bbot.scanner import Scanner
 
-            scanner = Scanner(
-                *options.targets,
-                modules=options.modules,
-                module_flags=options.flags,
-                output_modules=options.output_modules,
-                config=config,
-            )
-            scanner.start()
+            try:
+                scanner = Scanner(
+                    *options.targets,
+                    modules=options.modules,
+                    module_flags=options.flags,
+                    output_modules=options.output_modules,
+                    config=config,
+                )
+                if options.load_wordcloud:
+                    scanner.helpers.word_cloud.load(options.load_wordcloud)
+                elif options.load_last_wordcloud:
+                    scanner.helpers.word_cloud.load()
+                scanner.start()
+            except Exception:
+                raise
+            finally:
+                scanner.helpers.word_cloud.save(options.save_wordcloud)
 
     except bbot.core.errors.BBOTError as e:
         import traceback
