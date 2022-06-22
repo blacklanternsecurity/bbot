@@ -91,6 +91,16 @@ for p in (parser, dummy_parser):
         action="store_true",
         help="Show current config in YAML format",
     )
+    wordcloud = p.add_argument_group(
+        title="Word cloud", description="Save/load wordlist of common words gathered during a scan"
+    )
+    wordcloud.add_argument("--save-wordcloud", help="Output wordcloud to file when the scan completes", metavar="FILE")
+    wordcloud.add_argument(
+        "--load-wordcloud", help="Load wordcloud from a file and use it in the scan", metavar="FILE"
+    )
+    wordcloud.add_argument(
+        "--load-last-wordcloud", action="store_true", help="Load the wordcloud from the last scan (from $BBOT_HOME)"
+    )
     deps = p.add_argument_group(
         title="Module dependencies", description="Control how modules install their dependencies"
     )

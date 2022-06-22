@@ -88,10 +88,8 @@ class BaseEvent:
 
         # internal events are not ingested by output modules
         if not self._dummy:
-            if self.host and (_internal or source._internal):
+            if _internal or source._internal:
                 self.make_internal()
-            elif not self.host:
-                self.unmake_internal()
 
     @property
     def host(self):
@@ -365,7 +363,9 @@ class OPEN_TCP_PORT(BaseEvent):
         return host
 
     def _words(self):
-        return extract_words(self.host_stem)
+        if not is_ip(self.host):
+            return extract_words(self.host_stem)
+        return set()
 
 
 class URL(BaseEvent):
@@ -400,7 +400,9 @@ class URL(BaseEvent):
             return 80
 
     def _words(self):
-        return extract_words(self.host_stem)
+        if not is_ip(self.host):
+            return extract_words(self.host_stem)
+        return set()
 
 
 class URL_HINT(URL):

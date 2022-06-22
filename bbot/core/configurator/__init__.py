@@ -56,7 +56,7 @@ bbot_temp = home / "temp"
 bbot_temp.mkdir(exist_ok=True, parents=True)
 config["temp"] = str(bbot_temp)
 
-# copy certain args to config
+# copy certain CLI args to config
 if args.cli_options is not None:
     config["ignore_failed_deps"] = args.cli_options.ignore_failed_deps
     config["retry_deps"] = args.cli_options.retry_deps

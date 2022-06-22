@@ -1,6 +1,9 @@
+import csv
 import string
 import logging
 from pathlib import Path
+from contextlib import suppress
+from collections import OrderedDict
 
 log = logging.getLogger("bbot.core.helpers.wordcloud")
 
@@ -118,3 +121,63 @@ class WordCloud(dict):
             results.add(s)
 
         return results
+
+    def truncate(self, limit):
+        new_self = dict(self.json(limit=limit))
+        self.clear()
+        self.update(new_self)
+
+    def json(self, limit=None):
+        cloud_sorted = sorted(self.items(), key=lambda x: x[-1], reverse=True)
+        if limit is not None:
+            cloud_sorted = cloud_sorted[:limit]
+        return OrderedDict(cloud_sorted)
+
+    @property
+    def default_filename(self):
+        return self.parent_helper.home / "wordcloud_last_run.tsv"
+
+    def save(self, filename=None, limit=None):
+        try:
+            if filename is None:
+                filename = self.default_filename
+            else:
+                filename = Path(filename).resolve()
+            filename.parent.mkdir(exist_ok=True, parents=True)
+            log.debug(f"Saving word cloud to {filename}")
+            with open(str(filename), mode="w", newline="") as f:
+                c = csv.writer(f, delimiter="\t")
+                for word, count in self.json(limit).items():
+                    c.writerow([count, word])
+            if len(self) > 0:
+                log.success(f"Saved word cloud ({len(self):,} words) to {filename}")
+        except Exception as e:
+            import traceback
+
+            log.warning(f"Failed to save word cloud to {filename}: {e}")
+            log.debug(traceback.format_exc())
+
+    def load(self, filename=None):
+        try:
+            if filename is None:
+                filename = self.default_filename
+            else:
+                filename = Path(filename).resolve()
+            log.verbose(f"Loading word cloud from {filename}")
+            with open(str(filename), newline="") as f:
+                c = csv.reader(f, delimiter="\t")
+                for row in c:
+                    if len(row) == 1:
+                        self.add_word(row[0])
+                    elif len(row) == 2:
+                        with suppress(Exception):
+                            count, word = row
+                            count = int(count)
+                            self[word] = count
+            if len(self) > 0:
+                log.success(f"Loaded word cloud ({len(self):,} words) from {filename}")
+        except Exception as e:
+            import traceback
+
+            log.warning(f"Failed to load word cloud from {filename}: {e}")
+            log.debug(traceback.format_exc())

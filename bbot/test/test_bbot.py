@@ -250,6 +250,7 @@ def test_manager(config):
     scan1.modules["ipneighbor"].queue_event = lambda e: module_queue.append(e)
 
     # in-scope event
+    assert test_event1.scope_distance == 0
     manager.distribute_event(test_event1)
     assert hash(test_event1) in manager.events_distributed
     assert test_event1 in module_queue
@@ -267,7 +268,7 @@ def test_manager(config):
     assert test_event2.scope_distance == 1
     manager.distribute_event(test_event2)
     assert test_event2 in module_queue
-    assert test_event2 in output_queue
+    assert test_event2 not in output_queue
     assert test_event2._internal == True
     assert test_event2._force_output == False
     assert scan1.modules["human"]._filter_event(test_event2) == False
@@ -416,7 +417,7 @@ def test_dns_resolvers(patch_requests, helpers):
     assert hasattr(helpers.dns.resolver_file, "is_file")
 
 
-def test_word_cloud(helpers):
+def test_word_cloud(helpers, config):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
     assert "base0_p013" in number_mutations
     assert "base7_p013" in number_mutations
@@ -430,6 +431,33 @@ def test_word_cloud(helpers):
     permutations = helpers.word_cloud.mutations("_base", numbers=1)
     assert ("_base", "dev") in permutations
     assert ("dev", "_base") in permutations
+
+    # saving and loading
+    from bbot.scanner.scanner import Scanner
+
+    scan1 = Scanner("127.0.0.1", config=config)
+    word_cloud = scan1.helpers.word_cloud
+    word_cloud.add_word("lantern")
+    word_cloud.add_word("black")
+    word_cloud.add_word("black")
+    word_cloud.save()
+    with open(word_cloud.default_filename) as f:
+        word_cloud_content = [l.rstrip() for l in f.read().splitlines()]
+    assert len(word_cloud_content) == 2
+    assert "2\tblack" in word_cloud_content
+    assert "1\tlantern" in word_cloud_content
+    word_cloud.save(limit=1)
+    with open(word_cloud.default_filename) as f:
+        word_cloud_content = [l.rstrip() for l in f.read().splitlines()]
+    assert len(word_cloud_content) == 1
+    assert "2\tblack" in word_cloud_content
+    assert "1\tlantern" not in word_cloud_content
+    word_cloud.clear()
+    with open(word_cloud.default_filename, "w") as f:
+        f.write("plumbus\nrumbus")
+    word_cloud.load()
+    assert word_cloud["plumbus"] == 1
+    assert word_cloud["rumbus"] == 1
 
 
 def test_modules(patch_requests, patch_commands, scan, helpers, events):
@@ -475,10 +503,12 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events):
     base_module.max_scope_distance = -1
     # special case for IPs and ranges
     base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
-    localhost2.module = "plumbus"
-    assert base_module._filter_event(localhost2) == True
-    localhost2.module = "speculate"
-    assert base_module._filter_event(localhost2) == False
+    ip_range = scan.make_event("127.0.0.0/24", dummy=True)
+    localhost3 = scan.make_event("127.0.0.1", source=ip_range)
+    localhost3.module = "plumbus"
+    assert base_module._filter_event(localhost3) == True
+    localhost3.module = "speculate"
+    assert base_module._filter_event(localhost3) == False
 
     method_futures = {"setup": {}, "finish": {}, "cleanup": {}}
     filter_futures = {}
@@ -523,6 +553,24 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events):
         module = filter_futures[filter_future]
         log.info(f"Testing {module.name}.filter_event()")
         assert filter_future.result() in (True, False)
+
+    # module preloading
+    from bbot.modules import modules_preloaded
+    from bbot.core.helpers.modules import module_relationships
+
+    module_rels = module_relationships(modules_preloaded)
+    ipneighbor = module_rels["ipneighbor"]
+    assert len(ipneighbor) > 1
+    assert "ipneighbor" in ipneighbor
+
+
+def test_config(config):
+    from bbot.scanner.scanner import Scanner
+
+    scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], config=config)
+    scan1.load_modules()
+    assert scan1.config.plumbus == "asdf"
+    assert scan1.modules["ipneighbor"].config.rumbus == "fdsa"
 
 
 def test_target(neuter_ansible, patch_requests, patch_commands):

@@ -72,6 +72,7 @@ class ScanManager:
                 event_in_scope = event_in_scope | target.in_scope(event)
             event.tags.update(dns_tags)
 
+            # Scope shepherding
             if event_in_scope and target is not None and not event._dummy:
                 log.debug(f"Making {event} in-scope")
                 event.make_in_scope()
@@ -82,6 +83,7 @@ class ScanManager:
                     )
                     event.make_internal()
             elif not event.host:
+                log.debug(f"Making {event} non-internal because it does not have scope information")
                 event.unmake_internal(force_output=True, emit_trail=True)
 
             # now that the event is tagged, accept it if we didn't already
@@ -93,6 +95,7 @@ class ScanManager:
                 if not self.accept_event(event):
                     return
 
+            # queue the event before emitting its DNS children
             self.queue_event(event)
 
             if callable(on_success_callback):
@@ -200,15 +203,19 @@ class ScanManager:
                 dup = True
             else:
                 self.events_distributed.add(event_hash)
-        if not dup:
+        # absorb event into the word cloud if it's 1 hop away or closer
+        if not dup and -1 < event.scope_distance < 2:
             self.scan.word_cloud.absorb_event(event)
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:
                 event_within_scope_distance = (
                     event.scope_distance <= self.scan.scope_search_distance and event.scope_distance > -1
                 )
+                event_within_report_distance = (
+                    event.scope_distance <= self.scan.scope_report_distance and event.scope_distance > -1
+                )
                 if mod._type == "output":
-                    if event_within_scope_distance or not event.host or event._force_output:
+                    if event_within_report_distance or not event.host or event._force_output:
                         mod.queue_event(event)
                 else:
                     if event_within_scope_distance or not event.host:
