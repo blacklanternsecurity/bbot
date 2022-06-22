@@ -477,4 +477,4 @@ def make_event(
 
 
 def is_event(e):
-    return BaseEvent in e.__class__.__bases__
+    return BaseEvent in e.__class__.__mro__
