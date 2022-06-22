@@ -157,10 +157,10 @@ class telerik(BaseModule):
 
         DialogHandlerUrls = [
             "Telerik.Web.UI.DialogHandler.aspx?dp=1",
-            "/DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx?dp=1",
-            "/providers/htmleditorproviders/telerik/telerik.web.ui.dialoghandler.aspx",
-            "/desktopmodules/telerikwebui/radeditorprovider/telerik.web.ui.dialoghandler.aspx",
-            "/desktopmodules/dnnwerk.radeditorprovider/dialoghandler.aspx",
+            "DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx?dp=1",
+            "providers/htmleditorproviders/telerik/telerik.web.ui.dialoghandler.aspx",
+            "desktopmodules/telerikwebui/radeditorprovider/telerik.web.ui.dialoghandler.aspx",
+            "desktopmodules/dnnwerk.radeditorprovider/dialoghandler.aspx",
         ]
 
         for dh in DialogHandlerUrls:
@@ -169,7 +169,7 @@ class telerik(BaseModule):
                 if "Cannot deserialize dialog parameters" in result.text:
                     self.debug(f"Detected Telerik UI instance ({dh})")
                     self.emit_event(
-                        f" {event.data}Telerik DialogHandler detected", "VULNERABILITY", event, tags=["info"]
+                        f"{event.data}{dh} Telerik DialogHandler detected", "VULNERABILITY", event, tags=["info"]
                     )
 
         result = self.test_detector(event.data, "Telerik.Web.UI.SpellCheckHandler.axd")
