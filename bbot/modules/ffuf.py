@@ -14,8 +14,8 @@ class ffuf(BaseModule):
     options = {
         "wordlist_dir": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-large-directories.txt",
         "wordlist_files": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-large-words.txt",
-        "lines_dir": 1000,
-        "lines_files": 1000,
+        "lines_dir": 3000,
+        "lines_files": 3000,
         "max_depth": 3,
         "prefix_busting": False,
         "dirs_only": False,
@@ -56,6 +56,8 @@ class ffuf(BaseModule):
         "sht": ["shtml"],
         "php": ["php2", "php3", "php4", "ph5"],
     }
+
+    dir_blacklist = ["images", "css", "image"]
 
     deps_ansible = [
         {
@@ -224,12 +226,17 @@ class ffuf(BaseModule):
         if tempfile_dir:
             command = ["ffuf", "-ac", "-s", "-w", tempfile_dir, "-u", fuzz_url + "/"]
             for found_dir in self.helpers.run_live(command):
+
                 if self.scan.stopping:
                     break
                 if found_dir.rstrip() == self.sanity_canary:
                     self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
                     break
-                self.emit_event(f"{url}{found_dir.rstrip()}/", "URL", source=event, tags=["dir"])
+
+                if found_dir.lower() not in self.dir_blacklist:
+                    self.emit_event(f"{url}{found_dir.rstrip()}/", "URL", source=event, tags=["dir"])
+                else:
+                    self.debug(f"Skipping found directory [{found_dir}] because it was in the dir_blacklist")
 
         if not self.config.get("dirs_only") and tempfile_files:
             for extension in self.extension_list:
