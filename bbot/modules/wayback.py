@@ -13,8 +13,13 @@ class wayback(BaseModule):
     endpoints = set()
     uris = set()
 
-    options = {"include_params": False}
-    options_desc = {"include_params": "Include URLs with query strings"}
+    options = {"include_params": True, "skip_potential_large_files": True}
+    options_desc = {
+        "include_params": "Include URLs with query strings",
+        "skip_potential_large_files": "Skips making web requests for file extensions which are potentially very large",
+    }
+
+    large_file_extensions = ["zip", "pdf", "avi", "mkv", "avi", "mov", "mp4", "flv", "wmv", "xml"]
 
     def handle_event(self, event):
 
@@ -38,6 +43,15 @@ class wayback(BaseModule):
                 u = u.replace(":80", "").replace(":443", "").rstrip()
                 if self.helpers.validate_url(u):
                     p = urlparse(u)
+
+                    skip_request = False
+                    possible_ext = p.path.split(".")[-1]
+                    if self.config.get("skip_potential_large_files"):
+                        # check if there's an extension that's in the blacklist to avoid downloading huge files
+
+                        if possible_ext in self.large_file_extensions:
+                            skip_request = True
+
                     p._replace(fragment="")._replace(query="")
                     uri = p._replace(fragment="").geturl().rstrip()
                     endpoint = p._replace(fragment="", query="").geturl().rstrip()
@@ -46,22 +60,32 @@ class wayback(BaseModule):
                     if self.config.get("include_params"):
                         if uri not in self.uris:
                             self.uris.add(uri)
-                            test_request = self.helpers.request(uri)
-                            if test_request:
-                                if (test_request.status_code == 200) or (test_request.status_code == 500):
-                                    pass
-                                    # self.emit_event(uri, "URL", event, tags=["uri"])
+
+                            if not skip_request:
+                                test_request = self.helpers.request(uri)
+                                if test_request:
+                                    if (test_request.status_code == 200) or (test_request.status_code == 500):
+                                        self.emit_event(uri, "URL", event, tags=["uri"])
+                                else:
+                                    self.debug(f"URL: {uri} is not currently accessible, ignoring")
                             else:
-                                self.debug(f"URL: {uri} is not currently accessible, ignoring")
+                                self.warning(
+                                    f"Skipping URI {uri} because of extension potentially large extension: [{possible_ext}]"
+                                )
 
                     if endpoint not in self.endpoints:
                         self.endpoints.add(endpoint)
                         test_request = self.helpers.request(endpoint)
-                        if test_request:
-                            if (test_request.status_code == 200) or (test_request.status_code == 500):
-                                self.emit_event(endpoint, "URL", event, tags=["endpoint"])
-                            else:
-                                self.debug(f"URL: {endpoint} is not currently accessible, ignoring")
+                        if not skip_request:
+                            if test_request:
+                                if (test_request.status_code == 200) or (test_request.status_code == 500):
+                                    self.emit_event(endpoint, "URL", event, tags=["endpoint"])
+                                else:
+                                    self.debug(f"URL: {endpoint} is not currently accessible, ignoring")
+                        else:
+                            self.warning(
+                                f"Skipping URI {uri} because of extension potentially large extension: [{possible_ext}]"
+                            )
 
                     if dir != "https://" and dir != "http://":
                         if dir not in self.dirs:
