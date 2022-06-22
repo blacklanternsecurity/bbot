@@ -6,7 +6,7 @@ from .base import BaseModule
 
 class httpx(BaseModule):
 
-    watched_events = ["OPEN_TCP_PORT", "IP_ADDRESS", "DNS_NAME"]
+    watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     batch_size = 100
     in_scope_only = False

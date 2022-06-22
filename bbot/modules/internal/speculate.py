@@ -24,7 +24,7 @@ class speculate(BaseInternalModule):
             for x in net:
                 self.emit_event(x, "IP_ADDRESS", source=event, internal=True)
 
-        # generate open ports from URLs
+        # generate open ports, DNS_NAMES, and IPs from URLs
         if event.type == "URL":
             if event.host:
                 self.emit_event(event.host, "DNS_NAME", source=event, internal=True)
@@ -44,7 +44,8 @@ class speculate(BaseInternalModule):
     def filter_event(self, event):
         # don't accept events from self
         if str(event.module) == "speculate":
-            return False
+            if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
+                return False
         # don't act on weird DNS_NAMES
         if event.type == "DNS_NAME":
             if not any([x in event.tags for x in ("a_record", "aaaa_record")]):

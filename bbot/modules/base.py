@@ -285,6 +285,7 @@ class BaseModule:
                 return False
         # exclude non-watched types
         if not any(t in self.watched_events for t in ("*", e.type)):
+            self.debug(f"{e} is not in watched_events")
             return False
         # optionally exclude non-targets
         if self.target_only and "target" not in e.tags:
@@ -302,9 +303,11 @@ class BaseModule:
                 return False
         # special case for IPs that originated from a CIDR
         # if the event is an IP address and came from the speculate module
-        if e.type == "IP_ADDRESS" and str(e.module) == "speculate":
+        source_is_range = getattr(e.source, "type", "") == "IP_RANGE"
+        if source_is_range and e.type == "IP_ADDRESS" and str(e.module) == "speculate" and self.name != "speculate":
             # and the current module listens for both ranges and CIDRs
             if all([x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")]):
+                self.debug(f"Not accepting {e} because module consumes IP ranges directly")
                 # then skip the event.
                 # this helps avoid double-portscanning both an individual IP and its parent CIDR.
                 return False
