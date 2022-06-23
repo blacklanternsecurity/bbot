@@ -7,6 +7,7 @@ from threading import Lock
 from . import misc
 from .dns import DNSHelper
 from .wordcloud import WordCloud
+from ..threadpool import as_completed
 from .depsinstaller import DepsInstaller
 
 log = logging.getLogger("bbot.core.helpers")
@@ -18,7 +19,6 @@ class ConfigAwareHelper:
     from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from . import regexes
-    from ..threadpool import as_completed
 
     def __init__(self, config, scan=None):
         self.config = config
@@ -56,6 +56,10 @@ class ConfigAwareHelper:
 
             self._scan = Scanner()
         return self._scan
+
+    @staticmethod
+    def as_completed(*args, **kwargs):
+        return as_completed(*args, **kwargs)
 
     def __getattribute__(self, attr):
         """
