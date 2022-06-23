@@ -1,5 +1,7 @@
 import logging
 import argparse
+from pathlib import Path
+from datetime import datetime
 from omegaconf import OmegaConf
 from contextlib import suppress
 
@@ -39,6 +41,15 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         for f in ret.flags:
             if f not in flag_choices and not self._dummy:
                 raise ArgumentError(f'Flag "{f}" is not valid. Choose from: {",".join(list(flag_choices))}')
+        # -oA
+        if ret.output_all:
+            for om_modname in ("human", "csv", "json"):
+                if om_modname not in ret.output_modules:
+                    ret.output_modules.append(om_modname)
+            output_path = Path(ret.output_all).resolve()
+            if output_path.is_dir():
+                date = datetime.now().isoformat().replace(":", "_")
+                ret.output_all = output_path / f"bbot_{date}"
         return ret
 
 
@@ -74,6 +85,12 @@ for p in (parser, dummy_parser):
         default=["human"],
         help=f'Output module(s). Choices: {",".join(list(output.modules_preloaded))}',
         metavar="MODULES",
+    )
+    p.add_argument(
+        "-oA",
+        "--output-all",
+        help=f"Output in CSV, JSON, and TXT at this file location",
+        metavar="BASE_FILENAME",
     )
     p.add_argument(
         "-c",

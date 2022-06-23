@@ -210,7 +210,7 @@ class BaseModule:
             ret = self.setup()
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
-            self.set_error_state(f"Failed to set up module {self.name}: {e}")
+            self.set_error_state(f"Module setup failed: {e}")
             self.debug(traceback.format_exc())
         return ret
 
