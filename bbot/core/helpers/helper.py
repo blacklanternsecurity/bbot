@@ -1,13 +1,13 @@
 import atexit
 import shutil
 import logging
-from time import sleep
 from pathlib import Path
 from threading import Lock
 
 from . import misc
 from .dns import DNSHelper
 from .wordcloud import WordCloud
+from ..threadpool import as_completed
 from .depsinstaller import DepsInstaller
 
 log = logging.getLogger("bbot.core.helpers")
@@ -58,20 +58,8 @@ class ConfigAwareHelper:
         return self._scan
 
     @staticmethod
-    def as_completed(fs):
-        fs = list(fs)
-        while fs:
-            result = False
-            for i, f in enumerate(fs):
-                if f.done():
-                    result = True
-                    future = fs.pop(i)
-                    if future._state in ("CANCELLED", "CANCELLED_AND_NOTIFIED"):
-                        continue
-                    yield future
-                    break
-            if not result:
-                sleep(0.05)
+    def as_completed(*args, **kwargs):
+        return as_completed(*args, **kwargs)
 
     def __getattribute__(self, attr):
         """
