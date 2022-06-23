@@ -10,7 +10,7 @@ class iis_shortnames(BaseModule):
     in_scope_only = True
 
     deps_ansible = [
-        {"name": "Install Java JRE", "apt": {"name": "default-jre", "state": "latest", "update_cache": True}}
+        {"name": "Install Java JRE", "become": True, "apt": {"name": "default-jre", "state": "latest", "update_cache": True}}
     ]
 
     def setup(self):
