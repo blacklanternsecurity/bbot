@@ -42,7 +42,6 @@ class ThreadPoolWrapper:
         self.executor.shutdown(*args, **kwargs)
 
 
-@staticmethod
 def as_completed(fs):
     fs = list(fs)
     while fs:
