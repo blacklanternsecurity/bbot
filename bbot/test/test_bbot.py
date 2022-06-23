@@ -648,6 +648,20 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     scan3._thread_pool.shutdown(wait=True)
 
 
+def test_threadpool():
+    from concurrent.futures import ThreadPoolExecutor
+    from bbot.core.threadpool import ThreadPoolWrapper, as_completed
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        pool = ThreadPoolWrapper(executor)
+        add_one = lambda x: x + 1
+        futures = [pool.submit_task(add_one, y) for y in [0, 1, 2, 3, 4]]
+        results = []
+        for f in as_completed(futures):
+            results.append(f.result())
+        assert tuple(sorted(results)) == (1, 2, 3, 4, 5)
+
+
 def test_agent(agent):
     agent.start()
     agent.on_error(agent.ws, "test")
