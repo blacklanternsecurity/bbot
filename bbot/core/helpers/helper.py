@@ -1,7 +1,6 @@
 import atexit
 import shutil
 import logging
-from time import sleep
 from pathlib import Path
 from threading import Lock
 
@@ -19,6 +18,7 @@ class ConfigAwareHelper:
     from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from . import regexes
+    from ..threadpool import as_completed
 
     def __init__(self, config, scan=None):
         self.config = config
@@ -56,22 +56,6 @@ class ConfigAwareHelper:
 
             self._scan = Scanner()
         return self._scan
-
-    @staticmethod
-    def as_completed(fs):
-        fs = list(fs)
-        while fs:
-            result = False
-            for i, f in enumerate(fs):
-                if f.done():
-                    result = True
-                    future = fs.pop(i)
-                    if future._state in ("CANCELLED", "CANCELLED_AND_NOTIFIED"):
-                        continue
-                    yield future
-                    break
-            if not result:
-                sleep(0.05)
 
     def __getattribute__(self, attr):
         """

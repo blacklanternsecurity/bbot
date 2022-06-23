@@ -179,8 +179,8 @@ def host_in_host(host1, host2):
         return False
 
     # check if hosts are IP types
-    host1_ip_type = hasattr(host1, "is_multicast")
-    host2_ip_type = hasattr(host2, "is_multicast")
+    host1_ip_type = is_ip_type(host1)
+    host2_ip_type = is_ip_type(host2)
     # if both hosts are IP types
     if host1_ip_type and host2_ip_type:
         if not host1.version == host2.version:
