@@ -328,11 +328,11 @@ class ScanManager:
                     with suppress(Exception):
                         mod.set_error_state()
 
-            if finished:
+            passes -= 1
+            if finished and passes > 0:
                 sleep(0.1)
             else:
                 break
-            passes -= 1
 
         status["finished"] = finished
 
