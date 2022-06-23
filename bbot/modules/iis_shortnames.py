@@ -10,7 +10,11 @@ class iis_shortnames(BaseModule):
     in_scope_only = True
 
     deps_ansible = [
-        {"name": "Install Java JRE", "become": True, "apt": {"name": "default-jre", "state": "latest", "update_cache": True}}
+        {
+            "name": "Install Java JRE",
+            "become": True,
+            "apt": {"name": "default-jre", "state": "latest", "update_cache": True},
+        }
     ]
 
     def setup(self):
@@ -30,21 +34,10 @@ class iis_shortnames(BaseModule):
 
         if result:
             self.emit_event(
-                f"[LOW] IIS Shortname Vulnerability [{normalized_url}]",
-                "VULNERABILITY",
-                event,
-                tags=["low"],
+                f"[LOW] IIS Shortname Vulnerability [{normalized_url}]", "VULNERABILITY", event, tags=["low"]
             )
             if not self.config.get("detect_only"):
-                command = [
-                    "java",
-                    "-jar",
-                    self.iis_scanner_jar,
-                    "0",
-                    "8",
-                    normalized_url,
-                    self.iis_scanner_config,
-                ]
+                command = ["java", "-jar", self.iis_scanner_jar, "0", "8", normalized_url, self.iis_scanner_config]
                 output = self.helpers.run(command).stdout
                 self.debug(output)
                 discovered_directories, discovered_files = self.shortname_parse(output)
