@@ -56,13 +56,28 @@ bbot_temp = home / "temp"
 bbot_temp.mkdir(exist_ok=True, parents=True)
 config["temp"] = str(bbot_temp)
 
-# copy certain CLI args to config
+# exchange certain options between CLI args and config
 if args.cli_options is not None:
+    # deps
     config["ignore_failed_deps"] = args.cli_options.ignore_failed_deps
     config["retry_deps"] = args.cli_options.retry_deps
     config["force_deps"] = args.cli_options.force_deps
     config["no_deps"] = args.cli_options.no_deps
+    # debug
     config["debug"] = args.cli_options.debug
+    # -oA
+    if args.cli_options.output_all:
+        if not "output_modules" in config:
+            config["output_modules"] = {}
+        for om_modname in ("human", "csv", "json"):
+            if not om_modname in config["output_modules"]:
+                config["output_modules"][om_modname] = {}
+            if om_modname == "human":
+                om_filext = "txt"
+            else:
+                om_filext = str(om_modname)
+            om_filename = f"{args.cli_options.output_all}.{om_filext}"
+            config["output_modules"][om_modname]["output_file"] = om_filename
 
 # copy config to environment
 os.environ.update(environ.flatten_config(config))

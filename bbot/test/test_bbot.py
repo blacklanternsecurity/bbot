@@ -623,6 +623,17 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     assert "targets" in scan2.json
     scan2.start()
 
+    test_output_dir = Path(config.home)
+    assert test_output_dir.is_dir()
+    csv_file = test_output_dir / "test.csv"
+    assert (test_output_dir / "test.txt").is_file()
+    assert (test_output_dir / "test.json").is_file()
+    assert csv_file.is_file()
+    with open(csv_file) as f:
+        lines = f.readlines()
+        assert lines[0] == "Event type,Event data,Source Module,Event ID,Event Tags,Source Event ID\n"
+        assert len(lines) > 1
+
     scan3 = Scanner(
         "localhost",
         "8.8.8.8/32",
@@ -646,6 +657,20 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
                 module.handle_event(e)
 
     scan3._thread_pool.shutdown(wait=True)
+
+
+def test_threadpool():
+    from concurrent.futures import ThreadPoolExecutor
+    from bbot.core.threadpool import ThreadPoolWrapper, as_completed
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        pool = ThreadPoolWrapper(executor)
+        add_one = lambda x: x + 1
+        futures = [pool.submit_task(add_one, y) for y in [0, 1, 2, 3, 4]]
+        results = []
+        for f in as_completed(futures):
+            results.append(f.result())
+        assert tuple(sorted(results)) == (1, 2, 3, 4, 5)
 
 
 def test_agent(agent):

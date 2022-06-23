@@ -40,3 +40,19 @@ class ThreadPoolWrapper:
 
     def shutdown(self, *args, **kwargs):
         self.executor.shutdown(*args, **kwargs)
+
+
+def as_completed(fs):
+    fs = list(fs)
+    while fs:
+        result = False
+        for i, f in enumerate(fs):
+            if f.done():
+                result = True
+                future = fs.pop(i)
+                if future._state in ("CANCELLED", "CANCELLED_AND_NOTIFIED"):
+                    continue
+                yield future
+                break
+        if not result:
+            sleep(0.05)
