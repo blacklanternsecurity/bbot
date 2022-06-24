@@ -86,10 +86,7 @@ def request(self, *args, **kwargs):
         session = kwargs.pop("session", None)
 
     http_timeout = self.config.get("http_timeout", 20)
-    user_agent = self.config.get(
-        "user_agent",
-        "BBOT",
-    )
+    user_agent = self.config.get("user_agent", "BBOT")
 
     # in case of URL only, assume GET request
     if len(args) == 1:
@@ -140,9 +137,9 @@ class HttpCompare:
     def __init__(self, baseline_url):
         self.baseline_url = baseline_url
 
-        baseline_1 = requests.get(self.baseline_url)
+        baseline_1 = requests.get(self.baseline_url, verify=False)
         sleep(2)
-        baseline_2 = requests.get(self.baseline_url)
+        baseline_2 = requests.get(self.baseline_url, verify=False)
         self.baseline = baseline_1
 
         if baseline_1.status_code != baseline_2.status_code:
@@ -211,7 +208,7 @@ class HttpCompare:
         return ddiff["deep_distance"]
 
     def compare(self, subject, add_headers=None, add_cookie=None):
-        subject_response = requests.get(subject, headers=add_headers)
+        subject_response = requests.get(subject, headers=add_headers, verify=False)
 
         try:
             subject_json = json.loads(xmltojson.parse(subject_response.text))
