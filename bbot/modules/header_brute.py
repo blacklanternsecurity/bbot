@@ -31,7 +31,16 @@ class header_brute(BaseModule):
     options = {"header_wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
     options_desc = {"header_wordlist": "Define the wordlist to be used to derive headers"}
     scanned_hosts = []
-    header_blacklist = ["content-length", "expect", "transfer-encoding", "connection"]
+    header_blacklist = [
+        "content-length",
+        "expect",
+        "transfer-encoding",
+        "connection",
+        "if-match",
+        "if-modified-since",
+        "if-none-match",
+        "if-unmodified-since",
+    ]
     max_threads = 12
     in_scope_only = True
 
