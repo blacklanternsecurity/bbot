@@ -137,9 +137,9 @@ class HttpCompare:
     def __init__(self, baseline_url):
         self.baseline_url = baseline_url
 
-        baseline_1 = requests.get(self.baseline_url, verify=False)
+        baseline_1 = requests.get(self.baseline_url, verify=False, timeout=10)
         sleep(2)
-        baseline_2 = requests.get(self.baseline_url, verify=False)
+        baseline_2 = requests.get(self.baseline_url, verify=False, timeout=10)
         self.baseline = baseline_1
 
         if baseline_1.status_code != baseline_2.status_code:
@@ -208,7 +208,12 @@ class HttpCompare:
         return ddiff["deep_distance"]
 
     def compare(self, subject, add_headers=None, add_cookie=None):
-        subject_response = requests.get(subject, headers=add_headers, verify=False)
+
+        try:
+            subject_response = requests.get(subject, headers=add_headers, verify=False, timeout=10)
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
+            # this can be caused by a WAF not liking the header, so we really arent interested in it
+            return True
 
         try:
             subject_json = json.loads(xmltojson.parse(subject_response.text))
