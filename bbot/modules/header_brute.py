@@ -47,6 +47,9 @@ class header_brute(BaseModule):
         url = event.data
         compare_helper = self.helpers.HttpCompare(url)
         batch_size = self.header_count_test(url)
+        if batch_size < 0:
+            self.debug("could not resolve batch size, aborting")
+            return
         self.debug(f"resolved batch_size at {str(batch_size)}")
 
         f = open(self.wordlist, errors="ignore")
@@ -85,6 +88,9 @@ class header_brute(BaseModule):
             raise Exception("Baseline request throwing error, cannot proceed")
         header_count = 120
         while 1:
+
+            if header_count < 0:
+                return -1
             fake_headers = {}
             for i in range(0, header_count):
                 fake_headers[self.helpers.rand_string(14)] = self.helpers.rand_string(14)
