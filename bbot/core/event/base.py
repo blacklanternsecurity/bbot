@@ -46,7 +46,7 @@ class BaseEvent:
         if tags is None:
             tags = set()
 
-        self.data = None
+        self._data = None
         self.type = event_type
         self.tags = set(tags)
         self.confidence = int(confidence)
@@ -90,6 +90,16 @@ class BaseEvent:
         if not self._dummy:
             if _internal or source._internal:
                 self.make_internal()
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self._hash = None
+        self._id = None
+        self._data = data
 
     @property
     def host(self):

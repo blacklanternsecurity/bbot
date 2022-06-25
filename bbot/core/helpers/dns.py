@@ -24,7 +24,7 @@ class DNSHelper:
 
         self.parent_helper = parent_helper
         self.wildcard_tests = self.parent_helper.config.get("dns_wildcard_tests", 5)
-        self._cache = dict()
+        self._wildcard_cache = dict()
         self.resolver = dns.resolver.Resolver()
         self.timeout = self.parent_helper.config.get("dns_timeout", 10)
         self.resolver.timeout = self.timeout
@@ -46,6 +46,9 @@ class DNSHelper:
 
         self._dummy_modules = dict()
         self._dummy_modules_lock = Lock()
+
+        self._cache = dict()
+        self._cache_lock = Lock()
 
     def resolve(self, query, **kwargs):
         """
@@ -99,8 +102,24 @@ class DNSHelper:
         """
         children = []
         event_host = str(event.host)
-        event_tags = set()
+        event_tags, event_in_scope = self.cache_get(event_host)
+        if event_in_scope is not None:
+            return children, event_tags, event_in_scope
         event_in_scope = False
+
+        # wildcard check first
+        if check_wildcard and event.type == "DNS_NAME":
+            event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
+            if event_is_wildcard:
+                event_tags.add("wildcard")
+                event.data = wildcard_parent
+                event_host = wildcard_parent
+                new_tags, _event_in_scope = self.cache_get(event_host)
+                if _event_in_scope is not None:
+                    event_tags.update(new_tags)
+                    return children, event_tags, _event_in_scope
+
+        # then resolve
         for rdtype, records in self.resolve_raw(event_host, type="any"):
             event_tags.add("resolved")
             rdtype = str(rdtype).upper()
@@ -117,10 +136,21 @@ class DNSHelper:
                     children.append((t, rdtype))
         if "resolved" not in event_tags:
             event_tags.add("unresolved")
-        if check_wildcard and event.type == "DNS_NAME":
-            if self.is_wildcard(event_host):
-                event_tags.add("wildcard")
+        self.cache_put(event_host, event_tags, event_in_scope)
         return children, event_tags, event_in_scope
+
+    def cache_get(self, host):
+        try:
+            return self._cache[hash(str(host))]
+        except KeyError:
+            return set(), None
+
+    def cache_put(self, host, tags, in_scope):
+        with self._cache_lock:
+            self._cache[hash(host)] = (tags, in_scope)
+
+    def cache_in(self, host):
+        return hash(host) in self._cache
 
     def resolve_batch(self, queries, **kwargs):
         """
@@ -299,31 +329,31 @@ class DNSHelper:
         return list()
 
     def is_wildcard(self, query):
-        if is_domain(query):
-            return False
+        if is_domain(query) or not "." in query:
+            return False, query
+        hosts = list(domain_parents(query, include_self=True))[:-1]
+        for host in hosts[::-1]:
+            is_wildcard, parent = self._is_wildcard(host)
+            if is_wildcard:
+                return True, f"_wildcard.{parent}"
+        return False, query
+
+    def _is_wildcard(self, query):
         parent = parent_domain(query)
-        parents = set(domain_parents(query))
-
+        with suppress(KeyError):
+            return self._wildcard_cache[parent], parent
         with self._wildcard_lock(parent):
-            if parent in self._cache:
-                return self._cache[parent]
-            for p in parents:
-                if self._cache.get(p, False) == True:
-                    return True
-
             orig_results = self.resolve(query)
             is_wildcard = False
 
-            futures = dict()
-            for p in parents:
-                for _ in range(self.wildcard_tests):
-                    rand_query = f"{rand_string(length=10)}.{p}"
-                    future = self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.resolve, rand_query)
-                    futures[future] = p
+            futures = []
+            for _ in range(self.wildcard_tests):
+                rand_query = f"{rand_string(length=10)}.{parent}"
+                future = self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.resolve, rand_query)
+                futures.append(future)
 
             wildcard_ips = set()
             for future in self.parent_helper.as_completed(futures):
-                p = futures[future]
                 ips = future.result()
                 if ips:
                     wildcard_ips.update(ips)
@@ -331,8 +361,8 @@ class DNSHelper:
             if orig_results and wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):
                 is_wildcard = True
 
-            self._cache.update({parent: is_wildcard})
-        return is_wildcard
+            self._wildcard_cache.update({parent: is_wildcard})
+            return is_wildcard, parent
 
     def _wildcard_lock(self, domain):
         with self.__wildcard_lock:
