@@ -291,7 +291,7 @@ def test_manager(config):
     assert test_event3 in output_queue
 
 
-def test_helpers(patch_requests, patch_commands, helpers):
+def test_helpers(patch_requests, patch_commands, helpers, scan):
 
     old_run, old_run_live = patch_commands
 
@@ -404,12 +404,21 @@ def test_helpers(patch_requests, patch_commands, helpers):
     resolved = helpers.resolve("google.com", type="any")
     assert any([helpers.is_subdomain(h) for h in resolved])
     # wildcards
-    assert helpers.is_wildcard("blacklanternsecurity.github.io")
-    assert "github.io" in helpers.dns._cache
-    assert helpers.dns._cache["github.io"] == True
-    assert helpers.is_wildcard("asdf.asdf.asdf.github.io")
-    assert "asdf.asdf.github.io" not in helpers.dns._cache
-    assert not helpers.is_wildcard("mail.google.com")
+    assert helpers.is_wildcard("asdf.wat.blacklanternsecurity.github.io") == (True, "_wildcard.github.io")
+    assert "github.io" in helpers.dns._wildcard_cache
+    assert helpers.dns._wildcard_cache["github.io"] == True
+    assert helpers.is_wildcard("asdf.asdf.asdf.github.io") == (True, "_wildcard.github.io")
+    assert helpers.is_wildcard("mail.google.com") == (False, "mail.google.com")
+    wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
+    wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
+    children, event_tags1, event_in_scope1 = scan.helpers.resolve_event(wildcard_event1)
+    children, event_tags2, event_in_scope2 = scan.helpers.resolve_event(wildcard_event2)
+    assert "wildcard" in event_tags1
+    assert "wildcard" in event_tags2
+    assert wildcard_event1.data == "_wildcard.github.io"
+    assert wildcard_event2.data == "_wildcard.github.io"
+    assert event_tags1 == event_tags2
+    assert event_in_scope1 == event_in_scope2
 
 
 def test_dns_resolvers(patch_requests, helpers):
