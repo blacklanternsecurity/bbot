@@ -77,6 +77,17 @@ def split_host_port(d):
     return make_ip_type(host), port
 
 
+def parent_domain(d):
+    """
+    "www.internal.evilcorp.co.uk" --> "internal.evilcorp.co.uk"
+    "www.evilcorp.co.uk" --> "evilcorp.co.uk"
+    "evilcorp.co.uk" --> "evilcorp.co.uk"
+    """
+    if is_subdomain(d):
+        return ".".join(str(d).split(".")[1:])
+    return d
+
+
 def domain_parents(d, include_self=False):
     """
     "test.www.evilcorp.co.uk" --> ["www.evilcorp.co.uk", "evilcorp.co.uk"]
@@ -101,17 +112,6 @@ def ip_network_parents(i, include_self=False):
     net = ipaddress.ip_network(i, strict=False)
     for i in range(net.prefixlen - (0 if include_self else 1), -1, -1):
         yield ipaddress.ip_network(f"{net.network_address}/{i}", strict=False)
-
-
-def parent_domain(d):
-    """
-    "www.internal.evilcorp.co.uk" --> "internal.evilcorp.co.uk"
-    "www.evilcorp.co.uk" --> "evilcorp.co.uk"
-    "evilcorp.co.uk" --> "evilcorp.co.uk"
-    """
-    if is_subdomain(d):
-        return ".".join(str(d).split(".")[1:])
-    return d
 
 
 def is_ip(d, version=None):

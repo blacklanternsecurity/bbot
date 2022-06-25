@@ -56,19 +56,9 @@ class ScanManager:
                     return
 
             # DNS resolution
-            dns_children = []
-            resolve_event = True
-            event_host_hash = hash(event.host)
+            dns_children, dns_tags, event_in_scope = self.scan.helpers.dns.resolve_event(event)
             target = getattr(self.scan, "target", None)
-            # skip DNS resolution if we've already resolved this event
-            event_in_scope, dns_tags = self.events_resolved.get(event_host_hash, (None, set()))
-            if event_in_scope is None and target is not None:
-                event_in_scope = False
-                with self.events_resolved_lock:
-                    if event.host and hash(event.host) in self.events_resolved:
-                        resolve_event = False
-                if resolve_event and event.host:
-                    dns_children, dns_tags, event_in_scope = self.scan.helpers.dns.resolve_event(event)
+            if target:
                 event_in_scope = event_in_scope | target.in_scope(event)
             event.tags.update(dns_tags)
 
@@ -111,13 +101,8 @@ class ScanManager:
                     log.warning(f'Event validation failed for DNS child of {event}: "{record}" ({rdtype}): {e}')
 
             emit_children = self.scan.config.get("dns_resolution", False)
-            with self.events_resolved_lock:
-                # don't emit duplicates
-                if emit_children and dns_child_events and event_host_hash not in self.events_resolved:
-                    self.events_resolved[event_host_hash] = (event_in_scope, dns_tags)
-                    emit_children &= True
-                else:
-                    emit_children &= False
+            if not (emit_children and dns_child_events):
+                emit_children = False
             if dns_child_events:
                 any_in_scope = any([self.scan.target.in_scope(e) for e in dns_child_events])
                 # only emit children if the source event is less than three hops from the main scope
