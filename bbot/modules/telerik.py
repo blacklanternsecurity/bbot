@@ -7,6 +7,7 @@ class telerik(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
+    flags = ["active"]
     telerikVersions = [
         "2007.1423",
         "2007.1521",

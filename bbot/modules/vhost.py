@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 class vhost(BaseModule):
 
+    flags = ["active", "brute-force"]
     scanned_hosts = []
     watched_events = ["URL"]
     produced_events = ["URL"]
@@ -12,7 +13,7 @@ class vhost(BaseModule):
         "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
         "force_basehost": "",
     }
-    options_desc = {"subdomain_wordlist": "Wordlist containing subdomains"}
+    options_desc = {"subdomain_wordlist": "Wordlist containing subdomains", "force_basehost": "paulpaulpaulpaul"}
     in_scope_only = True
 
     def handle_event(self, event):

@@ -91,7 +91,7 @@ common_srvs = [
 
 class dnscommonsrv(BaseModule):
 
-    flags = ["subdomain-enum"]
+    flags = ["subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     max_threads = 10

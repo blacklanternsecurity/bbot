@@ -6,7 +6,7 @@ from .base import BaseModule
 
 class massdns(BaseModule):
 
-    flags = ["brute-force", "subdomain-enum"]
+    flags = ["brute-force", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     options = {

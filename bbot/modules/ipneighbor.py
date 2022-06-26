@@ -7,7 +7,7 @@ class ipneighbor(BaseModule):
 
     watched_events = ["IP_ADDRESS"]
     produced_events = ["IP_ADDRESS"]
-    flags = ["subdomain-enum"]
+    flags = ["subdomain-enum", "passive"]
     max_scope_distance = 1
     options = {"num_bits": 4}
     options_desc = {"num_bits": "Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)"}

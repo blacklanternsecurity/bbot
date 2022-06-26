@@ -139,8 +139,9 @@ class ScanManager:
         """
         ret = None
         on_finish_callback = kwargs.pop("_on_finish_callback", None)
+        force = kwargs.pop("_force", False)
         try:
-            if not self.scan.stopping:
+            if not self.scan.stopping or force:
                 ret = callback(*args, **kwargs)
         except ScanCancelledError as e:
             log.debug(f"ScanCancelledError in {callback.__qualname__}(): {e}")
