@@ -1,4 +1,5 @@
 from .base import BaseModule
+from time import sleep
 
 # from urllib.parse import urlparse
 from itertools import zip_longest as izip_longest
@@ -49,6 +50,23 @@ class header_brute(BaseModule):
         self.wordlist = self.helpers.download(self.config.get("header_wordlist"), cache_hrs=720)
         return True
 
+    # test detection using a canary to find hosts giving bad results
+    def canary_check(self, compare_helper, url, rounds):
+
+        canary_result = True
+
+        for i in range(0, rounds):
+            header_group = []
+            header_group.append(self.helpers.rand_string(12))
+            result_tuple = self.check_header_batch(compare_helper, url, header_group)
+
+            # a nonsense header "caused" a difference, we need to abort
+            if result_tuple == False:
+                canary_result = False
+                break
+            sleep(0.1)
+        return canary_result
+
     def handle_event(self, event):
 
         # parsed_host = urlparse(event.data)
@@ -60,6 +78,10 @@ class header_brute(BaseModule):
             self.debug("could not resolve batch size, aborting")
             return
         self.debug(f"resolved batch_size at {str(batch_size)}")
+
+        canary_rounds = 3
+        if self.canary_check(compare_helper, url, canary_rounds) == False:
+            self.debug("aborting due to failed canary check")
 
         f = open(self.wordlist, errors="ignore")
         fl = f.readlines()
