@@ -137,9 +137,13 @@ class HttpCompare:
     def __init__(self, baseline_url):
         self.baseline_url = baseline_url
 
-        baseline_1 = requests.get(self.baseline_url, verify=False, timeout=10)
+        baseline_1 = requests.get(
+            self.baseline_url + self.gen_cache_buster(), verify=False, timeout=10, allow_redirects=False
+        )
         sleep(2)
-        baseline_2 = requests.get(self.baseline_url, verify=False, timeout=10)
+        baseline_2 = requests.get(
+            self.baseline_url + self.gen_cache_buster(), verify=False, timeout=10, allow_redirects=False
+        )
         self.baseline = baseline_1
 
         if baseline_1.status_code != baseline_2.status_code:
@@ -159,6 +163,16 @@ class HttpCompare:
 
         self.baseline_ignore_headers += dynamic_headers
         self.baseline_body_distance = self.compare_body(baseline_1_json, baseline_2_json)
+
+    def gen_cache_buster(self):
+
+        # TODO: replace with helper
+        import random
+        import string
+
+        rand_pool = string.ascii_lowercase + string.digits
+        rand_string = "".join([random.choice(rand_pool) for _ in range(int(6))])
+        return f"?{rand_string}=1"
 
     def compare_headers(self, headers_1, headers_2):
 
@@ -211,7 +225,9 @@ class HttpCompare:
         reflection = False
 
         try:
-            subject_response = requests.get(subject, headers=add_headers, verify=False, timeout=10)
+            subject_response = requests.get(
+                subject + self.gen_cache_buster(), headers=add_headers, verify=False, timeout=10, allow_redirects=False
+            )
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
             # this can be caused by a WAF not liking the header, so we really arent interested in it
             return (True, "403", reflection)
@@ -247,6 +263,8 @@ class HttpCompare:
 
         # probabaly add a little bit of give here
         if self.baseline_body_distance != subject_body_distance:
-            log.debug("different body distance, no match")
+            log.debug(
+                f"different body distance {str(self.baseline_body_distance)} --> {str(subject_body_distance)} no match"
+            )
             return (False, "body", reflection)
         return (True, None, False)
