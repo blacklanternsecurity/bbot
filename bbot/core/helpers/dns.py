@@ -101,6 +101,8 @@ class DNSHelper:
         Optionally create child events from dns resolutions
         """
         children = []
+        if not event.host:
+            return [], set(), False
         event_host = str(event.host)
         event_tags, event_in_scope = self.cache_get(event_host)
         if event_in_scope is not None:
