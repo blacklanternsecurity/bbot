@@ -207,13 +207,24 @@ class HttpCompare:
         ddiff = DeepDiff(content_1, content_2, get_deep_distance=True, cutoff_intersection_for_pairs=1)
         return ddiff["deep_distance"]
 
-    def compare(self, subject, add_headers=None, add_cookie=None):
+    def compare(self, subject, add_headers=None, add_cookies=None):
+        reflection = False
 
         try:
             subject_response = requests.get(subject, headers=add_headers, verify=False, timeout=10)
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
             # this can be caused by a WAF not liking the header, so we really arent interested in it
-            return True
+            return (True, "403", reflection)
+
+        if add_headers:
+            if len(add_headers) == 1:
+                if list(add_headers.values())[0] in subject_response.text:
+                    reflection = True
+
+        elif add_cookies:
+            if len(add_cookies) == 1:
+                if list(add_cookies.values())[0] in subject_response.text:
+                    reflection = True
 
         try:
             subject_json = json.loads(xmltojson.parse(subject_response.text))
@@ -225,17 +236,17 @@ class HttpCompare:
             log.debug(
                 f"status code was different [{str(self.baseline.status_code)}] -> [{str(subject_response.status_code)}], no match"
             )
-            return False
+            return (False, "code", reflection)
 
         different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
         if different_headers:
             log.debug(f"headers were different, no match [{different_headers}]")
-            return False
+            return (False, "header", reflection)
 
         subject_body_distance = self.compare_body(self.baseline_json, subject_json)
 
         # probabaly add a little bit of give here
         if self.baseline_body_distance != subject_body_distance:
             log.debug("different body distance, no match")
-            return False
-        return True
+            return (False, "body", reflection)
+        return (True, None, False)

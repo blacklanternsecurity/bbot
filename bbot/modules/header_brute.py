@@ -70,16 +70,12 @@ class header_brute(BaseModule):
         for header_group in grouper(headers_cleaned, batch_size, ""):
             header_group = list(filter(None, header_group))
 
-            result = self.check_header_batch(compare_helper, url, header_group)
+            result_tuple = self.check_header_batch(compare_helper, url, header_group)
+            result = result_tuple[0]
+            reason = result_tuple[1]
+            reflection = result_tuple[2]
             if result == False:
-                self.binary_header_search(compare_helper, url, header_group, event)
-
-    def check_header(self, compare_helper, url, header):
-
-        rand = self.helpers.rand_string()
-        test_header = {header: rand}
-        result = compare_helper.compare(url, add_headers=test_header)
-        return result
+                self.binary_header_search(compare_helper, url, header_group, event, reason, reflection)
 
     def check_header_batch(self, compare_helper, url, header_list):
 
@@ -87,8 +83,8 @@ class header_brute(BaseModule):
         test_headers = {}
         for header in header_list:
             test_headers[header] = rand
-        result = compare_helper.compare(url, add_headers=test_headers)
-        return result
+        result_tuple = compare_helper.compare(url, add_headers=test_headers)
+        return result_tuple
 
     def header_count_test(self, url):
 
@@ -115,13 +111,28 @@ class header_brute(BaseModule):
             return True
         return False
 
-    def binary_header_search(self, compare_helper, url, header_group, event):
+    def binary_header_search(self, compare_helper, url, header_group, event, reason, reflection):
         self.debug(f"entering recursive binary_header_search with {str(len(header_group))} sized header group")
         if len(header_group) == 1:
-            self.emit_event(f"[HEADER_BRUTEFORCE] Host: {url} Header: {header_group[0]}", "VULNERABILITY", event)
+            if reflection:
+                self.emit_event(
+                    f"[HEADER_BRUTEFORCE] Host: [{url}] Header: [{header_group[0]}] Reason: [{reason}] ",
+                    "VULNERABILITY",
+                    event,
+                    tags=["http_reflection"],
+                )
+            else:
+                self.emit_event(
+                    f"[HEADER_BRUTEFORCE] Host: [{url}] Header: [{header_group[0]}] Reason: [{reason}] ",
+                    "VULNERABILITY",
+                    event,
+                )
         else:
             for header_group_slice in split_list(header_group):
 
-                result = self.check_header_batch(compare_helper, url, header_group_slice)
+                result_tuple = self.check_header_batch(compare_helper, url, header_group_slice)
+                result = result_tuple[0]
+                reason = result_tuple[1]
+                reflection = result_tuple[2]
                 if result == False:
-                    self.binary_header_search(compare_helper, url, header_group_slice, event)
+                    self.binary_header_search(compare_helper, url, header_group_slice, event, reason, reflection)
