@@ -532,6 +532,7 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
     scan2 = Scanner(modules=list(available_modules), output_modules=list(available_output_modules), config=config)
     scan2.load_modules()
 
+    # attributes, descriptions, etc.
     for module_name, module in scan2.modules.items():
         # flags
         assert module._type in ("internal", "output", "base")
@@ -570,7 +571,35 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
         future = scan2._thread_pool.submit_task(module.setup)
         futures[future] = module
     for future in helpers.as_completed(futures):
-        assert future.result() in (True, False)
+        result = future.result()
+        assert result in (True, False)
+        if result == False:
+            module = futures[future]
+            module.set_error_state()
+
+    futures.clear()
+
+    # handle_event / handle_batch
+    futures = {}
+    for module_name, module in scan2.modules.items():
+        module.emit_event = lambda *args, **kwargs: None
+        module._filter = lambda *args, **kwargs: True
+        events_to_submit = [e for e in events.all if e.type in module.watched_events]
+        if module.batch_size > 1:
+            log.info(f"Testing {module_name}.handle_batch()")
+            future = scan2._thread_pool.submit_task(module.handle_batch, *events_to_submit)
+            futures[future] = module
+        else:
+            for e in events_to_submit:
+                log.info(f"Testing {module_name}.handle_event()")
+                future = scan2._thread_pool.submit_task(module.handle_event, e)
+                futures[future] = module
+    for future in helpers.as_completed(futures):
+        try:
+            assert future.result() == None
+        except Exception:
+            module = futures[future]
+            assert module.errored == True
     futures.clear()
 
     # finishes
@@ -642,7 +671,7 @@ def test_target(neuter_ansible, patch_requests, patch_commands):
     assert scan4.target != scan1.target
 
 
-def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers):
+def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers, neograph):
     from bbot.scanner.scanner import Scanner
 
     scan2 = Scanner(
@@ -657,7 +686,6 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     )
     assert "targets" in scan2.json
     scan2.start()
-    return
 
     test_output_dir = Path(config.home)
     assert test_output_dir.is_dir()
@@ -669,30 +697,6 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
         lines = f.readlines()
         assert lines[0] == "Event type,Event data,Source Module,Event ID,Event Tags,Source Event ID\n"
         assert len(lines) > 1
-
-    scan3 = Scanner(
-        "localhost",
-        "8.8.8.8/32",
-        "2001:4860:4860::8888/128",
-        modules=list(available_modules),
-        config=config,
-    )
-
-    scan3.setup_modules(remove_failed=False)
-
-    for module in scan3.modules.values():
-        module.emit_event = lambda *args, **kwargs: None
-        module._filter = lambda *args, **kwargs: True
-        events_to_submit = [e for e in events.all if e.type in module.watched_events]
-        if module.batch_size > 1:
-            log.debug(f"Testing {module.name}.handle_batch()")
-            module.handle_batch(*events_to_submit)
-        else:
-            for e in events_to_submit:
-                log.debug(f"Testing {module.name}.handle_event()")
-                module.handle_event(e)
-
-    scan3._thread_pool.shutdown(wait=True)
 
 
 def test_threadpool():
@@ -721,18 +725,6 @@ def test_agent(agent):
     sleep(0.5)
     agent.scan_status()
     agent.stop_scan()
-
-
-def test_db(neuter_ansible, patch_requests, patch_commands, neograph, events, config):
-    from bbot.scanner.scanner import Scanner
-
-    scan4 = Scanner(
-        "127.0.0.1",
-        modules=["ipneighbor"],
-        output_modules=["neo4j"],
-        config=config,
-    )
-    scan4.start()
 
 
 def test_cli(monkeypatch):

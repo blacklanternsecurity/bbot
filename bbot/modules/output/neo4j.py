@@ -17,7 +17,6 @@ class neo4j(BaseOutputModule):
     batch_size = 50
 
     def setup(self):
-
         try:
             self.neo4j = Neo4j(
                 uri=self.config.get("uri", self.options["uri"]),

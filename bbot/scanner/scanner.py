@@ -191,10 +191,12 @@ class Scanner:
         for future in self.helpers.as_completed(setup_futures):
             module_name = setup_futures[future]
             result = future.result()
-            if remove_failed and not result == True:
-                self.warning(f'Setup failed for module "{module_name}"')
-                self.modules.pop(module_name)
-                setups_failed += 1
+            if not result == True:
+                self.modules[module_name].set_error_state()
+                if remove_failed:
+                    self.warning(f'Setup failed for module "{module_name}"')
+                    self.modules.pop(module_name)
+                    setups_failed += 1
         num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
         if num_output_modules < 1:
             raise ScanError("Failed to load output modules. Aborting.")
