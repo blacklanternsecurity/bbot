@@ -5,6 +5,7 @@ from urllib.parse import urlparse, quote
 
 
 class wayback(BaseModule):
+    flags = ["active"]
     watched_events = ["URL"]
     produced_events = ["URL"]
     scanned_hosts = []

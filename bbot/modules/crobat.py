@@ -9,7 +9,7 @@ class crobat(BaseModule):
     Used by several other modules including sublist3r, dnsdumpster, and dnsgrep
     """
 
-    flags = ["subdomain-enum"]
+    flags = ["subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     in_scope_only = True

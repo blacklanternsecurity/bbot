@@ -10,7 +10,7 @@ class ffuf(BaseModule):
     watched_events = ["URL", "URL_HINT"]
     produced_events = ["URL"]
 
-    flags = ["brute-force"]
+    flags = ["brute-force", "active"]
     options = {
         "wordlist_dir": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-large-directories.txt",
         "wordlist_files": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-large-words.txt",
@@ -75,7 +75,7 @@ class ffuf(BaseModule):
     def setup(self):
 
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
-        self.extension_list = self.config.get("extension_list")
+        self.extension_list = self.config.get("extension_list", [])
         joined_extension_list = " ".join(self.extension_list)
         self.debug(f"Loaded extension list: [{joined_extension_list}]")
         self.config_max_depth = self.config.get("max_depth")

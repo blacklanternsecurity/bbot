@@ -5,7 +5,7 @@ from .base import BaseModule
 
 class crt(BaseModule):
 
-    flags = ["subdomain-enum"]
+    flags = ["subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     in_scope_only = True

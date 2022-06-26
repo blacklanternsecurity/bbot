@@ -8,6 +8,7 @@ class nuclei(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
+    flags = ["active"]
     max_threads = 5
     batch_size = 10
     options = {"version": "2.7.0"}

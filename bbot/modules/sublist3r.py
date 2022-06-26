@@ -2,9 +2,9 @@ from .crobat import crobat
 
 
 class sublist3r(crobat):
-    flags = ["subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    flags = ["subdomain-enum", "passive"]
 
     def query(self, query):
         results = self.helpers.request(f"https://api.sublist3r.com/search.php?domain={query}")

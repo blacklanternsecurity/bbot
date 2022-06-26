@@ -38,7 +38,7 @@ class Websocket(BaseOutputModule):
         self.send(event_json)
 
     def send(self, message):
-        while 1:
+        while self.ws is not None:
             try:
                 self.ws.send(json.dumps(message))
                 break
@@ -49,3 +49,4 @@ class Websocket(BaseOutputModule):
 
     def cleanup(self):
         self.ws.close()
+        self.ws = None

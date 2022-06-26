@@ -1,5 +1,8 @@
+import logging
 import threading
 from time import sleep
+
+log = logging.getLogger("bbot.core.threadpool")
 
 from ..core.errors import ScanCancelledError
 

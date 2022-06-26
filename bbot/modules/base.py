@@ -131,7 +131,7 @@ class BaseModule:
             lock_acquired = False
             if lock_brutes:
                 lock_acquired = self.scan._brute_lock.acquire()
-            self.scan.manager.catch(*args, **kwargs)
+            return self.scan.manager.catch(*args, **kwargs)
         finally:
             if lock_brutes and lock_acquired:
                 self.scan._brute_lock.release()
@@ -326,7 +326,7 @@ class BaseModule:
     def _cleanup(self):
         for callback in [self.cleanup] + self.cleanup_callbacks:
             if callable(callback):
-                self._internal_thread_pool.submit_task(self.catch, callback)
+                self._internal_thread_pool.submit_task(self.catch, callback, _force=True)
 
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:
