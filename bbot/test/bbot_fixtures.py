@@ -180,6 +180,9 @@ def agent(monkeypatch):
         def run_forever(*args, **kwargs):
             return False
 
+        def close(self):
+            return
+
     from bbot import agent
     from bbot.modules.output.websocket import Websocket
 

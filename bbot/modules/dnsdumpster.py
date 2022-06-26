@@ -5,7 +5,7 @@ from .crobat import crobat
 
 
 class dnsdumpster(crobat):
-    flags = ["subdomain-enum"]
+    flags = ["subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
 

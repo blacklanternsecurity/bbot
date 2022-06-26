@@ -5,17 +5,15 @@ from .base import BaseModule
 
 class naabu(BaseModule):
 
-    watched_events = [
-        "IP_ADDRESS",
-        "DNS_NAME",
-    ]
+    watched_events = ["IP_ADDRESS", "DNS_NAME"]
+    produced_events = ["OPEN_TCP_PORT"]
+    flags = ["active"]
     options = {
         "version": "2.0.5",
     }
     options_desc = {
         "version": "naabu version",
     }
-    produced_events = ["OPEN_TCP_PORT"]
     max_threads = 5
     batch_size = 10
 

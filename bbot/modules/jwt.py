@@ -7,6 +7,7 @@ class jwt(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["INFO", "VULNERABILITY"]
+    flags = ["passive"]
     deps_pip = ["pyjwt"]
     suppress_dupes = False
 
