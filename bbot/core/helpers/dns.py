@@ -135,7 +135,8 @@ class DNSHelper:
             for r in records:
                 for _, t in self.extract_targets(r):
                     event_tags.add(f"{rdtype.lower()}_record")
-                    children.append((t, rdtype))
+                    if t:
+                        children.append((t, rdtype))
         if "resolved" not in event_tags:
             event_tags.add("unresolved")
         self.cache_put(event_host, event_tags, event_in_scope)

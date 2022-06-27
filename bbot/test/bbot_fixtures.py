@@ -95,7 +95,7 @@ def events(scan):
         ipv6_open_port = scan.make_event("[2001:4860:4860::8888]:443", "OPEN_TCP_PORT", dummy=True)
         url = scan.make_event("https://api.publicAPIs.org:443/hellofriend", dummy=True)
         ipv4_url = scan.make_event("https://8.8.8.8:443/hellofriend", dummy=True)
-        ipv6_url = scan.make_event("https://[2001:4860:4860::8888]:443/hellofriend", "URL", dummy=True)
+        ipv6_url = scan.make_event("https://[2001:4860:4860::8888]:443/hellofriend", dummy=True)
         url_hint = scan.make_event("https://api.publicAPIs.org:443/hello.ash", "URL_HINT", dummy=True)
         emoji = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
 
@@ -128,8 +128,9 @@ def patch_requests(monkeypatch):
     monkeypatch.setattr("urllib3.poolmanager.PoolManager.urlopen", lambda *args, **kwargs: urllib_response)
     monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
     monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
-    Path("/tmp/nope").touch()
-    monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: "/tmp/nope")
+    current_dir = Path(__file__).resolve().parent
+    downloaded_file = str(current_dir / "test_output.json")
+    monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
     return request, download
 
 
