@@ -38,8 +38,6 @@ class speculate(BaseInternalModule):
         # generate open ports, DNS_NAMES, and IPs from URLs
         if event.type in ("URL", "URL_UNVERIFIED"):
             if event.host:
-                if event.type == "URL_UNVERIFIED":
-                    self.critical(str(event.host))
                 self.emit_event(str(event.host), "DNS_NAME", source=event)
                 if event.port:
                     self.emit_event(
