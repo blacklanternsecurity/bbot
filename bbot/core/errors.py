@@ -25,5 +25,6 @@ class ModuleLoadError(BBOTError):
 class ConfigLoadError(BBOTError):
     pass
 
+
 class HttpCompareError(BBOTError):
     pass
