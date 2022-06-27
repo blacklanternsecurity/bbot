@@ -35,14 +35,17 @@ class httpx(BaseModule):
         return True
 
     def filter_event(self, event):
+        # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
         if in_scope_only and not self.scan.target.in_scope(event):
             return False
+        # reject base URLs to avoid visiting a resource twice
+        # note: speculate makes open ports from
         return True
 
     def handle_batch(self, *events):
 
-        stdin = [str(e.data) for e in events]
+        stdin = [str(e.data) for e in events if not "spider-danger" in e.tags]
         command = [
             "httpx",
             "-silent",
