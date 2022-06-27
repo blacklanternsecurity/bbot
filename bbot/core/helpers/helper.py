@@ -6,6 +6,7 @@ from threading import Lock
 
 from . import misc
 from .dns import DNSHelper
+from .diff import HttpCompare
 from .wordcloud import WordCloud
 from ..threadpool import as_completed
 from .depsinstaller import DepsInstaller
@@ -15,7 +16,7 @@ log = logging.getLogger("bbot.core.helpers")
 
 class ConfigAwareHelper:
 
-    from .web import request, download, validate_url, HttpCompare
+    from .web import request, download, validate_url
     from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from . import regexes
@@ -39,6 +40,10 @@ class ConfigAwareHelper:
         self.dns = DNSHelper(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
+
+    def http_compare(self,url):
+
+        return HttpCompare(url,self)
 
     def temp_filename(self):
         """
