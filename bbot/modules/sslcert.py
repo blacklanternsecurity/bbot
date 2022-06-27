@@ -10,7 +10,7 @@ from .base import BaseModule
 class sslcert(BaseModule):
 
     flags = ["subdomain-enum", "active"]
-    watched_events = ["DNS_NAME", "IP_ADDRESS", "OPEN_TCP_PORT"]
+    watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME"]
     options = {"timeout": 5.0}
     options_desc = {"timeout": "Socket connect timeout in seconds"}

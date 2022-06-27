@@ -30,6 +30,8 @@ def get_event_type(data):
     for t, regexes in event_type_regexes.items():
         for r in regexes:
             if r.match(data):
+                if t == "URL":
+                    return "URL_UNVERIFIED"
                 return t
 
     # Assume DNS_NAME for basic words

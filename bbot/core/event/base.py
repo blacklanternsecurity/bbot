@@ -1,7 +1,6 @@
 import json
 import logging
 import ipaddress
-from contextlib import suppress
 from urllib.parse import urlparse, urlunparse
 
 from .helpers import make_event_id, get_event_type
@@ -68,8 +67,13 @@ class BaseEvent:
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
 
-        with suppress(Exception):
+        try:
             self.data = self._sanitize_data(data)
+        except Exception as e:
+            import traceback
+
+            log.debug(traceback.format_exc())
+            raise ValidationError(f'Error sanitizing event data "{data}" for type "{self.type}": {e}')
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
@@ -164,9 +168,9 @@ class BaseEvent:
                 new_scope_distance = min(self.scope_distance, scope_distance)
             self._scope_distance = new_scope_distance
             for t in list(self.tags):
-                if t.startswith("distance: "):
+                if t.startswith("distance-"):
                     self.tags.remove(t)
-            self.tags.add(f"distance: {new_scope_distance}")
+            self.tags.add(f"distance-{new_scope_distance}")
 
     @property
     def source(self):
@@ -383,7 +387,7 @@ class URL(BaseEvent):
         if not any(r.match(data) for r in regexes.event_type_regexes["URL"]):
             return None
         self.parsed = urlparse(data.strip())
-        self.parsed = self.parsed._replace(netloc=str(self.parsed.netloc).lower())
+        self.parsed = self.parsed._replace(netloc=str(self.parsed.netloc).lower(), fragment="")
         # remove ports if they're redundant
         if (self.parsed.scheme == "http" and self.parsed.port == 80) or (
             self.parsed.scheme == "https" and self.parsed.port == 443
@@ -394,6 +398,14 @@ class URL(BaseEvent):
             self.parsed = self.parsed._replace(netloc=hostname)
         if self.parsed.path == "":
             self.parsed = self.parsed._replace(path="/")
+
+        if str(self.parsed.path.endswith("/")):
+            self.tags.add("dir")
+        elif self.parsed.query:
+            self.tags.add("uri")
+        else:
+            self.tags.add("endpoint")
+
         data = urlunparse(self.parsed)
         return data
 
@@ -413,6 +425,10 @@ class URL(BaseEvent):
         if not is_ip(self.host):
             return extract_words(self.host_stem)
         return set()
+
+
+class URL_UNVERIFIED(URL):
+    _omit = True
 
 
 class URL_HINT(URL):
@@ -448,8 +464,6 @@ def make_event(
         if source is not None:
             data.set_source(source)
         if internal == True and not data._made_internal:
-            if source and data.source is None:
-                raise ValidationError(f"Must specify source if making internal event")
             data.make_internal()
         event_type = data.type
         return data

@@ -48,6 +48,10 @@ class ScanManager:
             event = self.scan.make_event(*args, **kwargs)
             log.debug(f'module "{event.module}" raised {event}')
 
+            if "blacklisted" in event.tags:
+                log.debug(f"Omitting blacklisted event: {event}")
+                return
+
             # accept the event right away if there's no abort condition
             # if there's an abort condition, we want to wait until
             # it's been properly tagged and the abort_if callback has run
@@ -177,9 +181,9 @@ class ScanManager:
         """
         Queue event with modules
         """
-        # save memory by removing reference to source object
-        if not event._internal:
-            event._source = None
+        # TODO: save memory by removing reference to source object (this causes bugs)
+        # if not event._internal:
+        #    event._source = None
 
         dup = False
         event_hash = hash(event)
