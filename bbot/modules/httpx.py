@@ -72,4 +72,4 @@ class httpx(BaseModule):
             http_response_event = self.scan.make_event(j, "HTTP_RESPONSE", url_event, internal=True)
             self.emit_event(http_response_event)
             if title:
-                self.emit_event(title, "HTTP_TITLE", source_event)
+                self.emit_event(f"{title} ({url})", "HTTP_TITLE", source_event)
