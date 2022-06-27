@@ -223,7 +223,8 @@ class BaseEvent:
 
     def make_in_scope(self):
         source_trail = []
-        if getattr(self.module, "_type", "") != "internal":
+        # keep the event internal if it came from an internal module and isn't a DNS_NAME
+        if getattr(self.module, "_type", "") != "internal" or self.type in ("DNS_NAME",):
             source_trail = self.unmake_internal(set_scope_distance=0, force_output=True)
         self.tags.add("in_scope")
         self.scope_distance = 0
@@ -387,24 +388,31 @@ class URL(BaseEvent):
         if not any(r.match(data) for r in regexes.event_type_regexes["URL"]):
             return None
         self.parsed = urlparse(data.strip())
-        self.parsed = self.parsed._replace(netloc=str(self.parsed.netloc).lower(), fragment="")
+        self.parsed = self.parsed._replace(netloc=str(self.parsed.netloc).lower(), fragment="", query="")
         # remove ports if they're redundant
         if (self.parsed.scheme == "http" and self.parsed.port == 80) or (
             self.parsed.scheme == "https" and self.parsed.port == 443
         ):
             hostname = self.parsed.hostname
+            # handle IPv6 URLs
             if self.parsed.netloc.startswith("["):
                 hostname = f"[{hostname}]"
             self.parsed = self.parsed._replace(netloc=hostname)
         if self.parsed.path == "":
             self.parsed = self.parsed._replace(path="/")
 
+        # tag as dir or endpoint
         if str(self.parsed.path.endswith("/")):
             self.tags.add("dir")
-        elif self.parsed.query:
-            self.tags.add("uri")
         else:
             self.tags.add("endpoint")
+
+        scan = getattr(self, "scan", None)
+        if scan is not None:
+            for ext in scan.config.get("url_extension_blacklist", []):
+                ext = str(ext).lower()
+                if str(self.parsed.path).lower().endswith(f".{ext}"):
+                    self.tags.add("blacklisted")
 
         data = urlunparse(self.parsed)
         return data
