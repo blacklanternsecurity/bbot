@@ -1,5 +1,6 @@
 from .base import BaseModule
 from time import sleep
+from bbot.core.errors import HttpCompareError
 
 # from urllib.parse import urlparse
 from itertools import zip_longest as izip_longest
@@ -72,7 +73,11 @@ class header_brute(BaseModule):
         # parsed_host = urlparse(event.data)
         # host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
         url = event.data
-        compare_helper = self.helpers.HttpCompare(url)
+        try:
+            compare_helper = self.helpers.http_compare(url)
+        except HttpCompareError as e:
+            self.debug(e)
+            return
         batch_size = self.header_count_test(url)
         if batch_size < 0:
             self.debug("could not resolve batch size, aborting")
