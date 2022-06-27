@@ -601,9 +601,11 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
     for future in helpers.as_completed(futures):
         try:
             assert future.result() == None
-        except Exception:
+        except Exception as e:
+            import traceback
+
             module = futures[future]
-            assert module.errored == True
+            assert module.errored == True, f'Error in module "{module}": {e}\n{traceback.format_exc()}'
     futures.clear()
 
     # finishes
