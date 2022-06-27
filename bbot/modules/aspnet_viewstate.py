@@ -4,7 +4,7 @@ import re
 
 class aspnet_viewstate(BaseModule):
 
-    watched_events = ["URL"]
+    watched_events = ["HTTP_RESPONSE"]
     produced_events = ["VULNERABILITY"]
     flags = ["active"]
 
@@ -43,21 +43,15 @@ class aspnet_viewstate(BaseModule):
 
     def handle_event(self, event):
 
-        result = self.helpers.request(event.data)
-        if not result:
-            self.debug(f"Could not connect to url {event.data}")
-            return
-        self.debug(f"Successfully connected to host")
-
-        generator_match = self.generator_regex.search(result.text)
-        viewstate_match = self.viewstate_regex.search(result.text)
+        generator_match = self.generator_regex.search(event.data["response-body"])
+        viewstate_match = self.viewstate_regex.search(event.data["response-body"])
 
         if generator_match and viewstate_match:
             generator = generator_match.group(1)
             viewstate = viewstate_match.group(1)
-            self.debug(f"Discovered viewstate for URL {event.data}")
-            self.emit_event(f"[{event.data}] Microsoft ASP.NET", "TECHNOLOGY", event, tags=["web"])
-            tool_path = self.scan.helpers.tools_dir / "blacklist3r"
+            self.debug(f"Discovered viewstate for URL {event.data['url']}")
+            self.emit_event(f"[{event.data['url']}] Microsoft ASP.NET", "TECHNOLOGY", event, tags=["web"])
+            tool_path = self.scan.helpers.tools_dir / "blacklist3r/"
             command = [
                 "mono",
                 f"{tool_path}/AspDotNetWrapper.exe",
@@ -78,7 +72,7 @@ class aspnet_viewstate(BaseModule):
                     if "ValidationKey" in x:
                         solvedValidation = x.split(":")[1]
 
-                data = f"[CRITICAL] Known MachineKey found. URL: [{event.data}] EncryptionKey: [{solvedDecryption}] ValidationKey: [{solvedValidation}]"
+                data = f"[CRITICAL] Known MachineKey found. URL: [{event.data['url']}] EncryptionKey: [{solvedDecryption}] ValidationKey: [{solvedValidation}]"
                 self.emit_event(data, "VULNERABILITY", event, tags=["critical"])
         else:
             self.debug("aspnet_viewstate viewstate not found")
