@@ -41,9 +41,9 @@ class ConfigAwareHelper:
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
 
-    def http_compare(self,url):
+    def http_compare(self, url):
 
-        return HttpCompare(url,self)
+        return HttpCompare(url, self)
 
     def temp_filename(self):
         """
