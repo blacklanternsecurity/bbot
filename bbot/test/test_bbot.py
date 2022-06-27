@@ -24,9 +24,9 @@ def test_events(events, scan, config):
     assert events.subdomain.type == "DNS_NAME"
     assert "subdomain" in events.subdomain.tags
     assert events.open_port.type == "OPEN_TCP_PORT"
-    assert events.url.type == "URL"
-    assert events.ipv4_url.type == "URL"
-    assert events.ipv6_url.type == "URL"
+    assert events.url.type == "URL_UNVERIFIED"
+    assert events.ipv4_url.type == "URL_UNVERIFIED"
+    assert events.ipv6_url.type == "URL_UNVERIFIED"
     assert "" not in events.ipv4
     assert None not in events.ipv4
     assert 1 not in events.ipv4
@@ -299,6 +299,10 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert not helpers.is_domain("www.evilcorp.co.uk")
     assert helpers.is_subdomain("www.evilcorp.co.uk")
     assert not helpers.is_subdomain("evilcorp.co.uk")
+    assert helpers.is_dns_name("evilcorp.co.uk") == True
+    assert helpers.is_dns_name("bob@evilcorp.co.uk") == False
+    assert helpers.is_email("bob@evilcorp.co.uk") == True
+    assert helpers.is_email("evilcorp.co.uk") == False
     assert helpers.parent_domain("www.evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("localhost") == "localhost"
@@ -634,7 +638,9 @@ def test_config(config):
     scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], config=config)
     scan1.load_modules()
     assert scan1.config.plumbus == "asdf"
-    assert scan1.modules["ipneighbor"].config.rumbus == "fdsa"
+    assert scan1.modules["ipneighbor"].config.test_option == "ipneighbor"
+    assert scan1.modules["human"].config.test_option == "human"
+    assert scan1.modules["speculate"].config.test_option == "speculate"
 
 
 def test_target(neuter_ansible, patch_requests, patch_commands):

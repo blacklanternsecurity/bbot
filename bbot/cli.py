@@ -2,6 +2,7 @@
 
 import sys
 import logging
+from contextlib import suppress
 
 # fix tee buffering
 sys.stdout.reconfigure(line_buffering=True)
@@ -72,7 +73,8 @@ def main():
             except Exception:
                 raise
             finally:
-                scanner.helpers.word_cloud.save(options.save_wordcloud)
+                with suppress(NameError):
+                    scanner.helpers.word_cloud.save(options.save_wordcloud)
 
     except bbot.core.errors.BBOTError as e:
         import traceback

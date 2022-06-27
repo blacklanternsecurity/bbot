@@ -6,13 +6,16 @@ from .base import BaseModule
 
 class httpx(BaseModule):
 
-    watched_events = ["OPEN_TCP_PORT"]
+    watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active"]
     batch_size = 100
-    in_scope_only = False
-    options = {"in_scope_only": True, "version": "1.2.1"}
-    options_desc = {"in_scope_only": "Only visit web resources that are in scope.", "version": "httpx version"}
+    options = {"in_scope_only": True, "version": "1.2.1", "max_response_size": 5242880}
+    options_desc = {
+        "in_scope_only": "Only visit web resources that are in scope.",
+        "version": "httpx version",
+        "max_response_size": "Max response size in bytes",
+    }
     deps_ansible = [
         {
             "name": "Download httpx",
@@ -28,6 +31,7 @@ class httpx(BaseModule):
 
     def setup(self):
         self.timeout = self.scan.config.get("http_timeout", 5)
+        self.max_response_size = self.config.get("max_response_size", 5242880)
         return True
 
     def filter_event(self, event):
@@ -43,11 +47,13 @@ class httpx(BaseModule):
             "httpx",
             "-silent",
             "-json",
-            "-irr",
+            "-include-response",
             "-timeout",
             self.timeout,
-            "-H",
+            "-header",
             f"User-Agent: {self.scan.useragent}",
+            "-response-size-to-read",
+            f"{self.max_response_size}",
         ]
         for line in self.helpers.run_live(command, input=stdin, stderr=subprocess.DEVNULL):
             try:
@@ -55,8 +61,10 @@ class httpx(BaseModule):
             except json.decoder.JSONDecodeError:
                 self.debug(f"Failed to decode line: {line}")
                 continue
+
             url = j.get("url", "")
             title = j.get("title", "")
+            status_code = j.get("status-code", 0)
             source_event = None
             for event in events:
                 if url in event:
@@ -67,7 +75,7 @@ class httpx(BaseModule):
                 self.debug(f"Unable to correlate source event from: {line}")
                 continue
 
-            url_event = self.scan.make_event(url, "URL", source_event)
+            url_event = self.scan.make_event(url, "URL", source_event, tags=[f"status-{status_code}"])
             self.emit_event(url_event)
             http_response_event = self.scan.make_event(j, "HTTP_RESPONSE", url_event, internal=True)
             self.emit_event(http_response_event)

@@ -57,7 +57,7 @@ class aspnet_viewstate(BaseModule):
             viewstate = viewstate_match.group(1)
             self.debug(f"Discovered viewstate for URL {event.data}")
             self.emit_event(f"[{event.data}] Microsoft ASP.NET", "TECHNOLOGY", event, tags=["web"])
-            tool_path = self.scan.helpers.tools_dir / "blacklist3r/"
+            tool_path = self.scan.helpers.tools_dir / "blacklist3r"
             command = [
                 "mono",
                 f"{tool_path}/AspDotNetWrapper.exe",
