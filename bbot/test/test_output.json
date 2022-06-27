@@ -1,0 +1,16 @@
+[
+  {
+    "ip": "8.8.8.8",
+    "name": "dns.google.",
+    "as_number": 15169,
+    "as_org": "GOOGLE",
+    "country_id": "US",
+    "city": "",
+    "version": "",
+    "error": "",
+    "dnssec": true,
+    "reliability": 1,
+    "checked_at": "2022-04-17T08:03:50.419919Z",
+    "created_at": "2020-07-16T14:19:04.514857Z"
+  }
+]
