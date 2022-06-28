@@ -1,11 +1,14 @@
 import logging
 from deepdiff import DeepDiff
-import xmltojson
+import xmltodict
 import json
 from xml.parsers.expat import ExpatError
 from time import sleep
 from bbot.core.errors import HttpCompareError
+import requests
 
+
+import pprint
 log = logging.getLogger("bbot.core.helpers.diff")
 
 
@@ -17,18 +20,30 @@ class HttpCompare:
 
         baseline_1 = self.parent_helper.request(self.baseline_url + self.gen_cache_buster(), allow_redirects=False)
         sleep(2)
-        baseline_2 = self.parent_helper.request(self.baseline_url + self.gen_cache_buster(), allow_redirects=False)
+        baseline_2 = self.parent_helper.request(self.baseline_url + self.gen_cache_buster() + f"&{self.parent_helper.rand_string(6)}={self.parent_helper.rand_string(6)}", headers={self.parent_helper.rand_string(6):self.parent_helper.rand_string(6)}, cookies={self.parent_helper.rand_string(6):self.parent_helper.rand_string(6)}, allow_redirects=False)
+
+
         self.baseline = baseline_1
 
         if baseline_1.status_code != baseline_2.status_code:
             raise HttpCompareError("Can't get baseline from source URL")
         try:
-            baseline_1_json = json.loads(xmltojson.parse(baseline_1.text))
-            baseline_2_json = json.loads(xmltojson.parse(baseline_2.text))
+            baseline_1_json = xmltodict.parse(baseline_1.text)
+            baseline_2_json = xmltodict.parse(baseline_2.text)
         except ExpatError:
             log.debug(f"Cant HTML parse for {baseline_url}. Switching to text parsing as a backup")
             baseline_1_json = baseline_1.text.split("\n")
             baseline_2_json = baseline_2.text.split("\n")
+
+
+        ddiff = DeepDiff(baseline_1_json, baseline_2_json, ignore_order=True, view="tree")
+        self.ddiff_filters = []
+
+        try:
+            for x in list(ddiff["values_changed"]):
+                self.ddiff_filters.append(x.path())
+        except KeyError:
+            pass
 
         self.baseline_json = baseline_1_json
 
@@ -87,18 +102,22 @@ class HttpCompare:
 
     def compare_body(self, content_1, content_2):
 
-        # experiment with either a distance value or finding the differences by offset
         if content_1 == content_2:
-            return 0.0
-        ddiff = DeepDiff(content_1, content_2, get_deep_distance=True, cutoff_intersection_for_pairs=1)
-        return ddiff["deep_distance"]
+            return True
+
+        ddiff = DeepDiff(content_1, content_2, ignore_order=True, view="tree",exclude_paths=self.ddiff_filters)
+
+        if len(ddiff.keys()) == 0:
+            return True
+        else:
+            return False
 
     def compare(self, subject, add_headers=None, add_cookies=None):
         reflection = False
-
         subject_response = self.parent_helper.request(
             subject + self.gen_cache_buster(url=subject), headers=add_headers, allow_redirects=False
         )
+
         if not subject_response:
             # this can be caused by a WAF not liking the header, so we really arent interested in it
             return (True, "403", reflection)
@@ -120,7 +139,8 @@ class HttpCompare:
                     reflection = True
 
         try:
-            subject_json = json.loads(xmltojson.parse(subject_response.text))
+            subject_json = xmltodict.parse(subject_response.text)
+
         except ExpatError:
             log.debug(f"Cant HTML parse for {subject}. Switching to text parsing as a backup")
             subject_json = subject_response.text.split("\n")
@@ -136,12 +156,7 @@ class HttpCompare:
             log.debug(f"headers were different, no match [{different_headers}]")
             return (False, "header", reflection)
 
-        subject_body_distance = self.compare_body(self.baseline_json, subject_json)
-
-        # probabaly add a little bit of give here
-        if self.baseline_body_distance != subject_body_distance:
-            log.debug(
-                f"different body distance {str(self.baseline_body_distance)} --> {str(subject_body_distance)} no match"
-            )
+        if self.compare_body(self.baseline_json, subject_json) == False:
+            log.debug(f"difference in HTML body, no match")
             return (False, "body", reflection)
         return (True, None, False)
