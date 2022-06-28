@@ -98,9 +98,10 @@ def request(self, *args, **kwargs):
 
     headers = kwargs.get("headers", {})
 
-    if "User-Agent" not in headers:
-        headers.update({"User-Agent": user_agent})
-    kwargs["headers"] = headers
+    if headers != None:
+        if "User-Agent" not in headers:
+            headers.update({"User-Agent": user_agent})
+        kwargs["headers"] = headers
 
     http_debug = self.config.get("http_debug", False)
     while retries == "infinite" or retries >= 0:
