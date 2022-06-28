@@ -38,8 +38,13 @@ class HttpCompare:
         self.baseline_ignore_headers += dynamic_headers
         self.baseline_body_distance = self.compare_body(baseline_1_json, baseline_2_json)
 
-    def gen_cache_buster(self):
-        return f"?{self.parent_helper.rand_string(6)}=1"
+    def gen_cache_buster(self, url=None):
+
+        if (url != None) and ("?" in url):
+            sep = "&"
+        else:
+            sep = "?"
+        return f"{sep}{self.parent_helper.rand_string(6)}=1"
 
     def compare_headers(self, headers_1, headers_2):
 
@@ -92,7 +97,7 @@ class HttpCompare:
         reflection = False
 
         subject_response = self.parent_helper.request(
-            subject + self.gen_cache_buster(), headers=add_headers, allow_redirects=False
+            subject + self.gen_cache_buster(url=subject), headers=add_headers, allow_redirects=False
         )
         if not subject_response:
             # this can be caused by a WAF not liking the header, so we really arent interested in it
@@ -106,6 +111,12 @@ class HttpCompare:
         elif add_cookies:
             if len(add_cookies) == 1:
                 if list(add_cookies.values())[0] in subject_response.text:
+                    reflection = True
+
+        else:
+            subject_params = subject.split("?")[1].split("&")
+            if len(subject_params) == 1:
+                if subject_params[0].split("=")[1] in subject_response.text:
                     reflection = True
 
         try:
