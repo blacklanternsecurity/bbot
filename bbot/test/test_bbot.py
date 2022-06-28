@@ -222,7 +222,7 @@ def test_manager(config):
     output_queue = []
     module_queue = []
     manager_queue = []
-    scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["human"], config=config)
+    scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["json"], config=config)
     scan1.load_modules()
     manager = scan1.manager
     test_event1 = scan1.make_event("1.2.3.4", dummy=True)
@@ -245,7 +245,7 @@ def test_manager(config):
     manager_queue.clear()
     manager.events_accepted.clear()
 
-    scan1.modules["human"].queue_event = lambda e: output_queue.append(e)
+    scan1.modules["json"].queue_event = lambda e: output_queue.append(e)
     scan1.modules["ipneighbor"].queue_event = lambda e: module_queue.append(e)
 
     # in-scope event
@@ -270,7 +270,7 @@ def test_manager(config):
     assert test_event2 not in output_queue
     assert test_event2._internal == True
     assert test_event2._force_output == False
-    assert scan1.modules["human"]._filter_event(test_event2) == False
+    assert scan1.modules["json"]._filter_event(test_event2) == False
     module_queue.clear()
     output_queue.clear()
     manager.events_distributed.clear()
@@ -293,6 +293,11 @@ def test_manager(config):
 def test_helpers(patch_requests, patch_commands, helpers, scan):
 
     old_run, old_run_live = patch_commands
+
+    ### HTTP COMPARE ###
+    compare_helper = helpers.http_compare("http://www.example.com")
+    compare_helper.compare("http://www.example.com", add_headers={"asdf": "asdf"})
+    compare_helper.compare("http://www.example.com", add_cookies={"asdf": "asdf"})
 
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
@@ -703,7 +708,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     assert csv_file.is_file()
     with open(csv_file) as f:
         lines = f.readlines()
-        assert lines[0] == "Event type,Event data,Source Module,Event ID,Event Tags,Source Event ID\n"
+        assert lines[0] == "Event type,Event data,Source Module,Event Tags\n"
         assert len(lines) > 1
 
 

@@ -77,8 +77,8 @@ class ScanManager:
                     )
                     event.make_internal()
             elif not event.host:
-                log.debug(f"Making {event} non-internal because it does not have scope information")
-                event.unmake_internal(force_output=True, emit_trail=True)
+                log.debug(f"Making {event} in-scope because it does not have identifying scope information")
+                event.make_in_scope()
 
             # now that the event is tagged, accept it if we didn't already
             if abort_if is not None:
@@ -205,10 +205,10 @@ class ScanManager:
                     event.scope_distance <= self.scan.scope_report_distance and event.scope_distance > -1
                 )
                 if mod._type == "output":
-                    if event_within_report_distance or not event.host or event._force_output:
+                    if event_within_report_distance or (event._force_output and mod.emit_graph_trail):
                         mod.queue_event(event)
                 else:
-                    if event_within_scope_distance or not event.host:
+                    if event_within_scope_distance:
                         mod.queue_event(event)
 
     def loop_until_finished(self):

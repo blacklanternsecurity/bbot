@@ -8,12 +8,20 @@ from requests.exceptions import RequestException
 log = logging.getLogger("bbot.core.helpers.web")
 
 
-def validate_url(self, url):
-    extension_blacklist = self.config.get("url_extension_blacklist", [])
-    p = urlparse(url)
-    if p.path.split(".")[-1].lower() in extension_blacklist:
-        return False
-    return True
+def clean_url(url):
+    parsed = urlparse(str(url).strip())
+    parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
+    # remove ports if they're redundant
+    if (parsed.scheme == "http" and parsed.port == 80) or (parsed.scheme == "https" and parsed.port == 443):
+        hostname = parsed.hostname
+        # special case for IPv6 URLs
+        if parsed.netloc.startswith("["):
+            hostname = f"[{hostname}]"
+        parsed = parsed._replace(netloc=hostname)
+    # append / if path is empty
+    if parsed.path == "":
+        parsed = parsed._replace(path="/")
+    return parsed
 
 
 def download(self, url, **kwargs):

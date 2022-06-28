@@ -9,6 +9,7 @@ class BaseOutputModule(BaseModule):
     accept_dupes = True
     _priority = -100
     _type = "output"
+    emit_graph_trail = True
 
     def _filter_event(self, e):
         # special "FINISHED" event

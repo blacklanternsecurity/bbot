@@ -71,12 +71,18 @@ class massdns(BaseModule):
         else:
             query = self.helpers.parent_domain(event.data).lower()
 
+        if hash(query) in self.processed:
+            self.debug(f'Already processed "{query}", skipping')
+            return
+
         h = hash(query)
         self.processed.add(h)
         if not h in self.source_events:
             self.source_events[h] = event
 
-        if self.helpers.is_wildcard(f"iuasgesaisidfjsfieiq.{query}"):
+        # wildcard sanity check
+        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string()}.{query}")
+        if is_wildcard:
             self.debug(f"Skipping wildcard: {query}")
             return
 
