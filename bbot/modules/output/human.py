@@ -6,6 +6,7 @@ from .base import BaseOutputModule
 class Human(BaseOutputModule):
     options = {"output_file": "", "console": True}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
+    emit_graph_trail = False
 
     def setup(self):
         self.output_file = self.config.get("output_file", "")

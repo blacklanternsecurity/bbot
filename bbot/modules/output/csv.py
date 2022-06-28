@@ -19,6 +19,7 @@ class Line:
 class CSV(BaseOutputModule):
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to CSV file"}
+    emit_graph_trail = False
 
     def setup(self):
         self.output_file = self.config.get("output_file", "")
@@ -30,7 +31,7 @@ class CSV(BaseOutputModule):
         else:
             self.file = Line()
         self.writer = csv.writer(self.file)
-        self.writerow(["Event type", "Event data", "Source Module", "Event ID", "Event Tags", "Source Event ID"])
+        self.writerow(["Event type", "Event data", "Source Module", "Event Tags"])
         return True
 
     def writerow(self, row):
@@ -46,9 +47,7 @@ class CSV(BaseOutputModule):
                 getattr(event, "type", ""),
                 getattr(event, "data", ""),
                 str(getattr(event, "module", "")),
-                getattr(event, "id", ""),
                 json.dumps(sorted(list(getattr(event, "tags", [])))),
-                getattr(event, "source_id", ""),
             ]
         )
 

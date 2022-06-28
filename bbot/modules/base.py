@@ -285,7 +285,6 @@ class BaseModule:
                 return False
         # exclude non-watched types
         if not any(t in self.watched_events for t in ("*", e.type)):
-            self.debug(f"{e} is not in watched_events")
             return False
         # optionally exclude non-targets
         if self.target_only and "target" not in e.tags:

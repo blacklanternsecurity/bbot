@@ -33,14 +33,15 @@ class crobat(BaseModule):
         else:
             query = self.helpers.parent_domain(event.data).lower()
 
-        if query not in self.processed:
-            self.processed.add(hash(query))
+        if hash(query) in self.processed:
+            self.debug(f'Already processed "{query}", skipping')
+            return
 
-            for hostname in self.query(query):
-                if not hostname == event:
-                    self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in_scope" not in e.tags)
-                else:
-                    self.debug(f"Excluding self: {hostname}")
+        for hostname in self.query(query):
+            if not hostname == event:
+                self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in_scope" not in e.tags)
+            else:
+                self.debug(f"Excluding self: {hostname}")
 
     def query(self, query):
         results = self.helpers.request(f"https://sonar.omnisint.io/subdomains/{quote(query)}")

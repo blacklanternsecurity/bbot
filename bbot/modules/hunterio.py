@@ -4,7 +4,7 @@ from .base import BaseModule
 class hunterio(BaseModule):
 
     watched_events = ["DNS_NAME"]
-    produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL"]
+    produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL_UNVERIFIED"]
     flags = ["passive"]
     options = {"api_key": ""}
     options_desc = {"api_key": "Hunter.IO API key"}
@@ -51,7 +51,7 @@ class hunterio(BaseModule):
                 url = source.get("uri", "")
                 if url and not url in self.emitted:
                     self.emitted.add(url)
-                    self.emit_event(url, "URL", email_event)
+                    self.emit_event(url, "URL_UNVERIFIED", email_event)
 
     def query(self, query):
         emails = []
