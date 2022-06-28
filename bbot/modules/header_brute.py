@@ -136,14 +136,14 @@ class header_brute(BaseModule):
             if reflection:
                 self.emit_event(
                     f"[HEADER_BRUTEFORCE] Host: [{url}] Header: [{header_group[0]}] Reason: [{reason}] ",
-                    "VULNERABILITY",
+                    "FINDING",
                     event,
                     tags=["http_reflection"],
                 )
             else:
                 self.emit_event(
                     f"[HEADER_BRUTEFORCE] Host: [{url}] Header: [{header_group[0]}] Reason: [{reason}] ",
-                    "VULNERABILITY",
+                    "FINDING",
                     event,
                 )
         else:
