@@ -1,7 +1,6 @@
 import json
 import logging
 import ipaddress
-from urllib.parse import urlparse, urlunparse
 
 from .helpers import make_event_id, get_event_type
 from bbot.core.errors import *
@@ -19,6 +18,7 @@ from bbot.core.helpers import (
     smart_decode,
     regexes,
 )
+from bbot.core.helpers.web import clean_url
 
 
 log = logging.getLogger("bbot.core.event")
@@ -58,6 +58,12 @@ class BaseEvent:
         self.scan = scan
         if (not self.scan) and (not self._dummy):
             raise ValidationError(f"Must specify scan")
+
+        # check type blacklist
+        if self.scan is not None:
+            omit_event_types = self.scan.config.get("omit_event_types", [])
+            if omit_event_types and self.type in omit_event_types:
+                self._omit = True
 
         self._scope_distance = -1
 
@@ -225,7 +231,7 @@ class BaseEvent:
         source_trail = []
         # keep the event internal if it came from an internal module and isn't a DNS_NAME
         if getattr(self.module, "_type", "") != "internal" or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=0, force_output=True)
+            source_trail = self.unmake_internal(set_scope_distance=0, force_output=True, emit_trail=True)
         self.tags.add("in_scope")
         self.scope_distance = 0
         return source_trail
@@ -387,19 +393,7 @@ class URL(BaseEvent):
     def _sanitize_data(self, data):
         if not any(r.match(data) for r in regexes.event_type_regexes["URL"]):
             return None
-        self.parsed = urlparse(data.strip())
-        self.parsed = self.parsed._replace(netloc=str(self.parsed.netloc).lower(), fragment="", query="")
-        # remove ports if they're redundant
-        if (self.parsed.scheme == "http" and self.parsed.port == 80) or (
-            self.parsed.scheme == "https" and self.parsed.port == 443
-        ):
-            hostname = self.parsed.hostname
-            # handle IPv6 URLs
-            if self.parsed.netloc.startswith("["):
-                hostname = f"[{hostname}]"
-            self.parsed = self.parsed._replace(netloc=hostname)
-        if self.parsed.path == "":
-            self.parsed = self.parsed._replace(path="/")
+        self.parsed = clean_url(data)
 
         # tag as dir or endpoint
         if str(self.parsed.path.endswith("/")):
@@ -414,7 +408,7 @@ class URL(BaseEvent):
                 if str(self.parsed.path).lower().endswith(f".{ext}"):
                     self.tags.add("blacklisted")
 
-        data = urlunparse(self.parsed)
+        data = self.parsed.geturl()
         return data
 
     def _host(self):
@@ -436,7 +430,7 @@ class URL(BaseEvent):
 
 
 class URL_UNVERIFIED(URL):
-    _omit = True
+    pass
 
 
 class URL_HINT(URL):
@@ -453,8 +447,16 @@ class EMAIL_ADDRESS(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class HTTP_RESPONSE(BaseEvent):
-    _omit = True
+class HTTP_RESPONSE(URL):
+    def _sanitize_data(self, data):
+        url = data.get("url", "")
+        if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
+            return None
+        self.parsed = clean_url(url)
+        return data
+
+    def _words(self):
+        return set()
 
 
 def make_event(

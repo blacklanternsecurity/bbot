@@ -27,6 +27,7 @@ class DNSHelper:
         self._wildcard_cache = dict()
         self.resolver = dns.resolver.Resolver()
         self.timeout = self.parent_helper.config.get("dns_timeout", 10)
+        self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 5)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
         self._resolver_list = None
@@ -36,6 +37,9 @@ class DNSHelper:
         # ensuring that subsequent calls to is_wildcard() will use the cached value
         self.__wildcard_lock = Lock()
         self._wildcard_locks = dict()
+
+        self._errors = dict()
+        self._error_lock = Lock()
 
         # we need our own threadpool because using the shared one can lead to deadlocks
         max_workers = self.parent_helper.config.get("max_threads", 100)
@@ -310,19 +314,41 @@ class DNSHelper:
 
     def _resolve_hostname(self, query, **kwargs):
         self.debug(f"Resolving {query} with kwargs={kwargs}")
-        results = list(self._catch(self.resolver.resolve, query, **kwargs))
+        results = []
+        parent = self.parent_helper.parent_domain(query)
+        error_count = self._errors.get(hash(parent), 0)
+        if error_count >= self.abort_threshold:
+            log.verbose(
+                f'Aborting query "{query}" because failed queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+            )
+            return results
+        try:
+            results = list(self._catch(self.resolver.resolve, query, **kwargs))
+        except dns.resolver.NoNameservers:
+            with self._error_lock:
+                try:
+                    self._errors[hash(parent)] += 1
+                except KeyError:
+                    self._errors[hash(parent)] = 1
+                self.debug(f'No nameservers (SERVFAIL) for query "{query}" ({self._errors[hash(parent)]:,} so far)')
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results
 
     def _resolve_ip(self, query, **kwargs):
         self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
-        results = list(self._catch(self.resolver.resolve_address, query, **kwargs))
+        results = []
+        try:
+            results = list(self._catch(self.resolver.resolve_address, query, **kwargs))
+        except dns.resolver.NoNameservers as e:
+            self.debug(f"{e} (query={query}, kwargs={kwargs})")
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results
 
     def _catch(self, callback, *args, **kwargs):
         try:
             return callback(*args, **kwargs)
+        except dns.resolver.NoNameservers:
+            raise
         except dns.exception.Timeout:
             log.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
         except dns.exception.DNSException as e:

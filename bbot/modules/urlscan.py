@@ -6,7 +6,7 @@ from .crobat import crobat
 class urlscan(crobat):
     flags = ["subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
-    produced_events = ["DNS_NAME", "URL"]
+    produced_events = ["DNS_NAME", "URL_UNVERIFIED"]
 
     def handle_event(self, event):
         if "target" in event.tags:
@@ -25,7 +25,7 @@ class urlscan(crobat):
                         self.emit_event(domain_event)
                         source_event = domain_event
                 if url:
-                    url_event = self.scan.make_event(url, "URL", source=source_event)
+                    url_event = self.scan.make_event(url, "URL_UNVERIFIED", source=source_event)
                     if str(url_event.host).endswith(query):
                         self.emit_event(url_event)
                     else:
