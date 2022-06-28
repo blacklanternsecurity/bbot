@@ -96,12 +96,13 @@ def request(self, *args, **kwargs):
     if not "timeout" in kwargs:
         kwargs["timeout"] = http_timeout
 
-    headers = kwargs.get("headers", {})
+    headers = kwargs.get("headers", None)
 
-    if headers != None:
-        if "User-Agent" not in headers:
-            headers.update({"User-Agent": user_agent})
-        kwargs["headers"] = headers
+    if headers is None:
+        headers = {}
+    if "User-Agent" not in headers:
+        headers.update({"User-Agent": user_agent})
+    kwargs["headers"] = headers
 
     http_debug = self.config.get("http_debug", False)
     while retries == "infinite" or retries >= 0:
