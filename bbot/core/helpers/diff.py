@@ -1,14 +1,10 @@
 import logging
 from deepdiff import DeepDiff
 import xmltodict
-import json
 from xml.parsers.expat import ExpatError
 from time import sleep
 from bbot.core.errors import HttpCompareError
-import requests
 
-
-import pprint
 log = logging.getLogger("bbot.core.helpers.diff")
 
 
@@ -20,8 +16,14 @@ class HttpCompare:
 
         baseline_1 = self.parent_helper.request(self.baseline_url + self.gen_cache_buster(), allow_redirects=False)
         sleep(2)
-        baseline_2 = self.parent_helper.request(self.baseline_url + self.gen_cache_buster() + f"&{self.parent_helper.rand_string(6)}={self.parent_helper.rand_string(6)}", headers={self.parent_helper.rand_string(6):self.parent_helper.rand_string(6)}, cookies={self.parent_helper.rand_string(6):self.parent_helper.rand_string(6)}, allow_redirects=False)
-
+        baseline_2 = self.parent_helper.request(
+            self.baseline_url
+            + self.gen_cache_buster()
+            + f"&{self.parent_helper.rand_string(6)}={self.parent_helper.rand_string(6)}",
+            headers={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
+            cookies={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
+            allow_redirects=False,
+        )
 
         self.baseline = baseline_1
 
@@ -34,7 +36,6 @@ class HttpCompare:
             log.debug(f"Cant HTML parse for {baseline_url}. Switching to text parsing as a backup")
             baseline_1_json = baseline_1.text.split("\n")
             baseline_2_json = baseline_2.text.split("\n")
-
 
         ddiff = DeepDiff(baseline_1_json, baseline_2_json, ignore_order=True, view="tree")
         self.ddiff_filters = []
@@ -105,7 +106,7 @@ class HttpCompare:
         if content_1 == content_2:
             return True
 
-        ddiff = DeepDiff(content_1, content_2, ignore_order=True, view="tree",exclude_paths=self.ddiff_filters)
+        ddiff = DeepDiff(content_1, content_2, ignore_order=True, view="tree", exclude_paths=self.ddiff_filters)
 
         if len(ddiff.keys()) == 0:
             return True
