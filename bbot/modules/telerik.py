@@ -200,7 +200,7 @@ class telerik(BaseModule):
 
     def filter_event(self, event):
 
-        if ("endpoint" in event.tags) or ("uri" in event.tags):
+        if "endpoint" in event.tags:
             return False
         else:
             return True

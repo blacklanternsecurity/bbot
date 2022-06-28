@@ -16,30 +16,23 @@ def split_list(alist, wanted_parts=2):
     return [alist[i * length // wanted_parts : (i + 1) * length // wanted_parts] for i in range(wanted_parts)]
 
 
-class header_brute(BaseModule):
+class getparam_brute(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
     flags = ["brute-force", "active"]
-    options = {"header_wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
-    options_desc = {"header_wordlist": "Define the wordlist to be used to derive headers"}
+    options = {
+        "getparam_wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params"
+    }
+    options_desc = {"getparam_wordlist": "Define the wordlist to be used to derive GET params"}
     scanned_hosts = []
-    header_blacklist = [
-        "content-length",
-        "expect",
-        "transfer-encoding",
-        "connection",
-        "if-match",
-        "if-modified-since",
-        "if-none-match",
-        "if-unmodified-since",
-    ]
+    getparam_blacklist = []
     max_threads = 12
     in_scope_only = True
 
     def setup(self):
 
-        self.wordlist = self.helpers.download(self.config.get("header_wordlist"), cache_hrs=720)
+        self.wordlist = self.helpers.download(self.config.get("getparam_wordlist"), cache_hrs=720)
         return True
 
     # test detection using a canary to find hosts giving bad results
@@ -48,11 +41,11 @@ class header_brute(BaseModule):
         canary_result = True
 
         for i in range(0, rounds):
-            header_group = []
-            header_group.append(self.helpers.rand_string(12))
-            result_tuple = self.check_header_batch(compare_helper, url, header_group)
+            getparam_group = []
+            getparam_group.append(self.helpers.rand_string(12))
+            result_tuple = self.check_getparam_batch(compare_helper, url, getparam_group)
 
-            # a nonsense header "caused" a difference, we need to abort
+            # a nonsense getparam "caused" a difference, we need to abort
             if result_tuple == False:
                 canary_result = False
                 break
@@ -69,7 +62,8 @@ class header_brute(BaseModule):
         except HttpCompareError as e:
             self.debug(e)
             return
-        batch_size = self.header_count_test(url)
+        batch_size = self.getparam_count_test(url)
+
         if batch_size == None:
             self.debug("Failed to get baseline max header count, aborting")
             return
@@ -84,74 +78,78 @@ class header_brute(BaseModule):
         fl = f.readlines()
         f.close()
 
-        headers_cleaned = [header.strip() for header in filter(self.clean_header_list, fl)]
+        getparams_cleaned = [getparam.strip() for getparam in filter(self.clean_getparam_list, fl)]
 
-        for header_group in grouper(headers_cleaned, batch_size, ""):
-            header_group = list(filter(None, header_group))
+        for getparam_group in grouper(getparams_cleaned, batch_size, ""):
+            getparam_group = list(filter(None, getparam_group))
 
-            result_tuple = self.check_header_batch(compare_helper, url, header_group)
+            result_tuple = self.check_getparam_batch(compare_helper, url, getparam_group)
             result = result_tuple[0]
             reason = result_tuple[1]
             reflection = result_tuple[2]
             if result == False:
-                self.binary_header_search(compare_helper, url, header_group, event, reason, reflection)
+                self.binary_getparam_search(compare_helper, url, getparam_group, event, reason, reflection)
 
-    def check_header_batch(self, compare_helper, url, header_list):
+    def check_getparam_batch(self, compare_helper, url, getparam_list):
 
-        rand = self.helpers.rand_string()
-        test_headers = {}
-        for header in header_list:
-            test_headers[header] = rand
-        result_tuple = compare_helper.compare(url, add_headers=test_headers)
+        test_getparams = "?"
+
+        for p in getparam_list:
+            test_getparams += f"{p}={self.helpers.rand_string(14)}&"
+
+        result_tuple = compare_helper.compare(url + test_getparams.rstrip("&"))
         return result_tuple
 
-    def header_count_test(self, url):
+    def getparam_count_test(self, url):
 
         baseline = self.helpers.request(url)
         if (str(baseline.status_code)[0] == "4") and (str(baseline.status_code)[0] == "5"):
-            return None
-        header_count = 120
+            raise Exception("Baseline request throwing error, cannot proceed")
+        getparam_count = 40
         while 1:
 
-            if header_count < 0:
+            if getparam_count < 0:
                 return -1
-            fake_headers = {}
-            for i in range(0, header_count):
-                fake_headers[self.helpers.rand_string(14)] = self.helpers.rand_string(14)
-            r = self.helpers.request(url, headers=fake_headers)
+            fake_getparams = "?"
+            for i in range(0, getparam_count):
+                fake_getparams += f"{self.helpers.rand_string(14)}={self.helpers.rand_string(14)}&"
+
+            r = self.helpers.request(url + fake_getparams.rstrip("&"))
             if (str(r.status_code)[0] == "4") or (str(r.status_code)[0] == "5"):
-                header_count -= 5
+                getparam_count -= 5
             else:
                 break
-        return header_count
+        return getparam_count
 
-    def clean_header_list(self, header):
-        if (len(header) > 0) and ("%" not in header) and (header.strip() not in self.header_blacklist):
+    def clean_getparam_list(self, getparam):
+        if (len(getparam) > 0) and (getparam.strip() not in self.getparam_blacklist):
             return True
         return False
 
-    def binary_header_search(self, compare_helper, url, header_group, event, reason, reflection):
-        self.debug(f"entering recursive binary_header_search with {str(len(header_group))} sized header group")
-        if len(header_group) == 1:
+    def binary_getparam_search(self, compare_helper, url, getparam_group, event, reason, reflection):
+        self.debug(
+            f"entering recursive binary_getparam_search with {str(len(getparam_group))} sized GET parameter group"
+        )
+        if len(getparam_group) == 1:
             if reflection:
                 self.emit_event(
-                    f"[HEADER_BRUTEFORCE] Host: [{url}] Header: [{header_group[0]}] Reason: [{reason}] ",
+                    f"[GETPARAM_BRUTEFORCE] Host: [{url}] getparam: [{getparam_group[0]}] Reason: [{reason}] ",
                     "VULNERABILITY",
                     event,
                     tags=["http_reflection"],
                 )
             else:
                 self.emit_event(
-                    f"[HEADER_BRUTEFORCE] Host: [{url}] Header: [{header_group[0]}] Reason: [{reason}] ",
+                    f"[GETPARAM_BRUTEFORCE] Host: [{url}] getparam: [{getparam_group[0]}] Reason: [{reason}] ",
                     "VULNERABILITY",
                     event,
                 )
         else:
-            for header_group_slice in split_list(header_group):
+            for getparam_group_slice in split_list(getparam_group):
 
-                result_tuple = self.check_header_batch(compare_helper, url, header_group_slice)
+                result_tuple = self.check_getparam_batch(compare_helper, url, getparam_group_slice)
                 result = result_tuple[0]
                 reason = result_tuple[1]
                 reflection = result_tuple[2]
                 if result == False:
-                    self.binary_header_search(compare_helper, url, header_group_slice, event, reason, reflection)
+                    self.binary_getparam_search(compare_helper, url, getparam_group_slice, event, reason, reflection)
