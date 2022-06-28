@@ -134,14 +134,14 @@ class getparam_brute(BaseModule):
             if reflection:
                 self.emit_event(
                     f"[GETPARAM_BRUTEFORCE] Host: [{url}] getparam: [{getparam_group[0]}] Reason: [{reason}] ",
-                    "VULNERABILITY",
+                    "FINDING",
                     event,
                     tags=["http_reflection"],
                 )
             else:
                 self.emit_event(
                     f"[GETPARAM_BRUTEFORCE] Host: [{url}] getparam: [{getparam_group[0]}] Reason: [{reason}] ",
-                    "VULNERABILITY",
+                    "FINDING",
                     event,
                 )
         else:
