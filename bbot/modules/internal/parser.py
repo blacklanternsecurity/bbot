@@ -37,5 +37,5 @@ class parser(BaseInternalModule):
 
     def handle_event(self, event):
         # check for URLS
-        extractor = URLExtractor(event.data.get("response-body",""), self, event)
+        extractor = URLExtractor(event.data.get("response-body", ""), self, event)
         extractor.search()
