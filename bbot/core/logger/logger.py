@@ -18,7 +18,9 @@ class ColoredFormatter(logging.Formatter):
         "VERBOSE": 242,  # grey
         "INFO": 69,  # blue
         "SUCCESS": 118,  # green
+        "HUGESUCCESS": 118,  # green
         "WARNING": 208,  # orange
+        "HUGEWARNING": 208,  # orange
         "ERROR": 196,  # red
         "CRITICAL": 196,  # red
     }
@@ -28,17 +30,15 @@ class ColoredFormatter(logging.Formatter):
         "VERBOSE": "VERB",
         "INFO": "INFO",
         "SUCCESS": "SUCC",
+        "HUGESUCCESS": "SUCC",
         "WARNING": "WARN",
+        "HUGEWARNING": "WARN",
         "ERROR": "ERRR",
         "CRITICAL": "CRIT",
     }
 
     prefix = "\033[1;38;5;"
     suffix = "\033[0m"
-
-    def __init__(self, pattern):
-
-        super().__init__(pattern)
 
     def format(self, record):
 
@@ -47,7 +47,7 @@ class ColoredFormatter(logging.Formatter):
         levelchar = self.char_mapping.get(levelname, "INFO")
         seq = self.color_mapping.get(levelname, 15)  # default white
         colored_levelname = f"{self.prefix}{seq}m[{levelchar}]{self.suffix}"
-        if levelname == "CRITICAL":
+        if levelname in ("CRITICAL", "HUGEWARNING", "HUGESUCCESS"):
             colored_record.msg = f"{self.prefix}{seq}m{colored_record.msg}{self.suffix}"
         colored_record.levelname = colored_levelname
 
@@ -106,6 +106,8 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
 
 
 # custom logging levels
+addLoggingLevel("HUGEWARNING", 31)
+addLoggingLevel("HUGESUCCESS", 26)
 addLoggingLevel("SUCCESS", 25)
 addLoggingLevel("VERBOSE", 15)
 addLoggingLevel("STDOUT", 1)

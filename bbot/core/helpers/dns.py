@@ -117,25 +117,25 @@ class DNSHelper:
         if check_wildcard and event.type == "DNS_NAME":
             event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
             if event_is_wildcard:
-                event_tags.add("wildcard")
                 event.data = wildcard_parent
-                event_host = wildcard_parent
-                new_tags, _event_in_scope = self.cache_get(event_host)
-                if _event_in_scope is not None:
-                    event_tags.update(new_tags)
-                    return children, event_tags, _event_in_scope
+                return self.resolve_event(event, check_wildcard=False)
+        elif not check_wildcard:
+            event_tags.add("wildcard")
 
         # then resolve
+        target = getattr(self.parent_helper.scan, "target", None)
         for rdtype, records in self.resolve_raw(event_host, type="any"):
             event_tags.add("resolved")
             rdtype = str(rdtype).upper()
+            # mark in-scope if it resolves to an in-scope IP
             if rdtype in ("A", "AAAA"):
                 for r in records:
                     for _, t in self.extract_targets(r):
-                        with suppress(ValidationError):
-                            if self.parent_helper.scan.target.in_scope(t):
-                                event_in_scope = True
-                                break
+                        if target is not None:
+                            with suppress(ValidationError):
+                                if target.in_scope(t):
+                                    event_in_scope = True
+                                    break
             for r in records:
                 for _, t in self.extract_targets(r):
                     event_tags.add(f"{rdtype.lower()}_record")
@@ -154,7 +154,7 @@ class DNSHelper:
 
     def cache_put(self, host, tags, in_scope):
         with self._cache_lock:
-            self._cache[hash(host)] = (tags, in_scope)
+            self._cache[hash(str(host))] = (tags, in_scope)
 
     def cache_in(self, host):
         return hash(host) in self._cache
@@ -296,15 +296,25 @@ class DNSHelper:
 
         # first, make sure it can resolve a valid hostname
         try:
-            resolver.resolve("www.example.com", "A")
+            a_results = [str(r) for r in list(resolver.resolve("dns.google", "A"))]
+            aaaa_results = [str(r) for r in list(resolver.resolve("dns.google", "AAAA"))]
+            if not ("2001:4860:4860::8888" in aaaa_results and "8.8.8.8" in a_results):
+                error = f"Nameserver {nameserver} failed to resolve basic query"
         except Exception:
             error = f"Nameserver {nameserver} failed to resolve basic query within {timeout} seconds"
 
         # then, make sure it isn't feeding us garbage data
+        randhost = f"www-m.{rand_string(9)}.{rand_string(10)}.com"
         if error is None:
-            randhost = f"www-m.{rand_string(9)}.{rand_string(10)}.com"
             try:
-                resolver.resolve(randhost, "A")
+                a_results = list(resolver.resolve(randhost, "A"))
+                error = f"Nameserver {nameserver} returned garbage data"
+            except dns.exception.DNSException:
+                pass
+                # Garbage query to nameserver failed successfully ;)
+        if error is None:
+            try:
+                a_results = list(resolver.resolve(randhost, "AAAA"))
                 error = f"Nameserver {nameserver} returned garbage data"
             except dns.exception.DNSException:
                 pass
