@@ -41,28 +41,10 @@ class HttpCompare:
         ddiff = DeepDiff(baseline_1_json, baseline_2_json, ignore_order=True, view="tree")
         self.ddiff_filters = []
 
-        try:
-            for x in list(ddiff["values_changed"]):
-                log.debug(f"Added values changed filter for path: {x.path()}")
+        for k, v in ddiff.items():
+            for x in list(ddiff[k]):
+                log.debug(f"Added {k} filter for path: {x.path()}")
                 self.ddiff_filters.append(x.path())
-
-            for x in list(ddiff["dictionary_item_added"]):
-                log.debug(f"Added dictionary_item_added filter for path: {x.path()}")
-                self.ddiff_filters.append(x.path())
-
-            for x in list(ddiff["dictionary_item_removed"]):
-                log.debug(f"Added dictionary_item_removed filter for path: {x.path()}")
-                self.ddiff_filters.append(x.path())
-
-            for x in list(ddiff["iterable_item_removed"]):
-                log.debug(f"Added iterable_item_removed filter for path: {x.path()}")
-                self.ddiff_filters.append(x.path())
-
-            for x in list(ddiff["iterable_item_added"]):
-                log.debug(f"Added iterable_item_added filter for path: {x.path()}")
-                self.ddiff_filters.append(x.path())
-        except KeyError:
-            pass
 
         self.baseline_json = baseline_1_json
 
@@ -104,41 +86,10 @@ class HttpCompare:
                 pass
         ddiff = DeepDiff(headers_1, headers_2, ignore_order=True, view="tree")
 
-        try:
-            for x in list(ddiff["dictionary_item_added"]):
+        for k, v in ddiff.items():
+            for x in list(ddiff[k]):
                 header_value = str(x).split("'")[1]
                 matched_headers.append(header_value)
-        except KeyError:
-            pass
-
-        try:
-            for x in list(ddiff["values_changed"]):
-                header_value = str(x).split("'")[1]
-                matched_headers.append(header_value)
-        except KeyError:
-            pass
-
-        try:
-            for x in list(ddiff["dictionary_item_removed"]):
-                header_value = str(x).split("'")[1]
-                matched_headers.append(header_value)
-        except KeyError:
-            pass
-
-        try:
-            for x in list(ddiff["iterable_item_added"]):
-                header_value = str(x).split("'")[1]
-                matched_headers.append(header_value)
-        except KeyError:
-            pass
-
-        try:
-            for x in list(ddiff["iterable_item_removed"]):
-                header_value = str(x).split("'")[1]
-                matched_headers.append(header_value)
-        except KeyError:
-            pass
-
         return matched_headers
 
     def compare_body(self, content_1, content_2):
