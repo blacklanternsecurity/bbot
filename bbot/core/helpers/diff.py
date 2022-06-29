@@ -43,7 +43,15 @@ class HttpCompare:
 
         try:
             for x in list(ddiff["values_changed"]):
-                log.debug(f"Added filter for path: {x.path()}")
+                log.debug(f"Added values changed filter for path: {x.path()}")
+                self.ddiff_filters.append(x.path())
+
+            for x in list(ddiff["dictionary_item_added"]):
+                log.debug(f"Added values changed filter for path: {x.path()}")
+                self.ddiff_filters.append(x.path())
+
+            for x in list(ddiff["dictionary_item_removed"]):
+                log.debug(f"Added values changed filter for path: {x.path()}")
                 self.ddiff_filters.append(x.path())
         except KeyError:
             pass
