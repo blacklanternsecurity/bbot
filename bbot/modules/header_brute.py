@@ -53,7 +53,7 @@ class header_brute(BaseModule):
             result_tuple = self.check_header_batch(compare_helper, url, header_group)
 
             # a nonsense header "caused" a difference, we need to abort
-            if result_tuple == False:
+            if result_tuple[0] == False:
                 canary_result = False
                 break
             sleep(0.2)
