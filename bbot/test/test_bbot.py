@@ -24,9 +24,9 @@ def test_events(events, scan, config):
     assert events.subdomain.type == "DNS_NAME"
     assert "subdomain" in events.subdomain.tags
     assert events.open_port.type == "OPEN_TCP_PORT"
-    assert events.url.type == "URL_UNVERIFIED"
-    assert events.ipv4_url.type == "URL_UNVERIFIED"
-    assert events.ipv6_url.type == "URL_UNVERIFIED"
+    assert events.url_unverified.type == "URL_UNVERIFIED"
+    assert events.ipv4_url_unverified.type == "URL_UNVERIFIED"
+    assert events.ipv6_url_unverified.type == "URL_UNVERIFIED"
     assert "" not in events.ipv4
     assert None not in events.ipv4
     assert 1 not in events.ipv4
@@ -71,24 +71,34 @@ def test_events(events, scan, config):
 
     # url tests
     assert scan.make_event("http://evilcorp.com", dummy=True) == scan.make_event("http://evilcorp.com/", dummy=True)
-    assert events.url.host == "api.publicapis.org"
-    assert events.url in events.domain
-    assert events.url in events.subdomain
-    assert "api.publicapis.org:443" in events.url
-    assert "publicapis.org" not in events.url
-    assert events.ipv4_url in events.ipv4
-    assert events.ipv4_url in events.netv4
-    assert events.ipv6_url in events.ipv6
-    assert events.ipv6_url in events.netv6
-    assert events.emoji not in events.url
-    assert events.emoji not in events.ipv6_url
-    assert events.url not in events.emoji
+    assert events.url_unverified.host == "api.publicapis.org"
+    assert events.url_unverified in events.domain
+    assert events.url_unverified in events.subdomain
+    assert "api.publicapis.org:443" in events.url_unverified
+    assert "publicapis.org" not in events.url_unverified
+    assert events.ipv4_url_unverified in events.ipv4
+    assert events.ipv4_url_unverified in events.netv4
+    assert events.ipv6_url_unverified in events.ipv6
+    assert events.ipv6_url_unverified in events.netv6
+    assert events.emoji not in events.url_unverified
+    assert events.emoji not in events.ipv6_url_unverified
+    assert events.url_unverified not in events.emoji
     assert "https://evilcorp.com" == scan.make_event("https://evilcorp.com:443", dummy=True)
     assert "http://evilcorp.com" == scan.make_event("http://evilcorp.com:80", dummy=True)
     assert "https://evilcorp.com:443" == scan.make_event("https://evilcorp.com", dummy=True)
     assert "http://evilcorp.com:80" == scan.make_event("http://evilcorp.com", dummy=True)
     assert "https://evilcorp.com:80" == scan.make_event("https://evilcorp.com:80", dummy=True)
     assert "http://evilcorp.com:443" == scan.make_event("http://evilcorp.com:443", dummy=True)
+    assert scan.make_event("https://evilcorp.com", dummy=True).with_port().geturl() == "https://evilcorp.com:443/"
+    assert scan.make_event("https://evilcorp.com:666", dummy=True).with_port().geturl() == "https://evilcorp.com:666/"
+    assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
+    assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
+
+    # http response
+    assert events.http_response.host == "example.com"
+    assert events.http_response.port == 80
+    assert events.http_response.parsed.scheme == "http"
+    assert events.http_response.with_port().geturl() == "http://example.com:80/"
 
     # open port tests
     assert events.open_port in events.domain
@@ -117,12 +127,12 @@ def test_events(events, scan, config):
     assert events.ipv4_open_port.port == 443
     assert events.ipv6_open_port.host == ipaddress.ip_address("2001:4860:4860::8888")
     assert events.ipv6_open_port.port == 443
-    assert events.url.host == "api.publicapis.org"
-    assert events.url.port == 443
-    assert events.ipv4_url.host == ipaddress.ip_address("8.8.8.8")
-    assert events.ipv4_url.port == 443
-    assert events.ipv6_url.host == ipaddress.ip_address("2001:4860:4860::8888")
-    assert events.ipv6_url.port == 443
+    assert events.url_unverified.host == "api.publicapis.org"
+    assert events.url_unverified.port == 443
+    assert events.ipv4_url_unverified.host == ipaddress.ip_address("8.8.8.8")
+    assert events.ipv4_url_unverified.port == 443
+    assert events.ipv6_url_unverified.host == ipaddress.ip_address("2001:4860:4860::8888")
+    assert events.ipv6_url_unverified.port == 443
 
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
@@ -674,7 +684,7 @@ def test_target(neuter_ansible, patch_requests, patch_commands):
     assert "bob@www.api.publicapis.org" in scan1.target
     assert "https://www.api.publicapis.org" in scan1.target
     assert "www.api.publicapis.org:80" in scan1.target
-    assert scan1.make_event("https://[2001:4860:4860::8888]:80", "URL", dummy=True) in scan1.target
+    assert scan1.make_event("https://[2001:4860:4860::8888]:80", dummy=True) in scan1.target
     assert scan1.make_event("[2001:4860:4860::8888]:80", "OPEN_TCP_PORT", dummy=True) in scan1.target
     assert scan1.make_event("[2001:4860:4860::888c]:80", "OPEN_TCP_PORT", dummy=True) not in scan1.target
     assert scan1.target in scan2.target

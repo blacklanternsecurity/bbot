@@ -71,11 +71,11 @@ class massdns(BaseModule):
         else:
             query = self.helpers.parent_domain(event.data).lower()
 
-        if hash(query) in self.processed:
+        h = hash(query)
+        if h in self.processed:
             self.debug(f'Already processed "{query}", skipping')
             return
 
-        h = hash(query)
         self.processed.add(h)
         if not h in self.source_events:
             self.source_events[h] = event
