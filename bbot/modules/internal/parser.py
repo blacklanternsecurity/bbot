@@ -1,5 +1,6 @@
 from .base import BaseInternalModule
 import re
+import jwt as j
 
 
 class BaseExtractor:
@@ -15,13 +16,10 @@ class BaseExtractor:
         for name, regex in self.compiled_regexes.items():
             results = regex.findall(content)
             for result in results:
-                self.report(self.post_process(result), name, event)
+                self.report(result, name, event)
 
     def report(self, result, name, event):
         pass
-
-    def post_process(self, result):
-        return result
 
 
 class URLExtractor(BaseExtractor):
@@ -40,6 +38,16 @@ class ErrorExtractor(BaseExtractor):
         "PHP:3": "Fatal error:",
         "Microsoft SQL Server:1": r"\[(ODBC SQL Server Driver|SQL Server|ODBC Driver Manager)\]",
         "Microsoft SQL Server:2": "You have an error in your SQL syntax; check the manual",
+        "Java:1": r"\.java:[0-9]+",
+        "Java:2": r"\.java\((Inlined )?Compiled Code\)",
+        "Perl": r"at (\/[A-Za-z0-9\.]+)*\.pm line [0-9]+",
+        "Python": r"File \"[A-Za-z0-9\-_\./]*\", line [0-9]+, in",
+        "Ruby": r"\.rb:[0-9]+:in",
+        "ASP.NET:1": "Exception of type",
+        "ASP.NET:2": "--- End of inner exception stack trace ---",
+        "ASP.NET:3": "Microsoft OLE DB Provider",
+        "ASP.NET:4": r"Error ([\d-]+) \([\dA-F]+\)",
+        "ASP.NET:5": r"at ([a-zA-Z0-9]*\.)*([a-zA-Z0-9]*)\([a-zA-Z0-9, ]*\)",
     }
 
     def report(self, result, name, event):
@@ -49,15 +57,38 @@ class ErrorExtractor(BaseExtractor):
         )
 
 
+class JWTExtractor(BaseExtractor):
+
+    regexes = {"JWT": r"eyJ(?:[\w-]*\.)(?:[\w-]*\.)[\w-]*"}
+
+    def report(self, result, name, event):
+        self.parser.debug(f"Found JWT candidate [{result}]")
+        try:
+            j.decode(result, options={"verify_signature": False})
+            jwt_headers = j.get_unverified_header(result)
+            if jwt_headers["alg"].upper()[0:2] == "HS":
+                self.parser.emit_event(
+                    f"JWT Identified [{result}] on [{event.data.get('url')}]", "FINDING", event, tags=["crackable"]
+                )
+            else:
+                self.parser.emit_event(f"JWT Identified [{result}] [{event.data.get('url')}]", "FINDING", event)
+
+        except j.exceptions.DecodeError:
+            self.debug(f"Error decoding JWT candidate {result}")
+
+
 class parser(BaseInternalModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["URL_UNVERIFIED"]
 
+    deps_pip = ["pyjwt"]
+
     def setup(self):
 
         self.url_extractor = URLExtractor(self)
         self.error_extractor = ErrorExtractor(self)
+        self.jwt_extractor = JWTExtractor(self)
         return True
 
     def handle_event(self, event):
@@ -68,3 +99,5 @@ class parser(BaseInternalModule):
         self.url_extractor.search(response_data, event)
         # check for verbose error messages
         self.error_extractor.search(response_data, event)
+        # check for JWTs
+        self.jwt_extractor.search(response_data, event)
