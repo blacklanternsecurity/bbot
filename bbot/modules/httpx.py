@@ -45,7 +45,14 @@ class httpx(BaseModule):
 
     def handle_batch(self, *events):
 
-        stdin = [str(e.data) for e in events if not "spider-danger" in e.tags]
+        stdin = []
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if not "spider-danger" in e.tags:
+                    stdin.append(e.with_port().geturl())
+            else:
+                stdin.append(str(e.data))
+
         command = [
             "httpx",
             "-silent",

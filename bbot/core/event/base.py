@@ -411,6 +411,10 @@ class URL(BaseEvent):
         data = self.parsed.geturl()
         return data
 
+    def with_port(self):
+        netloc_with_port = make_netloc(self.host, self.port)
+        return self.parsed._replace(netloc=netloc_with_port)
+
     def _host(self):
         return make_ip_type(self.parsed.hostname)
 
@@ -488,6 +492,7 @@ def make_event(
         event_type = str(event_type).strip().upper()
 
         # Catch these common whoopsies
+        # DNS_NAME <--> IP_ADDRESS confusion
         if event_type in ("DNS_NAME", "IP_ADDRESS"):
             data_is_ip = is_ip(data)
             if event_type == "DNS_NAME" and data_is_ip:
