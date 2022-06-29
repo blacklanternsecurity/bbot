@@ -58,7 +58,14 @@ class HttpCompare:
 
         self.baseline_json = baseline_1_json
 
-        self.baseline_ignore_headers = ["date", "last-modified", "content-length", 'ETag','X-Pad', 'X-Backside-Transport' ]
+        self.baseline_ignore_headers = [
+            "date",
+            "last-modified",
+            "content-length",
+            "ETag",
+            "X-Pad",
+            "X-Backside-Transport",
+        ]
         dynamic_headers = self.compare_headers(baseline_1.headers, baseline_2.headers)
 
         self.baseline_ignore_headers += dynamic_headers
@@ -154,7 +161,7 @@ class HttpCompare:
             subject_json = xmltodict.parse(subject_response.text)
 
         except ExpatError:
-            log.debug(f"Cant HTML parse for {subject.split("?")[0]}. Switching to text parsing as a backup")
+            log.debug(f"Cant HTML parse for {subject.split('?')[0]}. Switching to text parsing as a backup")
             subject_json = subject_response.text.split("\n")
 
         if self.baseline.status_code != subject_response.status_code:
