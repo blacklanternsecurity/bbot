@@ -80,6 +80,40 @@ def helpers(scan):
     return scan.helpers
 
 
+httpx_response = {
+    "timestamp": "2022-06-29T09:56:19.927240577-04:00",
+    "request": "GET / HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.35 Safari/537.36\r\nAccept-Charset: utf-8\r\nAccept-Encoding: gzip\r\n\r\n",
+    "response-header": 'HTTP/1.1 200 OK\r\nConnection: close\r\nAccept-Ranges: bytes\r\nAge: 557710\r\nCache-Control: max-age=604800\r\nContent-Type: text/html; charset=UTF-8\r\nDate: Wed, 29 Jun 2022 13:56:16 GMT\r\nEtag: "3147526947"\r\nExpires: Wed, 06 Jul 2022 13:56:16 GMT\r\nLast-Modified: Thu, 17 Oct 2019 07:18:26 GMT\r\nServer: ECS (agb/A438)\r\nVary: Accept-Encoding\r\nX-Cache: HIT\r\n\r\n',
+    "scheme": "http",
+    "port": "80",
+    "path": "/",
+    "url": "http://example.com:80",
+    "input": "http://example.com",
+    "title": "Example Domain",
+    "webserver": "ECS (agb/A438)",
+    "response-body": '<!doctype html>\n<html>\n<head>\n    <title>Example Domain</title>\n\n    <meta charset="utf-8" />\n    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />\n    <meta name="viewport" content="width=device-width, initial-scale=1" />\n    <style type="text/css">\n    body {\n        background-color: #f0f0f2;\n        margin: 0;\n        padding: 0;\n        font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;\n        \n    }\n    div {\n        width: 600px;\n        margin: 5em auto;\n        padding: 2em;\n        background-color: #fdfdff;\n        border-radius: 0.5em;\n        box-shadow: 2px 3px 7px 2px rgba(0,0,0,0.02);\n    }\n    a:link, a:visited {\n        color: #38488f;\n        text-decoration: none;\n    }\n    @media (max-width: 700px) {\n        div {\n            margin: 0 auto;\n            width: auto;\n        }\n    }\n    </style>    \n</head>\n\n<body>\n<div>\n    <h1>Example Domain</h1>\n    <p>This domain is for use in illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.</p>\n    <p><a href="https://www.iana.org/domains/example">More information...</a></p>\n</div>\n</body>\n</html>\n',
+    "content-type": "text/html",
+    "method": "GET",
+    "host": "93.184.216.34",
+    "content-length": 1256,
+    "status-code": 200,
+    "response-time": "95.343985ms",
+    "failed": False,
+    "hashes": {
+        "body-md5": "84238dfc8092e5d9c0dac8ef93371a07",
+        "body-mmh3": "-1139337416",
+        "body-sha256": "ea8fac7c65fb589b0d53560f5251f74f9e9b243478dcb6b3ea79b5e36449c8d9",
+        "body-simhash": "9899951357530060719",
+        "header-md5": "99b650ea40a9e95550d7540996b67b60",
+        "header-mmh3": "1831947040",
+        "header-sha256": "eecbd4d9798c44295df0c5f2beebd939e7e51d9c6c16842dd73be83273f406bd",
+        "header-simhash": "15614709017155964779",
+    },
+    "lines": 47,
+    "words": 298,
+}
+
+
 @pytest.fixture
 def events(scan):
     class bbot_events:
@@ -93,10 +127,16 @@ def events(scan):
         open_port = scan.make_event("api.publicAPIs.org:443", dummy=True)
         ipv4_open_port = scan.make_event("8.8.8.8:443", dummy=True)
         ipv6_open_port = scan.make_event("[2001:4860:4860::8888]:443", "OPEN_TCP_PORT", dummy=True)
-        url = scan.make_event("https://api.publicAPIs.org:443/hellofriend", dummy=True)
-        ipv4_url = scan.make_event("https://8.8.8.8:443/hellofriend", dummy=True)
-        ipv6_url = scan.make_event("https://[2001:4860:4860::8888]:443/hellofriend", dummy=True)
+        url_unverified = scan.make_event("https://api.publicAPIs.org:443/hellofriend", dummy=True)
+        ipv4_url_unverified = scan.make_event("https://8.8.8.8:443/hellofriend", dummy=True)
+        ipv6_url_unverified = scan.make_event("https://[2001:4860:4860::8888]:443/hellofriend", dummy=True)
+        url = scan.make_event("https://api.publicAPIs.org:443/hellofriend", "URL", dummy=True)
+        ipv4_url = scan.make_event("https://8.8.8.8:443/hellofriend", "URL", dummy=True)
+        ipv6_url = scan.make_event("https://[2001:4860:4860::8888]:443/hellofriend", "URL", dummy=True)
         url_hint = scan.make_event("https://api.publicAPIs.org:443/hello.ash", "URL_HINT", dummy=True)
+        finding = scan.make_event("FINDING", "FINDING", dummy=True)
+        vulnerability = scan.make_event("VULNERABILITY", "VULNERABILITY", dummy=True)
+        http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", dummy=True)
         emoji = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
 
     bbot_events.all = [  # noqa: F841
@@ -110,10 +150,16 @@ def events(scan):
         bbot_events.open_port,
         bbot_events.ipv4_open_port,
         bbot_events.ipv6_open_port,
+        bbot_events.url_unverified,
+        bbot_events.ipv4_url_unverified,
+        bbot_events.ipv6_url_unverified,
         bbot_events.url,
-        bbot_events.url_hint,
         bbot_events.ipv4_url,
         bbot_events.ipv6_url,
+        bbot_events.url_hint,
+        bbot_events.finding,
+        bbot_events.vulnerability,
+        bbot_events.http_response,
         bbot_events.emoji,
     ]
 
