@@ -17,8 +17,8 @@ from bbot.core.helpers import (
     make_ip_type,
     smart_decode,
     regexes,
+    clean_url,
 )
-from bbot.core.helpers.web import clean_url
 
 
 log = logging.getLogger("bbot.core.event")
@@ -389,7 +389,7 @@ class OPEN_TCP_PORT(BaseEvent):
         return set()
 
 
-class URL(BaseEvent):
+class URL_UNVERIFIED(BaseEvent):
     def _sanitize_data(self, data):
         if not any(r.match(data) for r in regexes.event_type_regexes["URL"]):
             return None
@@ -433,11 +433,16 @@ class URL(BaseEvent):
         return set()
 
 
-class URL_UNVERIFIED(URL):
-    pass
+class URL(URL_UNVERIFIED):
+    def _sanitize_data(self, data):
+        if not self._dummy and not any(t.startswith("status-") for t in self.tags):
+            raise ValidationError(
+                'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
+            )
+        return super()._sanitize_data(data)
 
 
-class URL_HINT(URL):
+class URL_HINT(URL_UNVERIFIED):
     pass
 
 
@@ -451,7 +456,7 @@ class EMAIL_ADDRESS(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class HTTP_RESPONSE(URL):
+class HTTP_RESPONSE(URL_UNVERIFIED):
     def _sanitize_data(self, data):
         url = data.get("url", "")
         if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):

@@ -1,103 +1,50 @@
-from .base import BaseModule
-from urllib.parse import urlparse, quote
+from urllib.parse import quote
 
-# Todo: Add another mode that uses DNS_HOST so that we can find subdomains
+from .crobat import crobat
 
 
-class wayback(BaseModule):
-    flags = ["active"]
-    watched_events = ["URL"]
-    produced_events = ["URL"]
-    scanned_hosts = []
-
-    dirs = set()
-    endpoints = set()
-    uris = set()
-
-    options = {"include_params": True, "skip_potential_large_files": True}
+class wayback(crobat):
+    flags = ["passive"]
+    watched_events = ["DNS_NAME"]
+    produced_events = ["URL_UNVERIFIED"]
+    options = {"garbage_threshold": 5}
     options_desc = {
-        "include_params": "Include URLs with query strings",
-        "skip_potential_large_files": "Skips making web requests for file extensions which are potentially very large",
+        "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)"
     }
 
-    large_file_extensions = ["zip", "pdf", "avi", "mkv", "avi", "mov", "mp4", "flv", "wmv", "xml"]
-
     def handle_event(self, event):
-
-        parsed_host = urlparse(event.data)
-        host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
-
-        if host in self.scanned_hosts:
-            self.debug(f"Host {host} was already scanned, exiting")
-            return
+        if "target" in event.tags:
+            query = str(event.data).lower()
         else:
-            self.scanned_hosts.append(host)
+            query = self.helpers.parent_domain(event.data).lower()
 
-        waybackurl = f"https://web.archive.org/cdx/search/cdx?url={quote(event.data)}&collapse=urlkey&matchType=host&fl=original"
+        if hash(query) in self.processed:
+            self.debug(f'Already processed "{query}", skipping')
+            return
+        self.processed.add(hash(query))
+
+        for result in self.query(query):
+            self.emit_event(result, "URL_UNVERIFIED", event)
+
+    def query(self, query):
+        waybackurl = f"http://web.archive.org/cdx/search/cdx?url={quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
         r = self.helpers.request(waybackurl)
         if not r:
-            self.debug(f"Error connecting to archive.org")
+            self.warning(f'Error connecting to archive.org for query "{query}"')
+            return
+        try:
+            j = r.json()
+            assert type(j) == list
+        except Exception:
+            self.warning(f'Error JSON-decoding archive.org response for query "{query}"')
             return
 
-        for u in r.text.split("\n"):
-            if len(u) > 0:
-                u = u.replace(":80", "").replace(":443", "").rstrip()
-                if self.helpers.validate_url(u):
-                    p = urlparse(u)
+        urls = []
+        for result in j[1:]:
+            try:
+                url = result[0]
+                urls.append(url)
+            except KeyError:
+                continue
 
-                    skip_request = False
-                    possible_ext = p.path.split(".")[-1]
-                    if self.config.get("skip_potential_large_files"):
-                        # check if there's an extension that's in the blacklist to avoid downloading huge files
-
-                        if possible_ext in self.large_file_extensions:
-                            skip_request = True
-
-                    p._replace(fragment="")._replace(query="")
-                    uri = p._replace(fragment="").geturl().rstrip()
-                    endpoint = p._replace(fragment="", query="").geturl().rstrip()
-                    dir = ("/".join(p._replace(fragment="", query="").geturl().split("/")[:-1]) + "/").rstrip()
-
-                    if self.config.get("include_params"):
-                        if uri not in self.uris:
-                            self.uris.add(uri)
-
-                            if not skip_request:
-                                test_request = self.helpers.request(uri)
-                                if test_request:
-                                    if (test_request.status_code == 200) or (test_request.status_code == 500):
-                                        self.emit_event(uri, "URL", event, tags=["uri"])
-                                else:
-                                    self.debug(f"URL: {uri} is not currently accessible, ignoring")
-                            else:
-                                self.warning(
-                                    f"Skipping URI {uri} because of extension potentially large extension: [{possible_ext}]"
-                                )
-
-                    if endpoint not in self.endpoints:
-                        self.endpoints.add(endpoint)
-                        test_request = self.helpers.request(endpoint)
-                        if not skip_request:
-                            if test_request:
-                                if (test_request.status_code == 200) or (test_request.status_code == 500):
-                                    self.emit_event(endpoint, "URL", event, tags=["endpoint"])
-                                else:
-                                    self.debug(f"URL: {endpoint} is not currently accessible, ignoring")
-                        else:
-                            self.warning(
-                                f"Skipping URI {uri} because of extension potentially large extension: [{possible_ext}]"
-                            )
-
-                    if dir != "https://" and dir != "http://":
-                        if dir not in self.dirs:
-                            self.dirs.add(dir)
-                            test_request = self.helpers.request(u)
-                            if test_request:
-                                if (
-                                    (test_request.status_code == 200)
-                                    or (test_request.status_code == 500)
-                                    or (test_request.status_code == 403)
-                                ):
-                                    self.emit_event(dir, "URL", event, tags=["dir"])
-                            else:
-                                self.debug(f"URL: {dir} is not currently accessible, ignoring")
+        yield from self.helpers.collapse_urls(urls)

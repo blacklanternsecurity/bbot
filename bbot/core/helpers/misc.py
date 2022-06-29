@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from itertools import combinations
 from hashlib import sha1 as hashlib_sha1
 
+from .url import *  # noqa F401
 from .regexes import word_regexes, event_type_regexes
 
 log = logging.getLogger("bbot.core.helpers.misc")
