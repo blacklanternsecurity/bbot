@@ -28,6 +28,7 @@ class HttpCompare:
         self.baseline = baseline_1
 
         if baseline_1.status_code != baseline_2.status_code:
+            log.debug("Status code not stable during baseline, aborting")
             raise HttpCompareError("Can't get baseline from source URL")
         try:
             baseline_1_json = xmltodict.parse(baseline_1.text)
@@ -42,6 +43,7 @@ class HttpCompare:
 
         try:
             for x in list(ddiff["values_changed"]):
+                log.debug(f"Added filter for path: {x.path()}")
                 self.ddiff_filters.append(x.path())
         except KeyError:
             pass
@@ -111,6 +113,7 @@ class HttpCompare:
         if len(ddiff.keys()) == 0:
             return True
         else:
+            log.debug(ddiff)
             return False
 
     def compare(self, subject, add_headers=None, add_cookies=None):
