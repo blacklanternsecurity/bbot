@@ -8,7 +8,7 @@ class speculate(BaseInternalModule):
     in situations where e.g. a port scanner isn't enabled
     """
 
-    watched_events = ["IP_RANGE", "URL", "URL_UNVERIFIED", "DNS_NAME", "IP_ADDRESS"]
+    watched_events = ["IP_RANGE", "URL", "URL_UNVERIFIED", "DNS_NAME", "IP_ADDRESS", "HTTP_RESPONSE"]
     produced_events = ["DNS_HOST", "OPEN_TCP_PORT", "IP_ADDRESS"]
     options = {"max_hosts": 65536}
     options_desc = {"max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events"}
@@ -51,6 +51,12 @@ class speculate(BaseInternalModule):
                 self.emit_event(
                     self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
                 )
+
+        # emit redirect locations
+        if event.type == "HTTP_RESPONSE":
+            location = event.data.get("location", "")
+            if location:
+                self.emit_event(location, "URL_UNVERIFIED", event)
 
     def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self

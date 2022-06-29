@@ -5,6 +5,7 @@ import ipaddress
 from time import sleep
 
 import bbot.core.logger  # noqa: F401
+from bbot.core.errors import *
 from bbot.core.configurator import available_modules, available_output_modules
 from .bbot_fixtures import *  # noqa: F401
 
@@ -93,6 +94,9 @@ def test_events(events, scan, config):
     assert scan.make_event("https://evilcorp.com:666", dummy=True).with_port().geturl() == "https://evilcorp.com:666/"
     assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
+    assert "status-200" in scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"]).tags
+    with pytest.raises(ValidationError, match=".*status tag.*"):
+        scan.make_event("https://evilcorp.com", "URL", events.ipv4_url)
 
     # http response
     assert events.http_response.host == "example.com"
@@ -399,6 +403,20 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     filename = download(helpers, "https://api.publicapis.org/health", cache_hrs=1)
     assert Path(str(filename)).is_file()
     assert helpers.is_cached("https://api.publicapis.org/health")
+
+    ### URL ###
+    bad_urls = (
+        "http://e.co/index.html",
+        "http://e.co/u/1111/info",
+        "http://e.co/u/2222/info",
+        "http://e.co/u/3333/info",
+        "http://e.co/u/4444/info",
+        "http://e.co/u/5555/info",
+    )
+    new_urls = tuple(helpers.collapse_urls(bad_urls, threshold=4))
+    assert len(new_urls) == 2
+    new_urls = tuple(sorted(helpers.collapse_urls(bad_urls, threshold=5)))
+    assert new_urls == bad_urls
 
     ### DNS ###
     # resolution

@@ -49,6 +49,7 @@ class httpx(BaseModule):
         for e in events:
             if e.type == "URL_UNVERIFIED":
                 if not "spider-danger" in e.tags:
+                    # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
                     stdin.append(e.with_port().geturl())
             else:
                 stdin.append(str(e.data))
@@ -73,8 +74,11 @@ class httpx(BaseModule):
                 continue
 
             url = j.get("url", "")
-            title = j.get("title", "")
-            status_code = j.get("status-code", 0)
+            status_code = int(j.get("status-code", 0))
+            if status_code == 0:
+                self.debug(f'No HTTP status code for "{url}"')
+                continue
+
             source_event = None
             for event in events:
                 if url in event:
@@ -82,12 +86,17 @@ class httpx(BaseModule):
                     break
 
             if source_event is None:
-                self.debug(f"Unable to correlate source event from: {line}")
+                self.warning(f"Unable to correlate source event from: {line}")
                 continue
 
+            # discard 404s from unverified URLs
+            if source_event.type == "URL_UNVERIFIED" and status_code in (404,):
+                self.debug(f'Discarding 404 from "{url}"')
+                continue
+
+            # main URL
             url_event = self.scan.make_event(url, "URL", source_event, tags=[f"status-{status_code}"])
             self.emit_event(url_event)
+            # HTTP response
             http_response_event = self.scan.make_event(j, "HTTP_RESPONSE", url_event, internal=True)
             self.emit_event(http_response_event)
-            if title:
-                self.emit_event(f"{title} ({url})", "HTTP_TITLE", source_event)

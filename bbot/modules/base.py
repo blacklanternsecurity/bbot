@@ -425,8 +425,14 @@ class BaseModule:
     def success(self, *args, **kwargs):
         self.log.success(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
+    def hugesuccess(self, *args, **kwargs):
+        self.log.hugesuccess(*args, extra={"scan_id": self.scan.id}, **kwargs)
+
     def warning(self, *args, **kwargs):
         self.log.warning(*args, extra={"scan_id": self.scan.id}, **kwargs)
+
+    def hugewarning(self, *args, **kwargs):
+        self.log.hugewarning(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def error(self, *args, **kwargs):
         self.log.error(*args, extra={"scan_id": self.scan.id}, **kwargs)
