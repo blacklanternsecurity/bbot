@@ -76,4 +76,7 @@ class ConfigAwareHelper:
             try:
                 return getattr(misc, attr)
             except AttributeError:
-                return getattr(self.dns, attr)
+                try:
+                    return getattr(self.dns, attr)
+                except AttributeError:
+                    raise AttributeError(f'Helper has no attribute "{attr}"')
