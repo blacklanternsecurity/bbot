@@ -77,7 +77,7 @@ class JWTExtractor(BaseExtractor):
             self.debug(f"Error decoding JWT candidate {result}")
 
 
-class parser(BaseInternalModule):
+class excavate(BaseInternalModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["URL_UNVERIFIED"]
@@ -86,18 +86,18 @@ class parser(BaseInternalModule):
 
     def setup(self):
 
-        self.url_extractor = URLExtractor(self)
-        self.error_extractor = ErrorExtractor(self)
-        self.jwt_extractor = JWTExtractor(self)
+        self.extractors = [
+            URLExtractor(self),
+            ErrorExtractor(self),
+            JWTExtractor(self),
+        ]
         return True
 
     def handle_event(self, event):
 
-        response_data = event.data.get("response-body", "")
+        data = event.data
+        if event.type == "HTTP_RESPONSE":
+            data = event.data.get("response-body", "")
 
-        # check for URLS
-        self.url_extractor.search(response_data, event)
-        # check for verbose error messages
-        self.error_extractor.search(response_data, event)
-        # check for JWTs
-        self.jwt_extractor.search(response_data, event)
+        for extractor in self.extractors:
+            extractor.search(data, event)

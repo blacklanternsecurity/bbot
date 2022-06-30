@@ -1,32 +1,19 @@
 from .base import BaseModule
-from time import sleep
-from bbot.core.errors import HttpCompareError
-
-# from urllib.parse import urlparse
-from itertools import zip_longest as izip_longest
-
-
-def grouper(iterable, n, fillvalue=None):
-    args = [iter(iterable)] * n
-    return izip_longest(*args, fillvalue=fillvalue)
-
-
-def split_list(alist, wanted_parts=2):
-    length = len(alist)
-    return [alist[i * length // wanted_parts : (i + 1) * length // wanted_parts] for i in range(wanted_parts)]
+from bbot.core.errors import HttpCompareError, ScanCancelledError
 
 
 class header_brute(BaseModule):
 
     watched_events = ["URL"]
-    produced_events = ["VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["brute-force", "active"]
-    options = {"header_wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
-    options_desc = {"header_wordlist": "Define the wordlist to be used to derive headers"}
+    options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
+    options_desc = {"wordlist": "Define the wordlist to be used to derive headers"}
     scanned_hosts = []
     header_blacklist = [
         "content-length",
         "expect",
+        "accept-encoding",
         "transfer-encoding",
         "connection",
         "if-match",
@@ -36,122 +23,111 @@ class header_brute(BaseModule):
     ]
     max_threads = 12
     in_scope_only = True
+    compare_mode = "header"
 
     def setup(self):
 
-        self.wordlist = self.helpers.download(self.config.get("header_wordlist"), cache_hrs=720)
+        wordlist_url = self.config.get("wordlist", "")
+        self.wordlist = self.helpers.download(wordlist_url, cache_hrs=720)
+        if not self.wordlist:
+            self.warning(f'Failed to download wordlist from "{wordlist_url}"')
+            return False
         return True
-
-    # test detection using a canary to find hosts giving bad results
-    def canary_check(self, compare_helper, url, rounds):
-
-        canary_result = True
-
-        for i in range(0, rounds):
-            header_group = []
-            header_group.append(self.helpers.rand_string(12))
-            result_tuple = self.check_header_batch(compare_helper, url, header_group)
-
-            # a nonsense header "caused" a difference, we need to abort
-            if result_tuple[0] == False:
-                canary_result = False
-                break
-            sleep(0.2)
-        return canary_result
 
     def handle_event(self, event):
 
-        # parsed_host = urlparse(event.data)
-        # host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
         url = event.data
         try:
             compare_helper = self.helpers.http_compare(url)
         except HttpCompareError as e:
             self.debug(e)
             return
-        batch_size = self.header_count_test(url)
-        if batch_size == None:
-            self.debug("Failed to get baseline max header count, aborting")
+        batch_size = self.count_test(url)
+        if batch_size == None or batch_size <= 0:
+            self.debug(f"Failed to get baseline max {self.compare_mode} count, aborting")
             return
-        self.debug(f"resolved batch_size at {str(batch_size)}")
+        self.debug(f"Resolved batch_size at {str(batch_size)}")
 
-        canary_rounds = 5
-        if self.canary_check(compare_helper, url, canary_rounds) == False:
-            self.debug("aborting due to failed canary check")
+        if compare_helper.canary_check(url, mode=self.compare_mode) == False:
+            self.warning(f'Aborting "{url}" due to failed canary check')
             return
 
-        f = open(self.wordlist, errors="ignore")
-        fl = f.readlines()
-        f.close()
+        fl = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
 
-        headers_cleaned = [header.strip() for header in filter(self.clean_header_list, fl)]
+        wordlist_cleaned = list(filter(self.clean_list, fl))
 
-        for header_group in grouper(headers_cleaned, batch_size, ""):
-            header_group = list(filter(None, header_group))
+        results = set()
+        abort_threshold = 25
+        try:
+            for group in self.helpers.grouper(wordlist_cleaned, batch_size):
+                for result, reason, reflection in self.binary_search(compare_helper, url, group):
+                    results.add((result, reason, reflection))
+                    if len(results) >= abort_threshold:
+                        self.warning(
+                            f"Abort threshold ({abort_threshold}) reached, too many {self.compare_mode}s found"
+                        )
+                        results.clear()
+                        assert False
+        except ScanCancelledError:
+            return
+        except AssertionError:
+            pass
 
-            result_tuple = self.check_header_batch(compare_helper, url, header_group)
-            result = result_tuple[0]
-            reason = result_tuple[1]
-            reflection = result_tuple[2]
-            if result == False:
-                self.binary_header_search(compare_helper, url, header_group, event, reason, reflection)
+        for result, reason, reflection in results:
+            tags = []
+            if reflection:
+                tags = ["http_reflection"]
+            self.emit_event(
+                f"[{self.compare_mode.upper()}_BRUTE] Host: [{url}] {self.compare_mode.capitalize()}: [{result}] Reason: [{reason}]",
+                "FINDING",
+                event,
+                tags=tags,
+            )
 
-    def check_header_batch(self, compare_helper, url, header_list):
-
-        rand = self.helpers.rand_string()
-        test_headers = {}
-        for header in header_list:
-            test_headers[header] = rand
-        result_tuple = compare_helper.compare(url, add_headers=test_headers)
-        return result_tuple
-
-    def header_count_test(self, url):
+    def count_test(self, url):
 
         baseline = self.helpers.request(url)
         if (str(baseline.status_code)[0] == "4") and (str(baseline.status_code)[0] == "5"):
             return None
-        header_count = 120
-        while 1:
+        for count, args, kwargs in self.gen_count_args(url):
+            r = self.helpers.request(*args, **kwargs)
+            if r is not None and not ((str(r.status_code)[0] == "4") or (str(r.status_code)[0] == "5")):
+                return count
 
+    def gen_count_args(self, url):
+        header_count = 95
+        while 1:
             if header_count < 0:
-                return -1
+                break
             fake_headers = {}
             for i in range(0, header_count):
                 fake_headers[self.helpers.rand_string(14)] = self.helpers.rand_string(14)
-            r = self.helpers.request(url, headers=fake_headers)
-            if (str(r.status_code)[0] == "4") or (str(r.status_code)[0] == "5"):
-                header_count -= 5
-            else:
-                break
-        return header_count
+            yield header_count, (url,), {"headers": fake_headers}
+            header_count -= 5
 
-    def clean_header_list(self, header):
-        if (len(header) > 0) and ("%" not in header) and (header.strip() not in self.header_blacklist):
+    def clean_list(self, header):
+        if (len(header) > 0) and ("%" not in header) and (header not in self.header_blacklist):
             return True
         return False
 
-    def binary_header_search(self, compare_helper, url, header_group, event, reason, reflection):
-        self.debug(f"entering recursive binary_header_search with {str(len(header_group))} sized header group")
-        if len(header_group) == 1:
-            if reflection:
-                self.emit_event(
-                    f"[HEADER_BRUTEFORCE] Host: [{url}] Header: [{header_group[0]}] Reason: [{reason}] ",
-                    "FINDING",
-                    event,
-                    tags=["http_reflection"],
-                )
-            else:
-                self.emit_event(
-                    f"[HEADER_BRUTEFORCE] Host: [{url}] Header: [{header_group[0]}] Reason: [{reason}] ",
-                    "FINDING",
-                    event,
-                )
+    def binary_search(self, compare_helper, url, group, reason=None, reflection=False):
+        self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
+        if len(group) == 0:
+            self.critical("how")
+        elif len(group) == 1:
+            yield group[0], reason, reflection
         else:
-            for header_group_slice in split_list(header_group):
+            for group_slice in self.helpers.split_list(group):
+                match, reason, reflection = self.check_batch(compare_helper, url, group_slice)
+                if match == False:
+                    yield from self.binary_search(compare_helper, url, group_slice, reason, reflection)
 
-                result_tuple = self.check_header_batch(compare_helper, url, header_group_slice)
-                result = result_tuple[0]
-                reason = result_tuple[1]
-                reflection = result_tuple[2]
-                if result == False:
-                    self.binary_header_search(compare_helper, url, header_group_slice, event, reason, reflection)
+    def check_batch(self, compare_helper, url, header_list):
+
+        if self.scan.stopping:
+            raise ScanCancelledError
+        rand = self.helpers.rand_string()
+        test_headers = {}
+        for header in header_list:
+            test_headers[header] = rand
+        return compare_helper.compare(url, headers=test_headers, check_reflection=(len(header_list) == 1))
