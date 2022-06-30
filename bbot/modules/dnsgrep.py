@@ -1,5 +1,3 @@
-from urllib.parse import quote
-
 from .crobat import crobat
 
 
@@ -9,7 +7,7 @@ class dnsgrep(crobat):
     produced_events = ["DNS_NAME"]
 
     def query(self, query):
-        results = self.helpers.request(f"https://dns.bufferover.run/dns?q={quote(query)}")
+        results = self.helpers.request(f"https://dns.bufferover.run/dns?q={self.helpers.quote(query)}")
         try:
             json = results.json()
             if json:
