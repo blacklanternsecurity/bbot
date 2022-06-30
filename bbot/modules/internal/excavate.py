@@ -6,8 +6,8 @@ import jwt as j
 class BaseExtractor:
     regexes = {}
 
-    def __init__(self, parser):
-        self.parser = parser
+    def __init__(self, excavate):
+        self.excavate = excavate
         self.compiled_regexes = {}
         for rname, r in self.regexes.items():
             self.compiled_regexes[rname] = re.compile(r)
@@ -23,11 +23,26 @@ class BaseExtractor:
 
 
 class URLExtractor(BaseExtractor):
-    regexes = {"fullurl": r"https?://(?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?"}
+    regexes = {
+        "fullurl": r"https?://(?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?",
+        "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
+    }
 
     def report(self, result, name, event):
-        self.parser.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
-        self.parser.emit_event(result, "URL_UNVERIFIED", source=event, tags=["spider-danger"])
+
+        tags = []
+        parsed = getattr(event, "parsed", None)
+        if name == "a-tag" and parsed:
+
+            path = result[1].lstrip("/")
+            depth = len(path.strip("/").split("/"))
+            result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
+
+            if depth > self.excavate.scan.config.get("web_spider_depth", 0):
+                tags.append("spider-danger")
+
+        self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
+        self.excavate.emit_event(result, "URL_UNVERIFIED", source=event, tags=tags)
 
 
 class ErrorExtractor(BaseExtractor):
@@ -51,8 +66,8 @@ class ErrorExtractor(BaseExtractor):
     }
 
     def report(self, result, name, event):
-        self.parser.debug(f"Found error message from parsing [{event.data.get('url')}] with regex [{name}]")
-        self.parser.emit_event(
+        self.excavate.debug(f"Found error message from parsing [{event.data.get('url')}] with regex [{name}]")
+        self.excavate.emit_event(
             f"Error message Detected at [{event.data.get('url')}] Error Type: {name}", "FINDING", source=event
         )
 
@@ -62,16 +77,16 @@ class JWTExtractor(BaseExtractor):
     regexes = {"JWT": r"eyJ(?:[\w-]*\.)(?:[\w-]*\.)[\w-]*"}
 
     def report(self, result, name, event):
-        self.parser.debug(f"Found JWT candidate [{result}]")
+        self.excavate.debug(f"Found JWT candidate [{result}]")
         try:
             j.decode(result, options={"verify_signature": False})
             jwt_headers = j.get_unverified_header(result)
             if jwt_headers["alg"].upper()[0:2] == "HS":
-                self.parser.emit_event(
+                self.excavate.emit_event(
                     f"JWT Identified [{result}] on [{event.data.get('url')}]", "FINDING", event, tags=["crackable"]
                 )
             else:
-                self.parser.emit_event(f"JWT Identified [{result}] [{event.data.get('url')}]", "FINDING", event)
+                self.excavate.emit_event(f"JWT Identified [{result}] [{event.data.get('url')}]", "FINDING", event)
 
         except j.exceptions.DecodeError:
             self.debug(f"Error decoding JWT candidate {result}")
