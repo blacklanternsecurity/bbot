@@ -1,5 +1,3 @@
-from urllib.parse import quote
-
 from .crobat import crobat
 
 
@@ -32,7 +30,7 @@ class urlscan(crobat):
                         self.debug(f"{url_event.host} does not match {query}")
 
     def query(self, query):
-        results = self.helpers.request(f"https://urlscan.io/api/v1/search/?q={quote(query)}")
+        results = self.helpers.request(f"https://urlscan.io/api/v1/search/?q={self.helpers.quote(query)}")
         try:
             json = results.json()
             if json and type(json) == dict:

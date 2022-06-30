@@ -1,5 +1,3 @@
-from urllib.parse import quote
-
 from .crobat import crobat
 
 
@@ -27,7 +25,7 @@ class wayback(crobat):
             self.emit_event(result, "URL_UNVERIFIED", event)
 
     def query(self, query):
-        waybackurl = f"http://web.archive.org/cdx/search/cdx?url={quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
+        waybackurl = f"http://web.archive.org/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
         r = self.helpers.request(waybackurl)
         if not r:
             self.warning(f'Error connecting to archive.org for query "{query}"')
