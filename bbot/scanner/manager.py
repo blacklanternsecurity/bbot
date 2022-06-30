@@ -130,11 +130,12 @@ class ScanManager:
             event_hash = hash((event, str(event.module)))
 
         with self.events_accepted_lock:
-            duplicate_event = getattr(event.module, "suppress_dupes", False) and event_hash in self.events_accepted
+            duplicate_event = getattr(event.module, "suppress_dupes", True) and event_hash in self.events_accepted
             if duplicate_event and not event._force_output == True:
                 log.debug(f"{event.module}: not raising duplicate event {event}")
                 return False
             self.events_accepted.add(event_hash)
+        event.tags.add(str(event._force_output))
         return True
 
     def catch(self, callback, *args, **kwargs):
