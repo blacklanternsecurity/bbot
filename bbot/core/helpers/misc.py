@@ -11,7 +11,7 @@ import wordninja
 from pathlib import Path
 from contextlib import suppress
 import tldextract as _tldextract
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote  # noqa F401
 from hashlib import sha1 as hashlib_sha1
 from itertools import combinations, islice
 
