@@ -1,10 +1,24 @@
 import uuid
 import logging
 from contextlib import suppress
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 
 
 log = logging.getLogger("bbot.core.helpers.url")
+
+
+def add_get_params(url, params):
+    if type(url) != ParseResult:
+        parsed = urlparse(url)
+    old_params = dict(parse_qs(parsed.query))
+    old_params.update(params)
+    return parsed._replace(query=urlencode(old_params, doseq=True))
+
+
+def get_get_params(url):
+    if type(url) != ParseResult:
+        parsed = urlparse(url)
+    return dict(parse_qs(parsed.query))
 
 
 def param_type(p):

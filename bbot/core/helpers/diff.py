@@ -1,8 +1,11 @@
 import logging
-from deepdiff import DeepDiff
 import xmltodict
-from xml.parsers.expat import ExpatError
 from time import sleep
+from deepdiff import DeepDiff
+from contextlib import suppress
+from xml.parsers.expat import ExpatError
+
+
 from bbot.core.errors import HttpCompareError
 
 log = logging.getLogger("bbot.core.helpers.diff")
@@ -14,12 +17,16 @@ class HttpCompare:
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
 
-        baseline_1 = self.parent_helper.request(self.baseline_url + self.gen_cache_buster(), allow_redirects=False)
-        sleep(2)
+        # vanilla URL
+        url_1 = self.parent_helper.add_get_params(self.baseline_url, self.gen_cache_buster()).geturl()
+        baseline_1 = self.parent_helper.request(url_1, allow_redirects=False)
+        sleep(1)
+        # put random parameters in URL, headers, and cookies
+        get_params = self.gen_cache_buster()
+        get_params.update({self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)})
+        url_2 = self.parent_helper.add_get_params(self.baseline_url, get_params).geturl()
         baseline_2 = self.parent_helper.request(
-            self.baseline_url
-            + self.gen_cache_buster()
-            + f"&{self.parent_helper.rand_string(6)}={self.parent_helper.rand_string(6)}",
+            url_2,
             headers={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
             cookies={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
             allow_redirects=False,
@@ -27,6 +34,9 @@ class HttpCompare:
 
         self.baseline = baseline_1
 
+        if baseline_1 is None or baseline_2 is None:
+            log.debug("HTTP error while establishing baseline, aborting")
+            raise HttpCompareError("Can't get baseline from source URL")
         if baseline_1.status_code != baseline_2.status_code:
             log.debug("Status code not stable during baseline, aborting")
             raise HttpCompareError("Can't get baseline from source URL")
@@ -49,48 +59,45 @@ class HttpCompare:
         self.baseline_json = baseline_1_json
 
         self.baseline_ignore_headers = [
-            "date",
-            "last-modified",
-            "content-length",
-            "ETag",
-            "X-Pad",
-            "X-Backside-Transport",
+            h.lower()
+            for h in [
+                "date",
+                "last-modified",
+                "content-length",
+                "ETag",
+                "X-Pad",
+                "X-Backside-Transport",
+            ]
         ]
         dynamic_headers = self.compare_headers(baseline_1.headers, baseline_2.headers)
 
         self.baseline_ignore_headers += dynamic_headers
         self.baseline_body_distance = self.compare_body(baseline_1_json, baseline_2_json)
 
-    def gen_cache_buster(self, url=None):
-
-        if (url != None) and ("?" in url):
-            sep = "&"
-        else:
-            sep = "?"
-        return f"{sep}{self.parent_helper.rand_string(6)}=1"
+    def gen_cache_buster(self):
+        return {self.parent_helper.rand_string(6): "1"}
 
     def compare_headers(self, headers_1, headers_2):
 
-        matched_headers = []
+        differing_headers = []
 
-        for ignored_header in self.baseline_ignore_headers:
-            try:
-                del headers_1[ignored_header]
-                log.debug(f"found ignored header {ignored_header} in headers_1 and removed")
-            except KeyError:
-                pass
-            try:
-                del headers_2[ignored_header]
-                log.debug(f"found ignored header {ignored_header} in headers_2 and removed")
-            except KeyError:
-                pass
+        for i, headers in enumerate((headers_1, headers_2)):
+            for header, value in list(headers.items()):
+                if header.lower() in self.baseline_ignore_headers:
+                    with suppress(KeyError):
+                        log.debug(f'found ignored header "{header}" in headers_{i+1} and removed')
+                        del headers[header]
+
         ddiff = DeepDiff(headers_1, headers_2, ignore_order=True, view="tree")
 
         for k, v in ddiff.items():
             for x in list(ddiff[k]):
-                header_value = str(x).split("'")[1]
-                matched_headers.append(header_value)
-        return matched_headers
+                try:
+                    header_value = str(x).split("'")[1]
+                except KeyError:
+                    continue
+                differing_headers.append(header_value)
+        return differing_headers
 
     def compare_body(self, content_1, content_2):
 
@@ -105,31 +112,38 @@ class HttpCompare:
             log.debug(ddiff)
             return False
 
-    def compare(self, subject, add_headers=None, add_cookies=None):
+    def compare(self, subject, headers=None, cookies=None, check_reflection=False):
+        """
+        Compares a URL with the baseline, with optional headers or cookies added
+
+        Returns (match (bool), reason (str), reflection (bool))
+            where "match" is whether the content matched against the baseline, and
+                "reason" is the location of the change ("code", "body", "header", or None), and
+                "reflection" is whether the value was reflected in the HTTP response
+        """
+
         reflection = False
-        subject_response = self.parent_helper.request(
-            subject + self.gen_cache_buster(url=subject), headers=add_headers, allow_redirects=False
-        )
+        cache_key, cache_value = list(self.gen_cache_buster().items())[0]
+        url = self.parent_helper.add_get_params(subject, {cache_key: cache_value}).geturl()
+        subject_response = self.parent_helper.request(url, headers=headers, cookies=cookies, allow_redirects=False)
 
         if not subject_response:
             # this can be caused by a WAF not liking the header, so we really arent interested in it
             return (True, "403", reflection)
 
-        if add_headers:
-            if len(add_headers) == 1:
-                if list(add_headers.values())[0] in subject_response.text:
-                    reflection = True
+        if check_reflection:
+            for arg in (headers, cookies):
+                if arg is not None:
+                    for k, v in arg.items():
+                        if v in subject_response.text:
+                            reflection = True
+                            break
 
-        elif add_cookies:
-            if len(add_cookies) == 1:
-                if list(add_cookies.values())[0] in subject_response.text:
+            subject_params = self.parent_helper.get_get_params(subject)
+            for k, v in subject_params.items():
+                if k != cache_key and v in subject_response.text:
                     reflection = True
-
-        else:
-            subject_params = subject.split("?")[1].split("&")
-            if len(subject_params) == 1:
-                if subject_params[0].split("=")[1] in subject_response.text:
-                    reflection = True
+                    break
 
         try:
             subject_json = xmltodict.parse(subject_response.text)
@@ -153,3 +167,28 @@ class HttpCompare:
             log.debug(f"difference in HTML body, no match")
             return (False, "body", reflection)
         return (True, None, False)
+
+    def canary_check(self, url, mode, rounds=6):
+        """
+        test detection using a canary to find hosts giving bad results
+        """
+        headers = None
+        cookies = None
+        for i in range(0, rounds):
+            random_params = {self.parent_helper.rand_string(7): self.parent_helper.rand_string(6)}
+            new_url = str(url)
+            if mode == "getparam":
+                new_url = self.parent_helper.add_get_params(url, random_params).geturl()
+            elif mode == "header":
+                headers = random_params
+            elif mode == "cookie":
+                cookies = random_params
+            else:
+                raise ValueError(f'Invalid mode: "{mode}", choose from: getparam, header, cookie')
+
+            match, reason, reflection = self.compare(new_url, headers=headers, cookies=cookies)
+
+            # a nonsense header "caused" a difference, we need to abort
+            if match == False:
+                return False
+        return True

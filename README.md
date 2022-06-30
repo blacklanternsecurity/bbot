@@ -50,8 +50,8 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-f FLAGS [FLAGS ...]] [-o MODULES [MODULES ...]] [-c [CONFIGURATION ...]] [-v] [-d]
-            [--current-config] [--ignore-failed-deps] [--no-deps | --force-deps | --retry-deps] [-a]
+usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-f FLAGS [FLAGS ...]] [-o MODULES [MODULES ...]] [-oA BASE_FILENAME] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config] [--save-wordcloud FILE] [--load-wordcloud FILE | --load-last-wordcloud]
+            [--ignore-failed-deps] [--no-deps | --force-deps | --retry-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
@@ -60,17 +60,29 @@ options:
   -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
                         Scan target
   -m MODULES [MODULES ...], --modules MODULES [MODULES ...]
-                        Modules ("all" to enable all modules). Choices: ffuf,sslcert,aspnet_viewstate,wappalyzer,nuclei,vhost,massdns,telerik,naabu,httpx,d
-                        nszonetransfer,wayback,crt,header_brute,dnsx,hunterio,iis_shortnames,sublist3r,dnsdumpster,dnscommonsrv
+                        Modules to enable. Choices:
+                        ffuf,sslcert,aspnet_viewstate,ipneighbor,wappalyzer,crobat,nuclei,dnsgrep,vhost,massdns,telerik,naabu,httpx,dnszonetransfer,wayback,crt,header_brute,hunterio,urlscan,iis_shortnames,sublist3r,dnsdumpster,dnscommonsrv,getparam_brute
   -f FLAGS [FLAGS ...], --flags FLAGS [FLAGS ...]
-                        Select modules by flag. Choices: subdomain-enum,brute-force
+                        Enable modules by flag. Choices: passive,brute-force,subdomain-enum,active
   -o MODULES [MODULES ...], --output-modules MODULES [MODULES ...]
                         Output module(s). Choices: json,neo4j,csv,websocket,human,http
+  -oA BASE_FILENAME, --output-all BASE_FILENAME
+                        Output in CSV, JSON, and TXT at this file location
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
                         additional configuration options in key=value format
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
   --current-config      Show current config in YAML format
+
+Word cloud:
+  Save/load wordlist of common words gathered during a scan
+
+  --save-wordcloud FILE
+                        Output wordcloud to file when the scan completes
+  --load-wordcloud FILE
+                        Load wordcloud from a file and use it in the scan
+  --load-last-wordcloud
+                        Load the wordcloud from the last scan (from $BBOT_HOME)
 
 Module dependencies:
   Control how modules install their dependencies

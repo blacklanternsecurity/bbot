@@ -193,8 +193,8 @@ class ScanManager:
                 dup = True
             else:
                 self.events_distributed.add(event_hash)
-        # absorb event into the word cloud if it's 1 hop away or closer
-        if not dup and -1 < event.scope_distance < 2:
+        # absorb event into the word cloud if it's in scope
+        if not dup and -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:

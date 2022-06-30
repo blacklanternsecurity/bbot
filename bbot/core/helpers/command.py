@@ -92,8 +92,8 @@ def tempfile(self, content, pipe=True):
     a true file, which allows python data to be piped directly into the
     process without taking up disk space
     """
+    filename = self.temp_filename()
     try:
-        filename = self.temp_filename()
         if type(content) not in (set, list, tuple):
             content = (content,)
         if pipe:
