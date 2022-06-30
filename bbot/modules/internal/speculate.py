@@ -55,6 +55,8 @@ class speculate(BaseInternalModule):
         # emit redirect locations
         if event.type == "HTTP_RESPONSE":
             location = event.data.get("location", "")
+            if not location.lower().startswith("http"):
+                location = event.parsed._replace(path=location).geturl()
             if location:
                 self.emit_event(location, "URL_UNVERIFIED", event)
 

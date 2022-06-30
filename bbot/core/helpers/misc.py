@@ -12,8 +12,8 @@ from pathlib import Path
 from contextlib import suppress
 import tldextract as _tldextract
 from urllib.parse import urlparse
-from itertools import combinations
 from hashlib import sha1 as hashlib_sha1
+from itertools import combinations, islice
 
 from .url import *  # noqa F401
 from .regexes import word_regexes, event_type_regexes
@@ -448,3 +448,21 @@ def _search_dict_by_key(key, d):
             if item is not sentinel:
                 return item
     return sentinel
+
+
+def grouper(iterable, n):
+    """
+    >>> list(grouper('ABCDEFG', 3))
+    [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
+    """
+    iterable = iter(iterable)
+    return iter(lambda: list(islice(iterable, n)), [])
+
+
+def split_list(alist, wanted_parts=2):
+    """
+    >>> split_list([1,2,3,4,5])
+    [[1, 2], [3, 4, 5]]
+    """
+    length = len(alist)
+    return [alist[i * length // wanted_parts : (i + 1) * length // wanted_parts] for i in range(wanted_parts)]

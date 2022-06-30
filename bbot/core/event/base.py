@@ -415,6 +415,12 @@ class URL_UNVERIFIED(BaseEvent):
         netloc_with_port = make_netloc(self.host, self.port)
         return self.parsed._replace(netloc=netloc_with_port)
 
+    def _words(self):
+        first_elem = self.parsed.path.lstrip("/").split("/")[0]
+        if not "." in first_elem:
+            return extract_words(first_elem)
+        return set()
+
     def _host(self):
         return make_ip_type(self.parsed.hostname)
 
@@ -426,11 +432,6 @@ class URL_UNVERIFIED(BaseEvent):
             return 443
         elif self.parsed.scheme == "http":
             return 80
-
-    def _words(self):
-        if not is_ip(self.host):
-            return extract_words(self.host_stem)
-        return set()
 
 
 class URL(URL_UNVERIFIED):

@@ -308,10 +308,40 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
 
     old_run, old_run_live = patch_commands
 
+    ### URL ###
+    bad_urls = (
+        "http://e.co/index.html",
+        "http://e.co/u/1111/info",
+        "http://e.co/u/2222/info",
+        "http://e.co/u/3333/info",
+        "http://e.co/u/4444/info",
+        "http://e.co/u/5555/info",
+    )
+    new_urls = tuple(helpers.collapse_urls(bad_urls, threshold=4))
+    assert len(new_urls) == 2
+    new_urls = tuple(sorted(helpers.collapse_urls(bad_urls, threshold=5)))
+    assert new_urls == bad_urls
+
+    new_url = helpers.add_get_params("http://evilcorp.com/a?p=1&q=2", {"r": 3, "s": "asdf"}).geturl()
+    query = dict(s.split("=") for s in new_url.split("?")[-1].split("&"))
+    query = tuple(sorted(query.items(), key=lambda x: x[0]))
+    assert query == (
+        ("p", "1"),
+        ("q", "2"),
+        ("r", "3"),
+        ("s", "asdf"),
+    )
+    assert tuple(sorted(helpers.get_get_params("http://evilcorp.com/a?p=1&q=2#frag").items())) == (
+        ("p", ["1"]),
+        ("q", ["2"]),
+    )
+
     ### HTTP COMPARE ###
     compare_helper = helpers.http_compare("http://www.example.com")
-    compare_helper.compare("http://www.example.com", add_headers={"asdf": "asdf"})
-    compare_helper.compare("http://www.example.com", add_cookies={"asdf": "asdf"})
+    compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
+    compare_helper.compare("http://www.example.com", cookies={"asdf": "asdf"})
+    for mode in ("getparam", "header", "cookie"):
+        compare_helper.canary_check("http://www.example.com", mode=mode) == True
 
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
@@ -365,6 +395,9 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     with pytest.raises(KeyError, match=".*asdf.*"):
         helpers.search_dict_by_key("asdf", "asdf")
 
+    assert helpers.split_list([1, 2, 3, 4, 5]) == [[1, 2], [3, 4, 5]]
+    assert list(helpers.grouper("ABCDEFG", 3)) == [["A", "B", "C"], ["D", "E", "F"], ["G"]]
+
     ### COMMAND ###
     assert "plumbus\n" in old_run(helpers, ["echo", "plumbus"], text=True).stdout
     assert "plumbus\n" in list(old_run_live(helpers, ["echo", "plumbus"]))
@@ -403,20 +436,6 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     filename = download(helpers, "https://api.publicapis.org/health", cache_hrs=1)
     assert Path(str(filename)).is_file()
     assert helpers.is_cached("https://api.publicapis.org/health")
-
-    ### URL ###
-    bad_urls = (
-        "http://e.co/index.html",
-        "http://e.co/u/1111/info",
-        "http://e.co/u/2222/info",
-        "http://e.co/u/3333/info",
-        "http://e.co/u/4444/info",
-        "http://e.co/u/5555/info",
-    )
-    new_urls = tuple(helpers.collapse_urls(bad_urls, threshold=4))
-    assert len(new_urls) == 2
-    new_urls = tuple(sorted(helpers.collapse_urls(bad_urls, threshold=5)))
-    assert new_urls == bad_urls
 
     ### DNS ###
     # resolution
