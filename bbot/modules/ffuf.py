@@ -14,7 +14,7 @@ class ffuf(BaseModule):
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
         "lines": 5000,
-        "max_depth": 1,
+        "max_depth": 0,
         "version": "1.5.0",
     }
 
@@ -53,13 +53,11 @@ class ffuf(BaseModule):
         return True
 
     def handle_event(self, event):
-
         if self.helpers.url_depth(event.data) > self.config.get("max_depth"):
             self.debug(f"Exceeded max depth, aborting event")
             return
 
         # only FFUF against a directory
-
         if "." in event.parsed.path:
             self.debug("Aborting FFUF as no trailing slash was detected (likely a file)")
             return
@@ -68,7 +66,15 @@ class ffuf(BaseModule):
             fixed_url = event.data.rstrip("/") + "/"
 
         for r in self.execute_ffuf(self.tempfile, event, fixed_url):
-            input_val = base64.b64decode(r["input"]["FUZZ"]).decode()
+            self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
+
+    def execute_ffuf(self, tempfile, event, url, suffix=""):
+
+        fuzz_url = f"{url}FUZZ{suffix}"
+        command = ["ffuf", "-ac", "-json", "-w", tempfile, "-u", fuzz_url]
+        for found in self.helpers.run_live(command):
+            found_json = json.loads(found)
+            input_val = base64.b64decode(found_json["input"]["FUZZ"]).decode()
             if len(input_val.rstrip()) > 0:
                 if self.scan.stopping:
                     break
@@ -76,19 +82,9 @@ class ffuf(BaseModule):
                     self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
                     return
                 else:
-                    self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
+                    yield found_json
 
-    def execute_ffuf(self, tempfile, event, url, prefix="", skip_dir_check=False):
-
-        if len(prefix) > 0:
-            url = url + prefix
-        fuzz_url = f"{url}FUZZ"
-        command = ["ffuf", "-ac", "-json", "-w", tempfile, "-u", fuzz_url]
-        for found in self.helpers.run_live(command):
-            found_json = json.loads(found)
-            yield found_json
-
-    def generate_templist(self, wordlist):
+    def generate_templist(self, wordlist, prefix=None):
 
         f = open(wordlist, "r")
         fl = f.readlines()
@@ -100,8 +96,10 @@ class ffuf(BaseModule):
             if idx > self.config.get("lines"):
                 break
             if len(val) > 0:
+
                 if val.strip().lower() in self.blacklist:
                     self.debug(f"Skipping adding [{val.strip()}] to wordlist because it was in the blacklist")
                 else:
-                    virtual_file.append(f"{val.strip()}")
+                    if not prefix or val.startswith(prefix):
+                        virtual_file.append(f"{val.strip()}")
         return self.helpers.tempfile(virtual_file, pipe=False)
