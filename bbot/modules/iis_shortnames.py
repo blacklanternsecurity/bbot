@@ -6,8 +6,11 @@ class iis_shortnames(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
     flags = ["active"]
-    options = {"detect_only": False}
-    options_desc = {"detect_only": "Only detect the vulnerability and do not run the shortname scanner"}
+    options = {"detect_only": False, "threads": 8}
+    options_desc = {
+        "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
+        "threads": "the number of threads to run concurrently when executing the IIS shortname scanner",
+    }
     in_scope_only = True
 
     deps_ansible = [
@@ -38,7 +41,15 @@ class iis_shortnames(BaseModule):
                 f"[LOW] IIS Shortname Vulnerability [{normalized_url}]", "VULNERABILITY", event, tags=["low"]
             )
             if not self.config.get("detect_only"):
-                command = ["java", "-jar", self.iis_scanner_jar, "0", "8", normalized_url, self.iis_scanner_config]
+                command = [
+                    "java",
+                    "-jar",
+                    self.iis_scanner_jar,
+                    "0",
+                    str(self.config.get("threads")),
+                    normalized_url,
+                    self.iis_scanner_config,
+                ]
                 output = self.helpers.run(command).stdout
                 self.debug(output)
                 discovered_directories, discovered_files = self.shortname_parse(output)
