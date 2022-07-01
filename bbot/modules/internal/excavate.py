@@ -1,5 +1,6 @@
 from .base import BaseInternalModule
 import re
+import html
 import jwt as j
 
 
@@ -34,9 +35,13 @@ class URLExtractor(BaseExtractor):
         parsed = getattr(event, "parsed", None)
         if name == "a-tag" and parsed:
 
-            path = result[1].lstrip("/")
+            path = html.unescape(result[1]).lstrip("/")
             depth = len(path.strip("/").split("/"))
-            result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
+
+            if not path.startswith("http://") and not path.startswith("https://"):
+                result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
+            else:
+                result = path
 
             if depth > self.excavate.scan.config.get("web_spider_depth", 0):
                 tags.append("spider-danger")
@@ -101,11 +106,7 @@ class excavate(BaseInternalModule):
 
     def setup(self):
 
-        self.extractors = [
-            URLExtractor(self),
-            ErrorExtractor(self),
-            JWTExtractor(self),
-        ]
+        self.extractors = [URLExtractor(self), ErrorExtractor(self), JWTExtractor(self)]
         return True
 
     def handle_event(self, event):
