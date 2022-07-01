@@ -28,6 +28,8 @@ _ipv6_regex = r"[A-F0-9:]*:[A-F0-9:]*:[A-F0-9:]*"
 ipv6_regex = re.compile(_ipv6_regex, re.I)
 _dns_name_regex = r"(([\w-]+)\.)+([\w-]+)"
 _hostname_regex = re.compile(r"^[\w-]+$")
+_email_regex = r"(?:[A-Z0-9][\w\-\.\+]{,100})@(?:[A-Z0-9][\w\-\.]{,100})\.(?:[A-Z]{2,8})"
+email_regex = re.compile(_email_regex, re.I)
 
 event_type_regexes = OrderedDict(
     [
@@ -35,7 +37,7 @@ event_type_regexes = OrderedDict(
         for k, regexes in [
             (
                 "EMAIL_ADDRESS",
-                (r"^(?:[A-Z0-9][\w\-\.\+]{,100})@(?:[A-Z0-9][\w\-\.]{,100})\.(?:[A-Z]{2,8})$",),
+                (r"^" + _email_regex + r"$",),
             ),
             (
                 "DNS_NAME",
