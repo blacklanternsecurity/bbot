@@ -13,7 +13,10 @@ class vhost(BaseModule):
         "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
         "force_basehost": "",
     }
-    options_desc = {"subdomain_wordlist": "Wordlist containing subdomains", "force_basehost": ""}
+    options_desc = {
+        "subdomain_wordlist": "Wordlist containing subdomains",
+        "force_basehost": "Override the default behavior of using the current URL to make the basehost and add a custom basehost",
+    }
     in_scope_only = True
 
     def handle_event(self, event):
