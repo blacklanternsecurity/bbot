@@ -100,7 +100,6 @@ class app_ffuf(BaseModule):
             if idx > self.config.get("lines"):
                 break
             if len(val) > 0:
-
                 if val.strip().lower() in self.blacklist:
                     self.debug(f"Skipping adding [{val.strip()}] to wordlist because it was in the blacklist")
                 else:
