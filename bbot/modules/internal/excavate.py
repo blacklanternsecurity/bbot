@@ -3,7 +3,8 @@ import html
 import jwt as j
 
 from .base import BaseInternalModule
-from bbot.core.helpers.regex import _email_regex
+from bbot.core.helpers.regexes import _email_regex
+
 
 class BaseExtractor:
     regexes = {}
@@ -30,7 +31,7 @@ class URLExtractor(BaseExtractor):
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
     }
 
-    prefix_blacklist = ['javascript:','mailto:']
+    prefix_blacklist = ["javascript:", "mailto:"]
 
     def report(self, result, name, event):
 
@@ -40,9 +41,9 @@ class URLExtractor(BaseExtractor):
         if name == "a-tag" and parsed:
             path = html.unescape(result[1]).lstrip("/")
 
-            for p in prefix_blacklist:
+            for p in self.prefix_blacklist:
                 if path.startswith(p):
-                    self.hugesuccess('omitted result from a-tag parser because of blacklisted prefix [{p}]')
+                    self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
                     return
 
             depth = len(path.strip("/").split("/"))
@@ -57,11 +58,12 @@ class URLExtractor(BaseExtractor):
 
 class EmailExtractor(BaseExtractor):
 
-    regexes = {"email":_email_regex}
+    regexes = {"email": _email_regex}
 
-    def report(self,result,name,event):
+    def report(self, result, name, event):
         self.excavate.debug(f"Found email address from parsing [{event.data.get('url')}]")
         self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
+
 
 class ErrorExtractor(BaseExtractor):
 
@@ -119,7 +121,7 @@ class excavate(BaseInternalModule):
 
     def setup(self):
 
-        self.extractors = [URLExtractor(self), ErrorExtractor(self), JWTExtractor(self)]
+        self.extractors = [URLExtractor(self), ErrorExtractor(self), JWTExtractor(self), EmailExtractor(self)]
         return True
 
     def handle_event(self, event):
