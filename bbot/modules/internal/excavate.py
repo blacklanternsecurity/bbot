@@ -45,8 +45,6 @@ class URLExtractor(BaseExtractor):
                 if path.startswith(p):
                     self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
                     return
-
-            depth = len(path.strip("/").split("/"))
             result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
 
         if self.excavate.helpers.url_depth(result) > self.excavate.scan.config.get("web_spider_depth", 0):
