@@ -1,7 +1,5 @@
 import random
 import string
-import os
-from urllib.parse import urlparse
 from .base import BaseModule
 import json
 import base64
