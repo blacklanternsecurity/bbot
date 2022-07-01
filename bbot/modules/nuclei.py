@@ -11,8 +11,28 @@ class nuclei(BaseModule):
     flags = ["active"]
     max_threads = 5
     batch_size = 10
-    options = {"version": "2.7.0"}
-    options_desc = {"version": "nuclei version"}
+    options = {
+        "version": "2.7.3",
+        "tags": "",
+        "templates": "",
+        "severity": "",
+        "disable_interactsh": False,
+        "iserver": "",
+        "itoken": "",
+        "ratelimit": 150,
+        "concurrency": 25,
+    }
+    options_desc = {
+        "version": "nuclei version",
+        "tags": "execute a subset of templates that contain the provided tags",
+        "templates": "template or template directory paths to include in the scan",
+        "severity": "Filter based on severity field available in the template.",
+        "disable_interactsh": "disable interactsh server for OAST testing, exclude OAST based templates",
+        "iserver": "interactsh server url for self-hosted instance (default https://interactsh.com)",
+        "itoken": "authentication token for self-hosted interactsh server",
+        "ratelimit": "maximum number of requests to send per second (default 150)",
+        "concurrency": "maximum number of templates to be executed in parallel (default 25)",
+    }
     deps_ansible = [
         {
             "name": "Download nuclei",
@@ -25,6 +45,15 @@ class nuclei(BaseModule):
         }
     ]
     in_scope_only = True
+
+    def setup(self):
+
+        self.templates = self.config.get("templates")
+        self.tags = self.config.get("tags")
+        self.severity = self.config.get("severity")
+        self.iserver = self.config.get("iserver")
+        self.itoken = self.config.get("itoken")
+        return True
 
     def handle_batch(self, *events):
         """
@@ -56,7 +85,41 @@ class nuclei(BaseModule):
         """
 
         _input = [str(e.data) for e in events]
-        command = ["nuclei", "-silent", "-json", "-tags", "tech"]
+        command = [
+            "nuclei",
+            "-silent",
+            "-json",
+            "-update-directory",
+            f"{self.helpers.tools_dir}/nuclei-templates",
+            "-rate-limit",
+            self.config.get("ratelimit"),
+            "-concurrency",
+            str(self.config.get("concurrency")),
+        ]
+
+        if self.severity:
+            command.append("-severity")
+            command.append(self.severity)
+
+        if self.templates:
+            command.append("-templates")
+            command.append(self.templates)
+
+        if self.iserver:
+            command.append("-iserver")
+            command.append(self.iserver)
+
+        if self.itoken:
+            command.append("-itoken")
+            command.append(self.itoken)
+
+        if self.tags:
+            command.append("-tags")
+            command.append(self.tags)
+
+        if self.config.get("disable_interactsh") == True:
+            command.append("-no-interactsh")
+
         for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
