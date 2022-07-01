@@ -336,6 +336,17 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
         ("q", ["2"]),
     )
 
+    assert helpers.clean_url("http://evilcorp.com:80").geturl() == "http://evilcorp.com/"
+    assert helpers.clean_url("http://evilcorp.com/asdf?a=asdf#frag").geturl() == "http://evilcorp.com/asdf"
+    assert helpers.clean_url("http://evilcorp.com//asdf").geturl() == "http://evilcorp.com/asdf"
+
+    assert helpers.url_depth("http://evilcorp.com/asdf/user/") == 2
+    assert helpers.url_depth("http://evilcorp.com/asdf/user") == 2
+    assert helpers.url_depth("http://evilcorp.com/asdf/") == 1
+    assert helpers.url_depth("http://evilcorp.com/asdf") == 1
+    assert helpers.url_depth("http://evilcorp.com/") == 0
+    assert helpers.url_depth("http://evilcorp.com") == 0
+
     ### HTTP COMPARE ###
     compare_helper = helpers.http_compare("http://www.example.com")
     compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
