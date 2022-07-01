@@ -1,8 +1,9 @@
-from .base import BaseInternalModule
 import re
 import html
 import jwt as j
 
+from .base import BaseInternalModule
+from bbot.core.helpers.regex import _email_regex
 
 class BaseExtractor:
     regexes = {}
@@ -29,26 +30,38 @@ class URLExtractor(BaseExtractor):
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
     }
 
+    prefix_blacklist = ['javascript:','mailto:']
+
     def report(self, result, name, event):
 
         tags = []
         parsed = getattr(event, "parsed", None)
+
         if name == "a-tag" and parsed:
-
             path = html.unescape(result[1]).lstrip("/")
+
+            for p in prefix_blacklist:
+                if path.startswith(p):
+                    self.hugesuccess('omitted result from a-tag parser because of blacklisted prefix [{p}]')
+                    return
+
             depth = len(path.strip("/").split("/"))
+            result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
 
-            if not path.startswith("http://") and not path.startswith("https://"):
-                result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
-            else:
-                result = path
-
-            if depth > self.excavate.scan.config.get("web_spider_depth", 0):
-                tags.append("spider-danger")
+        if self.excavate.helpers.url_depth(result) > self.excavate.scan.config.get("web_spider_depth", 0):
+            tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
         self.excavate.emit_event(result, "URL_UNVERIFIED", source=event, tags=tags)
 
+
+class EmailExtractor(BaseExtractor):
+
+    regexes = {"email":_email_regex}
+
+    def report(self,result,name,event):
+        self.excavate.debug(f"Found email address from parsing [{event.data.get('url')}]")
+        self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
 
 class ErrorExtractor(BaseExtractor):
 
