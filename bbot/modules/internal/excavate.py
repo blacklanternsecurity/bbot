@@ -31,7 +31,7 @@ class URLExtractor(BaseExtractor):
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
     }
 
-    prefix_blacklist = ["javascript:", "mailto:"]
+    prefix_blacklist = ["javascript:", "mailto:", "tel:"]
 
     def report(self, result, name, event):
 
@@ -41,11 +41,15 @@ class URLExtractor(BaseExtractor):
         if name == "a-tag" and parsed:
             path = html.unescape(result[1]).lstrip("/")
 
+            if not path.startswith("http://") and not path.startswith("https://"):
+                result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
+            else:
+                result = path
+
             for p in self.prefix_blacklist:
                 if path.startswith(p):
                     self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
                     return
-            result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
 
         if self.excavate.helpers.url_depth(result) > self.excavate.scan.config.get("web_spider_depth", 0):
             tags.append("spider-danger")
