@@ -1,3 +1,4 @@
+import re
 import uuid
 import logging
 from contextlib import suppress
@@ -7,17 +8,21 @@ from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 log = logging.getLogger("bbot.core.helpers.url")
 
 
+def parse_url(url):
+    if type(url) == ParseResult:
+        return url
+    return urlparse(url)
+
+
 def add_get_params(url, params):
-    if type(url) != ParseResult:
-        parsed = urlparse(url)
+    parsed = parse_url(url)
     old_params = dict(parse_qs(parsed.query))
     old_params.update(params)
     return parsed._replace(query=urlencode(old_params, doseq=True))
 
 
 def get_get_params(url):
-    if type(url) != ParseResult:
-        parsed = urlparse(url)
+    parsed = parse_url(url)
     return dict(parse_qs(parsed.query))
 
 
@@ -32,6 +37,9 @@ def param_type(p):
     return 3
 
 
+double_slash_regex = re.compile(r"/{2,}")
+
+
 def clean_url(url):
     """
     Remove query string and fragment, lowercase netloc, remove redundant port
@@ -40,7 +48,7 @@ def clean_url(url):
     http://eViLcORp.com/ --> http://evilcorp.com/
     http://evilcorp.com/api?user=bob#place --> http://evilcorp.com/api
     """
-    parsed = urlparse(str(url).strip())
+    parsed = parse_url(url)
     parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
     # remove ports if they're redundant
     if (parsed.scheme == "http" and parsed.port == 80) or (parsed.scheme == "https" and parsed.port == 443):
@@ -49,6 +57,8 @@ def clean_url(url):
         if parsed.netloc.startswith("["):
             hostname = f"[{hostname}]"
         parsed = parsed._replace(netloc=hostname)
+    # normalize double slashes
+    parsed = parsed._replace(path=double_slash_regex.sub("/", parsed.path))
     # append / if path is empty
     if parsed.path == "":
         parsed = parsed._replace(path="/")
@@ -56,7 +66,8 @@ def clean_url(url):
 
 
 def hash_url(url):
-    parsed = urlparse(url)._replace(fragment="", query="")
+    parsed = parse_url(url)
+    parsed = parsed._replace(fragment="", query="")
     to_hash = [parsed.netloc]
     for segment in parsed.path.split("/"):
         hash_segment = []
@@ -100,3 +111,11 @@ def collapse_urls(urls, threshold=5):
             yield next(iter(new_urls))
         else:
             yield from new_urls
+
+
+def url_depth(url):
+    parsed = parse_url(url)
+    parsed = parsed._replace(path=double_slash_regex.sub("/", parsed.path))
+    split_path = str(parsed.path).strip("/").split("/")
+    split_path = [e for e in split_path if e]
+    return len(split_path)
