@@ -123,14 +123,30 @@ class excavate(BaseInternalModule):
 
     def setup(self):
 
-        self.extractors = [URLExtractor(self), ErrorExtractor(self), JWTExtractor(self), EmailExtractor(self)]
+        self.url = URLExtractor(self)
+        self.email = EmailExtractor(self)
+        self.error = ErrorExtractor(self)
+        self.jwt = JWTExtractor(self)
+
+        #   self.extractors = [URLExtractor(self), ErrorExtractor(self), JWTExtractor(self), EmailExtractor(self)]
         return True
+
+    def search(self, source, extractors, event):
+        for e in extractors:
+            e.search(source, event)
 
     def handle_event(self, event):
 
         data = event.data
-        if event.type == "HTTP_RESPONSE":
-            data = event.data.get("response-body", "")
 
-        for extractor in self.extractors:
-            extractor.search(data, event)
+        if event.type == "HTTP_RESPONSE":
+
+            body = event.data.get("response-body", "")
+            self.search(body, [self.url, self.email, self.error, self.jwt], event)
+
+            headers = event.data.get("response-header", "")
+            self.search(headers, [self.url, self.email, self.error, self.jwt], event)
+
+        else:
+
+            self.search(str(data), [self.url, self.email, self.error, self.jwt], event)
