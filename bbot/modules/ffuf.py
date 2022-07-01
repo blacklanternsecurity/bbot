@@ -5,7 +5,7 @@ import json
 import base64
 
 
-class app_ffuf(BaseModule):
+class ffuf(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["URL"]
