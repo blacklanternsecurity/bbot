@@ -2,13 +2,17 @@ from .crobat import crobat
 
 
 class wayback(crobat):
-    flags = ["passive"]
+    flags = ["passive", "subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
     options = {"garbage_threshold": 5}
     options_desc = {
         "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)"
     }
+
+    def setup(self):
+        self.garbage_threshold = self.config.get("garbage_threshold", 5)
+        return super().setup()
 
     def handle_event(self, event):
         if "target" in event.tags:
@@ -45,4 +49,4 @@ class wayback(crobat):
             except KeyError:
                 continue
 
-        yield from self.helpers.collapse_urls(urls)
+        yield from self.helpers.collapse_urls(urls, threshold=self.garbage_threshold)

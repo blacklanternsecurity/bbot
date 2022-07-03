@@ -175,7 +175,7 @@ class massdns(BaseModule):
             mutations = set(base_mutations)
             for mutation in self.helpers.word_cloud.mutations(subdomains):
                 for delimiter in ("", ".", "-"):
-                    m = delimiter.join(mutation)
+                    m = delimiter.join(mutation).lower()
                     h = hash((m, domain_hash))
                     if h not in self.mutations_tried:
                         mutations.add(m)

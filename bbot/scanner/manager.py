@@ -3,6 +3,7 @@ import logging
 import threading
 from time import sleep
 from contextlib import suppress
+from datetime import datetime, timedelta
 
 from ..core.errors import ScanCancelledError, ValidationError
 
@@ -23,6 +24,7 @@ class ScanManager:
         self.events_accepted_lock = threading.Lock()
         self.events_resolved = dict()
         self.events_resolved_lock = threading.Lock()
+        self.dns_resolution = self.scan.config.get("dns_resolution", False)
 
     def init_events(self):
         """
@@ -52,6 +54,10 @@ class ScanManager:
                 log.debug(f"Omitting blacklisted event: {event}")
                 return
 
+            if event == event.source:
+                log.debug("Omitting event with self as source")
+                return
+
             # accept the event right away if there's no abort condition
             # if there's an abort condition, we want to wait until
             # it's been properly tagged and the abort_if callback has run
@@ -62,9 +68,10 @@ class ScanManager:
             # DNS resolution
             dns_children, dns_tags, event_in_scope = self.scan.helpers.dns.resolve_event(event)
             target = getattr(self.scan, "target", None)
-            if target:
+            if target and not event_in_scope:
                 event_in_scope = event_in_scope | target.in_scope(event)
-            event.tags.update(dns_tags)
+            if event.type in ("DNS_NAME", "IP_ADDRESS"):
+                event.tags.update(dns_tags)
 
             # Scope shepherding
             if event_in_scope and target is not None and not event._dummy:
@@ -95,28 +102,32 @@ class ScanManager:
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
 
-            dns_child_events = []
-            for record, rdtype in dns_children:
-                module = self.scan.helpers.dns._get_dummy_module(rdtype)
-                try:
-                    child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=event)
-                    dns_child_events.append(child_event)
-                except ValidationError as e:
-                    log.warning(f'Event validation failed for DNS child of {event}: "{record}" ({rdtype}): {e}')
+            ### Emit DNS children ###
 
-            emit_children = self.scan.config.get("dns_resolution", False)
-            if not (emit_children and dns_child_events):
-                emit_children = False
-            if dns_child_events:
-                any_in_scope = any([self.scan.target.in_scope(e) for e in dns_child_events])
-                # only emit children if the source event is less than three hops from the main scope
-                # this helps prevent runaway dns resolutions that result in junk data
-                emit_children &= -1 < event.scope_distance < self.scan.dns_search_distance or any_in_scope
-            if emit_children:
+            # only emit children if the source event is less than three hops from the main scope
+            # this helps prevent runaway dns resolutions that result in junk data
+            emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
+            # speculate DNS_NAMES and IP_ADDRESSes from other event types
+            source_event = event
+            if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS"):
+                source_module = self.scan.helpers.dns._get_dummy_module("host")
+                source_module._type = "internal"
+                source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
+                if not str(event.module) == "speculate":
+                    self.emit_event(source_event)
+            if self.dns_resolution and emit_children:
+                dns_child_events = []
+                if dns_children:
+                    for record, rdtype in dns_children:
+                        module = self.scan.helpers.dns._get_dummy_module(rdtype)
+                        try:
+                            child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)
+                            dns_child_events.append(child_event)
+                        except ValidationError as e:
+                            log.warning(
+                                f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
+                            )
                 for child_event in dns_child_events:
-                    # this is needed because the children were created before we knew whether the
-                    # event was in scope
-                    child_event.scope_distance = event.scope_distance + 1
                     self.emit_event(child_event)
 
         except ValidationError as e:
@@ -135,7 +146,6 @@ class ScanManager:
                 log.debug(f"{event.module}: not raising duplicate event {event}")
                 return False
             self.events_accepted.add(event_hash)
-        event.tags.add(str(event._force_output))
         return True
 
     def catch(self, callback, *args, **kwargs):
@@ -216,6 +226,8 @@ class ScanManager:
 
         counter = 0
         event_counter = 0
+        timedelta_2secs = timedelta(seconds=2)
+        last_log_time = datetime.now()
 
         err = False
         try:
@@ -233,15 +245,18 @@ class ScanManager:
                             break
                     break
 
-                event = False
                 # print status every 2 seconds
-                log_status = counter % 20 == 0
+                now = datetime.now()
+                time_since_last_log = now - last_log_time
+                if time_since_last_log > timedelta_2secs:
+                    self.modules_status(_log=True, passes=1)
+                    last_log_time = now
 
                 try:
                     event = self.event_queue.get_nowait()
                     event_counter += 1
                 except queue.Empty:
-                    finished = self.modules_status(_log=log_status).get("finished", False)
+                    finished = self.modules_status().get("finished", False)
                     # If the scan finished
                     if finished:
                         # If new events were generated in the last iteration
@@ -257,7 +272,7 @@ class ScanManager:
                             break
                     else:
                         # save on CPU
-                        sleep(0.1)
+                        sleep(0.01)
                     counter += 1
                     continue
 

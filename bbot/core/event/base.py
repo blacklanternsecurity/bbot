@@ -42,6 +42,15 @@ class BaseEvent:
         _internal=None,
     ):
 
+        self._id = None
+        self._hash = None
+        self.__host = None
+        self._port = None
+        self.__words = None
+        self._made_internal = False
+        # whether to force-send to output modules
+        self._force_output = False
+
         if tags is None:
             tags = set()
 
@@ -86,15 +95,6 @@ class BaseEvent:
 
         if not self._dummy:
             self._setup()
-
-        self._id = None
-        self._hash = None
-        self.__host = None
-        self._port = None
-        self.__words = None
-        self._made_internal = False
-        # whether to force-send to output modules
-        self._force_output = False
 
         # internal events are not ingested by output modules
         if not self._dummy:
@@ -186,14 +186,12 @@ class BaseEvent:
     def source(self, source):
         if is_event(source):
             self._source = source
-            if source.scope_distance >= 0:
+            if source.scope_distance >= 0 and source != self:
                 new_scope_distance = source.scope_distance + 1
                 self.scope_distance = new_scope_distance
             self.source_id = str(source.id)
-            if source._omit:
-                self.source = source.source
         elif not self._dummy:
-            log.warning(f"Must set valid source on {self}: (got: {source})")
+            log.warning(f"Tried to set invalid source on {self}: (got: {source})")
 
     def make_internal(self):
         if not self._made_internal:
@@ -286,7 +284,7 @@ class BaseEvent:
             j.update({"module": str(self.module)})
         # normalize non-primitive python objects
         for k, v in list(j.items()):
-            if type(v) not in (str, int, bool, type(None)):
+            if type(v) not in (str, int, bool, list, type(None)):
                 try:
                     j[k] = json.dumps(v)
                 except Exception:
@@ -310,7 +308,7 @@ class BaseEvent:
 
     def __str__(self):
         d = str(self.data)
-        return f'{self.type}("{d[:50]}{("..." if len(d) > 50 else "")}", tags={self.tags})'
+        return f'{self.type}("{d[:50]}{("..." if len(d) > 50 else "")}", module={self.module}, tags={self.tags})'
 
     def __repr__(self):
         return str(self)
@@ -448,6 +446,13 @@ class URL_HINT(URL_UNVERIFIED):
 
 
 class EMAIL_ADDRESS(BaseEvent):
+    def _sanitize_data(self, data):
+        sanitized = str(data).strip().lower()
+        match_1 = any(r.match(sanitized) for r in regexes.event_type_regexes["EMAIL_ADDRESS"])
+        match_2 = regexes._hostname_regex.match(sanitized)
+        if match_1 or match_2:
+            return sanitized
+
     def _host(self):
         data = str(self.data).split("@")[-1]
         host, self._port = split_host_port(data)

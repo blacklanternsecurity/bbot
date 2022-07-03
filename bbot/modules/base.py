@@ -155,9 +155,7 @@ class BaseModule:
                 return True
         return False
 
-    def emit_event(self, *args, **kwargs):
-        on_success_callback = kwargs.pop("on_success_callback", None)
-        abort_if = kwargs.pop("abort_if", lambda e: False)
+    def make_event(self, *args, **kwargs):
         try:
             event = self.scan.make_event(*args, **kwargs)
         except ValidationError as e:
@@ -165,11 +163,18 @@ class BaseModule:
             return
         if not event.module:
             event.module = self
-        self.scan.manager.emit_event(
-            event,
-            abort_if=abort_if,
-            on_success_callback=on_success_callback,
-        )
+        return event
+
+    def emit_event(self, *args, **kwargs):
+        on_success_callback = kwargs.pop("on_success_callback", None)
+        abort_if = kwargs.pop("abort_if", lambda e: False)
+        event = self.make_event(*args, **kwargs)
+        if event:
+            self.scan.manager.emit_event(
+                event,
+                abort_if=abort_if,
+                on_success_callback=on_success_callback,
+            )
 
     @property
     def events_waiting(self):
@@ -421,6 +426,9 @@ class BaseModule:
 
     def info(self, *args, **kwargs):
         self.log.info(*args, extra={"scan_id": self.scan.id}, **kwargs)
+
+    def hugeinfo(self, *args, **kwargs):
+        self.log.hugeinfo(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def success(self, *args, **kwargs):
         self.log.success(*args, extra={"scan_id": self.scan.id}, **kwargs)

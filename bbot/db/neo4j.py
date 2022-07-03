@@ -11,11 +11,11 @@ class Neo4j:
         self.graph = py2neo.Graph(uri=uri, auth=(username, password))
 
     def insert_event(self, event):
+        source = self.get_event_source(event)
         event_json = event.json
-
-        try:
-            source_id = event_json.pop("source")
-        except KeyError:
+        event_json.pop("source")
+        source_id = getattr(source, "id", "")
+        if not source_id:
             log.warning(f"Skipping event without source: {event_json}")
             return
         source_type = source_id.split(":")[-1]
@@ -32,21 +32,20 @@ class Neo4j:
         event_list = []
 
         for event in events:
-            event_node = self.make_node(event.json)
-            if event.id in event_nodes:
-                event_node = event_nodes[event.id] | event_node
-            event_node = self.make_node(event.json)
+            event_source = getattr(self.get_event_source(event), "id", "")
+            if not event_source:
+                log.warning(f"Skipping event without source: {event}")
+                continue
+            event_json = event.json
+            event_json["source"] = event_source
+            event_node = self.make_node(event_json)
             event_nodes[event.id] = event_node
             event_list.append(event_node)
 
         subgraph = list(event_nodes.values())[0]
         for dest_event in event_list:
             module = dest_event.pop("module", "TARGET")
-            try:
-                source_id = dest_event.pop("source")
-            except KeyError:
-                log.warning(f"Skipping event without source: {dest_event}")
-                continue
+            source_id = dest_event["source"]
             source_type = source_id.split(":")[-1]
             try:
                 source_event = event_nodes[source_id]
@@ -56,6 +55,11 @@ class Neo4j:
             subgraph = subgraph | relation
 
         self.graph.merge(subgraph)
+
+    def get_event_source(self, event):
+        if event.source._omit:
+            return self.get_event_source(event.source)
+        return event.source
 
     @staticmethod
     def make_node(event):

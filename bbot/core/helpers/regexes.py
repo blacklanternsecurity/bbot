@@ -36,12 +36,12 @@ event_type_regexes = OrderedDict(
         (k, tuple(re.compile(r, re.I) for r in regexes))
         for k, regexes in [
             (
-                "EMAIL_ADDRESS",
-                (r"^" + _email_regex + r"$",),
-            ),
-            (
                 "DNS_NAME",
                 (r"^" + _dns_name_regex + r"$",),
+            ),
+            (
+                "EMAIL_ADDRESS",
+                (r"^" + _email_regex + r"$",),
             ),
             (
                 "OPEN_TCP_PORT",

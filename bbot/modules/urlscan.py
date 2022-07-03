@@ -12,22 +12,25 @@ class urlscan(crobat):
         else:
             query = self.helpers.parent_domain(event.data).lower()
 
-        if query not in self.processed:
-            self.processed.add(hash(query))
+        if hash(query) in self.processed:
+            self.debug(f'Already processed "{query}", skipping')
+            return
 
-            for domain, url in self.query(query):
-                source_event = event
-                if domain:
-                    domain_event = self.scan.make_event(domain, "DNS_NAME", source=event)
-                    if str(domain_event.host).endswith(query) and not str(domain_event.host) == str(event.host):
-                        self.emit_event(domain_event)
-                        source_event = domain_event
-                if url:
-                    url_event = self.scan.make_event(url, "URL_UNVERIFIED", source=source_event)
-                    if str(url_event.host).endswith(query):
-                        self.emit_event(url_event)
-                    else:
-                        self.debug(f"{url_event.host} does not match {query}")
+        self.processed.add(hash(query))
+
+        for domain, url in self.query(query):
+            source_event = event
+            if domain:
+                domain_event = self.make_event(domain, "DNS_NAME", source=event)
+                if str(domain_event.host).endswith(query) and not str(domain_event.host) == str(event.host):
+                    self.emit_event(domain_event)
+                    source_event = domain_event
+            if url:
+                url_event = self.make_event(url, "URL_UNVERIFIED", source=source_event)
+                if str(url_event.host).endswith(query):
+                    self.emit_event(url_event)
+                else:
+                    self.debug(f"{url_event.host} does not match {query}")
 
     def query(self, query):
         results = self.helpers.request(f"https://urlscan.io/api/v1/search/?q={self.helpers.quote(query)}")
