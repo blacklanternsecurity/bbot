@@ -21,10 +21,10 @@ class speculate(BaseInternalModule):
         target_len = len(self.scan.target)
         if target_len > self.config.get("max_hosts", 65536):
             if not self.portscanner_enabled:
-                self.warning(
+                self.hugewarning(
                     f"Selected target ({target_len:,} hosts) is too large, skipping IP_RANGE --> IP_ADDRESS speculation"
                 )
-                self.warning(f"Enabling a port scanner module is highly recommended")
+                self.hugewarning(f"Enabling a port scanner module is highly recommended")
             self.range_to_ip = False
         return True
 
@@ -33,22 +33,28 @@ class speculate(BaseInternalModule):
         if event.type == "IP_RANGE" and self.range_to_ip:
             net = ipaddress.ip_network(event.data)
             for x in net:
-                self.emit_event(x, "IP_ADDRESS", source=event, internal=True)
+                self.speculate_event(x, "IP_ADDRESS", source=event, internal=True)
 
-        # generate open ports, DNS_NAMES, and IPs from URLs
-        if event.type in ("URL", "URL_UNVERIFIED"):
-            if event.host:
-                self.emit_event(str(event.host), "DNS_NAME", source=event)
-                if event.port:
-                    self.emit_event(
-                        self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
-                    )
+        # generate DNS_NAMES and IPs from misc events
+        # NOTE: we don't do this anymore because BBOT's internal DNS handles it instead
+        # if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS"):
+        #    self.speculate_event(str(event.host), "DNS_NAME", source=event)
 
-        # generate open ports from hosts
-        if event.type in ["DNS_NAME", "IP_ADDRESS"]:
+        # generate open ports
+        emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
+        # from URLs
+        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
+            if event.host and event.port not in (80, 443):
+                self.speculate_event(
+                    self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
+                )
+        # from hosts
+        if emit_open_ports and event.type in ("DNS_NAME", "IP_ADDRESS"):
             if self.open_port_consumers and not self.portscanner_enabled:
-                self.emit_event(self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True)
-                self.emit_event(
+                self.speculate_event(
+                    self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True
+                )
+                self.speculate_event(
                     self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
                 )
 
@@ -58,7 +64,17 @@ class speculate(BaseInternalModule):
             if not location.lower().startswith("http"):
                 location = event.parsed._replace(path=location).geturl()
             if location:
-                self.emit_event(location, "URL_UNVERIFIED", event)
+                self.speculate_event(location, "URL_UNVERIFIED", event)
+
+    def speculate_event(self, *args, **kwargs):
+        """
+        Wrapper around self.emit_event that sets the scope distance
+        of an event to that of its parent
+        """
+        event = self.make_event(*args, **kwargs)
+        if event:
+            event.scope_distance = event.source.scope_distance
+            self.emit_event(event)
 
     def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self

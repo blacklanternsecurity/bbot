@@ -95,8 +95,8 @@ class httpx(BaseModule):
                 continue
 
             # main URL
-            url_event = self.scan.make_event(url, "URL", source_event, tags=[f"status-{status_code}"])
+            url_event = self.make_event(url, "URL", source_event, tags=[f"status-{status_code}"])
             self.emit_event(url_event)
             # HTTP response
-            http_response_event = self.scan.make_event(j, "HTTP_RESPONSE", url_event, internal=True)
+            http_response_event = self.make_event(j, "HTTP_RESPONSE", url_event, internal=True)
             self.emit_event(http_response_event)

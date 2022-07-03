@@ -6,8 +6,10 @@ class sublist3r(crobat):
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive"]
 
+    base_url = "https://api.sublist3r.com/search.php"
+
     def query(self, query):
-        results = self.helpers.request(f"https://api.sublist3r.com/search.php?domain={query}")
+        results = self.helpers.request(f"{self.base_url}?domain={query}")
         try:
             json = results.json()
             if json:
