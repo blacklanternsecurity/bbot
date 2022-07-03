@@ -8,9 +8,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .regexes import dns_name_regex
 from ...modules.base import BaseModule
-from ..threadpool import ThreadPoolWrapper
 from bbot.core.errors import ValidationError
-from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
+from ..threadpool import ThreadPoolWrapper, NamedLock
+from .misc import is_ip, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
@@ -23,8 +23,6 @@ class DNSHelper:
     def __init__(self, parent_helper):
 
         self.parent_helper = parent_helper
-        self.wildcard_tests = self.parent_helper.config.get("dns_wildcard_tests", 5)
-        self._wildcard_cache = dict()
         self.resolver = dns.resolver.Resolver()
         self.timeout = self.parent_helper.config.get("dns_timeout", 10)
         self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 5)
@@ -32,11 +30,15 @@ class DNSHelper:
         self.resolver.lifetime = self.timeout
         self._resolver_list = None
 
-        # since wildcard detection takes some time, these are to prevent multiple
+        self.wildcard_ignore = self.parent_helper.config.get("dns_wildcard_ignore", None)
+        if not self.wildcard_ignore:
+            self.wildcard_ignore = []
+        self.wildcard_ignore = tuple([str(d).lower() for d in self.wildcard_ignore])
+        self.wildcard_tests = self.parent_helper.config.get("dns_wildcard_tests", 5)
+        self._wildcard_cache = dict()
+        # since wildcard detection takes some time, This is to prevent multiple
         # modules from kicking off wildcard detection for the same domain at the same time
-        # ensuring that subsequent calls to is_wildcard() will use the cached value
-        self.__wildcard_lock = Lock()
-        self._wildcard_locks = dict()
+        self._wildcard_lock = NamedLock()
 
         self._errors = dict()
         self._error_lock = Lock()
@@ -53,6 +55,7 @@ class DNSHelper:
 
         self._cache = dict()
         self._cache_lock = Lock()
+        self._cache_locks = NamedLock()
 
     def resolve(self, query, **kwargs):
         """
@@ -99,51 +102,67 @@ class DNSHelper:
 
             return results
 
-    def resolve_event(self, event, check_wildcard=True):
+    def resolve_event(self, event):
+        result = self._resolve_event(event)
+        if len(result) == 1:
+            event = result[0]
+            return self._resolve_event(event, check_wildcard=False)
+        else:
+            return result
+
+    def _resolve_event(self, event, check_wildcard=True):
         """
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
         """
-        children = []
         if not event.host:
             return [], set(), False
+        children = []
+        event_tags = set()
         event_host = str(event.host)
-        event_tags, event_in_scope = self.cache_get(event_host)
-        if event_in_scope is not None:
-            return children, event_tags, event_in_scope
-        event_in_scope = False
+        # lock to ensure resolution of the same host doesn't start while we're working here
+        with self._cache_locks.get_lock(event_host):
 
-        # wildcard check first
-        if check_wildcard and event.type == "DNS_NAME":
-            event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
-            if event_is_wildcard:
-                event.data = wildcard_parent
-                return self.resolve_event(event, check_wildcard=False)
-        elif not check_wildcard:
-            event_tags.add("wildcard")
+            event_in_scope = False
 
-        # then resolve
-        target = getattr(self.parent_helper.scan, "target", None)
-        for rdtype, records in self.resolve_raw(event_host, type="any"):
-            event_tags.add("resolved")
-            rdtype = str(rdtype).upper()
-            # mark in-scope if it resolves to an in-scope IP
-            if rdtype in ("A", "AAAA"):
+            # wildcard check first
+            if check_wildcard and not is_ip(event_host):
+                event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
+                if event_is_wildcard:
+                    event.data = wildcard_parent
+                    return (event,)
+            elif not check_wildcard:
+                event_tags.add("wildcard")
+
+            # try to get data from cache
+            _event_tags, _event_in_scope = self.cache_get(event_host)
+            event_tags.update(_event_tags)
+            # if we found it, return it
+            if _event_in_scope is not None:
+                return children, event_tags, _event_in_scope
+
+            # then resolve
+            target = getattr(self.parent_helper.scan, "target", None)
+            for rdtype, records in self.resolve_raw(event_host, type="any"):
+                event_tags.add("resolved")
+                rdtype = str(rdtype).upper()
+                # mark in-scope if it resolves to an in-scope IP
+                if rdtype in ("A", "AAAA"):
+                    for r in records:
+                        for _, t in self.extract_targets(r):
+                            if target is not None:
+                                with suppress(ValidationError):
+                                    if target.in_scope(t):
+                                        event_in_scope = True
+                                        break
                 for r in records:
                     for _, t in self.extract_targets(r):
-                        if target is not None:
-                            with suppress(ValidationError):
-                                if target.in_scope(t):
-                                    event_in_scope = True
-                                    break
-            for r in records:
-                for _, t in self.extract_targets(r):
-                    event_tags.add(f"{rdtype.lower()}_record")
-                    if t:
-                        children.append((t, rdtype))
-        if "resolved" not in event_tags:
-            event_tags.add("unresolved")
-        self.cache_put(event_host, event_tags, event_in_scope)
+                        event_tags.add(f"{rdtype.lower()}_record")
+                        if t:
+                            children.append((t, rdtype))
+            if "resolved" not in event_tags:
+                event_tags.add("unresolved")
+            self.cache_put(event_host, event_tags, event_in_scope)
         return children, event_tags, event_in_scope
 
     def cache_get(self, host):
@@ -368,8 +387,13 @@ class DNSHelper:
         return list()
 
     def is_wildcard(self, query):
-        if is_domain(query) or not "." in query:
+        if is_ip(query) or not "." in query:
             return False, query
+        for d in self.wildcard_ignore:
+            if self.parent_helper.host_in_host(query, d):
+                return False, query
+        if query.startswith("_wildcard."):
+            return True, query
         hosts = list(domain_parents(query, include_self=True))[:-1]
         for host in hosts[::-1]:
             is_wildcard, parent = self._is_wildcard(host)
@@ -379,38 +403,38 @@ class DNSHelper:
 
     def _is_wildcard(self, query):
         parent = parent_domain(query)
-        with suppress(KeyError):
-            return self._wildcard_cache[parent], parent
-        with self._wildcard_lock(parent):
+        with self._wildcard_lock.get_lock(parent):
+            # try to return from cache
+            with suppress(KeyError):
+                return self._wildcard_cache[parent], parent
+
+            # resolve the base query
             orig_results = self.resolve(query)
             is_wildcard = False
 
             futures = []
+            # resolve a bunch of random subdomains of the same parent
             for _ in range(self.wildcard_tests):
                 rand_query = f"{rand_string(length=10)}.{parent}"
                 future = self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.resolve, rand_query)
                 futures.append(future)
 
+            # put all the IPs from the random subdomains in one bucket
             wildcard_ips = set()
             for future in self.parent_helper.as_completed(futures):
                 ips = future.result()
                 if ips:
                     wildcard_ips.update(ips)
 
+            # if all of the original results are in the random bucket
             if orig_results and wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):
+                # then ladies and gentlemen we have a wildcard
                 is_wildcard = True
 
             self._wildcard_cache.update({parent: is_wildcard})
+            if is_wildcard:
+                log.hugeinfo(f"Encountered domain with wildcard DNS: {parent}")
             return is_wildcard, parent
-
-    def _wildcard_lock(self, domain):
-        with self.__wildcard_lock:
-            try:
-                return self._wildcard_locks[domain]
-            except KeyError:
-                lock = Lock()
-                self._wildcard_locks[domain] = lock
-                return lock
 
     def _catch_keyboardinterrupt(self, callback, *args, **kwargs):
         try:

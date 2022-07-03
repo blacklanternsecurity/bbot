@@ -16,7 +16,7 @@ log = logging.getLogger("bbot.core.helpers")
 
 class ConfigAwareHelper:
 
-    from .web import request, download
+    from .web import request, download, api_page_iter
     from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from . import regexes
@@ -68,15 +68,19 @@ class ConfigAwareHelper:
 
     def __getattribute__(self, attr):
         """
-        Allow static functions from .misc to be accessed via ConfigAwareHelper class
+        Allow static functions from sub-helpers to be accessed from the main class
         """
         try:
+            # first try self
             return super().__getattribute__(attr)
         except AttributeError:
             try:
+                # then try misc
                 return getattr(misc, attr)
             except AttributeError:
                 try:
+                    # then try dns
                     return getattr(self.dns, attr)
                 except AttributeError:
+                    # then die
                     raise AttributeError(f'Helper has no attribute "{attr}"')

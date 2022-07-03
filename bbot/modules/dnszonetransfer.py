@@ -13,10 +13,6 @@ class dnszonetransfer(BaseModule):
     suppress_dupes = False
     in_scope_only = True
 
-    def setup(self):
-        self.emitted = set()
-        return True
-
     def filter_event(self, event):
         if any([x in event.tags for x in ("ns_record", "soa_record")]):
             return True
@@ -37,17 +33,17 @@ class dnszonetransfer(BaseModule):
             except Exception as e:
                 self.debug(f"Error retrieving zone: {e}")
                 continue
-            self.success(f"Successful zone transfer against {nameserver} for domain {domain}!")
+            self.hugesuccess(f"Successful zone transfer against {nameserver} for domain {domain}!")
             for name, ttl, rdata in zone.iterate_rdatas():
                 if str(name) == "@":
                     parent_data = domain
                 else:
                     parent_data = f"{name}.{domain}"
-                parent_event = self.scan.make_event(parent_data, "DNS_NAME", event)
-                parent_event_hash = hash(parent_event)
-                if parent_event_hash not in self.emitted:
+                parent_event = self.make_event(parent_data, "DNS_NAME", event)
+                if parent_event == event:
+                    parent_event = event
+                else:
                     self.emit_event(parent_event)
-                    self.emitted.add(parent_event_hash)
                 for rdtype, t in self.helpers.dns.extract_targets(rdata):
                     if not self.helpers.is_ip(t):
                         t = f"{t}.{domain}"

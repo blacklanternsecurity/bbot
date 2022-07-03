@@ -118,3 +118,24 @@ def request(self, *args, **kwargs):
             else:
                 if raise_error:
                     raise e
+
+
+def api_page_iter(self, url, page_size=100, json=True, **requests_kwargs):
+    page = 1
+    offset = 0
+    while 1:
+        new_url = url.format(page=page, page_size=page_size, offset=offset)
+        result = self.request(new_url, **requests_kwargs)
+        try:
+            if json:
+                result = result.json()
+            yield result
+        except Exception:
+            import traceback
+
+            log.warning(f'Error in api_page_iter() for url: "{new_url}"')
+            log.debug(traceback.format_exc())
+            break
+        finally:
+            offset += page_size
+            page += 1

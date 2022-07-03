@@ -11,11 +11,12 @@ class dnsdumpster(crobat):
 
     deps_pip = ["beautifulsoup4", "lxml"]
 
+    base_url = "https://dnsdumpster.com"
+
     def query(self, domain):
         ret = []
         # first, get the CSRF tokens
-        url = "https://dnsdumpster.com"
-        res1 = self.helpers.request(url)
+        res1 = self.helpers.request(self.base_url)
         status_code = getattr(res1, "status_code", 0)
         if status_code in [429]:
             self.warning(f'Too many requests "{status_code}"')
@@ -50,10 +51,9 @@ class dnsdumpster(crobat):
             self.debug("Successfully obtained CSRF tokens")
 
         # Otherwise, do the needful
-        url = "https://dnsdumpster.com/"
         subdomains = set()
         res2 = self.helpers.request(
-            url,
+            f"{self.base_url}/",
             method="POST",
             cookies={"csrftoken": csrftoken},
             data={

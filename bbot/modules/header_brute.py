@@ -112,15 +112,15 @@ class header_brute(BaseModule):
 
     def binary_search(self, compare_helper, url, group, reason=None, reflection=False):
         self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
-        if len(group) == 0:
-            self.critical("how")
-        elif len(group) == 1:
+        if len(group) == 1:
             yield group[0], reason, reflection
-        else:
+        elif len(group) > 1:
             for group_slice in self.helpers.split_list(group):
                 match, reason, reflection = self.check_batch(compare_helper, url, group_slice)
                 if match == False:
                     yield from self.binary_search(compare_helper, url, group_slice, reason, reflection)
+        else:
+            self.warning(f"Submitted group of size 0 to binary_search()")
 
     def check_batch(self, compare_helper, url, header_list):
 

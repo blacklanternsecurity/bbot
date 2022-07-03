@@ -17,6 +17,7 @@ class ColoredFormatter(logging.Formatter):
         "DEBUG": 242,  # grey
         "VERBOSE": 242,  # grey
         "INFO": 69,  # blue
+        "HUGEINFO": 69,  # blue
         "SUCCESS": 118,  # green
         "HUGESUCCESS": 118,  # green
         "WARNING": 208,  # orange
@@ -29,6 +30,7 @@ class ColoredFormatter(logging.Formatter):
         "DEBUG": "DBUG",
         "VERBOSE": "VERB",
         "INFO": "INFO",
+        "HUGEINFO": "INFO",
         "SUCCESS": "SUCC",
         "HUGESUCCESS": "SUCC",
         "WARNING": "WARN",
@@ -47,7 +49,7 @@ class ColoredFormatter(logging.Formatter):
         levelchar = self.char_mapping.get(levelname, "INFO")
         seq = self.color_mapping.get(levelname, 15)  # default white
         colored_levelname = f"{self.prefix}{seq}m[{levelchar}]{self.suffix}"
-        if levelname in ("CRITICAL", "HUGEWARNING", "HUGESUCCESS"):
+        if levelname == "CRITICAL" or levelname.startswith("HUGE"):
             colored_record.msg = f"{self.prefix}{seq}m{colored_record.msg}{self.suffix}"
         colored_record.levelname = colored_levelname
 
@@ -109,6 +111,7 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
 addLoggingLevel("HUGEWARNING", 31)
 addLoggingLevel("HUGESUCCESS", 26)
 addLoggingLevel("SUCCESS", 25)
+addLoggingLevel("HUGEINFO", 21)
 addLoggingLevel("VERBOSE", 15)
 addLoggingLevel("STDOUT", 1)
 

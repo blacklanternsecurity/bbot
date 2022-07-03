@@ -3,8 +3,8 @@ from .base import BaseModule
 
 class crobat(BaseModule):
     """
-    A typical API-based subdomain enumeration module
-    Used by several other modules including sublist3r, dnsdumpster, and dnsgrep
+    A typical free API-based subdomain enumeration module
+    Inherited by several other modules including sublist3r, dnsdumpster, and dnsgrep
     """
 
     flags = ["subdomain-enum", "passive"]
@@ -12,22 +12,29 @@ class crobat(BaseModule):
     produced_events = ["DNS_NAME"]
     in_scope_only = True
 
+    base_url = "https://sonar.omnisint.io"
+
     def setup(self):
         self.processed = set()
         return True
 
     def filter_event(self, event):
+        valid = False
         if "target" in event.tags:
-            return True
-        # include out-of-scope DNS names that resolve to in-scope IPs
-        elif event not in self.scan.target:
-            if hash(self.helpers.parent_domain(event.data)) not in self.processed:
+            query = str(event.data)
+            valid = True
+        else:
+            if event not in self.scan.target:
+                valid = True
+            query = self.helpers.parent_domain(event.data)
+        if valid and hash(query) not in self.processed:
+            is_wildcard, _ = self.helpers.is_wildcard(query)
+            if not is_wildcard:
                 return True
-        return False
 
     def handle_event(self, event):
         if "target" in event.tags:
-            query = str(event.data).lower()
+            query = str(event.data)
         else:
             query = self.helpers.parent_domain(event.data).lower()
 
@@ -35,14 +42,16 @@ class crobat(BaseModule):
             self.debug(f'Already processed "{query}", skipping')
             return
 
-        for hostname in self.query(query):
-            if not hostname == event:
-                self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in_scope" not in e.tags)
-            else:
-                self.debug(f"Excluding self: {hostname}")
+        results = self.query(query)
+        if results:
+            for hostname in results:
+                if not hostname == event:
+                    self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in_scope" not in e.tags)
+                else:
+                    self.debug(f"Excluding self: {hostname}")
 
     def query(self, query):
-        results = self.helpers.request(f"https://sonar.omnisint.io/subdomains/{self.helpers.quote(query)}")
+        results = self.helpers.request(f"{self.base_url}/subdomains/{self.helpers.quote(query)}")
         try:
             json = results.json()
             if json:

@@ -6,8 +6,10 @@ class dnsgrep(crobat):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
 
+    base_url = "https://dns.bufferover.run"
+
     def query(self, query):
-        results = self.helpers.request(f"https://dns.bufferover.run/dns?q={self.helpers.quote(query)}")
+        results = self.helpers.request(f"{self.base_url}/dns?q={self.helpers.quote(query)}")
         try:
             json = results.json()
             if json:

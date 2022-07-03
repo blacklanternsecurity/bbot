@@ -9,11 +9,11 @@ import logging
 import ipaddress
 import wordninja
 from pathlib import Path
+from itertools import islice
 from contextlib import suppress
 import tldextract as _tldextract
 from urllib.parse import urlparse, quote  # noqa F401
 from hashlib import sha1 as hashlib_sha1
-from itertools import combinations, islice
 
 from .url import *  # noqa F401
 from .regexes import word_regexes, event_type_regexes
@@ -94,7 +94,7 @@ def domain_parents(d, include_self=False):
     "test.www.evilcorp.co.uk" --> ["www.evilcorp.co.uk", "evilcorp.co.uk"]
     """
     parent = str(d)
-    if include_self:
+    if include_self and not is_domain(parent):
         yield parent
     while 1:
         parent = parent_domain(parent)
@@ -270,14 +270,16 @@ def extract_words(data, max_length=100):
                 words.add(word)
 
     # blacklanternsecurity --> ['black', 'lantern', 'security']
-    max_slice_length = 3
+    # max_slice_length = 3
     for word in list(words):
         subwords = wordninja.split(word)
+        for subword in subwords:
+            words.add(subword)
         # blacklanternsecurity --> ['black', 'lantern', 'security', 'blacklantern', 'lanternsecurity']
-        for s, e in combinations(range(len(subwords) + 1), 2):
-            if e - s <= max_slice_length:
-                subword_slice = "".join(subwords[s:e])
-                words.add(subword_slice)
+        # for s, e in combinations(range(len(subwords) + 1), 2):
+        #    if e - s <= max_slice_length:
+        #        subword_slice = "".join(subwords[s:e])
+        #        words.add(subword_slice)
         # blacklanternsecurity --> bls
         if len(subwords) > 1:
             words.add("".join([c[0] for c in subwords if len(c) > 0]))
