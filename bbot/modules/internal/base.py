@@ -5,7 +5,8 @@ from ..base import BaseModule
 class BaseInternalModule(BaseModule):
     in_scope_only = False
     _type = "internal"
-    _priority = -50
+    # Priority, 1-5, lower numbers == higher priority
+    _priority = 3
 
     @property
     def config(self):

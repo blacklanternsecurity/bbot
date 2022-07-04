@@ -58,14 +58,6 @@ class speculate(BaseInternalModule):
                     self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
                 )
 
-        # emit redirect locations
-        if event.type == "HTTP_RESPONSE":
-            location = event.data.get("location", "")
-            if not location.lower().startswith("http"):
-                location = event.parsed._replace(path=location).geturl()
-            if location:
-                self.speculate_event(location, "URL_UNVERIFIED", event)
-
     def speculate_event(self, *args, **kwargs):
         """
         Wrapper around self.emit_event that sets the scope distance
