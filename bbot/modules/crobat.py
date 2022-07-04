@@ -42,6 +42,8 @@ class crobat(BaseModule):
             self.debug(f'Already processed "{query}", skipping')
             return
 
+        self.processed.add(hash(query))
+
         results = self.query(query)
         if results:
             for hostname in results:

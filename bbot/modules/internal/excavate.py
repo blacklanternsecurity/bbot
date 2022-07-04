@@ -53,9 +53,9 @@ class URLExtractor(BaseExtractor):
                     self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
                     return
 
-        if spider_danger and self.excavate.helpers.url_depth(result) > self.excavate.scan.config.get(
-            "web_spider_depth", 0
-        ):
+        url_depth = self.excavate.helpers.url_depth(result)
+        web_spider_depth = self.excavate.scan.config.get("web_spider_depth", 0)
+        if spider_danger and url_depth > web_spider_depth:
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
@@ -150,14 +150,13 @@ class excavate(BaseInternalModule):
             if location:
                 if not location.lower().startswith("http"):
                     location = event.parsed._replace(path=location).geturl()
-                self.hugesuccess(location)
                 self.emit_event(location, "URL_UNVERIFIED", event)
 
             body = event.data.get("response-body", "")
             self.search(body, [self.url, self.email, self.error, self.jwt], event, spider_danger=True)
 
             headers = event.data.get("response-header", "")
-            self.search(headers, [self.url, self.email, self.error, self.jwt], event, spider_danger=True)
+            self.search(headers, [self.url, self.email, self.error, self.jwt], event, spider_danger=False)
 
         else:
 
