@@ -1,0 +1,63 @@
+import re
+from bs4 import BeautifulSoup
+
+from .base import BaseModule
+
+
+class viewdns(BaseModule):
+
+    watched_events = ["DNS_NAME"]
+    produced_events = ["DNS_NAME"]
+    flags = ["subdomain-enum", "passive"]
+    deps_pip = ["beautifulsoup4", "lxml"]
+    base_url = "https://viewdns.info"
+    in_scope_only = True
+
+    def setup(self):
+        self.processed = set()
+        self.date_regex = re.compile(r"\d{4}-\d{2}-\d{2}")
+        return True
+
+    def filter_event(self, event):
+        _, domain = self.helpers.split_domain(event.data)
+        if hash(domain) not in self.processed:
+            return True
+        return False
+
+    def handle_event(self, event):
+        _, query = self.helpers.split_domain(event.data)
+        if hash(query) in self.processed:
+            self.debug(f'Already processed "{query}", skipping')
+            return
+        self.processed.add(hash(query))
+        for domain, _ in self.query(query):
+            self.emit_event(domain, "DNS_NAME", source=event)
+            # todo: registrar?
+
+    def query(self, query):
+        url = f"{self.base_url}/reversewhois/?q={query}"
+        r = self.helpers.request(url)
+        status_code = getattr(r, "status_code", 0)
+        if status_code not in (200,):
+            self.warning(f"Error retrieving reverse whois results (status code: {status_code})")
+
+        content = getattr(r, "content", b"")
+        html = BeautifulSoup(content, features="lxml")
+        yielded = set()
+        for table_row in html.findAll("tr"):
+            table_cells = table_row.findAll("td")
+            # make double-sure we're in the right table by checking the date field
+            try:
+                if self.date_regex.match(table_cells[1].text.strip()):
+                    # domain == first cell
+                    domain = table_cells[0].text.strip().lower()
+                    # registrar == last cell
+                    registrar = table_cells[-1].text.strip()
+                    if domain and not domain == query:
+                        to_yield = (domain, registrar)
+                        to_yield_hash = hash(to_yield)
+                        if to_yield_hash not in yielded:
+                            yield to_yield
+            except IndexError:
+                self.debug(f"Invalid row {str(table_row)[:40]}...")
+                continue
