@@ -5,6 +5,7 @@ from OpenSSL import SSL
 from ssl import PROTOCOL_TLSv1
 
 from .base import BaseModule
+from bbot.core.errors import ValidationError
 
 
 class sslcert(BaseModule):
@@ -48,7 +49,6 @@ class sslcert(BaseModule):
                 else:
                     self.hosts_visited.add(host_hash)
 
-            cert_results = []
             socket_type = socket.AF_INET
             if self.helpers.is_ip(host):
                 if host.version == 6:
@@ -83,19 +83,17 @@ class sslcert(BaseModule):
             cert = connection.get_peer_certificate()
             sock.close()
             subject = cert.get_subject().commonName
-            sans = self.get_cert_sans(cert)
-
+            cert_results = self.get_cert_sans(cert)
             cert_results.append(str(subject).lstrip("*.").lower())
-            for san in sans:
-                san = san.lstrip("*.").lower()
-                cert_results.append(san)
             for c in set(cert_results):
                 if c != _host:
                     self.debug(f"Discovered new domain via SSL certificate parsing: [{c}]")
-                    if self.helpers.is_ip(c):
-                        self.emit_event(c, "IP_ADDRESS", event)
-                    else:
-                        self.emit_event(c, "DNS_NAME", event)
+                    try:
+                        event = self.make_event(c, "DNS_NAME", event, raise_error=True)
+                        if event:
+                            self.emit_event(event)
+                    except ValidationError as e:
+                        self.warning(f"SSL cert at {host}:{port}: {e}")
 
     @staticmethod
     def get_cert_sans(cert):
@@ -109,6 +107,10 @@ class sslcert(BaseModule):
                 raw_sans = str(ext)
         if raw_sans is not None:
             for raw_san in raw_sans.split(","):
-                hostname = raw_san.split(":")[-1].strip()
+                hostname = raw_san.split(":", 1)[-1].strip().lower()
+                # IPv6 addresses
+                if hostname.startswith("[") and hostname.endswith("]"):
+                    hostname = hostname.strip("[]")
+                hostname = hostname.lstrip("*.")
                 sans.append(hostname)
         return sans

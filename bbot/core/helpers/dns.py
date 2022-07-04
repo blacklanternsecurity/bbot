@@ -116,7 +116,7 @@ class DNSHelper:
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
         """
-        if not event.host:
+        if not event.host or event.type in ("IP_RANGE",):
             return [], set(), False
         children = []
         event_tags = set()
