@@ -17,7 +17,7 @@ class ScanManager:
 
     def __init__(self, scan):
         self.scan = scan
-        self.event_queue = queue.SimpleQueue()
+        self.event_queue = queue.PriorityQueue()
         self.events_distributed = set()
         self.events_distributed_lock = threading.Lock()
         self.events_accepted = set()

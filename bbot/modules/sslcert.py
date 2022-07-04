@@ -17,6 +17,7 @@ class sslcert(BaseModule):
     deps_apt = ["openssl"]
     deps_pip = ["pyOpenSSL"]
     max_threads = 20
+    _priority = 2
 
     def setup(self):
         self.hosts_visited = set()

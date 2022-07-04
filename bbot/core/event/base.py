@@ -26,8 +26,12 @@ log = logging.getLogger("bbot.core.event")
 
 class BaseEvent:
 
-    _dummy = False
+    # Exclude from output modules
     _omit = False
+    # Priority, 1-5, lower numbers == higher priority
+    _priority = 3
+    # Disables certain data validations
+    _dummy = False
 
     def __init__(
         self,
@@ -291,8 +295,29 @@ class BaseEvent:
                     j[k] = smart_decode(v)
         return j
 
+    @property
+    def priority(self):
+        self_priority = int(max(1, min(5, self._priority)))
+        mod_priority = int(max(1, min(5, getattr(self.module, "priority", 1))))
+        return self_priority + mod_priority
+
     def __iter__(self):
+        """
+        For dict(event)
+        """
         yield from self.json.items()
+
+    def __lt__(self, other):
+        """
+        For queue sorting
+        """
+        return self.priority < int(getattr(other, "priority", 5))
+
+    def __gt__(self, other):
+        """
+        For queue sorting
+        """
+        return self.priority > int(getattr(other, "priority", 5))
 
     def __eq__(self, other):
         try:

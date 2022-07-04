@@ -15,7 +15,7 @@ class BaseModule:
     watched_events = []
     # Event types to produce
     produced_events = []
-    # Flags
+    # Flags, must include either "passive" or "active"
     flags = []
     # python dependencies (pip install ____)
     deps_pip = []
@@ -50,8 +50,8 @@ class BaseModule:
     batch_size = 1
     # Seconds to wait before force-submitting batch
     batch_wait = 10
-    # Priority, smaller numbers run first
-    _priority = 0
+    # Priority of events raised by this module, 1-5, lower numbers == higher priority
+    _priority = 3
     # Name, overridden automatically
     _name = "base"
     # Type, for differentiating between normal modules and output modules, etc.
@@ -405,6 +405,10 @@ class BaseModule:
         if self._event_queue is None:
             self._event_queue = queue.SimpleQueue()
         return self._event_queue
+
+    @property
+    def priority(self):
+        return int(max(1, min(5, self._priority)))
 
     @property
     def log(self):
