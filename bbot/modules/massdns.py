@@ -200,10 +200,6 @@ class massdns(BaseModule):
             except KeyError:
                 self.found[domain] = set((subdomain,))
 
-    def is_found(self, hostname):
-        subdomain, domain = self.helpers.split_domain(hostname)
-        return subdomain in self.found.get(domain, [])
-
     def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
             yield f"{p}.{domain}"
