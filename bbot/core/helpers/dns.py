@@ -7,7 +7,6 @@ from contextlib import suppress
 from concurrent.futures import ThreadPoolExecutor
 
 from .regexes import dns_name_regex
-from ...modules.base import BaseModule
 from bbot.core.errors import ValidationError
 from ..threadpool import ThreadPoolWrapper, NamedLock
 from .misc import is_ip, domain_parents, parent_domain, rand_string
@@ -104,9 +103,11 @@ class DNSHelper:
 
     def resolve_event(self, event):
         result = self._resolve_event(event)
+        # if it's a wildcard, go again with _wildcard.{domain}
         if len(result) == 1:
             event = result[0]
             return self._resolve_event(event, check_wildcard=False)
+        # else we're good
         else:
             return result
 
@@ -115,7 +116,7 @@ class DNSHelper:
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
         """
-        if not event.host:
+        if not event.host or event.type in ("IP_RANGE",):
             return [], set(), False
         children = []
         event_tags = set()
@@ -353,7 +354,7 @@ class DNSHelper:
             return results
         try:
             results = list(self._catch(self.resolver.resolve, query, **kwargs))
-        except dns.resolver.NoNameservers:
+        except (dns.resolver.NoNameservers, dns.exception.Timeout, dns.resolver.LifetimeTimeout):
             with self._error_lock:
                 try:
                     self._errors[hash(parent)] += 1
@@ -370,6 +371,8 @@ class DNSHelper:
             results = list(self._catch(self.resolver.resolve_address, query, **kwargs))
         except dns.resolver.NoNameservers as e:
             self.debug(f"{e} (query={query}, kwargs={kwargs})")
+        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout):
+            pass
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results
 
@@ -378,8 +381,9 @@ class DNSHelper:
             return callback(*args, **kwargs)
         except dns.resolver.NoNameservers:
             raise
-        except dns.exception.Timeout:
+        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout):
             log.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
+            raise
         except dns.exception.DNSException as e:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception:
@@ -457,14 +461,6 @@ class DNSHelper:
             try:
                 dummy_module = self._dummy_modules[name]
             except KeyError:
-                dummy_module = DNSDummyModule(name=name, scan=self.parent_helper.scan)
+                dummy_module = self.parent_helper._make_dummy_module(name=name, _type="DNS")
                 self._dummy_modules[name] = dummy_module
         return dummy_module
-
-
-class DNSDummyModule(BaseModule):
-    _type = "DNS"
-
-    def __init__(self, *args, **kwargs):
-        self._name = kwargs.pop("name")
-        super().__init__(*args, **kwargs)

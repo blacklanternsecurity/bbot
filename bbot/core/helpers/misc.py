@@ -106,6 +106,21 @@ def domain_parents(d, include_self=False):
         break
 
 
+def tldextract(data):
+    """
+    "www.evilcorp.co.uk" --> ExtractResult(subdomain='www', domain='evilcorp', suffix='co.uk')
+    """
+    return _tldextract.extract(smart_decode(data))
+
+
+def split_domain(hostname):
+    """
+    "www.internal.evilcorp.co.uk" --> ("www.internal", "evilcorp.co.uk")
+    """
+    parsed = tldextract(hostname)
+    return (parsed.subdomain, parsed.registered_domain)
+
+
 def ip_network_parents(i, include_self=False):
     """
     "192.168.1.1" --> [192.168.1.0/31, 192.168.1.0/30 ... 128.0.0.0/1, 0.0.0.0/0]
@@ -226,21 +241,6 @@ def smart_encode(data):
     if type(data) == bytes:
         return data
     return str(data).encode("utf-8", errors="ignore")
-
-
-def tldextract(data):
-    """
-    "www.evilcorp.co.uk" --> ExtractResult(subdomain='www', domain='evilcorp', suffix='co.uk')
-    """
-    return _tldextract.extract(smart_decode(data))
-
-
-def split_domain(hostname):
-    """
-    "www.internal.evilcorp.co.uk" --> ("www.internal", "evilcorp.co.uk")
-    """
-    parsed = tldextract(hostname)
-    return (parsed.subdomain, parsed.registered_domain)
 
 
 rand_pool = string.ascii_lowercase + string.digits

@@ -15,11 +15,11 @@ class BaseExtractor:
         for rname, r in self.regexes.items():
             self.compiled_regexes[rname] = re.compile(r)
 
-    def search(self, content, event):
+    def search(self, content, event, **kwargs):
         for name, regex in self.compiled_regexes.items():
             results = regex.findall(content)
             for result in results:
-                self.report(result, name, event)
+                self.report(result, name, event, **kwargs)
 
     def report(self, result, name, event):
         pass
@@ -33,7 +33,9 @@ class URLExtractor(BaseExtractor):
 
     prefix_blacklist = ["javascript:", "mailto:", "tel:"]
 
-    def report(self, result, name, event):
+    def report(self, result, name, event, **kwargs):
+
+        spider_danger = kwargs.get("spider_danger", True)
 
         tags = []
         parsed = getattr(event, "parsed", None)
@@ -51,7 +53,9 @@ class URLExtractor(BaseExtractor):
                     self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
                     return
 
-        if self.excavate.helpers.url_depth(result) > self.excavate.scan.config.get("web_spider_depth", 0):
+        url_depth = self.excavate.helpers.url_depth(result)
+        web_spider_depth = self.excavate.scan.config.get("web_spider_depth", 0)
+        if spider_danger and url_depth > web_spider_depth:
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
@@ -62,7 +66,7 @@ class EmailExtractor(BaseExtractor):
 
     regexes = {"email": _email_regex}
 
-    def report(self, result, name, event):
+    def report(self, result, name, event, **kwargs):
         self.excavate.debug(f"Found email address from parsing [{event.data.get('url')}]")
         self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
 
@@ -87,7 +91,7 @@ class ErrorExtractor(BaseExtractor):
         "ASP.NET:5": r"at ([a-zA-Z0-9]*\.)*([a-zA-Z0-9]*)\([a-zA-Z0-9, ]*\)",
     }
 
-    def report(self, result, name, event):
+    def report(self, result, name, event, **kwargs):
         self.excavate.debug(f"Found error message from parsing [{event.data.get('url')}] with regex [{name}]")
         self.excavate.emit_event(
             f"Error message Detected at [{event.data.get('url')}] Error Type: {name}", "FINDING", source=event
@@ -98,7 +102,7 @@ class JWTExtractor(BaseExtractor):
 
     regexes = {"JWT": r"eyJ(?:[\w-]*\.)(?:[\w-]*\.)[\w-]*"}
 
-    def report(self, result, name, event):
+    def report(self, result, name, event, **kwargs):
         self.excavate.debug(f"Found JWT candidate [{result}]")
         try:
             j.decode(result, options={"verify_signature": False})
@@ -111,7 +115,7 @@ class JWTExtractor(BaseExtractor):
                 self.excavate.emit_event(f"JWT Identified [{result}] [{event.data.get('url')}]", "FINDING", event)
 
         except j.exceptions.DecodeError:
-            self.debug(f"Error decoding JWT candidate {result}")
+            self.excavate.debug(f"Error decoding JWT candidate {result}")
 
 
 class excavate(BaseInternalModule):
@@ -128,24 +132,31 @@ class excavate(BaseInternalModule):
         self.error = ErrorExtractor(self)
         self.jwt = JWTExtractor(self)
 
-        #   self.extractors = [URLExtractor(self), ErrorExtractor(self), JWTExtractor(self), EmailExtractor(self)]
         return True
 
-    def search(self, source, extractors, event):
+    def search(self, source, extractors, event, **kwargs):
         for e in extractors:
-            e.search(source, event)
+            e.search(source, event, **kwargs)
 
     def handle_event(self, event):
 
         data = event.data
 
+        # HTTP_RESPONSE is a special case
         if event.type == "HTTP_RESPONSE":
 
+            # handle redirects
+            location = event.data.get("location", "")
+            if location:
+                if not location.lower().startswith("http"):
+                    location = event.parsed._replace(path=location).geturl()
+                self.emit_event(location, "URL_UNVERIFIED", event)
+
             body = event.data.get("response-body", "")
-            self.search(body, [self.url, self.email, self.error, self.jwt], event)
+            self.search(body, [self.url, self.email, self.error, self.jwt], event, spider_danger=True)
 
             headers = event.data.get("response-header", "")
-            self.search(headers, [self.url, self.email, self.error, self.jwt], event)
+            self.search(headers, [self.url, self.email, self.error, self.jwt], event, spider_danger=False)
 
         else:
 
