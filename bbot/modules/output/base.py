@@ -7,7 +7,6 @@ class BaseOutputModule(BaseModule):
 
     watched_events = ["*"]
     accept_dupes = True
-    _priority = -100
     _type = "output"
     emit_graph_trail = True
 

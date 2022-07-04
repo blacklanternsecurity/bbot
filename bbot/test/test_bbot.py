@@ -14,7 +14,7 @@ log = logging.getLogger(f"bbot.test")
 os.environ["BBOT_SUDO_PASS"] = "nah"
 
 
-def test_events(events, scan, config):
+def test_events(events, scan, helpers, config):
 
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
@@ -168,6 +168,33 @@ def test_events(events, scan, config):
     assert len(source_trail) == 2
     assert internal_event2 in source_trail
     assert internal_event3 in source_trail
+
+    # event sorting
+    sort1 = scan.make_event("127.0.0.1", dummy=True)
+    sort1._priority = 1
+    sort2 = scan.make_event("127.0.0.1", dummy=True)
+    sort2._priority = 2
+    sort3 = scan.make_event("127.0.0.1", dummy=True)
+    sort3._priority = 3
+    mod1 = helpers._make_dummy_module(name="MOD1", _type="ASDF")
+    mod1._priority = 1
+    mod2 = helpers._make_dummy_module(name="MOD1", _type="ASDF")
+    mod2._priority = 2
+    mod3 = helpers._make_dummy_module(name="MOD1", _type="ASDF")
+    mod3._priority = 3
+    sort1.module = mod1
+    sort2.module = mod2
+    sort3.module = mod3
+    assert sort1.priority == 2
+    assert sort1 < sort2
+    assert sort1 < sort3
+    assert sort2.priority == 4
+    assert sort2 > sort1
+    assert sort2 < sort3
+    assert sort3.priority == 6
+    assert sort3 > sort1
+    assert sort3 > sort2
+    assert tuple(sorted([sort3, sort2, sort1])) == (sort1, sort2, sort3)
 
 
 def test_manager(config):

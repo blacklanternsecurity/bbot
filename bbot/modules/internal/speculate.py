@@ -35,6 +35,12 @@ class speculate(BaseInternalModule):
             for x in net:
                 self.speculate_event(x, "IP_ADDRESS", source=event, internal=True)
 
+        # parent domains
+        if event.type == "DNS_NAME":
+            parent = self.helpers.parent_domain(event.data)
+            if parent != event.data:
+                self.emit_event(parent, "DNS_NAME", source=event, internal=True)
+
         # generate DNS_NAMES and IPs from misc events
         # NOTE: we don't do this anymore because BBOT's internal DNS handles it instead
         # if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS"):
@@ -50,21 +56,15 @@ class speculate(BaseInternalModule):
                 )
         # from hosts
         if emit_open_ports and event.type in ("DNS_NAME", "IP_ADDRESS"):
-            if self.open_port_consumers and not self.portscanner_enabled:
-                self.speculate_event(
-                    self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True
-                )
-                self.speculate_event(
-                    self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
-                )
-
-        # emit redirect locations
-        if event.type == "HTTP_RESPONSE":
-            location = event.data.get("location", "")
-            if not location.lower().startswith("http"):
-                location = event.parsed._replace(path=location).geturl()
-            if location:
-                self.speculate_event(location, "URL_UNVERIFIED", event)
+            # don't act on unresolved DNS_NAMEs
+            if any([x in event.tags for x in ("a_record", "aaaa_record")]):
+                if self.open_port_consumers and not self.portscanner_enabled:
+                    self.speculate_event(
+                        self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True
+                    )
+                    self.speculate_event(
+                        self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
+                    )
 
     def speculate_event(self, *args, **kwargs):
         """
@@ -80,9 +80,5 @@ class speculate(BaseInternalModule):
         # don't accept IP_RANGE --> IP_ADDRESS events from self
         if str(event.module) == "speculate":
             if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
-                return False
-        # don't act on weird DNS_NAMES
-        if event.type == "DNS_NAME":
-            if not any([x in event.tags for x in ("a_record", "aaaa_record")]):
                 return False
         return True

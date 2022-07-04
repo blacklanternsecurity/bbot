@@ -27,10 +27,16 @@ class crobat(BaseModule):
             if event not in self.scan.target:
                 valid = True
             query = self.helpers.parent_domain(event.data)
-        if valid and hash(query) not in self.processed:
+        if valid and not self.already_processed(query):
             is_wildcard, _ = self.helpers.is_wildcard(query)
             if not is_wildcard:
                 return True
+
+    def already_processed(self, hostname):
+        for parent in self.helpers.domain_parents(hostname, include_self=True):
+            if hash(parent) in self.processed:
+                return True
+        return False
 
     def handle_event(self, event):
         if "target" in event.tags:
@@ -38,9 +44,11 @@ class crobat(BaseModule):
         else:
             query = self.helpers.parent_domain(event.data).lower()
 
-        if hash(query) in self.processed:
+        if self.already_processed(query):
             self.debug(f'Already processed "{query}", skipping')
             return
+
+        self.processed.add(hash(query))
 
         results = self.query(query)
         if results:
