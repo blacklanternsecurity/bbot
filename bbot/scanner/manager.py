@@ -109,7 +109,7 @@ class ScanManager:
             emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
-            if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS"):
+            if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE"):
                 source_module = self.scan.helpers.dns._get_dummy_module("host")
                 source_module._type = "internal"
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
@@ -132,6 +132,9 @@ class ScanManager:
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
+            import traceback
+
+            log.debug(traceback.format_exc())
 
     def accept_event(self, event):
         if getattr(event.module, "_type", "") == "DNS":

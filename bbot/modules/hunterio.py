@@ -26,7 +26,7 @@ class hunterio(shodan_dns):
         else:
             query = self.helpers.parent_domain(event.data).lower()
 
-        if hash(query) in self.processed:
+        if self.already_processed(query):
             self.debug(f'Already processed "{query}", skipping')
             return
 
@@ -37,14 +37,15 @@ class hunterio(shodan_dns):
             sources = entry.get("sources", [])
             if email:
                 email_event = self.make_event(email, "EMAIL_ADDRESS", event)
-                self.emit_event(email_event)
-            for source in sources:
-                domain = source.get("domain", "")
-                if domain:
-                    self.emit_event(domain, "DNS_NAME", email_event)
-                url = source.get("uri", "")
-                if url:
-                    self.emit_event(url, "URL_UNVERIFIED", email_event)
+                if email_event:
+                    self.emit_event(email_event)
+                    for source in sources:
+                        domain = source.get("domain", "")
+                        if domain:
+                            self.emit_event(domain, "DNS_NAME", email_event)
+                        url = source.get("uri", "")
+                        if url:
+                            self.emit_event(url, "URL_UNVERIFIED", email_event)
 
     def query(self, query):
         emails = []

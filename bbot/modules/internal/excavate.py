@@ -115,7 +115,7 @@ class JWTExtractor(BaseExtractor):
                 self.excavate.emit_event(f"JWT Identified [{result}] [{event.data.get('url')}]", "FINDING", event)
 
         except j.exceptions.DecodeError:
-            self.debug(f"Error decoding JWT candidate {result}")
+            self.excavate.debug(f"Error decoding JWT candidate {result}")
 
 
 class excavate(BaseInternalModule):

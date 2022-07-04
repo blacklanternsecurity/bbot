@@ -12,7 +12,7 @@ class urlscan(crobat):
         else:
             query = self.helpers.parent_domain(event.data).lower()
 
-        if hash(query) in self.processed:
+        if self.already_processed(query):
             self.debug(f'Already processed "{query}", skipping')
             return
 

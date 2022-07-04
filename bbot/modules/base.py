@@ -156,9 +156,12 @@ class BaseModule:
         return False
 
     def make_event(self, *args, **kwargs):
+        raise_error = kwargs.pop("raise_error", False)
         try:
             event = self.scan.make_event(*args, **kwargs)
         except ValidationError as e:
+            if raise_error:
+                raise
             self.warning(f"{e}")
             return
         if not event.module:
