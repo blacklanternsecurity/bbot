@@ -9,6 +9,7 @@ from .dns import DNSHelper
 from .diff import HttpCompare
 from .wordcloud import WordCloud
 from ..threadpool import as_completed
+from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
 
 log = logging.getLogger("bbot.core.helpers")
@@ -66,6 +67,12 @@ class ConfigAwareHelper:
     def as_completed(*args, **kwargs):
         return as_completed(*args, **kwargs)
 
+    def _make_dummy_module(self, name, _type):
+        """
+        Construct a dummy module, for attachment to events
+        """
+        return DummyModule(scan=self.scan, name=name, _type=_type)
+
     def __getattribute__(self, attr):
         """
         Allow static functions from sub-helpers to be accessed from the main class
@@ -84,3 +91,10 @@ class ConfigAwareHelper:
                 except AttributeError:
                     # then die
                     raise AttributeError(f'Helper has no attribute "{attr}"')
+
+
+class DummyModule(BaseModule):
+    def __init__(self, *args, **kwargs):
+        self._name = kwargs.pop("name")
+        self._type = kwargs.pop("_type")
+        super().__init__(*args, **kwargs)

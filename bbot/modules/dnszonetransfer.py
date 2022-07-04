@@ -40,7 +40,7 @@ class dnszonetransfer(BaseModule):
                 else:
                     parent_data = f"{name}.{domain}"
                 parent_event = self.make_event(parent_data, "DNS_NAME", event)
-                if parent_event == event:
+                if not parent_event or parent_event == event:
                     parent_event = event
                 else:
                     self.emit_event(parent_event)

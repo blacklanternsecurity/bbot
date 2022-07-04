@@ -66,6 +66,9 @@ class httpx(BaseModule):
             "-response-size-to-read",
             f"{self.max_response_size}",
         ]
+        proxy = self.scan.config.get("http_proxy", "")
+        if proxy:
+            command += ["-http-proxy", proxy]
         for line in self.helpers.run_live(command, input=stdin, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
@@ -96,7 +99,7 @@ class httpx(BaseModule):
 
             # main URL
             url_event = self.make_event(url, "URL", source_event, tags=[f"status-{status_code}"])
-            self.emit_event(url_event)
-            # HTTP response
-            http_response_event = self.make_event(j, "HTTP_RESPONSE", url_event, internal=True)
-            self.emit_event(http_response_event)
+            if url_event:
+                self.emit_event(url_event)
+                # HTTP response
+                self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)
