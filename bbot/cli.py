@@ -69,6 +69,8 @@ def main():
                     module_flags=options.flags,
                     output_modules=options.output_modules,
                     config=config,
+                    whitelist=options.whitelist,
+                    blacklist=options.blacklist,
                 )
                 if options.load_wordcloud:
                     scanner.helpers.word_cloud.load(options.load_wordcloud)

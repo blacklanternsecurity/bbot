@@ -13,33 +13,36 @@ class ScanTarget:
         self.scan = scan
         self.dummy_module = ScanTargetDummyModule(scan)
         self._events = dict()
-        self._events_set = None
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
-            if type(t) == self.__class__:
-                for k, v in t._events.items():
-                    self._events[k].update(v)
-            else:
-                event = self.scan.make_event(t, source=self.scan.root_event, module=self.dummy_module, tags=["target"])
-                event.make_in_scope()
-                try:
-                    self._events[event.host].add(event)
-                except KeyError:
-                    self._events[event.host] = {
-                        event,
-                    }
+            self.add_target(t)
 
         self._hash = None
 
-    def in_scope(self, e):
-        e = make_event(e, dummy=True)
-        return e.scope_distance == 0 or e in self
+    def add_target(self, t):
+        if type(t) == self.__class__:
+            for k, v in t._events.items():
+                self._events[k].update(v)
+        else:
+            event = self.scan.make_event(t, source=self.scan.root_event, module=self.dummy_module, tags=["target"])
+            event.make_in_scope()
+            try:
+                self._events[event.host].add(event)
+            except KeyError:
+                self._events[event.host] = {
+                    event,
+                }
 
     @property
     def events(self):
         for _events in self._events.values():
             yield from _events
+
+    def copy(self):
+        self_copy = self.__class__(self.scan)
+        self_copy._events = dict(self._events)
+        return self_copy
 
     def __str__(self):
         return ",".join([str(e.data) for e in self.events][:5])
@@ -60,8 +63,8 @@ class ScanTarget:
             other = make_event(other, dummy=True)
         except ValidationError:
             return False
-        if not force_check and "target" in other.tags:
-            return True
+        # if not force_check and "target" in other.tags:
+        #    return True
         if other in self.events:
             return True
         if other.host:

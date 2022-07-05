@@ -328,7 +328,7 @@ def str_or_file(s):
 def chain_lists(l, try_files=False, msg=None):
     """
     Chain together list, splitting entries on comma
-        - Optionally try to open entries as files and add their content to the list
+        - Optionally try to open entries as files and add their contents to the list
         - Used for parsing a list of arguments that may include space and/or comma-separated values
         - ["a", "b,c,d"] --> ["a", "b", "c", "d"]
         - try_files=True:
