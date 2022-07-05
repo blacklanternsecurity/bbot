@@ -6,12 +6,12 @@ from .helpers import make_event_id, get_event_type
 from bbot.core.errors import *
 from bbot.core.helpers import (
     extract_words,
-    tldextract,
     split_host_port,
     host_in_host,
     is_domain,
     is_subdomain,
     is_ip,
+    domain_stem,
     make_netloc,
     validate_port,
     make_ip_type,
@@ -144,8 +144,7 @@ class BaseEvent:
             E.g. www.evilcorp.com --> www.evilcorp
         """
         if self.host and type(self.host) == str:
-            parsed = tldextract(self.data)
-            return f".".join(parsed.subdomain.split(".") + parsed.domain.split(".")).strip(".")
+            return domain_stem(self.host)
         else:
             return f"{self.host}"
 
@@ -196,6 +195,14 @@ class BaseEvent:
             self.source_id = str(source.id)
         elif not self._dummy:
             log.warning(f"Tried to set invalid source on {self}: (got: {source})")
+
+    def get_source(self):
+        """
+        Takes into account events with the _omit flag
+        """
+        if getattr(self.source, "_omit", False):
+            return self.source.get_source()
+        return self.source
 
     def make_internal(self):
         if not self._made_internal:
@@ -279,9 +286,10 @@ class BaseEvent:
             if v:
                 j.update({i: v})
         j["scope_distance"] = self.scope_distance
-        source = getattr(self, "source_id", "")
-        if source:
-            j["source"] = source
+        source = self.get_source()
+        source_id = getattr(source, "id", "")
+        if source_id:
+            j["source"] = source_id
         if self.tags:
             j.update({"tags": list(self.tags)})
         if self.module:

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import logging
 from contextlib import suppress
@@ -43,6 +44,10 @@ def main():
         if options.current_config:
             log.stdout(f"{OmegaConf.to_yaml(config)}")
             sys.exit(0)
+
+        # don't debug to file if debug isn't enabled
+        if not config.get("debug", False):
+            logging_handlers["file_debug"].filters = [lambda x: False]
 
         log.info(f'Command: {" ".join(sys.argv)}')
 
@@ -89,8 +94,12 @@ def main():
         log.error(f"Encountered unknown error: {traceback.format_exc()}")
 
     except KeyboardInterrupt:
-        log.error("Interrupted")
-        sys.exit(1)
+        handler = logging_handlers["stderr"]
+        record = logging.LogRecord(
+            name="bbot.cli", msg="Interrupted", level=logging.ERROR, pathname=None, lineno=0, args=None, exc_info=None
+        )
+        print(handler.formatter.format(record))
+        os._exit(1)
 
 
 if __name__ == "__main__":
