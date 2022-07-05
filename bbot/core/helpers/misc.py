@@ -121,6 +121,15 @@ def split_domain(hostname):
     return (parsed.subdomain, parsed.registered_domain)
 
 
+def domain_stem(domain):
+    """
+    An abbreviated representation of hostname that removes the TLD
+        www.evilcorp.com --> www.evilcorp
+    """
+    parsed = tldextract(str(domain))
+    return f".".join(parsed.subdomain.split(".") + parsed.domain.split(".")).strip(".")
+
+
 def ip_network_parents(i, include_self=False):
     """
     "192.168.1.1" --> [192.168.1.0/31, 192.168.1.0/30 ... 128.0.0.0/1, 0.0.0.0/0]

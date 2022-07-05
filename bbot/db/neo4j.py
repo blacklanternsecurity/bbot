@@ -3,20 +3,20 @@ import logging
 
 log = logging.getLogger("bbot.db.neo4j")
 
-# docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
-
 
 class Neo4j:
+    """
+    docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+    """
+
     def __init__(self, uri="bolt://localhost:7687", username="neo4j", password="bbotislife"):
         self.graph = py2neo.Graph(uri=uri, auth=(username, password))
 
     def insert_event(self, event):
-        source = self.get_event_source(event)
         event_json = event.json
-        event_json.pop("source")
-        source_id = getattr(source, "id", "")
+        source_id = event_json.get("source", "")
         if not source_id:
-            log.warning(f"Skipping event without source: {event_json}")
+            log.warning(f"Skipping event without source: {event}")
             return
         source_type = source_id.split(":")[-1]
         source_node = self.make_node({"type": source_type, "id": source_id})
@@ -32,34 +32,29 @@ class Neo4j:
         event_list = []
 
         for event in events:
-            event_source = getattr(self.get_event_source(event), "id", "")
-            if not event_source:
+            event_json = event.json
+            source_id = event_json.get("source", "")
+            if not source_id:
                 log.warning(f"Skipping event without source: {event}")
                 continue
-            event_json = event.json
-            event_json["source"] = event_source
             event_node = self.make_node(event_json)
             event_nodes[event.id] = event_node
             event_list.append(event_node)
 
-        subgraph = list(event_nodes.values())[0]
-        for dest_event in event_list:
-            module = dest_event.pop("module", "TARGET")
-            source_id = dest_event["source"]
-            source_type = source_id.split(":")[-1]
-            try:
-                source_event = event_nodes[source_id]
-            except KeyError:
-                source_event = self.make_node({"type": source_type, "id": source_id})
-            relation = py2neo.Relationship(source_event, module, dest_event)
-            subgraph = subgraph | relation
+        if event_nodes:
+            subgraph = list(event_nodes.values())[0]
+            for dest_event in event_list:
+                module = dest_event.pop("module", "TARGET")
+                source_id = dest_event["source"]
+                source_type = source_id.split(":")[-1]
+                try:
+                    source_event = event_nodes[source_id]
+                except KeyError:
+                    source_event = self.make_node({"type": source_type, "id": source_id})
+                relation = py2neo.Relationship(source_event, module, dest_event)
+                subgraph = subgraph | relation
 
-        self.graph.merge(subgraph)
-
-    def get_event_source(self, event):
-        if event.source._omit:
-            return self.get_event_source(event.source)
-        return event.source
+            self.graph.merge(subgraph)
 
     @staticmethod
     def make_node(event):

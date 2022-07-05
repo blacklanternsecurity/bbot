@@ -72,7 +72,9 @@ class WordCloud(dict):
         for w in self.parent_helper.extract_words(word):
             self.add_word(w)
 
-    def add_word(self, word):
+    def add_word(self, word, lowercase=True):
+        if lowercase:
+            word = word.lower()
         try:
             self[word] += 1
         except KeyError:
