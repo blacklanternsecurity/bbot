@@ -60,7 +60,8 @@ class azure_tenant(viewdns):
         r = self.helpers.request(url, method="POST", headers=headers, data=data)
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200,):
-            self.warning(f"Error retrieving reverse whois results (status code: {status_code})")
+            self.warning(f"Error retrieving azure_tenant domains (status code: {status_code})")
+            return set(), set()
         found_domains = list(set(self.d_xml_regex.findall(r.text)))
         domains = set()
         tenantnames = set()
@@ -70,8 +71,10 @@ class azure_tenant(viewdns):
             if d.lower().endswith(".onmicrosoft.com"):
                 tenantnames.add(d.split(".")[0].lower())
             # make sure we don't make any unnecessary api calls
+            d = str(d).lower()
             _, query = self.helpers.split_domain(d)
             self.processed.add(hash(query))
-            domains.add(str(d).lower())
+            domains.add(d)
+            self.scan.word_cloud.absorb_word(d)
 
         return domains, tenantnames

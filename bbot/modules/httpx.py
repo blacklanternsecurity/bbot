@@ -30,7 +30,7 @@ class httpx(BaseModule):
     in_scope_only = True
 
     def setup(self):
-        self.timeout = self.scan.config.get("http_timeout", 5)
+        self.timeout = self.scan.config.get("httpx_timeout", 5)
         self.max_response_size = self.config.get("max_response_size", 5242880)
         return True
 

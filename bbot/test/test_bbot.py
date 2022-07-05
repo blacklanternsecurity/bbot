@@ -410,6 +410,9 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert helpers.is_ip("127.0.0.1")
     assert not helpers.is_ip("127.0.0.0.1")
 
+    assert helpers.domain_stem("evilcorp.co.uk") == "evilcorp"
+    assert helpers.domain_stem("www.evilcorp.co.uk") == "www.evilcorp"
+
     assert helpers.host_in_host("www.evilcorp.com", "evilcorp.com") == True
     assert helpers.host_in_host("asdf.www.evilcorp.com", "evilcorp.com") == True
     assert helpers.host_in_host("evilcorp.com", "www.evilcorp.com") == False

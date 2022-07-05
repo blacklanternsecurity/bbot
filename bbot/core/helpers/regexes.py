@@ -5,18 +5,12 @@ from collections import OrderedDict
 word_regexes = [
     re.compile(r, re.I)
     for r in [
-        # alphanumeric, underscore
-        r"[\w]+",
-        # alphanumeric, underscore, dash
-        r"[\w-]+",
         # alpha
         r"[a-z]{3,}",
         # alpha, dash
-        r"[a-z]+[a-z-]+[a-z]+",
+        r"[a-z][a-z-]+[a-z]",
         # alpha, underscore
-        r"[a-z]+[a-z_]+[a-z]+",
-        # alpha, underscore, dash
-        r"[a-z]+[a-z_-]+[a-z]+",
+        r"[a-z][a-z_]+[a-z]",
     ]
 ]
 
