@@ -74,7 +74,8 @@ class ffuf(BaseModule):
         command = ["ffuf", "-ac", "-json", "-w", tempfile, "-u", fuzz_url]
         for found in self.helpers.run_live(command):
             found_json = json.loads(found)
-            input_val = base64.b64decode(found_json["input"]["FUZZ"]).decode()
+            encoded_input = found_json.get("input", {}).get("FUZZ", "")
+            input_val = base64.b64decode(encoded_input).decode()
             if len(input_val.rstrip()) > 0:
                 if self.scan.stopping:
                     break
