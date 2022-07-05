@@ -8,7 +8,7 @@ from . import misc
 from .dns import DNSHelper
 from .diff import HttpCompare
 from .wordcloud import WordCloud
-from ..threadpool import as_completed
+from .threadpool import as_completed
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
 
@@ -19,7 +19,7 @@ class ConfigAwareHelper:
 
     from .web import request, download, api_page_iter
     from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
-    from .cache import cache_get, cache_put, cache_filename, is_cached
+    from .cache import cache_get, cache_put, cache_filename, is_cached, CacheDict
     from . import regexes
 
     def __init__(self, config, scan=None):

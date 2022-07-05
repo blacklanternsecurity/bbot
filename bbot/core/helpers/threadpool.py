@@ -2,9 +2,10 @@ import logging
 import threading
 from time import sleep
 
-log = logging.getLogger("bbot.core.threadpool")
+log = logging.getLogger("bbot.core.helpers.threadpool")
 
-from ..core.errors import ScanCancelledError
+from .cache import CacheDict
+from ...core.errors import ScanCancelledError
 
 
 class ThreadPoolWrapper:
@@ -62,8 +63,7 @@ def as_completed(fs):
 
 
 class _Lock:
-    def __init__(self, parent, name):
-        self.parent = parent
+    def __init__(self, name):
         self.name = name
         self.lock = threading.Lock()
 
@@ -72,7 +72,6 @@ class _Lock:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.lock.release()
-        self.parent.remove_lock(self.name)
 
 
 class NamedLock:
@@ -83,29 +82,13 @@ class NamedLock:
     E.g. simultaneous DNS lookups on the same hostname
     """
 
-    def __init__(self):
-        self._locks = {}
-        self._main_lock = threading.Lock()
+    def __init__(self, max_size=1000):
+        self._cache = CacheDict(max_size=max_size)
 
     def get_lock(self, name):
-        with self._main_lock:
-            try:
-                return self._locks[hash(name)]
-            except KeyError:
-                new_lock = _Lock(self, name)
-                self._locks[hash(name)] = new_lock
-                return new_lock
-
-    def remove_lock(self, name):
-        with self._main_lock:
-            try:
-                lock = self._locks[hash(name)].lock
-            except KeyError:
-                return
-            if lock.acquire(blocking=False):
-                try:
-                    del self._locks[hash(name)]
-                except KeyError:
-                    pass
-                finally:
-                    lock.release()
+        try:
+            return self._cache.get(name)
+        except KeyError:
+            new_lock = _Lock(name)
+            self._cache.put(name, new_lock)
+            return new_lock

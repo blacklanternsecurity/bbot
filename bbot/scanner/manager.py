@@ -50,54 +50,60 @@ class ScanManager:
             event = self.scan.make_event(*args, **kwargs)
             log.debug(f'module "{event.module}" raised {event}')
 
-            if "blacklisted" in event.tags:
-                log.debug(f"Omitting blacklisted event: {event}")
+            if event._dummy:
+                log.warning(f"Cannot emit dummy event: {event}")
                 return
 
-            if event == event.source:
-                log.debug("Omitting event with self as source")
+            if event == event.get_source():
+                log.debug(f"Omitting event with self as source: {event}")
                 return
-
-            # accept the event right away if there's no abort condition
-            # if there's an abort condition, we want to wait until
-            # it's been properly tagged and the abort_if callback has run
-            if abort_if is None:
-                if not self.accept_event(event):
-                    return
 
             # DNS resolution
-            dns_children, dns_tags, event_in_scope = self.scan.helpers.dns.resolve_event(event)
-            target = getattr(self.scan, "target", None)
-            if target and not event_in_scope:
-                event_in_scope = event_in_scope | target.in_scope(event)
+            dns_children, dns_tags, event_whitelisted_dns, event_blacklisted_dns = self.scan.helpers.dns.resolve_event(
+                event
+            )
+            event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
+            event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
             if event.type in ("DNS_NAME", "IP_ADDRESS"):
                 event.tags.update(dns_tags)
+            if event_blacklisted:
+                event.tags.add("blacklisted")
+
+            # Blacklist purging
+            emit_event = True
+            if "blacklisted" in event.tags:
+                reason = "event host"
+                if event_blacklisted_dns:
+                    reason = "DNS associations"
+                log.verbose(f"Omitting blacklisted event due to {reason}: {event}")
+                emit_event = False
 
             # Scope shepherding
-            if event_in_scope and target is not None and not event._dummy:
-                log.debug(f"Making {event} in-scope")
-                event.make_in_scope()
-            elif event.host and not event_in_scope:
-                if event.scope_distance > self.scan.scope_report_distance:
-                    log.debug(
-                        f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                    )
-                    event.make_internal()
-            elif not event.host:
+            if event.host:
+                if event_whitelisted:
+                    log.debug(f"Making {event} in-scope")
+                    event.make_in_scope()
+                else:
+                    if event.scope_distance > self.scan.scope_report_distance:
+                        log.debug(
+                            f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                        )
+                        event.make_internal()
+            else:
                 log.debug(f"Making {event} in-scope because it does not have identifying scope information")
                 event.make_in_scope()
 
-            # now that the event is tagged, accept it if we didn't already
-            if abort_if is not None:
-                if abort_if(event):
-                    log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
-                    return
+            # now that the event is properly tagged, we can finally make decisions about it
+            if callable(abort_if) and abort_if(event):
+                log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
+                return
 
-                if not self.accept_event(event):
-                    return
+            if not self.accept_event(event):
+                return
 
             # queue the event before emitting its DNS children
-            self.queue_event(event)
+            if emit_event:
+                self.queue_event(event)
 
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)

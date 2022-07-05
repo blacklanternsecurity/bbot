@@ -207,7 +207,7 @@ def test_manager(config):
     scan1.status = "RUNNING"
     scan1.manager.queue_event = lambda e: results.append(e)
     manager = scan1.manager
-    localhost = scan1.make_event("127.0.0.1", dummy=True)
+    localhost = scan1.make_event("127.0.0.1", source=scan1.root_event)
 
     class DummyModule1:
         _type = "output"
@@ -231,7 +231,7 @@ def test_manager(config):
     manager._emit_event(localhost, on_success_callback=success_callback)
     assert len(results) == 0
     # test dns resolution
-    googledns = scan1.make_event("8.8.8.8", dummy=True)
+    googledns = scan1.make_event("8.8.8.8", source=scan1.root_event)
     googledns.module = DummyModule2()
     googledns.source = "asdf"
     googledns.make_in_scope()
@@ -266,7 +266,7 @@ def test_manager(config):
     scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["json"], config=config)
     scan1.load_modules()
     manager = scan1.manager
-    test_event1 = scan1.make_event("1.2.3.4", dummy=True)
+    test_event1 = scan1.make_event("1.2.3.4", source=scan1.root_event)
     test_event1.make_in_scope()
     test_event2 = scan1.make_event("2.3.4.5", source=test_event1)
     test_event3 = scan1.make_event("3.4.5.6", source=test_event2)
@@ -482,6 +482,20 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert helpers.cache_get("string", cache_hrs=24 * 7) is None
     assert helpers.cache_get("string", cache_hrs=24 * 14) == "wat"
 
+    cache_dict = helpers.CacheDict(max_size=10)
+    cache_dict.put(1, 2)
+    assert cache_dict[1] == 2
+    assert cache_dict.get(1) == 2
+    assert len(cache_dict) == 1
+    cache_dict[2] = 3
+    assert cache_dict[2] == 3
+    assert cache_dict.get(2) == 3
+    assert len(cache_dict) == 2
+    for i in range(20):
+        cache_dict[i] = i + 1
+    assert len(cache_dict) == 10
+    assert tuple(cache_dict) == tuple(hash(str(x)) for x in (10, 11, 12, 13, 14, 15, 16, 17, 18, 19))
+
     ### WEB ###
     request, download = patch_requests
     assert getattr(request(helpers, "https://api.publicapis.org/health"), "text", "").startswith("{")
@@ -520,14 +534,15 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert helpers.is_wildcard("mail.google.com") == (False, "mail.google.com")
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
-    children, event_tags1, event_in_scope1 = scan.helpers.resolve_event(wildcard_event1)
-    children, event_tags2, event_in_scope2 = scan.helpers.resolve_event(wildcard_event2)
+    children, event_tags1, event_whitelisted1, event_blacklisted1 = scan.helpers.resolve_event(wildcard_event1)
+    children, event_tags2, event_whitelisted2, event_blacklisted2 = scan.helpers.resolve_event(wildcard_event2)
     assert "wildcard" in event_tags1
     assert "wildcard" in event_tags2
     assert wildcard_event1.data == "_wildcard.github.io"
     assert wildcard_event2.data == "_wildcard.github.io"
     assert event_tags1 == event_tags2
-    assert event_in_scope1 == event_in_scope2
+    assert event_whitelisted1 == event_whitelisted2
+    assert event_blacklisted1 == event_blacklisted2
 
 
 def test_dns_resolvers(patch_requests, helpers):
@@ -788,8 +803,20 @@ def test_target(neuter_ansible, patch_requests, patch_commands):
 def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers, neograph):
     from bbot.scanner.scanner import Scanner
 
+    scan0 = Scanner("8.8.8.8/31", blacklist=["8.8.8.8/28"])
+    assert scan0.whitelisted("8.8.8.8")
+    assert scan0.whitelisted("8.8.8.9")
+    assert scan0.blacklisted("8.8.8.15")
+    assert not scan0.blacklisted("8.8.8.16")
+    assert scan0.blacklisted("8.8.8.8/30")
+    assert not scan0.blacklisted("8.8.8.8/27")
+
+    scan1 = Scanner("8.8.8.8")
+    assert not scan1.blacklisted("8.8.8.8")
+    assert not scan1.blacklisted("8.8.4.4")
+
     scan2 = Scanner(
-        "127.0.0.1",
+        "127.0.0.0/30",
         "127.0.0.2:8443",
         "https://localhost",
         "[::1]:80",
@@ -797,8 +824,16 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
         modules=["ipneighbor"],
         output_modules=list(available_output_modules),
         config=config,
+        blacklist=["http://127.0.0.3:8000/asdf"],
+        whitelist=["127.0.0.0/29"],
     )
     assert "targets" in scan2.json
+    assert "127.0.0.3" in scan2.target
+    assert "127.0.0.4" not in scan2.target
+    assert "127.0.0.4" in scan2.whitelist
+    assert scan2.whitelisted("127.0.0.4")
+    assert "127.0.0.3" in scan2.blacklist
+    assert scan2.blacklisted("127.0.0.3")
     scan2.start()
 
     test_output_dir = Path(config.home)
@@ -815,7 +850,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
 
 def test_threadpool():
     from concurrent.futures import ThreadPoolExecutor
-    from bbot.core.threadpool import ThreadPoolWrapper, as_completed
+    from bbot.core.helpers.threadpool import ThreadPoolWrapper, NamedLock, as_completed
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         pool = ThreadPoolWrapper(executor)
@@ -825,6 +860,12 @@ def test_threadpool():
         for f in as_completed(futures):
             results.append(f.result())
         assert tuple(sorted(results)) == (1, 2, 3, 4, 5)
+
+    nl = NamedLock(max_size=5)
+    for i in range(50):
+        nl.get_lock(str(i))
+    assert len(nl._cache) == 5
+    assert tuple(nl._cache.keys()) == tuple(hash(str(x)) for x in [45, 46, 47, 48, 49])
 
 
 def test_agent(agent):

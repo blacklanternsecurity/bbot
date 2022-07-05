@@ -1,6 +1,8 @@
 import os
 import time
 import logging
+import threading
+from collections import OrderedDict
 
 from .misc import sha1
 
@@ -51,3 +53,77 @@ def is_cached(self, key, cache_hrs=24 * 7):
 
 def cache_filename(self, key):
     return self.cache_dir / sha1(key).hexdigest()
+
+
+_sentinel = object()
+
+
+class CacheDict:
+    """
+    Dictionary to store cached values, with a maximum size limit
+    """
+
+    def __init__(self, max_size=1000):
+        self._cache = OrderedDict()
+        self._lock = threading.Lock()
+        self._max_size = int(max_size)
+
+    def get(self, name, fallback=_sentinel):
+        name_hash = hash(str(name))
+        with self._lock:
+            try:
+                return self._cache[name_hash]
+            except KeyError:
+                if fallback is not _sentinel:
+                    return fallback
+                raise
+            finally:
+                self._cache.move_to_end(name_hash)
+                self._truncate()
+
+    def put(self, name, value):
+        name_hash = hash(str(name))
+        with self._lock:
+            try:
+                self._cache[name_hash] = value
+            finally:
+                self._cache.move_to_end(name_hash)
+                self._truncate()
+
+    def _truncate(self):
+        if not self or len(self) <= self._max_size:
+            return
+        for nh in list(self._cache.keys()):
+            try:
+                del self._cache[nh]
+            except KeyError:
+                pass
+            if not self or len(self) <= self._max_size:
+                break
+
+    def keys(self):
+        return self._cache.keys()
+
+    def values(self):
+        return self._cache.values()
+
+    def items(self):
+        return self._cache.items()
+
+    def __contains__(self, item):
+        return hash(str(item)) in self._cache
+
+    def __iter__(self):
+        return iter(self._cache)
+
+    def __getitem__(self, item):
+        return self.get(item)
+
+    def __setitem__(self, item, value):
+        self.put(item, value)
+
+    def __bool__(self):
+        return bool(self._cache)
+
+    def __len__(self):
+        return len(self._cache)

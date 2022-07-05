@@ -5,7 +5,7 @@ import traceback
 from time import sleep
 from contextlib import suppress
 
-from ..core.threadpool import ThreadPoolWrapper
+from ..core.helpers.threadpool import ThreadPoolWrapper
 from ..core.errors import ScanCancelledError, ValidationError
 
 
@@ -299,7 +299,7 @@ class BaseModule:
             self.debug(f"{e} did not meet target_only filter criteria")
             return False
         # optionally exclude out-of-scope targets
-        if self.in_scope_only and not self.scan.target.in_scope(e):
+        if self.in_scope_only and not self.scan.in_scope(e):
             self.debug(f"{e} did not meet in_scope_only filter criteria")
             return False
         if self.max_scope_distance > -1:
