@@ -37,7 +37,7 @@ class httpx(BaseModule):
     def filter_event(self, event):
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
-        if in_scope_only and not self.scan.target.in_scope(event):
+        if in_scope_only and not self.scan.in_scope(event):
             return False
         # reject base URLs to avoid visiting a resource twice
         # note: speculate makes open ports from

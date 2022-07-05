@@ -10,9 +10,9 @@ from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.core.event import make_event
 from bbot.modules import modules_preloaded
-from bbot.core.threadpool import ThreadPoolWrapper
 from bbot.core.helpers.modules import load_modules
 from bbot.core.helpers.helper import ConfigAwareHelper
+from bbot.core.helpers.threadpool import ThreadPoolWrapper
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError
 
 log = logging.getLogger("bbot.scanner")
@@ -22,6 +22,8 @@ class Scanner:
     def __init__(
         self,
         *targets,
+        whitelist=None,
+        blacklist=None,
         scan_id=None,
         name=None,
         modules=None,
@@ -62,7 +64,16 @@ class Scanner:
         if not modules:
             self.warning(f"No modules specified")
 
+        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
+
         self.target = ScanTarget(self, *targets)
+        if whitelist is None:
+            self.whitelist = self.target.copy()
+        else:
+            self.whitelist = ScanTarget(self, *whitelist)
+        if blacklist is None:
+            blacklist = []
+        self.blacklist = ScanTarget(self, *blacklist)
         if not self.target:
             self.warning(f"No scan targets specified")
         if name is None:
@@ -77,7 +88,6 @@ class Scanner:
         self.dispatcher.set_scan(self)
 
         self.manager = ScanManager(self)
-        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
         # prevent too many brute force modules from running at one time
         # because they can bypass the global thread limit
@@ -226,6 +236,22 @@ class Scanner:
                     t.join()
             self.debug("Finished shutting down thread pools")
             self.helpers.kill_children()
+
+    def in_scope(self, e):
+        """
+        Same as self.whitelisted() except scope distance is also taken into account
+        """
+        e = make_event(e, dummy=True)
+        in_scope = e.scope_distance == 0 or e in self.whitelist
+        return in_scope and not e in self.blacklist
+
+    def blacklisted(self, e):
+        e = make_event(e, dummy=True)
+        return e in self.blacklist
+
+    def whitelisted(self, e):
+        e = make_event(e, dummy=True)
+        return e in self.whitelist
 
     @property
     def word_cloud(self):
