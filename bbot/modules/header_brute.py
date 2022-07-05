@@ -116,7 +116,7 @@ class header_brute(BaseModule):
             yield group[0], reason, reflection
         elif len(group) > 1:
             for group_slice in self.helpers.split_list(group):
-                match, reason, reflection = self.check_batch(compare_helper, url, group_slice)
+                match, reason, reflection, subject_response = self.check_batch(compare_helper, url, group_slice)
                 if match == False:
                     yield from self.binary_search(compare_helper, url, group_slice, reason, reflection)
         else:
