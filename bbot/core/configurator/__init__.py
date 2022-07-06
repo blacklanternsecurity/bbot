@@ -79,6 +79,10 @@ if args.cli_options is not None:
             om_filename = f"{args.cli_options.output_all}.{om_filext}"
             config["output_modules"][om_modname]["output_file"] = om_filename
 
+# ensure bbot.conf
+if not files.defaults_filename.exists():
+    OmegaConf.save(config=config, f=str(files.defaults_filename))
+
 # copy config to environment
 os.environ.update(environ.flatten_config(config))
 
