@@ -32,7 +32,7 @@ class ScanManager:
         """
         self.queue_event(self.scan.root_event)
         for event in self.scan.target.events:
-            self.scan.info(f"Target: {event}")
+            self.scan.verbose(f"Target: {event}")
             self.emit_event(event)
         # force submit batches
         for mod in self.scan.modules.values():
@@ -79,8 +79,9 @@ class ScanManager:
                 emit_event = False
 
             # Scope shepherding
+            event_is_duplicate = self.is_duplicate_event(event)
             if event.host:
-                if event_whitelisted:
+                if event_whitelisted and not event_is_duplicate:
                     log.debug(f"Making {event} in-scope")
                     event.make_in_scope()
                 else:
@@ -142,19 +143,33 @@ class ScanManager:
 
             log.debug(traceback.format_exc())
 
-    def accept_event(self, event):
-        if getattr(event.module, "_type", "") == "DNS":
-            # allow duplicate events from dns resolution as long as their source event is unique
-            event_hash = hash((event, str(event.module), event.source_id))
-        else:
-            event_hash = hash((event, str(event.module)))
+    def hash_event(self, event):
+        """
+        Hash an event for duplicate detection
 
+        This is necessary because duplicate events from certain sources (e.g. DNS)
+            need to be allowed in order to preserve their relationship trail
+        """
+        module_type = getattr(event.module, "_type", "")
+        if module_type == "DNS":
+            # allow duplicate events from dns resolution as long as their source event is unique
+            return hash((event, str(event.module), event.source_id))
+        else:
+            return hash((event, str(event.module)))
+
+    def is_duplicate_event(self, event, add=False):
+        event_hash = self.hash_event(event)
+        suppress_dupes = getattr(event.module, "suppress_dupes", True)
         with self.events_accepted_lock:
-            duplicate_event = getattr(event.module, "suppress_dupes", True) and event_hash in self.events_accepted
-            if duplicate_event and not event._force_output == True:
-                log.debug(f"{event.module}: not raising duplicate event {event}")
-                return False
-            self.events_accepted.add(event_hash)
+            duplicate_event = suppress_dupes and event_hash in self.events_accepted
+            if add:
+                self.events_accepted.add(event_hash)
+        return duplicate_event and not event._force_output
+
+    def accept_event(self, event):
+        if self.is_duplicate_event(event, add=True):
+            log.debug(f"{event.module}: not raising duplicate event {event}")
+            return False
         return True
 
     def catch(self, callback, *args, **kwargs):

@@ -26,8 +26,6 @@ class smuggler(BaseModule):
 
     def handle_event(self, event):
 
-        self.critical(event.data)
-
         command = [
             "python",
             f"{self.scan.helpers.tools_dir}/smuggler/smuggler.py",

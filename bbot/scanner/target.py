@@ -44,20 +44,6 @@ class ScanTarget:
         self_copy._events = dict(self._events)
         return self_copy
 
-    def __str__(self):
-        return ",".join([str(e.data) for e in self.events][:5])
-
-    def __iter__(self):
-        yield from self.events
-
-    def __contains__(self, other):
-        # if "other" is a ScanTarget
-        if type(other) == self.__class__:
-            contained_in_self = [self._contains(e, force_check=True) for e in other.events]
-            return all(contained_in_self)
-        else:
-            return self._contains(other)
-
     def _contains(self, other, force_check=False):
         try:
             other = make_event(other, dummy=True)
@@ -80,13 +66,31 @@ class ScanTarget:
                         return True
         return False
 
+    def __str__(self):
+        return ",".join([str(e.data) for e in self.events][:5])
+
+    def __iter__(self):
+        yield from self.events
+
+    def __contains__(self, other):
+        # if "other" is a ScanTarget
+        if type(other) == self.__class__:
+            contained_in_self = [self._contains(e, force_check=True) for e in other.events]
+            return all(contained_in_self)
+        else:
+            return self._contains(other)
+
+    def __bool__(self):
+        return bool(self._events)
+
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __hash__(self):
         if self._hash is None:
             events = tuple(sorted(list(self.events), key=lambda e: hash(e)))
-            return hash(events)
+            self._hash = hash(events)
+        return self._hash
 
     def __len__(self):
         """
@@ -99,9 +103,6 @@ class ScanTarget:
             else:
                 num_hosts += len(_events)
         return num_hosts
-
-    def __bool__(self):
-        return len(list(self._events)) > 0
 
 
 class ScanTargetDummyModule(BaseModule):

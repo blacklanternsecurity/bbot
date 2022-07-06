@@ -49,7 +49,7 @@ def main():
         if not config.get("debug", False):
             logging_handlers["file_debug"].filters = [lambda x: False]
 
-        log.info(f'Command: {" ".join(sys.argv)}')
+        log.verbose(f'Command: {" ".join(sys.argv)}')
 
         if options.agent_mode:
             from bbot.agent import Agent
