@@ -803,19 +803,39 @@ def test_target(neuter_ansible, patch_requests, patch_commands):
 def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers, neograph):
     from bbot.scanner.scanner import Scanner
 
-    scan0 = Scanner("8.8.8.8/31", blacklist=["8.8.8.8/28"])
+    scan0 = Scanner("8.8.8.8/31", "evilcorp.com", blacklist=["8.8.8.8/28", "www.evilcorp.com"])
     assert scan0.whitelisted("8.8.8.8")
     assert scan0.whitelisted("8.8.8.9")
     assert scan0.blacklisted("8.8.8.15")
     assert not scan0.blacklisted("8.8.8.16")
     assert scan0.blacklisted("8.8.8.8/30")
     assert not scan0.blacklisted("8.8.8.8/27")
+    assert not scan0.in_scope("8.8.8.8")
+    assert scan0.whitelisted("api.evilcorp.com")
+    assert scan0.whitelisted("www.evilcorp.com")
+    assert not scan0.blacklisted("api.evilcorp.com")
+    assert scan0.blacklisted("asdf.www.evilcorp.com")
+    assert scan0.in_scope("test.api.evilcorp.com")
+    assert not scan0.in_scope("test.www.evilcorp.com")
+    assert not scan0.in_scope("www.evilcorp.co.uk")
 
-    scan1 = Scanner("8.8.8.8")
+    scan1 = Scanner("8.8.8.8", whitelist=["8.8.4.4"])
     assert not scan1.blacklisted("8.8.8.8")
     assert not scan1.blacklisted("8.8.4.4")
+    assert not scan1.whitelisted("8.8.8.8")
+    assert scan1.whitelisted("8.8.4.4")
+    assert scan1.in_scope("8.8.4.4")
+    assert not scan1.in_scope("8.8.8.8")
 
-    scan2 = Scanner(
+    scan2 = Scanner("8.8.8.8")
+    assert not scan2.blacklisted("8.8.8.8")
+    assert not scan2.blacklisted("8.8.4.4")
+    assert scan2.whitelisted("8.8.8.8")
+    assert not scan2.whitelisted("8.8.4.4")
+    assert scan2.in_scope("8.8.8.8")
+    assert not scan2.in_scope("8.8.4.4")
+
+    scan3 = Scanner(
         "127.0.0.0/30",
         "127.0.0.2:8443",
         "https://localhost",
@@ -827,14 +847,16 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
         blacklist=["http://127.0.0.3:8000/asdf"],
         whitelist=["127.0.0.0/29"],
     )
-    assert "targets" in scan2.json
-    assert "127.0.0.3" in scan2.target
-    assert "127.0.0.4" not in scan2.target
-    assert "127.0.0.4" in scan2.whitelist
-    assert scan2.whitelisted("127.0.0.4")
-    assert "127.0.0.3" in scan2.blacklist
-    assert scan2.blacklisted("127.0.0.3")
-    scan2.start()
+    assert "targets" in scan3.json
+    assert "127.0.0.3" in scan3.target
+    assert "127.0.0.4" not in scan3.target
+    assert "127.0.0.4" in scan3.whitelist
+    assert scan3.whitelisted("127.0.0.4")
+    assert "127.0.0.3" in scan3.blacklist
+    assert scan3.blacklisted("127.0.0.3")
+    assert scan3.in_scope("127.0.0.1")
+    assert not scan3.in_scope("127.0.0.3")
+    scan3.start()
 
     test_output_dir = Path(config.home)
     assert test_output_dir.is_dir()
