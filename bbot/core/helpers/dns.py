@@ -130,7 +130,7 @@ class DNSHelper:
             # wildcard check first
             if check_wildcard and not is_ip(event_host):
                 event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
-                if event_is_wildcard:
+                if event_is_wildcard and event.type in ("DNS_NAME",):
                     event.data = wildcard_parent
                     return (event,)
             elif not check_wildcard:
