@@ -12,8 +12,7 @@ class smuggler(BaseModule):
     produced_events = ["FINDING"]
     flags = ["active"]
 
-    in_scope_only = False
-    # in_scope_only = True
+    in_scope_only = True
 
     deps_ansible = [
         {
