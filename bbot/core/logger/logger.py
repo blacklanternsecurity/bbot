@@ -148,14 +148,14 @@ def log_listener_setup(logging_queue, log_dir=None):
     # Log to stdout
     stdout_handler = logging.StreamHandler(sys.stdout)
 
-    # Log debug messages to file
-    debug_handler = logging.handlers.TimedRotatingFileHandler(
-        f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
+    # Main log file
+    main_handler = logging.handlers.TimedRotatingFileHandler(
+        f"{log_dir}/bbot.log", when="d", interval=1, backupCount=14
     )
 
-    # Log error messages to file
-    error_handler = logging.handlers.TimedRotatingFileHandler(
-        f"{log_dir}/bbot.error.log", when="d", interval=1, backupCount=14
+    # Separate log file for debugging
+    debug_handler = logging.handlers.TimedRotatingFileHandler(
+        f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
     )
 
     # Filter by log level
@@ -170,16 +170,16 @@ def log_listener_setup(logging_queue, log_dir=None):
     stderr_handler.addFilter(lambda x: x.levelno >= stderr_loglevel)
     stdout_handler.addFilter(lambda x: x.levelno == 1)
     debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
-    error_handler.addFilter(lambda x: x.levelno >= logging.WARN)
+    main_handler.addFilter(lambda x: x.levelno >= logging.VERBOSE)
 
     # Set log format
     debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
     debug_handler.setFormatter(debug_format)
-    error_handler.setFormatter(debug_format)
+    main_handler.setFormatter(debug_format)
     stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
     stdout_handler.setFormatter(logging.Formatter("%(message)s"))
 
-    handlers = [stdout_handler, stderr_handler, error_handler, debug_handler]
+    handlers = [stdout_handler, stderr_handler, main_handler, debug_handler]
 
     log_listener = QueueListener(logging_queue, *handlers)
     log_listener.start()
@@ -188,7 +188,7 @@ def log_listener_setup(logging_queue, log_dir=None):
         "stderr": stderr_handler,
         "stdout": stdout_handler,
         "file_debug": debug_handler,
-        "file_error": error_handler,
+        "file_main": main_handler,
     }
 
 

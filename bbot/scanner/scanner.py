@@ -67,11 +67,11 @@ class Scanner:
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
         self.target = ScanTarget(self, *targets)
-        if whitelist is None:
+        if not whitelist:
             self.whitelist = self.target.copy()
         else:
             self.whitelist = ScanTarget(self, *whitelist)
-        if blacklist is None:
+        if not blacklist:
             blacklist = []
         self.blacklist = ScanTarget(self, *blacklist)
         if not self.target:
@@ -116,9 +116,20 @@ class Scanner:
 
         try:
             self.status = "STARTING"
-            self.info(f"Starting scan {self.id}")
+            start_msg = f"Starting scan seeded against {len(self.target)} targets"
+            details = []
+            if self.whitelist != self.target:
+                log.hugesuccess(f"{hash(self.whitelist)} {hash(self.target)}")
+                details.append(f"{len(self.whitelist):,} in whitelist")
+            if self.blacklist:
+                details.append(f"{len(self.blacklist):,} in blacklist")
+            if details:
+                start_msg += f" ({', '.join(details)})"
+            log.hugeinfo(start_msg)
 
             self.load_modules()
+
+            log.info(f"Setting up modules...")
             self.setup_modules()
 
             if not self.modules:
@@ -139,7 +150,7 @@ class Scanner:
 
             self.status = "RUNNING"
             self.start_modules()
-            self.info(f"{len(self.modules):,} modules started")
+            self.verbose(f"{len(self.modules):,} modules started")
 
             if self.stopping:
                 return
@@ -175,18 +186,18 @@ class Scanner:
 
             if self.status == "ABORTING":
                 self.status = "ABORTED"
-                self.warning(f"Scan {self.id} completed with status {self.status}")
+                self.warning(f"Scan completed with status {self.status}")
             elif failed:
                 self.status = "FAILED"
-                self.error(f"Scan {self.id} completed with status {self.status}")
+                self.error(f"Scan completed with status {self.status}")
             else:
                 self.status = "FINISHED"
-                self.success(f"Scan {self.id} completed with status {self.status}")
+                self.success(f"Scan completed with status {self.status}")
 
             self.dispatcher.on_finish(self)
 
     def start_modules(self):
-        self.info(f"Starting modules")
+        self.verbose(f"Starting module threads")
         for module_name, module in self.modules.items():
             module.start()
 
@@ -239,11 +250,11 @@ class Scanner:
 
     def in_scope(self, e):
         """
-        Same as self.whitelisted() except scope distance is also taken into account
+        Checks whitelist and blacklist, also taking scope_distance into account
         """
         e = make_event(e, dummy=True)
-        in_scope = e.scope_distance == 0 or e in self.whitelist
-        return in_scope and not e in self.blacklist
+        in_scope = e.scope_distance == 0 or self.whitelisted(e)
+        return in_scope and not self.blacklisted(e)
 
     def blacklisted(self, e):
         e = make_event(e, dummy=True)
@@ -329,6 +340,10 @@ class Scanner:
                 j.update({i: v})
         if self.target:
             j.update({"targets": [str(e.data) for e in self.target]})
+        if self.whitelist:
+            j.update({"whitelist": [str(e.data) for e in self.whitelist]})
+        if self.blacklist:
+            j.update({"blacklist": [str(e.data) for e in self.blacklist]})
         if self.modules:
             j.update({"modules": [str(m) for m in self.modules]})
         return j
@@ -396,9 +411,9 @@ class Scanner:
 
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
             if loaded_modules:
-                self.success(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules")
+                self.info(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules")
             if loaded_output_modules:
-                self.success(f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules")
+                self.info(f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules")
             if loaded_internal_modules:
                 self.verbose(
                     f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules"

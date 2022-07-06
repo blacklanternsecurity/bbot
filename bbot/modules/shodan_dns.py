@@ -2,6 +2,11 @@ from .crobat import crobat
 
 
 class shodan_dns(crobat):
+    """
+    A typical module for authenticated, API-based subdomain enumeration
+    Inherited by several other modules including securitytrails, c99.nl, etc.
+    """
+
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     options = {"api_key": ""}

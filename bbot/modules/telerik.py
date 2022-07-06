@@ -6,7 +6,7 @@ from sys import executable
 class telerik(BaseModule):
 
     watched_events = ["URL"]
-    produced_events = ["VULNERABILITY","FINDING"]
+    produced_events = ["VULNERABILITY", "FINDING"]
     flags = ["active"]
     telerikVersions = [
         "2007.1423",
@@ -124,9 +124,7 @@ class telerik(BaseModule):
             self.debug(result.text)
             if "RadAsyncUpload handler is registered succesfully" in result.text:
                 self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
-                self.emit_event(
-                    f"[{event.data}] Telerik RAU AXD Handler detected", "FINDING", event, tags=["info"]
-                )
+                self.emit_event(f"[{event.data}] Telerik RAU AXD Handler detected", "FINDING", event, tags=["info"])
 
                 if self.config.get("skip_RAU_confirmation") == False:
                     hostname = urlparse(event.data).netloc

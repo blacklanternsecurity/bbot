@@ -60,9 +60,8 @@ class massdns(BaseModule):
         if "target" in event.tags:
             return True
         # for DNS names that resolve to in-scope iPs
-        elif event not in self.scan.target:
-            if hash(self.helpers.parent_domain(event.data)) not in self.processed:
-                return True
+        elif hash(self.helpers.parent_domain(event.data)) not in self.processed:
+            return True
         return False
 
     def handle_event(self, event):
