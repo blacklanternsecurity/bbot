@@ -438,7 +438,7 @@ class DNSHelper:
 
             self._wildcard_cache.update({parent: is_wildcard})
             if is_wildcard:
-                log.hugeinfo(f"Encountered domain with wildcard DNS: {parent}")
+                log.verbose(f"Encountered domain with wildcard DNS: {parent}")
             return is_wildcard, parent
 
     def _catch_keyboardinterrupt(self, callback, *args, **kwargs):

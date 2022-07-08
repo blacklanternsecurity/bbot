@@ -448,6 +448,10 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     with pytest.raises(KeyError, match=".*asdf.*"):
         helpers.search_dict_by_key("asdf", "asdf")
 
+    replaced = helpers.search_format_dict({"asdf": [{"wat": {"here": "{replaceme}!"}}, {500: True}]}, replaceme="asdf")
+    assert replaced["asdf"][1][500] == True
+    assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
+
     assert helpers.split_list([1, 2, 3, 4, 5]) == [[1, 2], [3, 4, 5]]
     assert list(helpers.grouper("ABCDEFG", 3)) == [["A", "B", "C"], ["D", "E", "F"], ["G"]]
 
@@ -904,7 +908,7 @@ def test_agent(agent):
     agent.stop_scan()
 
 
-def test_cli(monkeypatch):
+def test_cli(monkeypatch, config):
 
     from bbot import cli
 
@@ -913,8 +917,15 @@ def test_cli(monkeypatch):
     cli.main()
     monkeypatch.setattr(sys, "argv", ["bbot", "--current-config"])
     cli.main()
-    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "127.0.0.1", "-m", "plumbus"])
+
+    # -oA
+    home_dir = Path(config["home"])
+    out_basename = home_dir / "test"
+    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "127.0.0.1", "-m", "ipneighbor", "-oA", str(out_basename)])
     cli.main()
+    assert Path(f"{out_basename}.txt").is_file()
+    assert Path(f"{out_basename}.json").is_file()
+    assert Path(f"{out_basename}.csv").is_file()
 
 
 def test_depsinstaller(monkeypatch, neuter_ansible, config):

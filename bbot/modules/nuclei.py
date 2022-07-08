@@ -44,9 +44,9 @@ class nuclei(BaseModule):
         {
             "name": "Download nuclei",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v${BBOT_MODULES_NUCLEI_VERSION}/nuclei_${BBOT_MODULES_NUCLEI_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v{BBOT_MODULES_NUCLEI_VERSION}/nuclei_{BBOT_MODULES_NUCLEI_VERSION}_linux_amd64.zip",
                 "include": "nuclei",
-                "dest": "${BBOT_TOOLS}",
+                "dest": "{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }
@@ -69,14 +69,16 @@ class nuclei(BaseModule):
         if not self.template_stats:
             self.warning(f"Failed to download nuclei template stats.")
             if self.config.get("mode ") == "technology":
-                self.warning("Cant run with technology_mode set to true without template tags JSON")
+                self.warning("Can't run with technology_mode set to true without template tags JSON")
                 return False
         else:
-            self.critical(self.template_stats)
-            f = open(self.template_stats)
-            self.template_stats_json = json.load(f)
-            self.tag_list = [e.get("name", "") for e in self.template_stats_json.get("tags", [])]
-            f.close()
+            with open(self.template_stats) as f:
+                self.template_stats_json = json.load(f)
+                try:
+                    self.tag_list = [e.get("name", "") for e in self.template_stats_json.get("tags", [])]
+                except Exception as e:
+                    self.warning(f"Failed to parse template stats: {e}")
+                    return False
 
         if self.config.get("mode") not in ("technology", "severe", "manual"):
             self.warning(f"Unable to intialize nuclei: invalid mode selected: [{self.config.get('mode')}]")
