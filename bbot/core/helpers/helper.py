@@ -27,11 +27,11 @@ class ConfigAwareHelper:
         self._scan = scan
         self.home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
         self.cache_dir = self.home / "cache"
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.temp_dir = self.home / "temp"
-        self.temp_dir.mkdir(parents=True, exist_ok=True)
         self.tools_dir = self.home / "tools"
-        self.tools_dir.mkdir(parents=True, exist_ok=True)
+        self.mkdir(self.cache_dir)
+        self.mkdir(self.temp_dir)
+        self.mkdir(self.tools_dir)
         atexit.register(self.empty_temp_dir)
         # holds requests CachedSession() objects for duration of scan
         self.cache_sessions = dict()
