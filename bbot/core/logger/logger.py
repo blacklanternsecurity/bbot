@@ -7,6 +7,9 @@ from contextlib import suppress
 from multiprocessing import Queue
 from logging.handlers import QueueHandler, QueueListener
 
+from ..configurator import config
+from ..helpers.misc import mkdir, error_and_exit
+
 
 class ColoredFormatter(logging.Formatter):
     """
@@ -29,6 +32,7 @@ class ColoredFormatter(logging.Formatter):
     char_mapping = {
         "DEBUG": "DBUG",
         "VERBOSE": "VERB",
+        "HUGEVERBOSE": "VERB",
         "INFO": "INFO",
         "HUGEINFO": "INFO",
         "SUCCESS": "SUCC",
@@ -112,6 +116,7 @@ addLoggingLevel("HUGEWARNING", 31)
 addLoggingLevel("HUGESUCCESS", 26)
 addLoggingLevel("SUCCESS", 25)
 addLoggingLevel("HUGEINFO", 21)
+addLoggingLevel("HUGEVERBOSE", 16)
 addLoggingLevel("VERBOSE", 15)
 addLoggingLevel("STDOUT", 1)
 
@@ -134,13 +139,11 @@ def log_worker_setup(logging_queue):
     return log
 
 
-def log_listener_setup(logging_queue, log_dir=None):
+def log_listener_setup(logging_queue):
 
-    if log_dir is None:
-        log_dir = Path("~/.bbot/logs").expanduser()
-    else:
-        log_dir = Path(log_dir)
-    log_dir.mkdir(parents=True, exist_ok=True)
+    log_dir = Path(config["home"]) / "logs"
+    if not mkdir(log_dir, raise_error=False):
+        error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
 
     # Log to stderr
     stderr_handler = logging.StreamHandler(sys.stderr)
@@ -192,13 +195,13 @@ def log_listener_setup(logging_queue, log_dir=None):
     }
 
 
-def init_logging(log_dir=None):
+def init_logging():
     """
     Initializes logging, returns logging queue and dictionary containing log handlers
     """
 
     logging_queue = Queue()
-    handlers = log_listener_setup(logging_queue, log_dir=log_dir)
+    handlers = log_listener_setup(logging_queue)
     log_worker_setup(logging_queue)
 
     return logging_queue, handlers

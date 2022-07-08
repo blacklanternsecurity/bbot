@@ -104,14 +104,14 @@ class telerik(BaseModule):
     deps_pip = ["pycryptodome"]
 
     deps_ansible = [
-        {"name": "Create telerik dir", "file": {"state": "directory", "path": "${BBOT_TOOLS}/telerik/"}},
-        {"file": {"state": "touch", "path": "${BBOT_TOOLS}/telerik/testfile.txt"}},
+        {"name": "Create telerik dir", "file": {"state": "directory", "path": "{BBOT_TOOLS}/telerik/"}},
+        {"file": {"state": "touch", "path": "{BBOT_TOOLS}/telerik/testfile.txt"}},
         {
             "name": "Download RAU_crypto",
             "unarchive": {
                 "src": "https://github.com/bao7uo/RAU_crypto/archive/refs/heads/master.zip",
                 "include": "RAU_crypto-master/RAU_crypto.py",
-                "dest": "${BBOT_TOOLS}/telerik/",
+                "dest": "{BBOT_TOOLS}/telerik/",
                 "remote_src": True,
             },
         },

@@ -19,7 +19,7 @@ class smuggler(BaseModule):
             "name": "Get smuggler repo",
             "git": {
                 "repo": "https://github.com/defparam/smuggler.git",
-                "dest": "${BBOT_TOOLS}/smuggler",
+                "dest": "{BBOT_TOOLS}/smuggler",
             },
         }
     ]

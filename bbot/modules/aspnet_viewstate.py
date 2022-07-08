@@ -29,13 +29,13 @@ class aspnet_viewstate(BaseModule):
             "name": "Install mono-devel",
             "apt": {"name": ["mono-devel", "zip"], "state": "latest", "update_cache": True},
         },
-        {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "${BBOT_TOOLS}/blacklist3r/"}},
+        {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "{BBOT_TOOLS}/blacklist3r/"}},
         {
             "name": "Unarchive blacklist3r",
             "unarchive": {
                 "src": "https://github.com/NotSoSecure/Blacklist3r/releases/download/4.0/AspDotNetWrapper.zip",
                 "include": ["MachineKeys.txt", "CommandLine.dll", "AspDotNetWrapper.exe"],
-                "dest": "${BBOT_TOOLS}/blacklist3r/",
+                "dest": "{BBOT_TOOLS}/blacklist3r/",
                 "remote_src": True,
             },
         },

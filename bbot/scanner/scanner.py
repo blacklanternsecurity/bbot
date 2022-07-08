@@ -116,16 +116,15 @@ class Scanner:
 
         try:
             self.status = "STARTING"
-            start_msg = f"Starting scan seeded against {len(self.target)} targets"
+            start_msg = f"Scan seeded against {len(self.target)} targets"
             details = []
             if self.whitelist != self.target:
-                log.hugesuccess(f"{hash(self.whitelist)} {hash(self.target)}")
                 details.append(f"{len(self.whitelist):,} in whitelist")
             if self.blacklist:
                 details.append(f"{len(self.blacklist):,} in blacklist")
             if details:
                 start_msg += f" ({', '.join(details)})"
-            log.hugeinfo(start_msg)
+            self.hugeinfo(start_msg)
 
             self.load_modules()
 
@@ -137,7 +136,7 @@ class Scanner:
                 self.status = "FAILED"
                 return
             else:
-                self.success(f"Setup succeeded for {len(self.modules):,} modules")
+                self.hugesuccess(f"Setup succeeded for {len(self.modules):,} modules. Starting scan.")
 
             if self.stopping:
                 return
@@ -354,14 +353,26 @@ class Scanner:
     def verbose(self, *args, **kwargs):
         log.verbose(*args, extra={"scan_id": self.id}, **kwargs)
 
+    def hugeverbose(self, *args, **kwargs):
+        log.hugeverbose(*args, extra={"scan_id": self.id}, **kwargs)
+
     def info(self, *args, **kwargs):
         log.info(*args, extra={"scan_id": self.id}, **kwargs)
+
+    def hugeinfo(self, *args, **kwargs):
+        log.hugeinfo(*args, extra={"scan_id": self.id}, **kwargs)
 
     def success(self, *args, **kwargs):
         log.success(*args, extra={"scan_id": self.id}, **kwargs)
 
+    def hugesuccess(self, *args, **kwargs):
+        log.hugesuccess(*args, extra={"scan_id": self.id}, **kwargs)
+
     def warning(self, *args, **kwargs):
         log.warning(*args, extra={"scan_id": self.id}, **kwargs)
+
+    def hugewarning(self, *args, **kwargs):
+        log.hugewarning(*args, extra={"scan_id": self.id}, **kwargs)
 
     def error(self, *args, **kwargs):
         log.error(*args, extra={"scan_id": self.id}, **kwargs)
@@ -387,11 +398,24 @@ class Scanner:
             internal_modules = [m for m in self._internal_modules if m in succeeded]
 
             # Load scan modules
-            self.verbose(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
+            self.verbose(f"Loading {len(modules):,} scan modules: {','.join(list(modules))}")
             loaded_modules, failed = self._load_modules(modules, "bbot.modules")
             self.modules.update(loaded_modules)
             if len(failed) > 0:
                 self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
+            if loaded_modules:
+                self.info(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules")
+
+            # Load internal modules
+            self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
+            loaded_internal_modules, failed_internal = self._load_modules(internal_modules, "bbot.modules.internal")
+            self.modules.update(loaded_internal_modules)
+            if len(failed_internal) > 0:
+                self.warning(
+                    f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
+                )
+            if loaded_internal_modules:
+                self.info(f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules")
 
             # Load output modules
             self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
@@ -399,26 +423,10 @@ class Scanner:
             self.modules.update(loaded_output_modules)
             if len(failed_output) > 0:
                 self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
-
-            # Load internal modules
-            self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
-            loaded_internal_modules, failed_internal = self._load_modules(internal_modules, "bbot.modules.internal")
-            self.modules.update(loaded_internal_modules)
-            if len(failed_output) > 0:
-                self.warning(
-                    f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
-                )
-
-            self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
-            if loaded_modules:
-                self.info(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules")
             if loaded_output_modules:
                 self.info(f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules")
-            if loaded_internal_modules:
-                self.verbose(
-                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules"
-                )
 
+            self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
             self._modules_loaded = True
 
     def _load_modules(self, modules, namespace):

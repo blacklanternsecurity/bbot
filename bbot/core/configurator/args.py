@@ -1,16 +1,12 @@
-import logging
 import argparse
 from pathlib import Path
-from datetime import datetime
 from omegaconf import OmegaConf
 from contextlib import suppress
 
 from ...modules import output
 from ..errors import ArgumentError
-from ..helpers.misc import chain_lists
 from ...modules import modules_preloaded
-
-log = logging.getLogger("bbot.core.configurator.args")
+from ..helpers.misc import chain_lists, make_date
 
 flag_choices = set()
 for m, c in modules_preloaded.items():
@@ -50,8 +46,7 @@ class BBOTArgumentParser(argparse.ArgumentParser):
                     ret.output_modules.append(om_modname)
             output_path = Path(ret.output_all).resolve()
             if output_path.is_dir():
-                date = datetime.now().isoformat().replace(":", "_")
-                ret.output_all = output_path / f"bbot_{date}"
+                ret.output_all = output_path / f"bbot_{make_date()}"
         return ret
 
 

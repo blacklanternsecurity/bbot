@@ -145,7 +145,9 @@ class WordCloud(dict):
                 filename = self.default_filename
             else:
                 filename = Path(filename).resolve()
-            filename.parent.mkdir(exist_ok=True, parents=True)
+            if not self.parent_helper.mkdir(filename.parent):
+                log.error(f"Failure creating or error writing to {filename.parent} when saving word cloud")
+                return
             log.debug(f"Saving word cloud to {filename}")
             with open(str(filename), mode="w", newline="") as f:
                 c = csv.writer(f, delimiter="\t")

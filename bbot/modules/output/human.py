@@ -13,7 +13,7 @@ class Human(BaseOutputModule):
         self.file = None
         if self.output_file:
             filename = Path(self.output_file).resolve()
-            filename.parent.mkdir(exist_ok=True, parents=True)
+            self.helpers.mkdir(filename.parent)
             self.file = open(str(filename), mode="w")
         return True
 

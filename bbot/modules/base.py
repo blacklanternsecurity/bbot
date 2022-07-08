@@ -122,6 +122,12 @@ class BaseModule:
         """
         return
 
+    def get_watched_events(self):
+        """
+        Override if you need your watched_events to be dynamic
+        """
+        return self.watched_events
+
     def submit_task(self, *args, **kwargs):
         return self.thread_pool.submit_task(self.catch, *args, **kwargs)
 
@@ -292,7 +298,7 @@ class BaseModule:
             else:
                 return False
         # exclude non-watched types
-        if not any(t in self.watched_events for t in ("*", e.type)):
+        if not any(t in self.get_watched_events() for t in ("*", e.type)):
             return False
         # optionally exclude non-targets
         if self.target_only and "target" not in e.tags:

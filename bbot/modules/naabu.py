@@ -22,9 +22,9 @@ class naabu(BaseModule):
         {
             "name": "Download naabu",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/naabu/releases/download/v${BBOT_MODULES_NAABU_VERSION}/naabu_${BBOT_MODULES_NAABU_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/naabu/releases/download/v{BBOT_MODULES_NAABU_VERSION}/naabu_{BBOT_MODULES_NAABU_VERSION}_linux_amd64.zip",
                 "include": "naabu",
-                "dest": "${BBOT_TOOLS}",
+                "dest": "{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }
