@@ -38,7 +38,7 @@ class nuclei(BaseModule):
         "ratelimit": "maximum number of requests to send per second (default 150)",
         "concurrency": "maximum number of templates to be executed in parallel (default 25)",
         "mode": "technology | severe | manual. Technology: Only activate based on technology events that match nuclei tags. On by default. Severe: Only critical and high severity templates without intrusive. Manual: Fully manual settings",
-        "exclude_tags": "tags to exclude from the scan",
+        "etags": "tags to exclude from the scan",
     }
     deps_ansible = [
         {
