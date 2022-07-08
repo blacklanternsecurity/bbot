@@ -120,6 +120,8 @@ class ScanManager:
                 source_module = self.scan.helpers.dns._get_dummy_module("host")
                 source_module._type = "internal"
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
+                if "target" in event.tags:
+                    source_event.tags.add("target")
                 if not str(event.module) == "speculate":
                     self.emit_event(source_event)
             if self.dns_resolution and emit_children:
