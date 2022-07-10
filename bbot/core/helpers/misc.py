@@ -1,4 +1,5 @@
 import os
+import sys
 import atexit
 import psutil
 import random
@@ -10,12 +11,14 @@ import ipaddress
 import wordninja
 from pathlib import Path
 from itertools import islice
+from datetime import datetime
 from contextlib import suppress
 import tldextract as _tldextract
 from urllib.parse import urlparse, quote  # noqa F401
 from hashlib import sha1 as hashlib_sha1
 
 from .url import *  # noqa F401
+from ..errors import DirectoryCreationError
 from .regexes import word_regexes, event_type_regexes
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -303,13 +306,16 @@ def kill_children(parent_pid=None, sig=signal.SIGTERM):
     try:
         parent = psutil.Process(parent_pid)
     except psutil.NoSuchProcess:
-        log.warning(f"No such PID: {parent_pid}")
+        log.debug(f"No such PID: {parent_pid}")
     log.debug(f"Killing children of process ID {parent.pid}")
     children = parent.children(recursive=True)
     for child in children:
         log.debug(f"Killing child with PID {child.pid}")
         if child.name != "python":
-            child.send_signal(sig)
+            try:
+                child.send_signal(sig)
+            except psutil.NoSuchProcess:
+                log.debug(f"No such PID: {parent_pid}")
 
 
 def str_or_file(s):
@@ -328,7 +334,7 @@ def str_or_file(s):
 def chain_lists(l, try_files=False, msg=None):
     """
     Chain together list, splitting entries on comma
-        - Optionally try to open entries as files and add their content to the list
+        - Optionally try to open entries as files and add their contents to the list
         - Used for parsing a list of arguments that may include space and/or comma-separated values
         - ["a", "b,c,d"] --> ["a", "b", "c", "d"]
         - try_files=True:
@@ -461,6 +467,20 @@ def _search_dict_by_key(key, d):
     return sentinel
 
 
+def search_format_dict(d, **kwargs):
+    """
+    Recursively .format() string values in a JSON-like object
+    """
+    if type(d) == dict:
+        return {k: search_format_dict(v, **kwargs) for k, v in d.items()}
+    elif type(d) == list:
+        return [search_format_dict(v, **kwargs) for v in d]
+    elif type(d) == str:
+        return d.format(**kwargs)
+    else:
+        return d
+
+
 def grouper(iterable, n):
     """
     >>> list(grouper('ABCDEFG', 3))
@@ -477,3 +497,46 @@ def split_list(alist, wanted_parts=2):
     """
     length = len(alist)
     return [alist[i * length // wanted_parts : (i + 1) * length // wanted_parts] for i in range(wanted_parts)]
+
+
+def mkdir(path, check_writable=True, raise_error=True):
+    """
+    Create a directory and ensure that it's writable
+    """
+    path = Path(path).resolve()
+    touchfile = path / f".{rand_string()}"
+    try:
+        path.mkdir(exist_ok=True, parents=True)
+        touchfile.touch()
+        return True
+    except Exception as e:
+        if raise_error:
+            raise DirectoryCreationError(f"Failed to create directory at {path}: {e}")
+    finally:
+        with suppress(Exception):
+            touchfile.unlink()
+    return False
+
+
+def make_date(d=None, microseconds=False):
+    """
+    make_date() --> "20220707_1325_50"
+    make_date(microseconds=True) --> "20220707_1330_35167617"
+    """
+    f = "%Y%m%d_%H%M_%S"
+    if microseconds:
+        f += "%f"
+    if d is None:
+        d = datetime.now()
+    return d.strftime(f)
+
+
+def sanitize_string(s, allowed_chars=None):
+    if allowed_chars is None:
+        allowed_chars = string.ascii_lowercase + string.ascii_uppercase + string.digits + "._-"
+    return "".join(c for c in str(s) if c in allowed_chars)
+
+
+def error_and_exit(msg):
+    print(f"\n[!!!] {msg}\n")
+    sys.exit(2)

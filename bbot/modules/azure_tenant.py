@@ -75,6 +75,7 @@ class azure_tenant(viewdns):
             _, query = self.helpers.split_domain(d)
             self.processed.add(hash(query))
             domains.add(d)
+            # absorb into word cloud
             self.scan.word_cloud.absorb_word(d)
 
         return domains, tenantnames

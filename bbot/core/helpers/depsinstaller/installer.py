@@ -21,11 +21,11 @@ class DepsInstaller:
         self.parent_helper = parent_helper
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
+        self.parent_helper.mkdir(self.data_dir)
         self.setup_status_cache = self.data_dir / "setup_status.json"
         self.command_status = self.data_dir / "command_status"
-        self.command_status.mkdir(exist_ok=True, parents=True)
+        self.parent_helper.mkdir(self.command_status)
         self.setup_status = self.read_setup_status()
-        self.data_dir.mkdir(exist_ok=True, parents=True)
 
         self.no_deps = self.parent_helper.config.get("no_deps", False)
         self.ansible_debug = self.parent_helper.config.get("debug", False)
@@ -60,9 +60,7 @@ class DepsInstaller:
                 else:
                     if success is None or (success is False and self.retry_deps) or self.force_deps:
                         if not notified:
-                            log.info(
-                                f"Installing dependencies for {len(modules):,} modules. Please be patient, this may take a while."
-                            )
+                            log.info(f"Installing module dependencies. Please be patient, this may take a while.")
                             notified = True
                         log.verbose(f'Installing dependencies for module "{m}"')
                         # get sudo access if we need it
@@ -206,7 +204,7 @@ class DepsInstaller:
         playbook_hash = self.parent_helper.sha1(str(playbook)).hexdigest()
         data_dir = self.data_dir / (module if module else f"playbook_{playbook_hash}")
         shutil.rmtree(data_dir, ignore_errors=True)
-        data_dir.mkdir(exist_ok=True, parents=True)
+        self.parent_helper.mkdir(data_dir)
 
         original_sigint_handler = signal.getsignal(signal.SIGINT)
         try:

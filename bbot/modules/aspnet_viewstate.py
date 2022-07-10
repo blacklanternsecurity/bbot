@@ -29,13 +29,13 @@ class aspnet_viewstate(BaseModule):
             "name": "Install mono-devel",
             "apt": {"name": ["mono-devel", "zip"], "state": "latest", "update_cache": True},
         },
-        {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "${BBOT_TOOLS}/blacklist3r/"}},
+        {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "{BBOT_TOOLS}/blacklist3r/"}},
         {
             "name": "Unarchive blacklist3r",
             "unarchive": {
                 "src": "https://github.com/NotSoSecure/Blacklist3r/releases/download/4.0/AspDotNetWrapper.zip",
                 "include": ["MachineKeys.txt", "CommandLine.dll", "AspDotNetWrapper.exe"],
-                "dest": "${BBOT_TOOLS}/blacklist3r/",
+                "dest": "{BBOT_TOOLS}/blacklist3r/",
                 "remote_src": True,
             },
         },
@@ -50,7 +50,8 @@ class aspnet_viewstate(BaseModule):
             generator = generator_match.group(1)
             viewstate = viewstate_match.group(1)
             self.debug(f"Discovered viewstate for URL {event.data['url']}")
-            self.emit_event(f"[{event.data['url']}] Microsoft ASP.NET", "TECHNOLOGY", event, tags=["web"])
+            self.emit_event({"technology": "asp", "url": event.data["url"]}, "TECHNOLOGY", event)
+            self.emit_event({"technology": "iis", "url": event.data["url"]}, "TECHNOLOGY", event)
             tool_path = self.scan.helpers.tools_dir / "blacklist3r/"
             command = [
                 "mono",

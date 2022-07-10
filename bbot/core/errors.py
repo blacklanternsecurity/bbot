@@ -28,3 +28,7 @@ class ConfigLoadError(BBOTError):
 
 class HttpCompareError(BBOTError):
     pass
+
+
+class DirectoryCreationError(BBOTError):
+    pass

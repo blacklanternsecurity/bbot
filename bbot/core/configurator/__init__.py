@@ -5,6 +5,7 @@ from omegaconf import OmegaConf
 
 from . import files, args, environ
 from ..errors import ConfigLoadError
+from ..helpers.misc import mkdir, error_and_exit, search_format_dict
 from ...modules import output, internal, module_dir, modules_preloaded
 
 
@@ -34,8 +35,7 @@ try:
         args.get_config(),
     )
 except ConfigLoadError as e:
-    print(f"\n[!!!] {e}\n")
-    sys.exit(2)
+    error_and_exit(e)
 
 # ensure bbot_home
 if not "home" in config:
@@ -44,16 +44,13 @@ home = Path(config["home"]).expanduser().resolve()
 config["home"] = str(home)
 # ensure bbot_tools
 bbot_tools = home / "tools"
-bbot_tools.mkdir(exist_ok=True, parents=True)
 config["tools"] = str(bbot_tools)
 os.environ["PATH"] = f"{bbot_tools}:" + os.environ.get("PATH", "")
 # ensure bbot_cache
 bbot_cache = home / "cache"
-bbot_cache.mkdir(exist_ok=True, parents=True)
 config["cache"] = str(bbot_cache)
 # ensure bbot_temp
 bbot_temp = home / "temp"
-bbot_temp.mkdir(exist_ok=True, parents=True)
 config["temp"] = str(bbot_temp)
 
 # exchange certain options between CLI args and config
@@ -79,8 +76,16 @@ if args.cli_options is not None:
             om_filename = f"{args.cli_options.output_all}.{om_filext}"
             config["output_modules"][om_modname]["output_file"] = om_filename
 
+# ensure bbot.conf
+if not files.defaults_filename.exists():
+    OmegaConf.save(config=config, f=str(files.defaults_filename))
+
 # copy config to environment
-os.environ.update(environ.flatten_config(config))
+bbot_environ = environ.flatten_config(config)
+os.environ.update(bbot_environ)
+
+# replace environment variables in preloaded modules
+all_modules_preloaded = search_format_dict(all_modules_preloaded, **os.environ)
 
 # handle HTTP proxy
 http_proxy = config.get("http_proxy", "")

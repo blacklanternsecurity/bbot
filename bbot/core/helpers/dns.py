@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .regexes import dns_name_regex
 from bbot.core.errors import ValidationError
-from ..threadpool import ThreadPoolWrapper, NamedLock
+from .threadpool import ThreadPoolWrapper, NamedLock
 from .misc import is_ip, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
@@ -117,45 +117,46 @@ class DNSHelper:
         Optionally create child events from dns resolutions
         """
         if not event.host or event.type in ("IP_RANGE",):
-            return [], set(), False
+            return [], set(), False, False
         children = []
         event_tags = set()
         event_host = str(event.host)
         # lock to ensure resolution of the same host doesn't start while we're working here
         with self._cache_locks.get_lock(event_host):
 
-            event_in_scope = False
+            event_whitelisted = False
+            event_blacklisted = False
 
             # wildcard check first
             if check_wildcard and not is_ip(event_host):
                 event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
-                if event_is_wildcard:
+                if event_is_wildcard and event.type in ("DNS_NAME",):
                     event.data = wildcard_parent
                     return (event,)
             elif not check_wildcard:
                 event_tags.add("wildcard")
 
             # try to get data from cache
-            _event_tags, _event_in_scope = self.cache_get(event_host)
+            _event_tags, _event_whitelisted, _event_blacklisted = self.cache_get(event_host)
             event_tags.update(_event_tags)
             # if we found it, return it
-            if _event_in_scope is not None:
-                return children, event_tags, _event_in_scope
+            if _event_whitelisted is not None:
+                return children, event_tags, _event_whitelisted, _event_blacklisted
 
             # then resolve
-            target = getattr(self.parent_helper.scan, "target", None)
             for rdtype, records in self.resolve_raw(event_host, type="any"):
                 event_tags.add("resolved")
                 rdtype = str(rdtype).upper()
-                # mark in-scope if it resolves to an in-scope IP
+                # whitelisting and blacklist of IPs
                 if rdtype in ("A", "AAAA"):
                     for r in records:
                         for _, t in self.extract_targets(r):
-                            if target is not None:
-                                with suppress(ValidationError):
-                                    if target.in_scope(t):
-                                        event_in_scope = True
-                                        break
+                            with suppress(ValidationError):
+                                if self.parent_helper.scan.whitelisted(t):
+                                    event_whitelisted = True
+                            with suppress(ValidationError):
+                                if self.parent_helper.scan.blacklisted(t):
+                                    event_blacklisted = True
                 for r in records:
                     for _, t in self.extract_targets(r):
                         event_tags.add(f"{rdtype.lower()}_record")
@@ -163,21 +164,21 @@ class DNSHelper:
                             children.append((t, rdtype))
             if "resolved" not in event_tags:
                 event_tags.add("unresolved")
-            self.cache_put(event_host, event_tags, event_in_scope)
-        return children, event_tags, event_in_scope
+            self.cache_put(event_host, event_tags, event_whitelisted, event_blacklisted)
+        return children, event_tags, event_whitelisted, event_blacklisted
 
     def cache_get(self, host):
         try:
             return self._cache[hash(str(host))]
         except KeyError:
-            return set(), None
+            return set(), None, None
 
-    def cache_put(self, host, tags, in_scope):
+    def cache_put(self, host, tags, event_whitelisted, event_blacklisted):
         with self._cache_lock:
-            self._cache[hash(str(host))] = (tags, in_scope)
+            self._cache[hash(str(host))] = (tags, event_whitelisted, event_blacklisted)
 
     def cache_in(self, host):
-        return hash(host) in self._cache
+        return hash(str(host)) in self._cache
 
     def resolve_batch(self, queries, **kwargs):
         """
@@ -437,7 +438,7 @@ class DNSHelper:
 
             self._wildcard_cache.update({parent: is_wildcard})
             if is_wildcard:
-                log.hugeinfo(f"Encountered domain with wildcard DNS: {parent}")
+                log.verbose(f"Encountered domain with wildcard DNS: {parent}")
             return is_wildcard, parent
 
     def _catch_keyboardinterrupt(self, callback, *args, **kwargs):
