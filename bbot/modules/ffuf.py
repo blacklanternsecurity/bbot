@@ -31,9 +31,9 @@ class ffuf(BaseModule):
         {
             "name": "Download ffuf",
             "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v${BBOT_MODULES_FFUF_VERSION}/ffuf_${BBOT_MODULES_FFUF_VERSION}_linux_amd64.tar.gz",
+                "src": "https://github.com/ffuf/ffuf/releases/download/v{BBOT_MODULES_FFUF_VERSION}/ffuf_{BBOT_MODULES_FFUF_VERSION}_linux_amd64.tar.gz",
                 "include": "ffuf",
-                "dest": "${BBOT_TOOLS}",
+                "dest": "{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }
@@ -73,16 +73,25 @@ class ffuf(BaseModule):
         fuzz_url = f"{url}FUZZ{suffix}"
         command = ["ffuf", "-ac", "-json", "-w", tempfile, "-u", fuzz_url]
         for found in self.helpers.run_live(command):
-            found_json = json.loads(found)
-            input_val = base64.b64decode(found_json["input"]["FUZZ"]).decode()
-            if len(input_val.rstrip()) > 0:
-                if self.scan.stopping:
-                    break
-                if input_val.rstrip() == self.sanity_canary:
-                    self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
-                    return
-                else:
-                    yield found_json
+            try:
+                found_json = json.loads(found)
+                input_json = found_json.get("input", {})
+                if type(input_json) != dict:
+                    self.debug("Error decoding JSON from ffuf")
+                    continue
+                encoded_input = input_json.get("FUZZ", "")
+                input_val = base64.b64decode(encoded_input).decode()
+                if len(input_val.rstrip()) > 0:
+                    if self.scan.stopping:
+                        break
+                    if input_val.rstrip() == self.sanity_canary:
+                        self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
+                        return
+                    else:
+                        yield found_json
+
+            except json.decoder.JSONDecodeError:
+                self.debug("Received invalid JSON from FFUF")
 
     def generate_templist(self, wordlist, prefix=None):
 

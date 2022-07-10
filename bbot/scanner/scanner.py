@@ -10,9 +10,9 @@ from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.core.event import make_event
 from bbot.modules import modules_preloaded
-from bbot.core.threadpool import ThreadPoolWrapper
 from bbot.core.helpers.modules import load_modules
 from bbot.core.helpers.helper import ConfigAwareHelper
+from bbot.core.helpers.threadpool import ThreadPoolWrapper
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError
 
 log = logging.getLogger("bbot.scanner")
@@ -22,6 +22,8 @@ class Scanner:
     def __init__(
         self,
         *targets,
+        whitelist=None,
+        blacklist=None,
         scan_id=None,
         name=None,
         modules=None,
@@ -62,7 +64,16 @@ class Scanner:
         if not modules:
             self.warning(f"No modules specified")
 
+        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
+
         self.target = ScanTarget(self, *targets)
+        if not whitelist:
+            self.whitelist = self.target.copy()
+        else:
+            self.whitelist = ScanTarget(self, *whitelist)
+        if not blacklist:
+            blacklist = []
+        self.blacklist = ScanTarget(self, *blacklist)
         if not self.target:
             self.warning(f"No scan targets specified")
         if name is None:
@@ -77,7 +88,6 @@ class Scanner:
         self.dispatcher.set_scan(self)
 
         self.manager = ScanManager(self)
-        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
         # prevent too many brute force modules from running at one time
         # because they can bypass the global thread limit
@@ -106,9 +116,19 @@ class Scanner:
 
         try:
             self.status = "STARTING"
-            self.info(f"Starting scan {self.id}")
+            start_msg = f"Scan seeded against {len(self.target)} targets"
+            details = []
+            if self.whitelist != self.target:
+                details.append(f"{len(self.whitelist):,} in whitelist")
+            if self.blacklist:
+                details.append(f"{len(self.blacklist):,} in blacklist")
+            if details:
+                start_msg += f" ({', '.join(details)})"
+            self.hugeinfo(start_msg)
 
             self.load_modules()
+
+            log.info(f"Setting up modules...")
             self.setup_modules()
 
             if not self.modules:
@@ -116,7 +136,7 @@ class Scanner:
                 self.status = "FAILED"
                 return
             else:
-                self.success(f"Setup succeeded for {len(self.modules):,} modules")
+                self.hugesuccess(f"Setup succeeded for {len(self.modules):,} modules. Starting scan.")
 
             if self.stopping:
                 return
@@ -129,7 +149,7 @@ class Scanner:
 
             self.status = "RUNNING"
             self.start_modules()
-            self.info(f"{len(self.modules):,} modules started")
+            self.verbose(f"{len(self.modules):,} modules started")
 
             if self.stopping:
                 return
@@ -165,18 +185,18 @@ class Scanner:
 
             if self.status == "ABORTING":
                 self.status = "ABORTED"
-                self.warning(f"Scan {self.id} completed with status {self.status}")
+                self.warning(f"Scan completed with status {self.status}")
             elif failed:
                 self.status = "FAILED"
-                self.error(f"Scan {self.id} completed with status {self.status}")
+                self.error(f"Scan completed with status {self.status}")
             else:
                 self.status = "FINISHED"
-                self.success(f"Scan {self.id} completed with status {self.status}")
+                self.success(f"Scan completed with status {self.status}")
 
             self.dispatcher.on_finish(self)
 
     def start_modules(self):
-        self.info(f"Starting modules")
+        self.verbose(f"Starting module threads")
         for module_name, module in self.modules.items():
             module.start()
 
@@ -226,6 +246,22 @@ class Scanner:
                     t.join()
             self.debug("Finished shutting down thread pools")
             self.helpers.kill_children()
+
+    def in_scope(self, e):
+        """
+        Checks whitelist and blacklist, also taking scope_distance into account
+        """
+        e = make_event(e, dummy=True)
+        in_scope = e.scope_distance == 0 or self.whitelisted(e)
+        return in_scope and not self.blacklisted(e)
+
+    def blacklisted(self, e):
+        e = make_event(e, dummy=True)
+        return e in self.blacklist
+
+    def whitelisted(self, e):
+        e = make_event(e, dummy=True)
+        return e in self.whitelist
 
     @property
     def word_cloud(self):
@@ -303,6 +339,10 @@ class Scanner:
                 j.update({i: v})
         if self.target:
             j.update({"targets": [str(e.data) for e in self.target]})
+        if self.whitelist:
+            j.update({"whitelist": [str(e.data) for e in self.whitelist]})
+        if self.blacklist:
+            j.update({"blacklist": [str(e.data) for e in self.blacklist]})
         if self.modules:
             j.update({"modules": [str(m) for m in self.modules]})
         return j
@@ -313,14 +353,26 @@ class Scanner:
     def verbose(self, *args, **kwargs):
         log.verbose(*args, extra={"scan_id": self.id}, **kwargs)
 
+    def hugeverbose(self, *args, **kwargs):
+        log.hugeverbose(*args, extra={"scan_id": self.id}, **kwargs)
+
     def info(self, *args, **kwargs):
         log.info(*args, extra={"scan_id": self.id}, **kwargs)
+
+    def hugeinfo(self, *args, **kwargs):
+        log.hugeinfo(*args, extra={"scan_id": self.id}, **kwargs)
 
     def success(self, *args, **kwargs):
         log.success(*args, extra={"scan_id": self.id}, **kwargs)
 
+    def hugesuccess(self, *args, **kwargs):
+        log.hugesuccess(*args, extra={"scan_id": self.id}, **kwargs)
+
     def warning(self, *args, **kwargs):
         log.warning(*args, extra={"scan_id": self.id}, **kwargs)
+
+    def hugewarning(self, *args, **kwargs):
+        log.hugewarning(*args, extra={"scan_id": self.id}, **kwargs)
 
     def error(self, *args, **kwargs):
         log.error(*args, extra={"scan_id": self.id}, **kwargs)
@@ -346,11 +398,24 @@ class Scanner:
             internal_modules = [m for m in self._internal_modules if m in succeeded]
 
             # Load scan modules
-            self.verbose(f"Loading {len(modules):,} modules: {','.join(list(modules))}")
+            self.verbose(f"Loading {len(modules):,} scan modules: {','.join(list(modules))}")
             loaded_modules, failed = self._load_modules(modules, "bbot.modules")
             self.modules.update(loaded_modules)
             if len(failed) > 0:
                 self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
+            if loaded_modules:
+                self.info(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules")
+
+            # Load internal modules
+            self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
+            loaded_internal_modules, failed_internal = self._load_modules(internal_modules, "bbot.modules.internal")
+            self.modules.update(loaded_internal_modules)
+            if len(failed_internal) > 0:
+                self.warning(
+                    f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
+                )
+            if loaded_internal_modules:
+                self.info(f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules")
 
             # Load output modules
             self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
@@ -358,26 +423,10 @@ class Scanner:
             self.modules.update(loaded_output_modules)
             if len(failed_output) > 0:
                 self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
-
-            # Load internal modules
-            self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
-            loaded_internal_modules, failed_internal = self._load_modules(internal_modules, "bbot.modules.internal")
-            self.modules.update(loaded_internal_modules)
-            if len(failed_output) > 0:
-                self.warning(
-                    f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
-                )
+            if loaded_output_modules:
+                self.info(f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules")
 
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
-            if loaded_modules:
-                self.success(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules")
-            if loaded_output_modules:
-                self.success(f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules")
-            if loaded_internal_modules:
-                self.verbose(
-                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules"
-                )
-
             self._modules_loaded = True
 
     def _load_modules(self, modules, namespace):

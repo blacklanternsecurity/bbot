@@ -37,7 +37,7 @@ def run_live(self, command, *args, **kwargs):
         input_msg = " (with stdin)"
 
     command = [str(s) for s in command]
-    log.verbose(f"run_live{input_msg}: {' '.join(command)}")
+    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}")
     with catch(subprocess.Popen, command, *args, **kwargs) as process:
         if _input:
             if type(_input) in (str, bytes):
@@ -64,7 +64,7 @@ def run(self, command, *args, **kwargs):
         kwargs["text"] = True
 
     command = [str(s) for s in command]
-    log.verbose(f"run: {' '.join(command)}")
+    log.hugeverbose(f"run: {' '.join(command)}")
     result = catch(subprocess.run, command, *args, **kwargs)
     return result
 

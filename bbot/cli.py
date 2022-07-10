@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+from omegaconf import OmegaConf
 from contextlib import suppress
 
 # fix tee buffering
@@ -15,6 +16,7 @@ logging_queue, logging_handlers = init_logging()
 
 import bbot.core.errors
 from bbot.core.configurator.args import parser
+from bbot.core.configurator.files import config_filename
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
@@ -23,6 +25,12 @@ sys.stdout.reconfigure(line_buffering=True)
 def main():
 
     try:
+        # ensure bbot.conf
+        from . import config
+
+        if not config_filename.exists():
+            log.hugeinfo(f"Creating bbot.conf at {config_filename}")
+            OmegaConf.save(config=config, f=str(config_filename))
 
         if len(sys.argv) == 1:
             parser.print_help()
@@ -37,10 +45,7 @@ def main():
             # this is intentional since sys.exit() is monkeypatched in the tests
             return
 
-        # config test
-        from . import config
-        from omegaconf import OmegaConf
-
+        # --current-config
         if options.current_config:
             log.stdout(f"{OmegaConf.to_yaml(config)}")
             sys.exit(0)
@@ -49,7 +54,7 @@ def main():
         if not config.get("debug", False):
             logging_handlers["file_debug"].filters = [lambda x: False]
 
-        log.info(f'Command: {" ".join(sys.argv)}')
+        log.verbose(f'Command: {" ".join(sys.argv)}')
 
         if options.agent_mode:
             from bbot.agent import Agent
@@ -69,6 +74,8 @@ def main():
                     module_flags=options.flags,
                     output_modules=options.output_modules,
                     config=config,
+                    whitelist=options.whitelist,
+                    blacklist=options.blacklist,
                 )
                 if options.load_wordcloud:
                     scanner.helpers.word_cloud.load(options.load_wordcloud)

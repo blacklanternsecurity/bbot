@@ -4,22 +4,20 @@ from time import sleep
 from deepdiff import DeepDiff
 from contextlib import suppress
 from xml.parsers.expat import ExpatError
-
-
 from bbot.core.errors import HttpCompareError
 
 log = logging.getLogger("bbot.core.helpers.diff")
 
 
 class HttpCompare:
-    def __init__(self, baseline_url, parent_helper):
+    def __init__(self, baseline_url, parent_helper, method="GET", allow_redirects=False):
 
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
 
         # vanilla URL
         url_1 = self.parent_helper.add_get_params(self.baseline_url, self.gen_cache_buster()).geturl()
-        baseline_1 = self.parent_helper.request(url_1, allow_redirects=False)
+        baseline_1 = self.parent_helper.request(url_1, allow_redirects=allow_redirects, method=method)
         sleep(1)
         # put random parameters in URL, headers, and cookies
         get_params = self.gen_cache_buster()
@@ -29,7 +27,8 @@ class HttpCompare:
             url_2,
             headers={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
             cookies={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
-            allow_redirects=False,
+            allow_redirects=allow_redirects,
+            method=method,
         )
 
         self.baseline = baseline_1
@@ -112,11 +111,13 @@ class HttpCompare:
             log.debug(ddiff)
             return False
 
-    def compare(self, subject, headers=None, cookies=None, check_reflection=False):
+    def compare(
+        self, subject, headers=None, cookies=None, check_reflection=False, method="GET", allow_redirects=False
+    ):
         """
         Compares a URL with the baseline, with optional headers or cookies added
 
-        Returns (match (bool), reason (str), reflection (bool))
+        Returns (match (bool), reason (str), reflection (bool),subject_response (requests response object))
             where "match" is whether the content matched against the baseline, and
                 "reason" is the location of the change ("code", "body", "header", or None), and
                 "reflection" is whether the value was reflected in the HTTP response
@@ -125,11 +126,13 @@ class HttpCompare:
         reflection = False
         cache_key, cache_value = list(self.gen_cache_buster().items())[0]
         url = self.parent_helper.add_get_params(subject, {cache_key: cache_value}).geturl()
-        subject_response = self.parent_helper.request(url, headers=headers, cookies=cookies, allow_redirects=False)
+        subject_response = self.parent_helper.request(
+            url, headers=headers, cookies=cookies, allow_redirects=allow_redirects, method=method
+        )
 
         if not subject_response:
             # this can be caused by a WAF not liking the header, so we really arent interested in it
-            return (True, "403", reflection)
+            return (True, "403", reflection, subject_response)
 
         if check_reflection:
             for arg in (headers, cookies):
@@ -156,17 +159,17 @@ class HttpCompare:
             log.debug(
                 f"status code was different [{str(self.baseline.status_code)}] -> [{str(subject_response.status_code)}], no match"
             )
-            return (False, "code", reflection)
+            return (False, "code", reflection, subject_response)
 
         different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
         if different_headers:
             log.debug(f"headers were different, no match [{different_headers}]")
-            return (False, "header", reflection)
+            return (False, "header", reflection, subject_response)
 
         if self.compare_body(self.baseline_json, subject_json) == False:
             log.debug(f"difference in HTML body, no match")
-            return (False, "body", reflection)
-        return (True, None, False)
+            return (False, "body", reflection, subject_response)
+        return (True, None, False, None)
 
     def canary_check(self, url, mode, rounds=6):
         """
@@ -186,7 +189,7 @@ class HttpCompare:
             else:
                 raise ValueError(f'Invalid mode: "{mode}", choose from: getparam, header, cookie')
 
-            match, reason, reflection = self.compare(new_url, headers=headers, cookies=cookies)
+            match, reason, reflection, subject_response = self.compare(new_url, headers=headers, cookies=cookies)
 
             # a nonsense header "caused" a difference, we need to abort
             if match == False:
