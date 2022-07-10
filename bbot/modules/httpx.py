@@ -20,14 +20,13 @@ class httpx(BaseModule):
         {
             "name": "Download httpx",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/httpx/releases/download/v${BBOT_MODULES_HTTPX_VERSION}/httpx_${BBOT_MODULES_HTTPX_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/httpx/releases/download/v{BBOT_MODULES_HTTPX_VERSION}/httpx_{BBOT_MODULES_HTTPX_VERSION}_linux_amd64.zip",
                 "include": "httpx",
-                "dest": "${BBOT_TOOLS}",
+                "dest": "{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }
     ]
-    in_scope_only = True
 
     def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
@@ -37,7 +36,7 @@ class httpx(BaseModule):
     def filter_event(self, event):
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
-        if in_scope_only and not self.scan.target.in_scope(event):
+        if in_scope_only and not self.scan.in_scope(event):
             return False
         # reject base URLs to avoid visiting a resource twice
         # note: speculate makes open ports from

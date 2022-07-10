@@ -4,7 +4,7 @@ from .base import BaseModule
 class crobat(BaseModule):
     """
     A typical free API-based subdomain enumeration module
-    Inherited by several other modules including sublist3r, dnsdumpster, and dnsgrep
+    Inherited by several other modules including sublist3r, dnsdumpster, etc.
     """
 
     flags = ["subdomain-enum", "passive"]
@@ -24,7 +24,8 @@ class crobat(BaseModule):
             query = str(event.data)
             valid = True
         else:
-            if event not in self.scan.target:
+            # out-of-scope hosts that resolve to in-scope IPs
+            if not self.scan.in_scope(event):
                 valid = True
             query = self.helpers.parent_domain(event.data)
         if valid and not self.already_processed(query):
@@ -54,7 +55,7 @@ class crobat(BaseModule):
         if results:
             for hostname in results:
                 if not hostname == event:
-                    self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in_scope" not in e.tags)
+                    self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in-scope" not in e.tags)
                 else:
                     self.debug(f"Excluding self: {hostname}")
 

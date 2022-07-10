@@ -1,16 +1,12 @@
-import logging
 import argparse
 from pathlib import Path
-from datetime import datetime
 from omegaconf import OmegaConf
 from contextlib import suppress
 
 from ...modules import output
 from ..errors import ArgumentError
-from ..helpers.misc import chain_lists
 from ...modules import modules_preloaded
-
-log = logging.getLogger("bbot.core.configurator.args")
+from ..helpers.misc import chain_lists, make_date
 
 flag_choices = set()
 for m, c in modules_preloaded.items():
@@ -29,6 +25,8 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.modules = chain_lists(ret.modules)
         ret.output_modules = chain_lists(ret.output_modules)
         ret.targets = chain_lists(ret.targets, try_files=True, msg="Reading targets from file: {filename}")
+        ret.whitelist = chain_lists(ret.whitelist, try_files=True, msg="Reading whitelist from file: {filename}")
+        ret.blacklist = chain_lists(ret.blacklist, try_files=True, msg="Reading blacklist from file: {filename}")
         ret.flags = chain_lists(ret.flags)
         for m in ret.modules:
             if m not in modules_preloaded and not self._dummy:
@@ -48,8 +46,7 @@ class BBOTArgumentParser(argparse.ArgumentParser):
                     ret.output_modules.append(om_modname)
             output_path = Path(ret.output_all).resolve()
             if output_path.is_dir():
-                date = datetime.now().isoformat().replace(":", "_")
-                ret.output_all = output_path / f"bbot_{date}"
+                ret.output_all = output_path / f"bbot_{make_date()}"
         return ret
 
 
@@ -63,7 +60,16 @@ class DummyArgumentParser(BBOTArgumentParser):
 parser = BBOTArgumentParser(description="Bighuge BLS OSINT Tool")
 dummy_parser = DummyArgumentParser(description="Bighuge BLS OSINT Tool")
 for p in (parser, dummy_parser):
-    p.add_argument("-t", "--targets", nargs="+", default=[], help="Scan target")
+    target = p.add_argument_group(title="Target")
+    target.add_argument("-t", "--targets", nargs="+", default=[], help="Targets to seed the scan")
+    target.add_argument(
+        "-w",
+        "--whitelist",
+        nargs="+",
+        default=[],
+        help="What's considered in-scope (by default it's the same as --targets)",
+    )
+    target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
     p.add_argument(
         "-m",
         "--modules",

@@ -32,7 +32,7 @@ class ScanManager:
         """
         self.queue_event(self.scan.root_event)
         for event in self.scan.target.events:
-            self.scan.info(f"Target: {event}")
+            self.scan.verbose(f"Target: {event}")
             self.emit_event(event)
         # force submit batches
         for mod in self.scan.modules.values():
@@ -50,54 +50,61 @@ class ScanManager:
             event = self.scan.make_event(*args, **kwargs)
             log.debug(f'module "{event.module}" raised {event}')
 
-            if "blacklisted" in event.tags:
-                log.debug(f"Omitting blacklisted event: {event}")
+            if event._dummy:
+                log.warning(f"Cannot emit dummy event: {event}")
                 return
 
-            if event == event.source:
-                log.debug("Omitting event with self as source")
+            if event == event.get_source():
+                log.debug(f"Omitting event with self as source: {event}")
                 return
-
-            # accept the event right away if there's no abort condition
-            # if there's an abort condition, we want to wait until
-            # it's been properly tagged and the abort_if callback has run
-            if abort_if is None:
-                if not self.accept_event(event):
-                    return
 
             # DNS resolution
-            dns_children, dns_tags, event_in_scope = self.scan.helpers.dns.resolve_event(event)
-            target = getattr(self.scan, "target", None)
-            if target and not event_in_scope:
-                event_in_scope = event_in_scope | target.in_scope(event)
+            dns_children, dns_tags, event_whitelisted_dns, event_blacklisted_dns = self.scan.helpers.dns.resolve_event(
+                event
+            )
+            event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
+            event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
             if event.type in ("DNS_NAME", "IP_ADDRESS"):
                 event.tags.update(dns_tags)
+            if event_blacklisted:
+                event.tags.add("blacklisted")
+
+            # Blacklist purging
+            emit_event = True
+            if "blacklisted" in event.tags:
+                reason = "event host"
+                if event_blacklisted_dns:
+                    reason = "DNS associations"
+                log.verbose(f"Omitting blacklisted event due to {reason}: {event}")
+                emit_event = False
 
             # Scope shepherding
-            if event_in_scope and target is not None and not event._dummy:
-                log.debug(f"Making {event} in-scope")
-                event.make_in_scope()
-            elif event.host and not event_in_scope:
-                if event.scope_distance > self.scan.scope_report_distance:
-                    log.debug(
-                        f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                    )
-                    event.make_internal()
-            elif not event.host:
+            event_is_duplicate = self.is_duplicate_event(event)
+            if event.host:
+                if event_whitelisted and not event_is_duplicate:
+                    log.debug(f"Making {event} in-scope")
+                    event.make_in_scope()
+                else:
+                    if event.scope_distance > self.scan.scope_report_distance:
+                        log.debug(
+                            f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                        )
+                        event.make_internal()
+            else:
                 log.debug(f"Making {event} in-scope because it does not have identifying scope information")
                 event.make_in_scope()
 
-            # now that the event is tagged, accept it if we didn't already
-            if abort_if is not None:
-                if abort_if(event):
-                    log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
-                    return
+            # now that the event is properly tagged, we can finally make decisions about it
+            if callable(abort_if) and abort_if(event):
+                log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
+                return
 
-                if not self.accept_event(event):
-                    return
+            if not self.accept_event(event):
+                return
 
             # queue the event before emitting its DNS children
-            self.queue_event(event)
+            if emit_event:
+                self.queue_event(event)
 
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
@@ -113,6 +120,8 @@ class ScanManager:
                 source_module = self.scan.helpers.dns._get_dummy_module("host")
                 source_module._type = "internal"
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
+                if "target" in event.tags:
+                    source_event.tags.add("target")
                 if not str(event.module) == "speculate":
                     self.emit_event(source_event)
             if self.dns_resolution and emit_children:
@@ -136,19 +145,33 @@ class ScanManager:
 
             log.debug(traceback.format_exc())
 
-    def accept_event(self, event):
-        if getattr(event.module, "_type", "") == "DNS":
-            # allow duplicate events from dns resolution as long as their source event is unique
-            event_hash = hash((event, str(event.module), event.source_id))
-        else:
-            event_hash = hash((event, str(event.module)))
+    def hash_event(self, event):
+        """
+        Hash an event for duplicate detection
 
+        This is necessary because duplicate events from certain sources (e.g. DNS)
+            need to be allowed in order to preserve their relationship trail
+        """
+        module_type = getattr(event.module, "_type", "")
+        if module_type == "DNS":
+            # allow duplicate events from dns resolution as long as their source event is unique
+            return hash((event, str(event.module), event.source_id))
+        else:
+            return hash((event, str(event.module)))
+
+    def is_duplicate_event(self, event, add=False):
+        event_hash = self.hash_event(event)
+        suppress_dupes = getattr(event.module, "suppress_dupes", True)
         with self.events_accepted_lock:
-            duplicate_event = getattr(event.module, "suppress_dupes", True) and event_hash in self.events_accepted
-            if duplicate_event and not event._force_output == True:
-                log.debug(f"{event.module}: not raising duplicate event {event}")
-                return False
-            self.events_accepted.add(event_hash)
+            duplicate_event = suppress_dupes and event_hash in self.events_accepted
+            if add:
+                self.events_accepted.add(event_hash)
+        return duplicate_event and not event._force_output
+
+    def accept_event(self, event):
+        if self.is_duplicate_event(event, add=True):
+            log.debug(f"{event.module}: not raising duplicate event {event}")
+            return False
         return True
 
     def catch(self, callback, *args, **kwargs):

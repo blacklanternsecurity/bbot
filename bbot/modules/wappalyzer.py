@@ -25,9 +25,10 @@ class wappalyzer(BaseModule):
 
         for i in split_headers:
             if len(i) > 0 and ":" in i:
-                header_dict[i.split(":")[0]] = i.split(":")[1].lstrip()
+                header_dict[i.split(":")[0].lower()] = i.split(":")[1].lstrip()
 
-        w = WebPage(event.data["url"], html=event.data["response-body"], headers=header_dict)
+        w = WebPage(url=event.data["url"], html=event.data.get("response-body", ""), headers=header_dict)
         res_set = wappalyzer.analyze(w)
         for res in res_set:
-            self.emit_event(f"[{event.data['url']}] {res}", "TECHNOLOGY", event, tags=["web"])
+
+            self.emit_event({"technology": res.lower(), "url": event.data["url"]}, "TECHNOLOGY", event)

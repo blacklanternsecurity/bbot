@@ -8,33 +8,35 @@
 ## Installation
 ~~~bash
 git clone git@github.com:blacklanternsecurity/bbot.git && cd bbot
-poetry install
+poetry shell
+
+bbot --help
 ~~~
 
 ## Examples
 ~~~bash
 # subdomain enumeration
-poetry run bbot --flags subdomain-enum --targets evilcorp.com
+bbot --flags subdomain-enum --targets evilcorp.com
 
 # custom modules
-poetry run bbot --modules naabu httpx nuclei --targets evilcorp.com 1.2.3.4/28 4.3.2.1
+bbot --modules naabu httpx nuclei --targets evilcorp.com 1.2.3.4/28 4.3.2.1
 
 # agent mode
-poetry run bbot --agent-mode
+bbot --agent-mode
 ~~~
 
 ## Output to Neo4j
 ~~~bash
 docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
 
-poetry run bbot -f subdomain-enum -t evilcorp.com -o human neo4j
+bbot -f subdomain-enum -t evilcorp.com -o human neo4j
 ~~~
 ![neo4j](https://user-images.githubusercontent.com/20261699/172188763-fcbbcc57-5410-46f2-a3ff-8c3d40b9a025.png)
 
 ## Tests
 ~~~bash
 # run tests
-poetry run bbot/test/run_tests.sh
+bbot/test/run_tests.sh
 
 # format with black
 black .

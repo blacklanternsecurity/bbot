@@ -4,9 +4,12 @@ import subprocess
 from .base import BaseModule
 
 
+technology_map = {}
+
+
 class nuclei(BaseModule):
 
-    watched_events = ["URL"]
+    watched_events = ["URL", "TECHNOLOGY"]
     produced_events = ["VULNERABILITY"]
     flags = ["active"]
     max_threads = 5
@@ -21,6 +24,8 @@ class nuclei(BaseModule):
         "itoken": "",
         "ratelimit": 150,
         "concurrency": 25,
+        "mode": "technology",
+        "etags": "intrusive",
     }
     options_desc = {
         "version": "nuclei version",
@@ -32,14 +37,16 @@ class nuclei(BaseModule):
         "itoken": "authentication token for self-hosted interactsh server",
         "ratelimit": "maximum number of requests to send per second (default 150)",
         "concurrency": "maximum number of templates to be executed in parallel (default 25)",
+        "mode": "technology | severe | manual. Technology: Only activate based on technology events that match nuclei tags. On by default. Severe: Only critical and high severity templates without intrusive. Manual: Fully manual settings",
+        "etags": "tags to exclude from the scan",
     }
     deps_ansible = [
         {
             "name": "Download nuclei",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v${BBOT_MODULES_NUCLEI_VERSION}/nuclei_${BBOT_MODULES_NUCLEI_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v{BBOT_MODULES_NUCLEI_VERSION}/nuclei_{BBOT_MODULES_NUCLEI_VERSION}_linux_amd64.zip",
                 "include": "nuclei",
-                "dest": "${BBOT_TOOLS}",
+                "dest": "{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }
@@ -50,41 +57,107 @@ class nuclei(BaseModule):
 
         self.templates = self.config.get("templates")
         self.tags = self.config.get("tags")
+        self.etags = self.config.get("etags")
         self.severity = self.config.get("severity")
         self.iserver = self.config.get("iserver")
         self.itoken = self.config.get("itoken")
+
+        self.template_stats = self.helpers.download(
+            "https://raw.githubusercontent.com/projectdiscovery/nuclei-templates/master/TEMPLATES-STATS.json",
+            cache_hrs=72,
+        )
+        if not self.template_stats:
+            self.warning(f"Failed to download nuclei template stats.")
+            if self.config.get("mode ") == "technology":
+                self.warning("Can't run with technology_mode set to true without template tags JSON")
+                return False
+        else:
+            with open(self.template_stats) as f:
+                self.template_stats_json = json.load(f)
+                try:
+                    self.tag_list = [e.get("name", "") for e in self.template_stats_json.get("tags", [])]
+                except Exception as e:
+                    self.warning(f"Failed to parse template stats: {e}")
+                    return False
+
+        if self.config.get("mode") not in ("technology", "severe", "manual"):
+            self.warning(f"Unable to intialize nuclei: invalid mode selected: [{self.config.get('mode')}]")
+            return False
+
+        if self.config.get("mode") == "technology":
+            self.info(
+                "Running nuclei in TECHNOLOGY mode. Scans will only be performed against detected TECHNOLOGY events that match nuclei template tags"
+            )
+            if "wappalyzer" not in self.scan.modules:
+                self.hugewarning(
+                    "You are running nuclei in technology mode without wappalyzer to emit technologies. It will never execute unless another module is issuing technologies"
+                )
+
+        if self.config.get("mode") == "severe":
+            self.info(
+                "Running nuclei in SEVERE mode. Only critical and high severity templates will be used. Tag setting will be IGNORED."
+            )
+            self.severity = "critical,high"
+            self.tags = ""
+
+        if self.config.get("mode") == "manual":
+            self.info(
+                "Running nuclei in MANUAL mode. Settings will be passed directly into nuclei with no modification"
+            )
         return True
 
     def handle_batch(self, *events):
-        """
-        {
-          "template": "technologies/tech-detect.yaml",
-          "template-url": "https://github.com/projectdiscovery/nuclei-templates/blob/master/technologies/tech-detect.yaml",
-          "template-id": "tech-detect",
-          "info": {
-            "name": "Wappalyzer Technology Detection",
-            "author": [
-              "hakluke"
-            ],
-            "tags": [
-              "tech"
-            ],
-            "reference": null,
-            "severity": "info"
-          },
-          "matcher-name": "google-font-api",
-          "type": "http",
-          "host": "https://www.blacklanternsecurity.com",
-          "matched-at": "https://www.blacklanternsecurity.com",
-          "ip": "185.199.108.153",
-          "timestamp": "2022-03-11T09:54:26.562247694-05:00",
-          "curl-command": "curl -X 'GET' -d '' -H 'Accept: */*' -H 'Accept-Language: en' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36' 'https://www.blacklanternsecurity.com'",
-          "matcher-status": true,
-          "matched-line": null
-        }
-        """
 
-        _input = [str(e.data) for e in events]
+        if self.config.get("mode") == "technology":
+
+            tags_to_scan = {}
+            for e in events:
+                if e.type == "TECHNOLOGY":
+                    if e.data.get("technology", "") in self.tag_list:
+                        tag = e.data.get("technology", "")
+                        if tag not in tags_to_scan.keys():
+                            tags_to_scan[tag] = [e]
+                        else:
+                            tags_to_scan[tag].append(e)
+
+            self.debug(f"finished processing this batch's tags with {str(len(tags_to_scan.keys()))} total tags")
+
+            for t in tags_to_scan.keys():
+                nuclei_input = [e.data["url"] for e in tags_to_scan[t]]
+                taglist = self.tags.split(",")
+                taglist.append(t)
+                override_tags = ",".join(taglist).lstrip(",")
+                self.verbose(f"Running nuclei against {str(len(nuclei_input))} host(s) with the {t} tag")
+                for severity, template, host, name in self.execute_nuclei(nuclei_input, override_tags=override_tags):
+                    source_event = self.correlate_event(events, host)
+                    if source_event == None:
+                        continue
+                    self.emit_event(
+                        {"severity": severity, "host": host, "template": template, "name": name},
+                        "VULNERABILITY",
+                        source_event,
+                    )
+
+        else:
+            nuclei_input = [str(e.data) for e in events]
+            for severity, template, host, name in self.execute_nuclei(nuclei_input):
+                source_event = self.correlate_event(events, host)
+                if source_event == None:
+                    continue
+                self.emit_event(
+                    {"severity": severity, "host": host, "template": template, "name": name},
+                    "VULNERABILITY",
+                    source_event,
+                )
+
+    def correlate_event(self, events, host):
+        for event in events:
+            if host in event:
+                return event
+        self.hugewarning("Failed to correlate nuclei result with event")
+
+    def execute_nuclei(self, nuclei_input, override_tags=""):
+
         command = [
             "nuclei",
             "-silent",
@@ -97,30 +170,26 @@ class nuclei(BaseModule):
             str(self.config.get("concurrency")),
         ]
 
-        if self.severity:
-            command.append("-severity")
-            command.append(self.severity)
+        for cli_option in ("severity", "templates", "iserver", "itoken", "etags"):
+            option = getattr(self, cli_option)
 
-        if self.templates:
-            command.append("-templates")
-            command.append(self.templates)
+            if option:
+                command.append(f"-{cli_option}")
+                command.append(option)
 
-        if self.iserver:
-            command.append("-iserver")
-            command.append(self.iserver)
-
-        if self.itoken:
-            command.append("-itoken")
-            command.append(self.itoken)
-
-        if self.tags:
-            command.append("-tags")
-            command.append(self.tags)
+        if override_tags:
+            command.append(f"-tags")
+            command.append(override_tags)
+        else:
+            setup_tags = getattr(self, "tags")
+            if setup_tags:
+                command.append(f"-tags")
+                command.append(setup_tags)
 
         if self.config.get("disable_interactsh") == True:
             command.append("-no-interactsh")
 
-        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL):
+        for line in self.helpers.run_live(command, input=nuclei_input, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:
@@ -131,11 +200,5 @@ class nuclei(BaseModule):
             severity = j.get("info", {}).get("severity", "").upper()
             host = j.get("host", "")
 
-            source_event = None
             if template and name and severity and host:
-                for event in events:
-                    if host in event:
-                        source_event = event
-                        break
-
-                self.emit_event(f"[{severity}] {template}:{name}", "VULNERABILITY", source_event)
+                yield (severity, template, host, name)

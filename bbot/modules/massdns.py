@@ -21,20 +21,20 @@ class massdns(BaseModule):
             "name": "Download massdns source code",
             "git": {
                 "repo": "https://github.com/blechschmidt/massdns.git",
-                "dest": "${BBOT_TEMP}/massdns",
+                "dest": "{BBOT_TEMP}/massdns",
                 "single_branch": True,
                 "version": "master",
             },
         },
         {
             "name": "Build massdns",
-            "command": {"chdir": "${BBOT_TEMP}/massdns", "cmd": "make", "creates": "${BBOT_TEMP}/massdns/bin/massdns"},
+            "command": {"chdir": "{BBOT_TEMP}/massdns", "cmd": "make", "creates": "{BBOT_TEMP}/massdns/bin/massdns"},
         },
         {
             "name": "Install massdns",
             "command": {
-                "cmd": 'cp "${BBOT_TEMP}/massdns/bin/massdns" "${BBOT_TOOLS}/"',
-                "creates": "${BBOT_TOOLS}/massdns",
+                "cmd": 'cp "{BBOT_TEMP}/massdns/bin/massdns" "{BBOT_TOOLS}/"',
+                "creates": "{BBOT_TOOLS}/massdns",
             },
         },
     ]
@@ -60,9 +60,8 @@ class massdns(BaseModule):
         if "target" in event.tags:
             return True
         # for DNS names that resolve to in-scope iPs
-        elif event not in self.scan.target:
-            if hash(self.helpers.parent_domain(event.data)) not in self.processed:
-                return True
+        elif hash(self.helpers.parent_domain(event.data)) not in self.processed:
+            return True
         return False
 
     def handle_event(self, event):
