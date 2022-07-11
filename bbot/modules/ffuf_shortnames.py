@@ -15,6 +15,8 @@ class ffuf_shortnames(ffuf):
         "version": "1.5.0",
     }
 
+    in_scope_only = True
+
     deps_ansible = [
         {
             "name": "Download ffuf",

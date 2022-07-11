@@ -163,6 +163,9 @@ def events(scan):
         bbot_events.emoji,
     ]
 
+    for e in bbot_events.all:
+        e.make_in_scope()
+
     return bbot_events
 
 

@@ -613,6 +613,7 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
 
     base_module = BaseModule(scan)
     localhost2 = scan.make_event("127.0.0.2", source=events.subdomain)
+    localhost2.make_in_scope()
     # base cases
     assert base_module._filter_event("FINISHED") == True
     assert base_module._filter_event("WAT") == False
@@ -631,30 +632,31 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
     assert base_module._filter_event(localhost2) == True
     base_module.target_only = False
     # in scope only
+    localhost3 = scan.make_event("127.0.0.2", source=events.subdomain)
     base_module.in_scope_only = True
-    localhost2.tags.remove("target")
     assert base_module._filter_event(events.localhost) == True
-    assert base_module._filter_event(localhost2) == False
+    assert base_module._filter_event(localhost3) == False
     base_module.in_scope_only = False
     # scope distance
-    base_module.max_scope_distance = 3
+    base_module.scope_distance_modifier = 0
     localhost2._scope_distance = 0
     assert base_module._filter_event(localhost2) == True
-    localhost2._scope_distance = 3
+    localhost2._scope_distance = 1
     assert base_module._filter_event(localhost2) == True
-    localhost2._scope_distance = 4
+    localhost2._scope_distance = 2
     assert base_module._filter_event(localhost2) == False
     localhost2._scope_distance = -1
     assert base_module._filter_event(localhost2) == False
-    base_module.max_scope_distance = -1
+    base_module.scope_distance_modifier = -1
     # special case for IPs and ranges
     base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
     ip_range = scan.make_event("127.0.0.0/24", dummy=True)
-    localhost3 = scan.make_event("127.0.0.1", source=ip_range)
-    localhost3.module = "plumbus"
-    assert base_module._filter_event(localhost3) == True
-    localhost3.module = "speculate"
-    assert base_module._filter_event(localhost3) == False
+    localhost4 = scan.make_event("127.0.0.1", source=ip_range)
+    localhost4.make_in_scope()
+    localhost4.module = "plumbus"
+    assert base_module._filter_event(localhost4) == True
+    localhost4.module = "speculate"
+    assert base_module._filter_event(localhost4) == False
 
     from bbot.scanner.scanner import Scanner
 
@@ -672,6 +674,9 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
             ), f'module "{module_name}" must have either "active" or "passive" flag'
 
         # attribute checks
+        assert module.watched_events, f"{module_name}.watched_events must not be blank"
+        if not module._type == "output":
+            assert module.produced_events, f"{module_name}.produced_events must not be blank"
         assert type(module.watched_events) == list, f"{module_name}.watched_events must be of type list"
         assert type(module.produced_events) == list, f"{module_name}.produced_events must be of type list"
         assert all(

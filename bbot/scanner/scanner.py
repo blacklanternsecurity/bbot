@@ -40,6 +40,7 @@ class Scanner:
             output_modules = ["human"]
         if config is None:
             config = OmegaConf.create({})
+        self.config = config
 
         # add modules by flags
         for m, c in modules_preloaded.items():
@@ -50,7 +51,7 @@ class Scanner:
 
         self.modules = OrderedDict({})
         self._scan_modules = modules
-        self._internal_modules = self._internal_modules()
+        self._internal_modules = list(self._internal_modules())
         self._output_modules = output_modules
         self._modules_loaded = False
 
@@ -58,7 +59,6 @@ class Scanner:
             self.id = str(scan_id)
         else:
             self.id = str(uuid4())
-        self.config = config
         self._status = "NOT_STARTED"
 
         if not modules:
@@ -106,7 +106,7 @@ class Scanner:
         # scope distance
         self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 1)))
         self.dns_search_distance = max(
-            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 4))
+            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 3))
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
 
@@ -381,9 +381,12 @@ class Scanner:
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
 
     def _internal_modules(self):
-        from bbot.modules.internal import modules_preloaded
-
-        return list(modules_preloaded)
+        speculate = self.config.get("speculate", True)
+        excavate = self.config.get("excavate", True)
+        if speculate:
+            yield "speculate"
+        if excavate:
+            yield "excavate"
 
     def load_modules(self):
 
