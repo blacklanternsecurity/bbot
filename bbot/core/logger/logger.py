@@ -182,7 +182,9 @@ def log_listener_setup(logging_queue):
     stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
     stdout_handler.setFormatter(logging.Formatter("%(message)s"))
 
-    handlers = [stdout_handler, stderr_handler, main_handler, debug_handler]
+    handlers = [stdout_handler, stderr_handler, main_handler]
+    if config.get("debug", False):
+        handlers.append(debug_handler)
 
     log_listener = QueueListener(logging_queue, *handlers)
     log_listener.start()

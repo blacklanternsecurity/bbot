@@ -9,6 +9,7 @@ class BaseOutputModule(BaseModule):
     accept_dupes = True
     _type = "output"
     emit_graph_trail = True
+    scope_distance_modifier = None
 
     def _filter_event(self, e):
         # special "FINISHED" event

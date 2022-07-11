@@ -30,13 +30,24 @@ class BaseModule:
     accept_dupes = False
     # Whether to block outgoing duplicate events
     suppress_dupes = True
-    # Only accept explicitly in-scope events
-    in_scope_only = False
-    # Scope distance - only accept events that are this close to the scope
-    # -1 == accept everything, 0 == in scope only, 1 == up to one hop away, 2 == up to 2 hops, etc.
-    max_scope_distance = -1
+
+    # Scope distance - accept/deny events based on scope distance
+    # None == accept all events
+    # 2 == accept events up to and including the scan's configured search distance plus two
+    # 1 == accept events up to and including the scan's configured search distance plus one
+    # 0 == accept events up to and including the scan's configured search distance
+    # -1 == accept events up to and including the scan's configured search distance minus one
+    #       (this is the default setting because when the scan's configured search distance == 1
+    #       [the default], then this is equivalent to in_scope_only)
+    # -2 == accept events up to and including the scan's configured search distance minus two
+    scope_distance_modifier = -1
     # Only accept the initial target event(s)
     target_only = False
+    # Only accept explicitly in-scope events (scope distance == 0)
+    # Use this options if your module is aggressive or if you don't want it to scale with
+    #   the scan's search distance
+    in_scope_only = False
+
     # Options, e.g. {"api_key": ""}
     options = {}
     # Options description, e.g. {"api_key": "API Key"}
@@ -300,30 +311,11 @@ class BaseModule:
         # exclude non-watched types
         if not any(t in self.get_watched_events() for t in ("*", e.type)):
             return False
-        # optionally exclude non-targets
-        if self.target_only and "target" not in e.tags:
-            self.debug(f"{e} did not meet target_only filter criteria")
+        # built-in filtering based on scope distance, etc.
+        acceptable, reason = self.event_acceptable(e)
+        if not acceptable:
+            self.debug(f"Not accepting {e} because {reason}")
             return False
-        # optionally exclude out-of-scope targets
-        if self.in_scope_only and not self.scan.in_scope(e):
-            self.debug(f"{e} did not meet in_scope_only filter criteria")
-            return False
-        if self.max_scope_distance > -1:
-            if e.scope_distance < 0 or e.scope_distance > self.max_scope_distance:
-                self.debug(
-                    f"Not accepting {e} because its scope distance ({e.scope_distance}) is not compliant with the module's max_scope_distance ({self.max_scope_distance})"
-                )
-                return False
-        # special case for IPs that originated from a CIDR
-        # if the event is an IP address and came from the speculate module
-        source_is_range = getattr(e.source, "type", "") == "IP_RANGE"
-        if source_is_range and e.type == "IP_ADDRESS" and str(e.module) == "speculate" and self.name != "speculate":
-            # and the current module listens for both ranges and CIDRs
-            if all([x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")]):
-                self.debug(f"Not accepting {e} because module consumes IP ranges directly")
-                # then skip the event.
-                # this helps avoid double-portscanning both an individual IP and its parent CIDR.
-                return False
         # custom filtering
         try:
             if not self.filter_event(e):
@@ -335,6 +327,46 @@ class BaseModule:
             self.error(f"Error in filter_event(): {e}")
             self.debug(traceback.format_exc())
         return True
+
+    @property
+    def max_scope_distance(self):
+        if self.in_scope_only or self.target_only:
+            return 0
+        return self.scan.scope_search_distance + self.scope_distance_modifier
+
+    def event_acceptable(self, e):
+        """
+        Return the max scope distance for an event that this module is qualified to accept
+        """
+        acceptable = True
+        reason = ""
+        if self.target_only:
+            if "target" not in e.tags:
+                acceptable = False
+                reason = "it did not meet target_only filter criteria"
+        if self.in_scope_only:
+            if e.scope_distance > 0:
+                acceptable = False
+                reason = "it did not meet in_scope_only filter criteria"
+        if self.scope_distance_modifier is not None:
+            if e.scope_distance < 0:
+                acceptable = False
+                reason = f"its scope_distance ({e.scope_distance}) is invalid."
+            elif e.scope_distance > self.max_scope_distance:
+                acceptable = False
+                reason = f"its scope_distance ({e.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}"
+
+        # if the event is an IP address that came from a CIDR
+        source_is_range = getattr(e.source, "type", "") == "IP_RANGE"
+        if source_is_range and e.type == "IP_ADDRESS" and str(e.module) == "speculate" and self.name != "speculate":
+            # and the current module listens for both ranges and CIDRs
+            if all([x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")]):
+                # then skip the event.
+                # this helps avoid double-portscanning both an individual IP and its parent CIDR.
+                acceptable = False
+                reason = "module consumes IP ranges directly"
+
+        return acceptable, reason
 
     def _cleanup(self):
         for callback in [self.cleanup] + self.cleanup_callbacks:
