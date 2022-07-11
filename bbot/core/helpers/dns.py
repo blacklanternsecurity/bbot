@@ -347,7 +347,8 @@ class DNSHelper:
         self.debug(f"Resolving {query} with kwargs={kwargs}")
         results = []
         parent = self.parent_helper.parent_domain(query)
-        error_count = self._errors.get(hash(parent), 0)
+        parent_hash = hash(parent)
+        error_count = self._errors.get(parent_hash, 0)
         if error_count >= self.abort_threshold:
             log.verbose(
                 f'Aborting query "{query}" because failed queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
@@ -355,13 +356,16 @@ class DNSHelper:
             return results
         try:
             results = list(self._catch(self.resolver.resolve, query, **kwargs))
+            with self._error_lock:
+                if parent_hash in self._errors:
+                    self._errors[parent_hash] = 0
         except (dns.resolver.NoNameservers, dns.exception.Timeout, dns.resolver.LifetimeTimeout):
             with self._error_lock:
                 try:
-                    self._errors[hash(parent)] += 1
+                    self._errors[parent_hash] += 1
                 except KeyError:
-                    self._errors[hash(parent)] = 1
-                self.debug(f'No nameservers (SERVFAIL) for query "{query}" ({self._errors[hash(parent)]:,} so far)')
+                    self._errors[parent_hash] = 1
+                self.debug(f'No nameservers (SERVFAIL) for query "{query}" ({self._errors[parent_hash]:,} so far)')
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results
 

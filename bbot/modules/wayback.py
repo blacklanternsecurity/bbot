@@ -15,18 +15,9 @@ class wayback(crobat):
         return super().setup()
 
     def handle_event(self, event):
-        if "target" in event.tags:
-            query = str(event.data).lower()
-        else:
-            query = self.helpers.parent_domain(event.data).lower()
-
-        if self.already_processed(query):
-            self.debug(f'Already processed "{query}", skipping')
-            return
-        self.processed.add(hash(query))
-
+        query = self.make_query(event)
         for result in self.query(query):
-            self.emit_event(result, "URL_UNVERIFIED", event)
+            self.emit_event(result, "URL_UNVERIFIED", event, abort_if=self.abort_if)
 
     def query(self, query):
         waybackurl = f"http://web.archive.org/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"

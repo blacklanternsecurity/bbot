@@ -16,6 +16,8 @@ class wappalyzer(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["TECHNOLOGY"]
     deps_pip = ["python-Wappalyzer"]
+    # accept all events regardless of scope distance
+    scope_distance_modifier = None
 
     def handle_event(self, event):
 
