@@ -440,13 +440,11 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     ipv6_netloc = helpers.make_netloc("dead::beef", "443")
     assert ipv6_netloc == "[dead::beef]:443"
 
-    assert helpers.search_dict_by_key("asdf", {"asdf": "fdsa"}) == "fdsa"
-    assert helpers.search_dict_by_key("asdf", {"wat": {"asdf": "fdsa"}}) == "fdsa"
-    assert helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"asdf": "fdsa"}]}]) == "fdsa"
-    with pytest.raises(KeyError, match=".*asdf.*"):
-        helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"fdsa": "asdf"}]}])
-    with pytest.raises(KeyError, match=".*asdf.*"):
-        helpers.search_dict_by_key("asdf", "asdf")
+    assert list(helpers.search_dict_by_key("asdf", {"asdf": "fdsa", 4: [{"asdf": 5}]})) == ["fdsa", 5]
+    assert list(helpers.search_dict_by_key("asdf", {"wat": {"asdf": "fdsa"}})) == ["fdsa"]
+    assert list(helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"asdf": "fdsa"}]}])) == ["fdsa"]
+    assert not list(helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"fdsa": "asdf"}]}]))
+    assert not list(helpers.search_dict_by_key("asdf", "asdf"))
 
     replaced = helpers.search_format_dict({"asdf": [{"wat": {"here": "{replaceme}!"}}, {500: True}]}, replaceme="asdf")
     assert replaced["asdf"][1][500] == True

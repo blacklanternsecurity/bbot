@@ -1,18 +1,14 @@
 import re
 
-from .viewdns import viewdns
+from .emailformat import emailformat
 
 
-class skymem(viewdns):
+class skymem(emailformat):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
     flags = ["passive"]
-    in_scope_only = False
 
     base_url = "https://www.skymem.info"
-
-    def extract_emails(self, content):
-        yield from self.helpers.regexes.email_regex.findall(content)
 
     def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)

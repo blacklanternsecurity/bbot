@@ -10,6 +10,7 @@
 pip install poetry
 
 git clone git@github.com:blacklanternsecurity/bbot.git && cd bbot
+poetry install
 poetry shell
 
 bbot --help
