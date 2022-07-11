@@ -20,16 +20,13 @@ class viewdns(BaseModule):
 
     def filter_event(self, event):
         _, domain = self.helpers.split_domain(event.data)
-        if hash(domain) not in self.processed:
-            return True
-        return False
+        if hash(domain) in self.processed:
+            return False
+        self.processed.add(hash(domain))
+        return True
 
     def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
-        if hash(query) in self.processed:
-            self.debug(f'Already processed "{query}", skipping')
-            return
-        self.processed.add(hash(query))
         for domain, _ in self.query(query):
             self.emit_event(domain, "DNS_NAME", source=event)
             # todo: registrar?

@@ -17,10 +17,6 @@ class azure_tenant(viewdns):
 
     def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
-        if hash(query) in self.processed:
-            self.debug(f'Already processed "{query}", skipping')
-            return
-        self.processed.add(hash(query))
         domains, _ = self.query(query)
         if domains:
             self.success(f'Found {len(domains):,} domains under tenant for "{query}')

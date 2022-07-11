@@ -110,9 +110,6 @@ class ScanManager:
                 self.catch(on_success_callback, event)
 
             ### Emit DNS children ###
-
-            # only emit children if the source event is less than three hops from the main scope
-            # this helps prevent runaway dns resolutions that result in junk data
             emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event

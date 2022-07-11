@@ -30,15 +30,15 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.flags = chain_lists(ret.flags)
         for m in ret.modules:
             if m not in modules_preloaded and not self._dummy:
-                raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(list(modules_preloaded))}')
+                raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(sorted(modules_preloaded))}')
         for m in ret.output_modules:
             if m not in output.modules_preloaded and not self._dummy:
                 raise ArgumentError(
-                    f'Output module "{m}" is not valid. Choose from: {",".join(list(output.modules_preloaded))}'
+                    f'Output module "{m}" is not valid. Choose from: {",".join(sorted(output.modules_preloaded))}'
                 )
         for f in ret.flags:
             if f not in flag_choices and not self._dummy:
-                raise ArgumentError(f'Flag "{f}" is not valid. Choose from: {",".join(list(flag_choices))}')
+                raise ArgumentError(f'Flag "{f}" is not valid. Choose from: {",".join(sorted(flag_choices))}')
         # -oA
         if ret.output_all:
             for om_modname in ("human", "csv", "json"):
@@ -75,21 +75,21 @@ for p in (parser, dummy_parser):
         "--modules",
         nargs="+",
         default=[],
-        help=f'Modules to enable. Choices: {",".join(list(modules_preloaded))}',
+        help=f'Modules to enable. Choices: {",".join(sorted(modules_preloaded))}',
     )
     p.add_argument(
         "-f",
         "--flags",
         nargs="+",
         default=[],
-        help=f'Enable modules by flag. Choices: {",".join(list(flag_choices))}',
+        help=f'Enable modules by flag. Choices: {",".join(sorted(flag_choices))}',
     )
     p.add_argument(
         "-o",
         "--output-modules",
         nargs="+",
         default=["human"],
-        help=f'Output module(s). Choices: {",".join(list(output.modules_preloaded))}',
+        help=f'Output module(s). Choices: {",".join(sorted(output.modules_preloaded))}',
         metavar="MODULES",
     )
     p.add_argument(

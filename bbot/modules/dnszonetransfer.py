@@ -11,7 +11,6 @@ class dnszonetransfer(BaseModule):
     produced_events = ["DNS_NAME"]
     max_threads = 5
     suppress_dupes = False
-    in_scope_only = True
 
     def filter_event(self, event):
         if any([x in event.tags for x in ("ns_record", "soa_record")]):
