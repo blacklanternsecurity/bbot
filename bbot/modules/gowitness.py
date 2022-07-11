@@ -37,7 +37,7 @@ class gowitness(BaseModule):
     ]
     # visit up to and including the scan's configured search distance
     # this is one hop further than the default
-    max_scope_distance = 0
+    scope_distance_modifier = 0
 
     def setup(self):
         self.timeout = self.config.get("timeout", 10)
