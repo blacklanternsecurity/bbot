@@ -96,12 +96,10 @@ def preload_module(module_file):
         "deps": {"pip": pip_deps, "shell": shell_deps, "apt": apt_deps, "ansible": ansible_tasks},
         "sudo": len(apt_deps) > 0,
     }
-    with suppress(KeyError):
-        if (
-            search_dict_by_key("become", ansible_tasks) == True
-            or search_dict_by_key("ansible_become", ansible_tasks) == True
-        ):
-            preloaded_data["sudo"] = True
+    if any(x == True for x in search_dict_by_key("become", ansible_tasks)) or any(
+        x == True for x in search_dict_by_key("ansible_become", ansible_tasks)
+    ):
+        preloaded_data["sudo"] = True
     return preloaded_data
 
 
