@@ -54,6 +54,7 @@ class gowitness(BaseModule):
         with suppress(Exception):
             copyfile(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
             copymode(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
+        self.command = self.construct_command()
         return True
 
     def filter_event(self, event):
@@ -63,10 +64,9 @@ class gowitness(BaseModule):
         return True
 
     def handle_batch(self, *events):
-        command = self.construct_command()
         stdin = "\n".join([str(e.data) for e in events])
-        for line in self.helpers.run_live(command, input=stdin):
-            self.warning(line)
+        for line in self.helpers.run_live(self.command, input=stdin):
+            self.debug(line)
 
     def construct_command(self):
         # base executable
