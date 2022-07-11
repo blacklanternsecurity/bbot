@@ -5,17 +5,17 @@ from .base import BaseModule
 
 class naabu(BaseModule):
 
-    watched_events = ["IP_ADDRESS", "DNS_NAME"]
+    watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active"]
     options = {
-        "version": "2.0.5",
+        "version": "2.0.7",
     }
     options_desc = {
         "version": "naabu version",
     }
     max_threads = 5
-    batch_size = 10
+    batch_size = 100
 
     deps_apt = ["libpcap-dev"]
     deps_ansible = [

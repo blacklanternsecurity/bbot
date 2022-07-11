@@ -10,7 +10,6 @@ class crobat(BaseModule):
     flags = ["subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    in_scope_only = True
 
     base_url = "https://sonar.omnisint.io"
 
@@ -19,19 +18,26 @@ class crobat(BaseModule):
         return True
 
     def filter_event(self, event):
-        valid = False
+        """
+        Accept DNS_NAMEs that are either directly targets, or indirectly
+        in scope by resolving to in-scope IPs.
+
+        This filter_event is used across many modules
+        """
+        query = self.make_query(event)
+        if self.already_processed(query):
+            return False
+        is_wildcard, _ = self.helpers.is_wildcard(query)
+        if is_wildcard:
+            return False
+        self.processed.add(hash(query))
+        return True
+
+    def make_query(self, event):
         if "target" in event.tags:
-            query = str(event.data)
-            valid = True
+            return str(event.data)
         else:
-            # out-of-scope hosts that resolve to in-scope IPs
-            if not self.scan.in_scope(event):
-                valid = True
-            query = self.helpers.parent_domain(event.data)
-        if valid and not self.already_processed(query):
-            is_wildcard, _ = self.helpers.is_wildcard(query)
-            if not is_wildcard:
-                return True
+            return self.helpers.parent_domain(event.data).lower()
 
     def already_processed(self, hostname):
         for parent in self.helpers.domain_parents(hostname, include_self=True):
@@ -39,23 +45,16 @@ class crobat(BaseModule):
                 return True
         return False
 
+    def abort_if(self, event):
+        return event.scope_distance >= self.scan.scope_search_distance
+
     def handle_event(self, event):
-        if "target" in event.tags:
-            query = str(event.data)
-        else:
-            query = self.helpers.parent_domain(event.data).lower()
-
-        if self.already_processed(query):
-            self.debug(f'Already processed "{query}", skipping')
-            return
-
-        self.processed.add(hash(query))
-
+        query = self.make_query(event)
         results = self.query(query)
         if results:
             for hostname in results:
                 if not hostname == event:
-                    self.emit_event(hostname, "DNS_NAME", event, abort_if=lambda e: "in-scope" not in e.tags)
+                    self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
                 else:
                     self.debug(f"Excluding self: {hostname}")
 

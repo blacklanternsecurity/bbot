@@ -7,6 +7,8 @@
 
 ## Installation
 ~~~bash
+pip install poetry
+
 git clone git@github.com:blacklanternsecurity/bbot.git && cd bbot
 poetry shell
 

@@ -1,10 +1,10 @@
 import json
 import subprocess
 
-from .base import BaseModule
+from .crobat import crobat
 
 
-class massdns(BaseModule):
+class massdns(crobat):
 
     flags = ["brute-force", "subdomain-enum", "passive"]
     watched_events = ["DNS_NAME"]
@@ -38,7 +38,6 @@ class massdns(BaseModule):
             },
         },
     ]
-    in_scope_only = True
 
     def setup(self):
 
@@ -54,28 +53,9 @@ class massdns(BaseModule):
             return False
         return True
 
-    def filter_event(self, event):
-        if "wildcard" in event.tags:
-            return False
-        if "target" in event.tags:
-            return True
-        # for DNS names that resolve to in-scope iPs
-        elif hash(self.helpers.parent_domain(event.data)) not in self.processed:
-            return True
-        return False
-
     def handle_event(self, event):
-        if "target" in event.tags:
-            query = str(event.data).lower()
-        else:
-            query = self.helpers.parent_domain(event.data).lower()
-
+        query = self.make_query(event)
         h = hash(query)
-        if h in self.processed:
-            self.debug(f'Already processed "{query}", skipping')
-            return
-
-        self.processed.add(h)
         if not h in self.source_events:
             self.source_events[h] = event
 
