@@ -50,10 +50,6 @@ def main():
             log.stdout(f"{OmegaConf.to_yaml(config)}")
             sys.exit(0)
 
-        # don't debug to file if debug isn't enabled
-        if not config.get("debug", False):
-            logging_handlers["file_debug"].filters = [lambda x: False]
-
         log.verbose(f'Command: {" ".join(sys.argv)}')
 
         if options.agent_mode:

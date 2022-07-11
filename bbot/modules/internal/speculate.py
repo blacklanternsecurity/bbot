@@ -55,9 +55,11 @@ class speculate(BaseInternalModule):
                     self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
                 )
         # from hosts
-        if emit_open_ports and event.type in ("DNS_NAME", "IP_ADDRESS"):
+        if emit_open_ports:
             # don't act on unresolved DNS_NAMEs
-            if any([x in event.tags for x in ("a_record", "aaaa_record")]):
+            if event.type == "IP_ADDRESS" or (
+                event.type == "DNS_NAME" and any([x in event.tags for x in ("a_record", "aaaa_record")])
+            ):
                 if self.open_port_consumers and not self.portscanner_enabled:
                     self.speculate_event(
                         self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True

@@ -357,6 +357,8 @@ class IP_ADDRESS(BaseEvent):
         super().__init__(*args, **kwargs)
         ip = ipaddress.ip_address(self.data)
         self.tags.add(f"ipv{ip.version}")
+        if ip.is_private:
+            self.tags.add("private")
 
     def _sanitize_data(self, data):
         return str(ipaddress.ip_address(str(data)))

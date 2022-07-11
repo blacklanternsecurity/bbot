@@ -7,28 +7,18 @@ class urlscan(crobat):
     produced_events = ["DNS_NAME", "URL_UNVERIFIED"]
 
     def handle_event(self, event):
-        if "target" in event.tags:
-            query = str(event.data).lower()
-        else:
-            query = self.helpers.parent_domain(event.data).lower()
-
-        if self.already_processed(query):
-            self.debug(f'Already processed "{query}", skipping')
-            return
-
-        self.processed.add(hash(query))
-
+        query = self.make_query(event)
         for domain, url in self.query(query):
             source_event = event
             if domain:
                 domain_event = self.make_event(domain, "DNS_NAME", source=event)
                 if str(domain_event.host).endswith(query) and not str(domain_event.host) == str(event.host):
-                    self.emit_event(domain_event)
+                    self.emit_event(domain_event, abort_if=self.abort_if)
                     source_event = domain_event
             if url:
                 url_event = self.make_event(url, "URL_UNVERIFIED", source=source_event)
                 if str(url_event.host).endswith(query):
-                    self.emit_event(url_event)
+                    self.emit_event(url_event, abort_if=self.abort_if)
                 else:
                     self.debug(f"{url_event.host} does not match {query}")
 
