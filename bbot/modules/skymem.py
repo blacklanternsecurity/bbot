@@ -6,6 +6,7 @@ from .viewdns import viewdns
 class skymem(viewdns):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
+    flags = ["passive"]
     in_scope_only = False
 
     base_url = "https://www.skymem.info"
