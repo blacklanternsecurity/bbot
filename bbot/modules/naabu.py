@@ -1,5 +1,6 @@
 import json
 import subprocess
+import dns.resolver
 from .base import BaseModule
 
 
@@ -34,7 +35,7 @@ class naabu(BaseModule):
     def handle_batch(self, *events):
 
         _input = [str(e.data) for e in events]
-        command = ["naabu", "-silent", "-json"]
+        command = ["naabu", "-silent", "-json","-r",",".join(dns.resolver.Resolver().nameservers)]
         for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
