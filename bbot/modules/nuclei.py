@@ -168,6 +168,8 @@ class nuclei(BaseModule):
             self.config.get("ratelimit"),
             "-concurrency",
             str(self.config.get("concurrency")),
+            # "-r",
+            # self.helpers.resolver_file,
         ]
 
         for cli_option in ("severity", "templates", "iserver", "itoken", "etags"):

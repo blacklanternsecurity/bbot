@@ -30,8 +30,10 @@ bbot --agent-mode
 
 ## Output to Neo4j
 ~~~bash
+# start Neo4j in docker
 docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
 
+# run bbot with -o neo4j
 bbot -f subdomain-enum -t evilcorp.com -o human neo4j
 ~~~
 ![neo4j](https://user-images.githubusercontent.com/20261699/172188763-fcbbcc57-5410-46f2-a3ff-8c3d40b9a025.png)
@@ -55,22 +57,22 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-m MODULES [MODULES ...]] [-f FLAGS [FLAGS ...]] [-o MODULES [MODULES ...]] [-oA BASE_FILENAME] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config] [--save-wordcloud FILE] [--load-wordcloud FILE | --load-last-wordcloud]
-            [--ignore-failed-deps] [--no-deps | --force-deps | --retry-deps] [-a]
+usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-m MODULES [MODULES ...]] [-f FLAGS [FLAGS ...]] [-o MODULES [MODULES ...]]
+            [-oA BASE_FILENAME] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config] [--save-wordcloud FILE] [--load-wordcloud FILE | --load-last-wordcloud] [--ignore-failed-deps]
+            [--no-deps | --force-deps | --retry-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
 options:
   -h, --help            show this help message and exit
-  -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
-                        Scan target
   -m MODULES [MODULES ...], --modules MODULES [MODULES ...]
-                        Modules to enable. Choices:
-                        ffuf,sslcert,aspnet_viewstate,ipneighbor,wappalyzer,crobat,nuclei,dnsgrep,vhost,massdns,telerik,naabu,httpx,dnszonetransfer,wayback,crt,header_brute,hunterio,urlscan,iis_shortnames,sublist3r,dnsdumpster,dnscommonsrv,getparam_brute
+                        Modules to enable. Choices: aspnet_viewstate,azure_tenant,bypass403,c99,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_short
+                        names,getparam_brute,gowitness,header_brute,httpx,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,s
+                        ublist3r,telerik,urlscan,vhost,viewdns,wappalyzer,wayback
   -f FLAGS [FLAGS ...], --flags FLAGS [FLAGS ...]
-                        Enable modules by flag. Choices: passive,brute-force,subdomain-enum,active
+                        Enable modules by flag. Choices: active,brute-force,passive,subdomain-enum
   -o MODULES [MODULES ...], --output-modules MODULES [MODULES ...]
-                        Output module(s). Choices: json,neo4j,csv,websocket,human,http
+                        Output module(s). Choices: csv,http,human,json,neo4j,websocket
   -oA BASE_FILENAME, --output-all BASE_FILENAME
                         Output in CSV, JSON, and TXT at this file location
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
@@ -78,6 +80,14 @@ options:
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
   --current-config      Show current config in YAML format
+
+Target:
+  -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
+                        Targets to seed the scan
+  -w WHITELIST [WHITELIST ...], --whitelist WHITELIST [WHITELIST ...]
+                        What's considered in-scope (by default it's the same as --targets)
+  -b BLACKLIST [BLACKLIST ...], --blacklist BLACKLIST [BLACKLIST ...]
+                        Don't touch these things
 
 Word cloud:
   Save/load wordlist of common words gathered during a scan
