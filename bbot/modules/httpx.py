@@ -1,6 +1,6 @@
 import json
 import subprocess
-
+import dns.resolver
 from .base import BaseModule
 
 
@@ -64,6 +64,8 @@ class httpx(BaseModule):
             f"User-Agent: {self.scan.useragent}",
             "-response-size-to-read",
             f"{self.max_response_size}",
+            "-r",
+            ",".join(dns.resolver.Resolver().nameservers),
         ]
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:
