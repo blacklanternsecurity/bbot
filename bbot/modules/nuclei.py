@@ -1,6 +1,6 @@
 import json
 import subprocess
-
+import dns.resolver
 from .base import BaseModule
 
 
@@ -168,6 +168,8 @@ class nuclei(BaseModule):
             self.config.get("ratelimit"),
             "-concurrency",
             str(self.config.get("concurrency")),
+            "-r",
+            ",".join(dns.resolver.Resolver().nameservers),
         ]
 
         for cli_option in ("severity", "templates", "iserver", "itoken", "etags"):
