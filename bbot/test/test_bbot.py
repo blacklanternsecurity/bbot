@@ -550,6 +550,7 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
 def test_dns_resolvers(patch_requests, helpers):
     assert type(helpers.dns.resolvers) == set
     assert hasattr(helpers.dns.resolver_file, "is_file")
+    assert hasattr(helpers.dns.mass_resolver_file, "is_file")
 
 
 def test_word_cloud(helpers, config):

@@ -110,7 +110,7 @@ class massdns(crobat):
         command = (
             "massdns",
             "-r",
-            self.helpers.dns.resolver_file,
+            self.helpers.dns.mass_resolver_file,
             "-s",
             self.config.get("max_resolvers", 1000),
             "-t",
