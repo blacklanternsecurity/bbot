@@ -10,7 +10,7 @@ class httpx(BaseModule):
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active"]
     batch_size = 100
-    options = {"in_scope_only": True, "version": "1.2.1", "max_response_size": 5242880}
+    options = {"in_scope_only": True, "version": "1.2.2", "max_response_size": 5242880}
     options_desc = {
         "in_scope_only": "Only visit web resources that are in scope.",
         "version": "httpx version",
