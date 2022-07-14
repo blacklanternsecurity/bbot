@@ -29,6 +29,7 @@ class URLExtractor(BaseExtractor):
     regexes = {
         "fullurl": r"https?://(?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?",
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
+        "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
 
     prefix_blacklist = ["javascript:", "mailto:", "tel:"]
@@ -40,9 +41,8 @@ class URLExtractor(BaseExtractor):
         tags = []
         parsed = getattr(event, "parsed", None)
 
-        if name == "a-tag" and parsed:
+        if (name == "a-tag" or name == "script-tag") and parsed:
             path = html.unescape(result[1]).lstrip("/")
-
             if not path.startswith("http://") and not path.startswith("https://"):
                 result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
             else:
@@ -67,7 +67,7 @@ class EmailExtractor(BaseExtractor):
     regexes = {"email": _email_regex}
 
     def report(self, result, name, event, **kwargs):
-        self.excavate.debug(f"Found email address from parsing [{event.data.get('url')}]")
+        self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
         self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
 
 
