@@ -138,6 +138,13 @@ def test_events(events, scan, helpers, config):
     assert events.ipv6_url_unverified.host == ipaddress.ip_address("2001:4860:4860::8888")
     assert events.ipv6_url_unverified.port == 443
 
+    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", dummy=True)
+    assert "extension-js" in javascript_event.tags
+    assert javascript_event.type == "URL_JAVASCRIPT_UNVERIFIED"
+    javascript_event2 = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL", tags={"status-200"}, dummy=True)
+    assert "extension-js" in javascript_event2.tags
+    assert javascript_event2.type == "URL_JAVASCRIPT"
+
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
     assert event1._scope_distance == -1

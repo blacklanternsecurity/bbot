@@ -408,7 +408,9 @@ class Scanner:
             if len(failed) > 0:
                 self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
             if loaded_modules:
-                self.info(f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules")
+                self.info(
+                    f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules ({','.join(list(loaded_modules))})"
+                )
 
             # Load internal modules
             self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
@@ -419,7 +421,9 @@ class Scanner:
                     f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
                 )
             if loaded_internal_modules:
-                self.info(f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules")
+                self.info(
+                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(list(loaded_internal_modules))})"
+                )
 
             # Load output modules
             self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
@@ -428,7 +432,9 @@ class Scanner:
             if len(failed_output) > 0:
                 self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
             if loaded_output_modules:
-                self.info(f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules")
+                self.info(
+                    f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules, ({','.join(list(loaded_output_modules))})"
+                )
 
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
             self._modules_loaded = True
