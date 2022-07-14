@@ -438,12 +438,22 @@ class URL_UNVERIFIED(BaseEvent):
         else:
             self.tags.add("endpoint")
 
+        parsed_path_lower = str(self.parsed.path).lower()
+
+        url_extension_blacklist = []
         scan = getattr(self, "scan", None)
         if scan is not None:
-            for ext in scan.config.get("url_extension_blacklist", []):
-                ext = str(ext).lower()
-                if str(self.parsed.path).lower().endswith(f".{ext}"):
-                    self.tags.add("blacklisted")
+            url_extension_blacklist = [e.lower() for e in scan.config.get("url_extension_blacklist", [])]
+
+        rightmost_section = parsed_path_lower.rsplit("/", 1)[-1]
+        if "." in rightmost_section:
+            extension = rightmost_section.rsplit(".", 1)[-1]
+            self.tags.add(f"extension-{extension}")
+            if extension in url_extension_blacklist:
+                self.tags.add("blacklisted")
+            # separate javascript into its own type
+            if extension == "js":
+                self.type = self.type.replace("URL", "URL_JAVASCRIPT")
 
         data = self.parsed.geturl()
         return data
