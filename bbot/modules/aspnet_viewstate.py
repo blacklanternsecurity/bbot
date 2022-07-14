@@ -27,6 +27,7 @@ class aspnet_viewstate(BaseModule):
         },
         {
             "name": "Install mono-devel",
+            "become": True,
             "apt": {"name": ["mono-devel", "zip"], "state": "latest", "update_cache": True},
         },
         {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "{BBOT_TOOLS}/blacklist3r/"}},
