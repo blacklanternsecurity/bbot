@@ -78,6 +78,14 @@ class ScanManager:
                 log.verbose(f"Omitting blacklisted event due to {reason}: {event}")
                 emit_event = False
 
+            # Wait for parent event to resolve (in case its scope distance changes)
+            while not self.scan.stopping:
+                resolved = event._resolved.wait(timeout=0.1)
+                if resolved:
+                    # update event's scope distance based on its parent
+                    event.scope_distance = event.source.scope_distance + 1
+                    break
+
             # Scope shepherding
             event_is_duplicate = self.is_duplicate_event(event)
             if event.host:

@@ -56,6 +56,10 @@ class DNSHelper:
         self._cache_lock = Lock()
         self._cache_locks = NamedLock()
 
+        # copy the system's current resolvers to a text file for tool use
+        resolvers = dns.resolver.Resolver().nameservers
+        self.resolver_file = self.parent_helper.tempfile(resolvers, pipe=False)
+
     def resolve(self, query, **kwargs):
         """
         "1.2.3.4" --> {
@@ -116,56 +120,59 @@ class DNSHelper:
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
         """
-        if not event.host or event.type in ("IP_RANGE",):
-            return [], set(), False, False
-        children = []
-        event_tags = set()
-        event_host = str(event.host)
-        # lock to ensure resolution of the same host doesn't start while we're working here
-        with self._cache_locks.get_lock(event_host):
+        try:
+            if not event.host or event.type in ("IP_RANGE",):
+                return [], set(), False, False
+            children = []
+            event_tags = set()
+            event_host = str(event.host)
+            # lock to ensure resolution of the same host doesn't start while we're working here
+            with self._cache_locks.get_lock(event_host):
 
-            event_whitelisted = False
-            event_blacklisted = False
+                event_whitelisted = False
+                event_blacklisted = False
 
-            # wildcard check first
-            if check_wildcard and not is_ip(event_host):
-                event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
-                if event_is_wildcard and event.type in ("DNS_NAME",):
-                    event.data = wildcard_parent
-                    return (event,)
-            elif not check_wildcard:
-                event_tags.add("wildcard")
+                # wildcard check first
+                if check_wildcard and not is_ip(event_host):
+                    event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
+                    if event_is_wildcard and event.type in ("DNS_NAME",):
+                        event.data = wildcard_parent
+                        return (event,)
+                elif not check_wildcard:
+                    event_tags.add("wildcard")
 
-            # try to get data from cache
-            _event_tags, _event_whitelisted, _event_blacklisted = self.cache_get(event_host)
-            event_tags.update(_event_tags)
-            # if we found it, return it
-            if _event_whitelisted is not None:
-                return children, event_tags, _event_whitelisted, _event_blacklisted
+                # try to get data from cache
+                _event_tags, _event_whitelisted, _event_blacklisted = self.cache_get(event_host)
+                event_tags.update(_event_tags)
+                # if we found it, return it
+                if _event_whitelisted is not None:
+                    return children, event_tags, _event_whitelisted, _event_blacklisted
 
-            # then resolve
-            for rdtype, records in self.resolve_raw(event_host, type="any"):
-                event_tags.add("resolved")
-                rdtype = str(rdtype).upper()
-                # whitelisting and blacklist of IPs
-                if rdtype in ("A", "AAAA"):
+                # then resolve
+                for rdtype, records in self.resolve_raw(event_host, type="any"):
+                    event_tags.add("resolved")
+                    rdtype = str(rdtype).upper()
+                    # whitelisting and blacklist of IPs
+                    if rdtype in ("A", "AAAA"):
+                        for r in records:
+                            for _, t in self.extract_targets(r):
+                                with suppress(ValidationError):
+                                    if self.parent_helper.scan.whitelisted(t):
+                                        event_whitelisted = True
+                                with suppress(ValidationError):
+                                    if self.parent_helper.scan.blacklisted(t):
+                                        event_blacklisted = True
                     for r in records:
                         for _, t in self.extract_targets(r):
-                            with suppress(ValidationError):
-                                if self.parent_helper.scan.whitelisted(t):
-                                    event_whitelisted = True
-                            with suppress(ValidationError):
-                                if self.parent_helper.scan.blacklisted(t):
-                                    event_blacklisted = True
-                for r in records:
-                    for _, t in self.extract_targets(r):
-                        event_tags.add(f"{rdtype.lower()}_record")
-                        if t:
-                            children.append((t, rdtype))
-            if "resolved" not in event_tags:
-                event_tags.add("unresolved")
-            self.cache_put(event_host, event_tags, event_whitelisted, event_blacklisted)
-        return children, event_tags, event_whitelisted, event_blacklisted
+                            event_tags.add(f"{rdtype.lower()}_record")
+                            if t:
+                                children.append((t, rdtype))
+                if "resolved" not in event_tags:
+                    event_tags.add("unresolved")
+                self.cache_put(event_host, event_tags, event_whitelisted, event_blacklisted)
+            return children, event_tags, event_whitelisted, event_blacklisted
+        finally:
+            event._resolved.set()
 
     def cache_get(self, host):
         try:
@@ -271,7 +278,7 @@ class DNSHelper:
         return self._resolver_list
 
     @property
-    def resolver_file(self):
+    def mass_resolver_file(self):
         self.resolvers
         return self.parent_helper.cache_filename("resolver_list")
 

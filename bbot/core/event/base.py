@@ -1,6 +1,7 @@
 import json
 import logging
 import ipaddress
+from threading import Event as ThreadingEvent
 
 from .helpers import make_event_id, get_event_type
 from bbot.core.errors import *
@@ -105,6 +106,8 @@ class BaseEvent:
             if _internal or source._internal:
                 self.make_internal()
 
+        self._resolved = ThreadingEvent()
+
     @property
     def data(self):
         return self._data
@@ -171,6 +174,7 @@ class BaseEvent:
     def scope_distance(self, scope_distance):
         if scope_distance >= 0:
             new_scope_distance = None
+            # ensure scope distance does not increase (only allow setting to smaller values)
             if self.scope_distance == -1:
                 new_scope_distance = scope_distance
             else:
