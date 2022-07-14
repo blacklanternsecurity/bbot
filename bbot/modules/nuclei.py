@@ -1,6 +1,5 @@
 import json
 import subprocess
-import dns.resolver
 from .base import BaseModule
 
 
