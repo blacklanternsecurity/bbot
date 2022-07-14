@@ -5,7 +5,7 @@ from .base import BaseModule
 
 class httpx(BaseModule):
 
-    watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL_JAVASCRIPT_UNVERIFIED"]
+    watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active"]
     batch_size = 100
@@ -45,7 +45,7 @@ class httpx(BaseModule):
 
         stdin = []
         for e in events:
-            if "spider-danger" not in e.tags:
+            if "httpx-only" in e.tags or "spider-danger" not in e.tags:
                 if e.type.startswith("URL"):
                     # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
                     stdin.append(e.with_port().geturl())

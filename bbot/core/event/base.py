@@ -1,5 +1,4 @@
 import json
-from contextlib import suppress
 import logging
 import ipaddress
 from threading import Event as ThreadingEvent
@@ -442,9 +441,11 @@ class URL_UNVERIFIED(BaseEvent):
         parsed_path_lower = str(self.parsed.path).lower()
 
         url_extension_blacklist = []
+        url_extension_httpx_only = []
         scan = getattr(self, "scan", None)
         if scan is not None:
             url_extension_blacklist = [e.lower() for e in scan.config.get("url_extension_blacklist", [])]
+            url_extension_httpx_only = [e.lower() for e in scan.config.get("url_extension_httpx_only", [])]
 
         rightmost_section = parsed_path_lower.rsplit("/", 1)[-1]
         if "." in rightmost_section:
@@ -452,11 +453,9 @@ class URL_UNVERIFIED(BaseEvent):
             self.tags.add(f"extension-{extension}")
             if extension in url_extension_blacklist:
                 self.tags.add("blacklisted")
-            # separate javascript into its own type
-            if extension == "js":
-                with suppress(KeyError):
-                    self.tags.remove("spider-danger")
-                self.type = self.type.replace("URL", "URL_JAVASCRIPT")
+            if extension in url_extension_httpx_only:
+                self.tags.add("httpx-only")
+                self._omit = True
 
         data = self.parsed.geturl()
         return data
