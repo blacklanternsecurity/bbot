@@ -5,11 +5,11 @@ from .base import BaseModule
 
 class httpx(BaseModule):
 
-    watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED"]
+    watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL_JAVASCRIPT_UNVERIFIED"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active"]
     batch_size = 100
-    options = {"in_scope_only": True, "version": "1.2.2", "max_response_size": 5242880}
+    options = {"in_scope_only": True, "version": "1.2.3", "max_response_size": 5242880}
     options_desc = {
         "in_scope_only": "Only visit web resources that are in scope.",
         "version": "httpx version",
@@ -46,7 +46,7 @@ class httpx(BaseModule):
         stdin = []
         for e in events:
             if "spider-danger" not in e.tags:
-                if e.type == "URL_UNVERIFIED":
+                if e.type.startswith("URL"):
                     # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
                     stdin.append(e.with_port().geturl())
                 else:
