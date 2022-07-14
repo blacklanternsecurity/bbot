@@ -86,6 +86,8 @@ def test_events(events, scan, helpers, config):
     assert events.url_unverified not in events.emoji
     assert "https://evilcorp.com" == scan.make_event("https://evilcorp.com:443", dummy=True)
     assert "http://evilcorp.com" == scan.make_event("http://evilcorp.com:80", dummy=True)
+    assert "http://evilcorp.com:80/asdf.js" in scan.make_event("http://evilcorp.com/asdf.js", dummy=True)
+    assert "http://evilcorp.com/asdf.js" in scan.make_event("http://evilcorp.com:80/asdf.js", dummy=True)
     assert "https://evilcorp.com:443" == scan.make_event("https://evilcorp.com", dummy=True)
     assert "http://evilcorp.com:80" == scan.make_event("http://evilcorp.com", dummy=True)
     assert "https://evilcorp.com:80" == scan.make_event("https://evilcorp.com:80", dummy=True)
@@ -140,10 +142,7 @@ def test_events(events, scan, helpers, config):
 
     javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", dummy=True)
     assert "extension-js" in javascript_event.tags
-    assert javascript_event.type == "URL_JAVASCRIPT_UNVERIFIED"
-    javascript_event2 = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL", tags={"status-200"}, dummy=True)
-    assert "extension-js" in javascript_event2.tags
-    assert javascript_event2.type == "URL_JAVASCRIPT"
+    assert "httpx-only" in javascript_event.tags
 
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
