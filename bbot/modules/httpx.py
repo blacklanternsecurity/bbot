@@ -1,6 +1,5 @@
 import json
 import subprocess
-import dns.resolver
 from .base import BaseModule
 
 
@@ -46,12 +45,12 @@ class httpx(BaseModule):
 
         stdin = []
         for e in events:
-            if e.type == "URL_UNVERIFIED":
-                if not "spider-danger" in e.tags:
+            if "spider-danger" not in e.tags:
+                if e.type == "URL_UNVERIFIED":
                     # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
                     stdin.append(e.with_port().geturl())
-            else:
-                stdin.append(str(e.data))
+                else:
+                    stdin.append(str(e.data))
 
         command = [
             "httpx",
@@ -64,8 +63,8 @@ class httpx(BaseModule):
             f"User-Agent: {self.scan.useragent}",
             "-response-size-to-read",
             f"{self.max_response_size}",
-            "-r",
-            ",".join(dns.resolver.Resolver().nameservers),
+            # "-r",
+            # self.helpers.resolver_file,
         ]
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:

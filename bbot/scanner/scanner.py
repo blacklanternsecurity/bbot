@@ -323,6 +323,7 @@ class Scanner:
     def root_event(self):
         root_event = self.make_event(data=f"SCAN:{self.id}", event_type="SCAN", dummy=True)
         root_event.scope_distance = 0
+        root_event._resolved.set()
         root_event.source = root_event
         return root_event
 
