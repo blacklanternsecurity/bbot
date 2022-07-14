@@ -21,17 +21,7 @@ class hunterio(shodan_dns):
         assert getattr(r, "status_code", 0) == 200, resp_content
 
     def handle_event(self, event):
-        if "target" in event.tags:
-            query = str(event.data).lower()
-        else:
-            query = self.helpers.parent_domain(event.data).lower()
-
-        if self.already_processed(query):
-            self.debug(f'Already processed "{query}", skipping')
-            return
-
-        self.processed.add(hash(query))
-
+        query = self.make_query(event)
         for entry in self.query(query):
             email = entry.get("value", "")
             sources = entry.get("sources", [])
