@@ -1,4 +1,5 @@
 import json
+from contextlib import suppress
 import logging
 import ipaddress
 from threading import Event as ThreadingEvent
@@ -433,7 +434,7 @@ class URL_UNVERIFIED(BaseEvent):
         self.parsed = clean_url(data)
 
         # tag as dir or endpoint
-        if str(self.parsed.path.endswith("/")):
+        if str(self.parsed.path).endswith("/"):
             self.tags.add("dir")
         else:
             self.tags.add("endpoint")
@@ -453,6 +454,8 @@ class URL_UNVERIFIED(BaseEvent):
                 self.tags.add("blacklisted")
             # separate javascript into its own type
             if extension == "js":
+                with suppress(KeyError):
+                    self.tags.remove("spider-danger")
                 self.type = self.type.replace("URL", "URL_JAVASCRIPT")
 
         data = self.parsed.geturl()
