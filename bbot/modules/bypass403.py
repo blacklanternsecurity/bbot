@@ -80,14 +80,8 @@ class bypass403(BaseModule):
             cleaned_path = event.parsed.path.strip("/")
         else:
             cleaned_path = event.parsed.path.lstrip("/")
-        kwargs = {
-            "scheme": event.parsed.scheme,
-            "netloc": event.parsed.netloc,
-            "path": cleaned_path
-        }
-        formatted_url = (
-            sig[2].format(**kwargs)
-        )
+        kwargs = {"scheme": event.parsed.scheme, "netloc": event.parsed.netloc, "path": cleaned_path}
+        formatted_url = sig[2].format(**kwargs)
         if sig[3] != None:
             formatted_headers = {k: v.format(**kwargs) for k, v in sig[3].items()}
         else:
