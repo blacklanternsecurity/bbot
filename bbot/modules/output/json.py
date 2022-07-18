@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
 
-from .base import BaseOutputModule
+from bbot.modules.output.base import BaseOutputModule
 
 
 class JSON(BaseOutputModule):
+    watched_events = ["*"]
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to file"}
 

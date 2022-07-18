@@ -1,5 +1,6 @@
-from .base import BaseOutputModule
 from bbot.db.neo4j import Neo4j
+
+from bbot.modules.output.base import BaseOutputModule
 
 
 class neo4j(BaseOutputModule):
@@ -7,6 +8,7 @@ class neo4j(BaseOutputModule):
     docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
     """
 
+    watched_events = ["*"]
     options = {"uri": "bolt://localhost:7687", "username": "neo4j", "password": "bbotislife"}
     options_desc = {
         "uri": "Neo4j server + port",

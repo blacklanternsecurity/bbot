@@ -1,11 +1,9 @@
 import logging
 
-from ..base import BaseModule
+from bbot.modules.base import BaseModule
 
 
 class BaseOutputModule(BaseModule):
-
-    watched_events = ["*"]
     accept_dupes = True
     _type = "output"
     emit_graph_trail = True

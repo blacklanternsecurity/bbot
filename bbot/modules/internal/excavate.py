@@ -2,8 +2,8 @@ import re
 import html
 import jwt as j
 
-from .base import BaseInternalModule
 from bbot.core.helpers.regexes import _email_regex
+from bbot.modules.internal.base import BaseInternalModule
 
 
 class BaseExtractor:

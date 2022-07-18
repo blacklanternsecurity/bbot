@@ -3,11 +3,11 @@ import threading
 import websocket
 from time import sleep
 
-from .base import BaseOutputModule
+from bbot.modules.output.base import BaseOutputModule
 
 
 class Websocket(BaseOutputModule):
-
+    watched_events = ["*"]
     options = {"url": "", "token": ""}
     options_desc = {"url": "Web URL", "token": "Authorization Bearer token"}
 

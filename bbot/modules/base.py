@@ -66,7 +66,7 @@ class BaseModule:
     # Name, overridden automatically
     _name = "base"
     # Type, for differentiating between normal modules and output modules, etc.
-    _type = "base"
+    _type = "scan"
 
     def __init__(self, scan):
         self.scan = scan

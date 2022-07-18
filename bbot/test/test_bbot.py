@@ -669,36 +669,45 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
     # attributes, descriptions, etc.
     for module_name, module in scan2.modules.items():
         # flags
-        assert module._type in ("internal", "output", "base")
+        assert module._type in ("internal", "output", "scan")
+
+    for module_name, preloaded in module_loader.preloaded().items():
         # either active or passive and never both
-        if module._type == "base":
-            assert ("active" in module.flags and not "passive" in module.flags) or (
-                not "active" in module.flags and "passive" in module.flags
+        flags = preloaded.get("flags", [])
+        if preloaded["type"] == "scan":
+            assert ("active" in flags and not "passive" in flags) or (
+                not "active" in flags and "passive" in flags
             ), f'module "{module_name}" must have either "active" or "passive" flag'
 
         # attribute checks
-        assert module.watched_events, f"{module_name}.watched_events must not be blank"
-        if not module._type == "output":
-            assert module.produced_events, f"{module_name}.produced_events must not be blank"
-        assert type(module.watched_events) == list, f"{module_name}.watched_events must be of type list"
-        assert type(module.produced_events) == list, f"{module_name}.produced_events must be of type list"
+        watched_events = preloaded.get("watched_events", [])
+        produced_events = preloaded.get("produced_events", [])
+        module_type = preloaded.get("type", "")
+
+        assert watched_events, f"{module_name}.watched_events must not be blank"
+        if module_type != "output":
+            assert produced_events, f"{module_name}.produced_events must not be blank"
+        assert type(watched_events) == list, f"{module_name}.watched_events must be of type list"
+        assert type(produced_events) == list, f"{module_name}.produced_events must be of type list"
         assert all(
-            [type(t) == str for t in module.watched_events]
+            [type(t) == str for t in watched_events]
         ), f"{module_name}.watched_events entries must be of type string"
         assert all(
-            [type(t) == str for t in module.produced_events]
+            [type(t) == str for t in produced_events]
         ), f"{module_name}.produced_events entries must be of type string"
 
-        assert type(module.deps_pip) == list, f"{module_name}.deps_pipe must be of type list"
-        assert type(module.deps_apt) == list, f"{module_name}.deps_apt must be of type list"
-        assert type(module.deps_shell) == list, f"{module_name}.deps_shell must be of type list"
-        assert type(module.options) == dict, f"{module_name}.options must be of type list"
-        assert type(module.options_desc) == dict, f"{module_name}.options_desc must be of type list"
+        assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pipe must be of type list"
+        assert type(preloaded.get("deps_apt", [])) == list, f"{module_name}.deps_apt must be of type list"
+        assert type(preloaded.get("deps_shell", [])) == list, f"{module_name}.deps_shell must be of type list"
+        assert type(preloaded.get("options", {})) == dict, f"{module_name}.options must be of type list"
+        assert type(preloaded.get("options_desc", {})) == dict, f"{module_name}.options_desc must be of type list"
         # options must have descriptions
-        assert set(module.options) == set(module.options_desc), f"{module_name}.options do not match options_desc"
+        assert set(preloaded.get("options", {})) == set(
+            preloaded.get("options_desc", {})
+        ), f"{module_name}.options do not match options_desc"
         # descriptions most not be blank
         assert all(
-            o for o in module.options_desc.values()
+            o for o in preloaded.get("options_desc", {}).values()
         ), f"{module_name}.options_desc descriptions must not be blank"
 
     # setups
@@ -878,7 +887,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     assert csv_file.is_file()
     with open(csv_file) as f:
         lines = f.readlines()
-        assert lines[0] == "Event type,Event data,Source Module,Event Tags\n"
+        assert lines[0] == "Event type,Event data,Source Module,Scope Distance,Event Tags\n"
         assert len(lines) > 1
 
 

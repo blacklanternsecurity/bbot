@@ -2,11 +2,11 @@ import requests
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import RequestException
 
-from .base import BaseOutputModule
+from bbot.modules.output.base import BaseOutputModule
 
 
 class HTTP(BaseOutputModule):
-
+    watched_events = ["*"]
     options = {
         "url": "",
         "method": "POST",
