@@ -16,6 +16,7 @@ class gowitness(BaseModule):
         "timeout": 10,
         "resolution_x": 1440,
         "resolution_y": 900,
+        "output_path": "",
     }
     options_desc = {
         "version": "gowitness version",
@@ -23,6 +24,7 @@ class gowitness(BaseModule):
         "timeout": "preflight check timeout",
         "resolution_x": "screenshot resolution x",
         "resolution_y": "screenshot resolution y",
+        "output_path": "where to save screenshots",
     }
     deps_apt = ["chromium-browser"]
     deps_ansible = [
@@ -46,7 +48,11 @@ class gowitness(BaseModule):
         self.resolution_x = self.config.get("resolution_x")
         self.resolution_y = self.config.get("resolution_y")
         self.cwd = Path.cwd()
-        self.base_path = self.cwd / f"gowitness_{self.helpers.make_date()}"
+        output_path = self.config.get("output_path")
+        if output_path:
+            self.base_path = Path(output_path)
+        else:
+            self.base_path = self.cwd / f"gowitness_{self.helpers.make_date()}"
         self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
         self.helpers.mkdir(self.screenshot_path)
