@@ -5,30 +5,19 @@ from omegaconf import OmegaConf
 
 from . import files, args, environ
 from ..errors import ConfigLoadError
-from ..helpers.misc import mkdir, error_and_exit, search_format_dict
-from ...modules import output, internal, module_dir, modules_preloaded
-
-
-all_modules_preloaded = {}
-for p in modules_preloaded, output.modules_preloaded, internal.modules_preloaded:
-    all_modules_preloaded.update(p)
-
-available_modules = list(modules_preloaded)
-modules_config = OmegaConf.create()
-for module_name, preloaded in modules_preloaded.items():
-    module_config = OmegaConf.create(preloaded.get("config", {}))
-    modules_config[module_name] = module_config
-
-available_output_modules = list(output.modules_preloaded)
-output_modules_config = OmegaConf.create()
-for module_name, preloaded in output.modules_preloaded.items():
-    module_config = OmegaConf.create(preloaded.get("config", {}))
-    output_modules_config[module_name] = module_config
+from ...modules import module_loader
+from ..helpers.misc import mkdir, error_and_exit
 
 try:
     config = OmegaConf.merge(
         # first, pull module defaults
-        OmegaConf.create({"modules": modules_config, "output_modules": output_modules_config}),
+        OmegaConf.create(
+            {
+                "modules": module_loader.configs(type="scan"),
+                "output_modules": module_loader.configs(type="output"),
+                "internal_modules": module_loader.configs(type="internal"),
+            }
+        ),
         # then look in .yaml files
         files.get_config(),
         # finally, pull from CLI arguments
@@ -84,14 +73,14 @@ if not files.defaults_filename.exists():
 bbot_environ = environ.flatten_config(config)
 os.environ.update(bbot_environ)
 
-# replace environment variables in preloaded modules
-all_modules_preloaded = search_format_dict(all_modules_preloaded, **os.environ)
-
 # handle HTTP proxy
 http_proxy = config.get("http_proxy", "")
 if http_proxy:
     os.environ["HTTP_PROXY"] = http_proxy
     os.environ["HTTPS_PROXY"] = http_proxy
+
+# replace environment variables in preloaded modules
+module_loader.find_and_replace(**os.environ)
 
 # ssl verification
 import urllib3
