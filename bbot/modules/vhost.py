@@ -1,4 +1,4 @@
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 from urllib.parse import urlparse
 
 

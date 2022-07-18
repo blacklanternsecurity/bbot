@@ -1,4 +1,4 @@
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 from bbot.core.errors import HttpCompareError, ScanCancelledError
 
 

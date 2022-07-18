@@ -1,6 +1,6 @@
 import ipaddress
 
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 
 
 class ipneighbor(BaseModule):
@@ -18,7 +18,7 @@ class ipneighbor(BaseModule):
         return True
 
     def filter_event(self, event):
-        if str(event.module) == "speculate":
+        if str(event.module) in ("speculate", "ipneighbor"):
             return False
         return True
 

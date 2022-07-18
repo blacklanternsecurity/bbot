@@ -1,7 +1,7 @@
 import dns.zone
 import dns.query
 
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 
 
 class dnszonetransfer(BaseModule):

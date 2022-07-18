@@ -2,7 +2,7 @@ from pathlib import Path
 from contextlib import suppress
 from shutil import copyfile, copymode
 
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 
 
 class gowitness(BaseModule):

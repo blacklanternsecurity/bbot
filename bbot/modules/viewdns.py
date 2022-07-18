@@ -1,7 +1,7 @@
 import re
 from bs4 import BeautifulSoup
 
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 
 
 class viewdns(BaseModule):

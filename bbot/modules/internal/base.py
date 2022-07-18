@@ -1,5 +1,6 @@
 import logging
-from ..base import BaseModule
+
+from bbot.modules.base import BaseModule
 
 
 class BaseInternalModule(BaseModule):

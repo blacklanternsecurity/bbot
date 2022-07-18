@@ -1,6 +1,6 @@
 import random
 import string
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 import json
 import base64
 

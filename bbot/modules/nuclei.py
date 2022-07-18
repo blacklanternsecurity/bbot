@@ -1,6 +1,6 @@
 import json
 import subprocess
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 
 
 technology_map = {}

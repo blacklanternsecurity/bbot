@@ -4,7 +4,7 @@ import threading
 from OpenSSL import SSL
 from ssl import PROTOCOL_TLSv1
 
-from .base import BaseModule
+from bbot.modules.base import BaseModule
 from bbot.core.errors import ValidationError
 
 

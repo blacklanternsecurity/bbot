@@ -1,8 +1,7 @@
 import csv
-import json
 from pathlib import Path
 
-from .base import BaseOutputModule
+from bbot.modules.output.base import BaseOutputModule
 
 
 class Line:
@@ -17,6 +16,7 @@ class Line:
 
 
 class CSV(BaseOutputModule):
+    watched_events = ["*"]
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to CSV file"}
     emit_graph_trail = False
@@ -31,7 +31,7 @@ class CSV(BaseOutputModule):
         else:
             self.file = Line()
         self.writer = csv.writer(self.file)
-        self.writerow(["Event type", "Event data", "Source Module", "Event Tags"])
+        self.writerow(["Event type", "Event data", "Source Module", "Scope Distance", "Event Tags"])
         return True
 
     def writerow(self, row):
@@ -47,7 +47,8 @@ class CSV(BaseOutputModule):
                 getattr(event, "type", ""),
                 getattr(event, "data", ""),
                 str(getattr(event, "module", "")),
-                json.dumps(sorted(list(getattr(event, "tags", [])))),
+                str(getattr(event, "scope_distance", "")),
+                ",".join(sorted(list(getattr(event, "tags", [])))),
             ]
         )
 
