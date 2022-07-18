@@ -11,7 +11,7 @@ from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
 
-from bbot.core.configurator import all_modules_preloaded
+from bbot.modules import module_loader
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -33,6 +33,8 @@ class DepsInstaller:
         self.retry_deps = self.parent_helper.config.get("retry_deps", False)
         self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
 
+        self.all_modules_preloaded = module_loader.preloaded()
+
     def install(self, *modules):
         succeeded = []
         failed = []
@@ -44,11 +46,11 @@ class DepsInstaller:
                     succeeded.append(m)
                     continue
                 # abort if module name is unknown
-                if m not in all_modules_preloaded:
+                if m not in self.all_modules_preloaded:
                     log.verbose(f'Module "{m}" not found')
                     failed.append(m)
                     continue
-                preloaded = all_modules_preloaded[m]
+                preloaded = self.all_modules_preloaded[m]
                 # make a hash of the dependencies and check if it's already been handled
                 module_hash = self.parent_helper.sha1(str(preloaded["deps"])).hexdigest()
                 success = self.setup_status.get(module_hash, None)
@@ -93,7 +95,7 @@ class DepsInstaller:
 
     def install_module(self, module):
         success = True
-        preloaded = all_modules_preloaded[module]
+        preloaded = self.all_modules_preloaded[module]
 
         # apt
         deps_apt = preloaded["deps"]["apt"]

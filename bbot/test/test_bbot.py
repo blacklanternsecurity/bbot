@@ -6,12 +6,15 @@ from time import sleep
 
 import bbot.core.logger  # noqa: F401
 from bbot.core.errors import *
-from bbot.core.configurator import available_modules, available_output_modules
 from .bbot_fixtures import *  # noqa: F401
+from bbot.modules import module_loader
 
 log = logging.getLogger(f"bbot.test")
 
 os.environ["BBOT_SUDO_PASS"] = "nah"
+
+available_modules = list(module_loader.configs(type="scan"))
+available_output_modules = list(module_loader.configs(type="output"))
 
 
 def test_events(events, scan, helpers, config):
@@ -446,6 +449,10 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     ipv6_netloc = helpers.make_netloc("dead::beef", "443")
     assert ipv6_netloc == "[dead::beef]:443"
 
+    assert helpers.get_file_extension("https://evilcorp.com/evilcorp.com/test/asdf.TXT") == "txt"
+    assert helpers.get_file_extension("/etc/conf/test.tar.gz") == "gz"
+    assert helpers.get_file_extension("/etc/passwd") == ""
+
     assert list(helpers.search_dict_by_key("asdf", {"asdf": "fdsa", 4: [{"asdf": 5}]})) == ["fdsa", 5]
     assert list(helpers.search_dict_by_key("asdf", {"wat": {"asdf": "fdsa"}})) == ["fdsa"]
     assert list(helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"asdf": "fdsa"}]}])) == ["fdsa"]
@@ -603,15 +610,6 @@ def test_word_cloud(helpers, config):
 
 
 def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
-
-    # module preloading
-    from bbot.modules import modules_preloaded
-    from bbot.core.helpers.modules import module_relationships
-
-    module_rels = module_relationships(modules_preloaded)
-    ipneighbor = module_rels["ipneighbor"]
-    assert len(ipneighbor) > 1
-    assert "ipneighbor" in ipneighbor
 
     # base module _filter_event()
     from bbot.modules.base import BaseModule

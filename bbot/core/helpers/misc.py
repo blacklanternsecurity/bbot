@@ -1,4 +1,3 @@
-import os
 import sys
 import atexit
 import psutil
@@ -145,6 +144,7 @@ def ip_network_parents(i, include_self=False):
 def is_ip(d, version=None):
     """
     "192.168.1.1" --> True
+    "bad::c0de" --> True
     "evilcorp.com" --> False
     """
     if type(d) in (ipaddress.IPv4Address, ipaddress.IPv6Address):
@@ -363,8 +363,7 @@ def list_files(directory, filter=lambda x: True):
     """
     directory = Path(directory)
     if directory.is_dir():
-        for file in os.listdir(directory):
-            file = directory / file
+        for file in directory.iterdir():
             if file.is_file() and filter(file):
                 yield file
 
@@ -521,3 +520,17 @@ def sanitize_string(s, allowed_chars=None):
 def error_and_exit(msg):
     print(f"\n[!!!] {msg}\n")
     sys.exit(2)
+
+
+def get_file_extension(s):
+    """
+    https://evilcorp.com/api/test.php --> "php"
+    /etc/test.conf --> "conf"
+    /etc/passwd --> ""
+    """
+    s = str(s).lower().strip()
+    rightmost_section = s.rsplit("/", 1)[-1]
+    if "." in rightmost_section:
+        extension = rightmost_section.rsplit(".", 1)[-1]
+        return extension
+    return ""
