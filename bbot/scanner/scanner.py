@@ -8,9 +8,8 @@ from collections import OrderedDict
 from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
+from bbot.modules import module_loader
 from bbot.core.event import make_event
-from bbot.modules import modules_preloaded
-from bbot.core.helpers.modules import load_modules
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.threadpool import ThreadPoolWrapper
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError
@@ -42,8 +41,17 @@ class Scanner:
             config = OmegaConf.create({})
         self.config = config
 
-        # add modules by flags
-        for m, c in modules_preloaded.items():
+        if scan_id is not None:
+            self.id = str(scan_id)
+        else:
+            self.id = str(uuid4())
+        self._status = "NOT_STARTED"
+
+        self.target = ScanTarget(self, *targets)
+
+        # enable modules by flags
+        all_modules_preloaded = module_loader.preloaded()
+        for m, c in all_modules_preloaded.items():
             flags = c.get("flags", [])
             if any([f in flags for f in module_flags]):
                 modules.append(m)
@@ -55,18 +63,11 @@ class Scanner:
         self._output_modules = output_modules
         self._modules_loaded = False
 
-        if scan_id is not None:
-            self.id = str(scan_id)
-        else:
-            self.id = str(uuid4())
-        self._status = "NOT_STARTED"
-
         if not modules:
             self.warning(f"No modules specified")
 
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
-        self.target = ScanTarget(self, *targets)
         if not whitelist:
             self.whitelist = self.target.copy()
         else:
@@ -403,7 +404,7 @@ class Scanner:
 
             # Load scan modules
             self.verbose(f"Loading {len(modules):,} scan modules: {','.join(list(modules))}")
-            loaded_modules, failed = self._load_modules(modules, "bbot.modules")
+            loaded_modules, failed = self._load_modules(modules)
             self.modules.update(loaded_modules)
             if len(failed) > 0:
                 self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
@@ -414,7 +415,7 @@ class Scanner:
 
             # Load internal modules
             self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
-            loaded_internal_modules, failed_internal = self._load_modules(internal_modules, "bbot.modules.internal")
+            loaded_internal_modules, failed_internal = self._load_modules(internal_modules)
             self.modules.update(loaded_internal_modules)
             if len(failed_internal) > 0:
                 self.warning(
@@ -427,7 +428,7 @@ class Scanner:
 
             # Load output modules
             self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
-            loaded_output_modules, failed_output = self._load_modules(output_modules, "bbot.modules.output")
+            loaded_output_modules, failed_output = self._load_modules(output_modules)
             self.modules.update(loaded_output_modules)
             if len(failed_output) > 0:
                 self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
@@ -439,12 +440,12 @@ class Scanner:
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
             self._modules_loaded = True
 
-    def _load_modules(self, modules, namespace):
+    def _load_modules(self, modules):
 
         modules = [str(m) for m in modules]
         loaded_modules = {}
         failed = set()
-        for module_name, module_class in load_modules(modules, namespace).items():
+        for module_name, module_class in module_loader.load_modules(modules).items():
             if module_class:
                 try:
                     loaded_modules[module_name] = module_class(self)

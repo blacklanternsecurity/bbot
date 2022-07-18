@@ -3,13 +3,14 @@ from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-from ...modules import output
 from ..errors import ArgumentError
-from ...modules import modules_preloaded
+from ...modules import module_loader
 from ..helpers.misc import chain_lists, make_date
 
 flag_choices = set()
-for m, c in modules_preloaded.items():
+module_choices = sorted(set(module_loader.configs(type="scan")))
+output_module_choices = sorted(set(module_loader.configs(type="output")))
+for m, c in module_loader.configs().items():
     flag_choices.update(set(c.get("flags", [])))
 
 
@@ -29,12 +30,12 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.blacklist = chain_lists(ret.blacklist, try_files=True, msg="Reading blacklist from file: {filename}")
         ret.flags = chain_lists(ret.flags)
         for m in ret.modules:
-            if m not in modules_preloaded and not self._dummy:
-                raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(sorted(modules_preloaded))}')
+            if m not in module_choices and not self._dummy:
+                raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(module_choices)}')
         for m in ret.output_modules:
-            if m not in output.modules_preloaded and not self._dummy:
+            if m not in output_module_choices and not self._dummy:
                 raise ArgumentError(
-                    f'Output module "{m}" is not valid. Choose from: {",".join(sorted(output.modules_preloaded))}'
+                    f'Output module "{m}" is not valid. Choose from: {",".join(output_module_choices)}'
                 )
         for f in ret.flags:
             if f not in flag_choices and not self._dummy:
@@ -75,7 +76,7 @@ for p in (parser, dummy_parser):
         "--modules",
         nargs="+",
         default=[],
-        help=f'Modules to enable. Choices: {",".join(sorted(modules_preloaded))}',
+        help=f'Modules to enable. Choices: {",".join(module_choices)}',
     )
     p.add_argument(
         "-f",
@@ -89,7 +90,7 @@ for p in (parser, dummy_parser):
         "--output-modules",
         nargs="+",
         default=["human"],
-        help=f'Output module(s). Choices: {",".join(sorted(output.modules_preloaded))}',
+        help=f'Output module(s). Choices: {",".join(output_module_choices)}',
         metavar="MODULES",
     )
     p.add_argument(

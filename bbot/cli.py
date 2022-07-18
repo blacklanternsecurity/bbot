@@ -15,6 +15,7 @@ from bbot.core.logger import init_logging
 logging_queue, logging_handlers = init_logging()
 
 import bbot.core.errors
+from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
 from bbot.core.configurator.files import config_filename
 
@@ -73,11 +74,50 @@ def main():
                     whitelist=options.whitelist,
                     blacklist=options.blacklist,
                 )
+
+                # enable modules by dependency
+                all_modules = list(set(scanner._scan_modules + scanner._internal_modules + scanner._output_modules))
+                while 1:
+                    changed = False
+                    dep_choices = module_loader.recommend_dependencies(all_modules)
+                    if not dep_choices:
+                        break
+                    for event_type, deps in dep_choices.items():
+                        # skip resolving dependency if a target provides the missing type
+                        if any(e.type == event_type for e in scanner.target.events):
+                            continue
+                        required_by = deps["required_by"]
+                        recommended = deps["recommended"]
+                        if not recommended:
+                            log.warning(
+                                f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no modules produce it"
+                            )
+                        elif len(recommended) == 1:
+                            log.warning(
+                                f"Enabling {next(iter(recommended))} because {len(required_by):,} modules ({','.join(required_by)}) rely on it for {event_type}"
+                            )
+                            all_modules = list(set(all_modules + list(recommended)))
+                            scanner._scan_modules = list(set(scanner._scan_modules + list(recommended)))
+                            changed = True
+                        else:
+                            log.warning(
+                                f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no modules produce it"
+                            )
+                            log.warning(
+                                f"Recommend enabling one or more of the following modules which produce {event_type}:"
+                            )
+                            for m in recommended:
+                                log.warning(f" - {m}")
+                    if not changed:
+                        break
+
                 if options.load_wordcloud:
                     scanner.helpers.word_cloud.load(options.load_wordcloud)
                 elif options.load_last_wordcloud:
                     scanner.helpers.word_cloud.load()
+
                 scanner.start()
+
             except Exception:
                 raise
             finally:

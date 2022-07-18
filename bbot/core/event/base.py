@@ -19,6 +19,7 @@ from bbot.core.helpers import (
     smart_decode,
     regexes,
     clean_url,
+    get_file_extension,
 )
 
 
@@ -447,9 +448,8 @@ class URL_UNVERIFIED(BaseEvent):
             url_extension_blacklist = [e.lower() for e in scan.config.get("url_extension_blacklist", [])]
             url_extension_httpx_only = [e.lower() for e in scan.config.get("url_extension_httpx_only", [])]
 
-        rightmost_section = parsed_path_lower.rsplit("/", 1)[-1]
-        if "." in rightmost_section:
-            extension = rightmost_section.rsplit(".", 1)[-1]
+        extension = get_file_extension(parsed_path_lower)
+        if extension:
             self.tags.add(f"extension-{extension}")
             if extension in url_extension_blacklist:
                 self.tags.add("blacklisted")

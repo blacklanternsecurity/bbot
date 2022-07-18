@@ -99,7 +99,7 @@ class httpx(BaseModule):
 
             # main URL
             url_event = self.make_event(url, "URL", source_event, tags=[f"status-{status_code}"])
-            if url_event:
+            if url_event and not "httpx-only" in url_event.tags:
                 self.emit_event(url_event)
                 # HTTP response
                 self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)
