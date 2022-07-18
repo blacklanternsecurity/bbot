@@ -57,21 +57,26 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGETS [TARGETS ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-m MODULES [MODULES ...]] [-f FLAGS [FLAGS ...]] [-o MODULES [MODULES ...]]
-            [-oA BASE_FILENAME] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config] [--save-wordcloud FILE] [--load-wordcloud FILE | --load-last-wordcloud] [--ignore-failed-deps]
-            [--no-deps | --force-deps | --retry-deps] [-a]
+usage: bbot [-h] [-t TARGET [TARGET ...]] [-w TARGET [TARGET ...]] [-b BLACKLIST [BLACKLIST ...]] [-m MODULE [MODULE ...]]
+            [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-o MODULE [MODULE ...]]
+            [-oA BASE_FILENAME] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config] [--save-wordcloud FILE]
+            [--load-wordcloud FILE | --load-last-wordcloud] [--ignore-failed-deps] [--no-deps | --force-deps | --retry-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
 options:
   -h, --help            show this help message and exit
-  -m MODULES [MODULES ...], --modules MODULES [MODULES ...]
-                        Modules to enable. Choices: aspnet_viewstate,azure_tenant,bypass403,c99,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_short
-                        names,getparam_brute,gowitness,header_brute,httpx,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,s
-                        ublist3r,telerik,urlscan,vhost,viewdns,wappalyzer,wayback
-  -f FLAGS [FLAGS ...], --flags FLAGS [FLAGS ...]
+  -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
+                        Modules to enable. Choices: aspnet_viewstate,azure_tenant,bypass403,c99,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnsgrep,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,getparam_brute,gowitness,header_brute,httpx,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,urlscan,vhost,viewdns,wappalyzer,wayback
+  -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
+                        Exclude these modules.
+  -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
                         Enable modules by flag. Choices: active,brute-force,passive,subdomain-enum
-  -o MODULES [MODULES ...], --output-modules MODULES [MODULES ...]
+  -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
+                        Disable modules that don't have these flags (e.g. --require-flags passive)
+  -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
+                        Disable modules with these flags. (e.g. --exclude-flags brute-force)
+  -o MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
                         Output module(s). Choices: csv,http,human,json,neo4j,websocket
   -oA BASE_FILENAME, --output-all BASE_FILENAME
                         Output in CSV, JSON, and TXT at this file location
@@ -82,9 +87,9 @@ options:
   --current-config      Show current config in YAML format
 
 Target:
-  -t TARGETS [TARGETS ...], --targets TARGETS [TARGETS ...]
+  -t TARGET [TARGET ...], --targets TARGET [TARGET ...]
                         Targets to seed the scan
-  -w WHITELIST [WHITELIST ...], --whitelist WHITELIST [WHITELIST ...]
+  -w TARGET [TARGET ...], --whitelist TARGET [TARGET ...]
                         What's considered in-scope (by default it's the same as --targets)
   -b BLACKLIST [BLACKLIST ...], --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things

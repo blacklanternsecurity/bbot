@@ -7,6 +7,7 @@ class ffuf_shortnames(ffuf):
 
     watched_events = ["URL_HINT"]
     produced_events = ["URL"]
+    flags = ["active"]
 
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-large-words.txt",

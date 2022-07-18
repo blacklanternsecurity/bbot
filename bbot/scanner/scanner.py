@@ -26,15 +26,12 @@ class Scanner:
         scan_id=None,
         name=None,
         modules=None,
-        module_flags=None,
         output_modules=None,
         config=None,
         dispatcher=None,
     ):
         if modules is None:
             modules = []
-        if module_flags is None:
-            module_flags = []
         if output_modules is None:
             output_modules = ["human"]
         if config is None:
@@ -49,22 +46,11 @@ class Scanner:
 
         self.target = ScanTarget(self, *targets)
 
-        # enable modules by flags
-        all_modules_preloaded = module_loader.preloaded()
-        for m, c in all_modules_preloaded.items():
-            flags = c.get("flags", [])
-            if any([f in flags for f in module_flags]):
-                modules.append(m)
-        modules = list(set(modules))
-
         self.modules = OrderedDict({})
         self._scan_modules = modules
         self._internal_modules = list(self._internal_modules())
         self._output_modules = output_modules
         self._modules_loaded = False
-
-        if not modules:
-            self.warning(f"No modules specified")
 
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
@@ -393,6 +379,14 @@ class Scanner:
     def load_modules(self):
 
         if not self._modules_loaded:
+
+            all_modules = list(set(self._scan_modules + self._output_modules + self._internal_modules))
+            if not all_modules:
+                self.warning(f"No modules to load")
+                return
+
+            if not self._scan_modules:
+                self.warning(f"No scan modules to load")
 
             # install module dependencies
             succeeded, failed = self.helpers.depsinstaller.install(

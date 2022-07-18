@@ -1,5 +1,6 @@
-from .base import BaseInternalModule
 import ipaddress
+
+from bbot.modules.internal.base import BaseInternalModule
 
 
 class speculate(BaseInternalModule):
@@ -13,6 +14,7 @@ class speculate(BaseInternalModule):
     options = {"max_hosts": 65536}
     options_desc = {"max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events"}
     max_threads = 5
+    scope_distance_modifier = 0
 
     def setup(self):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
@@ -41,11 +43,6 @@ class speculate(BaseInternalModule):
             if parent != event.data:
                 self.emit_event(parent, "DNS_NAME", source=event, internal=True)
 
-        # generate DNS_NAMES and IPs from misc events
-        # NOTE: we don't do this anymore because BBOT's internal DNS handles it instead
-        # if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS"):
-        #    self.speculate_event(str(event.host), "DNS_NAME", source=event)
-
         # generate open ports
         emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         # from URLs
@@ -60,13 +57,12 @@ class speculate(BaseInternalModule):
             if event.type == "IP_ADDRESS" or (
                 event.type == "DNS_NAME" and any([x in event.tags for x in ("a_record", "aaaa_record")])
             ):
-                if self.open_port_consumers and not self.portscanner_enabled:
-                    self.speculate_event(
-                        self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True
-                    )
-                    self.speculate_event(
-                        self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
-                    )
+                self.speculate_event(
+                    self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True
+                )
+                self.speculate_event(
+                    self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
+                )
 
     def speculate_event(self, *args, **kwargs):
         """

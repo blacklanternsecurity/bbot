@@ -7,10 +7,11 @@ from ..errors import ArgumentError
 from ...modules import module_loader
 from ..helpers.misc import chain_lists, make_date
 
-flag_choices = set()
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
-for m, c in module_loader.configs().items():
+
+flag_choices = set()
+for m, c in module_loader.preloaded().items():
     flag_choices.update(set(c.get("flags", [])))
 
 
@@ -29,6 +30,7 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.whitelist = chain_lists(ret.whitelist, try_files=True, msg="Reading whitelist from file: {filename}")
         ret.blacklist = chain_lists(ret.blacklist, try_files=True, msg="Reading blacklist from file: {filename}")
         ret.flags = chain_lists(ret.flags)
+        ret.require_flags = chain_lists(ret.require_flags)
         for m in ret.modules:
             if m not in module_choices and not self._dummy:
                 raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(module_choices)}')
@@ -37,7 +39,7 @@ class BBOTArgumentParser(argparse.ArgumentParser):
                 raise ArgumentError(
                     f'Output module "{m}" is not valid. Choose from: {",".join(output_module_choices)}'
                 )
-        for f in ret.flags:
+        for f in set(ret.flags + ret.require_flags):
             if f not in flag_choices and not self._dummy:
                 raise ArgumentError(f'Flag "{f}" is not valid. Choose from: {",".join(sorted(flag_choices))}')
         # -oA
@@ -58,17 +60,18 @@ class DummyArgumentParser(BBOTArgumentParser):
         pass
 
 
-parser = BBOTArgumentParser(description="Bighuge BLS OSINT Tool")
-dummy_parser = DummyArgumentParser(description="Bighuge BLS OSINT Tool")
+parser = BBOTArgumentParser(description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter)
+dummy_parser = DummyArgumentParser(description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter)
 for p in (parser, dummy_parser):
     target = p.add_argument_group(title="Target")
-    target.add_argument("-t", "--targets", nargs="+", default=[], help="Targets to seed the scan")
+    target.add_argument("-t", "--targets", nargs="+", default=[], help="Targets to seed the scan", metavar="TARGET")
     target.add_argument(
         "-w",
         "--whitelist",
         nargs="+",
         default=[],
         help="What's considered in-scope (by default it's the same as --targets)",
+        metavar="TARGET",
     )
     target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
     p.add_argument(
@@ -77,13 +80,32 @@ for p in (parser, dummy_parser):
         nargs="+",
         default=[],
         help=f'Modules to enable. Choices: {",".join(module_choices)}',
+        metavar="MODULE",
     )
+    p.add_argument("-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE")
     p.add_argument(
         "-f",
         "--flags",
         nargs="+",
         default=[],
         help=f'Enable modules by flag. Choices: {",".join(sorted(flag_choices))}',
+        metavar="FLAG",
+    )
+    p.add_argument(
+        "-rf",
+        "--require-flags",
+        nargs="+",
+        default=[],
+        help=f"Disable modules that don't have these flags (e.g. --require-flags passive)",
+        metavar="FLAG",
+    )
+    p.add_argument(
+        "-ef",
+        "--exclude-flags",
+        nargs="+",
+        default=[],
+        help=f"Disable modules with these flags. (e.g. --exclude-flags brute-force)",
+        metavar="FLAG",
     )
     p.add_argument(
         "-o",
@@ -91,7 +113,7 @@ for p in (parser, dummy_parser):
         nargs="+",
         default=["human"],
         help=f'Output module(s). Choices: {",".join(output_module_choices)}',
-        metavar="MODULES",
+        metavar="MODULE",
     )
     p.add_argument(
         "-oA",

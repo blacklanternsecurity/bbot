@@ -65,10 +65,20 @@ def main():
             from bbot.scanner import Scanner
 
             try:
+                modules = set(options.modules)
+
+                # enable modules by flags
+                for m, c in module_loader.preloaded().items():
+                    if m not in modules:
+                        flags = c.get("flags", [])
+                        for f in options.flags:
+                            if f in flags:
+                                log.verbose(f'Enabling {m} because it has flag "{f}"')
+                                modules.add(m)
+
                 scanner = Scanner(
                     *options.targets,
-                    modules=options.modules,
-                    module_flags=options.flags,
+                    modules=list(modules),
                     output_modules=options.output_modules,
                     config=config,
                     whitelist=options.whitelist,
@@ -76,6 +86,8 @@ def main():
                 )
 
                 # enable modules by dependency
+                # this is only a basic surface-level check
+                # todo: recursive dependency graph with networkx or topological sort?
                 all_modules = list(set(scanner._scan_modules + scanner._internal_modules + scanner._output_modules))
                 while 1:
                     changed = False
@@ -93,7 +105,7 @@ def main():
                                 f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no modules produce it"
                             )
                         elif len(recommended) == 1:
-                            log.warning(
+                            log.info(
                                 f"Enabling {next(iter(recommended))} because {len(required_by):,} modules ({','.join(required_by)}) rely on it for {event_type}"
                             )
                             all_modules = list(set(all_modules + list(recommended)))
@@ -107,9 +119,37 @@ def main():
                                 f"Recommend enabling one or more of the following modules which produce {event_type}:"
                             )
                             for m in recommended:
-                                log.warning(f" - {m}")
+                                log.info(f" - {m}")
                     if not changed:
                         break
+
+                # required flags
+                modules = set(scanner._scan_modules)
+                for m in scanner._scan_modules:
+                    flags = module_loader._preloaded.get(m, {}).get("flags", [])
+                    if not all(f in flags for f in options.require_flags):
+                        log.warning(
+                            f"Removing {m} because it does not have the required flags: {'+'.join(options.require_flags)}"
+                        )
+                        modules.remove(m)
+                scanner._scan_modules = list(modules)
+
+                # excluded flags
+                modules = set(scanner._scan_modules)
+                for m in scanner._scan_modules:
+                    flags = module_loader._preloaded.get(m, {}).get("flags", [])
+                    if any(f in flags for f in options.exclude_flags):
+                        log.warning(f"Removing {m} because of excluded flag: {','.join(options.exclude_flags)}")
+                        modules.remove(m)
+                scanner._scan_modules = list(modules)
+
+                # excluded modules
+                modules = set(scanner._scan_modules)
+                for m in options.exclude_modules:
+                    if m in modules:
+                        log.warning(f"Removing {m} because it is excluded")
+                        modules.remove(m)
+                scanner._scan_modules = list(modules)
 
                 if options.load_wordcloud:
                     scanner.helpers.word_cloud.load(options.load_wordcloud)
