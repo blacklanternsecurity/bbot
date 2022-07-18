@@ -32,7 +32,7 @@ class DNSHelper:
         self.wildcard_ignore = self.parent_helper.config.get("dns_wildcard_ignore", None)
         if not self.wildcard_ignore:
             self.wildcard_ignore = []
-        self.wildcard_ignore = tuple([str(d).lower() for d in self.wildcard_ignore])
+        self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
         self.wildcard_tests = self.parent_helper.config.get("dns_wildcard_tests", 5)
         self._wildcard_cache = dict()
         # since wildcard detection takes some time, This is to prevent multiple
