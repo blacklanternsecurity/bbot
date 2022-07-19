@@ -61,8 +61,6 @@ class Scanner:
         if not blacklist:
             blacklist = []
         self.blacklist = ScanTarget(self, *blacklist)
-        if not self.target:
-            self.warning(f"No scan targets specified")
         if name is None:
             self.name = str(self.target)
         else:
@@ -100,6 +98,9 @@ class Scanner:
     def start(self):
 
         failed = True
+
+        if not self.target:
+            self.warning(f"No scan targets specified")
 
         try:
             self.status = "STARTING"

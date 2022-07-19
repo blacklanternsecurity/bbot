@@ -105,7 +105,7 @@ def main():
                                 f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no modules produce it"
                             )
                         elif len(recommended) == 1:
-                            log.info(
+                            log.verbose(
                                 f"Enabling {next(iter(recommended))} because {len(required_by):,} modules ({','.join(required_by)}) rely on it for {event_type}"
                             )
                             all_modules = list(set(all_modules + list(recommended)))
@@ -113,7 +113,7 @@ def main():
                             changed = True
                         else:
                             log.warning(
-                                f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no modules produce it"
+                                f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no enabled module produces it"
                             )
                             log.warning(
                                 f"Recommend enabling one or more of the following modules which produce {event_type}:"
@@ -128,7 +128,7 @@ def main():
                 for m in scanner._scan_modules:
                     flags = module_loader._preloaded.get(m, {}).get("flags", [])
                     if not all(f in flags for f in options.require_flags):
-                        log.warning(
+                        log.verbose(
                             f"Removing {m} because it does not have the required flags: {'+'.join(options.require_flags)}"
                         )
                         modules.remove(m)
@@ -139,7 +139,7 @@ def main():
                 for m in scanner._scan_modules:
                     flags = module_loader._preloaded.get(m, {}).get("flags", [])
                     if any(f in flags for f in options.exclude_flags):
-                        log.warning(f"Removing {m} because of excluded flag: {','.join(options.exclude_flags)}")
+                        log.verbose(f"Removing {m} because of excluded flag: {','.join(options.exclude_flags)}")
                         modules.remove(m)
                 scanner._scan_modules = list(modules)
 
@@ -147,7 +147,7 @@ def main():
                 modules = set(scanner._scan_modules)
                 for m in options.exclude_modules:
                     if m in modules:
-                        log.warning(f"Removing {m} because it is excluded")
+                        log.verbose(f"Removing {m} because it is excluded")
                         modules.remove(m)
                 scanner._scan_modules = list(modules)
 
@@ -161,17 +161,21 @@ def main():
                         options.exclude_modules,
                     ]
                 )
+                log_fn = log.info
                 if options.list_modules:
-                    log.stdout(f"{'Module Name':<20}{'Produced Events':<40}{'Flags':<20}")
-                    log.stdout("=" * 19 + " " + "=" * 39 + " " + "=" * 29)
-                    module_list = list(module_loader.preloaded(type="scan").items())
-                    module_list.sort(key=lambda x: x[0])
-                    module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
-                    for module_name, preloaded in module_list:
-                        if not module_filtering or module_name in modules:
-                            produced_events = sorted(preloaded.get("produced_events", []))
-                            flags = sorted(preloaded.get("flags", []))
-                            log.stdout(f"{module_name:<20}{','.join(produced_events):<40}{','.join(flags):<20}")
+                    log_fn = log.stdout
+
+                log_fn(f"{'Module Name':<20}{'Produced Events':<40}{'Flags':<20}")
+                log_fn("=" * 19 + " " + "=" * 39 + " " + "=" * 29)
+                module_list = list(module_loader.preloaded(type="scan").items())
+                module_list.sort(key=lambda x: x[0])
+                module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
+                for module_name, preloaded in module_list:
+                    if not module_filtering or module_name in modules:
+                        produced_events = sorted(preloaded.get("produced_events", []))
+                        flags = sorted(preloaded.get("flags", []))
+                        log_fn(f"{module_name:<20}{','.join(produced_events):<40}{','.join(flags):<20}")
+                if options.list_modules:
                     return
 
                 if options.load_wordcloud:
