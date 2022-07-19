@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import shutil
-import signal
 import getpass
 import logging
 from time import sleep
@@ -208,23 +207,19 @@ class DepsInstaller:
         shutil.rmtree(data_dir, ignore_errors=True)
         self.parent_helper.mkdir(data_dir)
 
-        original_sigint_handler = signal.getsignal(signal.SIGINT)
-        try:
-            res = run(
-                playbook=playbook,
-                private_data_dir=str(data_dir),
-                host_pattern="localhost",
-                inventory={
-                    "all": {"hosts": {"localhost": _ansible_args}},
-                },
-                module=module,
-                module_args=module_args,
-                quiet=not self.ansible_debug,
-                verbosity=(3 if self.ansible_debug else 0),
-            )
-        finally:
-            # restore default SIGINT handler
-            signal.signal(signal.SIGINT, original_sigint_handler)
+        res = run(
+            playbook=playbook,
+            private_data_dir=str(data_dir),
+            host_pattern="localhost",
+            inventory={
+                "all": {"hosts": {"localhost": _ansible_args}},
+            },
+            module=module,
+            module_args=module_args,
+            quiet=not self.ansible_debug,
+            verbosity=(3 if self.ansible_debug else 0),
+            cancel_callback=lambda: None,
+        )
 
         log.debug(f"Ansible status: {res.status}")
         log.debug(f"Ansible return code: {res.rc}")
