@@ -29,9 +29,11 @@ class ConfigAwareHelper:
         self.cache_dir = self.home / "cache"
         self.temp_dir = self.home / "temp"
         self.tools_dir = self.home / "tools"
+        self.lib_dir = self.home / "lib"
         self.mkdir(self.cache_dir)
         self.mkdir(self.temp_dir)
         self.mkdir(self.tools_dir)
+        self.mkdir(self.lib_dir)
         atexit.register(self.empty_temp_dir)
         # holds requests CachedSession() objects for duration of scan
         self.cache_sessions = dict()
