@@ -7,7 +7,7 @@ class crobat(BaseModule):
     Inherited by several other modules including sublist3r, dnsdumpster, etc.
     """
 
-    flags = ["subdomain-enum", "passive"]
+    flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
 

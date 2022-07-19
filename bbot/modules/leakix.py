@@ -4,7 +4,7 @@ from .crobat import crobat
 class leakix(crobat):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive"]
+    flags = ["subdomain-enum", "passive", "safe"]
 
     base_url = "https://leakix.net"
 
