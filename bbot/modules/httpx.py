@@ -43,14 +43,15 @@ class httpx(BaseModule):
 
     def handle_batch(self, *events):
 
-        stdin = []
+        stdin = {}
         for e in events:
             if "httpx-only" in e.tags or "spider-danger" not in e.tags:
                 if e.type.startswith("URL"):
                     # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
-                    stdin.append(e.with_port().geturl())
+                    url = e.with_port().geturl()
                 else:
-                    stdin.append(str(e.data))
+                    url = str(e.data)
+            stdin[url] = e
 
         command = [
             "httpx",
@@ -69,7 +70,7 @@ class httpx(BaseModule):
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:
             command += ["-http-proxy", proxy]
-        for line in self.helpers.run_live(command, input=stdin, stderr=subprocess.DEVNULL):
+        for line in self.helpers.run_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:
@@ -82,11 +83,7 @@ class httpx(BaseModule):
                 self.debug(f'No HTTP status code for "{url}"')
                 continue
 
-            source_event = None
-            for event in events:
-                if url in event:
-                    source_event = event
-                    break
+            source_event = stdin.get(j.get("input", ""), None)
 
             if source_event is None:
                 self.warning(f"Unable to correlate source event from: {line}")

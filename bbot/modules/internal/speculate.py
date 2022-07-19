@@ -18,7 +18,7 @@ class speculate(BaseInternalModule):
 
     def setup(self):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
-        self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
+        self.portscanner_enabled = any(["portscan " in m.flags for m in self.scan.modules.values()])
         self.range_to_ip = True
         target_len = len(self.scan.target)
         if target_len > self.config.get("max_hosts", 65536):
