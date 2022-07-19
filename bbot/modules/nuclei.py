@@ -3,7 +3,7 @@ import subprocess
 from bbot.modules.base import BaseModule
 
 
-technology_map = {}
+technology_map = {"f5 bigip": "bigip", "microsoft asp.net": "asp"}
 
 
 class nuclei(BaseModule):
@@ -112,7 +112,10 @@ class nuclei(BaseModule):
             tags_to_scan = {}
             for e in events:
                 if e.type == "TECHNOLOGY":
-                    if e.data.get("technology", "") in self.tag_list:
+                    reported_tag = e.data.get("technology", "")
+                    if reported_tag in technology_map.keys():
+                        reported_tag = technology_map[reported_tag]
+                    if reported_tag in self.tag_list:
                         tag = e.data.get("technology", "")
                         if tag not in tags_to_scan.keys():
                             tags_to_scan[tag] = [e]

@@ -1,7 +1,7 @@
 import re
 import html
+import base64
 import jwt as j
-
 from bbot.core.helpers.regexes import _email_regex
 from bbot.modules.internal.base import BaseInternalModule
 
@@ -88,7 +88,6 @@ class ErrorExtractor(BaseExtractor):
         "ASP.NET:2": "--- End of inner exception stack trace ---",
         "ASP.NET:3": "Microsoft OLE DB Provider",
         "ASP.NET:4": r"Error ([\d-]+) \([\dA-F]+\)",
-        "ASP.NET:5": r"at ([a-zA-Z0-9]*\.)*([a-zA-Z0-9]*)\([a-zA-Z0-9, ]*\)",
     }
 
     def report(self, result, name, event, **kwargs):
@@ -118,6 +117,58 @@ class JWTExtractor(BaseExtractor):
             self.excavate.debug(f"Error decoding JWT candidate {result}")
 
 
+class JavascriptExtractor(BaseExtractor):
+    # based on on https://github.com/m4ll0k/SecretFinder/blob/master/SecretFinder.py
+
+    regexes = {
+        "google_api": r"AIza[0-9A-Za-z-_]{35}",
+        "firebase": r"AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}",
+        "google_oauth": r"ya29\.[0-9A-Za-z\-_]+",
+        "amazon_aws_access_key_id": r"A[SK]IA[0-9A-Z]{16}",
+        "amazon_mws_auth_toke": r"amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        "amazon_aws_url": r"s3\.amazonaws.com[/]+|[a-zA-Z0-9_-]*\.s3\.amazonaws.com",
+        "amazon_aws_url2": r"[a-zA-Z0-9-\.\_]+\.s3\.amazonaws\.com",
+        "amazon_aws_url3": r"s3://[a-zA-Z0-9-\.\_]+",
+        "amazon_aws_url4": r"s3.amazonaws.com/[a-zA-Z0-9-\.\_]+",
+        "amazon_aws_url5": r"s3.console.aws.amazon.com/s3/buckets/[a-zA-Z0-9-\.\_]+",
+        "facebook_access_token": r"EAACEdEose0cBA[0-9A-Za-z]+",
+        "authorization_basic": r"(?i)basic [a-zA-Z0-9:_\+\/-]{4,100}={0,2}",
+        "authorization_bearer": r"bearer [a-zA-Z0-9_\-\.=:_\+\/]{5,100}",
+        "apikey": r"api(?:key|_key)\s?=\s?[\'\"\`][a-zA-Z0-9_\-]{5,100}[\'\"\`]",
+        "mailgun_api_key": r"key-[0-9a-zA-Z]{32}",
+        "paypal_braintree_access_token": r"access_token\$production\$[0-9a-z]{16}\$[0-9a-f]{32}",
+        "square_oauth_secret": r"sq0csp-[ 0-9A-Za-z\-_]{43}|sq0[a-z]{3}-[0-9A-Za-z\-_]{22,43}",
+        "square_access_token": r"sqOatp-[0-9A-Za-z\-_]{22}",
+        "stripe_standard_api": r"sk_live_[0-9a-zA-Z]{24}",
+        "stripe_restricted_api": r"rk_live_[0-9a-zA-Z]{24}",
+        "github_access_token": r"[a-zA-Z0-9_-]*:[a-zA-Z0-9_\-]+@github\.com*",
+        "rsa_private_key": r"-----BEGIN RSA PRIVATE KEY-----",
+        "ssh_dsa_private_key": r"-----BEGIN DSA PRIVATE KEY-----",
+        "ssh_dc_private_key": r"-----BEGIN EC PRIVATE KEY-----",
+        "pgp_private_block": r"-----BEGIN PGP PRIVATE KEY BLOCK-----",
+        "json_web_token": r"ey[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$",
+        "slack_token": r"\"api_token\":\"(xox[a-zA-Z]-[a-zA-Z0-9-]+)\"",
+        "SSH_privKey": r"([-]+BEGIN [^\s]+ PRIVATE KEY[-]+[\s]*[^-]*[-]+END [^\s]+ PRIVATE KEY[-]+)",
+        "possible_creds_var": r"(?:password|passwd|pwd|pass)\s*=+\s*['\"][^\s'\"]{1,60}['\"]",
+    }
+
+    def report(self, result, name, event, **kwargs):
+
+        # ensure that basic auth matches aren't false positives
+        if name == "authorization_basic":
+            try:
+                b64test = base64.b64decode(result.split(" ")[1].encode())
+                if b":" not in b64test:
+                    return
+            except (base64.binascii.Error, UnicodeDecodeError):
+                return
+
+        self.excavate.debug(f"Found Possible Secret in Javascript [{result}]")
+        self.excavate.emit_event(
+            f"Possible secret in JS [{result}] in [{event.data.get('url')}] Signature [{name}]", "FINDING", event
+        )
+
+
 class excavate(BaseInternalModule):
 
     watched_events = ["HTTP_RESPONSE"]
@@ -131,6 +182,7 @@ class excavate(BaseInternalModule):
         self.email = EmailExtractor(self)
         self.error = ErrorExtractor(self)
         self.jwt = JWTExtractor(self)
+        self.javascript = JavascriptExtractor(self)
 
         return True
 
@@ -153,7 +205,7 @@ class excavate(BaseInternalModule):
                 self.emit_event(location, "URL_UNVERIFIED", event)
 
             body = event.data.get("response-body", "")
-            self.search(body, [self.url, self.email, self.error, self.jwt], event, spider_danger=True)
+            self.search(body, [self.url, self.email, self.error, self.jwt, self.javascript], event, spider_danger=True)
 
             headers = event.data.get("response-header", "")
             self.search(headers, [self.url, self.email, self.error, self.jwt], event, spider_danger=False)
