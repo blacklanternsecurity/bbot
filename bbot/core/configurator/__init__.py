@@ -41,6 +41,9 @@ config["cache"] = str(bbot_cache)
 # ensure bbot_temp
 bbot_temp = home / "temp"
 config["temp"] = str(bbot_temp)
+# ensure bbot_lib
+bbot_lib = home / "lib"
+config["lib"] = str(bbot_lib)
 
 # exchange certain options between CLI args and config
 if args.cli_options is not None:
@@ -78,6 +81,9 @@ http_proxy = config.get("http_proxy", "")
 if http_proxy:
     os.environ["HTTP_PROXY"] = http_proxy
     os.environ["HTTPS_PROXY"] = http_proxy
+
+# export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/.bbot/lib/
+os.environ["LD_LIBRARY_PATH"] = ":".join(os.environ.get("LD_LIBRARY_PATH", "").split(":") + [str(bbot_lib)]).strip(":")
 
 # replace environment variables in preloaded modules
 module_loader.find_and_replace(**os.environ)

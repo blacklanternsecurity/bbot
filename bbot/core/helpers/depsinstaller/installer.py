@@ -99,7 +99,7 @@ class DepsInstaller:
         # apt
         deps_apt = preloaded["deps"]["apt"]
         if deps_apt:
-            success &= self.apt_install(deps_apt)
+            self.apt_install(deps_apt)
 
         # pip
         deps_pip = preloaded["deps"]["pip"]
@@ -136,16 +136,14 @@ class DepsInstaller:
         return success
 
     def apt_install(self, packages):
-        if not shutil.which("apt"):
-            log.warning("apt is not supported on this system. Please manually install the following packages:")
-            for p in packages:
-                log.warning(f" - {p}")
-            return True
-        packages = ",".join(packages)
-        log.verbose(f"Installing the following apt packages: {packages}")
-        args = {"name": packages, "state": "latest", "update_cache": True, "cache_valid_time": 86400}
+        """
+        Install packages with the OS's default package manager (apt, pacman, dnf, etc.)
+        """
+        packages_str = ",".join(packages)
+        log.verbose(f"Installing the following OS packages: {packages_str}")
+        args = {"name": packages_str, "state": "present"}  # , "update_cache": True, "cache_valid_time": 86400}
         success, err = self.ansible_run(
-            module="apt",
+            module="package",
             args=args,
             ansible_args={
                 "ansible_become": True,
@@ -153,9 +151,13 @@ class DepsInstaller:
             },
         )
         if success:
-            log.info(f'Successfully installed apt packages "{packages}"')
+            log.info(f'Successfully installed OS packages "{packages_str}"')
         else:
-            log.warning(f"Failed to install apt packages: {err}")
+            log.warning(
+                f"Failed to install OS packages ({err}). Recommend installing the following packages manually:"
+            )
+            for p in packages:
+                log.warning(f" - {p}")
         return success
 
     def shell(self, module, commands):

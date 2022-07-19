@@ -17,8 +17,12 @@ class naabu(BaseModule):
     max_threads = 5
     batch_size = 100
 
-    deps_apt = ["libpcap-dev"]
+    deps_apt = ["libpcap"]
     deps_ansible = [
+        {
+            "name": "symlink libpcap",
+            "file": {"src": "/usr/lib/libpcap.so", "dest": "{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
+        },
         {
             "name": "Download naabu",
             "unarchive": {
@@ -27,7 +31,7 @@ class naabu(BaseModule):
                 "dest": "{BBOT_TOOLS}",
                 "remote_src": True,
             },
-        }
+        },
     ]
     in_scope_only = True
 

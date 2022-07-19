@@ -104,7 +104,7 @@ class Scanner:
 
         try:
             self.status = "STARTING"
-            start_msg = f"Scan seeded against {len(self.target)} targets"
+            start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target)} targets"
             details = []
             if self.whitelist != self.target:
                 details.append(f"{len(self.whitelist):,} in whitelist")
