@@ -82,6 +82,7 @@ for p in (parser, dummy_parser):
         help=f'Modules to enable. Choices: {",".join(module_choices)}',
         metavar="MODULE",
     )
+    p.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
     p.add_argument("-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE")
     p.add_argument(
         "-f",

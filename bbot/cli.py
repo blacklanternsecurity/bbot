@@ -151,6 +151,29 @@ def main():
                         modules.remove(m)
                 scanner._scan_modules = list(modules)
 
+                module_filtering = any(
+                    [
+                        options.modules,
+                        options.exclude_modules,
+                        options.flags,
+                        options.require_flags,
+                        options.exclude_flags,
+                        options.exclude_modules,
+                    ]
+                )
+                if options.list_modules:
+                    log.stdout(f"{'Module Name':<20}{'Produced Events':<40}{'Flags':<20}")
+                    log.stdout("=" * 19 + " " + "=" * 39 + " " + "=" * 29)
+                    module_list = list(module_loader.preloaded(type="scan").items())
+                    module_list.sort(key=lambda x: x[0])
+                    module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
+                    for module_name, preloaded in module_list:
+                        if not module_filtering or module_name in modules:
+                            produced_events = sorted(preloaded.get("produced_events", []))
+                            flags = sorted(preloaded.get("flags", []))
+                            log.stdout(f"{module_name:<20}{','.join(produced_events):<40}{','.join(flags):<20}")
+                    return
+
                 if options.load_wordcloud:
                     scanner.helpers.word_cloud.load(options.load_wordcloud)
                 elif options.load_last_wordcloud:
