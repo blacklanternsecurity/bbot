@@ -124,6 +124,7 @@ def events(scan):
         netv6 = scan.make_event("2001:4860:4860::8888/126", dummy=True)
         domain = scan.make_event("publicAPIs.org", dummy=True)
         subdomain = scan.make_event("api.publicAPIs.org", dummy=True)
+        email = scan.make_event("bob@evilcorp.co.uk", "EMAIL_ADDRESS", dummy=True)
         open_port = scan.make_event("api.publicAPIs.org:443", dummy=True)
         ipv4_open_port = scan.make_event("8.8.8.8:443", dummy=True)
         ipv6_open_port = scan.make_event("[2001:4860:4860::8888]:443", "OPEN_TCP_PORT", dummy=True)
@@ -147,6 +148,7 @@ def events(scan):
         bbot_events.netv6,
         bbot_events.domain,
         bbot_events.subdomain,
+        bbot_events.email,
         bbot_events.open_port,
         bbot_events.ipv4_open_port,
         bbot_events.ipv6_open_port,

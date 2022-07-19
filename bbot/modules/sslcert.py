@@ -10,7 +10,7 @@ from bbot.core.errors import ValidationError
 
 class sslcert(BaseModule):
 
-    flags = ["subdomain-enum", "active"]
+    flags = ["subdomain-enum", "active", "safe"]
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME"]
     options = {"timeout": 5.0}

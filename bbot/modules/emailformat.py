@@ -4,7 +4,7 @@ from .viewdns import viewdns
 class emailformat(viewdns):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
-    flags = ["passive"]
+    flags = ["passive", "safe"]
     in_scope_only = False
 
     base_url = "https://www.email-format.com"
