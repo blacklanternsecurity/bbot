@@ -7,7 +7,7 @@ class httpx(BaseModule):
 
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED"]
     produced_events = ["URL", "HTTP_RESPONSE"]
-    flags = ["active"]
+    flags = ["active", "safe"]
     batch_size = 100
     options = {"in_scope_only": True, "version": "1.2.3", "max_response_size": 5242880}
     options_desc = {

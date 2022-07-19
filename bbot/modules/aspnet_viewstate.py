@@ -6,7 +6,7 @@ class aspnet_viewstate(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["VULNERABILITY"]
-    flags = ["active"]
+    flags = ["active", "safe"]
 
     generator_regex = re.compile(r'<input.+__VIEWSTATEGENERATOR"\svalue="(\w+)"')
     viewstate_regex = re.compile(r'<input.+__VIEWSTATE"\svalue="(.+)"')

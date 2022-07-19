@@ -5,7 +5,7 @@ class securitytrails(shodan_dns):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive"]
+    flags = ["subdomain-enum", "passive", "safe"]
     options = {"api_key": ""}
     options_desc = {"api_key": "SecurityTrails API key"}
 

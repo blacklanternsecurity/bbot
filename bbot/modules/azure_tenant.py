@@ -6,7 +6,7 @@ from .viewdns import viewdns
 class azure_tenant(viewdns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive"]
+    flags = ["subdomain-enum", "passive", "safe"]
     base_url = "https://autodiscover-s.outlook.com"
     in_scope_only = True
 
