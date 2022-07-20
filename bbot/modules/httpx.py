@@ -51,7 +51,7 @@ class httpx(BaseModule):
                     url = e.with_port().geturl()
                 else:
                     url = str(e.data)
-            stdin[url] = e
+                stdin[url] = e
 
         command = [
             "httpx",
