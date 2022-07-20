@@ -52,7 +52,7 @@ class DNSHelper:
         self._dummy_modules = dict()
         self._dummy_modules_lock = Lock()
 
-        self._cache = dict()
+        self._cache = self.parent_helper.CacheDict(max_size=10000)
         self._cache_lock = Lock()
         self._cache_locks = NamedLock()
 
@@ -169,23 +169,16 @@ class DNSHelper:
                                 children.append((t, rdtype))
                 if "resolved" not in event_tags:
                     event_tags.add("unresolved")
-                self.cache_put(event_host, event_tags, event_whitelisted, event_blacklisted)
+                self._cache[event_host] = (event_tags, event_whitelisted, event_blacklisted)
             return children, event_tags, event_whitelisted, event_blacklisted
         finally:
             event._resolved.set()
 
     def cache_get(self, host):
         try:
-            return self._cache[hash(str(host))]
+            return self._cache[host]
         except KeyError:
             return set(), None, None
-
-    def cache_put(self, host, tags, event_whitelisted, event_blacklisted):
-        with self._cache_lock:
-            self._cache[hash(str(host))] = (tags, event_whitelisted, event_blacklisted)
-
-    def cache_in(self, host):
-        return hash(str(host)) in self._cache
 
     def resolve_batch(self, queries, **kwargs):
         """
