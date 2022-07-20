@@ -9,7 +9,7 @@ log = logging.getLogger("bbot.core.target")
 
 
 class ScanTarget:
-    def __init__(self, scan, *targets):
+    def __init__(self, scan, *targets, strict_scope=False):
         self.scan = scan
         self.dummy_module = ScanTargetDummyModule(scan)
         self._events = dict()
@@ -18,6 +18,7 @@ class ScanTarget:
         for t in targets:
             self.add_target(t)
 
+        self.strict_scope = strict_scope
         self._hash = None
 
     def add_target(self, t):
@@ -40,17 +41,15 @@ class ScanTarget:
             yield from _events
 
     def copy(self):
-        self_copy = self.__class__(self.scan)
+        self_copy = self.__class__(self.scan, strict_scope=self.strict_scope)
         self_copy._events = dict(self._events)
         return self_copy
 
-    def _contains(self, other, force_check=False):
+    def _contains(self, other):
         try:
             other = make_event(other, dummy=True)
         except ValidationError:
             return False
-        # if not force_check and "target" in other.tags:
-        #    return True
         if other in self.events:
             return True
         if other.host:
@@ -60,7 +59,7 @@ class ScanTarget:
                 for n in self.scan.helpers.ip_network_parents(other.host, include_self=True):
                     if n in self._events:
                         return True
-            else:
+            elif not self.strict_scope:
                 for h in self.scan.helpers.domain_parents(other.host):
                     if h in self._events:
                         return True
@@ -75,7 +74,7 @@ class ScanTarget:
     def __contains__(self, other):
         # if "other" is a ScanTarget
         if type(other) == self.__class__:
-            contained_in_self = [self._contains(e, force_check=True) for e in other.events]
+            contained_in_self = [self._contains(e) for e in other.events]
             return all(contained_in_self)
         else:
             return self._contains(other)
