@@ -75,7 +75,7 @@ class ScanManager:
                 reason = "event host"
                 if event_blacklisted_dns:
                     reason = "DNS associations"
-                log.verbose(f"Omitting due to blacklisted {reason}: {event}")
+                log.debug(f"Omitting due to blacklisted {reason}: {event}")
                 emit_event = False
 
             # Wait for parent event to resolve (in case its scope distance changes)
