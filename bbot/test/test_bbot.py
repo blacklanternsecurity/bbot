@@ -694,7 +694,19 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
         # flags
         assert module._type in ("internal", "output", "scan")
 
-    for module_name, preloaded in module_loader.preloaded().items():
+    # module preloading
+    all_preloaded = module_loader.preloaded()
+    assert "massdns" in all_preloaded
+    assert "DNS_NAME" in all_preloaded["massdns"]["watched_events"]
+    assert "DNS_NAME" in all_preloaded["massdns"]["produced_events"]
+    assert "subdomain-enum" in all_preloaded["massdns"]["flags"]
+    assert "wordlist" in all_preloaded["massdns"]["config"]
+    assert type(all_preloaded["massdns"]["config"]["max_resolvers"]) == int
+    assert all_preloaded["sslcert"]["deps"]["pip"]
+    assert all_preloaded["massdns"]["deps"]["apt"]
+    assert all_preloaded["massdns"]["deps"]["ansible"]
+
+    for module_name, preloaded in all_preloaded.items():
         # either active or passive and never both
         flags = preloaded.get("flags", [])
         if preloaded["type"] == "scan":
