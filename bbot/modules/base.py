@@ -469,6 +469,9 @@ class BaseModule:
     def verbose(self, *args, **kwargs):
         self.log.verbose(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
+    def hugeverbose(self, *args, **kwargs):
+        self.log.hugeverbose(*args, extra={"scan_id": self.scan.id}, **kwargs)
+
     def info(self, *args, **kwargs):
         self.log.info(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
