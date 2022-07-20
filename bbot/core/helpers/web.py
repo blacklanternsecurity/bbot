@@ -2,6 +2,7 @@ import logging
 import requests
 from time import sleep
 from requests_cache import CachedSession
+from requests_cache.backends import SQLiteCache
 from requests.exceptions import RequestException
 
 log = logging.getLogger("bbot.core.helpers.web")
@@ -64,7 +65,8 @@ def request(self, *args, **kwargs):
             session = self.cache_sessions[cache_for]
         except KeyError:
             db_path = str(self.cache_dir / "requests-cache.sqlite")
-            session = CachedSession(expire_after=cache_for, db_path=db_path)
+            backend = SQLiteCache(db_path=db_path)
+            session = CachedSession(expire_after=cache_for, backend=backend)
             self.cache_sessions[cache_for] = session
 
     if kwargs.pop("session", None) or not cache_for:
