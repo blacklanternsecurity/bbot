@@ -165,7 +165,6 @@ class hunt(BaseModule):
                     yield s
 
     def handle_event(self, event):
-        self.hugeinfo(event.data.get("url"))
         body = event.data.get("response-body", "")
         for p in self.extract_params(body):
             for k in hunt_param_dict.keys():
