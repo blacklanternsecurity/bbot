@@ -31,7 +31,7 @@ class BaseModule:
     # Whether to block outgoing duplicate events
     suppress_dupes = True
 
-    # Scope distance - accept/deny events based on scope distance
+    # Scope distance modifier - accept/deny events based on scope distance
     # None == accept all events
     # 2 == accept events up to and including the scan's configured search distance plus two
     # 1 == accept events up to and including the scan's configured search distance plus one
@@ -122,6 +122,14 @@ class BaseModule:
 
         Note that this method may be called multiple times, because it may raise events.
         Optionally override this method.
+        """
+        return
+
+    def report(self):
+        """
+        Perform a final task when the scan is finished, but before cleanup happens
+
+        This is useful for modules that aggregate data and raise summary events at the end of a scan
         """
         return
 
@@ -284,8 +292,11 @@ class BaseModule:
                         continue
                     self.debug(f"Got {e} from {getattr(e, 'module', e)}")
                     # if we receive the special "FINISHED" event
-                    if type(e) == str and e == "FINISHED":
-                        self._internal_thread_pool.submit_task(self.catch, self.finish)
+                    if type(e) == str:
+                        if e == "FINISHED":
+                            self._internal_thread_pool.submit_task(self.catch, self.finish)
+                        elif e == "REPORT":
+                            self._internal_thread_pool.submit_task(self.catch, self.report)
                     else:
                         if self._type == "output":
                             self.catch(self.handle_event, e)

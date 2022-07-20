@@ -96,8 +96,8 @@ class telerik(BaseModule):
     ]
     RAUConfirmed = []
 
-    options = {"skip_RAU_confirmation": True}
-    options_desc = {"skip_RAU_confirmation": "Do not attempt to confirm any RAU AXD detections are vulnerable"}
+    options = {"exploit_RAU_crypto": False}
+    options_desc = {"exploit_RAU_crypto": "Do not attempt to confirm any RAU AXD detections are vulnerable"}
 
     in_scope_only = True
 
@@ -126,7 +126,7 @@ class telerik(BaseModule):
                 self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
                 self.emit_event(f"[{event.data}] Telerik RAU AXD Handler detected", "FINDING", event, tags=["info"])
 
-                if self.config.get("skip_RAU_confirmation") == False:
+                if self.config.get("exploit_RAU_crypto") == True:
                     hostname = urlparse(event.data).netloc
                     if hostname not in self.RAUConfirmed:
                         self.RAUConfirmed.append(hostname)

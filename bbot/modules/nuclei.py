@@ -23,7 +23,7 @@ class nuclei(BaseModule):
         "itoken": "",
         "ratelimit": 150,
         "concurrency": 25,
-        "mode": "technology",
+        "mode": "severe",
         "etags": "intrusive",
     }
     options_desc = {

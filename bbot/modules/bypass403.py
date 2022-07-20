@@ -7,7 +7,6 @@ Port of https://github.com/iamj0ker/bypass-403/
 
 # ([int]id,[string]method,[string]path,[dictionary]header,[bool]strip trailing slash)
 signatures = [
-<<<<<<< Updated upstream
     (1, "GET", "{scheme}://{netloc}/%2e/{path}", None, False),
     (2, "GET", "{scheme}://{netloc}/{path}/.", None, True),
     (3, "GET", "{scheme}://{netloc}//{path}//", None, True),
