@@ -1,3 +1,4 @@
+import sys
 import argparse
 from pathlib import Path
 from omegaconf import OmegaConf
@@ -71,10 +72,11 @@ for p in (parser, dummy_parser):
         nargs="+",
         default=[],
         help="What's considered in-scope (by default it's the same as --targets)",
-        metavar="TARGET",
     )
     target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
-    target.add_argument("-s", "--strict-scope", action="store_true", help="Don't scan subdomains of target")
+    target.add_argument(
+        "-s", "--strict-scope", action="store_true", help="Don't consider subdomains of target to be in-scope"
+    )
     p.add_argument(
         "-m",
         "--modules",
@@ -127,7 +129,7 @@ for p in (parser, dummy_parser):
         "-c",
         "--configuration",
         nargs="*",
-        help="additional configuration options in key=value format",
+        help="custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'",
     )
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
@@ -169,6 +171,16 @@ def get_config():
     with suppress(Exception):
         if cli_options.configuration:
             cli_config = cli_options.configuration
-    with suppress(Exception):
+    if len(cli_config) == 1:
+        filename = Path(cli_config[0]).resolve()
+        if filename.is_file():
+            try:
+                return OmegaConf.load(str(filename))
+            except Exception as e:
+                print(f"[ERR] Error parsing custom config at {filename}: {e}")
+                sys.exit(2)
+    try:
         return OmegaConf.from_cli(cli_config)
-    return OmegaConf.create()
+    except Exception as e:
+        print(f"[ERR] Error parsing command-line config: {e}")
+        sys.exit(2)
