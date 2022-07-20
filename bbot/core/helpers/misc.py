@@ -1,4 +1,5 @@
 import sys
+import copy
 import atexit
 import psutil
 import random
@@ -437,6 +438,10 @@ def validate_port(port):
 
 
 def search_dict_by_key(key, d):
+    """
+    Search a dictionary by key name
+    Generator, yields all values with matching keys
+    """
     if isinstance(d, dict):
         if key in d:
             yield d[key]
@@ -449,16 +454,46 @@ def search_dict_by_key(key, d):
 
 def search_format_dict(d, **kwargs):
     """
-    Recursively .format() string values in a JSON-like object
+    Recursively .format() string values in dictionary keys
+    search_format_dict({"test": "{name} is awesome"}, name="keanu")
+        --> {"test": "keanu is awesome"}
     """
-    if type(d) == dict:
+    if isinstance(d, dict):
         return {k: search_format_dict(v, **kwargs) for k, v in d.items()}
-    elif type(d) == list:
+    elif isinstance(d, list):
         return [search_format_dict(v, **kwargs) for v in d]
-    elif type(d) == str:
+    elif isinstance(d, str):
         return d.format(**kwargs)
     else:
         return d
+
+
+def filter_dict(d, *key_names, fuzzy=False):
+    """
+    Recursively filter a dictionary based on key names
+    filter_dict({"key1": "test", "key2": "asdf"}, key_name=key2)
+        --> {"key2": "asdf"}
+    """
+    if isinstance(d, dict):
+        ret = {}
+        for key in d:
+            if key in key_names or (fuzzy and any(k in key for k in key_names)):
+                ret[key] = copy.deepcopy(d[key])
+            elif isinstance(d[key], list) or isinstance(d[key], dict):
+                child = filter_dict(d[key], *key_names, fuzzy=fuzzy)
+                if child:
+                    ret[key] = child
+        if ret:
+            return ret
+    elif isinstance(d, list):
+        ret = []
+        for entry in d:
+            child = filter_dict(entry, *key_names, fuzzy=fuzzy)
+            if child:
+                ret.append(child)
+        if ret:
+            return ret
+    return None
 
 
 def grouper(iterable, n):

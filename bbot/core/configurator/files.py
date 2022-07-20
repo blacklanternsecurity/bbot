@@ -4,9 +4,9 @@ from omegaconf import OmegaConf
 from ..errors import ConfigLoadError
 
 home_dir = Path(__file__).parent.parent.parent.parent
-defaults_filename = (home_dir / "bbot" / "defaults.conf").resolve()
-config_filename = (home_dir / "bbot.conf").resolve()
-secrets_filename = (home_dir / "secrets.conf").resolve()
+defaults_filename = (home_dir / "bbot" / "defaults.yml").resolve()
+config_filename = (home_dir / "bbot.yml").resolve()
+secrets_filename = (home_dir / "secrets.yml").resolve()
 
 
 def _get_config(filename):
