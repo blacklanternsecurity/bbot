@@ -9,6 +9,7 @@ class wayback(crobat):
     options_desc = {
         "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)"
     }
+    in_scope_only = True
 
     def setup(self):
         self.garbage_threshold = self.config.get("garbage_threshold", 5)

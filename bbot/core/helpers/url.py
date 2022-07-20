@@ -26,6 +26,26 @@ def get_get_params(url):
     return dict(parse_qs(parsed.query))
 
 
+CHAR_LOWER = 1
+CHAR_UPPER = 2
+CHAR_DIGIT = 4
+CHAR_SYMBOL = 8
+
+
+def charset(p):
+    ret = 0
+    for c in p:
+        if c.islower():
+            ret |= CHAR_LOWER
+        elif c.isupper():
+            ret |= CHAR_UPPER
+        elif c.isnumeric():
+            ret |= CHAR_DIGIT
+        else:
+            ret |= CHAR_SYMBOL
+    return ret
+
+
 def param_type(p):
     try:
         int(p)
@@ -71,7 +91,7 @@ def hash_url(url):
     to_hash = [parsed.netloc]
     for segment in parsed.path.split("/"):
         hash_segment = []
-        hash_segment.append(len(segment))
+        hash_segment.append(charset(segment))
         hash_segment.append(param_type(segment))
         dot_split = segment.split(".")
         if len(dot_split) > 1:
