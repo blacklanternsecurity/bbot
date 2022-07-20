@@ -75,7 +75,7 @@ class ScanManager:
                 reason = "event host"
                 if event_blacklisted_dns:
                     reason = "DNS associations"
-                log.verbose(f"Omitting blacklisted event due to {reason}: {event}")
+                log.verbose(f"Omitting due to blacklisted {reason}: {event}")
                 emit_event = False
 
             # Wait for parent event to resolve (in case its scope distance changes)
@@ -122,7 +122,7 @@ class ScanManager:
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
             if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE"):
-                source_module = self.scan.helpers.dns._get_dummy_module("host")
+                source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_module._type = "internal"
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 if "target" in event.tags:

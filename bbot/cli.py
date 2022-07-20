@@ -75,16 +75,18 @@ def main():
             from bbot.scanner import Scanner
 
             try:
-                modules = set(options.modules)
-
-                # enable modules by flags
-                for m, c in module_loader.preloaded().items():
-                    if m not in modules:
-                        flags = c.get("flags", [])
-                        for f in options.flags:
-                            if f in flags:
-                                log.verbose(f'Enabling {m} because it has flag "{f}"')
-                                modules.add(m)
+                if options.list_modules and not any([options.flags, options.modules]):
+                    modules = set(module_loader.preloaded(type="scan"))
+                else:
+                    modules = set(options.modules)
+                    # enable modules by flags
+                    for m, c in module_loader.preloaded().items():
+                        if m not in modules:
+                            flags = c.get("flags", [])
+                            for f in options.flags:
+                                if f in flags:
+                                    log.verbose(f'Enabling {m} because it has flag "{f}"')
+                                    modules.add(m)
 
                 scanner = Scanner(
                     *options.targets,
@@ -93,6 +95,7 @@ def main():
                     config=config,
                     whitelist=options.whitelist,
                     blacklist=options.blacklist,
+                    strict_scope=options.strict_scope,
                 )
 
                 # enable modules by dependency
@@ -142,46 +145,35 @@ def main():
                             f"Removing {m} because it does not have the required flags: {'+'.join(options.require_flags)}"
                         )
                         modules.remove(m)
-                scanner._scan_modules = list(modules)
 
                 # excluded flags
-                modules = set(scanner._scan_modules)
                 for m in scanner._scan_modules:
                     flags = module_loader._preloaded.get(m, {}).get("flags", [])
                     if any(f in flags for f in options.exclude_flags):
                         log.verbose(f"Removing {m} because of excluded flag: {','.join(options.exclude_flags)}")
                         modules.remove(m)
-                scanner._scan_modules = list(modules)
 
                 # excluded modules
-                modules = set(scanner._scan_modules)
                 for m in options.exclude_modules:
                     if m in modules:
                         log.verbose(f"Removing {m} because it is excluded")
                         modules.remove(m)
                 scanner._scan_modules = list(modules)
 
-                module_filtering = any(
-                    [
-                        options.modules,
-                        options.exclude_modules,
-                        options.flags,
-                        options.require_flags,
-                        options.exclude_flags,
-                        options.exclude_modules,
-                    ]
-                )
                 log_fn = log.info
                 if options.list_modules:
                     log_fn = log.stdout
 
-                log_fn(f"{'Module Name':<20}{'Produced Events':<40}{'Flags':<20}")
-                log_fn("=" * 19 + " " + "=" * 39 + " " + "=" * 29)
+                logged_header = False
                 module_list = list(module_loader.preloaded(type="scan").items())
                 module_list.sort(key=lambda x: x[0])
                 module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
                 for module_name, preloaded in module_list:
-                    if not module_filtering or module_name in modules:
+                    if module_name in modules:
+                        if not logged_header:
+                            log_fn(f"{'Module Name':<20}{'Produced Events':<40}{'Flags':<20}")
+                            log_fn("=" * 19 + " " + "=" * 39 + " " + "=" * 29)
+                            logged_header = True
                         produced_events = sorted(preloaded.get("produced_events", []))
                         flags = sorted(preloaded.get("flags", []))
                         log_fn(f"{module_name:<20}{','.join(produced_events):<40}{','.join(flags):<20}")

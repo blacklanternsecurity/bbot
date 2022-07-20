@@ -29,6 +29,7 @@ class Scanner:
         output_modules=None,
         config=None,
         dispatcher=None,
+        strict_scope=False,
     ):
         if modules is None:
             modules = []
@@ -37,6 +38,7 @@ class Scanner:
         if config is None:
             config = OmegaConf.create({})
         self.config = config
+        self.strict_scope = strict_scope
 
         if scan_id is not None:
             self.id = str(scan_id)
@@ -44,7 +46,7 @@ class Scanner:
             self.id = str(uuid4())
         self._status = "NOT_STARTED"
 
-        self.target = ScanTarget(self, *targets)
+        self.target = ScanTarget(self, *targets, strict_scope=strict_scope)
 
         self.modules = OrderedDict({})
         self._scan_modules = modules
@@ -57,7 +59,7 @@ class Scanner:
         if not whitelist:
             self.whitelist = self.target.copy()
         else:
-            self.whitelist = ScanTarget(self, *whitelist)
+            self.whitelist = ScanTarget(self, *whitelist, strict_scope=strict_scope)
         if not blacklist:
             blacklist = []
         self.blacklist = ScanTarget(self, *blacklist)

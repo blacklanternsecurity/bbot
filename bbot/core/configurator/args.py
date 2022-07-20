@@ -74,6 +74,7 @@ for p in (parser, dummy_parser):
         metavar="TARGET",
     )
     target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
+    target.add_argument("-s", "--strict-scope", action="store_true", help="Don't scan subdomains of target")
     p.add_argument(
         "-m",
         "--modules",

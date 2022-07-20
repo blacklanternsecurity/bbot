@@ -546,12 +546,6 @@ def make_date(d=None, microseconds=False):
     return d.strftime(f)
 
 
-def sanitize_string(s, allowed_chars=None):
-    if allowed_chars is None:
-        allowed_chars = string.ascii_lowercase + string.ascii_uppercase + string.digits + "._-"
-    return "".join(c for c in str(s) if c in allowed_chars)
-
-
 def error_and_exit(msg):
     print(f"\n[!!!] {msg}\n")
     sys.exit(2)
