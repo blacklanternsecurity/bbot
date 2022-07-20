@@ -67,8 +67,12 @@ class iis_shortnames(BaseModule):
         detected = False
         http_methods = ["GET", "OPTIONS", "DEBUG"]
         for http_method in http_methods:
-            control = self.helpers.request(url.rstrip("/") + "/" + "N0t4xist*~1*/a.aspx", method=http_method)
-            test = self.helpers.request(url.rstrip("/") + "/" + "*~1*/a.aspx", method=http_method)
+            dir_name = self.helpers.rand_string(8)
+            file_name = self.helpers.rand_string(1)
+            control = self.helpers.request(
+                url.rstrip("/") + "/" + f"{dir_name}*~1*/{file_name}.aspx", method=http_method
+            )
+            test = self.helpers.request(url.rstrip("/") + "/" + f"*~1*/{file_name}.aspx", method=http_method)
             if (control != None) and (test != None):
                 if (control.status_code != 404) and (test.status_code == 404):
                     detected = True

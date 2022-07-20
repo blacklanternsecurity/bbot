@@ -10,7 +10,7 @@ class smuggler(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active"]
+    flags = ["active", "aggressive"]
 
     in_scope_only = True
 

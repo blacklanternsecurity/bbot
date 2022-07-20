@@ -489,6 +489,11 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert helpers.split_list([1, 2, 3, 4, 5]) == [[1, 2], [3, 4, 5]]
     assert list(helpers.grouper("ABCDEFG", 3)) == [["A", "B", "C"], ["D", "E", "F"], ["G"]]
 
+    assert len(helpers.rand_string(3)) == 3
+    assert len(helpers.rand_string(1)) == 1
+    assert len(helpers.rand_string(0)) == 0
+    assert type(helpers.rand_string(0)) == str
+
     ### COMMAND ###
     assert "plumbus\n" in old_run(helpers, ["echo", "plumbus"], text=True).stdout
     assert "plumbus\n" in list(old_run_live(helpers, ["echo", "plumbus"]))

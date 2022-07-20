@@ -58,8 +58,8 @@ class ffuf(BaseModule):
             return
 
         # only FFUF against a directory
-        if "." in event.parsed.path:
-            self.debug("Aborting FFUF as no trailing slash was detected (likely a file)")
+        if "." in event.parsed.path.split("/")[-1]:
+            self.debug("Aborting FFUF as period was detected in right-most path segment (likely a file)")
             return
         else:
             # if we think its a directory, normalize it.

@@ -4,8 +4,7 @@ from urllib.parse import urlparse
 
 class vhost(BaseModule):
 
-    flags = ["active", "brute-force"]
-    scanned_hosts = []
+    flags = ["active", "brute-force", "aggressive"]
     watched_events = ["URL"]
     produced_events = ["URL"]
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
@@ -19,6 +18,10 @@ class vhost(BaseModule):
     }
     in_scope_only = True
 
+    def setup(self):
+        self.scanned_hosts = set()
+        return True
+
     def handle_event(self, event):
         if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):
 
@@ -30,7 +33,7 @@ class vhost(BaseModule):
                 self.debug(f"Host {host} was already scanned, exiting")
                 return
             else:
-                self.scanned_hosts.append(host)
+                self.scanned_hosts.add(host)
 
             # subdomain vhost check
             self.debug("Main vhost bruteforce")

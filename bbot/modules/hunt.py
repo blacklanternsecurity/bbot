@@ -126,7 +126,6 @@ class hunt(BaseModule):
     flags = ["active", "safe"]
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    deps_pip = ["python-Wappalyzer"]
     # accept all events regardless of scope distance
     scope_distance_modifier = None
 
