@@ -16,8 +16,9 @@ logging_queue, logging_handlers = init_logging()
 
 import bbot.core.errors
 from bbot.modules import module_loader
+from bbot.core.helpers import filter_dict
 from bbot.core.configurator.args import parser
-from bbot.core.configurator.files import config_filename
+from bbot.core.configurator.files import config_filename, secrets_filename
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
@@ -26,12 +27,21 @@ sys.stdout.reconfigure(line_buffering=True)
 def main():
 
     try:
-        # ensure bbot.conf
+        # ensure bbot.yml
         from . import config
 
         if not config_filename.exists():
-            log.hugeinfo(f"Creating bbot.conf at {config_filename}")
+            log.hugeinfo(f"Creating BBOT config at {config_filename}")
             OmegaConf.save(config=config, f=str(config_filename))
+
+        # ensure secrets.yml
+        if not secrets_filename.exists():
+            log.hugeinfo(f"Creating BBOT secrets at {secrets_filename}")
+            secrets_only_config = OmegaConf.to_object(config)
+            secrets_only_config = filter_dict(
+                secrets_only_config, "api_key", "username", "password", "token", fuzzy=True
+            )
+            OmegaConf.save(config=OmegaConf.create(secrets_only_config), f=str(secrets_filename))
 
         if len(sys.argv) == 1:
             parser.print_help()

@@ -67,6 +67,6 @@ omit_event_types:
     - HTTP_RESPONSE
     - URL_UNVERIFIED
 # URL of BBOT server
-agent_url:
+agent_url: ''
 # Agent Bearer authentication token
-agent_token: 
+agent_token: ''
