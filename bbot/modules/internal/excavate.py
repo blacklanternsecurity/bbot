@@ -118,6 +118,13 @@ class JWTExtractor(BaseExtractor):
             self.excavate.debug(f"Error decoding JWT candidate {result}")
 
 
+class SerializationExtractor(BaseExtractor):
+    regexes = {"Java": r"[^a-zA-Z0-9+/]|^rO0[a-zA-Z0-9+/]+={,2}"}
+
+    def report(self, result, name, event, **kwargs):
+        self.excavate.emit_event(f"{name} serialized object found on [{event.data.get('url')}]", "FINDING", event)
+
+
 class JavascriptExtractor(BaseExtractor):
     # based on on https://github.com/m4ll0k/SecretFinder/blob/master/SecretFinder.py
 
@@ -184,6 +191,7 @@ class excavate(BaseInternalModule):
         self.error = ErrorExtractor(self)
         self.jwt = JWTExtractor(self)
         self.javascript = JavascriptExtractor(self)
+        self.serialization = SerializationExtractor(self)
 
         return True
 
@@ -206,11 +214,18 @@ class excavate(BaseInternalModule):
                 self.emit_event(location, "URL_UNVERIFIED", event)
 
             body = event.data.get("response-body", "")
-            self.search(body, [self.url, self.email, self.error, self.jwt, self.javascript], event, spider_danger=True)
+            self.search(
+                body,
+                [self.url, self.email, self.error, self.jwt, self.javascript, self.serialization],
+                event,
+                spider_danger=True,
+            )
 
             headers = event.data.get("response-header", "")
-            self.search(headers, [self.url, self.email, self.error, self.jwt], event, spider_danger=False)
+            self.search(
+                headers, [self.url, self.email, self.error, self.jwt, self.serialization], event, spider_danger=False
+            )
 
         else:
 
-            self.search(str(data), [self.url, self.email, self.error, self.jwt], event)
+            self.search(str(data), [self.url, self.email, self.error, self.jwt, self.serialization], event)
