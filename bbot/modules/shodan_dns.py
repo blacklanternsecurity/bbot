@@ -23,13 +23,9 @@ class shodan_dns(crobat):
                 self.ping()
                 return True
             except Exception as e:
-                self.warning(f"Error contacting API")
-                e = str(e).strip()
-                if e:
-                    self.verbose(e)
+                return None, f"Error contacting API ({str(e).strip()})"
         else:
-            self.warning("No API key set")
-        return False
+            return None, "No API key set"
 
     def ping(self):
         r = self.helpers.request(f"https://api.shodan.io/api-info?key={self.api_key}")

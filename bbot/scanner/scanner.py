@@ -30,6 +30,7 @@ class Scanner:
         config=None,
         dispatcher=None,
         strict_scope=False,
+        force_start=False,
     ):
         if modules is None:
             modules = []
@@ -39,6 +40,7 @@ class Scanner:
             config = OmegaConf.create({})
         self.config = config
         self.strict_scope = strict_scope
+        self.force_start = force_start
 
         if scan_id is not None:
             self.id = str(scan_id)
@@ -154,6 +156,9 @@ class Scanner:
         except ScanCancelledError:
             self.debug("Scan cancelled")
 
+        except ScanError as e:
+            self.error(f"{e}")
+
         except BBOTError as e:
             import traceback
 
@@ -193,25 +198,35 @@ class Scanner:
     def setup_modules(self, remove_failed=True):
         self.load_modules()
         self.verbose(f"Setting up modules")
-        setups_failed = 0
+        hard_failed = []
+        soft_failed = []
         setup_futures = dict()
         for module_name, module in self.modules.items():
             future = self._internal_thread_pool.submit_task(module._setup)
             setup_futures[future] = module_name
         for future in self.helpers.as_completed(setup_futures):
             module_name = setup_futures[future]
-            result = future.result()
-            if not result == True:
+            status, msg = future.result()
+            if status == True:
+                self.debug(f"Setup succeeded for {module_name} ({msg})")
+            elif status == False:
+                self.error(f"Setup hard-failed for {module_name}: {msg}")
                 self.modules[module_name].set_error_state()
-                if remove_failed:
-                    self.warning(f'Setup failed for module "{module_name}"')
-                    self.modules.pop(module_name)
-                    setups_failed += 1
+                hard_failed.append(module_name)
+            else:
+                self.warning(f"Setup soft-failed for {module_name}: {msg}")
+                soft_failed.append(module_name)
+            if not status and remove_failed:
+                self.modules.pop(module_name)
         num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
         if num_output_modules < 1:
             raise ScanError("Failed to load output modules. Aborting.")
-        if setups_failed > 0:
-            self.warning(f"Setup failed for {setups_failed:,} modules")
+        total_failed = len(hard_failed + soft_failed)
+        if hard_failed:
+            msg = f"Setup hard-failed for {len(hard_failed):,} modules ({','.join(hard_failed)})"
+            self.fail_setup(msg)
+        elif total_failed > 0:
+            self.warning(f"Setup failed for {total_failed:,} modules")
 
     def stop(self, wait=False):
         if self.status != "ABORTING":
@@ -395,6 +410,9 @@ class Scanner:
             succeeded, failed = self.helpers.depsinstaller.install(
                 *self._scan_modules, *self._output_modules, *self._internal_modules
             )
+            if failed:
+                msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
+                self.fail_setup(msg)
             modules = [m for m in self._scan_modules if m in succeeded]
             output_modules = [m for m in self._output_modules if m in succeeded]
             internal_modules = [m for m in self._internal_modules if m in succeeded]
@@ -404,7 +422,8 @@ class Scanner:
             loaded_modules, failed = self._load_modules(modules)
             self.modules.update(loaded_modules)
             if len(failed) > 0:
-                self.warning(f"Failed to load {len(failed):,} scan modules: {','.join(failed)}")
+                msg = f"Failed to load {len(failed):,} scan modules: {','.join(failed)}"
+                self.fail_setup(msg)
             if loaded_modules:
                 self.info(
                     f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules ({','.join(list(loaded_modules))})"
@@ -415,9 +434,8 @@ class Scanner:
             loaded_internal_modules, failed_internal = self._load_modules(internal_modules)
             self.modules.update(loaded_internal_modules)
             if len(failed_internal) > 0:
-                self.warning(
-                    f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
-                )
+                msg = f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
+                self.fail_setup(msg)
             if loaded_internal_modules:
                 self.info(
                     f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(list(loaded_internal_modules))})"
@@ -428,7 +446,8 @@ class Scanner:
             loaded_output_modules, failed_output = self._load_modules(output_modules)
             self.modules.update(loaded_output_modules)
             if len(failed_output) > 0:
-                self.warning(f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}")
+                msg = f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}"
+                self.fail_setup(msg)
             if loaded_output_modules:
                 self.info(
                     f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules, ({','.join(list(loaded_output_modules))})"
@@ -436,6 +455,15 @@ class Scanner:
 
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
             self._modules_loaded = True
+
+    def fail_setup(self, msg):
+        msg = str(msg)
+        if not self.force_start:
+            msg += " (--force to override)"
+        if self.force_start:
+            self.error(msg)
+        else:
+            raise ScanError(msg)
 
     def _load_modules(self, modules):
 

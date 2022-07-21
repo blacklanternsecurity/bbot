@@ -57,21 +57,22 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGET [TARGET ...]] [-w TARGET [TARGET ...]] [-b BLACKLIST [BLACKLIST ...]] [-m MODULE [MODULE ...]]
-            [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-o MODULE [MODULE ...]]
-            [-oA BASE_FILENAME] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config] [--save-wordcloud FILE]
-            [--load-wordcloud FILE | --load-last-wordcloud] [--ignore-failed-deps] [--no-deps | --force-deps | --retry-deps] [-a]
+usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-m MODULE [MODULE ...]] [--force] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]]
+            [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-o MODULE [MODULE ...]] [-oA BASE_FILENAME] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config] [--save-wordcloud FILE]
+            [--load-wordcloud FILE | --load-last-wordcloud] [--no-deps | --force-deps | --retry-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
 options:
   -h, --help            show this help message and exit
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: aspnet_viewstate,azure_tenant,bypass403,c99,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnsgrep,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,getparam_brute,gowitness,header_brute,httpx,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,urlscan,vhost,viewdns,wappalyzer,wayback
+                        Modules to enable. Choices: aspnet_viewstate,azure_tenant,bgpview,bufferoverrun,bypass403,c99,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,getparam_brute,gowitness,header_brute,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,urlscan,vhost,viewdns,wappalyzer,wayback
+  --force               Run scan even if module setups fail
+  -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,brute-force,passive,subdomain-enum
+                        Enable modules by flag. Choices: active,aggressive,brute-force,passive,portscan,safe,subdomain-enum
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Disable modules that don't have these flags (e.g. --require-flags passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
@@ -81,7 +82,7 @@ options:
   -oA BASE_FILENAME, --output-all BASE_FILENAME
                         Output in CSV, JSON, and TXT at this file location
   -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
-                        additional configuration options in key=value format
+                        custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
   --current-config      Show current config in YAML format
@@ -89,10 +90,11 @@ options:
 Target:
   -t TARGET [TARGET ...], --targets TARGET [TARGET ...]
                         Targets to seed the scan
-  -w TARGET [TARGET ...], --whitelist TARGET [TARGET ...]
+  -w WHITELIST [WHITELIST ...], --whitelist WHITELIST [WHITELIST ...]
                         What's considered in-scope (by default it's the same as --targets)
   -b BLACKLIST [BLACKLIST ...], --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things
+  -s, --strict-scope    Don't consider subdomains of target/whitelist to be in-scope
 
 Word cloud:
   Save/load wordlist of common words gathered during a scan
@@ -107,7 +109,6 @@ Word cloud:
 Module dependencies:
   Control how modules install their dependencies
 
-  --ignore-failed-deps  Run modules even if their dependency setup failed
   --no-deps             Don't install module dependencies
   --force-deps          Force install all module dependencies
   --retry-deps          Retry failed module dependencies

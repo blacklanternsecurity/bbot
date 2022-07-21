@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import threading
+from contextlib import suppress
 from collections import OrderedDict
 
 from .misc import sha1
@@ -69,7 +70,7 @@ class CacheDict:
         self._max_size = int(max_size)
 
     def get(self, name, fallback=_sentinel):
-        name_hash = hash(str(name))
+        name_hash = self._hash(name)
         with self._lock:
             try:
                 return self._cache[name_hash]
@@ -78,16 +79,18 @@ class CacheDict:
                     return fallback
                 raise
             finally:
-                self._cache.move_to_end(name_hash)
+                with suppress(KeyError):
+                    self._cache.move_to_end(name_hash)
                 self._truncate()
 
     def put(self, name, value):
-        name_hash = hash(str(name))
+        name_hash = self._hash(name)
         with self._lock:
             try:
                 self._cache[name_hash] = value
             finally:
-                self._cache.move_to_end(name_hash)
+                with suppress(KeyError):
+                    self._cache.move_to_end(name_hash)
                 self._truncate()
 
     def _truncate(self):
@@ -110,8 +113,13 @@ class CacheDict:
     def items(self):
         return self._cache.items()
 
+    def _hash(self, v):
+        if type(v) == int:
+            return v
+        return hash(str(v))
+
     def __contains__(self, item):
-        return hash(str(item)) in self._cache
+        return self._hash(item) in self._cache
 
     def __iter__(self):
         return iter(self._cache)

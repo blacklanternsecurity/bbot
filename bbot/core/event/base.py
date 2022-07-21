@@ -243,8 +243,8 @@ class BaseEvent:
 
     def make_in_scope(self):
         source_trail = []
-        # keep the event internal if it came from an internal module and isn't a DNS_NAME
-        if getattr(self.module, "_type", "") != "internal" or self.type in ("DNS_NAME",):
+        # keep the event internal if the module requests so, unless it's a DNS_NAME
+        if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
             source_trail = self.unmake_internal(set_scope_distance=0, force_output=True, emit_trail=True)
         self.tags.add("in-scope")
         self.scope_distance = 0
