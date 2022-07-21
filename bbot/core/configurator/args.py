@@ -75,7 +75,10 @@ for p in (parser, dummy_parser):
     )
     target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
     target.add_argument(
-        "-s", "--strict-scope", action="store_true", help="Don't consider subdomains of target/whitelist to be in-scope"
+        "-s",
+        "--strict-scope",
+        action="store_true",
+        help="Don't consider subdomains of target/whitelist to be in-scope",
     )
     p.add_argument(
         "-m",
