@@ -11,6 +11,7 @@ class ipneighbor(BaseModule):
     options = {"num_bits": 4}
     options_desc = {"num_bits": "Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)"}
     scope_distance_modifier = 0
+    _scope_shepherding = False
 
     def setup(self):
         self.processed = set()

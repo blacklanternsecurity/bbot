@@ -261,6 +261,7 @@ class ScanManager:
         last_log_time = datetime.now()
 
         err = False
+        reported = False
         try:
             self.scan.dispatcher.on_start(self.scan)
 
@@ -297,7 +298,12 @@ class ScanManager:
                             for mod in self.scan.modules.values():
                                 mod.queue_event("FINISHED")
                             event_counter = 0
-                            sleep(1)
+                        elif not reported:
+                            # Trigger .report() on every module and start over
+                            for mod in self.scan.modules.values():
+                                mod.queue_event("REPORT")
+                            event_counter = 0
+                            reported = True
                         else:
                             # Otherwise stop the scan if no new events were generated in this iteration
                             break

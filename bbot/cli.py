@@ -96,6 +96,7 @@ def main():
                     whitelist=options.whitelist,
                     blacklist=options.blacklist,
                     strict_scope=options.strict_scope,
+                    force_start=options.force,
                 )
 
                 # enable modules by dependency

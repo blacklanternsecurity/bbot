@@ -15,6 +15,7 @@ class speculate(BaseInternalModule):
     options_desc = {"max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events"}
     max_threads = 5
     scope_distance_modifier = 0
+    _scope_shepherding = False
 
     def setup(self):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])

@@ -75,7 +75,7 @@ for p in (parser, dummy_parser):
     )
     target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
     target.add_argument(
-        "-s", "--strict-scope", action="store_true", help="Don't consider subdomains of target to be in-scope"
+        "-s", "--strict-scope", action="store_true", help="Don't consider subdomains of target/whitelist to be in-scope"
     )
     p.add_argument(
         "-m",
@@ -85,6 +85,7 @@ for p in (parser, dummy_parser):
         help=f'Modules to enable. Choices: {",".join(module_choices)}',
         metavar="MODULE",
     )
+    p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
     p.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
     p.add_argument("-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE")
     p.add_argument(
@@ -151,9 +152,6 @@ for p in (parser, dummy_parser):
         title="Module dependencies", description="Control how modules install their dependencies"
     )
     g2 = deps.add_mutually_exclusive_group()
-    deps.add_argument(
-        "--ignore-failed-deps", action="store_true", help="Run modules even if their dependency setup failed"
-    )
     g2.add_argument("--no-deps", action="store_true", help="Don't install module dependencies")
     g2.add_argument("--force-deps", action="store_true", help="Force install all module dependencies")
     g2.add_argument("--retry-deps", action="store_true", help="Retry failed module dependencies")
