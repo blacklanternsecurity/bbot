@@ -102,14 +102,14 @@ def hash_url(url):
     return hash(tuple(to_hash))
 
 
-def collapse_urls(urls, threshold=5):
+def collapse_urls(urls, threshold=10):
     """
     Smartly dedupe suspiciously-similar URLs like these:
         - http://evilcorp.com/user/11111/info
-        - http://evilcorp.com/user/22222/info
-        - http://evilcorp.com/user/33333/info
-        - http://evilcorp.com/user/44444/info
-        - http://evilcorp.com/user/55555/info
+        - http://evilcorp.com/user/2222/info
+        - http://evilcorp.com/user/333/info
+        - http://evilcorp.com/user/44/info
+        - http://evilcorp.com/user/5/info
 
     Useful for cleaning large lists of garbage-riddled URLs from sources like wayback
     """
@@ -127,7 +127,7 @@ def collapse_urls(urls, threshold=5):
     for url_hash, new_urls in url_hashes.items():
         # if the number of URLs exceeds the threshold
         if len(new_urls) > threshold:
-            # only yield one
+            # yield only one
             yield next(iter(new_urls))
         else:
             yield from new_urls

@@ -137,6 +137,8 @@ class DNSHelper:
                     event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
                     if event_is_wildcard and event.type in ("DNS_NAME",):
                         event.data = wildcard_parent
+                        # clear event.id
+                        event._id = None
                         return (event,)
                 elif not check_wildcard:
                     event_tags.add("wildcard")

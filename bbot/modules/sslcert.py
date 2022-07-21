@@ -6,13 +6,13 @@ from ssl import PROTOCOL_TLSv1
 
 from bbot.modules.base import BaseModule
 from bbot.core.errors import ValidationError
+from bbot.core.helpers.threadpool import NamedLock
 
 
 class sslcert(BaseModule):
-
-    flags = ["subdomain-enum", "active", "safe"]
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME"]
+    flags = ["subdomain-enum", "active", "safe"]
     options = {"timeout": 5.0}
     options_desc = {"timeout": "Socket connect timeout in seconds"}
     deps_apt = ["openssl"]
@@ -24,6 +24,7 @@ class sslcert(BaseModule):
     def setup(self):
         self.hosts_visited = set()
         self.hosts_visited_lock = threading.Lock()
+        self.ip_lock = NamedLock()
         return True
 
     def handle_event(self, event):
@@ -41,8 +42,20 @@ class sslcert(BaseModule):
             hosts = list(self.helpers.resolve(_host))
 
         for host in hosts:
-            host = self.helpers.make_ip_type(host)
-            host_hash = hash((host, port))
+            for h in self.visit_host(host, port):
+                if h is not None and h != event:
+                    self.debug(f"Discovered new domain via SSL certificate parsing: [{h}]")
+                    try:
+                        ssl_event = self.make_event(h, "DNS_NAME", source=event, raise_error=True)
+                        if ssl_event:
+                            self.emit_event(ssl_event)
+                    except ValidationError as e:
+                        self.warning(f"SSL cert at {host}:{port}: {e}")
+
+    def visit_host(self, host, port):
+        host = self.helpers.make_ip_type(host)
+        host_hash = hash((host, port))
+        with self.ip_lock.get_lock(host_hash):
             with self.hosts_visited_lock:
                 if host_hash in self.hosts_visited:
                     self.debug(f"Already processed {host} on port {port}, skipping")
@@ -87,14 +100,7 @@ class sslcert(BaseModule):
             cert_results = self.get_cert_sans(cert)
             cert_results.append(str(subject).lstrip("*.").lower())
             for c in set(cert_results):
-                if c != _host:
-                    self.debug(f"Discovered new domain via SSL certificate parsing: [{c}]")
-                    try:
-                        event = self.make_event(c, "DNS_NAME", event, raise_error=True)
-                        if event:
-                            self.emit_event(event)
-                    except ValidationError as e:
-                        self.warning(f"SSL cert at {host}:{port}: {e}")
+                yield c
 
     @staticmethod
     def get_cert_sans(cert):

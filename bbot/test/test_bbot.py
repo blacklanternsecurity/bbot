@@ -526,18 +526,18 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert helpers.cache_get("string", cache_hrs=24 * 14) == "wat"
 
     cache_dict = helpers.CacheDict(max_size=10)
-    cache_dict.put(1, 2)
-    assert cache_dict[1] == 2
-    assert cache_dict.get(1) == 2
+    cache_dict.put("1", 2)
+    assert cache_dict["1"] == 2
+    assert cache_dict.get("1") == 2
     assert len(cache_dict) == 1
-    cache_dict[2] = 3
-    assert cache_dict[2] == 3
-    assert cache_dict.get(2) == 3
+    cache_dict["2"] = 3
+    assert cache_dict["2"] == 3
+    assert cache_dict.get("2") == 3
     assert len(cache_dict) == 2
     for i in range(20):
-        cache_dict[i] = i + 1
+        cache_dict[str(i)] = i + 1
     assert len(cache_dict) == 10
-    assert tuple(cache_dict) == tuple(hash(str(x)) for x in (10, 11, 12, 13, 14, 15, 16, 17, 18, 19))
+    assert tuple(cache_dict) == tuple(hash(str(x)) for x in range(10, 20))
 
     ### WEB ###
     request, download = patch_requests
@@ -757,10 +757,26 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
         future = scan2._thread_pool.submit_task(module.setup)
         futures[future] = module
     for future in helpers.as_completed(futures):
+        module = futures[future]
         result = future.result()
-        assert result in (True, False)
+        if type(result) == tuple:
+            assert len(result) == 2, f"if tuple, {module.name}.setup() return value must have length of 2"
+            status, msg = result
+            assert status in (
+                True,
+                False,
+                None,
+            ), f"if tuple, the first element of {module.name}.setup()'s return value must be either True, False, or None"
+            assert (
+                type(msg) == str
+            ), f"if tuple, the second element of {module.name}.setup()'s return value must be a message of type str"
+        else:
+            assert result in (
+                True,
+                False,
+                None,
+            ), f"{module.name}.setup() must return a status of either True, False, or None"
         if result == False:
-            module = futures[future]
             module.set_error_state()
 
     futures.clear()

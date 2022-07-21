@@ -5,7 +5,7 @@ class wayback(crobat):
     flags = ["passive", "subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
-    options = {"garbage_threshold": 5}
+    options = {"garbage_threshold": 10}
     options_desc = {
         "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)"
     }
