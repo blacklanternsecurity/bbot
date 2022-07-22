@@ -35,6 +35,7 @@ class smuggler(BaseModule):
             if "Issue Found" in f:
                 technique = f.split(":")[0].rstrip()
                 text = f.split(":")[1].split("-")[0].strip()
+                description = f"[HTTP SMUGGLER] [{text}] Technique: {technique}"
                 self.emit_event(
-                    f"[HTTP SMUGGLER] [{event.data}] [{text}] Technique: {technique}", "FINDING", source=event
+                    {"host": str(event.host), "url": event.data, "description": description}, "FINDING", source=event
                 )

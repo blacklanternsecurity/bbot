@@ -176,8 +176,9 @@ class hunt(BaseModule):
         for p in self.extract_params(body):
             for k in hunt_param_dict.keys():
                 if p.lower() in hunt_param_dict[k]:
+                    description = f"Found potential {k.upper()} parameter [{p}]"
                     self.emit_event(
-                        f"Found potential {k.upper()} parameter [{p}] via parsing URL [{event.data.get('url')}]",
+                        {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
                         "FINDING",
                         event,
                     )
