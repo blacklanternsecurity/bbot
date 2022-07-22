@@ -146,7 +146,6 @@ class hunt(BaseModule):
             yield i
 
         # check for jquery post parameters
-
         jquery_post = re.findall(self.jquery_post_regex, body)
         if jquery_post:
             for i in jquery_post:
@@ -158,11 +157,10 @@ class hunt(BaseModule):
         a_tag = re.findall(self.a_tag_regex, body)
         if a_tag:
             for url in a_tag:
-
                 if url.startswith("http"):
                     url_parsed = self.helpers.parse_url(url)
                     if not self.scan.in_scope(url_parsed.netloc):
-                        self.debug("Skipping reporting found parameter because URL is not in scope")
+                        self.debug(f"Skipping checking for parameters because URL ({url}) is not in scope")
                         continue
                     i = url_parsed.query.split("&")
                 else:
