@@ -58,8 +58,8 @@ black .
 ~~~bash
 $ bbot --help
 usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-m MODULE [MODULE ...]] [--force] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]]
-            [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-o MODULE [MODULE ...]] [-oA BASE_FILENAME] [-c [CONFIGURATION ...]] [-v] [-d] [--current-config] [--save-wordcloud FILE]
-            [--load-wordcloud FILE | --load-last-wordcloud] [--no-deps | --force-deps | --retry-deps] [-a]
+            [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-o MODULE [MODULE ...]] [-oA BASE_FILENAME] [-c [CONFIG ...]] [-v] [-d] [--dry-run] [--current-config] [--save-wordcloud FILE]
+            [--load-wordcloud FILE | --load-last-wordcloud] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
@@ -81,10 +81,11 @@ options:
                         Output module(s). Choices: csv,http,human,json,neo4j,websocket
   -oA BASE_FILENAME, --output-all BASE_FILENAME
                         Output in CSV, JSON, and TXT at this file location
-  -c [CONFIGURATION ...], --configuration [CONFIGURATION ...]
+  -c [CONFIG ...], --configuration [CONFIG ...]
                         custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
+  --dry-run             Abort before executing scan
   --current-config      Show current config in YAML format
 
 Target:
@@ -112,6 +113,7 @@ Module dependencies:
   --no-deps             Don't install module dependencies
   --force-deps          Force install all module dependencies
   --retry-deps          Retry failed module dependencies
+  --ignore-failed-deps  Run modules even if they have failed dependencies
 
 Agent:
   Report back to a central server
