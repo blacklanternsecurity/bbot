@@ -37,8 +37,11 @@ class iis_shortnames(BaseModule):
         result = self.detect(normalized_url)
 
         if result:
+            description = f"IIS Shortname Vulnerability"
             self.emit_event(
-                f"[LOW] IIS Shortname Vulnerability [{normalized_url}]", "VULNERABILITY", event, tags=["low"]
+                {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
+                "VULNERABILITY",
+                event,
             )
             if not self.config.get("detect_only"):
                 command = [

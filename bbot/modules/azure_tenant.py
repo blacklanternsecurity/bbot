@@ -19,7 +19,7 @@ class azure_tenant(viewdns):
         _, query = self.helpers.split_domain(event.data)
         domains, _ = self.query(query)
         if domains:
-            self.success(f'Found {len(domains):,} domains under tenant for "{query}')
+            self.success(f'Found {len(domains):,} domains under tenant for "{query}"')
         for domain in domains:
             self.emit_event(domain, "DNS_NAME", source=event)
         # todo: tenants?

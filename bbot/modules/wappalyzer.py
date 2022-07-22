@@ -32,5 +32,6 @@ class wappalyzer(BaseModule):
         w = WebPage(url=event.data["url"], html=event.data.get("response-body", ""), headers=header_dict)
         res_set = wappalyzer.analyze(w)
         for res in res_set:
-
-            self.emit_event({"technology": res.lower(), "url": event.data["url"]}, "TECHNOLOGY", event)
+            self.emit_event(
+                {"technology": res.lower(), "url": event.data["url"], "host": str(event.host)}, "TECHNOLOGY", event
+            )
