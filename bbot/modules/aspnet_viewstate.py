@@ -51,8 +51,12 @@ class aspnet_viewstate(BaseModule):
             generator = generator_match.group(1)
             viewstate = viewstate_match.group(1)
             self.debug(f"Discovered viewstate for URL {event.data['url']}")
-            self.emit_event({"technology": "asp", "url": event.data["url"]}, "TECHNOLOGY", event)
-            self.emit_event({"technology": "iis", "url": event.data["url"]}, "TECHNOLOGY", event)
+            self.emit_event(
+                {"technology": "asp", "host": str(event.host), "url": event.data["url"]}, "TECHNOLOGY", event
+            )
+            self.emit_event(
+                {"technology": "iis", "host": str(event.host), "url": event.data["url"]}, "TECHNOLOGY", event
+            )
             tool_path = self.scan.helpers.tools_dir / "blacklist3r/"
             command = [
                 "mono",
