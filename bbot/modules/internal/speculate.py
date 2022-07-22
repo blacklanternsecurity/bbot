@@ -10,7 +10,7 @@ class speculate(BaseInternalModule):
     """
 
     watched_events = ["IP_RANGE", "URL", "URL_UNVERIFIED", "DNS_NAME", "IP_ADDRESS", "HTTP_RESPONSE"]
-    produced_events = ["DNS_HOST", "OPEN_TCP_PORT", "IP_ADDRESS"]
+    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS"]
     options = {"max_hosts": 65536}
     options_desc = {"max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events"}
     max_threads = 5

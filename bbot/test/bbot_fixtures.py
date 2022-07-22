@@ -135,8 +135,11 @@ def events(scan):
         ipv4_url = scan.make_event("https://8.8.8.8:443/hellofriend", "URL", dummy=True)
         ipv6_url = scan.make_event("https://[2001:4860:4860::8888]:443/hellofriend", "URL", dummy=True)
         url_hint = scan.make_event("https://api.publicAPIs.org:443/hello.ash", "URL_HINT", dummy=True)
-        finding = scan.make_event("FINDING", "FINDING", dummy=True)
-        vulnerability = scan.make_event("VULNERABILITY", "VULNERABILITY", dummy=True)
+        vulnerability = scan.make_event(
+            {"host": "evilcorp.com", "severity": "INFO", "description": "asdf"}, "VULNERABILITY", dummy=True
+        )
+        finding = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "FINDING", dummy=True)
+        vhost = scan.make_event({"host": "evilcorp.com", "vhost": "www.evilcorp.com"}, "VHOST", dummy=True)
         http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", dummy=True)
         emoji = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
 
@@ -159,8 +162,9 @@ def events(scan):
         bbot_events.ipv4_url,
         bbot_events.ipv6_url,
         bbot_events.url_hint,
-        bbot_events.finding,
         bbot_events.vulnerability,
+        bbot_events.finding,
+        bbot_events.vhost,
         bbot_events.http_response,
         bbot_events.emoji,
     ]

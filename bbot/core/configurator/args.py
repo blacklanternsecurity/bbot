@@ -90,7 +90,6 @@ for p in (parser, dummy_parser):
     )
     p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
     p.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
-    p.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan.")
     p.add_argument("-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE")
     p.add_argument(
         "-f",
@@ -135,9 +134,11 @@ for p in (parser, dummy_parser):
         "--configuration",
         nargs="*",
         help="custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'",
+        metavar="CONFIG",
     )
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
+    p.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
     p.add_argument(
         "--current-config",
         action="store_true",
@@ -159,6 +160,9 @@ for p in (parser, dummy_parser):
     g2.add_argument("--no-deps", action="store_true", help="Don't install module dependencies")
     g2.add_argument("--force-deps", action="store_true", help="Force install all module dependencies")
     g2.add_argument("--retry-deps", action="store_true", help="Retry failed module dependencies")
+    g2.add_argument(
+        "--ignore-failed-deps", action="store_true", help="Run modules even if they have failed dependencies"
+    )
     agent = p.add_argument_group(title="Agent", description="Report back to a central server")
     agent.add_argument("-a", "--agent-mode", action="store_true", help="Start in agent mode")
 

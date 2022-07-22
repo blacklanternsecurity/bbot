@@ -75,12 +75,12 @@ def catch(callback, *args, **kwargs):
     except FileNotFoundError as e:
         import traceback
 
-        log.error(f"{e} - missing executable?")
+        log.warning(f"{e} - missing executable?")
         log.debug(traceback.format_exc())
     except BrokenPipeError as e:
         import traceback
 
-        log.error(f"Error in subprocess: {e}")
+        log.warning(f"Error in subprocess: {e}")
         log.debug(traceback.format_exc())
 
 

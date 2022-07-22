@@ -30,6 +30,7 @@ class DepsInstaller:
         self.ansible_debug = self.parent_helper.config.get("debug", False)
         self.force_deps = self.parent_helper.config.get("force_deps", False)
         self.retry_deps = self.parent_helper.config.get("retry_deps", False)
+        self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
 
         self.all_modules_preloaded = module_loader.preloaded()
 
@@ -68,14 +69,14 @@ class DepsInstaller:
                             self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
                         success = self.install_module(m)
                         self.setup_status[module_hash] = success
-                        if success:
+                        if success or self.ignore_failed_deps:
                             log.debug(f'Setup succeeded for module "{m}"')
                             succeeded.append(m)
                         else:
                             log.warning(f'Setup failed for module "{m}"')
                             failed.append(m)
                     else:
-                        if success:
+                        if success or self.ignore_failed_deps:
                             log.debug(
                                 f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
                             )

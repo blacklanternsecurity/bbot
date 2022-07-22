@@ -70,9 +70,9 @@ class vhost(BaseModule):
             found_vhost = found_vhost.rstrip()
             vhost_dict = {"host": host, "vhost": found_vhost}
             if f"{vhost_dict['vhost']}{basehost}" != parsed_host.netloc:
-                self.emit_event(vhost_dict, "VHOST", source=event, tags=["vhost"])
+                self.emit_event(vhost_dict, "VHOST", source=event)
                 if skip_dns_host == False:
-                    self.emit_event(f"{vhost_dict['vhost']}{basehost}", "DNS_HOST", source=event, tags=["vhost"])
+                    self.emit_event(f"{vhost_dict['vhost']}{basehost}", "DNS_NAME", source=event, tags=["vhost"])
                 yield vhost_dict["vhost"]
 
     def mutations_check(self, vhost):

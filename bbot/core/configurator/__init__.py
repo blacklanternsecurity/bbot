@@ -51,6 +51,7 @@ if args.cli_options is not None:
     config["retry_deps"] = args.cli_options.retry_deps
     config["force_deps"] = args.cli_options.force_deps
     config["no_deps"] = args.cli_options.no_deps
+    config["ignore_failed_deps"] = args.cli_options.ignore_failed_deps
     # debug
     config["debug"] = args.cli_options.debug
     # -oA
