@@ -77,8 +77,11 @@ class header_brute(BaseModule):
             tags = []
             if reflection:
                 tags = ["http_reflection"]
+            description = (
+                f"[{self.compare_mode.upper()}_BRUTE] {self.compare_mode.capitalize()}: [{result}] Reason: [{reason}]"
+            )
             self.emit_event(
-                f"[{self.compare_mode.upper()}_BRUTE] Host: [{url}] {self.compare_mode.capitalize()}: [{result}] Reason: [{reason}]",
+                {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
                 event,
                 tags=tags,
