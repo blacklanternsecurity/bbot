@@ -83,7 +83,7 @@ class DepsInstaller:
                             succeeded.append(m)
                         else:
                             log.warning(
-                                f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry)'
+                                f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
                             )
                             failed.append(m)
 
