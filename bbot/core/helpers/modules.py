@@ -1,4 +1,5 @@
 import ast
+import sys
 import importlib
 from pathlib import Path
 from omegaconf import OmegaConf
@@ -39,10 +40,10 @@ class ModuleLoader:
             except Exception:
                 import traceback
 
-                print(traceback.format_exc())
-                # if there's a parsing error, try importing the module to give the user the most info
-                self.load_modules([module_file.stem], namespace=namespace)
-                continue
+                print(f"[CRIT] Error preloading {module_file}\n\n{traceback.format_exc()}")
+                print(f"[CRIT] Error in {module_file.name}")
+                sys.exit(1)
+
         return self.preloaded
 
     def preloaded(self, type=None):
