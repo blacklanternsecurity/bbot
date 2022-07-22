@@ -119,14 +119,17 @@ class telerik(BaseModule):
 
     def handle_event(self, event):
 
-        result = self.test_detector(event.data, "Telerik.Web.UI.WebResource.axd?type=rau")
+        webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
+        result = self.test_detector(event.data, webresource)
         if result:
             self.debug(result.text)
             if "RadAsyncUpload handler is registered succesfully" in result.text:
                 self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
                 description = f"Telerik RAU AXD Handler detected"
                 self.emit_event(
-                    {"host": str(event.host), "url": event.data, "description": description}, "FINDING", event
+                    {"host": str(event.host), "url": f"{event.data}{webresource}", "description": description},
+                    "FINDING",
+                    event,
                 )
 
                 if self.config.get("exploit_RAU_crypto") == True:
@@ -182,7 +185,8 @@ class telerik(BaseModule):
                         event,
                     )
 
-        result = self.test_detector(event.data, "Telerik.Web.UI.SpellCheckHandler.axd")
+        spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
+        result = self.test_detector(event.data, spellcheckhandler)
         try:
             # The standard behavior for the spellcheck handler without parameters is a 500
             if result.status_code == 500:
@@ -193,7 +197,13 @@ class telerik(BaseModule):
                     self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
                     description = f"Telerik SpellCheckHandler detected"
                     self.emit_event(
-                        {"host": str(event.host), "url": event.data, "description": description}, "FINDING", event
+                        {
+                            "host": str(event.host),
+                            "url": f"{event.data}{spellcheckhandler}",
+                            "description": description,
+                        },
+                        "FINDING",
+                        event,
                     )
         except Exception:
             pass
