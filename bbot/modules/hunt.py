@@ -121,7 +121,7 @@ class hunt(BaseModule):
     input_tag_regex = re.compile(r"<input.+?name=[\"\'](\w+)[\"\']")
     jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
     jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
-    a_tag_regex = re.compile(r"<a\s+(?:[^>]*?\s+)?href=(?:[\"\'].+\?)(.+)[\"\']>")
+    a_tag_regex = re.compile(r"<a\s+(?:[^>]*?\s+)?href=(?:[\"\'](.+\?.+?))[\"\'].+[>\s]")
 
     flags = ["active", "safe"]
     watched_events = ["HTTP_RESPONSE"]
@@ -157,8 +157,17 @@ class hunt(BaseModule):
 
         a_tag = re.findall(self.a_tag_regex, body)
         if a_tag:
-            for i in a_tag:
-                for x in i.split("&"):
+            for url in a_tag:
+
+                if url.startswith("http"):
+                    url_parsed = self.helpers.parse_url(url)
+                    if not self.scan.in_scope(url_parsed.netloc):
+                        self.debug("Skipping reporting found parameter because URL is not in scope")
+                        continue
+                    i = url_parsed.query.split("&")
+                else:
+                    i = url.split("?")[1].split("&")
+                for x in i:
                     s = x.split("=")[0]
 
                     self.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
@@ -170,7 +179,7 @@ class hunt(BaseModule):
             for k in hunt_param_dict.keys():
                 if p.lower() in hunt_param_dict[k]:
                     self.emit_event(
-                        f"Found potential {k.upper()} parameter [{p}] in URL [{event.data.get('url')}]",
+                        f"Found potential {k.upper()} parameter [{p}] via parsing URL [{event.data.get('url')}]",
                         "FINDING",
                         event,
                     )
