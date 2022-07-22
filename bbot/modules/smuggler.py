@@ -17,10 +17,7 @@ class smuggler(BaseModule):
     deps_ansible = [
         {
             "name": "Get smuggler repo",
-            "git": {
-                "repo": "https://github.com/defparam/smuggler.git",
-                "dest": "{BBOT_TOOLS}/smuggler",
-            },
+            "git": {"repo": "https://github.com/defparam/smuggler.git", "dest": "{BBOT_TOOLS}/smuggler"},
         }
     ]
 
@@ -38,4 +35,6 @@ class smuggler(BaseModule):
             if "Issue Found" in f:
                 technique = f.split(":")[0].rstrip()
                 text = f.split(":")[1].split("-")[0].strip()
-                self.emit_event(f"[HTTP SMUGGLER] [{text}] Technique: {technique}", "FINDING", source=event)
+                self.emit_event(
+                    f"[HTTP SMUGGLER] [{event.data}] [{text}] Technique: {technique}", "FINDING", source=event
+                )
