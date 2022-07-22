@@ -90,6 +90,7 @@ for p in (parser, dummy_parser):
     )
     p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
     p.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
+    p.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan.")
     p.add_argument("-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE")
     p.add_argument(
         "-f",
