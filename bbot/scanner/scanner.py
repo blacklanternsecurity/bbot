@@ -99,15 +99,10 @@ class Scanner:
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
 
-    def start(self):
+        self._prepped = False
 
-        failed = True
-
-        if not self.target:
-            self.warning(f"No scan targets specified")
-
-        try:
-            self.status = "STARTING"
+    def prep(self):
+        if not self._prepped:
             start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target)} targets"
             details = []
             if self.whitelist != self.target:
@@ -120,8 +115,20 @@ class Scanner:
 
             self.load_modules()
 
-            log.info(f"Setting up modules...")
+            self.info(f"Setting up modules...")
             self.setup_modules()
+
+    def start(self):
+
+        self.prep()
+
+        failed = True
+
+        if not self.target:
+            self.warning(f"No scan targets specified")
+
+        try:
+            self.status = "STARTING"
 
             if not self.modules:
                 self.error(f"No modules loaded")

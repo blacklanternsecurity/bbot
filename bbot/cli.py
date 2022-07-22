@@ -186,7 +186,10 @@ def main():
                 elif options.load_last_wordcloud:
                     scanner.helpers.word_cloud.load()
 
-                scanner.start()
+                scanner.prep()
+
+                if not options.dry_run:
+                    scanner.start()
 
             except Exception:
                 raise
