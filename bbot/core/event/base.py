@@ -1,6 +1,7 @@
 import json
 import logging
 import ipaddress
+from typing import Optional
 from pydantic import BaseModel, validator
 from threading import Event as ThreadingEvent
 
@@ -557,6 +558,7 @@ class VULNERABILITY(DictHostEvent):
         host: str
         severity: str
         description: str
+        url: Optional[str] = ""
         _validate_host = validator("host", allow_reuse=True)(validate_host)
         _validate_severity = validator("severity", allow_reuse=True)(validate_severity)
 
@@ -565,6 +567,15 @@ class FINDING(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         description: str
+        url: Optional[str] = ""
+        _validate_host = validator("host", allow_reuse=True)(validate_host)
+
+
+class TECHNOLOGY(DictHostEvent):
+    class _data_validator(BaseModel):
+        host: str
+        technology: str
+        url: Optional[str] = ""
         _validate_host = validator("host", allow_reuse=True)(validate_host)
 
 

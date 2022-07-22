@@ -124,7 +124,10 @@ class telerik(BaseModule):
             self.debug(result.text)
             if "RadAsyncUpload handler is registered succesfully" in result.text:
                 self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
-                self.emit_event(f"[{event.data}] Telerik RAU AXD Handler detected", "FINDING", event, tags=["info"])
+                description = f"Telerik RAU AXD Handler detected"
+                self.emit_event(
+                    {"host": str(event.host), "url": event.data, "description": description}, "FINDING", event
+                )
 
                 if self.config.get("exploit_RAU_crypto") == True:
                     hostname = urlparse(event.data).netloc
@@ -144,14 +147,18 @@ class telerik(BaseModule):
                                 result.url,
                             ]
                             output = self.helpers.run(command)
-                            description = f"[CVE-2017-11317] [{event.data}] [{str(version)}] Telerik.Web.UI.WebResource.axd?type=rau"
+                            description = f"[CVE-2017-11317] [{str(version)}] Telerik.Web.UI.WebResource.axd?type=rau"
                             if "fileInfo" in output.stdout:
                                 self.debug(f"Confirmed Vulnerable Telerik (version: {str(version)}")
                                 self.emit_event(
-                                    {"severity": "CRITICAL", "description": description, "host": str(event.host)},
+                                    {
+                                        "severity": "CRITICAL",
+                                        "description": description,
+                                        "host": str(event.host),
+                                        "url": event.data,
+                                    },
                                     "VULNERABILITY",
                                     event,
-                                    tags=["critical"],
                                 )
                                 break
 
@@ -168,8 +175,11 @@ class telerik(BaseModule):
             if result:
                 if "Cannot deserialize dialog parameters" in result.text:
                     self.debug(f"Detected Telerik UI instance ({dh})")
+                    description = f"Telerik DialogHandler detected"
                     self.emit_event(
-                        f"{event.data}{dh} Telerik DialogHandler detected", "FINDING", event, tags=["info"]
+                        {"host": str(event.host), "url": f"{event.data}{dh}", "description": description},
+                        "FINDING",
+                        event,
                     )
 
         result = self.test_detector(event.data, "Telerik.Web.UI.SpellCheckHandler.axd")
@@ -181,8 +191,9 @@ class telerik(BaseModule):
                 self.debug(validate_result)
                 if validate_result.status_code != 500:
                     self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
+                    description = f"Telerik SpellCheckHandler detected"
                     self.emit_event(
-                        f"[{event.data}] Telerik SpellCheckHandler detected", "FINDING", event, tags=["info"]
+                        {"host": str(event.host), "url": event.data, "description": description}, "FINDING", event
                     )
         except Exception:
             pass
