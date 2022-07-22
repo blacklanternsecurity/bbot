@@ -74,7 +74,8 @@ class aspnet_viewstate(BaseModule):
                     if "ValidationKey" in x:
                         solvedValidation = x.split(":")[1]
 
-                data = f"[CRITICAL] Known MachineKey found. URL: [{event.data['url']}] EncryptionKey: [{solvedDecryption}] ValidationKey: [{solvedValidation}]"
-                self.emit_event(data, "VULNERABILITY", event, tags=["critical"])
+                description = f"Known MachineKey found. URL: [{event.data['url']}] EncryptionKey: [{solvedDecryption}] ValidationKey: [{solvedValidation}]"
+                event_data = {"severity": "CRITICAL", "description": description, "host": event.host}
+                self.emit_event(event_data, "VULNERABILITY", event, tags=["critical"])
         else:
             self.debug("aspnet_viewstate viewstate not found")

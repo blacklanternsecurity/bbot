@@ -1,9 +1,10 @@
 import json
 import logging
 import ipaddress
+from pydantic import BaseModel, validator
 from threading import Event as ThreadingEvent
 
-from .helpers import make_event_id, get_event_type
+from .helpers import *
 from bbot.core.errors import *
 from bbot.core.helpers import (
     extract_words,
@@ -34,6 +35,8 @@ class BaseEvent:
     _priority = 3
     # Disables certain data validations
     _dummy = False
+    # Data validation, if data is a dictionary
+    _data_validator = None
 
     def __init__(
         self,
@@ -254,7 +257,21 @@ class BaseEvent:
         return ""
 
     def _sanitize_data(self, data):
+        if self._data_validator is not None:
+            if not isinstance(data, dict):
+                raise ValidationError(f"data is not of type dict: {data}")
+            data = self._data_validator(**data).dict()
+        return self.sanitize_data(data)
+
+    def sanitize_data(self, data):
         return data
+
+    @property
+    def data_human(self):
+        return self._data_human()
+
+    def _data_human(self):
+        return str(self.data)
 
     def _setup(self):
         """
@@ -353,8 +370,18 @@ class BaseEvent:
 
 
 class DefaultEvent(BaseEvent):
-    def _sanitize_data(self, data):
+    def sanitize_data(self, data):
         return data
+
+
+class DictEvent(BaseEvent):
+    def _data_human(self):
+        return json.dumps(self.data)
+
+
+class DictHostEvent(DictEvent):
+    def _host(self):
+        return make_ip_type(self.data["host"])
 
 
 class IP_ADDRESS(BaseEvent):
@@ -365,7 +392,7 @@ class IP_ADDRESS(BaseEvent):
         if ip.is_private:
             self.tags.add("private")
 
-    def _sanitize_data(self, data):
+    def sanitize_data(self, data):
         return str(ipaddress.ip_address(str(data)))
 
     def _host(self):
@@ -378,7 +405,7 @@ class IP_RANGE(BaseEvent):
         net = ipaddress.ip_network(self.data, strict=False)
         self.tags.add(f"ipv{net.version}")
 
-    def _sanitize_data(self, data):
+    def sanitize_data(self, data):
         return str(ipaddress.ip_network(str(data), strict=False))
 
     def _host(self):
@@ -393,7 +420,7 @@ class DNS_NAME(BaseEvent):
         elif is_domain(self.data):
             self.tags.add("domain")
 
-    def _sanitize_data(self, data):
+    def sanitize_data(self, data):
         sanitized = str(data).strip().lower()
         if sanitized != ".":
             sanitized = sanitized.rstrip(".")
@@ -412,7 +439,7 @@ class DNS_NAME(BaseEvent):
 
 
 class OPEN_TCP_PORT(BaseEvent):
-    def _sanitize_data(self, data):
+    def sanitize_data(self, data):
         host, port = split_host_port(data)
         if host and validate_port(port):
             return make_netloc(host, port)
@@ -428,7 +455,7 @@ class OPEN_TCP_PORT(BaseEvent):
 
 
 class URL_UNVERIFIED(BaseEvent):
-    def _sanitize_data(self, data):
+    def sanitize_data(self, data):
         if not any(r.match(data) for r in regexes.event_type_regexes["URL"]):
             return None
         self.parsed = clean_url(data)
@@ -484,12 +511,12 @@ class URL_UNVERIFIED(BaseEvent):
 
 
 class URL(URL_UNVERIFIED):
-    def _sanitize_data(self, data):
+    def sanitize_data(self, data):
         if not self._dummy and not any(t.startswith("status-") for t in self.tags):
             raise ValidationError(
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
-        return super()._sanitize_data(data)
+        return super().sanitize_data(data)
 
 
 class URL_HINT(URL_UNVERIFIED):
@@ -497,7 +524,7 @@ class URL_HINT(URL_UNVERIFIED):
 
 
 class EMAIL_ADDRESS(BaseEvent):
-    def _sanitize_data(self, data):
+    def sanitize_data(self, data):
         sanitized = str(data).strip().lower()
         match_1 = any(r.match(sanitized) for r in regexes.event_type_regexes["EMAIL_ADDRESS"])
         match_2 = regexes._hostname_regex.match(sanitized)
@@ -513,8 +540,8 @@ class EMAIL_ADDRESS(BaseEvent):
         return extract_words(self.host_stem)
 
 
-class HTTP_RESPONSE(URL_UNVERIFIED):
-    def _sanitize_data(self, data):
+class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
+    def sanitize_data(self, data):
         url = data.get("url", "")
         if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
             return None
@@ -523,6 +550,29 @@ class HTTP_RESPONSE(URL_UNVERIFIED):
 
     def _words(self):
         return set()
+
+
+class VULNERABILITY(DictHostEvent):
+    class _data_validator(BaseModel):
+        host: str
+        severity: str
+        description: str
+        _validate_host = validator("host", allow_reuse=True)(validate_host)
+        _validate_severity = validator("severity", allow_reuse=True)(validate_severity)
+
+
+class FINDING(DictHostEvent):
+    class _data_validator(BaseModel):
+        host: str
+        description: str
+        _validate_host = validator("host", allow_reuse=True)(validate_host)
+
+
+class VHOST(DictHostEvent):
+    class _data_validator(BaseModel):
+        host: str
+        vhost: str
+        _validate_host = validator("host", allow_reuse=True)(validate_host)
 
 
 def make_event(

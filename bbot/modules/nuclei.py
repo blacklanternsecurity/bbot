@@ -135,7 +135,7 @@ class nuclei(BaseModule):
                     if source_event == None:
                         continue
                     self.emit_event(
-                        {"severity": severity, "host": host, "template": template, "name": name},
+                        {"severity": severity, "host": host, "description": f"template: {template}, name: {name}"},
                         "VULNERABILITY",
                         source_event,
                     )
@@ -147,7 +147,7 @@ class nuclei(BaseModule):
                 if source_event == None:
                     continue
                 self.emit_event(
-                    {"severity": severity, "host": host, "template": template, "name": name},
+                    {"severity": severity, "host": host, "description": f"template: {template}, name: {name}"},
                     "VULNERABILITY",
                     source_event,
                 )

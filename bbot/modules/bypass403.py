@@ -72,7 +72,7 @@ for hp_key in header_payloads.keys():
 class bypass403(BaseModule):
 
     watched_events = ["URL"]
-    produced_events = ["VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["active"]
     in_scope_only = True
 
@@ -103,12 +103,8 @@ class bypass403(BaseModule):
                         reported_signature = f"Added Header: {added_header_tuple[0]}: {added_header_tuple[1]}"
                     else:
                         reported_signature = f"Modified URL: {sig[1]}"
-                    self.emit_event(
-                        f"403 Bypass [{event.data}] Reason: [{reason}] Sig: [{reported_signature}]",
-                        "VULNERABILITY",
-                        source=event,
-                        tags=["medium"],
-                    )
+                    description = f"403 Bypass [{event.data}] Reason: [{reason}] Sig: [{reported_signature}]"
+                    self.emit_event({"description": description, "host": event.host}, "FINDING", source=event)
                 else:
                     self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")
 

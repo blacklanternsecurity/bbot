@@ -49,6 +49,27 @@ def make_event_id(data, event_type):
     return f"{sha1(data).hexdigest()}:{event_type}"
 
 
+def validate_host(host) -> str:
+    host = str(host).strip().lower()
+    try:
+        ipaddress.ip_address(host)
+        return host
+    except Exception:
+        for r in event_type_regexes["DNS_NAME"]:
+            if r.match(host):
+                return host
+        if _hostname_regex.match(host):
+            return host
+    raise ValueError(f"Invalid host: {host}")
+
+
+def validate_severity(severity) -> str:
+    severity = str(severity).strip().upper()
+    if not severity in ("INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"):
+        raise ValueError(f"Invalid severity: {severity}")
+    return severity
+
+
 host_types = ("URL", "DNS_NAME", "EMAIL_ADDRESS")
 
 port_types = ("OPEN_TCP_PORT",)

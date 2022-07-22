@@ -23,7 +23,7 @@ class Human(BaseOutputModule):
         event_tags = ""
         if getattr(event, "tags", []):
             event_tags = f'\t({", ".join(sorted(getattr(event, "tags", [])))})'
-        event_str = f"{event_type:<20}\t{event.data}\t{event.module}{event_tags}"
+        event_str = f"{event_type:<20}\t{event.data_human}\t{event.module}{event_tags}"
         if self.file is not None:
             self.file.write(event_str + "\n")
             self.file.flush()

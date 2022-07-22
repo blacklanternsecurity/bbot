@@ -50,15 +50,32 @@ ssl_verify: false
 user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36
 # Completely ignore URLs with these extensions
 url_extension_blacklist:
+    # images
     - png
     - jpg
+    - bmp
+    - ico
     - jpeg
     - gif
     - svg
+    # web/fonts
     - css
     - woff
     - woff2
     - ttf
+    # audio
+    - mp3
+    - m4a
+    - wav
+    - flac
+    # video
+    - mp4
+    - mkv
+    - avi
+    - wmv
+    - mov
+    - flv
+    - webm
 # Distribute URLs with these extensions only to httpx (these are omitted from output)
 url_extension_httpx_only:
     - js

@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import logging
 import ipaddress
 from time import sleep
@@ -205,6 +206,28 @@ def test_events(events, scan, helpers, config):
     assert sort3 > sort2
     assert tuple(sorted([sort3, sort2, sort1])) == (sort1, sort2, sort3)
 
+    # test validation
+    test_vuln = scan.make_event(
+        {"host": "EVILcorp.com", "severity": "iNfo ", "description": "asdf"}, "VULNERABILITY", dummy=True
+    )
+    assert test_vuln.data["host"] == "evilcorp.com"
+    assert test_vuln.data["severity"] == "INFO"
+    test_vuln2 = scan.make_event(
+        {"host": "192.168.1.1", "severity": "iNfo ", "description": "asdf"}, "VULNERABILITY", dummy=True
+    )
+    assert json.loads(test_vuln2.data_human)["severity"] == "INFO"
+    assert test_vuln2.host.is_private
+    with pytest.raises(ValidationError, match=".*severity.*\n.*field required.*"):
+        test_vuln = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "VULNERABILITY", dummy=True)
+    with pytest.raises(ValidationError, match=".*host.*\n.*Invalid host.*"):
+        test_vuln = scan.make_event(
+            {"host": "!@#$", "severity": "INFO", "description": "asdf"}, "VULNERABILITY", dummy=True
+        )
+    with pytest.raises(ValidationError, match=".*severity.*\n.*Invalid severity.*"):
+        test_vuln = scan.make_event(
+            {"host": "evilcorp.com", "severity": "WACK", "description": "asdf"}, "VULNERABILITY", dummy=True
+        )
+
 
 def test_manager(config):
     from bbot.scanner import Scanner
@@ -387,6 +410,8 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     compare_helper = helpers.http_compare("http://www.example.com")
     compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
     compare_helper.compare("http://www.example.com", cookies={"asdf": "asdf"})
+    compare_helper.compare("http://www.example.com", check_reflection=True)
+    compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
     for mode in ("getparam", "header", "cookie"):
         compare_helper.canary_check("http://www.example.com", mode=mode) == True
 
@@ -493,6 +518,37 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert len(helpers.rand_string(1)) == 1
     assert len(helpers.rand_string(0)) == 0
     assert type(helpers.rand_string(0)) == str
+
+    test_file = Path(scan.config["home"]) / "testfile.asdf"
+    with open(test_file, "w") as f:
+        f.write("asdf\nfdsa")
+    assert "asdf" in helpers.str_or_file(str(test_file))
+    assert "nope" in helpers.str_or_file("nope")
+    assert tuple(helpers.chain_lists([str(test_file), "nope"], try_files=True)) == ("asdf", "fdsa", "nope")
+    assert test_file.is_file()
+
+    with pytest.raises(DirectoryCreationError, match="Failed to create.*"):
+        helpers.mkdir(test_file)
+
+    helpers._rm_at_exit(test_file)
+    assert not test_file.exists()
+
+    assert helpers.validate_port(666) == True
+    assert helpers.validate_port(666666) == False
+    assert helpers.validate_port("asdf") == False
+
+    assert type(helpers.make_date()) == str
+
+    def raise_filenotfound():
+        raise FileNotFoundError("asdf")
+
+    def raise_brokenpipe():
+        raise BrokenPipeError("asdf")
+
+    from bbot.core.helpers import command
+
+    command.catch(raise_filenotfound)
+    command.catch(raise_brokenpipe)
 
     ### COMMAND ###
     assert "plumbus\n" in old_run(helpers, ["echo", "plumbus"], text=True).stdout
