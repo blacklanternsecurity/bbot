@@ -583,6 +583,7 @@ class VHOST(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         vhost: str
+        url: Optional[str] = ""
         _validate_host = validator("host", allow_reuse=True)(validate_host)
 
 

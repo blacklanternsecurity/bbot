@@ -172,8 +172,9 @@ class JavascriptExtractor(BaseExtractor):
                 return
 
         self.excavate.debug(f"Found Possible Secret in Javascript [{result}]")
+        description = f"Possible secret in JS [{result}] Signature [{name}]"
         self.excavate.emit_event(
-            f"Possible secret in JS [{result}] in [{event.data.get('url')}] Signature [{name}]", "FINDING", event
+            {"host": str(event.host), "url": event.data.get("url", ""), "description": description}, "FINDING", event
         )
 
 
