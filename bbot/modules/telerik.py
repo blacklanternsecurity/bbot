@@ -97,7 +97,7 @@ class telerik(BaseModule):
     RAUConfirmed = []
 
     options = {"exploit_RAU_crypto": False}
-    options_desc = {"exploit_RAU_crypto": "Do not attempt to confirm any RAU AXD detections are vulnerable"}
+    options_desc = {"exploit_RAU_crypto": "Ettempt to confirm any RAU AXD detections are vulnerable"}
 
     in_scope_only = True
 
@@ -150,7 +150,7 @@ class telerik(BaseModule):
                                 result.url,
                             ]
                             output = self.helpers.run(command)
-                            description = f"[CVE-2017-11317] [{str(version)}] Telerik.Web.UI.WebResource.axd?type=rau"
+                            description = f"[CVE-2017-11317] [{str(version)}] {webresource}"
                             if "fileInfo" in output.stdout:
                                 self.debug(f"Confirmed Vulnerable Telerik (version: {str(version)}")
                                 self.emit_event(
@@ -158,7 +158,7 @@ class telerik(BaseModule):
                                         "severity": "CRITICAL",
                                         "description": description,
                                         "host": str(event.host),
-                                        "url": event.data,
+                                        "url": f"{event.data}{webresource}",
                                     },
                                     "VULNERABILITY",
                                     event,
