@@ -148,7 +148,7 @@ class telerik(BaseModule):
                             if "fileInfo" in output.stdout:
                                 self.debug(f"Confirmed Vulnerable Telerik (version: {str(version)}")
                                 self.emit_event(
-                                    {"severity": "CRITICAL", "description": description, "host": event.host},
+                                    {"severity": "CRITICAL", "description": description, "host": str(event.host)},
                                     "VULNERABILITY",
                                     event,
                                     tags=["critical"],
