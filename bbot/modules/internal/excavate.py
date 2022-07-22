@@ -93,8 +93,11 @@ class ErrorExtractor(BaseExtractor):
 
     def report(self, result, name, event, **kwargs):
         self.excavate.debug(f"Found error message from parsing [{event.data.get('url')}] with regex [{name}]")
+        description = f"Error message Detected at Error Type: {name}"
         self.excavate.emit_event(
-            f"Error message Detected at [{event.data.get('url')}] Error Type: {name}", "FINDING", source=event
+            {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
+            "FINDING",
+            source=event,
         )
 
 
@@ -107,12 +110,16 @@ class JWTExtractor(BaseExtractor):
         try:
             j.decode(result, options={"verify_signature": False})
             jwt_headers = j.get_unverified_header(result)
+            tags = []
             if jwt_headers["alg"].upper()[0:2] == "HS":
-                self.excavate.emit_event(
-                    f"JWT Identified [{result}] on [{event.data.get('url')}]", "FINDING", event, tags=["crackable"]
-                )
-            else:
-                self.excavate.emit_event(f"JWT Identified [{result}] [{event.data.get('url')}]", "FINDING", event)
+                tags = ["crackable"]
+            description = f"JWT Identified [{result}]"
+            self.excavate.emit_event(
+                {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
+                "FINDING",
+                event,
+                tags=tags,
+            )
 
         except j.exceptions.DecodeError:
             self.excavate.debug(f"Error decoding JWT candidate {result}")
@@ -122,7 +129,10 @@ class SerializationExtractor(BaseExtractor):
     regexes = {"Java": r"(?:[^a-zA-Z0-9+/]|^)(rO0[a-zA-Z0-9+/]+={,2})"}
 
     def report(self, result, name, event, **kwargs):
-        self.excavate.emit_event(f"{name} serialized object found on [{event.data.get('url')}]", "FINDING", event)
+        description = f"{name} serialized object found"
+        self.excavate.emit_event(
+            {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
+        )
 
 
 class JavascriptExtractor(BaseExtractor):
