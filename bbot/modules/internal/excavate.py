@@ -119,7 +119,7 @@ class JWTExtractor(BaseExtractor):
 
 
 class SerializationExtractor(BaseExtractor):
-    regexes = {"Java": r"[^a-zA-Z0-9+/]|^rO0[a-zA-Z0-9+/]+={,2}"}
+    regexes = {"Java": r"(?:[^a-zA-Z0-9+/]|^)(rO0[a-zA-Z0-9+/]+={,2})"}
 
     def report(self, result, name, event, **kwargs):
         self.excavate.emit_event(f"{name} serialized object found on [{event.data.get('url')}]", "FINDING", event)

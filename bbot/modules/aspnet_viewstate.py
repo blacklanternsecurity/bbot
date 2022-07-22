@@ -44,8 +44,8 @@ class aspnet_viewstate(BaseModule):
 
     def handle_event(self, event):
 
-        generator_match = self.generator_regex.search(event.data["response-body"])
-        viewstate_match = self.viewstate_regex.search(event.data["response-body"])
+        generator_match = self.generator_regex.search(event.data.get("response-body", ""))
+        viewstate_match = self.viewstate_regex.search(event.data.get("response-body", ""))
 
         if generator_match and viewstate_match:
             generator = generator_match.group(1)

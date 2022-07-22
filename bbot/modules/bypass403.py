@@ -61,12 +61,9 @@ header_payloads = {
 }
 
 for qp in query_payloads:
-    signatures.append(
-        ("GET", "{scheme}://{netloc}/{path}%s" % qp, None, True),
-    )
-    signatures.append(
-        ("GET", "{scheme}://{netloc}/%s/{path}" % qp, None, True),
-    )
+    signatures.append(("GET", "{scheme}://{netloc}/{path}%s" % qp, None, True))
+    if "?" not in qp:  # we only want to use "?" after the path
+        signatures.append(("GET", "{scheme}://{netloc}/%s/{path}" % qp, None, True))
 
 for hp_key in header_payloads.keys():
     signatures.append(("GET", "{scheme}://{netloc}/{path}", {hp_key: header_payloads[hp_key]}, False))
