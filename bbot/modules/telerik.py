@@ -144,10 +144,11 @@ class telerik(BaseModule):
                                 result.url,
                             ]
                             output = self.helpers.run(command)
+                            description = f"[CVE-2017-11317] [{event.data}] [{str(version)}] Telerik.Web.UI.WebResource.axd?type=rau"
                             if "fileInfo" in output.stdout:
                                 self.debug(f"Confirmed Vulnerable Telerik (version: {str(version)}")
                                 self.emit_event(
-                                    f"[CRITICAL] [CVE-2017-11317] [{event.data}] [{str(version)}] Telerik.Web.UI.WebResource.axd?type=rau",
+                                    {"severity": "CRITICAL", "description": description, "host": event.host},
                                     "VULNERABILITY",
                                     event,
                                     tags=["critical"],
