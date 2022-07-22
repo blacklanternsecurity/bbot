@@ -68,7 +68,7 @@ class vhost(BaseModule):
     def ffuf_vhost(self, command, host, parsed_host, basehost, event, skip_dns_host=False):
         for found_vhost in self.helpers.run_live(command):
             found_vhost = found_vhost.rstrip()
-            vhost_dict = {"host": host, "vhost": found_vhost}
+            vhost_dict = {"host": str(event.host), "url": host, "vhost": found_vhost}
             if f"{vhost_dict['vhost']}{basehost}" != parsed_host.netloc:
                 self.emit_event(vhost_dict, "VHOST", source=event)
                 if skip_dns_host == False:
