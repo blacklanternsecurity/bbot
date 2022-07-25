@@ -21,6 +21,7 @@ class ConfigAwareHelper:
     from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached, CacheDict
     from . import regexes
+    from . import ntlm
 
     def __init__(self, config, scan=None):
         self.config = config
