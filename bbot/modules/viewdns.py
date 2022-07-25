@@ -28,7 +28,7 @@ class viewdns(BaseModule):
     def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
         for domain, _ in self.query(query):
-            self.emit_event(domain, "DNS_NAME", source=event)
+            self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
             # todo: registrar?
 
     def query(self, query):

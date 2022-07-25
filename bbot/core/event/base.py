@@ -16,12 +16,10 @@ from bbot.core.helpers import (
     is_ip,
     domain_stem,
     make_netloc,
-    validate_port,
     make_ip_type,
     smart_decode,
-    regexes,
-    clean_url,
     get_file_extension,
+    validators,
 )
 
 
@@ -394,7 +392,7 @@ class IP_ADDRESS(BaseEvent):
             self.tags.add("private")
 
     def sanitize_data(self, data):
-        return str(ipaddress.ip_address(str(data)))
+        return validators.validate_host(data)
 
     def _host(self):
         return ipaddress.ip_address(self.data)
@@ -414,6 +412,8 @@ class IP_RANGE(BaseEvent):
 
 
 class DNS_NAME(BaseEvent):
+    _priority = 2
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if is_subdomain(self.data):
@@ -422,13 +422,7 @@ class DNS_NAME(BaseEvent):
             self.tags.add("domain")
 
     def sanitize_data(self, data):
-        sanitized = str(data).strip().lower()
-        if sanitized != ".":
-            sanitized = sanitized.rstrip(".")
-        match_1 = any(r.match(sanitized) for r in regexes.event_type_regexes["DNS_NAME"])
-        match_2 = regexes._hostname_regex.match(sanitized)
-        if match_1 or match_2:
-            return sanitized
+        return validators.validate_host(data)
 
     def _host(self):
         return self.data
@@ -442,7 +436,8 @@ class DNS_NAME(BaseEvent):
 class OPEN_TCP_PORT(BaseEvent):
     def sanitize_data(self, data):
         host, port = split_host_port(data)
-        if host and validate_port(port):
+        port = validators.validate_port(port)
+        if host and port:
             return make_netloc(host, port)
 
     def _host(self):
@@ -457,9 +452,7 @@ class OPEN_TCP_PORT(BaseEvent):
 
 class URL_UNVERIFIED(BaseEvent):
     def sanitize_data(self, data):
-        if not any(r.match(data) for r in regexes.event_type_regexes["URL"]):
-            return None
-        self.parsed = clean_url(data)
+        self.parsed = validators.validate_url_parsed(data)
 
         # tag as dir or endpoint
         if str(self.parsed.path).endswith("/"):
@@ -526,11 +519,7 @@ class URL_HINT(URL_UNVERIFIED):
 
 class EMAIL_ADDRESS(BaseEvent):
     def sanitize_data(self, data):
-        sanitized = str(data).strip().lower()
-        match_1 = any(r.match(sanitized) for r in regexes.event_type_regexes["EMAIL_ADDRESS"])
-        match_2 = regexes._hostname_regex.match(sanitized)
-        if match_1 or match_2:
-            return sanitized
+        return validators.validate_email(data)
 
     def _host(self):
         data = str(self.data).split("@")[-1]
@@ -542,11 +531,11 @@ class EMAIL_ADDRESS(BaseEvent):
 
 
 class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
+    _priority = 2
+
     def sanitize_data(self, data):
         url = data.get("url", "")
-        if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
-            return None
-        self.parsed = clean_url(url)
+        self.parsed = validators.validate_url_parsed(url)
         return data
 
     def _words(self):
@@ -554,37 +543,43 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 
 class VULNERABILITY(DictHostEvent):
+    _priority = 1
+
     class _data_validator(BaseModel):
         host: str
         severity: str
         description: str
-        url: Optional[str] = ""
-        _validate_host = validator("host", allow_reuse=True)(validate_host)
-        _validate_severity = validator("severity", allow_reuse=True)(validate_severity)
+        url: Optional[str]
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        _validate_severity = validator("severity", allow_reuse=True)(validators.validate_severity)
 
 
 class FINDING(DictHostEvent):
+    _priority = 1
+
     class _data_validator(BaseModel):
         host: str
         description: str
-        url: Optional[str] = ""
-        _validate_host = validator("host", allow_reuse=True)(validate_host)
+        url: Optional[str]
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
 
 class TECHNOLOGY(DictHostEvent):
+    _priority = 2
+
     class _data_validator(BaseModel):
         host: str
         technology: str
-        url: Optional[str] = ""
-        _validate_host = validator("host", allow_reuse=True)(validate_host)
+        url: Optional[str]
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
 
 class VHOST(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         vhost: str
-        url: Optional[str] = ""
-        _validate_host = validator("host", allow_reuse=True)(validate_host)
+        url: Optional[str]
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
 
 def make_event(
@@ -618,6 +613,10 @@ def make_event(
         # Catch these common whoopsies
         # DNS_NAME <--> IP_ADDRESS confusion
         if event_type in ("DNS_NAME", "IP_ADDRESS"):
+            try:
+                data = validators.validate_host(data)
+            except Exception as e:
+                raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
             data_is_ip = is_ip(data)
             if event_type == "DNS_NAME" and data_is_ip:
                 event_type = "IP_ADDRESS"
