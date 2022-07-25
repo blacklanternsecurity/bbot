@@ -57,6 +57,7 @@ def test_events(events, scan, helpers, config):
     assert events.emoji not in events.ipv4
     assert events.emoji not in events.netv6
     assert events.netv6 not in events.emoji
+    assert "dead::c0de" == scan.make_event(" [DEaD::c0De]:88", "DNS_NAME", dummy=True)
 
     # hostname tests
     assert events.domain.host == "publicapis.org"
@@ -73,6 +74,7 @@ def test_events(events, scan, helpers, config):
     assert not events.netv6 in events.domain
     assert events.emoji not in events.domain
     assert events.domain not in events.emoji
+    assert "evilcorp.com" == scan.make_event(" eViLcorp.COM.:88", "DNS_NAME", dummy=True)
 
     # url tests
     assert scan.make_event("http://evilcorp.com", dummy=True) == scan.make_event("http://evilcorp.com/", dummy=True)
@@ -420,10 +422,6 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert not helpers.is_domain("www.evilcorp.co.uk")
     assert helpers.is_subdomain("www.evilcorp.co.uk")
     assert not helpers.is_subdomain("evilcorp.co.uk")
-    assert helpers.is_dns_name("evilcorp.co.uk") == True
-    assert helpers.is_dns_name("bob@evilcorp.co.uk") == False
-    assert helpers.is_email("bob@evilcorp.co.uk") == True
-    assert helpers.is_email("evilcorp.co.uk") == False
     assert helpers.parent_domain("www.evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("localhost") == "localhost"
@@ -533,9 +531,45 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     helpers._rm_at_exit(test_file)
     assert not test_file.exists()
 
-    assert helpers.validate_port(666) == True
-    assert helpers.validate_port(666666) == False
-    assert helpers.validate_port("asdf") == False
+    ### VALIDATORS ###
+    # hosts
+    assert helpers.validators.validate_host(" evilCorp.COM") == "evilcorp.com"
+    assert helpers.validators.validate_host("LOCALHOST ") == "localhost"
+    assert helpers.validators.validate_host(" 192.168.1.1") == "192.168.1.1"
+    assert helpers.validators.validate_host(" Dead::c0dE ") == "dead::c0de"
+    assert helpers.validators.soft_validate(" evilCorp.COM", "host") == True
+    assert helpers.validators.soft_validate("!@#$", "host") == False
+    with pytest.raises(ValueError):
+        assert helpers.validators.validate_host("!@#$")
+    # ports
+    assert helpers.validators.validate_port(666) == 666
+    assert helpers.validators.validate_port(666666) == 65535
+    assert helpers.validators.soft_validate(666, "port") == True
+    assert helpers.validators.soft_validate("!@#$", "port") == False
+    with pytest.raises(ValueError):
+        helpers.validators.validate_port("asdf")
+    # urls
+    assert helpers.validators.validate_url(" httP://evilcorP.com/asdf?a=b&c=d#e") == "http://evilcorp.com/asdf"
+    assert (
+        helpers.validators.validate_url_parsed(" httP://evilcorP.com/asdf?a=b&c=d#e").geturl()
+        == "http://evilcorp.com/asdf"
+    )
+    assert helpers.validators.soft_validate(" httP://evilcorP.com/asdf?a=b&c=d#e", "url") == True
+    assert helpers.validators.soft_validate("!@#$", "url") == False
+    with pytest.raises(ValueError):
+        helpers.validators.validate_url("!@#$")
+    # severities
+    assert helpers.validators.validate_severity(" iNfo") == "INFO"
+    assert helpers.validators.soft_validate(" iNfo", "severity") == True
+    assert helpers.validators.soft_validate("NOPE", "severity") == False
+    with pytest.raises(ValueError):
+        helpers.validators.validate_severity("NOPE")
+    # emails
+    assert helpers.validators.validate_email(" bOb@eViLcorp.COM") == "bob@evilcorp.com"
+    assert helpers.validators.soft_validate(" bOb@eViLcorp.COM", "email") == True
+    assert helpers.validators.soft_validate("!@#$", "email") == False
+    with pytest.raises(ValueError):
+        helpers.validators.validate_email("!@#$")
 
     assert type(helpers.make_date()) == str
 
