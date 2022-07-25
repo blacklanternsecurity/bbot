@@ -255,7 +255,7 @@ class BaseModule:
             if type(result) == tuple and len(result) == 2:
                 status, msg = result
             else:
-                status = bool(result)
+                status = result
                 msg = status_codes[status]
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:

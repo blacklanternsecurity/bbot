@@ -18,21 +18,10 @@ from urllib.parse import urlparse, quote  # noqa F401
 from hashlib import sha1 as hashlib_sha1
 
 from .url import *  # noqa F401
+from .regexes import word_regexes
 from ..errors import DirectoryCreationError
-from .regexes import word_regexes, event_type_regexes
 
 log = logging.getLogger("bbot.core.helpers.misc")
-
-
-def is_dns_name(d):
-    """
-    "evilcorp.com" --> True
-    "bob@evilcorp.com" --> False
-    """
-    for r in event_type_regexes["DNS_NAME"]:
-        if r.match(d):
-            return True
-    return False
 
 
 def is_domain(d):
@@ -167,17 +156,6 @@ def is_ip_type(i):
     "192.168.1.0/24" --> False
     """
     return hasattr(i, "is_multicast")
-
-
-def is_email(d):
-    """
-    "bob@evilcorp.com" --> True
-    "evilcorp.com" --> False
-    """
-    for r in event_type_regexes["EMAIL_ADDRESS"]:
-        if r.match(str(d)):
-            return True
-    return False
 
 
 def make_ip_type(s):
@@ -422,19 +400,6 @@ def which(*executables):
         location = shutil.which(e)
         if location:
             return location
-
-
-def validate_port(port):
-    """
-    443 --> True
-    8080 --> True
-    77777 --> False
-    -4 --> False
-    """
-    try:
-        return 0 <= int(str(port)) <= 65535
-    except Exception:
-        return False
 
 
 def search_dict_by_key(key, d):
