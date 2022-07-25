@@ -210,9 +210,21 @@ class nuclei(BaseModule):
                 self.debug(f"Failed to decode line: {line}")
                 continue
             template = j.get("template-id", "")
+
+            # try to get the specific matcher name
             name = j.get("matcher-name", "")
+
+            # fall back to regular name
+            if not name:
+                self.debug(
+                    f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
+                )
+                name = j.get("info", {}).get("name", "")
+
             severity = j.get("info", {}).get("severity", "").upper()
             host = j.get("host", "")
 
             if template and name and severity and host:
                 yield (severity, template, host, name)
+            else:
+                self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
