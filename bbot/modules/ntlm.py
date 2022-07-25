@@ -1,6 +1,4 @@
-import json
 from bbot.modules.base import BaseModule
-
 
 ntlm_discovery_endpoints = [
     "",

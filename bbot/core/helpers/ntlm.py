@@ -121,15 +121,7 @@ def opt_inline_str(name, st, offset, sz):
 
 def decode_ntlm_challenge(st):
     hdr_tup = struct.unpack("<hhiiQ", st[12:32])
-
     parsed_challange = {}
-
-    # print("Target Name: %s" % StrStruct(hdr_tup[0:3], st))
-    # print("Challenge: 0x%x" % hdr_tup[4])
-
-    flags = hdr_tup[3]
-
-    # opt_str_struct("Context", st, 32)
 
     nxt = st[40:48]
     if len(nxt) == 8:
@@ -158,14 +150,10 @@ def decode_ntlm_challenge(st):
                 # print("    %s (%d): %s" % (rec_type, rec_type_id, subst.replace(b'\x00', b'')))
             pos += 4 + rec_sz
 
-    # opt_inline_str("OS Ver", st, 48, 8)
-
-    # print("Flags: 0x%x [%s]" % (flags, flags_str(flags)))
     return parsed_challange
 
 
 def ntlmdecode(authenticate_header):
-    #  _, st_raw = authenticate_header.split(',')[0].split()
     try:
         st = base64.b64decode(authenticate_header)
     except Exception as e:
@@ -174,9 +162,6 @@ def ntlmdecode(authenticate_header):
 
     if not st[:8] == b"NTLMSSP\x00":
         raise Exception("NTLMSSP header not found at start of input string")
-
-    ver_tup = struct.unpack("<i", st[8:12])
-    ver = ver_tup[0]
 
     return decode_ntlm_challenge(st)
 
