@@ -541,6 +541,15 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def sanitize_data(self, data):
         url = data.get("url", "")
         self.parsed = validators.validate_url_parsed(url)
+
+        header_dict = {}
+        for i in data.get("response-header", "").splitlines():
+            if len(i) > 0 and ":" in i:
+                k, v = i.split(":", 1)
+                k = k.strip().lower()
+                v = v.lstrip()
+                header_dict[k] = v
+        data["header-dict"] = header_dict
         return data
 
     def _words(self):
