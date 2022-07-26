@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 from . import files, args, environ
 from ..errors import ConfigLoadError
 from ...modules import module_loader
-from ..helpers.misc import mkdir, error_and_exit
+from ..helpers.misc import mkdir, error_and_exit, filter_dict
 
 try:
     config = OmegaConf.merge(
@@ -31,19 +31,32 @@ if not "home" in config:
     config["home"] = "~/.bbot"
 home = Path(config["home"]).expanduser().resolve()
 config["home"] = str(home)
+
+# ensure bbot.yml
+if not files.config_filename.exists():
+    print(f"[INFO] Creating BBOT config at {files.config_filename}")
+    OmegaConf.save(config=config, f=str(files.config_filename))
+
+# ensure secrets.yml
+if not files.secrets_filename.exists():
+    print(f"[INFO] Creating BBOT secrets at {files.secrets_filename}")
+    secrets_only_config = OmegaConf.to_object(config)
+    secrets_only_config = filter_dict(secrets_only_config, "api_key", "username", "password", "token", fuzzy=True)
+    OmegaConf.save(config=OmegaConf.create(secrets_only_config), f=str(files.secrets_filename))
+
 # ensure bbot_tools
 bbot_tools = home / "tools"
-config["tools"] = str(bbot_tools)
+os.environ["BBOT_TOOLS"] = str(bbot_tools)
 os.environ["PATH"] = f"{bbot_tools}:" + os.environ.get("PATH", "")
 # ensure bbot_cache
 bbot_cache = home / "cache"
-config["cache"] = str(bbot_cache)
+os.environ["BBOT_CACHE"] = str(bbot_cache)
 # ensure bbot_temp
 bbot_temp = home / "temp"
-config["temp"] = str(bbot_temp)
+os.environ["BBOT_TEMP"] = str(bbot_temp)
 # ensure bbot_lib
 bbot_lib = home / "lib"
-config["lib"] = str(bbot_lib)
+os.environ["BBOT_LIB"] = str(bbot_lib)
 
 # exchange certain options between CLI args and config
 if args.cli_options is not None:

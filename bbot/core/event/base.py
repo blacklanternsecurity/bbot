@@ -2,6 +2,7 @@ import json
 import logging
 import ipaddress
 from typing import Optional
+from datetime import datetime
 from pydantic import BaseModel, validator
 from threading import Event as ThreadingEvent
 
@@ -58,6 +59,8 @@ class BaseEvent:
         self._made_internal = False
         # whether to force-send to output modules
         self._force_output = False
+
+        self.timestamp = datetime.utcnow()
 
         if tags is None:
             tags = set()
@@ -307,6 +310,7 @@ class BaseEvent:
             if v:
                 j.update({i: v})
         j["scope_distance"] = self.scope_distance
+        j["timestamp"] = self.timestamp.timestamp()
         source = self.get_source()
         source_id = getattr(source, "id", "")
         if source_id:
@@ -328,7 +332,8 @@ class BaseEvent:
     def priority(self):
         self_priority = int(max(1, min(5, self._priority)))
         mod_priority = int(max(1, min(5, getattr(self.module, "priority", 1))))
-        return self_priority + mod_priority
+        timestamp = self.timestamp.timestamp()
+        return self_priority + mod_priority + (1 / timestamp)
 
     def __iter__(self):
         """

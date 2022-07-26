@@ -367,7 +367,7 @@ class DNSHelper:
                     self._errors[parent_hash] += 1
                 except KeyError:
                     self._errors[parent_hash] = 1
-                self.debug(f'No nameservers (SERVFAIL) for query "{query}" ({self._errors[parent_hash]:,} so far)')
+                log.verbose(f'DNS error or timeout for query "{query}" ({self._errors[parent_hash]:,} so far)')
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results
 

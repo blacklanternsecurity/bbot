@@ -23,9 +23,6 @@ bbot --flags subdomain-enum --targets evilcorp.com
 
 # custom modules
 bbot --modules naabu httpx nuclei --targets evilcorp.com 1.2.3.4/28 4.3.2.1
-
-# agent mode
-bbot --agent-mode
 ~~~
 
 ## Output to Neo4j
@@ -50,8 +47,6 @@ black .
 ## Adding a dependency
 ~~~
 1. poetry add <package>
-2. poetry export --without-hashes > requirements.txt
-3. poetry export --dev --without-hashes > requirements-dev.txt
 ~~~
 
 ## Usage
@@ -119,12 +114,6 @@ Agent:
   Report back to a central server
 
   -a, --agent-mode      Start in agent mode
-~~~
-
-## Generate config
-To generate a full config file from the current config (including module defaults, etc.), run the following command:
-~~~
-$ bbot --current-config > bbot.conf
 ~~~
 
 ## Writing modules

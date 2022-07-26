@@ -16,32 +16,26 @@ logging_queue, logging_handlers = init_logging()
 
 import bbot.core.errors
 from bbot.modules import module_loader
-from bbot.core.helpers import filter_dict
 from bbot.core.configurator.args import parser
-from bbot.core.configurator.files import config_filename, secrets_filename
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
 
 
+def log_to_stderr(msg, level=logging.INFO):
+    handler = logging_handlers["stderr"]
+    record = logging.LogRecord(
+        name="bbot.cli", msg=str(msg), level=level, pathname=None, lineno=0, args=None, exc_info=None
+    )
+    print(handler.formatter.format(record), file=sys.stderr)
+
+
+from . import config
+
+
 def main():
 
     try:
-        # ensure bbot.yml
-        from . import config
-
-        if not config_filename.exists():
-            log.hugeinfo(f"Creating BBOT config at {config_filename}")
-            OmegaConf.save(config=config, f=str(config_filename))
-
-        # ensure secrets.yml
-        if not secrets_filename.exists():
-            log.hugeinfo(f"Creating BBOT secrets at {secrets_filename}")
-            secrets_only_config = OmegaConf.to_object(config)
-            secrets_only_config = filter_dict(
-                secrets_only_config, "api_key", "username", "password", "token", fuzzy=True
-            )
-            OmegaConf.save(config=OmegaConf.create(secrets_only_config), f=str(secrets_filename))
 
         if len(sys.argv) == 1:
             parser.print_help()
@@ -189,6 +183,11 @@ def main():
                 scanner.prep()
 
                 if not options.dry_run:
+                    if not options.agent_mode and not options.yes:
+                        log.hugesuccess("Scan ready. Press enter to continue (-y to skip this prompt)")
+                        if not input() == "":
+                            return
+
                     scanner.start()
 
             except Exception:
@@ -210,11 +209,7 @@ def main():
         log.error(f"Encountered unknown error: {traceback.format_exc()}")
 
     except KeyboardInterrupt:
-        handler = logging_handlers["stderr"]
-        record = logging.LogRecord(
-            name="bbot.cli", msg="Interrupted", level=logging.ERROR, pathname=None, lineno=0, args=None, exc_info=None
-        )
-        print(handler.formatter.format(record))
+        log_to_stderr("Interrupted", level=logging.ERROR)
         os._exit(1)
 
 

@@ -24,7 +24,6 @@ ansible-runner = "^2.2.0"
 ansible = "^5.7.1"
 deepdiff = "^5.8.1"
 xmltojson = "^2.0.1"
-utils = "^1.0.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"

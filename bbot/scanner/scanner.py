@@ -12,7 +12,7 @@ from bbot.modules import module_loader
 from bbot.core.event import make_event
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.threadpool import ThreadPoolWrapper
-from bbot.core.errors import BBOTError, ScanError, ScanCancelledError
+from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
 
@@ -91,6 +91,7 @@ class Scanner:
         self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2))
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
+        self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
 
         # scope distance
         self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 1)))
@@ -118,6 +119,9 @@ class Scanner:
             self.info(f"Setting up modules...")
             self.setup_modules()
 
+            self.success(f"Setup succeeded for {len(self.modules):,} modules.")
+            self._prepped = True
+
     def start(self):
 
         self.prep()
@@ -135,7 +139,7 @@ class Scanner:
                 self.status = "FAILED"
                 return
             else:
-                self.hugesuccess(f"Setup succeeded for {len(self.modules):,} modules. Starting scan.")
+                self.hugesuccess("Starting scan.")
 
             if self.stopping:
                 return
@@ -176,10 +180,10 @@ class Scanner:
             import traceback
 
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
-            self.status = "FAILED"
 
         finally:
             # Shut down thread pools
+            self.process_pool.shutdown(wait=True)
             self.helpers.dns._thread_pool.shutdown(wait=True)
             self._event_thread_pool.shutdown(wait=True)
             self._thread_pool.shutdown(wait=True)
@@ -208,6 +212,7 @@ class Scanner:
         hard_failed = []
         soft_failed = []
         setup_futures = dict()
+
         for module_name, module in self.modules.items():
             future = self._internal_thread_pool.submit_task(module._setup)
             setup_futures[future] = module_name
@@ -225,6 +230,7 @@ class Scanner:
                 soft_failed.append(module_name)
             if not status and remove_failed:
                 self.modules.pop(module_name)
+
         num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
         if num_output_modules < 1:
             raise ScanError("Failed to load output modules. Aborting.")
@@ -245,6 +251,7 @@ class Scanner:
             self.debug(f"Shutting down thread pools with wait={wait}")
             threads = []
             for pool in [
+                self.process_pool,
                 self._internal_thread_pool,
                 self.helpers.dns._thread_pool,
                 self._event_thread_pool,
@@ -263,7 +270,10 @@ class Scanner:
         """
         Checks whitelist and blacklist, also taking scope_distance into account
         """
-        e = make_event(e, dummy=True)
+        try:
+            e = make_event(e, dummy=True)
+        except ValidationError:
+            return False
         in_scope = e.scope_distance == 0 or self.whitelisted(e)
         return in_scope and not self.blacklisted(e)
 
@@ -300,12 +310,14 @@ class Scanner:
         dns_tasks = self.helpers.dns._thread_pool.num_tasks
         event_tasks = self._event_thread_pool.num_tasks
         internal_tasks = self._internal_thread_pool.num_tasks
+        process_tasks = self.process_pool.num_tasks
         total_tasks = main_tasks + dns_tasks + event_tasks + internal_tasks
         status = {
             "queued_tasks": {
                 "main": main_tasks,
                 "dns": dns_tasks,
                 "internal": internal_tasks,
+                "process": process_tasks,
                 "event": event_tasks,
                 "total": total_tasks,
             }

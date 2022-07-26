@@ -39,9 +39,15 @@ class ScanManager:
             mod._handle_batch(force=True)
 
     def emit_event(self, *args, **kwargs):
-        # don't raise an exception if the thread pool has been shutdown
-        with suppress(RuntimeError):
-            self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, *args, **kwargs)
+        quick = kwargs.pop("quick", False)
+        if quick:
+            kwargs.pop("abort_if")
+            kwargs.pop("on_success_callback")
+            self.queue_event(*args, **kwargs)
+        else:
+            # don't raise an exception if the thread pool has been shutdown
+            with suppress(RuntimeError):
+                self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, *args, **kwargs)
 
     def _emit_event(self, *args, **kwargs):
         try:
@@ -213,11 +219,11 @@ class ScanManager:
                 log.debug(traceback.format_exc())
         return ret
 
-    def queue_event(self, event):
+    def queue_event(self, *args, **kwargs):
         """
         Queue event with manager
         """
-        self.event_queue.put(event)
+        self.event_queue.put(self.scan.make_event(*args, **kwargs))
 
     def distribute_event(self, event):
         """
@@ -289,6 +295,8 @@ class ScanManager:
                     event_counter += 1
                 except queue.Empty:
                     finished = self.modules_status().get("finished", False)
+                    if finished and reported:
+                        break
                     # If the scan finished
                     if finished:
                         # If new events were generated in the last iteration
@@ -302,7 +310,6 @@ class ScanManager:
                             # Run .report() on every module and start over
                             for mod in self.scan.modules.values():
                                 self.catch(mod.report)
-                            event_counter = 0
                             reported = True
                         else:
                             # Otherwise stop the scan if no new events were generated in this iteration
