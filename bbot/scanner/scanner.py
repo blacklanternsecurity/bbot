@@ -408,13 +408,10 @@ class Scanner:
     def _internal_modules(self):
         speculate = self.config.get("speculate", True)
         excavate = self.config.get("excavate", True)
-        aggregate = self.config.get("aggregate", True)
         if speculate:
             yield "speculate"
         if excavate:
             yield "excavate"
-        if aggregate:
-            yield "aggregate"
 
     def load_modules(self):
 

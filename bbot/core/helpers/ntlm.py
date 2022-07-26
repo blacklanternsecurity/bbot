@@ -5,6 +5,8 @@ import struct
 import logging
 import collections
 
+from bbot.core.errors import NTLMError
+
 log = logging.getLogger("bbot.core.helpers.ntlm")
 
 
@@ -46,7 +48,6 @@ def decode_ntlm_challenge(st):
         output = "Target: [block] (%db @%d)" % (tgt.length, tgt.offset)
         if tgt.alloc != tgt.length:
             output += " alloc: %d" % tgt.alloc
-        # print(output)
 
         raw = tgt.raw
         pos = 0
@@ -69,11 +70,13 @@ def decode_ntlm_challenge(st):
 def ntlmdecode(authenticate_header):
     try:
         st = base64.b64decode(authenticate_header)
-    except Exception as e:
-        print(e)
-        # raise Exception(f"Input seems to be a non-valid base64-encoded string: '{authenticate_header}'")
+    except Exception:
+        raise NTLMError(f"Failed to decode NTLM challenge: {authenticate_header}")
 
     if not st[:8] == b"NTLMSSP\x00":
-        raise Exception("NTLMSSP header not found at start of input string")
+        raise NTLMError("NTLMSSP header not found at start of input string")
 
-    return decode_ntlm_challenge(st)
+    try:
+        return decode_ntlm_challenge(st)
+    except Exception as e:
+        raise NTLMError(f"Failed to parse NTLM challenge: {authenticate_header}: {e}")

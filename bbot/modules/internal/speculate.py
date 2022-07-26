@@ -13,7 +13,7 @@ class speculate(BaseInternalModule):
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS"]
     options = {"max_hosts": 65536}
     options_desc = {"max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events"}
-    max_threads = 5
+    max_event_handlers = 5
     scope_distance_modifier = 0
     _scope_shepherding = False
 

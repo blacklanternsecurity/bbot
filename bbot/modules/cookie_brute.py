@@ -10,7 +10,7 @@ class cookie_brute(header_brute):
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
     scanned_hosts = []
     cookie_blacklist = []
-    max_threads = 12
+    max_event_handlers = 12
     in_scope_only = True
     compare_mode = "cookie"
 

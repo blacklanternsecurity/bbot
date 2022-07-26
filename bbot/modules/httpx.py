@@ -63,8 +63,6 @@ class httpx(BaseModule):
                     stdin[url] = e
                     if url_hash is not None:
                         self.visited.add(url_hash)
-                else:
-                    self.critical(f"Already visited: {url} ({e.host}, {e.port})")
 
         command = [
             "httpx",

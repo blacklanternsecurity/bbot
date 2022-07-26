@@ -1,3 +1,6 @@
+from requests.exceptions import RequestException  # noqa F401
+
+
 class BBOTError(Exception):
     pass
 
@@ -27,4 +30,8 @@ class HttpCompareError(BBOTError):
 
 
 class DirectoryCreationError(BBOTError):
+    pass
+
+
+class NTLMError(BBOTError):
     pass

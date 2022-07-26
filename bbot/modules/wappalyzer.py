@@ -18,7 +18,7 @@ class wappalyzer(BaseModule):
     deps_pip = ["python-Wappalyzer"]
     # accept all events regardless of scope distance
     scope_distance_modifier = None
-    max_threads = 5
+    max_event_handlers = 5
 
     def setup(self):
         self.wappalyzer = Wappalyzer.latest()
