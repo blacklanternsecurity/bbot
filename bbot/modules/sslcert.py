@@ -17,7 +17,7 @@ class sslcert(BaseModule):
     options_desc = {"timeout": "Socket connect timeout in seconds"}
     deps_apt = ["openssl"]
     deps_pip = ["pyOpenSSL"]
-    max_threads = 20
+    max_event_handlers = 20
     scope_distance_modifier = 0
     _priority = 2
 

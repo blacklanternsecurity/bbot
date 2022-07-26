@@ -14,7 +14,7 @@ class naabu(BaseModule):
     options_desc = {
         "version": "naabu version",
     }
-    max_threads = 5
+    max_event_handlers = 2
     batch_size = 100
 
     deps_apt = ["libpcap"]

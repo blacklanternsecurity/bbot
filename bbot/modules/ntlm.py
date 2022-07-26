@@ -1,21 +1,60 @@
+from threading import Lock
+
 from bbot.modules.base import BaseModule
+from bbot.core.errors import NTLMError, RequestException
 
 ntlm_discovery_endpoints = [
     "",
-    "aspnet_client",
-    "autodiscover",
-    "autodiscover/autodiscover.xml",
-    "ecp",
-    "ews",
+    "autodiscover/autodiscover.xml" "ecp/",
+    "ews/",
     "ews/exchange.asmx",
-    "ews/services.wsdl",
-    "exchange",
-    "microsoft-server-activesync",
-    "microsoft-server-activesync/default.eas",
-    "oab",
-    "owa",
-    "powershell",
-    "rpc",
+    "exchange/",
+    "exchweb/",
+    "oab/",
+    "owa/",
+    "_windows/default.aspx?ReturnUrl=/",
+    "abs/",
+    "adfs/ls/wia",
+    "adfs/services/trust/2005/windowstransport",
+    "aspnet_client/",
+    "autodiscover/",
+    "autoupdate/",
+    "certenroll/",
+    "certprov/",
+    "certsrv/",
+    "conf/",
+    "debug/",
+    "deviceupdatefiles_ext/",
+    "deviceupdatefiles_int/",
+    "dialin/",
+    "etc/",
+    "groupexpansion/",
+    "hybridconfig/",
+    "iwa/authenticated.aspx",
+    "iwa/iwa_test.aspx",
+    "mcx/",
+    "mcx/mcxservice.svc",
+    "meet/",
+    "meeting/",
+    "microsoft-server-activesync/",
+    "ocsp/",
+    "persistentchat/",
+    "phoneconferencing/",
+    "powershell/",
+    "public/",
+    "reach/sip.svc",
+    "remoteDesktopGateway/",
+    "requesthandler/",
+    "requesthandlerext/",
+    "rgs/",
+    "rgsclients/",
+    "rpc/",
+    "rpcwithcert/",
+    "scheduler/",
+    "ucwa/",
+    "unifiedmessaging/",
+    "webticket/",
+    "webticket/webticketservice.svc",
 ]
 
 NTLM_test_header = {"Authorization": "NTLM TlRMTVNTUAABAAAAl4II4gAAAAAAAAAAAAAAAAAAAAAKAGFKAAAADw=="}
@@ -25,70 +64,97 @@ class ntlm(BaseModule):
 
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING", "DNS_NAME"]
-    flags = ["active"]
+    flags = ["active", "safe"]
+    options = {"max_threads": 10, "try_all": False}
+    options_desc = {"max_threads": "Maximum concurrent requests", "try_all": "Try every NTLM endpoint"}
 
     in_scope_only = True
 
     def setup(self):
-
         self.processed = set()
+        self.processed_lock = Lock()
+        self.found = set()
+        self.try_all = self.config.get("try_all", False)
         return True
 
     def handle_event(self, event):
-
-        if event.type == "URL":
+        found_hash = hash(f"{event.host}:{event.port}")
+        if found_hash not in self.found:
             result_FQDN, request_url = self.handle_url(event)
             if result_FQDN and request_url:
-
+                self.found.add(found_hash)
                 self.emit_event(
                     {
                         "host": str(event.host),
                         "url": request_url,
-                        "description": f"FOUND NTLM AUTH FQDN: {result_FQDN}",
+                        "description": f"NTLM AUTH: {result_FQDN}",
                     },
                     "FINDING",
                     source=event,
                 )
                 self.emit_event(result_FQDN, "DNS_NAME", source=event)
 
+    def filter_event(self, event):
+        if self.try_all:
+            return True
         if event.type == "HTTP_RESPONSE":
             if "www-authenticate" in event.data["header-dict"]:
-                self.emit_event(
-                    {
-                        "host": str(event.host),
-                        "url": event.data.get("url", ""),
-                        "description": f"NTLM Authentication Detected",
-                    },
-                    "FINDING",
-                    source=event,
-                )
+                header_value = event.data["header-dict"]["www-authenticate"].lower()
+                if "ntlm" in header_value or "negotiate" in header_value:
+                    return True
+        return False
 
     def handle_url(self, event):
-
-        ntlm_resp_decoded = self.check_ntlm(event.data)
-        if ntlm_resp_decoded:
-            url_hash = hash(event.data)
-            self.processed.add(url_hash)
-            return str(ntlm_resp_decoded["FQDN"]), event.data
+        if event.type == "URL":
+            urls = {
+                event.data,
+            }
         else:
-            url_hash = hash(event.parsed.netloc)
-            if not url_hash in self.processed:
-                self.processed.add(url_hash)
-                for endpoint in ntlm_discovery_endpoints:
-                    test_url = f"{event.parsed.scheme}://{event.parsed.netloc}/{endpoint}"
+            urls = {
+                event.data["url"],
+            }
+        if self.try_all:
+            for endpoint in ntlm_discovery_endpoints:
+                urls.add(f"{event.parsed.scheme}://{event.parsed.netloc}/{endpoint}")
 
-                    ntlm_resp_decoded = self.check_ntlm(test_url)
-                    if ntlm_resp_decoded:
-                        return str(ntlm_resp_decoded["FQDN"]), test_url
+        futures = {}
+        for url in urls:
+            future = self.submit_task(self.check_ntlm, url)
+            futures[future] = url
+
+        for future in self.helpers.as_completed(futures):
+            url = futures[future]
+            try:
+                result = future.result()
+                if result:
+                    for future in futures:
+                        future.cancel()
+                    return str(result["FQDN"]), url
+            except RequestException as e:
+                self.warning(str(e))
+
         return None, None
 
     def check_ntlm(self, test_url):
 
-        r = self.helpers.request(test_url, headers=NTLM_test_header)
+        url_hash = hash(test_url)
+
+        with self.processed_lock:
+            if url_hash in self.processed:
+                return
+            self.processed.add(url_hash)
+
+        # use lower timeout value
+        http_timeout = self.config.get("httpx_timeout", 5)
+        r = self.helpers.request(
+            test_url, headers=NTLM_test_header, raise_error=True, allow_redirects=False, timeout=http_timeout
+        )
         ntlm_resp = r.headers.get("WWW-Authenticate", "")
         if ntlm_resp:
-            ntlm_resp_b64 = max(ntlm_resp.split(","), key=lambda x: len(x)).replace("NTLM ", "")
-            ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
-            return ntlm_resp_decoded
-        else:
-            return None
+            ntlm_resp_b64 = max(ntlm_resp.split(","), key=lambda x: len(x)).split()[-1]
+            try:
+                ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
+                if ntlm_resp_decoded:
+                    return ntlm_resp_decoded
+            except NTLMError as e:
+                self.verbose(str(e))

@@ -9,7 +9,7 @@ class dnszonetransfer(BaseModule):
     flags = ["subdomain-enum", "active"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    max_threads = 5
+    max_event_handlers = 5
     suppress_dupes = False
 
     def filter_event(self, event):
