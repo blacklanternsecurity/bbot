@@ -31,12 +31,5 @@ class wappalyzer(BaseModule):
             )
 
     def wappalyze(self, data):
-        split_headers = data["response-header"].split("\r\n")
-        header_dict = {}
-
-        for i in split_headers:
-            if len(i) > 0 and ":" in i:
-                header_dict[i.split(":")[0].lower()] = i.split(":")[1].lstrip()
-
-        w = WebPage(url=data["url"], html=data.get("response-body", ""), headers=header_dict)
+        w = WebPage(url=data["url"], html=data.get("response-body", ""), headers=data.get("header-dict", {}))
         return self.wappalyzer.analyze(w)

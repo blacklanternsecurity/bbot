@@ -2,61 +2,10 @@
 
 import base64
 import struct
-import string
-import collections
 import logging
-from binascii import hexlify
+import collections
 
-log = logging.getLogger("trevorspray.util.ntlmdecoder")
-
-flags_tbl_str = """0x00000001  Negotiate Unicode
-0x00000002  Negotiate OEM
-0x00000004  Request Target
-0x00000008  unknown
-0x00000010  Negotiate Sign
-0x00000020  Negotiate Seal
-0x00000040  Negotiate Datagram Style
-0x00000080  Negotiate Lan Manager Key
-0x00000100  Negotiate Netware
-0x00000200  Negotiate NTLM
-0x00000400  unknown
-0x00000800  Negotiate Anonymous
-0x00001000  Negotiate Domain Supplied
-0x00002000  Negotiate Workstation Supplied
-0x00004000  Negotiate Local Call
-0x00008000  Negotiate Always Sign
-0x00010000  Target Type Domain
-0x00020000  Target Type Server
-0x00040000  Target Type Share
-0x00080000  Negotiate NTLM2 Key
-0x00100000  Request Init Response
-0x00200000  Request Accept Response
-0x00400000  Request Non-NT Session Key
-0x00800000  Negotiate Target Info
-0x01000000  unknown
-0x02000000  unknown
-0x04000000  unknown
-0x08000000  unknown
-0x10000000  unknown
-0x20000000  Negotiate 128
-0x40000000  Negotiate Key Exchange
-0x80000000  Negotiate 56"""
-
-flags_tbl = [line.split("  ") for line in flags_tbl_str.split("\n")]
-flags_tbl = [(int(x, base=16), y) for x, y in flags_tbl]
-VALID_CHRS = set(string.ascii_letters + string.digits + string.punctuation)
-
-
-def flags_lst(flags):
-    return [desc for val, desc in flags_tbl if val & flags]
-
-
-def flags_str(flags):
-    return ", ".join('"%s"' % s for s in flags_lst(flags))
-
-
-def clean_str(st):
-    return "".join((s if s in VALID_CHRS else "?") for s in st)
+log = logging.getLogger("bbot.core.helpers.ntlm")
 
 
 class StrStruct(object):
@@ -74,23 +23,6 @@ class StrStruct(object):
         else:
             self.string = self.raw
 
-    def __str__(self):
-        st = "%s'%s' [%s] (%db @%d)" % (
-            "u" if self.utf16 else "",
-            clean_str(self.string),
-            hexlify(self.raw),
-            self.length,
-            self.offset,
-        )
-        if self.alloc != self.length:
-            st += " alloc: %d" % self.alloc
-        return st
-
-
-msg_types = collections.defaultdict(lambda: "UNKNOWN")
-msg_types[1] = "Request"
-msg_types[2] = "Challenge"
-msg_types[3] = "Response"
 
 target_field_types = collections.defaultdict(lambda: "UNKNOWN")
 target_field_types[0] = "TERMINATOR"
@@ -100,23 +32,6 @@ target_field_types[3] = "FQDN"
 target_field_types[4] = "DNS_Domain_name"
 target_field_types[5] = "DNS_Tree_Name"
 target_field_types[7] = "Timestamp"
-
-
-def opt_str_struct(name, st, offset):
-    nxt = st[offset : offset + 8]
-    if len(nxt) == 8:
-        hdr_tup = struct.unpack("<hhi", nxt)
-        print("%s: %s" % (name, StrStruct(hdr_tup, st)))
-    else:
-        print("%s: [omitted]" % name)
-
-
-def opt_inline_str(name, st, offset, sz):
-    nxt = st[offset : offset + sz]
-    if len(nxt) == sz:
-        print("%s: '%s'" % (name, clean_str(nxt)))
-    else:
-        print("%s: [omitted]" % name)
 
 
 def decode_ntlm_challenge(st):
@@ -144,10 +59,8 @@ def decode_ntlm_challenge(st):
             subst = raw[pos + 4 : pos + 4 + rec_sz]
             try:
                 parsed_challange[rec_type] = subst.replace(b"\x00", b"").decode()
-                # print("    %s (%d): %s" % (rec_type, rec_type_id, subst.replace(b'\x00', b'').decode()))
             except UnicodeDecodeError:
                 parsed_challange[rec_type] = subst.replace(b"\x00", b"")
-                # print("    %s (%d): %s" % (rec_type, rec_type_id, subst.replace(b'\x00', b'')))
             pos += 4 + rec_sz
 
     return parsed_challange
@@ -164,13 +77,3 @@ def ntlmdecode(authenticate_header):
         raise Exception("NTLMSSP header not found at start of input string")
 
     return decode_ntlm_challenge(st)
-
-    raise Exception(f"Unknown message structure.  Have a raw (hex-encoded) message: {hexlify(st)}")
-
-
-testheader = "TlRMTVNTUAACAAAAHgAeADgAAAAVgorilwL+bvnVipUAAAAAAAAAAJgAmABWAAAACgBjRQAAAA9XAEkATgAtAFMANAAyAE4ATwBCAEQAVgBUAEsAOAACAB4AVwBJAE4ALQBTADQAMgBOAE8AQgBEAFYAVABLADgAAQAeAFcASQBOAC0AUwA0ADIATgBPAEIARABWAFQASwA4AAQAHgBXAEkATgAtAFMANAAyAE4ATwBCAEQAVgBUAEsAOAADAB4AVwBJAE4ALQBTADQAMgBOAE8AQgBEAFYAVABLADgABwAIAHUwOZlfoNgBAAAAAA=="
-
-test = ntlmdecode(testheader)
-
-print(test)
-print(type(test))

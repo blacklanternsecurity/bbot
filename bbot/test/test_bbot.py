@@ -677,6 +677,15 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert event_whitelisted1 == event_whitelisted2
     assert event_blacklisted1 == event_blacklisted2
 
+    ## NTLM
+    testheader = "TlRMTVNTUAACAAAAHgAeADgAAAAVgorilwL+bvnVipUAAAAAAAAAAJgAmABWAAAACgBjRQAAAA9XAEkATgAtAFMANAAyAE4ATwBCAEQAVgBUAEsAOAACAB4AVwBJAE4ALQBTADQAMgBOAE8AQgBEAFYAVABLADgAAQAeAFcASQBOAC0AUwA0ADIATgBPAEIARABWAFQASwA4AAQAHgBXAEkATgAtAFMANAAyAE4ATwBCAEQAVgBUAEsAOAADAB4AVwBJAE4ALQBTADQAMgBOAE8AQgBEAFYAVABLADgABwAIAHUwOZlfoNgBAAAAAA=="
+    decoded = helpers.ntlm.ntlmdecode(testheader)
+    assert decoded["NetBIOS_Domain_Name"] == "WIN-S42NOBDVTK8"
+    assert decoded["NetBIOS_Computer_Name"] == "WIN-S42NOBDVTK8"
+    assert decoded["DNS_Domain_name"] == "WIN-S42NOBDVTK8"
+    assert decoded["FQDN"] == "WIN-S42NOBDVTK8"
+    assert decoded["Timestamp"] == b"u09\x99_\xa0\xd8\x01"
+
 
 def test_dns_resolvers(patch_requests, helpers):
     assert type(helpers.dns.resolvers) == set
