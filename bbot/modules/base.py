@@ -201,12 +201,14 @@ class BaseModule:
     def emit_event(self, *args, **kwargs):
         on_success_callback = kwargs.pop("on_success_callback", None)
         abort_if = kwargs.pop("abort_if", lambda e: False)
+        quick = kwargs.pop("quick", False)
         event = self.make_event(*args, **kwargs)
         if event:
             self.scan.manager.emit_event(
                 event,
                 abort_if=abort_if,
                 on_success_callback=on_success_callback,
+                quick=quick,
             )
 
     @property

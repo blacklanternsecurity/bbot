@@ -197,13 +197,13 @@ def test_events(events, scan, helpers, config):
     sort1.module = mod1
     sort2.module = mod2
     sort3.module = mod3
-    assert sort1.priority == 2
+    assert 2 < sort1.priority < 2.01
     assert sort1 < sort2
     assert sort1 < sort3
-    assert sort2.priority == 4
+    assert 4 < sort2.priority < 4.01
     assert sort2 > sort1
     assert sort2 < sort3
-    assert sort3.priority == 6
+    assert 6 < sort3.priority < 6.01
     assert sort3 > sort1
     assert sort3 > sort2
     assert tuple(sorted([sort3, sort2, sort1])) == (sort1, sort2, sort3)
@@ -933,14 +933,14 @@ def test_config(config):
     assert scan1.modules["speculate"].config.test_option == "speculate"
 
 
-def test_target(neuter_ansible, patch_requests, patch_commands):
+def test_target(neuter_ansible, patch_requests, patch_commands, config):
     from bbot.scanner.scanner import Scanner
 
-    scan1 = Scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
-    scan2 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
-    scan3 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
-    scan4 = Scanner("8.8.8.8/29")
-    scan5 = Scanner()
+    scan1 = Scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126", config=config)
+    scan2 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=config)
+    scan3 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=config)
+    scan4 = Scanner("8.8.8.8/29", config=config)
+    scan5 = Scanner(config=config)
     assert not scan5.target
     assert len(scan1.target) == 9
     assert len(scan4.target) == 8
@@ -970,7 +970,7 @@ def test_target(neuter_ansible, patch_requests, patch_commands):
 def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers, neograph):
     from bbot.scanner.scanner import Scanner
 
-    scan0 = Scanner("8.8.8.8/31", "evilcorp.com", blacklist=["8.8.8.8/28", "www.evilcorp.com"])
+    scan0 = Scanner("8.8.8.8/31", "evilcorp.com", blacklist=["8.8.8.8/28", "www.evilcorp.com"], config=config)
     assert scan0.whitelisted("8.8.8.8")
     assert scan0.whitelisted("8.8.8.9")
     assert scan0.blacklisted("8.8.8.15")
@@ -986,7 +986,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     assert not scan0.in_scope("test.www.evilcorp.com")
     assert not scan0.in_scope("www.evilcorp.co.uk")
 
-    scan1 = Scanner("8.8.8.8", whitelist=["8.8.4.4"])
+    scan1 = Scanner("8.8.8.8", whitelist=["8.8.4.4"], config=config)
     assert not scan1.blacklisted("8.8.8.8")
     assert not scan1.blacklisted("8.8.4.4")
     assert not scan1.whitelisted("8.8.8.8")
@@ -994,7 +994,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     assert scan1.in_scope("8.8.4.4")
     assert not scan1.in_scope("8.8.8.8")
 
-    scan2 = Scanner("8.8.8.8")
+    scan2 = Scanner("8.8.8.8", config=config)
     assert not scan2.blacklisted("8.8.8.8")
     assert not scan2.blacklisted("8.8.4.4")
     assert scan2.whitelisted("8.8.8.8")
@@ -1076,15 +1076,16 @@ def test_cli(monkeypatch, config):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "127.0.0.1", "-m", "ipneighbor"])
+    monkeypatch.setattr(cli, "config", config)
+    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "-t", "127.0.0.1", "-m", "ipneighbor"])
     cli.main()
-    monkeypatch.setattr(sys, "argv", ["bbot", "--current-config"])
+    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config"])
     cli.main()
 
     # -oA
     home_dir = Path(config["home"])
     out_basename = home_dir / "test"
-    monkeypatch.setattr(sys, "argv", ["bbot", "-t", "127.0.0.1", "-m", "ipneighbor", "-oA", str(out_basename)])
+    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "-t", "127.0.0.1", "-m", "ipneighbor", "-oA", str(out_basename)])
     cli.main()
     assert Path(f"{out_basename}.txt").is_file()
     assert Path(f"{out_basename}.json").is_file()

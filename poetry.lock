@@ -677,14 +677,6 @@ secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "cer
 socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
-name = "utils"
-version = "1.0.1"
-description = "A grab-bag of utility functions and objects"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[[package]]
 name = "websocket-client"
 version = "1.3.3"
 description = "WebSocket client for Python with low level API options"
@@ -727,7 +719,7 @@ xmltodict = ">=0.12.0,<0.13.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "e338c407bf41ea1497c93af5304dd988512809da6f85e5c06e9aba9da203487b"
+content-hash = "f3e84f46aab67223ebf3ff060f8f8a697f9ab86d680713b9703d49308c643b12"
 
 [metadata.files]
 ansible = [
@@ -1153,9 +1145,6 @@ url-normalize = [
     {file = "url_normalize-1.4.3-py2.py3-none-any.whl", hash = "sha256:ec3c301f04e5bb676d333a7fa162fa977ad2ca04b7e652bfc9fac4e405728eed"},
 ]
 urllib3 = []
-utils = [
-    {file = "utils-1.0.1-py2.py3-none-any.whl", hash = "sha256:ff04549b95deb2fd7a82ddaea077e2f41209079e2482df231c358770b27b72a7"},
-]
 websocket-client = [
     {file = "websocket-client-1.3.3.tar.gz", hash = "sha256:d58c5f284d6a9bf8379dab423259fe8f85b70d5fa5d2916d5791a84594b122b1"},
     {file = "websocket_client-1.3.3-py3-none-any.whl", hash = "sha256:5d55652dc1d0b3c734f044337d929aaf83f4f9138816ec680c1aefefb4dc4877"},

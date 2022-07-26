@@ -40,7 +40,7 @@ class asn(BaseModule):
             description = prefix.get("description", "")
             asn = str(prefix.get("asn", {}).get("asn", ""))
             event_str = f"AS{asn} - {subnet} ({count:,} hosts): {name}, {description}"
-            self.emit_event(event_str, "ASN", source=self.scan.root_event)
+            self.emit_event(event_str, "ASN", source=self.scan.root_event, quick=True)
 
     def cache_get(self, ip):
         ret = False

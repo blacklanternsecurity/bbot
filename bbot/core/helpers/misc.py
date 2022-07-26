@@ -1,5 +1,6 @@
 import sys
 import copy
+import json
 import atexit
 import psutil
 import random
@@ -209,6 +210,8 @@ def sha1(data):
     """
     sha1("asdf").hexdigest() --> "3da541559918a808c2402bba5012f6c60b27661c"
     """
+    if isinstance(data, dict):
+        data = json.dumps(data, sort_keys=True)
     return hashlib_sha1(smart_encode(data))
 
 
@@ -218,7 +221,7 @@ def smart_decode(data):
         b"asdf" --> "asdf"
         "asdf" --> "asdf"
     """
-    if type(data) == bytes:
+    if isinstance(data, bytes):
         return data.decode("utf-8", errors="ignore")
     else:
         return str(data)
@@ -229,7 +232,7 @@ def smart_encode(data):
     Turn data into bytes without complaining about it
         "asdf" --> b"asdf"
     """
-    if type(data) == bytes:
+    if isinstance(data, bytes):
         return data
     return str(data).encode("utf-8", errors="ignore")
 
