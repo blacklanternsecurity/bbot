@@ -52,7 +52,7 @@ class gowitness(BaseModule):
         if output_path:
             self.base_path = Path(output_path)
         else:
-            self.base_path = self.cwd / f"gowitness_{self.helpers.make_date()}"
+            self.base_path = self.cwd / f"gowitness_{self.scan.name}"
         self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
         self.helpers.mkdir(self.screenshot_path)
