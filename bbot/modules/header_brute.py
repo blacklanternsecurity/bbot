@@ -21,7 +21,7 @@ class header_brute(BaseModule):
         "if-none-match",
         "if-unmodified-since",
     ]
-    max_threads = 12
+    max_event_handlers = 12
     in_scope_only = True
     compare_mode = "header"
 

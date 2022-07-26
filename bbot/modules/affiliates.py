@@ -1,9 +1,10 @@
 from bbot.modules.internal.base import BaseInternalModule
 
 
-class aggregate(BaseInternalModule):
+class affiliates(BaseInternalModule):
     watched_events = ["*"]
     produced_events = ["AFFILIATE"]
+    flags = ["passive", "safe"]
     scope_distance_modifier = None
     accept_dupes = True
 

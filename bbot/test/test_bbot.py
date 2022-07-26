@@ -685,6 +685,8 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert decoded["DNS_Domain_name"] == "WIN-S42NOBDVTK8"
     assert decoded["FQDN"] == "WIN-S42NOBDVTK8"
     assert decoded["Timestamp"] == b"u09\x99_\xa0\xd8\x01"
+    with pytest.raises(NTLMError):
+        helpers.ntlm.ntlmdecode("asdf")
 
 
 def test_dns_resolvers(patch_requests, helpers):

@@ -78,10 +78,10 @@ class BaseModule:
         self._event_queue = None
         self._batch_idle = 0
         self.thread_pool = ThreadPoolWrapper(
-            self.scan._thread_pool.executor, max_workers=self.config.get("max_threads", 1)
+            self.scan._thread_pool.executor, max_workers=self.config.get("max_threads", self.max_threads)
         )
         self._internal_thread_pool = ThreadPoolWrapper(
-            self.scan._internal_thread_pool.executor, max_workers=self.max_threads
+            self.scan._internal_thread_pool.executor, max_workers=self.max_event_handlers
         )
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []

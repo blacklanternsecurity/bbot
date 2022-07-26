@@ -94,7 +94,7 @@ class dnscommonsrv(BaseModule):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    max_threads = 10
+    max_event_handlers = 10
 
     def handle_event(self, event):
         queries = [event.data] + [f"{srv}.{event.data}" for srv in common_srvs]
