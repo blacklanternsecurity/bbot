@@ -87,6 +87,7 @@ def main():
                     modules=list(modules),
                     output_modules=options.output_modules,
                     config=config,
+                    name=options.name,
                     whitelist=options.whitelist,
                     blacklist=options.blacklist,
                     strict_scope=options.strict_scope,
@@ -175,16 +176,13 @@ def main():
                 if options.list_modules:
                     return
 
-                if options.load_wordcloud:
-                    scanner.helpers.word_cloud.load(options.load_wordcloud)
-                elif options.load_last_wordcloud:
-                    scanner.helpers.word_cloud.load()
+                scanner.helpers.word_cloud.load(options.load_wordcloud)
 
                 scanner.prep()
 
                 if not options.dry_run:
                     if not options.agent_mode and not options.yes:
-                        log.hugesuccess("Scan ready. Press enter to continue (-y to skip this prompt)")
+                        log.hugesuccess(f"Scan ready. Press enter to continue (-y to skip this prompt)")
                         if not input() == "":
                             return
 

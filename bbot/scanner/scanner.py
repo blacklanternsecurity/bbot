@@ -11,6 +11,7 @@ from .dispatcher import Dispatcher
 from bbot.modules import module_loader
 from bbot.core.event import make_event
 from bbot.core.helpers.helper import ConfigAwareHelper
+from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.threadpool import ThreadPoolWrapper
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
 
@@ -39,6 +40,10 @@ class Scanner:
         if config is None:
             config = OmegaConf.create({})
         self.config = config
+        if name is None:
+            self.name = random_name()
+        else:
+            self.name = str(name)
         self.strict_scope = strict_scope
         self.force_start = force_start
 
@@ -65,10 +70,6 @@ class Scanner:
         if not blacklist:
             blacklist = []
         self.blacklist = ScanTarget(self, *blacklist)
-        if name is None:
-            self.name = str(self.target)
-        else:
-            self.name = str(name)
 
         if dispatcher is None:
             self.dispatcher = Dispatcher()
@@ -139,7 +140,7 @@ class Scanner:
                 self.status = "FAILED"
                 return
             else:
-                self.hugesuccess("Starting scan.")
+                self.hugesuccess(f"Starting {self.name}.")
 
             if self.stopping:
                 return
@@ -345,7 +346,7 @@ class Scanner:
 
     @property
     def root_event(self):
-        root_event = self.make_event(data=f"SCAN:{self.id}", event_type="SCAN", dummy=True)
+        root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
         root_event.scope_distance = 0
         root_event._resolved.set()
         root_event.source = root_event
