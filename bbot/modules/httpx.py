@@ -30,9 +30,12 @@ class httpx(BaseModule):
     def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
         self.max_response_size = self.config.get("max_response_size", 5242880)
+        self.visited = set()
         return True
 
     def filter_event(self, event):
+        if "unresolved" in event.tags:
+            return False
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
         if in_scope_only and not self.scan.in_scope(event):
@@ -45,13 +48,23 @@ class httpx(BaseModule):
 
         stdin = {}
         for e in events:
+            url_hash = None
             if "httpx-only" in e.tags or "spider-danger" not in e.tags:
                 if e.type.startswith("URL"):
                     # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
                     url = e.with_port().geturl()
+                    if e.parsed.path == "/":
+                        url_hash = hash((e.host, e.port))
                 else:
                     url = str(e.data)
-                stdin[url] = e
+                    url_hash = hash((e.host, e.port))
+
+                if url_hash not in self.visited:
+                    stdin[url] = e
+                    if url_hash is not None:
+                        self.visited.add(url_hash)
+                else:
+                    self.critical(f"Already visited: {url} ({e.host}, {e.port})")
 
         command = [
             "httpx",
