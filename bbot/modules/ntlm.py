@@ -52,14 +52,7 @@ class ntlm(BaseModule):
                 self.emit_event(result_FQDN, "DNS_NAME", source=event)
 
         if event.type == "HTTP_RESPONSE":
-
-            split_headers = event.data["response-header"].split("\r\n")
-            header_dict = {}
-            for i in split_headers:
-                if len(i) > 0 and ":" in i:
-                    header_dict[i.split(":")[0].lower()] = i.split(":")[1].lstrip()
-
-            if "www-authenticate" in header_dict.keys():
+            if "www-authenticate" in event.data["header-dict"]:
                 self.emit_event(
                     {
                         "host": str(event.host),
