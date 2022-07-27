@@ -89,7 +89,6 @@ for p in (parser, dummy_parser):
         help=f'Modules to enable. Choices: {",".join(module_choices)}',
         metavar="MODULE",
     )
-    p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
     p.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
     p.add_argument("-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE")
     p.add_argument(
@@ -139,6 +138,7 @@ for p in (parser, dummy_parser):
     )
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
+    p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
     p.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
     p.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
     p.add_argument(
