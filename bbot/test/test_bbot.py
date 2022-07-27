@@ -368,6 +368,7 @@ def test_manager(config):
 def test_helpers(patch_requests, patch_commands, helpers, scan):
 
     old_run, old_run_live = patch_commands
+    request, download = patch_requests
 
     ### URL ###
     bad_urls = (
@@ -648,7 +649,6 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert tuple(cache_dict) == tuple(hash(str(x)) for x in range(10, 20))
 
     ### WEB ###
-    request, download = patch_requests
     assert getattr(request(helpers, "https://api.publicapis.org/health"), "text", "").startswith("{")
     assert getattr(request(helpers, "https://api.publicapis.org/health", cache_for=60), "text", "").startswith("{")
     filename = download(helpers, "https://api.publicapis.org/health", cache_hrs=1)
@@ -705,6 +705,14 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert decoded["Timestamp"] == b"u09\x99_\xa0\xd8\x01"
     with pytest.raises(NTLMError):
         helpers.ntlm.ntlmdecode("asdf")
+
+    # interact.sh
+    interactsh_client = helpers.interactsh()
+    with pytest.raises(InteractshError):
+        domain = interactsh_client.register()
+    assert not list(interactsh_client.poll())
+    with pytest.raises(InteractshError):
+        domain = interactsh_client.deregister()
 
 
 def test_dns_resolvers(patch_requests, helpers):
