@@ -105,6 +105,49 @@ class DNSHelper:
 
             return results
 
+    def _resolve_hostname(self, query, **kwargs):
+        self.debug(f"Resolving {query} with kwargs={kwargs}")
+        results = []
+        parent = self.parent_helper.parent_domain(query)
+        parent_hash = hash(parent)
+        error_count = self._errors.get(parent_hash, 0)
+        raise_error = kwargs.pop("raise_error", False)
+        if error_count >= self.abort_threshold:
+            log.verbose(
+                f'Aborting query "{query}" because failed queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+            )
+            return results
+        try:
+            results = list(self._catch(self.resolver.resolve, query, **kwargs))
+            with self._error_lock:
+                if parent_hash in self._errors:
+                    self._errors[parent_hash] = 0
+        except (dns.resolver.NoNameservers, dns.exception.Timeout, dns.resolver.LifetimeTimeout):
+            with self._error_lock:
+                try:
+                    self._errors[parent_hash] += 1
+                except KeyError:
+                    self._errors[parent_hash] = 1
+                log.verbose(f'DNS error or timeout for query "{query}" ({self._errors[parent_hash]:,} so far)')
+                if raise_error:
+                    raise
+        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
+        return results
+
+    def _resolve_ip(self, query, **kwargs):
+        self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
+        raise_error = kwargs.pop("raise_error", False)
+        results = []
+        try:
+            results = list(self._catch(self.resolver.resolve_address, query, **kwargs))
+        except dns.resolver.NoNameservers as e:
+            self.debug(f"{e} (query={query}, kwargs={kwargs})")
+        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout):
+            if raise_error:
+                raise
+        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
+        return results
+
     def resolve_event(self, event):
         result = self._resolve_event(event)
         # if it's a wildcard, go again with _wildcard.{domain}
@@ -120,11 +163,11 @@ class DNSHelper:
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
         """
+        event_tags = set()
         try:
             if not event.host or event.type in ("IP_RANGE",):
                 return [], set(), False, False
             children = []
-            event_tags = set()
             event_host = str(event.host)
             # lock to ensure resolution of the same host doesn't start while we're working here
             with self._cache_locks.get_lock(event_host):
@@ -151,7 +194,12 @@ class DNSHelper:
                     return children, event_tags, _event_whitelisted, _event_blacklisted
 
                 # then resolve
-                for rdtype, records in self.resolve_raw(event_host, type="any"):
+                resolved_raw = []
+                try:
+                    resolved_raw = self.resolve_raw(event_host, type="any", raise_error=True)
+                except Exception:
+                    event_tags.add("dns-error")
+                for rdtype, records in resolved_raw:
                     event_tags.add("resolved")
                     rdtype = str(rdtype).upper()
                     # whitelisting and blacklist of IPs
@@ -344,44 +392,6 @@ class DNSHelper:
                 # Garbage query to nameserver failed successfully ;)
 
         return nameserver, error
-
-    def _resolve_hostname(self, query, **kwargs):
-        self.debug(f"Resolving {query} with kwargs={kwargs}")
-        results = []
-        parent = self.parent_helper.parent_domain(query)
-        parent_hash = hash(parent)
-        error_count = self._errors.get(parent_hash, 0)
-        if error_count >= self.abort_threshold:
-            log.verbose(
-                f'Aborting query "{query}" because failed queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
-            )
-            return results
-        try:
-            results = list(self._catch(self.resolver.resolve, query, **kwargs))
-            with self._error_lock:
-                if parent_hash in self._errors:
-                    self._errors[parent_hash] = 0
-        except (dns.resolver.NoNameservers, dns.exception.Timeout, dns.resolver.LifetimeTimeout):
-            with self._error_lock:
-                try:
-                    self._errors[parent_hash] += 1
-                except KeyError:
-                    self._errors[parent_hash] = 1
-                log.verbose(f'DNS error or timeout for query "{query}" ({self._errors[parent_hash]:,} so far)')
-        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
-        return results
-
-    def _resolve_ip(self, query, **kwargs):
-        self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
-        results = []
-        try:
-            results = list(self._catch(self.resolver.resolve_address, query, **kwargs))
-        except dns.resolver.NoNameservers as e:
-            self.debug(f"{e} (query={query}, kwargs={kwargs})")
-        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout):
-            pass
-        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
-        return results
 
     def _catch(self, callback, *args, **kwargs):
         try:
