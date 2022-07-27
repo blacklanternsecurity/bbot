@@ -7,6 +7,8 @@ word_regexes = [
     for r in [
         # alpha
         r"[a-z]{3,}",
+        # alphanum
+        r"[a-z0-9]{3,}",
         # alpha, dash
         r"[a-z][a-z-]+[a-z]",
         # alpha, underscore

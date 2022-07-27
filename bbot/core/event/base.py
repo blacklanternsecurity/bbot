@@ -433,9 +433,10 @@ class DNS_NAME(BaseEvent):
         return self.data
 
     def _words(self):
-        if not "wildcard" in self.tags:
-            return extract_words(self.host_stem)
-        return set()
+        stem = self.host_stem
+        if "wildcard" in self.tags:
+            stem = "".join(stem.split(".")[1:])
+        return extract_words(self.host_stem)
 
 
 class OPEN_TCP_PORT(BaseEvent):

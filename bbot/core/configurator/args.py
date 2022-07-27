@@ -139,7 +139,7 @@ for p in (parser, dummy_parser):
     )
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
-    p.add_argument("-y", "--yes", action="store_true", help="Skip user prompt")
+    p.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
     p.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
     p.add_argument(
         "--current-config",
