@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 
 class httpx(BaseModule):
 
-    watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED"]
+    watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active", "safe"]
     batch_size = 100
@@ -36,6 +36,10 @@ class httpx(BaseModule):
     def filter_event(self, event):
         if "unresolved" in event.tags:
             return False
+
+        if str(event.module) == "httpx":
+            return False
+
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
         if in_scope_only and not self.scan.in_scope(event):
@@ -108,6 +112,7 @@ class httpx(BaseModule):
             # main URL
             url_event = self.make_event(url, "URL", source_event, tags=[f"status-{status_code}"])
             if url_event and not "httpx-only" in url_event.tags:
-                self.emit_event(url_event)
+                if url_event != source_event:
+                    self.emit_event(url_event)
                 # HTTP response
                 self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)

@@ -35,3 +35,7 @@ class DirectoryCreationError(BBOTError):
 
 class NTLMError(BBOTError):
     pass
+
+
+class InteractshError(BBOTError):
+    pass

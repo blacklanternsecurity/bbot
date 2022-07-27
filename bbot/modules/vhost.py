@@ -1,5 +1,4 @@
 from bbot.modules.base import BaseModule
-from urllib.parse import urlparse
 
 
 class vhost(BaseModule):
@@ -26,14 +25,14 @@ class vhost(BaseModule):
         if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):
 
             subdomain_wordlist = self.helpers.download(self.config.get("subdomain_wordlist"), cache_hrs=720)
-            parsed_host = urlparse(event.data)
+            parsed_host = event.parsed
             host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
-
-            if host in self.scanned_hosts:
+            host_hash = hash(host)
+            if host_hash in self.scanned_hosts:
                 self.debug(f"Host {host} was already scanned, exiting")
                 return
             else:
-                self.scanned_hosts.add(host)
+                self.scanned_hosts.add(host_hash)
 
             # subdomain vhost check
             self.debug("Main vhost bruteforce")

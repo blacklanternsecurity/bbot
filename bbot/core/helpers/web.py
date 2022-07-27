@@ -141,3 +141,87 @@ def api_page_iter(self, url, page_size=100, json=True, **requests_kwargs):
         finally:
             offset += page_size
             page += 1
+
+
+def curl(self, *args, **kwargs):
+
+    url = kwargs.get("url", "")
+
+    if not url:
+        log.debug("No URL supplied to CURL helper")
+        return
+
+    curl_command = ["curl", url, "-s"]
+
+    raw_path = kwargs.get("raw_path", False)
+    if raw_path:
+        curl_command.append("--path-as-is")
+
+    # respect global ssl verify settings
+    ssl_verify = self.config.get("ssl_verify")
+    if ssl_verify == False:
+        curl_command.append("-k")
+
+    headers = kwargs.get("headers", {})
+
+    ignore_bbot_global_settings = kwargs.get("ignore_bbot_global_settings", False)
+
+    if ignore_bbot_global_settings:
+        log.debug("ignore_bbot_global_settings enabled. Global settings will not be applied")
+    else:
+        http_timeout = self.config.get("http_timeout", 20)
+        user_agent = self.config.get("user_agent", "BBOT")
+
+        if "User-Agent" not in headers:
+            headers["User-Agent"] = user_agent
+
+        # add the timeout
+        if not "timeout" in kwargs:
+            timeout = http_timeout
+
+        curl_command.append("-m")
+        curl_command.append(str(timeout))
+
+    for k, v in headers.items():
+        if type(v) == list:
+            for x in v:
+                curl_command.append("-H")
+                curl_command.append(f"{k}: {x}")
+
+        else:
+            curl_command.append("-H")
+            curl_command.append(f"{k}: {v}")
+
+    postdata = kwargs.get("postdata", {})
+    if len(postdata.items()) > 0:
+        curl_command.append("-d")
+        postdata_str = ""
+        for k, v in postdata.items():
+            postdata_str += f"&{k}={v}"
+        curl_command.append(postdata_str.lstrip("&"))
+
+    method = kwargs.get("method", "")
+    if method:
+        curl_command.append("-X")
+        curl_command.append(method)
+
+    cookies = kwargs.get("cookies", "")
+    if cookies:
+
+        curl_command.append("-b")
+        cookies_str = ""
+        for k, v in cookies.items():
+            cookies_str += f"{k}={v}; "
+        curl_command.append(f'{cookies_str.rstrip(" ")}')
+
+    path_override = kwargs.get("path_override", None)
+    if path_override:
+        curl_command.append("--request-target")
+        curl_command.append(f"{path_override}")
+
+    head_mode = kwargs.get("head_mode", None)
+    if head_mode:
+        curl_command.append("-I")
+
+    output = self.run(curl_command).stdout
+    return output

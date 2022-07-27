@@ -87,3 +87,8 @@ omit_event_types:
 agent_url: ''
 # Agent Bearer authentication token
 agent_token: ''
+
+# custom interactsh server settings
+interactsh_server: null
+interactsh_token: null
+interactsh_disable: false
