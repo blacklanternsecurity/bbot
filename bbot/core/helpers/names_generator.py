@@ -4,9 +4,8 @@ adjectives = [
     "acute",
     "adhesive",
     "adorable",
+    "affectionate",
     "aggravated",
-    "artful",
-    "astute",
     "atrocious",
     "awkward",
     "bighuge",
@@ -84,6 +83,7 @@ adjectives = [
     "loveable",
     "malevolent",
     "malicious",
+    "moist",
     "monstrous",
     "mushy",
     "naughty",
@@ -150,11 +150,9 @@ adjectives = [
     "white",
     "wicked",
     "wild",
-    "wily",
     "wispy",
     "witty",
     "woolly",
-    "zany",
 ]
 
 names = [
