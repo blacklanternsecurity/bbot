@@ -36,7 +36,7 @@ class host_header(BaseModule):
 
                 self.emit_event(
                     {
-                        "host": matched_event.host,
+                        "host": str(matched_event.host),
                         "url": matched_event.data["url"],
                         "description": f"Spoofed Host header ({matched_technique}) [{r.get('protocol').upper()}] interaction",
                     },
