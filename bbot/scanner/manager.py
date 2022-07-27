@@ -266,7 +266,6 @@ class ScanManager:
         timedelta_2secs = timedelta(seconds=2)
         last_log_time = datetime.now()
 
-        err = False
         reported = False
         try:
             self.scan.dispatcher.on_start(self.scan)
@@ -324,27 +323,12 @@ class ScanManager:
                 self.distribute_event(event)
 
         except KeyboardInterrupt:
-            err = True
             self.scan.stop()
 
         except Exception:
-            err = True
             import traceback
 
             log.critical(traceback.format_exc())
-
-        finally:
-            # clean up modules
-            self.scan.status = "CLEANING_UP"
-            for mod in self.scan.modules.values():
-                mod._cleanup()
-            finished = False
-            while not err:
-                finished = self.modules_status().get("finished", False)
-                if finished:
-                    break
-                else:
-                    sleep(0.1)
 
     def modules_status(self, _log=False, passes=None):
 
