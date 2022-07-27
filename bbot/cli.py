@@ -35,6 +35,8 @@ from . import config
 
 def main():
 
+    scan_name = ""
+
     try:
 
         if len(sys.argv) == 1:
@@ -87,6 +89,7 @@ def main():
                     modules=list(modules),
                     output_modules=options.output_modules,
                     config=config,
+                    name=options.name,
                     whitelist=options.whitelist,
                     blacklist=options.blacklist,
                     strict_scope=options.strict_scope,
@@ -175,19 +178,17 @@ def main():
                 if options.list_modules:
                     return
 
-                if options.load_wordcloud:
-                    scanner.helpers.word_cloud.load(options.load_wordcloud)
-                elif options.load_last_wordcloud:
-                    scanner.helpers.word_cloud.load()
+                scanner.helpers.word_cloud.load(options.load_wordcloud)
 
                 scanner.prep()
 
                 if not options.dry_run:
                     if not options.agent_mode and not options.yes:
-                        log.hugesuccess("Scan ready. Press enter to continue (-y to skip this prompt)")
+                        log.hugesuccess(f"Scan ready. Press enter to continue (-y to skip this prompt)")
                         if not input() == "":
                             return
 
+                    scan_name = str(scanner.name)
                     scanner.start()
 
             except Exception:
@@ -195,6 +196,8 @@ def main():
             finally:
                 with suppress(NameError):
                     scanner.helpers.word_cloud.save(options.save_wordcloud)
+                with suppress(NameError):
+                    scanner.cleanup()
 
     except bbot.core.errors.BBOTError as e:
         import traceback
@@ -209,7 +212,10 @@ def main():
         log.error(f"Encountered unknown error: {traceback.format_exc()}")
 
     except KeyboardInterrupt:
-        log_to_stderr("Interrupted", level=logging.ERROR)
+        msg = "Interrupted"
+        if scan_name:
+            msg = f"You killed {scan_name}"
+        log_to_stderr(msg, level=logging.ERROR)
         os._exit(1)
 
 

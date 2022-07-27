@@ -20,6 +20,7 @@ from hashlib import sha1 as hashlib_sha1
 
 from .url import *  # noqa F401
 from .regexes import word_regexes
+from .names_generator import random_name  # noqa F401
 from ..errors import DirectoryCreationError
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -343,7 +344,7 @@ def list_files(directory, filter=lambda x: True):
     """
     "/tmp/test" --> ["file1.txt", "file2.txt"]
     """
-    directory = Path(directory)
+    directory = Path(directory).resolve()
     if directory.is_dir():
         for file in directory.iterdir():
             if file.is_file() and filter(file):
@@ -531,3 +532,26 @@ def get_file_extension(s):
         extension = rightmost_section.rsplit(".", 1)[-1]
         return extension
     return ""
+
+
+def backup_file(filename, max_backups=10):
+    """
+    rename a file as a backup
+
+    backup_file("/tmp/test.txt") --> "/tmp/test.0.txt"
+    backup_file("/tmp/test.0.txt") --> "/tmp/test.1.txt"
+    backup_file("/tmp/test.1.txt") --> "/tmp/test.2.txt"
+    """
+    filename = Path(filename).resolve()
+    suffixes = [s.strip(".") for s in filename.suffixes]
+    iteration = 1
+    with suppress(Exception):
+        iteration = min(max_backups - 1, max(0, int(suffixes[0]))) + 1
+        suffixes = suffixes[1:]
+    stem = filename.stem.split(".")[0]
+    destination = filename.parent / f"{stem}.{iteration}.{'.'.join(suffixes)}"
+    if destination.exists() and iteration < max_backups:
+        backup_file(destination)
+    if filename.exists():
+        filename.rename(destination)
+    return destination

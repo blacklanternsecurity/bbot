@@ -52,16 +52,21 @@ class gowitness(BaseModule):
         if output_path:
             self.base_path = Path(output_path)
         else:
-            self.base_path = self.cwd / f"gowitness_{self.helpers.make_date()}"
+            self.base_path = self.cwd / f"gowitness_{self.scan.name}"
         self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
-        self.helpers.mkdir(self.screenshot_path)
-        self.db_path.touch()
-        with suppress(Exception):
-            copyfile(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
-            copymode(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
         self.command = self.construct_command()
+        self.prepped = False
         return True
+
+    def prep(self):
+        if not self.prepped:
+            self.helpers.mkdir(self.screenshot_path)
+            self.db_path.touch()
+            with suppress(Exception):
+                copyfile(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
+                copymode(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
+            self.prepped = True
 
     def filter_event(self, event):
         # Ignore URLs that are redirects
@@ -70,6 +75,7 @@ class gowitness(BaseModule):
         return True
 
     def handle_batch(self, *events):
+        self.prep()
         stdin = "\n".join([str(e.data) for e in events])
         for line in self.helpers.run_live(self.command, input=stdin):
             self.debug(line)

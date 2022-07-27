@@ -85,6 +85,7 @@ class BaseModule:
         )
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []
+        self._cleanedup = False
 
     def setup(self):
         """
@@ -399,9 +400,11 @@ class BaseModule:
         return acceptable, reason
 
     def _cleanup(self):
-        for callback in [self.cleanup] + self.cleanup_callbacks:
-            if callable(callback):
-                self._internal_thread_pool.submit_task(self.catch, callback, _force=True)
+        if not self._cleanedup:
+            self._cleanedup = True
+            for callback in [self.cleanup] + self.cleanup_callbacks:
+                if callable(callback):
+                    self.catch(callback, _force=True)
 
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:

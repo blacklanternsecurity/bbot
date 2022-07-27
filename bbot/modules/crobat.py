@@ -24,7 +24,7 @@ class crobat(BaseModule):
 
         This filter_event is used across many modules
         """
-        if "dns-timeout" in event.tags:
+        if any(t in event.tags for t in ("dns-error", "unresolved")):
             return False
         query = self.make_query(event)
         if self.already_processed(query):
