@@ -17,9 +17,6 @@ class nuclei(BaseModule):
         "tags": "",
         "templates": "",
         "severity": "",
-        "disable_interactsh": False,
-        "iserver": "",
-        "itoken": "",
         "ratelimit": 150,
         "concurrency": 25,
         "mode": "severe",
@@ -30,9 +27,6 @@ class nuclei(BaseModule):
         "tags": "execute a subset of templates that contain the provided tags",
         "templates": "template or template directory paths to include in the scan",
         "severity": "Filter based on severity field available in the template.",
-        "disable_interactsh": "disable interactsh server for OAST testing, exclude OAST based templates",
-        "iserver": "interactsh server url for self-hosted instance (default https://interactsh.com)",
-        "itoken": "authentication token for self-hosted interactsh server",
         "ratelimit": "maximum number of requests to send per second (default 150)",
         "concurrency": "maximum number of templates to be executed in parallel (default 25)",
         "mode": "technology | severe | manual. Technology: Only activate based on technology events that match nuclei tags. On by default. Severe: Only critical and high severity templates without intrusive. Manual: Fully manual settings",
@@ -57,8 +51,8 @@ class nuclei(BaseModule):
         self.tags = self.config.get("tags")
         self.etags = self.config.get("etags")
         self.severity = self.config.get("severity")
-        self.iserver = self.config.get("iserver")
-        self.itoken = self.config.get("itoken")
+        self.iserver = self.scan.config.get("interactsh_server", None)
+        self.itoken = self.scan.config.get("interactsh_token", None)
 
         self.template_stats = self.helpers.download(
             "https://raw.githubusercontent.com/projectdiscovery/nuclei-templates/master/TEMPLATES-STATS.json",
@@ -199,7 +193,7 @@ class nuclei(BaseModule):
                 command.append(f"-tags")
                 command.append(setup_tags)
 
-        if self.config.get("disable_interactsh") == True:
+        if self.scan.config.get("interactsh_disable") == True:
             command.append("-no-interactsh")
 
         for line in self.helpers.run_live(command, input=nuclei_input, stderr=subprocess.DEVNULL):
