@@ -17,8 +17,19 @@ class naabu(BaseModule):
     max_event_handlers = 2
     batch_size = 100
 
-    deps_apt = ["libpcap0.8"]
     deps_ansible = [
+        {
+            "name": "install libpcap (debian)",
+            "package": {"name": "libpcap0.8", "state": "present"},
+            "become": True,
+            "ignore_errors": "yes",
+        },
+        {
+            "name": "install libpcap (others)",
+            "package": {"name": "libpcap", "state": "present"},
+            "become": True,
+            "ignore_errors": "yes",
+        },
         {
             "name": "symlink libpcap",
             "file": {"src": "/usr/lib/libpcap.so", "dest": "{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
