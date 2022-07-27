@@ -40,8 +40,6 @@ class massdns(crobat):
     ]
 
     def setup(self):
-
-        self.processed = set()
         self.found = dict()
         self.mutations_tried = set()
         self.source_events = dict()
@@ -51,7 +49,7 @@ class massdns(crobat):
         if not self.subdomain_file:
             self.error("Failed to download wordlist")
             return False
-        return True
+        return super().setup()
 
     def handle_event(self, event):
         query = self.make_query(event)
@@ -153,12 +151,12 @@ class massdns(crobat):
                 return
             mutations = set(base_mutations)
             for mutation in self.helpers.word_cloud.mutations(subdomains):
-                for delimiter in ("", ".", "-"):
-                    m = delimiter.join(mutation).lower()
-                    h = hash((m, domain_hash))
-                    if h not in self.mutations_tried:
+                h = hash((domain_hash, mutation))
+                if h not in self.mutations_tried:
+                    self.mutations_tried.add(h)
+                    for delimiter in ("", ".", "-"):
+                        m = delimiter.join(mutation).lower()
                         mutations.add(m)
-                        self.mutations_tried.add(h)
             self.verbose(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
             for hostname in self.massdns(domain, mutations):
                 source_event = self.get_source_event(hostname)
