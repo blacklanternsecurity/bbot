@@ -17,7 +17,7 @@ class naabu(BaseModule):
     max_event_handlers = 2
     batch_size = 100
 
-    deps_apt = ["libpcap"]
+    deps_apt = ["libpcap0.8"]
     deps_ansible = [
         {
             "name": "symlink libpcap",

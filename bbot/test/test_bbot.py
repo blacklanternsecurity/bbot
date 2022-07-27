@@ -709,10 +709,10 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     # interact.sh
     interactsh_client = helpers.interactsh()
     with pytest.raises(InteractshError):
-        domain = interactsh_client.register()
+        interactsh_client.register()
     assert not list(interactsh_client.poll())
     with pytest.raises(InteractshError):
-        domain = interactsh_client.deregister()
+        interactsh_client.deregister()
 
 
 def test_dns_resolvers(patch_requests, helpers):
