@@ -117,7 +117,6 @@ hunt_param_dict = {
 
 
 class hunt(BaseModule):
-    print(r"<input.+?name=[\"\'](\w+)[\"\']")
     input_tag_regex = re.compile(r"<input.+?name=[\"\'](\w+)[\"\']")
     jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
     jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
