@@ -106,11 +106,13 @@ def main():
                     if not dep_choices:
                         break
                     for event_type, deps in dep_choices.items():
+                        if event_type in ("*", "all"):
+                            continue
                         # skip resolving dependency if a target provides the missing type
                         if any(e.type == event_type for e in scanner.target.events):
                             continue
-                        required_by = deps["required_by"]
-                        recommended = deps["recommended"]
+                        required_by = deps.get("required_by", [])
+                        recommended = deps.get("recommended", [])
                         if not recommended:
                             log.warning(
                                 f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no modules produce it"
