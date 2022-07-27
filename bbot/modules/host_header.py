@@ -5,7 +5,7 @@ from bbot.core.errors import InteractshError
 class host_header(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING"]
     flags = ["active"]
 
     in_scope_only = True
@@ -156,11 +156,10 @@ class host_header(BaseModule):
 
             self.emit_event(
                 {
-                    "severity": "LOW",
                     "host": str(event.host),
                     "url": event.data["url"],
                     "description": f"Possible Host header injection. Injection technique: {dr}",
                 },
-                "VULNERABILITY",
+                "FINDING",
                 event,
             )
