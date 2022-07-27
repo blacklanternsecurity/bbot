@@ -80,6 +80,7 @@ for p in (parser, dummy_parser):
         action="store_true",
         help="Don't consider subdomains of target/whitelist to be in-scope",
     )
+    p.add_argument("-n", "--name", help="Name of scan (default: random)", metavar="SCAN_NAME")
     p.add_argument(
         "-m",
         "--modules",
@@ -148,12 +149,10 @@ for p in (parser, dummy_parser):
     wordcloud = p.add_argument_group(
         title="Word cloud", description="Save/load wordlist of common words gathered during a scan"
     )
-    g1 = wordcloud.add_mutually_exclusive_group()
-    wordcloud.add_argument("--save-wordcloud", help="Output wordcloud to file when the scan completes", metavar="FILE")
-    g1.add_argument("--load-wordcloud", help="Load wordcloud from a file and use it in the scan", metavar="FILE")
-    g1.add_argument(
-        "--load-last-wordcloud", action="store_true", help="Load the wordcloud from the last scan (from $BBOT_HOME)"
+    wordcloud.add_argument(
+        "--save-wordcloud", help="Output wordcloud to custom file when the scan completes", metavar="FILE"
     )
+    wordcloud.add_argument("--load-wordcloud", help="Load wordcloud from a custom file", metavar="FILE")
     deps = p.add_argument_group(
         title="Module dependencies", description="Control how modules install their dependencies"
     )
