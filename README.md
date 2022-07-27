@@ -52,17 +52,18 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-m MODULE [MODULE ...]] [--force] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]]
-            [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-o MODULE [MODULE ...]] [-oA BASE_FILENAME] [-c [CONFIG ...]] [-v] [-d] [--dry-run] [--current-config] [--save-wordcloud FILE]
-            [--load-wordcloud FILE | --load-last-wordcloud] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps] [-a]
+usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-n SCAN_NAME] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]]
+            [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-o MODULE [MODULE ...]] [-oA BASE_FILENAME] [-c [CONFIG ...]] [-v] [-d] [--force] [-y] [--dry-run] [--current-config] [--save-wordcloud FILE]
+            [--load-wordcloud FILE] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
 options:
   -h, --help            show this help message and exit
+  -n SCAN_NAME, --name SCAN_NAME
+                        Name of scan (default: random)
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: aspnet_viewstate,azure_tenant,bgpview,bufferoverrun,bypass403,c99,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,getparam_brute,gowitness,header_brute,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,urlscan,vhost,viewdns,wappalyzer,wayback
-  --force               Run scan even if module setups fail
+                        Modules to enable. Choices: affiliates,asn,aspnet_viewstate,azure_tenant,bufferoverrun,bypass403,c99,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,getparam_brute,gowitness,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,urlscan,vhost,viewdns,wappalyzer,wayback
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
@@ -80,6 +81,8 @@ options:
                         custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
+  --force               Run scan even if module setups fail
+  -y, --yes             Skip scan confirmation prompt
   --dry-run             Abort before executing scan
   --current-config      Show current config in YAML format
 
@@ -96,11 +99,9 @@ Word cloud:
   Save/load wordlist of common words gathered during a scan
 
   --save-wordcloud FILE
-                        Output wordcloud to file when the scan completes
+                        Output wordcloud to custom file when the scan completes
   --load-wordcloud FILE
-                        Load wordcloud from a file and use it in the scan
-  --load-last-wordcloud
-                        Load the wordcloud from the last scan (from $BBOT_HOME)
+                        Load wordcloud from a custom file
 
 Module dependencies:
   Control how modules install their dependencies
