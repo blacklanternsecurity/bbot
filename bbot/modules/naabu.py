@@ -19,10 +19,10 @@ class naabu(BaseModule):
 
     deps_apt = ["libpcap0.8"]
     deps_ansible = [
-        {
-            "name": "symlink libpcap",
-            "file": {"src": "/usr/lib/libpcap.so", "dest": "{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
-        },
+        # {
+        #    "name": "symlink libpcap",
+        #    "file": {"src": "/usr/lib/libpcap.so", "dest": "{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
+        # },
         {
             "name": "Download naabu",
             "unarchive": {
