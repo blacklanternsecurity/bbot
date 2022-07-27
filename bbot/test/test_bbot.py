@@ -1106,9 +1106,7 @@ def test_cli(monkeypatch, config):
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(cli, "config", config)
-    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "-t", "127.0.0.1", "-m", "ipneighbor"])
-    cli.main()
-    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config"])
+    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config", "-t", "127.0.0.1", "-m", "ipneighbor"])
     cli.main()
 
     # -oA

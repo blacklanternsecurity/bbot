@@ -35,6 +35,8 @@ from . import config
 
 def main():
 
+    scan_name = ""
+
     try:
 
         if len(sys.argv) == 1:
@@ -186,6 +188,7 @@ def main():
                         if not input() == "":
                             return
 
+                    scan_name = str(scanner.name)
                     scanner.start()
 
             except Exception:
@@ -193,6 +196,8 @@ def main():
             finally:
                 with suppress(NameError):
                     scanner.helpers.word_cloud.save(options.save_wordcloud)
+                with suppress(NameError):
+                    scanner.cleanup()
 
     except bbot.core.errors.BBOTError as e:
         import traceback
@@ -207,7 +212,10 @@ def main():
         log.error(f"Encountered unknown error: {traceback.format_exc()}")
 
     except KeyboardInterrupt:
-        log_to_stderr("Interrupted", level=logging.ERROR)
+        msg = "Interrupted"
+        if scan_name:
+            msg = f"You killed {scan_name}"
+        log_to_stderr(msg, level=logging.ERROR)
         os._exit(1)
 
 

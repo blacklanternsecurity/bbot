@@ -140,7 +140,7 @@ class Scanner:
                 self.status = "FAILED"
                 return
             else:
-                self.hugesuccess(f"Starting {self.name}.")
+                self.hugesuccess(f"Starting scan {self.name}")
 
             if self.stopping:
                 return
@@ -183,6 +183,9 @@ class Scanner:
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
+
+            self.cleanup()
+
             # Shut down thread pools
             self.process_pool.shutdown(wait=True)
             self.helpers.dns._thread_pool.shutdown(wait=True)
@@ -190,15 +193,17 @@ class Scanner:
             self._thread_pool.shutdown(wait=True)
             self._internal_thread_pool.shutdown(wait=True)
 
+            log_fn = self.hugesuccess
             if self.status == "ABORTING":
                 self.status = "ABORTED"
-                self.warning(f"Scan completed with status {self.status}")
+                log_fn = self.hugewarning
             elif failed:
                 self.status = "FAILED"
-                self.error(f"Scan completed with status {self.status}")
+                log_fn = self.critical
             else:
                 self.status = "FINISHED"
-                self.success(f"Scan completed with status {self.status}")
+
+            log_fn(f"Scan {self.name} completed with status {self.status}")
 
             self.dispatcher.on_finish(self)
 
@@ -266,6 +271,12 @@ class Scanner:
                     t.join()
             self.debug("Finished shutting down thread pools")
             self.helpers.kill_children()
+
+    def cleanup(self):
+        # clean up modules
+        self.status = "CLEANING_UP"
+        for mod in self.modules.values():
+            mod._cleanup()
 
     def in_scope(self, e):
         """
