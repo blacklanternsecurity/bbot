@@ -223,5 +223,6 @@ def curl(self, *args, **kwargs):
     if head_mode:
         curl_command.append("-I")
 
-    output = self.run(curl_command).stdout
+    output_bytes = self.run(curl_command, text=False).stdout
+    output = self.smart_decode(output_bytes)
     return output
