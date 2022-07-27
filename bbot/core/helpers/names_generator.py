@@ -104,7 +104,6 @@ adjectives = [
     "pure",
     "raging",
     "rambunctious",
-    "resourceful",
     "roguish",
     "sadistic",
     "satanic",
