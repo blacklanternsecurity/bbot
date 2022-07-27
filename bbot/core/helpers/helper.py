@@ -11,13 +11,13 @@ from .wordcloud import WordCloud
 from .threadpool import as_completed
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
+from .interactsh import Interactsh
 
 log = logging.getLogger("bbot.core.helpers")
 
 
 class ConfigAwareHelper:
-
-    from .web import request, download, api_page_iter
+    from .web import request, download, api_page_iter, curl
     from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached, CacheDict
     from . import ntlm
@@ -45,6 +45,9 @@ class ConfigAwareHelper:
         self.dns = DNSHelper(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
+
+    def interactsh(self):
+        return Interactsh(self)
 
     def http_compare(self, url, allow_redirects=False):
 

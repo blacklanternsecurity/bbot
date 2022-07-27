@@ -21,7 +21,19 @@ class smuggler(BaseModule):
         }
     ]
 
+    def setup(self):
+        self.scanned_hosts = set()
+        return True
+
     def handle_event(self, event):
+
+        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        host_hash = hash(host)
+        if host_hash in self.scanned_hosts:
+            self.debug(f"Host {host} was already scanned, exiting")
+            return
+        else:
+            self.scanned_hosts.add(host_hash)
 
         command = [
             "python",
