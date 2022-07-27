@@ -165,7 +165,7 @@ class WordCloud(dict):
                 for word, count in self.json(limit).items():
                     c.writerow([count, word])
             if len(self) > 0:
-                log.success(f"Saved word cloud ({len(self):,} words) to {filename}")
+                log.info(f"Saved word cloud ({len(self):,} words) to {filename}")
         except Exception as e:
             import traceback
 
@@ -175,13 +175,13 @@ class WordCloud(dict):
             self.clean_old()
 
     def load(self, filename=None):
+        if filename is None:
+            wordcloud_path = self.default_filename
+        else:
+            wordcloud_path = Path(filename).resolve()
+        log.verbose(f"Loading word cloud from {filename}")
         try:
-            if filename is None:
-                filename = self.default_filename
-            else:
-                filename = Path(filename).resolve()
-            log.verbose(f"Loading word cloud from {filename}")
-            with open(str(filename), newline="") as f:
+            with open(str(wordcloud_path), newline="") as f:
                 c = csv.reader(f, delimiter="\t")
                 for row in c:
                     if len(row) == 1:
@@ -192,9 +192,13 @@ class WordCloud(dict):
                             count = int(count)
                             self[word] = count
             if len(self) > 0:
-                log.success(f"Loaded word cloud ({len(self):,} words) from {filename}")
+                log.success(f"Loaded word cloud ({len(self):,} words) from {wordcloud_path}")
         except Exception as e:
             import traceback
 
-            log.warning(f"Failed to load word cloud from {filename}: {e}")
-            log.debug(traceback.format_exc())
+            log_fn = log.debug
+            if filename is not None:
+                log_fn = log.warning
+            log_fn(f"Failed to load word cloud from {wordcloud_path}: {e}")
+            if filename is not None:
+                log.debug(traceback.format_exc())
