@@ -80,6 +80,7 @@ class speculate(BaseInternalModule):
         if str(event.module) == "speculate":
             if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
                 return False
-        if "dns-timeout" in event.tags:
+        # don't accept errored DNS_NAMEs
+        if any(t in event.tags for t in ("dns-error", "unresolved")):
             return False
         return True

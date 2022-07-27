@@ -11,6 +11,7 @@ from .dispatcher import Dispatcher
 from bbot.modules import module_loader
 from bbot.core.event import make_event
 from bbot.core.helpers.helper import ConfigAwareHelper
+from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.threadpool import ThreadPoolWrapper
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
 
@@ -39,6 +40,10 @@ class Scanner:
         if config is None:
             config = OmegaConf.create({})
         self.config = config
+        if name is None:
+            self.name = random_name()
+        else:
+            self.name = str(name)
         self.strict_scope = strict_scope
         self.force_start = force_start
 
@@ -65,10 +70,6 @@ class Scanner:
         if not blacklist:
             blacklist = []
         self.blacklist = ScanTarget(self, *blacklist)
-        if name is None:
-            self.name = str(self.target)
-        else:
-            self.name = str(name)
 
         if dispatcher is None:
             self.dispatcher = Dispatcher()
@@ -139,7 +140,7 @@ class Scanner:
                 self.status = "FAILED"
                 return
             else:
-                self.hugesuccess("Starting scan.")
+                self.hugesuccess(f"Starting scan {self.name}")
 
             if self.stopping:
                 return
@@ -182,6 +183,9 @@ class Scanner:
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
+
+            self.cleanup()
+
             # Shut down thread pools
             self.process_pool.shutdown(wait=True)
             self.helpers.dns._thread_pool.shutdown(wait=True)
@@ -189,15 +193,17 @@ class Scanner:
             self._thread_pool.shutdown(wait=True)
             self._internal_thread_pool.shutdown(wait=True)
 
+            log_fn = self.hugesuccess
             if self.status == "ABORTING":
                 self.status = "ABORTED"
-                self.warning(f"Scan completed with status {self.status}")
+                log_fn = self.hugewarning
             elif failed:
                 self.status = "FAILED"
-                self.error(f"Scan completed with status {self.status}")
+                log_fn = self.critical
             else:
                 self.status = "FINISHED"
-                self.success(f"Scan completed with status {self.status}")
+
+            log_fn(f"Scan {self.name} completed with status {self.status}")
 
             self.dispatcher.on_finish(self)
 
@@ -265,6 +271,12 @@ class Scanner:
                     t.join()
             self.debug("Finished shutting down thread pools")
             self.helpers.kill_children()
+
+    def cleanup(self):
+        # clean up modules
+        self.status = "CLEANING_UP"
+        for mod in self.modules.values():
+            mod._cleanup()
 
     def in_scope(self, e):
         """
@@ -345,7 +357,7 @@ class Scanner:
 
     @property
     def root_event(self):
-        root_event = self.make_event(data=f"SCAN:{self.id}", event_type="SCAN", dummy=True)
+        root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
         root_event.scope_distance = 0
         root_event._resolved.set()
         root_event.source = root_event

@@ -11,7 +11,7 @@ log = logging.getLogger("bbot.core.helpers.wordcloud")
 class WordCloud(dict):
     def __init__(self, parent_helper, *args, **kwargs):
         self.parent_helper = parent_helper
-        self.max_backups = 10
+        self.max_backups = 20
 
         devops_filename = Path(__file__).parent.parent.parent / "wordlists" / "devops_mutations.txt"
         self.devops_mutations = set(self.parent_helper.read_file(devops_filename))
@@ -138,21 +138,17 @@ class WordCloud(dict):
 
     @property
     def default_filename(self):
-        return self.parent_helper.home / "wordcloud_last_run.tsv"
+        return self.parent_helper.home / f"wordcloud_{self.parent_helper.scan.name}.tsv"
 
-    def backup_file(self, filename):
-        filename = Path(filename).resolve()
-        suffixes = [s.strip(".") for s in filename.suffixes]
-        iteration = 1
-        with suppress(Exception):
-            iteration = min(self.max_backups - 1, max(0, int(suffixes[0]))) + 1
-            suffixes = suffixes[1:]
-        stem = filename.stem.split(".")[0]
-        destination = filename.parent / f"{stem}.{iteration}.{'.'.join(suffixes)}"
-        if destination.exists() and iteration < self.max_backups:
-            self.backup_file(destination)
-        if filename.exists():
-            filename.rename(destination)
+    def clean_old(self):
+        files = []
+        for file in self.parent_helper.list_files(
+            self.parent_helper.home, filter=lambda x: x.name.startswith("wordcloud_")
+        ):
+            files.append((file, file.lstat().st_mtime))
+        files.sort(key=lambda x: x[-1], reverse=True)
+        for file, mtime in files[self.max_backups :]:
+            file.unlink()
 
     def save(self, filename=None, limit=None):
         try:
@@ -163,28 +159,29 @@ class WordCloud(dict):
             if not self.parent_helper.mkdir(filename.parent):
                 log.error(f"Failure creating or error writing to {filename.parent} when saving word cloud")
                 return
-            self.backup_file(filename)
             log.debug(f"Saving word cloud to {filename}")
             with open(str(filename), mode="w", newline="") as f:
                 c = csv.writer(f, delimiter="\t")
                 for word, count in self.json(limit).items():
                     c.writerow([count, word])
             if len(self) > 0:
-                log.success(f"Saved word cloud ({len(self):,} words) to {filename}")
+                log.info(f"Saved word cloud ({len(self):,} words) to {filename}")
         except Exception as e:
             import traceback
 
             log.warning(f"Failed to save word cloud to {filename}: {e}")
             log.debug(traceback.format_exc())
+        finally:
+            self.clean_old()
 
     def load(self, filename=None):
+        if filename is None:
+            wordcloud_path = self.default_filename
+        else:
+            wordcloud_path = Path(filename).resolve()
+        log.verbose(f"Loading word cloud from {filename}")
         try:
-            if filename is None:
-                filename = self.default_filename
-            else:
-                filename = Path(filename).resolve()
-            log.verbose(f"Loading word cloud from {filename}")
-            with open(str(filename), newline="") as f:
+            with open(str(wordcloud_path), newline="") as f:
                 c = csv.reader(f, delimiter="\t")
                 for row in c:
                     if len(row) == 1:
@@ -195,9 +192,13 @@ class WordCloud(dict):
                             count = int(count)
                             self[word] = count
             if len(self) > 0:
-                log.success(f"Loaded word cloud ({len(self):,} words) from {filename}")
+                log.success(f"Loaded word cloud ({len(self):,} words) from {wordcloud_path}")
         except Exception as e:
             import traceback
 
-            log.warning(f"Failed to load word cloud from {filename}: {e}")
-            log.debug(traceback.format_exc())
+            log_fn = log.debug
+            if filename is not None:
+                log_fn = log.warning
+            log_fn(f"Failed to load word cloud from {wordcloud_path}: {e}")
+            if filename is not None:
+                log.debug(traceback.format_exc())

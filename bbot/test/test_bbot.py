@@ -518,8 +518,26 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert type(helpers.rand_string(0)) == str
 
     test_file = Path(scan.config["home"]) / "testfile.asdf"
+    test_file.touch()
+
+    assert test_file.is_file()
+    backup = helpers.backup_file(test_file)
+    assert backup.name == "testfile.1.asdf"
+    assert not test_file.exists()
+    assert backup.is_file()
+    test_file.touch()
+    backup2 = helpers.backup_file(test_file)
+    assert backup2.name == "testfile.1.asdf"
+    assert not test_file.exists()
+    assert backup2.is_file()
+    older_backup = Path(scan.config["home"]) / "testfile.2.asdf"
+    assert older_backup.is_file()
+    older_backup.unlink()
+    backup.unlink()
+
     with open(test_file, "w") as f:
         f.write("asdf\nfdsa")
+
     assert "asdf" in helpers.str_or_file(str(test_file))
     assert "nope" in helpers.str_or_file("nope")
     assert tuple(helpers.chain_lists([str(test_file), "nope"], try_files=True)) == ("asdf", "fdsa", "nope")
@@ -1088,9 +1106,7 @@ def test_cli(monkeypatch, config):
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(cli, "config", config)
-    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "-t", "127.0.0.1", "-m", "ipneighbor"])
-    cli.main()
-    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config"])
+    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config", "-t", "127.0.0.1", "-m", "ipneighbor"])
     cli.main()
 
     # -oA
