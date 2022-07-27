@@ -184,9 +184,8 @@ def main():
 
                 if not options.dry_run:
                     if not options.agent_mode and not options.yes:
-                        log.hugesuccess(f"Scan ready. Press enter to continue (-y to skip this prompt)")
-                        if not input() == "":
-                            return
+                        log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
+                        input()
 
                     scan_name = str(scanner.name)
                     scanner.start()
