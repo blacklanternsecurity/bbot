@@ -381,7 +381,7 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     )
     new_urls = tuple(helpers.collapse_urls(bad_urls, threshold=4))
     assert len(new_urls) == 2
-    new_urls = tuple(sorted(helpers.collapse_urls(bad_urls, threshold=5)))
+    new_urls = tuple(sorted([u.geturl() for u in helpers.collapse_urls(bad_urls, threshold=5)]))
     assert new_urls == bad_urls
 
     new_url = helpers.add_get_params("http://evilcorp.com/a?p=1&q=2", {"r": 3, "s": "asdf"}).geturl()

@@ -268,7 +268,7 @@ class BaseModule:
         except Exception as e:
             msg = f"Module setup failed: {e}"
             self.set_error_state()
-            self.debug(traceback.format_exc(msg))
+            self.debug(traceback.format_exc(e))
         return status, str(msg)
 
     @property

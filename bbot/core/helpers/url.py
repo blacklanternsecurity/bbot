@@ -115,7 +115,7 @@ def collapse_urls(urls, threshold=10):
     """
     url_hashes = {}
     for url in urls:
-        new_url = clean_url(url).geturl()
+        new_url = clean_url(url)
         url_hash = hash_url(new_url)
         try:
             url_hashes[url_hash].add(new_url)
