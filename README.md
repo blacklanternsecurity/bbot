@@ -52,9 +52,9 @@ black .
 ## Usage
 ~~~bash
 $ bbot --help
-usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-n SCAN_NAME] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]]
-            [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-o MODULE [MODULE ...]] [-oA BASE_FILENAME] [-c [CONFIG ...]] [-v] [-d] [--force] [-y] [--dry-run] [--current-config] [--save-wordcloud FILE]
-            [--load-wordcloud FILE] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps] [-a]
+usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-n SCAN_NAME] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]]
+            [-f FLAG [FLAG ...]] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [-oA BASE_FILENAME] [-c [CONFIG ...]] [-v] [-d] [--force] [-y] [--dry-run]
+            [--current-config] [--save-wordcloud FILE] [--load-wordcloud FILE] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
@@ -63,7 +63,7 @@ options:
   -n SCAN_NAME, --name SCAN_NAME
                         Name of scan (default: random)
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,asn,aspnet_viewstate,azure_tenant,bufferoverrun,bypass403,c99,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,getparam_brute,gowitness,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,urlscan,vhost,viewdns,wappalyzer,wayback
+                        Modules to enable. Choices: affiliates,asn,aspnet_viewstate,azure_tenant,bufferoverrun,bypass403,c99,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,getparam_brute,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,urlscan,vhost,viewdns,wappalyzer,wayback
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
@@ -73,7 +73,7 @@ options:
                         Disable modules that don't have these flags (e.g. --require-flags passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. --exclude-flags brute-force)
-  -o MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
+  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
                         Output module(s). Choices: csv,http,human,json,neo4j,websocket
   -oA BASE_FILENAME, --output-all BASE_FILENAME
                         Output in CSV, JSON, and TXT at this file location

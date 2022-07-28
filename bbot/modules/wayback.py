@@ -5,20 +5,22 @@ class wayback(crobat):
     flags = ["passive", "subdomain-enum"]
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
-    options = {"garbage_threshold": 10}
+    options = {"dns_only": True, "garbage_threshold": 10}
     options_desc = {
-        "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)"
+        "dns_only": "Only emit DNS_NAMEs",
+        "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
     }
     in_scope_only = True
 
     def setup(self):
-        self.garbage_threshold = self.config.get("garbage_threshold", 5)
+        self.dns_only = self.config.get("dns_only", True)
+        self.garbage_threshold = self.config.get("garbage_threshold", 10)
         return super().setup()
 
     def handle_event(self, event):
         query = self.make_query(event)
-        for result in self.query(query):
-            self.emit_event(result, "URL_UNVERIFIED", event, abort_if=self.abort_if)
+        for result, event_type in self.query(query):
+            self.emit_event(result, event_type, event, abort_if=self.abort_if)
 
     def query(self, query):
         waybackurl = f"http://web.archive.org/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
@@ -41,4 +43,13 @@ class wayback(crobat):
             except KeyError:
                 continue
 
-        yield from self.helpers.collapse_urls(urls, threshold=self.garbage_threshold)
+        dns_names = set()
+        for parsed_url in self.helpers.collapse_urls(urls, threshold=self.garbage_threshold):
+            if self.dns_only:
+                dns_name = parsed_url.hostname
+                h = hash(dns_name)
+                if h not in dns_names:
+                    dns_names.add(h)
+                    yield dns_name, "DNS_NAME"
+            else:
+                yield parsed_url.geturl(), "URL_UNVERIFIED"
