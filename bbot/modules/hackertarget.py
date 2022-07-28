@@ -1,0 +1,16 @@
+from bbot.modules.crobat import crobat
+
+
+class hackertarget(crobat):
+    watched_events = ["DNS_NAME"]
+    produced_events = ["DNS_NAME"]
+    flags = ["subdomain-enum", "passive", "safe"]
+
+    base_url = "https://api.hackertarget.com"
+
+    def request_url(self, query):
+        return self.helpers.request(f"{self.base_url}/hostsearch/?q={self.helpers.quote(query)}")
+
+    def parse_results(self, r, query):
+        for line in r.text.splitlines():
+            yield line.split(",")[0]

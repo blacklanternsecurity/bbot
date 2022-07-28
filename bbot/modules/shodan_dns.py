@@ -21,6 +21,7 @@ class shodan_dns(crobat):
         if self.api_key:
             try:
                 self.ping()
+                self.success(f"API is ready")
                 return True
             except Exception as e:
                 return None, f"Error contacting API ({str(e).strip()})"
@@ -32,18 +33,12 @@ class shodan_dns(crobat):
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
-    def query(self, query):
+    def request_url(self, query):
         url = f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={self.api_key}"
-        results = self.helpers.request(url)
-        try:
-            json = results.json()
-            if json:
-                for hostname in json.get("subdomains"):
-                    yield f"{hostname}.{query}"
-            else:
-                self.debug(f'No results for "{query}"')
-        except Exception:
-            import traceback
+        return self.helpers.request(url)
 
-            self.warning(f"Error retrieving shodan subdomains for {query}")
-            self.debug(traceback.format_exc())
+    def parse_results(self, r, query):
+        json = r.json()
+        if json:
+            for hostname in json.get("subdomains"):
+                yield f"{hostname}.{query}"

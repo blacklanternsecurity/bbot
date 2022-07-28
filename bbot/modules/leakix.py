@@ -12,6 +12,7 @@ class leakix(crobat):
         query = self.make_query(event)
         headers = {"Accept": "application/json"}
         r = self.helpers.request(f"{self.base_url}/domain/{self.helpers.quote(query)}", headers=headers)
+        self.hugesuccess(r.content)
         if not r:
             return
         try:
