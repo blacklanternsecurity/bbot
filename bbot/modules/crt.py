@@ -15,18 +15,12 @@ class crt(crobat):
         self.cert_ids = set()
         return super().setup()
 
-    def query(self, domain):
-        params = {"q": domain, "output": "json"}
-        url = f"{self.base_url}?{urlencode(params)}"
-        res = self.helpers.request(url)
-        j = {}
-        try:
-            j = res.json()
-        except Exception:
-            import traceback
+    def request_url(self, query):
+        params = {"q": query, "output": "json"}
+        return self.helpers.request(f"{self.base_url}?{urlencode(params)}")
 
-            self.warning("Error decoding JSON")
-            self.debug(traceback.format_exc())
+    def parse_results(self, r, query):
+        j = r.json()
         for cert_info in j:
             if not type(cert_info) == dict:
                 continue

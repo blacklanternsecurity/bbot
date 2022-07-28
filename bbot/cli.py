@@ -171,12 +171,17 @@ def main():
                 for module_name, preloaded in module_list:
                     if module_name in modules:
                         if not logged_header:
-                            log_fn(f"{'Module Name':<20}{'Produced Events':<40}{'Flags':<20}")
-                            log_fn("=" * 19 + " " + "=" * 39 + " " + "=" * 29)
+                            log_fn(f"{'Module Name':<20}{'Produced Events':<40}{'API Key':<10}{'Flags':<20}")
+                            log_fn("=" * 19 + " " + "=" * 39 + " " + "=" * 9 + " " + "=" * 29)
                             logged_header = True
                         produced_events = sorted(preloaded.get("produced_events", []))
                         flags = sorted(preloaded.get("flags", []))
-                        log_fn(f"{module_name:<20}{','.join(produced_events):<40}{','.join(flags):<20}")
+                        api_key_required = ""
+                        if "api_key" in preloaded.get("config", {}):
+                            api_key_required = "X"
+                        log_fn(
+                            f"{module_name:<20}{','.join(produced_events):<40}{api_key_required:<10}{','.join(flags):<20}"
+                        )
                 if options.list_modules:
                     return
 
