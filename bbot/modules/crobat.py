@@ -35,12 +35,6 @@ class crobat(BaseModule):
         self.processed.add(hash(query))
         return True
 
-    def make_query(self, event):
-        if "target" in event.tags:
-            return str(event.data)
-        else:
-            return self.helpers.parent_domain(event.data).lower()
-
     def already_processed(self, hostname):
         for parent in self.helpers.domain_parents(hostname, include_self=True):
             if hash(parent) in self.processed:
@@ -61,17 +55,32 @@ class crobat(BaseModule):
                 else:
                     self.debug(f"Excluding self: {hostname}")
 
+    def request_url(self, query):
+        url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
+        self.hugesuccess(url)
+        return self.helpers.request(url)
+
+    def make_query(self, event):
+        if "target" in event.tags:
+            return str(event.data)
+        else:
+            return self.helpers.parent_domain(event.data).lower()
+
+    def parse_results(self, r, query=None):
+        self.hugesuccess(r)
+        json = r.json()
+        if json:
+            for hostname in json:
+                yield hostname
+
     def query(self, query):
-        results = self.helpers.request(f"{self.base_url}/subdomains/{self.helpers.quote(query)}")
         try:
-            json = results.json()
-            if json:
-                for hostname in json:
-                    yield hostname
-            else:
-                self.debug(f'No results for "{query}"')
+            results = list(self.parse_results(self.request_url(query), query))
+            if results:
+                return results
+            self.debug(f'No results for "{query}"')
         except Exception:
             import traceback
 
-            self.warning(f"Error retrieving crobat domains for {query}")
+            self.warning(f"Error retrieving results for {query}")
             self.debug(traceback.format_exc())
