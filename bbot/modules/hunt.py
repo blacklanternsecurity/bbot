@@ -122,7 +122,7 @@ class hunt(BaseModule):
     jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
     a_tag_regex = re.compile(r"<a\s+(?:[^>]*?\s+)?href=(?:[\"\'](.+\?.+?))[\"\'].+[>\s]")
 
-    flags = ["active", "safe"]
+    flags = ["active", "safe", "web"]
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     # accept all events regardless of scope distance

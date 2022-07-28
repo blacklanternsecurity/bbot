@@ -5,6 +5,12 @@ class urlscan(crobat):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "URL_UNVERIFIED"]
+    options = {"dns_only": True}
+    options_desc = {"dns_only": "Only emit DNS_NAMEs, not URLs"}
+
+    def setup(self):
+        self.dns_only = self.config.get("dns_only", True)
+        return super().setup()
 
     def handle_event(self, event):
         query = self.make_query(event)
@@ -18,7 +24,10 @@ class urlscan(crobat):
             if url:
                 url_event = self.make_event(url, "URL_UNVERIFIED", source=source_event)
                 if str(url_event.host).endswith(query):
-                    self.emit_event(url_event, abort_if=self.abort_if)
+                    if not self.dns_only:
+                        self.emit_event(url_event, abort_if=self.abort_if)
+                    else:
+                        self.emit_event(str(url_event.host), "DNS_NAME", source=event, abort_if=self.abort_if)
                 else:
                     self.debug(f"{url_event.host} does not match {query}")
 

@@ -73,7 +73,7 @@ class bypass403(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active"]
+    flags = ["active", "aggressive", "web"]
     in_scope_only = True
 
     def handle_event(self, event):
