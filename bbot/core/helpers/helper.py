@@ -3,6 +3,7 @@ import shutil
 import logging
 from pathlib import Path
 from threading import Lock
+from tabulate import tabulate
 
 from . import misc
 from .dns import DNSHelper
@@ -48,6 +49,16 @@ class ConfigAwareHelper:
 
     def interactsh(self):
         return Interactsh(self)
+
+    def make_table(self, *args, **kwargs):
+        defaults = {
+            "tablefmt": "github",
+            "disable_numparse": True,
+        }
+        for k, v in defaults.items():
+            if k not in kwargs:
+                kwargs[k] = v
+        return tabulate(*args, **kwargs)
 
     def http_compare(self, url, allow_redirects=False):
 

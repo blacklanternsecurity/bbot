@@ -116,7 +116,7 @@ for p in (parser, dummy_parser):
         metavar="FLAG",
     )
     p.add_argument(
-        "-o",
+        "-om",
         "--output-modules",
         nargs="+",
         default=["human"],

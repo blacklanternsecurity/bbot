@@ -8,6 +8,7 @@ class BaseOutputModule(BaseModule):
     _type = "output"
     emit_graph_trail = True
     scope_distance_modifier = None
+    _stats_exclude = True
 
     def _filter_event(self, e):
         # special "FINISHED" event

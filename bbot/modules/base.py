@@ -8,6 +8,8 @@ from contextlib import suppress
 from ..core.helpers.threadpool import ThreadPoolWrapper
 from ..core.errors import ScanCancelledError, ValidationError
 
+from bbot.core.event.base import is_event
+
 
 class BaseModule:
 
@@ -65,6 +67,8 @@ class BaseModule:
     # Useful for low-confidence modules like speculate and ipneighbor
     _scope_shepherding = True
     # Priority of events raised by this module, 1-5, lower numbers == higher priority
+    # Exclude from scan statistics
+    _stats_exclude = False
     _priority = 3
     # Name, overridden automatically
     _name = "base"
@@ -86,8 +90,6 @@ class BaseModule:
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []
         self._cleanedup = False
-
-        self.event_counter = {}
 
     def setup(self):
         """
@@ -206,10 +208,6 @@ class BaseModule:
         abort_if = kwargs.pop("abort_if", lambda e: False)
         quick = kwargs.pop("quick", False)
         event = self.make_event(*args, **kwargs)
-        try:
-            self.event_counter[event.type] += 1
-        except KeyError:
-            self.event_counter[event.type] = 1
         if event:
             self.scan.manager.emit_event(
                 event,
@@ -415,6 +413,8 @@ class BaseModule:
     def queue_event(self, e):
         if self.event_queue is not None and not self.errored:
             if self._filter_event(e):
+                if is_event(e):
+                    self.scan.stats.event_consumed(e, self)
                 self.event_queue.put(e)
         else:
             self.debug(f"Not in an acceptable state to queue event")
