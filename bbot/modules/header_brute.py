@@ -6,7 +6,7 @@ class header_brute(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["brute-force", "active"]
+    flags = ["brute-force", "active", "aggressive", "web"]
     options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
     options_desc = {"wordlist": "Define the wordlist to be used to derive headers"}
     scanned_hosts = []

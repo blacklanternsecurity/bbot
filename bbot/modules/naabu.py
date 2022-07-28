@@ -7,7 +7,7 @@ class naabu(BaseModule):
 
     watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
-    flags = ["active", "portscan"]
+    flags = ["active", "portscan", "aggressive"]
     options = {
         "version": "2.0.7",
     }

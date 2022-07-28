@@ -1,5 +1,6 @@
 import json
 import subprocess
+
 from bbot.modules.base import BaseModule
 
 
@@ -10,7 +11,7 @@ class nuclei(BaseModule):
 
     watched_events = ["URL", "TECHNOLOGY"]
     produced_events = ["VULNERABILITY"]
-    flags = ["active"]
+    flags = ["active", "aggressive", "dangerous", "web"]
     batch_size = 100
     options = {
         "version": "2.7.3",
