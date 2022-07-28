@@ -10,7 +10,7 @@ class ffuf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL"]
 
-    flags = ["brute-force", "active"]
+    flags = ["brute-force", "aggressive", "active"]
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
         "lines": 5000,

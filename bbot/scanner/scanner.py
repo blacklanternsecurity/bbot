@@ -5,6 +5,7 @@ import concurrent.futures
 from omegaconf import OmegaConf
 from collections import OrderedDict
 
+from .stats import ScanStats
 from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
@@ -53,6 +54,18 @@ class Scanner:
             self.id = str(uuid4())
         self._status = "NOT_STARTED"
 
+        # Set up thread pools
+        max_workers = max(1, self.config.get("max_threads", 100))
+        # Shared thread pool, for module use
+        self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
+        # Event thread pool, for event construction, initialization
+        self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2))
+        # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
+        self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
+        self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
+
+        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
+
         self.target = ScanTarget(self, *targets, strict_scope=strict_scope)
 
         self.modules = OrderedDict({})
@@ -60,8 +73,6 @@ class Scanner:
         self._internal_modules = list(self._internal_modules())
         self._output_modules = output_modules
         self._modules_loaded = False
-
-        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
         if not whitelist:
             self.whitelist = self.target.copy()
@@ -78,21 +89,12 @@ class Scanner:
         self.dispatcher.set_scan(self)
 
         self.manager = ScanManager(self)
+        self.stats = ScanStats(self)
 
         # prevent too many brute force modules from running at one time
         # because they can bypass the global thread limit
         self.max_brute_forcers = int(self.config.get("max_brute_forcers", 1))
         self._brute_lock = threading.Semaphore(self.max_brute_forcers)
-
-        # Set up thread pools
-        max_workers = max(1, self.config.get("max_threads", 100))
-        # Shared thread pool, for module use
-        self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
-        # Event thread pool, for event construction, initialization
-        self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2))
-        # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
-        self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
-        self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
 
         # scope distance
         self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 1)))
@@ -361,6 +363,7 @@ class Scanner:
         root_event.scope_distance = 0
         root_event._resolved.set()
         root_event.source = root_event
+        root_event.module = self.helpers._make_dummy_module(name="TARGET", _type="TARGET")
         return root_event
 
     @property
@@ -418,12 +421,9 @@ class Scanner:
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
 
     def _internal_modules(self):
-        speculate = self.config.get("speculate", True)
-        excavate = self.config.get("excavate", True)
-        if speculate:
-            yield "speculate"
-        if excavate:
-            yield "excavate"
+        for modname in module_loader.preloaded(type="internal"):
+            if self.config.get(modname, True):
+                yield modname
 
     def load_modules(self):
 
@@ -490,7 +490,7 @@ class Scanner:
     def fail_setup(self, msg):
         msg = str(msg)
         if not self.force_start:
-            msg += " (--force to override)"
+            msg += " (--force to run module anyway)"
         if self.force_start:
             self.error(msg)
         else:

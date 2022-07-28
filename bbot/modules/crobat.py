@@ -57,7 +57,6 @@ class crobat(BaseModule):
 
     def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
-        self.hugesuccess(url)
         return self.helpers.request(url)
 
     def make_query(self, event):
@@ -67,7 +66,6 @@ class crobat(BaseModule):
             return self.helpers.parent_domain(event.data).lower()
 
     def parse_results(self, r, query=None):
-        self.hugesuccess(r)
         json = r.json()
         if json:
             for hostname in json:
