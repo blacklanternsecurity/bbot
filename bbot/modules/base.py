@@ -87,6 +87,8 @@ class BaseModule:
         self.cleanup_callbacks = []
         self._cleanedup = False
 
+        self.event_counter = {}
+
     def setup(self):
         """
         Perform setup functions at the beginning of the scan.
@@ -204,6 +206,10 @@ class BaseModule:
         abort_if = kwargs.pop("abort_if", lambda e: False)
         quick = kwargs.pop("quick", False)
         event = self.make_event(*args, **kwargs)
+        try:
+            self.event_counter[event.type] += 1
+        except KeyError:
+            self.event_counter[event.type] = 1
         if event:
             self.scan.manager.emit_event(
                 event,

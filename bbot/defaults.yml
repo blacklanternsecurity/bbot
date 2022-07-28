@@ -42,6 +42,8 @@ dns_wildcard_tests: 5
 # Skip DNS requests for a certain domain after encountering this many SERVFAIL errors
 # This helps prevent faulty DNS servers from hanging up the scan
 dns_abort_threshold: 10
+# Enable/disable filtering of PTR records containing IP addresses
+dns_filter_ptrs: true
 # Enable/disable debug messages for dns queries
 dns_debug: false
 # Whether to verify SSL certificates
