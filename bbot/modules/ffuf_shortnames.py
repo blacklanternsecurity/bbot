@@ -1,13 +1,14 @@
-from .ffuf import ffuf
 import random
 import string
+
+from bbot.modules.dangerous.ffuf import ffuf
 
 
 class ffuf_shortnames(ffuf):
 
     watched_events = ["URL_HINT"]
     produced_events = ["URL"]
-    flags = ["active", "brute-force", "aggressive"]
+    flags = ["brute-force", "aggressive", "active", "web"]
 
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-large-words.txt",

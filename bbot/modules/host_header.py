@@ -6,7 +6,7 @@ class host_header(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active"]
+    flags = ["active", "aggressive", "web"]
 
     in_scope_only = True
 

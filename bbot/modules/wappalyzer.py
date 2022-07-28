@@ -12,7 +12,7 @@ warnings.filterwarnings(
 
 class wappalyzer(BaseModule):
 
-    flags = ["active", "safe"]
+    flags = ["active", "safe", "web"]
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["TECHNOLOGY"]
     deps_pip = ["python-Wappalyzer"]

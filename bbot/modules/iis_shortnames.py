@@ -5,7 +5,7 @@ class iis_shortnames(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
-    flags = ["active"]
+    flags = ["active", "safe"]
     options = {"detect_only": True, "threads": 8}
     options_desc = {
         "detect_only": "Only detect the vulnerability and do not run the shortname scanner",

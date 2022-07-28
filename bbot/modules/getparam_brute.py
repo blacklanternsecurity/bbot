@@ -5,7 +5,7 @@ class getparam_brute(header_brute):
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["brute-force", "active"]
+    flags = ["brute-force", "active", "aggressive", "web"]
     options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params"}
     options_desc = {"wordlist": "Define the wordlist to be used to derive GET params"}
     scanned_hosts = []

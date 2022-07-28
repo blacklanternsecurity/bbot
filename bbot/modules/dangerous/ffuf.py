@@ -1,8 +1,9 @@
 import random
 import string
-from bbot.modules.base import BaseModule
 import json
 import base64
+
+from bbot.modules.base import BaseModule
 
 
 class ffuf(BaseModule):
@@ -10,7 +11,7 @@ class ffuf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL"]
 
-    flags = ["brute-force", "aggressive", "active"]
+    flags = ["brute-force", "aggressive", "active", "web"]
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
         "lines": 5000,

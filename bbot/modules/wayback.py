@@ -2,12 +2,12 @@ from .crobat import crobat
 
 
 class wayback(crobat):
-    flags = ["passive", "subdomain-enum"]
+    flags = ["passive", "subdomain-enum", "safe"]
     watched_events = ["DNS_NAME"]
-    produced_events = ["URL_UNVERIFIED"]
+    produced_events = ["URL_UNVERIFIED", "DNS_NAME"]
     options = {"dns_only": True, "garbage_threshold": 10}
     options_desc = {
-        "dns_only": "Only emit DNS_NAMEs",
+        "dns_only": "Only emit DNS_NAMEs, not URLs",
         "garbage_threshold": "Dedupe similar urls if they are in a group of this size or higher (lower values == less garbage data)",
     }
     in_scope_only = True

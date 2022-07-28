@@ -3,12 +3,12 @@ from bbot.modules.base import BaseModule
 
 class vhost(BaseModule):
 
-    flags = ["active", "brute-force", "aggressive"]
+    flags = ["active", "brute-force", "aggressive", "web"]
     watched_events = ["URL"]
-    produced_events = ["URL"]
+    produced_events = ["VHOST", "DNS_NAME"]
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
     options = {
-        "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt",
+        "subdomain_wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "force_basehost": "",
     }
     options_desc = {
