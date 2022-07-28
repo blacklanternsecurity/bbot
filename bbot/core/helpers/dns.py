@@ -1,3 +1,4 @@
+import re
 import json
 import logging
 import dns.resolver
@@ -59,6 +60,9 @@ class DNSHelper:
         # copy the system's current resolvers to a text file for tool use
         resolvers = dns.resolver.Resolver().nameservers
         self.resolver_file = self.parent_helper.tempfile(resolvers, pipe=False)
+
+        self.bad_ptr_regex = re.compile(r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}")
+        self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
 
     def resolve(self, query, **kwargs):
         """
@@ -139,7 +143,7 @@ class DNSHelper:
         raise_error = kwargs.pop("raise_error", False)
         results = []
         try:
-            results = list(self._catch(self.resolver.resolve_address, query, **kwargs))
+            return list(self._catch(self.resolver.resolve_address, query, **kwargs))
         except dns.resolver.NoNameservers as e:
             self.debug(f"{e} (query={query}, kwargs={kwargs})")
         except (dns.exception.Timeout, dns.resolver.LifetimeTimeout):
@@ -200,6 +204,7 @@ class DNSHelper:
                 except Exception:
                     event_tags.add("dns-error")
                 for rdtype, records in resolved_raw:
+
                     event_tags.add("resolved")
                     rdtype = str(rdtype).upper()
                     # whitelisting and blacklist of IPs
@@ -216,6 +221,9 @@ class DNSHelper:
                         for _, t in self.extract_targets(r):
                             event_tags.add(f"{rdtype.lower()}_record")
                             if t:
+                                if self.filter_bad_ptrs and rdtype in ("PTR") and self.bad_ptr_regex.search(t):
+                                    self.debug(f"Filtering out bad PTR: {t}")
+                                    continue
                                 children.append((t, rdtype))
                 if "resolved" not in event_tags:
                     event_tags.add("unresolved")
