@@ -32,6 +32,8 @@ class ModuleLoader:
                 module_type = "scan"
                 if module_dir.name in ("output", "internal"):
                     module_type = str(module_dir.name)
+                elif module_dir.name not in ("modules"):
+                    preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
                 preloaded["type"] = module_type
                 preloaded["namespace"] = namespace
                 config = OmegaConf.create(preloaded.get("config", {}))
