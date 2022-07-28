@@ -38,22 +38,22 @@ class ScanManager:
         for mod in self.scan.modules.values():
             mod._handle_batch(force=True)
 
-    def emit_event(self, *args, **kwargs):
+    def emit_event(self, event, *args, **kwargs):
+        self.scan.stats.event_emitted(event)
         quick = kwargs.pop("quick", False)
         if quick:
             kwargs.pop("abort_if")
             kwargs.pop("on_success_callback")
-            self.queue_event(*args, **kwargs)
+            self.queue_event(event, *args, **kwargs)
         else:
             # don't raise an exception if the thread pool has been shutdown
             with suppress(RuntimeError):
-                self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, *args, **kwargs)
+                self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
 
-    def _emit_event(self, *args, **kwargs):
+    def _emit_event(self, event, *args, **kwargs):
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
-            event = self.scan.make_event(*args, **kwargs)
             log.debug(f'module "{event.module}" raised {event}')
 
             if event._dummy:
@@ -129,7 +129,6 @@ class ScanManager:
             source_event = event
             if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE"):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
-                source_module._type = "internal"
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 if "target" in event.tags:
                     source_event.tags.add("target")
@@ -223,7 +222,9 @@ class ScanManager:
         """
         Queue event with manager
         """
-        self.event_queue.put(self.scan.make_event(*args, **kwargs))
+        event = self.scan.make_event(*args, **kwargs)
+        self.scan.stats.event_produced(event)
+        self.event_queue.put(event)
 
     def distribute_event(self, event):
         """

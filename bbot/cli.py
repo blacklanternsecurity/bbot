@@ -164,24 +164,21 @@ def main():
                 if options.list_modules:
                     log_fn = log.stdout
 
-                logged_header = False
                 module_list = list(module_loader.preloaded(type="scan").items())
                 module_list.sort(key=lambda x: x[0])
                 module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
+                header = ["Module", "Needs API Key", "Produced Events", "Flags"]
+                table = []
                 for module_name, preloaded in module_list:
                     if module_name in modules:
-                        if not logged_header:
-                            log_fn(f"{'Module Name':<20}{'Produced Events':<40}{'API Key':<10}{'Flags':<20}")
-                            log_fn("=" * 19 + " " + "=" * 39 + " " + "=" * 9 + " " + "=" * 29)
-                            logged_header = True
                         produced_events = sorted(preloaded.get("produced_events", []))
                         flags = sorted(preloaded.get("flags", []))
                         api_key_required = ""
                         if "api_key" in preloaded.get("config", {}):
                             api_key_required = "X"
-                        log_fn(
-                            f"{module_name:<20}{','.join(produced_events):<40}{api_key_required:<10}{','.join(flags):<20}"
-                        )
+                        table.append([module_name, api_key_required, ",".join(produced_events), ",".join(flags)])
+                for row in scanner.helpers.make_table(table, header).splitlines():
+                    log_fn(row)
                 if options.list_modules:
                     return
 

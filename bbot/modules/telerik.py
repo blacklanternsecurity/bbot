@@ -132,7 +132,6 @@ class telerik(BaseModule):
                     event,
                 )
                 self.critical("BEFORE EXPLOITING")
-                self.hugewarning(self.config.get("exploit_RAU_crypto"))
                 if self.config.get("exploit_RAU_crypto") == True:
                     self.critical("EXPLOITING")
                     hostname = urlparse(event.data).netloc

@@ -1,9 +1,9 @@
-from bbot.modules.internal.base import BaseInternalModule
+from bbot.modules.report.base import ReportModule
 
 
-class affiliates(BaseInternalModule):
+class affiliates(ReportModule):
     watched_events = ["*"]
-    produced_events = ["AFFILIATE"]
+    produced_events = []
     flags = ["passive", "safe"]
     scope_distance_modifier = None
     accept_dupes = True
@@ -17,15 +17,14 @@ class affiliates(BaseInternalModule):
 
     def report(self):
         affiliates = sorted(self.affiliates.items(), key=lambda x: x[-1]["weight"], reverse=True)
+        header = ["Affiliate", "Score", "Count"]
+        table = []
         for domain, stats in affiliates:
             count = stats["count"]
             weight = stats["weight"]
-            self.emit_event(
-                f"{domain} (count: {count:,}, weight: {weight:.1f})",
-                "AFFILIATE",
-                source=self.scan.root_event,
-                quick=True,
-            )
+            table.append([domain, f"{weight:.2f}", f"{count:,}"])
+        for row in self.helpers.make_table(table, header).splitlines():
+            self.info(row)
 
     def add_affiliate(self, event):
         if event.scope_distance > 0 and event.host and isinstance(event.host, str):

@@ -1,10 +1,10 @@
 import ipaddress
 import traceback
 
-from bbot.modules.base import BaseModule
+from bbot.modules.report.base import ReportModule
 
 
-class asn(BaseModule):
+class asn(ReportModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["ASN"]
     flags = ["passive", "subdomain-enum", "safe"]
@@ -34,13 +34,18 @@ class asn(BaseModule):
 
     def report(self):
         asn_data = sorted(self.asn_data.items(), key=lambda x: self.asn_counts[x[0]], reverse=True)
+        header = ["ASN", "Subnet", "Host Count", "Name", "Description"]
+        table = []
         for subnet, prefix in asn_data:
             count = self.asn_counts[subnet]
             name = prefix.get("name", "")
             description = prefix.get("description", "")
-            asn = str(prefix.get("asn", {}).get("asn", ""))
-            event_str = f"AS{asn} - {subnet} ({count:,} hosts): {name}, {description}"
+            asn = "AS" + str(prefix.get("asn", {}).get("asn", ""))
+            table.append([asn, subnet, f"{count:,}", name, description])
+            event_str = f"{asn} - {subnet} ({count:,} hosts): {name}, {description}"
             self.emit_event(event_str, "ASN", source=self.scan.root_event, quick=True)
+        for row in self.helpers.make_table(table, header).splitlines():
+            self.info(row)
 
     def cache_get(self, ip):
         ret = False

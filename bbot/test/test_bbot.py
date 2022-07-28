@@ -847,13 +847,12 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
             ), f'module "{module_name}" must have either "active" or "passive" flag'
 
         # attribute checks
-        watched_events = preloaded.get("watched_events", [])
-        produced_events = preloaded.get("produced_events", [])
-        module_type = preloaded.get("type", "")
+        watched_events = preloaded.get("watched_events")
+        produced_events = preloaded.get("produced_events")
 
-        assert watched_events, f"{module_name}.watched_events must not be blank"
-        if module_type != "output":
-            assert produced_events, f"{module_name}.produced_events must not be blank"
+        assert type(watched_events) == list
+        assert type(produced_events) == list
+        assert watched_events, f"{module_name}.watched_events must not be empty"
         assert type(watched_events) == list, f"{module_name}.watched_events must be of type list"
         assert type(produced_events) == list, f"{module_name}.produced_events must be of type list"
         assert all(

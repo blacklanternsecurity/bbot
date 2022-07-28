@@ -16,10 +16,12 @@ max_brute_forcers: 2
 
 ### ADVANCED OPTIONS ###
 
-# Automatically infer certain events from others, e.g. IPs from IP ranges, or DNS_NAMEs from URLs
+# Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
 # Passively search event data for URLs, hostnames, emails, etc.
 excavate: True
+# Summarize activity at the end of a scan
+aggregate: True
 # HTTP proxy
 http_proxy: 
 # HTTP timeout (for Python requests; API calls, etc.)
