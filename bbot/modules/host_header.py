@@ -30,19 +30,23 @@ class host_header(BaseModule):
         for r in self.interactsh_instance.poll():
             full_id = r.get("full-id", None)
             if full_id:
-                match = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
-                matched_event = match[0]
-                matched_technique = match[1]
+                if "." in full_id:
+                    match = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
+                    matched_event = match[0]
+                    matched_technique = match[1]
 
-                self.emit_event(
-                    {
-                        "host": str(matched_event.host),
-                        "url": matched_event.data["url"],
-                        "description": f"Spoofed Host header ({matched_technique}) [{r.get('protocol').upper()}] interaction",
-                    },
-                    "FINDING",
-                    matched_event,
-                )
+                    self.emit_event(
+                        {
+                            "host": str(matched_event.host),
+                            "url": matched_event.data["url"],
+                            "description": f"Spoofed Host header ({matched_technique}) [{r.get('protocol').upper()}] interaction",
+                        },
+                        "FINDING",
+                        matched_event,
+                    )
+                else:
+                    # this is likely caused by something trying to resolve the base domain first and can be ignored
+                    self.debug("skipping results because subdomain tag was missing")
 
     def cleanup(self):
         try:

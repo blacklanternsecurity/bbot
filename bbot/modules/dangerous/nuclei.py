@@ -195,6 +195,7 @@ class nuclei(BaseModule):
                 command.append(setup_tags)
 
         if self.scan.config.get("interactsh_disable") == True:
+            self.info("Disbling interactsh in accordance with global settings")
             command.append("-no-interactsh")
 
         for line in self.helpers.run_live(command, input=nuclei_input, stderr=subprocess.DEVNULL):
