@@ -192,13 +192,13 @@ def curl(self, *args, **kwargs):
             curl_command.append("-H")
             curl_command.append(f"{k}: {v}")
 
-    postdata = kwargs.get("postdata", {})
-    if len(postdata.items()) > 0:
+    post_data = kwargs.get("post_data", {})
+    if len(post_data.items()) > 0:
         curl_command.append("-d")
-        postdata_str = ""
-        for k, v in postdata.items():
-            postdata_str += f"&{k}={v}"
-        curl_command.append(postdata_str.lstrip("&"))
+        post_data_str = ""
+        for k, v in post_data.items():
+            post_data_str += f"&{k}={v}"
+        curl_command.append(post_data_str.lstrip("&"))
 
     method = kwargs.get("method", "")
     if method:
@@ -222,6 +222,11 @@ def curl(self, *args, **kwargs):
     head_mode = kwargs.get("head_mode", None)
     if head_mode:
         curl_command.append("-I")
+
+    raw_body = kwargs.get("raw_body", None)
+    if raw_body:
+        curl_command.append("-d")
+        curl_command.append(raw_body)
 
     output_bytes = self.run(curl_command, text=False).stdout
     output = self.smart_decode(output_bytes)
