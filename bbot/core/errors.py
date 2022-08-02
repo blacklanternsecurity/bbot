@@ -39,3 +39,7 @@ class NTLMError(BBOTError):
 
 class InteractshError(BBOTError):
     pass
+
+
+class WordlistError(BBOTError):
+    pass

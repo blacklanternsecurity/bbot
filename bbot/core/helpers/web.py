@@ -1,11 +1,42 @@
 import logging
 import requests
 from time import sleep
+from pathlib import Path
 from requests_cache import CachedSession
 from requests_cache.backends import SQLiteCache
 from requests.exceptions import RequestException
 
+from bbot.core.errors import WordlistError
+
 log = logging.getLogger("bbot.core.helpers.web")
+
+
+def wordlist(self, path, lines=None, **kwargs):
+    if not path:
+        raise WordlistError(f"Invalid wordlist: {path}")
+    if not "cache_hrs" in kwargs:
+        kwargs["cache_hrs"] = 720
+    if self.is_url(path):
+        filename = self.download(str(path), **kwargs)
+        if filename is None:
+            raise WordlistError(f"Unable to retrieve wordlist from {path}")
+    else:
+        filename = Path(path).resolve()
+        if not filename.is_file():
+            raise WordlistError(f"Unable to find wordlist at {path}")
+
+    if lines is None:
+        return filename
+    else:
+        lines = int(lines)
+        with open(filename) as f:
+            read_lines = f.readlines()
+        cache_key = f"{filename}:{lines}"
+        truncated_filename = self.cache_filename(cache_key)
+        with open(truncated_filename, "w") as f:
+            for line in read_lines[:lines]:
+                f.write(line)
+        return truncated_filename
 
 
 def download(self, url, **kwargs):
@@ -41,7 +72,7 @@ def download(self, url, **kwargs):
             return
 
     if success:
-        return str(filename.resolve())
+        return filename.resolve()
 
 
 def request(self, *args, **kwargs):

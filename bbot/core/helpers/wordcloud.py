@@ -138,12 +138,12 @@ class WordCloud(dict):
 
     @property
     def default_filename(self):
-        return self.parent_helper.home / f"wordcloud_{self.parent_helper.scan.name}.tsv"
+        return self.parent_helper.bbot_home / f"wordcloud_{self.parent_helper.scan.name}.tsv"
 
     def clean_old(self):
         files = []
         for file in self.parent_helper.list_files(
-            self.parent_helper.home, filter=lambda x: x.name.startswith("wordcloud_")
+            self.parent_helper.bbot_home, filter=lambda x: x.name.startswith("wordcloud_")
         ):
             files.append((file, file.lstat().st_mtime))
         files.sort(key=lambda x: x[-1], reverse=True)

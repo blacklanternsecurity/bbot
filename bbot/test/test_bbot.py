@@ -423,6 +423,11 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert not helpers.is_domain("www.evilcorp.co.uk")
     assert helpers.is_subdomain("www.evilcorp.co.uk")
     assert not helpers.is_subdomain("evilcorp.co.uk")
+    assert helpers.is_url("http://evilcorp.co.uk/asdf?a=b&c=d#asdf")
+    assert helpers.is_url("https://evilcorp.co.uk/asdf?a=b&c=d#asdf")
+    assert not helpers.is_url("https:/evilcorp.co.uk/asdf?a=b&c=d#asdf")
+    assert not helpers.is_url("/evilcorp.co.uk/asdf?a=b&c=d#asdf")
+    assert not helpers.is_url("ftp://evilcorp.co.uk")
     assert helpers.parent_domain("www.evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("localhost") == "localhost"
@@ -654,6 +659,20 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     filename = download(helpers, "https://api.publicapis.org/health", cache_hrs=1)
     assert Path(str(filename)).is_file()
     assert helpers.is_cached("https://api.publicapis.org/health")
+
+    assert helpers.wordlist("https://api.publicapis.org/healthasdf").is_file()
+    test_file = Path(scan.config["home"]) / "testfile.asdf"
+    with open(test_file, "w") as f:
+        for i in range(100):
+            f.write(f"{i}\n")
+    assert len(list(open(test_file).readlines())) == 100
+    assert helpers.wordlist(test_file).is_file()
+    truncated_file = helpers.wordlist(test_file, lines=10)
+    assert truncated_file.is_file()
+    assert len(list(open(truncated_file).readlines())) == 10
+    with pytest.raises(WordlistError):
+        helpers.wordlist("/tmp/a9pseoysadf/asdkgjaosidf")
+    test_file.unlink()
 
     ### DNS ###
     # resolution
