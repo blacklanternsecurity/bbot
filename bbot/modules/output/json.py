@@ -1,21 +1,24 @@
 import json
 from pathlib import Path
+from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
 
 
 class JSON(BaseOutputModule):
     watched_events = ["*"]
-    options = {"output_file": ""}
-    options_desc = {"output_file": "Output to file"}
+    options = {"output_file": "", "console": False}
+    options_desc = {"output_file": "Output to file", "console": "Output to console"}
 
     def setup(self):
         self.output_file = self.config.get("output_file", "")
         self.file = None
         if self.output_file:
-            filename = Path(self.output_file).resolve()
-            self.helpers.mkdir(filename.parent)
-            self.file = open(str(filename), mode="w")
+            self.output_file = Path(self.output_file)
+        else:
+            self.output_file = self.scan.home / "output.json"
+        self.helpers.mkdir(self.output_file.parent)
+        self.file = open(self.output_file, mode="w")
         return True
 
     def handle_event(self, event):
@@ -23,9 +26,10 @@ class JSON(BaseOutputModule):
         if self.file is not None:
             self.file.write(event_str + "\n")
             self.file.flush()
-        else:
+        if self.config.get("console", False) or "human" not in self.scan.modules:
             self.stdout(event_str)
 
     def cleanup(self):
         if self.output_file:
-            self.file.close()
+            with suppress(Exception):
+                self.file.close()

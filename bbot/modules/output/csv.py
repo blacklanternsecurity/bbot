@@ -1,18 +1,8 @@
 import csv
 from pathlib import Path
+from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
-
-
-class Line:
-    def __init__(self):
-        self._line = None
-
-    def write(self, line):
-        self._line = line
-
-    def read(self):
-        return self._line
 
 
 class CSV(BaseOutputModule):
@@ -25,11 +15,11 @@ class CSV(BaseOutputModule):
         self.output_file = self.config.get("output_file", "")
         self.file = None
         if self.output_file:
-            filename = Path(self.output_file).resolve()
-            self.helpers.mkdir(filename.parent)
-            self.file = open(str(filename), mode="w", newline="")
+            self.output_file = Path(self.output_file)
         else:
-            self.file = Line()
+            self.output_file = self.scan.home / "output.csv"
+        self.helpers.mkdir(self.output_file.parent)
+        self.file = open(self.output_file, mode="w", newline="")
         self.writer = csv.writer(self.file)
         self.writerow(["Event type", "Event data", "Source Module", "Scope Distance", "Event Tags"])
         return True
@@ -54,4 +44,5 @@ class CSV(BaseOutputModule):
 
     def cleanup(self):
         if self.output_file and self.file is not None:
-            self.file.close()
+            with suppress(Exception):
+                self.file.close()

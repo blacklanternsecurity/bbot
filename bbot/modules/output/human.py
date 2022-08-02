@@ -13,9 +13,11 @@ class Human(BaseOutputModule):
         self.output_file = self.config.get("output_file", "")
         self.file = None
         if self.output_file:
-            filename = Path(self.output_file).resolve()
-            self.helpers.mkdir(filename.parent)
-            self.file = open(str(filename), mode="w")
+            self.output_file = Path(self.output_file)
+        else:
+            self.output_file = self.scan.home / "output.txt"
+        self.helpers.mkdir(self.output_file.parent)
+        self.file = open(self.output_file, mode="w")
         return True
 
     def handle_event(self, event):
