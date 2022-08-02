@@ -367,7 +367,7 @@ class BaseModule:
     def max_scope_distance(self):
         if self.in_scope_only or self.target_only:
             return 0
-        return self.scan.scope_search_distance + self.scope_distance_modifier
+        return max(0, self.scan.scope_search_distance + self.scope_distance_modifier)
 
     def event_acceptable(self, e):
         """

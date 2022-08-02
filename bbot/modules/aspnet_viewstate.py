@@ -9,7 +9,7 @@ class aspnet_viewstate(BaseModule):
     flags = ["active", "safe", "web"]
 
     generator_regex = re.compile(r'<input.+__VIEWSTATEGENERATOR"\svalue="(\w+)"')
-    viewstate_regex = re.compile(r'<input.+__VIEWSTATE"\svalue="(.+)"')
+    viewstate_regex = re.compile(r'<input.+__VIEWSTATE"\svalue="([^"]+)"')
 
     deps_ansible = [
         {
@@ -19,16 +19,25 @@ class aspnet_viewstate(BaseModule):
                 "keyserver": "hkp://keyserver.ubuntu.com:80",
                 "id": "3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF",
             },
+            "when": """ansible_facts['os_family'] == 'Debian'""",
         },
         {
             "name": "Add Mono Repo",
             "become": True,
             "apt_repository": {"repo": "deb https://download.mono-project.com/repo/ubuntu stable-focal main"},
+            "when": """ansible_facts['os_family'] == 'Debian'""",
         },
         {
-            "name": "Install mono-devel",
+            "name": "Install mono-devel (Debian, RedHat)",
             "become": True,
-            "apt": {"name": ["mono-devel", "zip"], "state": "latest", "update_cache": True},
+            "package": {"name": ["mono-devel", "zip"], "state": "latest"},
+            "when": """ansible_facts['os_family'] in ['Debian', 'RedHat']""",
+        },
+        {
+            "name": "Install mono (Archlinux)",
+            "become": True,
+            "package": {"name": "mono", "state": "latest"},
+            "when": """ansible_facts['os_family'] == 'Archlinux'""",
         },
         {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "{BBOT_TOOLS}/blacklist3r/"}},
         {
@@ -57,12 +66,12 @@ class aspnet_viewstate(BaseModule):
             self.emit_event(
                 {"technology": "iis", "host": str(event.host), "url": event.data["url"]}, "TECHNOLOGY", event
             )
-            tool_path = self.scan.helpers.tools_dir / "blacklist3r/"
+            tool_path = self.scan.helpers.tools_dir / "blacklist3r"
             command = [
                 "mono",
-                f"{tool_path}/AspDotNetWrapper.exe",
+                tool_path / "AspDotNetWrapper.exe",
                 "--keypath",
-                f"{tool_path}/MachineKeys.txt",
+                tool_path / "MachineKeys.txt",
                 "--encrypteddata",
                 f"{viewstate}",
                 "--purpose=viewstate",
@@ -72,7 +81,7 @@ class aspnet_viewstate(BaseModule):
             output = self.helpers.run(command).stdout
             self.debug(f"blacklist3r output: {output}")
             if "Keys found!!" in output:
-                for x in output.split("\n"):
+                for x in output.splitlines():
                     if "DecryptionKey" in x:
                         solvedDecryption = x.split(":")[1]
                     if "ValidationKey" in x:

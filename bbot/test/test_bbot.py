@@ -835,7 +835,7 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
     assert "wordlist" in all_preloaded["massdns"]["config"]
     assert type(all_preloaded["massdns"]["config"]["max_resolvers"]) == int
     assert all_preloaded["sslcert"]["deps"]["pip"]
-    assert all_preloaded["massdns"]["deps"]["apt"]
+    assert all_preloaded["sslcert"]["deps"]["apt"]
     assert all_preloaded["massdns"]["deps"]["ansible"]
 
     for module_name, preloaded in all_preloaded.items():

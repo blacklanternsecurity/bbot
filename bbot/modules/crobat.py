@@ -43,7 +43,7 @@ class crobat(BaseModule):
 
     def abort_if(self, event):
         # this help weed out unwanted results when scanning IP_RANGES
-        return event.scope_distance >= self.scan.scope_search_distance
+        return "in-scope" not in event.tags
 
     def handle_event(self, event):
         query = self.make_query(event)

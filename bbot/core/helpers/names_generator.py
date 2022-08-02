@@ -150,6 +150,7 @@ adjectives = [
     "strained",
     "strenuous",
     "stuffed",
+    "stumped",
     "subtle",
     "suggestive",
     "suicidal",

@@ -25,12 +25,14 @@ class asn(ReportModule):
 
     def handle_event(self, event):
         if self.cache_get(event.host) == False:
-            for asn in self.get_asn(event.host):
-                if asn not in self.asn_metadata:
-                    contacts = self.get_asn_metadata(asn)
-                    for c in contacts:
-                        self.emit_event(c, "EMAIL_ADDRESS", source=event)
-                    self.asn_metadata[asn] = True
+            asns = self.get_asn(event.host)
+            if asns:
+                for asn in asns:
+                    if asn not in self.asn_metadata:
+                        contacts = self.get_asn_metadata(asn)
+                        for c in contacts:
+                            self.emit_event(c, "EMAIL_ADDRESS", source=event)
+                        self.asn_metadata[asn] = True
 
     def report(self):
         asn_data = sorted(self.asn_data.items(), key=lambda x: self.asn_counts[x[0]], reverse=True)
@@ -79,6 +81,7 @@ class asn(ReportModule):
                 self.debug(f'No results for "{ip}"')
         except Exception as e:
             self.warning(f"Error retrieving ASN for {ip}: {e}")
+            self.debug(f"Got data: {r.get('content', '')}")
             self.debug(traceback.format_exc())
 
     def get_asn_metadata(self, asn):
