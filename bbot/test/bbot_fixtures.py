@@ -184,7 +184,7 @@ def patch_requests(monkeypatch):
     monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
     monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
     current_dir = Path(__file__).resolve().parent
-    downloaded_file = str(current_dir / "test_output.json")
+    downloaded_file = current_dir / "test_output.json"
     monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
     return request, download
 

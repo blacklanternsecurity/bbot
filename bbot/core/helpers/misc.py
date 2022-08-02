@@ -19,9 +19,9 @@ from urllib.parse import urlparse, quote  # noqa F401
 from hashlib import sha1 as hashlib_sha1
 
 from .url import *  # noqa F401
-from .regexes import word_regexes
 from .names_generator import random_name  # noqa F401
 from ..errors import DirectoryCreationError
+from .regexes import word_regexes, event_type_regexes
 
 log = logging.getLogger("bbot.core.helpers.misc")
 
@@ -45,6 +45,14 @@ def is_subdomain(d):
     extracted = tldextract(d)
     if extracted.domain and extracted.subdomain:
         return True
+    return False
+
+
+def is_url(u):
+    u = str(u)
+    for r in event_type_regexes["URL"]:
+        if r.match(u):
+            return True
     return False
 
 

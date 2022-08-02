@@ -28,10 +28,7 @@ class header_brute(BaseModule):
     def setup(self):
 
         wordlist_url = self.config.get("wordlist", "")
-        self.wordlist = self.helpers.download(wordlist_url, cache_hrs=720)
-        if not self.wordlist:
-            self.warning(f'Failed to download wordlist from "{wordlist_url}"')
-            return False
+        self.wordlist = self.helpers.wordlist(wordlist_url)
         return True
 
     def handle_event(self, event):
