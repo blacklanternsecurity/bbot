@@ -1080,17 +1080,6 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     assert not scan3.in_scope("127.0.0.3")
     scan3.start()
 
-    test_output_dir = Path(config.home)
-    assert test_output_dir.is_dir()
-    csv_file = test_output_dir / "test.csv"
-    assert (test_output_dir / "test.txt").is_file()
-    assert (test_output_dir / "test.json").is_file()
-    assert csv_file.is_file()
-    with open(csv_file) as f:
-        lines = f.readlines()
-        assert lines[0] == "Event type,Event data,Source Module,Scope Distance,Event Tags\n"
-        assert len(lines) > 1
-
 
 def test_threadpool():
     from concurrent.futures import ThreadPoolExecutor
@@ -1135,14 +1124,22 @@ def test_cli(monkeypatch, config):
     monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config", "-t", "127.0.0.1", "-m", "ipneighbor"])
     cli.main()
 
-    # -oA
     home_dir = Path(config["home"])
-    out_basename = home_dir / "test"
-    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "-t", "127.0.0.1", "-m", "ipneighbor", "-oA", str(out_basename)])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["bbot", "-y", "-t", "127.0.0.1", "-m", "ipneighbor", "-om", "human", "csv", "json", "-n", "test_scan"],
+    )
     cli.main()
-    assert Path(f"{out_basename}.txt").is_file()
-    assert Path(f"{out_basename}.json").is_file()
-    assert Path(f"{out_basename}.csv").is_file()
+    scan_home = home_dir / "scans" / "test_scan"
+    assert (scan_home / "wordcloud.tsv").is_file()
+    assert (scan_home / "output.txt").is_file()
+    assert (scan_home / "output.csv").is_file()
+    assert (scan_home / "output.json").is_file()
+    with open(scan_home / "output.csv") as f:
+        lines = f.readlines()
+        assert lines[0] == "Event type,Event data,Source Module,Scope Distance,Event Tags\n"
+        assert len(lines) > 1
 
 
 def test_depsinstaller(monkeypatch, neuter_ansible, config):

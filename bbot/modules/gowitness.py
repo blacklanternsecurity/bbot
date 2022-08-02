@@ -47,12 +47,11 @@ class gowitness(BaseModule):
         self.proxy = self.scan.config.get("http_proxy", "")
         self.resolution_x = self.config.get("resolution_x")
         self.resolution_y = self.config.get("resolution_y")
-        self.cwd = Path.cwd()
         output_path = self.config.get("output_path")
         if output_path:
-            self.base_path = Path(output_path)
+            self.base_path = Path(output_path) / "gowitness"
         else:
-            self.base_path = self.cwd / f"gowitness_{self.scan.name}"
+            self.base_path = self.scan.home / "gowitness"
         self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
         self.command = self.construct_command()

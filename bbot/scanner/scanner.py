@@ -1,8 +1,10 @@
 import logging
 import threading
 from uuid import uuid4
+from pathlib import Path
 import concurrent.futures
 from omegaconf import OmegaConf
+from contextlib import suppress
 from collections import OrderedDict
 
 from .stats import ScanStats
@@ -65,7 +67,11 @@ class Scanner:
         self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
 
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
-        self.home = self.helpers.bbot_home / self.name
+        output_dir = self.config.get("output_dir", "")
+        if output_dir:
+            self.home = Path(output_dir).resolve() / self.name
+        else:
+            self.home = self.helpers.bbot_home / "scans" / self.name
 
         self.target = ScanTarget(self, *targets, strict_scope=strict_scope)
 
@@ -107,6 +113,7 @@ class Scanner:
         self._prepped = False
 
     def prep(self):
+        self.helpers.mkdir(self.home)
         if not self._prepped:
             start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target)} targets"
             details = []
@@ -280,6 +287,8 @@ class Scanner:
         self.status = "CLEANING_UP"
         for mod in self.modules.values():
             mod._cleanup()
+        with suppress(Exception):
+            self.home.rmdir()
 
     def in_scope(self, e):
         """
