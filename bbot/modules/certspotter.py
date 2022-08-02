@@ -16,4 +16,5 @@ class certspotter(crobat):
         json = r.json()
         if json:
             for r in json:
-                yield from r.get("dns_names", [])
+                for dns_name in r.get("dns_names", []):
+                    yield dns_name.lstrip(".*").rstrip(".")
