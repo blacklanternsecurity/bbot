@@ -138,7 +138,7 @@ class WordCloud(dict):
 
     @property
     def default_filename(self):
-        return self.parent_helper.bbot_home / f"wordcloud_{self.parent_helper.scan.name}.tsv"
+        return self.parent_helper.scan.home / f"wordcloud.tsv"
 
     def clean_old(self):
         files = []

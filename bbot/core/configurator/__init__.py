@@ -67,19 +67,8 @@ if args.cli_options is not None:
     config["ignore_failed_deps"] = args.cli_options.ignore_failed_deps
     # debug
     config["debug"] = args.cli_options.debug
-    # -oA
-    if args.cli_options.output_all:
-        if not "output_modules" in config:
-            config["output_modules"] = {}
-        for om_modname in ("human", "csv", "json"):
-            if not om_modname in config["output_modules"]:
-                config["output_modules"][om_modname] = {}
-            if om_modname == "human":
-                om_filext = "txt"
-            else:
-                om_filext = str(om_modname)
-            om_filename = f"{args.cli_options.output_all}.{om_filext}"
-            config["output_modules"][om_modname]["output_file"] = om_filename
+    if args.cli_options.output_dir:
+        config["output_dir"] = args.cli_options.output_dir
 
 # copy config to environment
 bbot_environ = environ.flatten_config(config)
