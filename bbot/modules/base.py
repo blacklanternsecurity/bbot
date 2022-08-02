@@ -6,7 +6,7 @@ from time import sleep
 from contextlib import suppress
 
 from ..core.helpers.threadpool import ThreadPoolWrapper
-from ..core.errors import ScanCancelledError, ValidationError
+from ..core.errors import ScanCancelledError, ValidationError, WordlistError
 
 from bbot.core.event.base import is_event
 
@@ -266,9 +266,11 @@ class BaseModule:
                 msg = status_codes[status]
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
-            msg = f"Module setup failed: {e}"
             self.set_error_state()
-            self.debug(traceback.format_exc(e))
+            if isinstance(e, WordlistError):
+                status = None
+            msg = f"{e}"
+            self.debug(traceback.format_exc())
         return status, str(msg)
 
     @property

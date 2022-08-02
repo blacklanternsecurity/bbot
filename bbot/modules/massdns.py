@@ -40,12 +40,7 @@ class massdns(crobat):
         self.found = dict()
         self.mutations_tried = set()
         self.source_events = dict()
-        self.subdomain_file = self.helpers.download(
-            self.config.get("wordlist", self.options.get("wordlist")), cache_hrs=720
-        )
-        if not self.subdomain_file:
-            self.error("Failed to download wordlist")
-            return False
+        self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
         return super().setup()
 
     def handle_event(self, event):
@@ -60,15 +55,15 @@ class massdns(crobat):
             self.debug(f"Skipping wildcard: {query}")
             return
 
-        for hostname in self.massdns(query, self.subdomain_file):
-            if not hostname == event:
-                self.emit_event(
-                    hostname,
-                    "DNS_NAME",
-                    event,
-                    abort_if=lambda e: any([x in e.tags for x in ("wildcard", "unresolved")]),
-                    on_success_callback=self.add_found,
-                )
+        for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):
+            self.emit_result(hostname, event, query)
+
+    def emit_result(self, result, source_event, query):
+        if not result == source_event:
+            kwargs = {"abort_if": lambda e: any([x in e.tags for x in ("wildcard", "unresolved")])}
+            if result.endswith(f".{query}"):
+                kwargs["on_success_callback"] = self.add_found
+            self.emit_event(result, "DNS_NAME", source_event, **kwargs)
 
     def massdns(self, domain, subdomains):
         """
@@ -115,8 +110,6 @@ class massdns(crobat):
             "-o",
             "J",
         )
-        if type(subdomains) == str:
-            subdomains = self.helpers.read_file(subdomains)
         subdomains = self.gen_subdomains(subdomains, domain)
         for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL, input=subdomains):
             try:
@@ -143,6 +136,7 @@ class massdns(crobat):
             base_mutations.update(set(subdomains))
 
         for i, (domain, subdomains) in enumerate(found):
+            query = domain
             domain_hash = hash(domain)
             if self.scan.stopping:
                 return
@@ -155,16 +149,12 @@ class massdns(crobat):
                         m = delimiter.join(mutation).lower()
                         mutations.add(m)
             self.verbose(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
-            for hostname in self.massdns(domain, mutations):
+            for hostname in self.massdns(query, mutations):
                 source_event = self.get_source_event(hostname)
-                if source_event is not None and not hostname == source_event:
-                    self.emit_event(
-                        hostname,
-                        "DNS_NAME",
-                        source_event,
-                        abort_if=lambda e: any([x in e.tags for x in ("wildcard", "unresolved")]),
-                        on_success_callback=self.add_found,
-                    )
+                if source_event is None:
+                    self.debug(f"Could not correlate source event from: {hostname}")
+                    continue
+                self.emit_result(hostname, source_event, query)
 
     def add_found(self, event):
         if self.helpers.is_subdomain(event.data):

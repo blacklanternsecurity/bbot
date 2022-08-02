@@ -41,8 +41,7 @@ class iis_shortnames(BaseModule):
         self.iis_scanner_config = self.helpers.download(iis_shortname_config, cache_hrs=720)
         if self.iis_scanner_jar and self.iis_scanner_config:
             return True
-        else:
-            return False
+        return False
 
     def handle_event(self, event):
 

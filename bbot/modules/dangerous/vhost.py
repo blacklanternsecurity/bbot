@@ -19,12 +19,11 @@ class vhost(BaseModule):
 
     def setup(self):
         self.scanned_hosts = set()
+        self.subdomain_wordlist = self.helpers.wordlist(self.config.get("subdomain_wordlist"))
         return True
 
     def handle_event(self, event):
         if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):
-
-            subdomain_wordlist = self.helpers.download(self.config.get("subdomain_wordlist"), cache_hrs=720)
             parsed_host = event.parsed
             host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
             host_hash = hash(host)
@@ -44,7 +43,7 @@ class vhost(BaseModule):
 
             self.debug(f"Basehost: {basehostraw}")
             basehost = f".{basehostraw}"
-            command = ["ffuf", "-ac", "-s", "-w", subdomain_wordlist, "-u", host, "-H", f"Host: FUZZ{basehost}"]
+            command = ["ffuf", "-ac", "-s", "-w", self.subdomain_wordlist, "-u", host, "-H", f"Host: FUZZ{basehost}"]
             for vhost in self.ffuf_vhost(command, host, parsed_host, basehost, event):
                 self.debug(f"Starting mutations check for {vhost}")
                 mutations_list_file = self.mutations_check(vhost)

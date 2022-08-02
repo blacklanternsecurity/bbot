@@ -132,14 +132,18 @@ if not self.helpers.is_domain(event.data):
 if not self.config.api_key:
     self.error(f"No API key specified for module.{self.name}!")
 
-# Download a file
-filename = self.helpers.download(self.config.get("wordlist"), cache_hrs=720)
+# Make a DNS query
+mx_records = self.helpers.resolve("evilcorp.com", type="mx")
 
 # Make a web request
 response = self.helpers.request("https://evilcorp.com")
 
-# Make a DNS query
-mx_records = self.helpers.resolve("evilcorp.com", type="mx")
+# Download a file
+filename = self.helpers.download("https://example.com/test.pdf", cache_hrs=720)
+
+# Download a wordlist
+filename = self.helpers.wordlist("https://example.com/wordlist.txt", lines=1000)
+filename = self.helpers.wordlist("/tmp/wordlist.txt", lines=1000)
 
 # Reverse resolve IP
 ptrs = self.helpers.resolve("8.8.8.8")

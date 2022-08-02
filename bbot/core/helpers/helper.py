@@ -18,7 +18,7 @@ log = logging.getLogger("bbot.core.helpers")
 
 
 class ConfigAwareHelper:
-    from .web import request, download, api_page_iter, curl
+    from .web import wordlist, request, download, api_page_iter, curl
     from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached, CacheDict
     from . import ntlm
@@ -28,11 +28,11 @@ class ConfigAwareHelper:
     def __init__(self, config, scan=None):
         self.config = config
         self._scan = scan
-        self.home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
-        self.cache_dir = self.home / "cache"
-        self.temp_dir = self.home / "temp"
-        self.tools_dir = self.home / "tools"
-        self.lib_dir = self.home / "lib"
+        self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
+        self.cache_dir = self.bbot_home / "cache"
+        self.temp_dir = self.bbot_home / "temp"
+        self.tools_dir = self.bbot_home / "tools"
+        self.lib_dir = self.bbot_home / "lib"
         self.mkdir(self.cache_dir)
         self.mkdir(self.temp_dir)
         self.mkdir(self.tools_dir)

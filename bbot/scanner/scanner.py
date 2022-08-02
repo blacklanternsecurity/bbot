@@ -65,6 +65,7 @@ class Scanner:
         self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
 
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
+        self.home = self.helpers.bbot_home / self.name
 
         self.target = ScanTarget(self, *targets, strict_scope=strict_scope)
 

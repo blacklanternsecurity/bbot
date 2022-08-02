@@ -43,12 +43,8 @@ class ffuf_shortnames(ffuf):
 
     def setup(self):
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
-
         wordlist = self.config.get("wordlist", "")
-        self.wordlist = self.helpers.download(wordlist, cache_hrs=720)
-        if not self.wordlist:
-            self.warning(f'Failed to download wordlist from "{wordlist}"')
-            return False
+        self.wordlist = self.helpers.wordlist(wordlist)
         return True
 
     def handle_event(self, event):
