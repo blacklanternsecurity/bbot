@@ -256,6 +256,7 @@ class DepsInstaller:
                 sleep(0.1)
                 password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
                 if self.verify_sudo_password(password):
+                    log.success("Authentication successful")
                     self._sudo_password = password
                 else:
                     log.warning("Incorrect password")

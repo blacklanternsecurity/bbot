@@ -15,8 +15,8 @@ class massdns(crobat):
     }
     options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
     subdomain_file = None
-    deps_apt = ["build-essential"]
     deps_ansible = [
+        {"name": "install dev tools", "package": {"name": ["gcc", "git", "make"], "state": "present"}, "become": True},
         {
             "name": "Download massdns source code",
             "git": {
@@ -32,10 +32,7 @@ class massdns(crobat):
         },
         {
             "name": "Install massdns",
-            "command": {
-                "cmd": 'cp "{BBOT_TEMP}/massdns/bin/massdns" "{BBOT_TOOLS}/"',
-                "creates": "{BBOT_TOOLS}/massdns",
-            },
+            "copy": {"src": "{BBOT_TEMP}/massdns/bin/massdns", "dest": "{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
 

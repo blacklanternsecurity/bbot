@@ -15,10 +15,23 @@ class iis_shortnames(BaseModule):
 
     deps_ansible = [
         {
-            "name": "Install Java JRE",
+            "name": "Install Java JRE (Debian)",
             "become": True,
-            "apt": {"name": "default-jre", "state": "latest", "update_cache": True},
-        }
+            "package": {"name": "default-jre", "state": "latest"},
+            "when": """ansible_facts['os_family'] == 'Debian'""",
+        },
+        {
+            "name": "Install Java JRE (RedHat)",
+            "become": True,
+            "package": {"name": "java-latest-openjdk", "state": "latest"},
+            "when": """ansible_facts['os_family'] == 'RedHat'""",
+        },
+        {
+            "name": "Install Java JRE (Archlinux)",
+            "package": {"name": "jre-openjdk", "state": "present"},
+            "become": True,
+            "when": """ansible_facts['os_family'] == 'Archlinux'""",
+        },
     ]
 
     def setup(self):
@@ -49,7 +62,7 @@ class iis_shortnames(BaseModule):
                     "-jar",
                     self.iis_scanner_jar,
                     "0",
-                    str(self.config.get("threads")),
+                    str(self.config.get("threads", 8)),
                     normalized_url,
                     self.iis_scanner_config,
                 ]
@@ -72,10 +85,10 @@ class iis_shortnames(BaseModule):
         for http_method in http_methods:
             dir_name = self.helpers.rand_string(8)
             file_name = self.helpers.rand_string(1)
-            control = self.helpers.request(
-                url.rstrip("/") + "/" + f"{dir_name}*~1*/{file_name}.aspx", method=http_method
-            )
-            test = self.helpers.request(url.rstrip("/") + "/" + f"*~1*/{file_name}.aspx", method=http_method)
+            control_url = url.rstrip("/") + "/" + f"{dir_name}*~1*/{file_name}.aspx"
+            control = self.helpers.request(control_url, method=http_method)
+            test_url = url.rstrip("/") + "/" + f"*~1*/{file_name}.aspx"
+            test = self.helpers.request(test_url, method=http_method)
             if (control != None) and (test != None):
                 if (control.status_code != 404) and (test.status_code == 404):
                     detected = True

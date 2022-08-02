@@ -92,7 +92,7 @@ agent_url: ''
 # Agent Bearer authentication token
 agent_token: ''
 
-# custom interactsh server settings
+# Custom interactsh server settings
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
