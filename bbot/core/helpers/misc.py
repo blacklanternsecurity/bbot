@@ -599,7 +599,7 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
     paths.sort(key=key, reverse=reverse)
     for path in paths[keep:]:
         try:
-            log.hugewarning(f"Removing {path}")
+            log.debug(f"Removing {path}")
             shutil.rmtree(path)
         except Exception as e:
             msg = f"Failed to delete directory: {path}, {e}"
