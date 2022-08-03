@@ -140,16 +140,6 @@ class WordCloud(dict):
     def default_filename(self):
         return self.parent_helper.scan.home / f"wordcloud.tsv"
 
-    def clean_old(self):
-        files = []
-        for file in self.parent_helper.list_files(
-            self.parent_helper.bbot_home, filter=lambda x: x.name.startswith("wordcloud_")
-        ):
-            files.append((file, file.lstat().st_mtime))
-        files.sort(key=lambda x: x[-1], reverse=True)
-        for file, mtime in files[self.max_backups :]:
-            file.unlink()
-
     def save(self, filename=None, limit=None):
         try:
             if filename is None:
@@ -171,8 +161,6 @@ class WordCloud(dict):
 
             log.warning(f"Failed to save word cloud to {filename}: {e}")
             log.debug(traceback.format_exc())
-        finally:
-            self.clean_old()
 
     def load(self, filename=None):
         if filename is None:

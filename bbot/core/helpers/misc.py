@@ -19,8 +19,8 @@ from urllib.parse import urlparse, quote  # noqa F401
 from hashlib import sha1 as hashlib_sha1
 
 from .url import *  # noqa F401
+from .. import errors
 from .names_generator import random_name  # noqa F401
-from ..errors import DirectoryCreationError
 from .regexes import word_regexes, event_type_regexes
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -503,7 +503,7 @@ def mkdir(path, check_writable=True, raise_error=True):
         return True
     except Exception as e:
         if raise_error:
-            raise DirectoryCreationError(f"Failed to create directory at {path}: {e}")
+            raise errors.DirectoryCreationError(f"Failed to create directory at {path}: {e}")
     finally:
         with suppress(Exception):
             touchfile.unlink()
@@ -546,6 +546,8 @@ def backup_file(filename, max_backups=10):
     """
     rename a file as a backup
 
+    recursively renames files up to max_backups
+
     backup_file("/tmp/test.txt") --> "/tmp/test.0.txt"
     backup_file("/tmp/test.0.txt") --> "/tmp/test.1.txt"
     backup_file("/tmp/test.1.txt") --> "/tmp/test.2.txt"
@@ -563,3 +565,44 @@ def backup_file(filename, max_backups=10):
     if filename.exists():
         filename.rename(destination)
     return destination
+
+
+def latest_mtime(d):
+    """
+    Given a directory, return the latest modified time of any contained file or directory (recursive)
+    Useful for sorting directories by modified time for the purpose of cleanup, etc.
+
+    latest_mtime("~/.bbot/scans/mushy_susan") --> 1659016928.2848816
+    """
+    d = Path(d).resolve()
+    mtimes = []
+    if d.is_dir():
+        to_list = d.glob("**/*")
+    else:
+        to_list = [d]
+    for e in to_list:
+        mtimes.append(e.lstat().st_mtime)
+    return max(mtimes)
+
+
+def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):
+    """
+    Given a directory "d", measure the number of subdirectories and files (matching "filter")
+    And remove (rm -r) the oldest ones past the threshold of "keep"
+
+    clean_old_dirs("~/.bbot/scans", filter=lambda x: x.is_dir() and scan_name_regex.match(x.name))
+    """
+    d = Path(d)
+    if not d.is_dir():
+        return
+    paths = [x for x in d.iterdir() if filter(x)]
+    paths.sort(key=key, reverse=reverse)
+    for path in paths[keep:]:
+        try:
+            log.hugewarning(f"Removing {path}")
+            shutil.rmtree(path)
+        except Exception as e:
+            msg = f"Failed to delete directory: {path}, {e}"
+            if raise_error:
+                raise errors.DirectoryDeletionError()
+            log.warning(msg)
