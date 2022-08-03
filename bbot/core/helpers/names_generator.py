@@ -194,7 +194,6 @@ adjectives = [
     "thoughtful",
     "ticklish",
     "tiny",
-    "tortured",
     "tricky",
     "tufty",
     "twitchy",
