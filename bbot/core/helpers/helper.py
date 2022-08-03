@@ -33,6 +33,8 @@ class ConfigAwareHelper:
         self.temp_dir = self.bbot_home / "temp"
         self.tools_dir = self.bbot_home / "tools"
         self.lib_dir = self.bbot_home / "lib"
+        self.scans_dir = self.bbot_home / "scans"
+        self.keep_old_scans = self.config.get("keep_scans", 20)
         self.mkdir(self.cache_dir)
         self.mkdir(self.temp_dir)
         self.mkdir(self.tools_dir)
@@ -72,6 +74,10 @@ class ConfigAwareHelper:
 
     def empty_temp_dir(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def clean_old_scans(self):
+        _filter = lambda x: x.is_dir() and self.regexes.scan_name_regex.match(x.name)
+        self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
 
     @property
     def scan(self):
