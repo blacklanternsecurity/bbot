@@ -160,7 +160,7 @@ class nuclei(BaseModule):
         for event in events:
             if host in event:
                 return event
-        self.hugewarning("Failed to correlate nuclei result with event")
+        self.warning("Failed to correlate nuclei result with event")
 
     def execute_nuclei(self, nuclei_input, override_tags=""):
 

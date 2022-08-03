@@ -42,8 +42,8 @@ class crobat(BaseModule):
         return False
 
     def abort_if(self, event):
-        # this help weed out unwanted results when scanning IP_RANGES
-        return "in-scope" not in event.tags
+        # this helps weed out unwanted results when scanning IP_RANGES and wildcard domains
+        return "in-scope" not in event.tags or "wildcard" in event.tags
 
     def handle_event(self, event):
         query = self.make_query(event)
@@ -52,8 +52,6 @@ class crobat(BaseModule):
             for hostname in results:
                 if not hostname == event:
                     self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
-                else:
-                    self.debug(f"Excluding self: {hostname}")
 
     def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
