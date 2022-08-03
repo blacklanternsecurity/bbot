@@ -11,7 +11,7 @@ from bbot.core.helpers.threadpool import NamedLock
 
 class sslcert(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
-    produced_events = ["DNS_NAME"]
+    produced_events = ["DNS_NAME", "EMAIL_ADDRESS"]
     flags = ["subdomain-enum", "active", "safe"]
     options = {"timeout": 5.0}
     options_desc = {"timeout": "Socket connect timeout in seconds"}
@@ -42,15 +42,16 @@ class sslcert(BaseModule):
             hosts = list(self.helpers.resolve(_host))
 
         for host in hosts:
-            for h in self.visit_host(host, port):
-                if h is not None and h != event:
-                    self.debug(f"Discovered new domain via SSL certificate parsing: [{h}]")
+            for event_type, event_data in self.visit_host(host, port):
+                if event_data is not None and event_data != event:
+                    self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
                     try:
-                        ssl_event = self.make_event(h, "DNS_NAME", source=event, raise_error=True)
+                        ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
                         if ssl_event:
                             self.emit_event(ssl_event)
                     except ValidationError as e:
-                        self.warning(f"SSL cert at {host}:{port}: {e}")
+                        self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
+                        self.debug(f"Invalid data at {host}:{port}: {e}")
 
     def visit_host(self, host, port):
         host = self.helpers.make_ip_type(host)
@@ -59,7 +60,7 @@ class sslcert(BaseModule):
             with self.hosts_visited_lock:
                 if host_hash in self.hosts_visited:
                     self.debug(f"Already processed {host} on port {port}, skipping")
-                    return
+                    return None, None
                 else:
                     self.hosts_visited.add(host_hash)
 
@@ -77,7 +78,7 @@ class sslcert(BaseModule):
                 sock.connect((host, port))
             except Exception as e:
                 self.debug(f"Error connecting to {host} on port {port}: {e}")
-                return
+                return None, None
             connection = SSL.Connection(context, sock)
             connection.set_tlsext_host_name(self.helpers.smart_encode(host))
             connection.set_connect_state()
@@ -93,14 +94,20 @@ class sslcert(BaseModule):
                     break
             except Exception as e:
                 self.debug(f"Error with SSL handshake on {host} port {port}: {e}")
-                return
+                return None, None
             cert = connection.get_peer_certificate()
             sock.close()
-            subject = cert.get_subject().commonName
+            issuer = cert.get_issuer()
+            if issuer.emailAddress and self.helpers.regexes.email_regex.match(issuer.emailAddress):
+                yield "EMAIL_ADDRESS", issuer.emailAddress
+            subject = cert.get_subject()
+            if subject.emailAddress and self.helpers.regexes.email_regex.match(subject.emailAddress):
+                yield "EMAIL_ADDRESS", subject.emailAddress
+            common_name = subject.commonName
             cert_results = self.get_cert_sans(cert)
-            cert_results.append(str(subject).lstrip("*.").lower())
+            cert_results.append(str(common_name).lstrip("*.").lower())
             for c in set(cert_results):
-                yield c
+                yield "DNS_NAME", c
 
     @staticmethod
     def get_cert_sans(cert):
