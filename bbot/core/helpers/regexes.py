@@ -59,3 +59,4 @@ event_type_regexes = OrderedDict(
 
 event_id_regex = re.compile(r"[0-9a-f]{40}:[A-Z0-9_]+")
 dns_name_regex = re.compile(_dns_name_regex, re.I)
+scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")

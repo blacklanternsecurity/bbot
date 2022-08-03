@@ -33,6 +33,10 @@ class DirectoryCreationError(BBOTError):
     pass
 
 
+class DirectoryDeletionError(BBOTError):
+    pass
+
+
 class NTLMError(BBOTError):
     pass
 

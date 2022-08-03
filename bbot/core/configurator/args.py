@@ -150,7 +150,7 @@ for p in (parser, dummy_parser):
     g2 = deps.add_mutually_exclusive_group()
     g2.add_argument("--no-deps", action="store_true", help="Don't install module dependencies")
     g2.add_argument("--force-deps", action="store_true", help="Force install all module dependencies")
-    g2.add_argument("--retry-deps", action="store_true", help="Retry failed module dependencies")
+    g2.add_argument("--retry-deps", action="store_true", help="Try again to install failed module dependencies")
     g2.add_argument(
         "--ignore-failed-deps", action="store_true", help="Run modules even if they have failed dependencies"
     )

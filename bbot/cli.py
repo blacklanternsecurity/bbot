@@ -96,6 +96,8 @@ def main():
                     force_start=options.force,
                 )
 
+                scan_name = str(scanner.name)
+
                 # enable modules by dependency
                 # this is only a basic surface-level check
                 # todo: recursive dependency graph with networkx or topological sort?
@@ -191,7 +193,6 @@ def main():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
 
-                    scan_name = str(scanner.name)
                     scanner.start()
 
             except Exception:

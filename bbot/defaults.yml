@@ -50,6 +50,8 @@ dns_filter_ptrs: true
 dns_debug: false
 # Whether to verify SSL certificates
 ssl_verify: false
+# How many scan results to keep before cleaning up the older ones
+keep_scans: 20
 # Web user-agent
 user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36
 # Completely ignore URLs with these extensions

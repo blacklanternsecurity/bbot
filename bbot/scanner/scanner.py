@@ -111,6 +111,7 @@ class Scanner:
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
 
         self._prepped = False
+        self._cleanedup = False
 
     def prep(self):
         self.helpers.mkdir(self.home)
@@ -287,8 +288,11 @@ class Scanner:
         self.status = "CLEANING_UP"
         for mod in self.modules.values():
             mod._cleanup()
-        with suppress(Exception):
-            self.home.rmdir()
+        if not self._cleanedup:
+            self._cleanedup = True
+            with suppress(Exception):
+                self.home.rmdir()
+            self.helpers.clean_old_scans()
 
     def in_scope(self, e):
         """
