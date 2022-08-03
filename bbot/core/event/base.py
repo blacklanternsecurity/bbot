@@ -110,7 +110,7 @@ class BaseEvent:
         # internal events are not ingested by output modules
         if not self._dummy:
             # removed this second part because it was making certain sslcert events internal
-            if _internal:# or source._internal:
+            if _internal:  # or source._internal:
                 self.make_internal()
 
         self._resolved = ThreadingEvent()
