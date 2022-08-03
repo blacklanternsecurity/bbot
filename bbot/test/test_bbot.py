@@ -511,6 +511,28 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert "filterme" not in filtered_dict3["modules"]["c99"]
     assert "ipneighbor" not in filtered_dict3["modules"]
 
+    cleaned_dict = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
+    )
+    assert "api_key" not in cleaned_dict["modules"]["c99"]
+    assert "filterme" in cleaned_dict["modules"]["c99"]
+    assert "ipneighbor" in cleaned_dict["modules"]
+
+    cleaned_dict2 = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
+    )
+    assert "c99" not in cleaned_dict2["modules"]
+    assert "ipneighbor" in cleaned_dict2["modules"]
+
+    cleaned_dict3 = helpers.clean_dict(
+        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
+        "key",
+        fuzzy=True,
+    )
+    assert "api_key" not in cleaned_dict3["modules"]["c99"]
+    assert "filterme" in cleaned_dict3["modules"]["c99"]
+    assert "ipneighbor" in cleaned_dict3["modules"]
+
     replaced = helpers.search_format_dict({"asdf": [{"wat": {"here": "{replaceme}!"}}, {500: True}]}, replaceme="asdf")
     assert replaced["asdf"][1][500] == True
     assert replaced["asdf"][0]["wat"]["here"] == "asdf!"

@@ -75,7 +75,8 @@ class DNSHelper:
         }
         """
         results = set()
-        for rdtype, answers in self.resolve_raw(query, **kwargs):
+        raw_results, errors = self.resolve_raw(query, **kwargs)
+        for (rdtype, answers) in raw_results:
             for answer in answers:
                 for _, t in self.extract_targets(answer):
                     results.add(t)
@@ -86,11 +87,11 @@ class DNSHelper:
         if is_ip(query):
             kwargs.pop("type", None)
             kwargs.pop("rdtype", None)
-            return [
-                ("PTR", self._resolve_ip(query, **kwargs)),
-            ]
+            results, errors = self._resolve_ip(query, **kwargs)
+            return [("PTR", results)], [("PTR", e) for e in errors]
         else:
             results = []
+            errors = []
             types = ["A", "AAAA"]
             kwargs.pop("rdtype", None)
             if "type" in kwargs:
@@ -103,54 +104,54 @@ class DNSHelper:
                 elif any([isinstance(t, x) for x in (list, tuple)]):
                     types = [str(_).strip().upper() for _ in t]
             for t in types:
-                r = self._resolve_hostname(query, rdtype=t, **kwargs)
+                r, e = self._resolve_hostname(query, rdtype=t, **kwargs)
                 if r:
                     results.append((t, r))
+                for error in e:
+                    errors.append((t, error))
 
-            return results
+            return results, errors
 
     def _resolve_hostname(self, query, **kwargs):
         self.debug(f"Resolving {query} with kwargs={kwargs}")
         results = []
+        errors = []
         parent = self.parent_helper.parent_domain(query)
         parent_hash = hash(parent)
         error_count = self._errors.get(parent_hash, 0)
-        raise_error = kwargs.pop("raise_error", False)
         if error_count >= self.abort_threshold:
             log.verbose(
                 f'Aborting query "{query}" because failed queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
             )
-            return results
+            return results, errors
         try:
             results = list(self._catch(self.resolver.resolve, query, **kwargs))
             with self._error_lock:
                 if parent_hash in self._errors:
                     self._errors[parent_hash] = 0
-        except (dns.resolver.NoNameservers, dns.exception.Timeout, dns.resolver.LifetimeTimeout):
+        except (dns.resolver.NoNameservers, dns.exception.Timeout, dns.resolver.LifetimeTimeout) as e:
             with self._error_lock:
                 try:
                     self._errors[parent_hash] += 1
                 except KeyError:
                     self._errors[parent_hash] = 1
                 log.verbose(f'DNS error or timeout for query "{query}" ({self._errors[parent_hash]:,} so far)')
-                if raise_error:
-                    raise
+                errors.append(e)
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
-        return results
+        return results, errors
 
     def _resolve_ip(self, query, **kwargs):
         self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
-        raise_error = kwargs.pop("raise_error", False)
         results = []
+        errors = []
         try:
-            return list(self._catch(self.resolver.resolve_address, query, **kwargs))
+            return list(self._catch(self.resolver.resolve_address, query, **kwargs)), errors
         except dns.resolver.NoNameservers as e:
             self.debug(f"{e} (query={query}, kwargs={kwargs})")
-        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout):
-            if raise_error:
-                raise
+        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout) as e:
+            errors.append(e)
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
-        return results
+        return results, errors
 
     def resolve_event(self, event):
         result = self._resolve_event(event)
@@ -198,13 +199,10 @@ class DNSHelper:
                     return children, event_tags, _event_whitelisted, _event_blacklisted
 
                 # then resolve
-                resolved_raw = []
-                try:
-                    resolved_raw = self.resolve_raw(event_host, type="any", raise_error=True)
-                except Exception:
+                resolved_raw, errors = self.resolve_raw(event_host, type="any")
+                if errors:
                     event_tags.add("dns-error")
                 for rdtype, records in resolved_raw:
-
                     event_tags.add("resolved")
                     rdtype = str(rdtype).upper()
                     # whitelisting and blacklist of IPs

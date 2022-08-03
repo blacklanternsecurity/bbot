@@ -445,14 +445,14 @@ def search_format_dict(d, **kwargs):
         return d
 
 
-def filter_dict(d, *key_names, fuzzy=False):
+def filter_dict(d, *key_names, fuzzy=False, invert=False):
     """
     Recursively filter a dictionary based on key names
     filter_dict({"key1": "test", "key2": "asdf"}, key_name=key2)
         --> {"key2": "asdf"}
     """
+    ret = {}
     if isinstance(d, dict):
-        ret = {}
         for key in d:
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
                 ret[key] = copy.deepcopy(d[key])
@@ -460,17 +460,18 @@ def filter_dict(d, *key_names, fuzzy=False):
                 child = filter_dict(d[key], *key_names, fuzzy=fuzzy)
                 if child:
                     ret[key] = child
-        if ret:
-            return ret
-    elif isinstance(d, list):
-        ret = []
-        for entry in d:
-            child = filter_dict(entry, *key_names, fuzzy=fuzzy)
-            if child:
-                ret.append(child)
-        if ret:
-            return ret
-    return None
+    return ret
+
+
+def clean_dict(d, *key_names, fuzzy=False):
+    d = copy.deepcopy(d)
+    if isinstance(d, dict):
+        for key, val in list(d.items()):
+            if key in key_names or (fuzzy and any(k in key for k in key_names)):
+                d.pop(key)
+            else:
+                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy)
+    return d
 
 
 def grouper(iterable, n):
