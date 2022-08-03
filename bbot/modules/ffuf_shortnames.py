@@ -1,7 +1,7 @@
 import random
 import string
 
-from bbot.modules.dangerous.ffuf import ffuf
+from bbot.modules.deadly.ffuf import ffuf
 
 
 class ffuf_shortnames(ffuf):
