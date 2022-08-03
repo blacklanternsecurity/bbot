@@ -169,9 +169,7 @@ def test_events(events, scan, helpers, config):
     assert internal_event1._internal == False
     assert internal_event1._made_internal == False
     internal_event2 = scan.make_event("2.3.4.5", source=internal_event1, internal=True)
-    internal_event3 = scan.make_event("3.4.5.6", source=internal_event2)
-    assert internal_event3._internal == True
-    assert internal_event3._made_internal == True
+    internal_event3 = scan.make_event("3.4.5.6", source=internal_event2, internal=True)
     internal_event4 = scan.make_event("4.5.6.7", source=internal_event3)
     source_trail = internal_event4.make_in_scope()
     assert internal_event4._internal == False
