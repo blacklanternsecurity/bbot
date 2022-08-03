@@ -116,6 +116,7 @@ adjectives = [
     "naughty",
     "nefarious",
     "negligent",
+    "neurotic",
     "normal",
     "nihilistic",
     "overcompensating",

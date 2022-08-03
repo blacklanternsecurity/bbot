@@ -79,6 +79,8 @@ def main():
                     for m, c in module_loader.preloaded().items():
                         if m not in modules:
                             flags = c.get("flags", [])
+                            if "deadly" in flags:
+                                continue
                             for f in options.flags:
                                 if f in flags:
                                     log.verbose(f'Enabling {m} because it has flag "{f}"')
@@ -183,6 +185,15 @@ def main():
                     log_fn(row)
                 if options.list_modules:
                     return
+
+                deadly_modules = [
+                    m[0] for m in module_list if "deadly" in m[-1]["flags"] and m[0] in scanner._scan_modules
+                ]
+                if scanner._scan_modules and deadly_modules:
+                    if not options.allow_deadly:
+                        log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
+                        log.hugewarning(f"Please specify --allow-deadly to continue")
+                        return
 
                 scanner.helpers.word_cloud.load(options.load_wordcloud)
 

@@ -127,6 +127,7 @@ for p in (parser, dummy_parser):
         help="custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'",
         metavar="CONFIG",
     )
+    p.add_argument("--allow-deadly", action="store_true", help='Enable running modules tagged as "deadly"')
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
     p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
