@@ -3,6 +3,7 @@ import ipaddress
 
 from bbot.core.helpers import regexes
 from bbot.core.helpers.url import clean_url
+from bbot.core.helpers.misc import split_host_port, make_netloc
 
 log = logging.getLogger("bbot.core.helpers.")
 
@@ -24,6 +25,15 @@ def validator(func):
 @validator
 def validate_port(port):
     return max(1, min(65535, int(str(port))))
+
+
+@validator
+def validate_open_port(open_port):
+    host, port = split_host_port(open_port)
+    port = validate_port(port)
+    host = validate_host(host)
+    if host and port:
+        return make_netloc(host, port)
 
 
 @validator

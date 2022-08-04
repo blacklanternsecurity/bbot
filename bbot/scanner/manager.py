@@ -130,6 +130,7 @@ class ScanManager:
             if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE"):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
+                source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     source_event.tags.add("target")
                 if not str(event.module) == "speculate":

@@ -442,10 +442,7 @@ class DNS_NAME(BaseEvent):
 
 class OPEN_TCP_PORT(BaseEvent):
     def sanitize_data(self, data):
-        host, port = split_host_port(data)
-        port = validators.validate_port(port)
-        if host and port:
-            return make_netloc(host, port)
+        return validators.validate_open_port(data)
 
     def _host(self):
         host, self._port = split_host_port(self.data)
@@ -596,6 +593,17 @@ class VHOST(DictHostEvent):
         vhost: str
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+
+
+class PROTOCOL(DictHostEvent):
+    class _data_validator(BaseModel):
+        host: str
+        protocol: str
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_open_port)
+
+    def _host(self):
+        host, self._port = split_host_port(self.data["host"])
+        return host
 
 
 def make_event(

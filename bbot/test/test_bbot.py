@@ -459,6 +459,13 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert helpers.host_in_host("evilcorp", "evilcorp.com") == False
     assert helpers.host_in_host("evilcorp.com", "com") == True
 
+    assert tuple(helpers.extract_emails("asdf@asdf.com\nT@t.Com&a=a@a.com__ b@b.com")) == (
+        "asdf@asdf.com",
+        "t@t.com",
+        "a@a.com",
+        "b@b.com",
+    )
+
     assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
@@ -878,6 +885,7 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
     assert all_preloaded["massdns"]["deps"]["ansible"]
 
     for module_name, preloaded in all_preloaded.items():
+        assert preloaded.get("auth_required") in (True, False)
         # either active or passive and never both
         flags = preloaded.get("flags", [])
         if preloaded["type"] == "scan":

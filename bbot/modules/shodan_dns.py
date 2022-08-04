@@ -12,13 +12,14 @@ class shodan_dns(crobat):
     options = {"api_key": ""}
     options_desc = {"api_key": "Shodan API key"}
     flags = ["subdomain-enum", "passive", "safe"]
+    auth_required = True
 
     base_url = "https://api.shodan.io"
 
     def setup(self):
         super().setup()
         self.api_key = self.config.get("api_key", "")
-        if self.api_key:
+        if self.api_secret:
             try:
                 self.ping()
                 self.success(f"API is ready")
@@ -42,3 +43,7 @@ class shodan_dns(crobat):
         if json:
             for hostname in json.get("subdomains"):
                 yield f"{hostname}.{query}"
+
+    @property
+    def api_secret(self):
+        return self.api_key

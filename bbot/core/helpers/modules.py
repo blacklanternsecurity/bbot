@@ -78,6 +78,7 @@ class ModuleLoader:
         shell_deps = []
         apt_deps = []
         ansible_tasks = []
+        auth_required = False
         python_code = open(module_file).read()
         # take a hash of the code so we can keep track of when it changes
         module_hash = sha1(python_code).hexdigest()
@@ -87,6 +88,12 @@ class ModuleLoader:
             # look for classes
             if type(root_element) == ast.ClassDef:
                 for class_attr in root_element.body:
+                    # class attributes that are costants
+                    if type(class_attr) == ast.Assign and type(class_attr.value) == ast.Constant:
+                        # module options
+                        if any([target.id == "auth_required" for target in class_attr.targets]):
+                            auth_required = ast.literal_eval(class_attr.value)
+
                     # class attributes that are dictionaries
                     if type(class_attr) == ast.Assign and type(class_attr.value) == ast.Dict:
                         # module options
@@ -131,6 +138,7 @@ class ModuleLoader:
             "flags": flags,
             "watched_events": watched_events,
             "produced_events": produced_events,
+            "auth_required": auth_required,
             "config": config,
             "hash": module_hash,
             "deps": {"pip": pip_deps, "shell": shell_deps, "apt": apt_deps, "ansible": ansible_tasks},
