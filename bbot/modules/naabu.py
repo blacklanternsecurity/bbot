@@ -9,11 +9,16 @@ class naabu(BaseModule):
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active", "portscan", "aggressive"]
     options = {
+        "ports": "",
+        "top_ports": 100,
         "version": "2.0.7",
     }
     options_desc = {
+        "ports": "ports to scan",
+        "top_ports": "top ports to scan",
         "version": "naabu version",
     }
+    scope_distance_modifier = 0
     max_event_handlers = 2
     batch_size = 100
 
@@ -45,18 +50,11 @@ class naabu(BaseModule):
             },
         },
     ]
-    in_scope_only = True
 
     def handle_batch(self, *events):
 
         _input = [str(e.data) for e in events]
-        command = [
-            "naabu",
-            "-silent",
-            "-json",
-            # "-r",
-            # self.helpers.resolver_file
-        ]
+        command = self.construct_command()
         for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
@@ -79,4 +77,20 @@ class naabu(BaseModule):
                         source_event = event
                         break
 
-            self.emit_event(f"{host}:{port}", "OPEN_TCP_PORT", source_event)
+            self.emit_event(f"{host}:{port}", "OPEN_TCP_PORT", source=source_event)
+
+    def construct_command(self):
+        ports = self.config.get("ports", "")
+        top_ports = self.config.get("top_ports", "")
+        command = [
+            "naabu",
+            "-silent",
+            "-json",
+            # "-r",
+            # self.helpers.resolver_file
+        ]
+        if ports:
+            command += ["-p", ports]
+        else:
+            command += ["-top-ports", top_ports]
+        return command
