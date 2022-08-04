@@ -2,6 +2,7 @@ import random
 
 adjectives = [
     "abnormal",
+    "acrophobic",
     "adhesive",
     "adorable",
     "adversarial",

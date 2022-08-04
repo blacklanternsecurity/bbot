@@ -24,15 +24,13 @@ class censys(shodan_dns):
     def setup(self):
         self.max_records = self.config.get("max_records", 1000)
         self.api_id = self.config.get("api_id", "")
-        self._api_secret = self.config.get("api_secret", "")
-        self._prepped = False
+        self.api_secret = self.config.get("api_secret", "")
         self._cert_name_threshold = 20
         with suppress(Exception):
-            self.hosts = CensysHosts(api_id=self.api_id, api_secret=self._api_secret)
+            self.hosts = CensysHosts(api_id=self.api_id, api_secret=self.api_secret)
         with suppress(Exception):
-            self.certificates = CensysCertificates(api_id=self.api_id, api_secret=self._api_secret)
-        ret = super().setup()
-        return ret
+            self.certificates = CensysCertificates(api_id=self.api_id, api_secret=self.api_secret)
+        return super().setup()
 
     def ping(self):
         quota = self.certificates.quota()
@@ -109,15 +107,12 @@ class censys(shodan_dns):
                 port_data = self.helpers.make_netloc(ip, port)
                 port_type = f"OPEN_{transport_protocol.upper()}_PORT"
                 port_event = self.make_event(port_data, port_type, source=ip_event)
-                port_event.scope_distance = ip_event.scope_distance
                 self.emit_event(port_event)
                 if service_name:
                     service_name = str(service_name).upper()
                     protocol_data = {"host": port_data, "protocol": service_name}
-                    protocol_event = self.make_event(protocol_data, "PROTOCOL", source=port_event)
-                    protocol_event.scope_distance = port_event.scope_distance
-                    self.emit_event(protocol_event)
+                    self.emit_event(protocol_data, "PROTOCOL", source=port_event)
 
     @property
-    def api_secret(self):
-        return self.api_id and self._api_secret
+    def auth_secret(self):
+        return self.api_id and self.api_secret

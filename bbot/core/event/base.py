@@ -87,12 +87,6 @@ class BaseEvent:
 
         self._scope_distance = -1
 
-        self._source = None
-        self.source_id = None
-        self.source = source
-        if (not self.source) and (not self._dummy):
-            raise ValidationError(f"Must specify event source")
-
         try:
             self.data = self._sanitize_data(data)
         except Exception as e:
@@ -103,6 +97,12 @@ class BaseEvent:
 
         if not self.data:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
+
+        self._source = None
+        self.source_id = None
+        self.source = source
+        if (not self.source) and (not self._dummy):
+            raise ValidationError(f"Must specify event source")
 
         if not self._dummy:
             self._setup()
@@ -201,7 +201,10 @@ class BaseEvent:
         if is_event(source):
             self._source = source
             if source.scope_distance >= 0 and source != self:
-                new_scope_distance = source.scope_distance + 1
+                new_scope_distance = int(source.scope_distance)
+                # only increment the scope distance if the host changes
+                if not self.host == source.host:
+                    new_scope_distance += 1
                 self.scope_distance = new_scope_distance
             self.source_id = str(source.id)
         elif not self._dummy:

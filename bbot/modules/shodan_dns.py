@@ -19,7 +19,7 @@ class shodan_dns(crobat):
     def setup(self):
         super().setup()
         self.api_key = self.config.get("api_key", "")
-        if self.api_secret:
+        if self.auth_secret:
             try:
                 self.ping()
                 self.success(f"API is ready")
@@ -45,5 +45,5 @@ class shodan_dns(crobat):
                 yield f"{hostname}.{query}"
 
     @property
-    def api_secret(self):
+    def auth_secret(self):
         return self.api_key
