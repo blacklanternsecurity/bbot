@@ -26,6 +26,7 @@ class censys(shodan_dns):
         self.api_id = self.config.get("api_id", "")
         self._api_secret = self.config.get("api_secret", "")
         self._prepped = False
+        self._cert_name_threshold = 20
         with suppress(Exception):
             self.hosts = CensysHosts(api_id=self.api_id, api_secret=self._api_secret)
         with suppress(Exception):
@@ -50,7 +51,13 @@ class censys(shodan_dns):
             for result in self.certificates.search(
                 certificate_query, fields=certificate_fields, max_records=self.max_records
             ):
-                dns_names.update(set([n.lstrip(".*").rstrip(".").lower() for n in result.get("parsed.names")]))
+                parsed_names = result.get("parsed.names", [])
+                _filter = lambda x: True
+                if len(parsed_names) > self._cert_name_threshold:
+                    _filter = lambda x: query in str(x.lower())
+                parsed_names = list(filter(_filter, parsed_names))
+                self.hugesuccess(parsed_names)
+                dns_names.update(set([n.lstrip(".*").rstrip(".").lower() for n in parsed_names]))
                 emails.update(set(self.helpers.extract_emails(result.get("parsed.issuer_dn", ""))))
                 emails.update(set(self.helpers.extract_emails(result.get("parsed.subject_dn", ""))))
 
@@ -112,4 +119,4 @@ class censys(shodan_dns):
 
     @property
     def api_secret(self):
-        return self.api_id and self.api_secret
+        return self.api_id and self._api_secret
