@@ -52,11 +52,12 @@ class censys(shodan_dns):
                 certificate_query, fields=certificate_fields, max_records=self.max_records
             ):
                 parsed_names = result.get("parsed.names", [])
+                # helps filter out third-party certs with a lot of garbage names
                 _filter = lambda x: True
+                domain = self.helpers.tldextract(query).domain
                 if len(parsed_names) > self._cert_name_threshold:
-                    _filter = lambda x: query in str(x.lower())
+                    _filter = lambda x: domain in str(x.lower())
                 parsed_names = list(filter(_filter, parsed_names))
-                self.hugesuccess(parsed_names)
                 dns_names.update(set([n.lstrip(".*").rstrip(".").lower() for n in parsed_names]))
                 emails.update(set(self.helpers.extract_emails(result.get("parsed.issuer_dn", ""))))
                 emails.update(set(self.helpers.extract_emails(result.get("parsed.subject_dn", ""))))
