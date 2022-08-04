@@ -11,6 +11,7 @@ class zoomeye(shodan_dns):
         "max_pages": "How many pages of results to fetch",
         "include_related": "Include domains which may be related to the target",
     }
+    auth_required = True
 
     base_url = "https://api.zoomeye.org"
 

@@ -19,6 +19,8 @@ class BaseModule:
     produced_events = []
     # Flags, must include either "passive" or "active"
     flags = []
+    # Whether the module requires an API key
+    auth_required = False
     # python dependencies (pip install ____)
     deps_pip = []
     # apt dependencies (apt install ____)

@@ -8,6 +8,7 @@ class securitytrails(shodan_dns):
     flags = ["subdomain-enum", "passive", "safe"]
     options = {"api_key": ""}
     options_desc = {"api_key": "SecurityTrails API key"}
+    auth_required = True
 
     base_url = "https://api.securitytrails.com/v1"
 

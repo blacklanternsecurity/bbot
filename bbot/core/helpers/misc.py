@@ -19,9 +19,9 @@ from urllib.parse import urlparse, quote  # noqa F401
 from hashlib import sha1 as hashlib_sha1
 
 from .url import *  # noqa F401
+from . import regexes
 from .. import errors
 from .names_generator import random_name  # noqa F401
-from .regexes import word_regexes, event_type_regexes
 
 log = logging.getLogger("bbot.core.helpers.misc")
 
@@ -50,7 +50,7 @@ def is_subdomain(d):
 
 def is_url(u):
     u = str(u)
-    for r in event_type_regexes["URL"]:
+    for r in regexes.event_type_regexes["URL"]:
         if r.match(u):
             return True
     return False
@@ -266,7 +266,7 @@ def extract_words(data, max_length=100):
     words = set()
     data = smart_decode(data)
 
-    for r in word_regexes:
+    for r in regexes.word_regexes:
         for word in set(r.findall(data)):
             # blacklanternsecurity
             if len(word) <= max_length:
@@ -607,3 +607,8 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
             if raise_error:
                 raise errors.DirectoryDeletionError()
             log.warning(msg)
+
+
+def extract_emails(s):
+    for email in regexes.email_regex.findall(smart_decode(s)):
+        yield email.lower()

@@ -178,7 +178,7 @@ def main():
                         produced_events = sorted(preloaded.get("produced_events", []))
                         flags = sorted(preloaded.get("flags", []))
                         api_key_required = ""
-                        if "api_key" in preloaded.get("config", {}):
+                        if preloaded.get("auth_required", False):
                             api_key_required = "X"
                         table.append([module_name, api_key_required, ",".join(produced_events), ",".join(flags)])
                 for row in scanner.helpers.make_table(table, header).splitlines():
