@@ -8,6 +8,7 @@ class hunterio(shodan_dns):
     flags = ["passive", "subdomain-enum", "safe"]
     options = {"api_key": ""}
     options_desc = {"api_key": "Hunter.IO API key"}
+    auth_required = True
 
     base_url = "https://api.hunter.io/v2"
 

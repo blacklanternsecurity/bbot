@@ -7,6 +7,7 @@ class c99(shodan_dns):
     flags = ["subdomain-enum", "passive", "safe"]
     options = {"api_key": ""}
     options_desc = {"api_key": "c99.nl API key"}
+    auth_required = True
 
     base_url = "https://api.c99.nl"
 

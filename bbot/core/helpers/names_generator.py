@@ -1,6 +1,7 @@
 import random
 
 adjectives = [
+    "abnormal",
     "adhesive",
     "adorable",
     "adversarial",
@@ -27,7 +28,6 @@ adjectives = [
     "creamy",
     "crispy",
     "crumbly",
-    "crunchy",
     "cryptic",
     "cuddly",
     "cute",
@@ -49,6 +49,7 @@ adjectives = [
     "dramatic",
     "drunk",
     "effeminate",
+    "eldritch",
     "embarrassed",
     "enigmatic",
     "enlightened",
@@ -64,7 +65,9 @@ adjectives = [
     "fierce",
     "fleecy",
     "flirtatious",
+    "foreboding",
     "frenetic",
+    "frolicking",
     "frothy",
     "furry",
     "fuzzy",
@@ -200,7 +203,9 @@ adjectives = [
     "ugly",
     "unabated",
     "unexplained",
+    "unhinged",
     "unholy",
+    "unleashed",
     "unmedicated",
     "unmelted",
     "unmitigated",
