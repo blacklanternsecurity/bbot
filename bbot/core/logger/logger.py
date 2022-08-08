@@ -3,8 +3,8 @@ import atexit
 import logging
 from copy import copy
 from pathlib import Path
+from queue import SimpleQueue
 from contextlib import suppress
-from multiprocessing import Queue
 from logging.handlers import QueueHandler, QueueListener
 
 from ..configurator import config
@@ -112,13 +112,13 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
 
 
 # custom logging levels
+addLoggingLevel("STDOUT", 100)
 addLoggingLevel("HUGEWARNING", 31)
 addLoggingLevel("HUGESUCCESS", 26)
 addLoggingLevel("SUCCESS", 25)
 addLoggingLevel("HUGEINFO", 21)
 addLoggingLevel("HUGEVERBOSE", 16)
 addLoggingLevel("VERBOSE", 15)
-addLoggingLevel("STDOUT", 1)
 
 
 def stop_listener(listener):
@@ -130,10 +130,11 @@ def log_worker_setup(logging_queue):
     """
     This needs to be run whenever a new multiprocessing.Process() is spawned
     """
+    log_level = get_log_level()
     log = logging.getLogger("bbot")
     # Don't do this more than once
     if len(log.handlers) == 0:
-        log.setLevel(1)
+        log.setLevel(log_level)
         queue_handler = QueueHandler(logging_queue)
         log.addHandler(queue_handler)
     return log
@@ -161,19 +162,12 @@ def log_listener_setup(logging_queue):
         f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
     )
 
-    # Filter by log level
-    from bbot.core.configurator.args import cli_options
+    log_level = get_log_level()
 
-    stderr_loglevel = logging.INFO
-    if cli_options is not None:
-        if cli_options.verbose:
-            stderr_loglevel = logging.VERBOSE
-        if cli_options.debug:
-            stderr_loglevel = logging.DEBUG
-    stderr_handler.addFilter(lambda x: x.levelno >= stderr_loglevel)
-    stdout_handler.addFilter(lambda x: x.levelno == 1)
-    debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
-    main_handler.addFilter(lambda x: x.levelno >= logging.VERBOSE)
+    stderr_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= log_level)
+    stdout_handler.addFilter(lambda x: x.levelno == logging.STDOUT)
+    debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
+    main_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.VERBOSE)
 
     # Set log format
     debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
@@ -202,8 +196,20 @@ def init_logging():
     Initializes logging, returns logging queue and dictionary containing log handlers
     """
 
-    logging_queue = Queue()
+    logging_queue = SimpleQueue()
     handlers = log_listener_setup(logging_queue)
     log_worker_setup(logging_queue)
 
     return logging_queue, handlers
+
+
+def get_log_level():
+    from bbot.core.configurator.args import cli_options
+
+    loglevel = logging.INFO
+    if cli_options is not None:
+        if cli_options.verbose:
+            loglevel = logging.VERBOSE
+        if cli_options.debug:
+            loglevel = logging.DEBUG
+    return loglevel

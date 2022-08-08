@@ -12,13 +12,18 @@ from bbot.modules import module_loader
 
 log = logging.getLogger(f"bbot.test")
 
+# silence stdout
+root_logger = logging.getLogger()
+for h in root_logger.handlers:
+    h.addFilter(lambda x: x.levelno != 100)
+
 os.environ["BBOT_SUDO_PASS"] = "nah"
 
 available_modules = list(module_loader.configs(type="scan"))
 available_output_modules = list(module_loader.configs(type="output"))
 
 
-def test_events(events, scan, helpers, config):
+def test_events(events, scan, helpers, bbot_config):
 
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
@@ -229,13 +234,13 @@ def test_events(events, scan, helpers, config):
         )
 
 
-def test_manager(config):
+def test_manager(bbot_config):
     from bbot.scanner import Scanner
 
     # test _emit_event
     results = []
     success_callback = lambda e: results.append("success")
-    scan1 = Scanner("127.0.0.1", config=config)
+    scan1 = Scanner("127.0.0.1", config=bbot_config)
     scan1.status = "RUNNING"
     scan1.manager.queue_event = lambda e: results.append(e)
     manager = scan1.manager
@@ -295,7 +300,7 @@ def test_manager(config):
     output_queue = []
     module_queue = []
     manager_queue = []
-    scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["json"], config=config)
+    scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["json"], config=bbot_config)
     scan1.load_modules()
     manager = scan1.manager
     test_event1 = scan1.make_event("1.2.3.4", source=scan1.root_event)
@@ -767,7 +772,7 @@ def test_dns_resolvers(patch_requests, helpers):
     assert hasattr(helpers.dns.mass_resolver_file, "is_file")
 
 
-def test_word_cloud(helpers, config):
+def test_word_cloud(helpers, bbot_config):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
     assert "base0_p013" in number_mutations
     assert "base7_p013" in number_mutations
@@ -785,7 +790,7 @@ def test_word_cloud(helpers, config):
     # saving and loading
     from bbot.scanner.scanner import Scanner
 
-    scan1 = Scanner("127.0.0.1", config=config)
+    scan1 = Scanner("127.0.0.1", config=bbot_config)
     word_cloud = scan1.helpers.word_cloud
     word_cloud.add_word("lantern")
     word_cloud.add_word("black")
@@ -810,7 +815,7 @@ def test_word_cloud(helpers, config):
     assert word_cloud["rumbus"] == 1
 
 
-def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
+def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_config):
 
     # base module _filter_event()
     from bbot.modules.base import BaseModule
@@ -864,7 +869,7 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
 
     from bbot.scanner.scanner import Scanner
 
-    scan2 = Scanner(modules=list(available_modules), output_modules=list(available_output_modules), config=config)
+    scan2 = Scanner(modules=list(available_modules), output_modules=list(available_output_modules), config=bbot_config)
     scan2.load_modules()
 
     # attributes, descriptions, etc.
@@ -1005,10 +1010,10 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, config):
         assert module.filter_event(events.emoji) in (True, False)
 
 
-def test_config(config):
+def test_config(bbot_config):
     from bbot.scanner.scanner import Scanner
 
-    scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], config=config)
+    scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     scan1.load_modules()
     assert scan1.config.plumbus == "asdf"
     assert scan1.modules["ipneighbor"].config.test_option == "ipneighbor"
@@ -1016,14 +1021,14 @@ def test_config(config):
     assert scan1.modules["speculate"].config.test_option == "speculate"
 
 
-def test_target(neuter_ansible, patch_requests, patch_commands, config):
+def test_target(neuter_ansible, patch_requests, patch_commands, bbot_config):
     from bbot.scanner.scanner import Scanner
 
-    scan1 = Scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126", config=config)
-    scan2 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=config)
-    scan3 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=config)
-    scan4 = Scanner("8.8.8.8/29", config=config)
-    scan5 = Scanner(config=config)
+    scan1 = Scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126", config=bbot_config)
+    scan2 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
+    scan3 = Scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
+    scan4 = Scanner("8.8.8.8/29", config=bbot_config)
+    scan5 = Scanner(config=bbot_config)
     assert not scan5.target
     assert len(scan1.target) == 9
     assert len(scan4.target) == 8
@@ -1050,10 +1055,10 @@ def test_target(neuter_ansible, patch_requests, patch_commands, config):
     assert scan4.target != scan1.target
 
 
-def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, helpers, neograph):
+def test_scan(neuter_ansible, patch_requests, patch_commands, events, bbot_config, helpers, neograph):
     from bbot.scanner.scanner import Scanner
 
-    scan0 = Scanner("8.8.8.8/31", "evilcorp.com", blacklist=["8.8.8.8/28", "www.evilcorp.com"], config=config)
+    scan0 = Scanner("8.8.8.8/31", "evilcorp.com", blacklist=["8.8.8.8/28", "www.evilcorp.com"], config=bbot_config)
     assert scan0.whitelisted("8.8.8.8")
     assert scan0.whitelisted("8.8.8.9")
     assert scan0.blacklisted("8.8.8.15")
@@ -1069,7 +1074,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     assert not scan0.in_scope("test.www.evilcorp.com")
     assert not scan0.in_scope("www.evilcorp.co.uk")
 
-    scan1 = Scanner("8.8.8.8", whitelist=["8.8.4.4"], config=config)
+    scan1 = Scanner("8.8.8.8", whitelist=["8.8.4.4"], config=bbot_config)
     assert not scan1.blacklisted("8.8.8.8")
     assert not scan1.blacklisted("8.8.4.4")
     assert not scan1.whitelisted("8.8.8.8")
@@ -1077,7 +1082,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
     assert scan1.in_scope("8.8.4.4")
     assert not scan1.in_scope("8.8.8.8")
 
-    scan2 = Scanner("8.8.8.8", config=config)
+    scan2 = Scanner("8.8.8.8", config=bbot_config)
     assert not scan2.blacklisted("8.8.8.8")
     assert not scan2.blacklisted("8.8.4.4")
     assert scan2.whitelisted("8.8.8.8")
@@ -1093,7 +1098,7 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, config, he
         "http://[::1]:8080",
         modules=["ipneighbor"],
         output_modules=list(available_output_modules),
-        config=config,
+        config=bbot_config,
         blacklist=["http://127.0.0.3:8000/asdf"],
         whitelist=["127.0.0.0/29"],
     )
@@ -1143,16 +1148,16 @@ def test_agent(agent):
     agent.stop_scan()
 
 
-def test_cli(monkeypatch, config):
+def test_cli(monkeypatch, bbot_config):
 
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(cli, "config", config)
+    monkeypatch.setattr(cli, "config", bbot_config)
     monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config", "-t", "127.0.0.1", "-m", "ipneighbor"])
     cli.main()
 
-    home_dir = Path(config["home"])
+    home_dir = Path(bbot_config["home"])
     monkeypatch.setattr(
         sys,
         "argv",
@@ -1170,7 +1175,7 @@ def test_cli(monkeypatch, config):
         assert len(lines) > 1
 
 
-def test_depsinstaller(monkeypatch, neuter_ansible, config):
+def test_depsinstaller(monkeypatch, neuter_ansible, bbot_config):
     # un-neuter ansible
     from bbot.core.helpers.depsinstaller import installer
 
@@ -1184,7 +1189,7 @@ def test_depsinstaller(monkeypatch, neuter_ansible, config):
     scan = Scanner(
         "127.0.0.1",
         modules=["dnsresolve"],
-        config=config,
+        config=bbot_config,
     )
 
     # test shell

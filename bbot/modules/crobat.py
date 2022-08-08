@@ -22,6 +22,8 @@ class crobat(BaseModule):
         Accept DNS_NAMEs that are either directly targets, or indirectly
         in scope by resolving to in-scope IPs.
 
+        Kill wildcards with fire.
+
         This filter_event is used across many modules
         """
         if any(t in event.tags for t in ("dns-error", "unresolved")):
@@ -29,7 +31,7 @@ class crobat(BaseModule):
         query = self.make_query(event)
         if self.already_processed(query):
             return False
-        is_wildcard, _ = self.helpers.is_wildcard(query)
+        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string()}.{query}")
         if is_wildcard:
             return False
         self.processed.add(hash(query))

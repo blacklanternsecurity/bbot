@@ -59,7 +59,7 @@ def neuter_ansible(monkeypatch):
 
 
 @pytest.fixture
-def config():
+def bbot_config():
     from bbot import config as default_config
 
     test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
@@ -68,10 +68,10 @@ def config():
 
 
 @pytest.fixture
-def scan(neuter_ansible, patch_requests, patch_commands, config):
+def scan(neuter_ansible, patch_requests, patch_commands, bbot_config):
     from bbot.scanner import Scanner
 
-    bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=config)
+    bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     return bbot_scan
 
 
