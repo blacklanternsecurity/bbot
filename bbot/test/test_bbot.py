@@ -368,6 +368,24 @@ def test_manager(bbot_config):
     assert test_event3 in output_queue
 
 
+def test_curl(helpers):
+
+    helpers.curl()
+    helpers.curl(url="http://www.example.com", ignore_bbot_global_settings=True)
+    helpers.curl(url="http://www.example.com", head_mode=True)
+    helpers.curl(url="http://www.example.com", raw_body=True)
+    helpers.curl(
+        url="http://www.example.com",
+        raw_path=True,
+        headers={"test": "test", "test2": ["test2"]},
+        ignore_bbot_global_settings=False,
+        post_data={"test": "test"},
+        method="POST",
+        cookies={"test": "test"},
+        path_override="/index.html",
+    )
+
+
 def test_helpers(patch_requests, patch_commands, helpers, scan):
 
     old_run, old_run_live = patch_commands
@@ -746,6 +764,27 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert event_whitelisted1 == event_whitelisted2
     assert event_blacklisted1 == event_blacklisted2
 
+    msg = "Ignore this error, it's supposed to be here"
+
+    def raise_e():
+        raise Exception(msg)
+
+    def raise_k():
+        raise KeyboardInterrupt(msg)
+
+    def raise_s():
+        raise ScanCancelledError(msg)
+
+    def raise_b():
+        raise BrokenPipeError(msg)
+
+    helpers.dns._catch_keyboardinterrupt(raise_e)
+    helpers.dns._catch_keyboardinterrupt(raise_k)
+    scan.manager.catch(raise_e, _on_finish_callback=raise_e)
+    scan.manager.catch(raise_k)
+    scan.manager.catch(raise_s)
+    scan.manager.catch(raise_b)
+
     ## NTLM
     testheader = "TlRMTVNTUAACAAAAHgAeADgAAAAVgorilwL+bvnVipUAAAAAAAAAAJgAmABWAAAACgBjRQAAAA9XAEkATgAtAFMANAAyAE4ATwBCAEQAVgBUAEsAOAACAB4AVwBJAE4ALQBTADQAMgBOAE8AQgBEAFYAVABLADgAAQAeAFcASQBOAC0AUwA0ADIATgBPAEIARABWAFQASwA4AAQAHgBXAEkATgAtAFMANAAyAE4ATwBCAEQAVgBUAEsAOAADAB4AVwBJAE4ALQBTADQAMgBOAE8AQgBEAFYAVABLADgABwAIAHUwOZlfoNgBAAAAAA=="
     decoded = helpers.ntlm.ntlmdecode(testheader)
@@ -871,6 +910,7 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
 
     scan2 = Scanner(modules=list(available_modules), output_modules=list(available_output_modules), config=bbot_config)
     scan2.load_modules()
+    scan2.status = "RUNNING"
 
     # attributes, descriptions, etc.
     for module_name, module in scan2.modules.items():

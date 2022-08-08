@@ -576,7 +576,7 @@ def latest_mtime(d):
     latest_mtime("~/.bbot/scans/mushy_susan") --> 1659016928.2848816
     """
     d = Path(d).resolve()
-    mtimes = []
+    mtimes = [d.lstat().st_mtime]
     if d.is_dir():
         to_list = d.glob("**/*")
     else:
