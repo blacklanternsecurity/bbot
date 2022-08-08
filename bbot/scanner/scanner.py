@@ -261,7 +261,7 @@ class Scanner:
     def stop(self, wait=False):
         if self.status != "ABORTING":
             self.status = "ABORTING"
-            self.warning(f"Aborting scan")
+            self.hugewarning(f"Aborting scan")
             for i in range(max(10, self.max_brute_forcers * 10)):
                 self._brute_lock.release()
             self.helpers.kill_children()

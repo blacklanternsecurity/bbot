@@ -156,6 +156,10 @@ class ScanManager:
 
             log.debug(traceback.format_exc())
 
+        finally:
+            with suppress(Exception):
+                event.module._event_semaphore.release()
+
     def hash_event(self, event):
         """
         Hash an event for duplicate detection
@@ -376,12 +380,14 @@ class ScanManager:
         modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
 
         if _log:
-            events_queued = [(m, s["events"]["queued"]) for m, s in status["modules"].items()]
-            events_queued.sort(key=lambda x: x[-1], reverse=True)
-            events_queued = [(m, q) for m, q in events_queued if q > 0][:5]
+            events_queued = [
+                (m, (s["events"]["incoming"], s["events"]["outgoing"])) for m, s in status["modules"].items()
+            ]
+            events_queued.sort(key=lambda x: sum(x[-1]), reverse=True)
+            events_queued = [(m, q) for m, q in events_queued if sum(q) > 0][:5]
             events_queued_str = ""
             if events_queued:
-                events_queued_str = " (" + ", ".join([f"{m}: {q:,}" for m, q in events_queued]) + ")"
+                events_queued_str = " (" + ", ".join([f"{m}: I:{i:,} O:{o:,}" for m, (i, o) in events_queued]) + ")"
             tasks_queued = [(m, s["tasks"]["total"]) for m, s in status["modules"].items()]
             tasks_queued.sort(key=lambda x: x[-1], reverse=True)
             tasks_queued = [(m, q) for m, q in tasks_queued if q > 0][:5]
@@ -389,7 +395,7 @@ class ScanManager:
             if tasks_queued:
                 tasks_queued_str = " (" + ", ".join([f"{m}: {q:,}" for m, q in tasks_queued]) + ")"
 
-            num_events_queued = sum([m[-1] for m in events_queued])
+            num_events_queued = sum([sum(m[-1]) for m in events_queued])
             self.scan.verbose(f"Events queued: {num_events_queued:,}{events_queued_str}")
 
             num_tasks_queued = sum([m[-1] for m in tasks_queued])

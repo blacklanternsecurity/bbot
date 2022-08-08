@@ -18,7 +18,6 @@ class naabu(BaseModule):
         "top_ports": "top ports to scan",
         "version": "naabu version",
     }
-    scope_distance_modifier = 0
     max_event_handlers = 2
     batch_size = 100
 

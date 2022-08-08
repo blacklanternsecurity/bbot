@@ -181,14 +181,12 @@ class DNSHelper:
                 event_blacklisted = False
 
                 # wildcard check first
-                if check_wildcard and not is_ip(event_host):
+                if check_wildcard:
                     event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
                     if event_is_wildcard and event.type in ("DNS_NAME",):
                         event.data = wildcard_parent
-                        # clear event.id
-                        event._id = None
                         return (event,)
-                elif not check_wildcard:
+                else:
                     event_tags.add("wildcard")
 
                 # try to get data from cache
@@ -292,6 +290,7 @@ class DNSHelper:
             nameservers_json = json.loads(open(nameservers_file).read())
         except Exception as e:
             log.warning(f"Failed to load nameserver list from {nameservers_file}: {e}")
+            nameservers_file.unlink()
         for entry in nameservers_json:
             try:
                 ip = str(entry.get("ip", "")).strip()
@@ -430,10 +429,12 @@ class DNSHelper:
 
     def _is_wildcard(self, query):
         parent = parent_domain(query)
+
+        # try to return from cache
+        with suppress(KeyError):
+            return self._wildcard_cache[parent], parent
+
         with self._wildcard_lock.get_lock(parent):
-            # try to return from cache
-            with suppress(KeyError):
-                return self._wildcard_cache[parent], parent
 
             # resolve the base query
             orig_results = self.resolve(query)

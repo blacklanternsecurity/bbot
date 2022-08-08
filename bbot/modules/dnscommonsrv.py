@@ -94,7 +94,13 @@ class dnscommonsrv(BaseModule):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    max_event_handlers = 10
+    max_event_handlers = 5
+
+    def filter_event(self, event):
+        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string()}.{event.host}")
+        if is_wildcard:
+            return False
+        return True
 
     def handle_event(self, event):
         queries = [event.data] + [f"{srv}.{event.data}" for srv in common_srvs]
