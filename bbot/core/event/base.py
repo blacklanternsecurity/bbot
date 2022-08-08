@@ -315,8 +315,9 @@ class BaseEvent:
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
-        j["scope_distance"] = self.scope_distance
+        j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
+        j["scope_distance"] = self.scope_distance
         source = self.get_source()
         source_id = getattr(source, "id", "")
         if source_id:
@@ -327,7 +328,7 @@ class BaseEvent:
             j.update({"module": str(self.module)})
         # normalize non-primitive python objects
         for k, v in list(j.items()):
-            if type(v) not in (str, int, bool, list, type(None)):
+            if type(v) not in (str, int, float, bool, list, type(None)):
                 try:
                     j[k] = json.dumps(v)
                 except Exception:

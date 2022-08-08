@@ -225,7 +225,7 @@ def main():
     except Exception:
         import traceback
 
-        log.error(f"Encountered unknown error: {traceback.format_exc()}")
+        log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level=logging.ERROR)
         err = True
 
     except KeyboardInterrupt:
