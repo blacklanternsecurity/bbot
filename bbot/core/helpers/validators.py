@@ -55,6 +55,7 @@ def validate_host(host):
             return str(ip)
         except Exception:
             # finally, try DNS_NAME
+            host = host.lstrip("*.")
             for r in regexes.event_type_regexes["DNS_NAME"]:
                 if r.match(host):
                     return host

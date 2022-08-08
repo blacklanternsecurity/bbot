@@ -35,6 +35,7 @@ from . import config
 
 def main():
 
+    err = False
     scan_name = ""
 
     try:
@@ -217,21 +218,26 @@ def main():
     except bbot.core.errors.BBOTError as e:
         import traceback
 
-        log.error(e)
-        log.debug(traceback.format_exc())
-        sys.exit(2)
+        log_to_stderr(e, level=logging.ERROR)
+        log_to_stderr(traceback.format_exc(), level=logging.DEBUG)
+        err = True
 
     except Exception:
         import traceback
 
         log.error(f"Encountered unknown error: {traceback.format_exc()}")
+        err = True
 
     except KeyboardInterrupt:
         msg = "Interrupted"
         if scan_name:
             msg = f"You killed {scan_name}"
         log_to_stderr(msg, level=logging.ERROR)
-        os._exit(1)
+        err = True
+
+    finally:
+        if err:
+            os._exit(1)
 
 
 if __name__ == "__main__":

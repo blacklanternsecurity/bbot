@@ -123,6 +123,8 @@ class BaseEvent:
     def data(self, data):
         self._hash = None
         self._id = None
+        self.__host = None
+        self._port = None
         self._data = data
 
     @property
