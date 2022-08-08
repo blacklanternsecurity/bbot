@@ -46,7 +46,7 @@ def is_event_id(s):
 
 
 def make_event_id(data, event_type):
-    return f"{sha1(data).hexdigest()}:{event_type}"
+    return f"{event_type}:{sha1(data).hexdigest()}"
 
 
 host_types = ("URL", "DNS_NAME", "EMAIL_ADDRESS")

@@ -1,6 +1,5 @@
 import logging
 import threading
-from uuid import uuid4
 from pathlib import Path
 import concurrent.futures
 from omegaconf import OmegaConf
@@ -13,6 +12,7 @@ from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.modules import module_loader
 from bbot.core.event import make_event
+from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.threadpool import ThreadPoolWrapper
@@ -53,7 +53,7 @@ class Scanner:
         if scan_id is not None:
             self.id = str(scan_id)
         else:
-            self.id = str(uuid4())
+            self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
         self._status = "NOT_STARTED"
 
         # Set up thread pools
@@ -374,6 +374,7 @@ class Scanner:
     @property
     def root_event(self):
         root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
+        root_event._id = self.id
         root_event.scope_distance = 0
         root_event._resolved.set()
         root_event.source = root_event

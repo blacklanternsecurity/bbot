@@ -1,7 +1,14 @@
 import py2neo
 import logging
+from datetime import datetime
 
 log = logging.getLogger("bbot.db.neo4j")
+
+# py2neo_logger = logging.getLogger()
+# py2neo_logger.setLevel(logging.DEBUG)
+# py2neo_logger.handlers = log.handlers
+
+# logging.basicConfig(level=logging.DEBUG, format="%(message)s")
 
 
 class Neo4j:
@@ -18,13 +25,14 @@ class Neo4j:
         if not source_id:
             log.warning(f"Skipping event without source: {event}")
             return
-        source_type = source_id.split(":")[-1]
+        source_type = source_id.split(":")[0]
         source_node = self.make_node({"type": source_type, "id": source_id})
 
         module = event_json.pop("module", "TARGET")
+        timestamp = datetime.fromtimestamp(event_json.pop("timestamp"))
         event_node = self.make_node(event_json)
 
-        relationship = py2neo.Relationship(source_node, module, event_node)
+        relationship = py2neo.Relationship(source_node, module, event_node, timestamp=timestamp)
         self.graph.merge(relationship)
 
     def insert_events(self, events):
@@ -46,12 +54,13 @@ class Neo4j:
             for dest_event in event_list:
                 module = dest_event.pop("module", "TARGET")
                 source_id = dest_event["source"]
-                source_type = source_id.split(":")[-1]
+                source_type = source_id.split(":")[0]
                 try:
                     source_event = event_nodes[source_id]
                 except KeyError:
                     source_event = self.make_node({"type": source_type, "id": source_id})
-                relation = py2neo.Relationship(source_event, module, dest_event)
+                timestamp = datetime.fromtimestamp(dest_event.pop("timestamp"))
+                relation = py2neo.Relationship(source_event, module, dest_event, timestamp=timestamp)
                 subgraph = subgraph | relation
 
             self.graph.merge(subgraph)
@@ -61,6 +70,6 @@ class Neo4j:
         event = dict(event)
         event_type = event.pop("type")
         event_node = py2neo.Node(event_type, **event)
-        event_node.__primarylabel__ = "data"
+        event_node.__primarylabel__ = event_type
         event_node.__primarykey__ = "id"
         return event_node

@@ -51,7 +51,8 @@ class DepsInstaller:
                     continue
                 preloaded = self.all_modules_preloaded[m]
                 # make a hash of the dependencies and check if it's already been handled
-                module_hash = self.parent_helper.sha1(str(preloaded["deps"])).hexdigest()
+                pipenv = os.environ.get("VIRTUAL_ENV", "")
+                module_hash = self.parent_helper.sha1(str(preloaded["deps"]) + pipenv).hexdigest()
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
                 if len(dependencies) <= 0:
