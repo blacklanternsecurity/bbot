@@ -22,7 +22,7 @@ class shodan_dns(crobat):
         if self.auth_secret:
             try:
                 self.ping()
-                self.success(f"API is ready")
+                self.hugesuccess(f"API is ready")
                 return True
             except Exception as e:
                 return None, f"Error with API ({str(e).strip()})"

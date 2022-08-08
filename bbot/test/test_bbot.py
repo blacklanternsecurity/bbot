@@ -764,7 +764,7 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert event_whitelisted1 == event_whitelisted2
     assert event_blacklisted1 == event_blacklisted2
 
-    msg = "Ignore this error, it's supposed to be here"
+    msg = "Ignore this error, it belongs here"
 
     def raise_e():
         raise Exception(msg)
