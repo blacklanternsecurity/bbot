@@ -85,7 +85,7 @@ bbot -f subdomain-enum -t evilcorp.com -om human neo4j
 | passivetotal     | X               | Query the PassiveTotal API for subdomains                         | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | securitytrails   | X               | Query the SecurityTrails API for subdomains                       | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | shodan_dns       | X               | Query Shodan for subdomains                                       | passive,safe,subdomain-enum                   | DNS_NAME                                             |
-| skymem           | X               | Query skymem.info for email addresses                             | passive,safe                                  | EMAIL_ADDRESS                                        |
+| skymem           |                 | Query skymem.info for email addresses                             | passive,safe                                  | EMAIL_ADDRESS                                        |
 | sublist3r        |                 | Query sublist3r's API for subdomains                              | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | threatminer      |                 | Query threatminer's API for subdomains                            | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | urlscan          |                 | Query urlscan.io for subdomains                                   | passive,safe,subdomain-enum                   | DNS_NAME,URL_UNVERIFIED                              |
