@@ -8,6 +8,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class Websocket(BaseOutputModule):
     watched_events = ["*"]
+    meta = {"description": "Output to websockets"}
     options = {"url": "", "token": ""}
     options_desc = {"url": "Web URL", "token": "Authorization Bearer token"}
 

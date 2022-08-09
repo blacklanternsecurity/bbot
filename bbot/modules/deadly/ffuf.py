@@ -10,8 +10,9 @@ class ffuf(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["URL"]
-
     flags = ["brute-force", "aggressive", "active", "web"]
+    meta = {"description": "A fast web fuzzer written in Go"}
+
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
         "lines": 5000,

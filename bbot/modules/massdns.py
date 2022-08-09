@@ -9,6 +9,7 @@ class massdns(crobat):
     flags = ["brute-force", "subdomain-enum", "passive", "aggressive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    meta = {"description": "Brute-force subdomains with massdns (highly effective)"}
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "max_resolvers": 1000,

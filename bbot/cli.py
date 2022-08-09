@@ -172,16 +172,20 @@ def main():
                 module_list = list(module_loader.preloaded(type="scan").items())
                 module_list.sort(key=lambda x: x[0])
                 module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
-                header = ["Module", "Needs API Key", "Produced Events", "Flags"]
+                header = ["Module", "Needs API Key", "Description", "Flags", "Produced Events"]
                 table = []
                 for module_name, preloaded in module_list:
                     if module_name in modules:
                         produced_events = sorted(preloaded.get("produced_events", []))
                         flags = sorted(preloaded.get("flags", []))
                         api_key_required = ""
-                        if preloaded.get("auth_required", False):
+                        meta = preloaded.get("meta", {})
+                        if meta.get("auth_required", False):
                             api_key_required = "X"
-                        table.append([module_name, api_key_required, ",".join(produced_events), ",".join(flags)])
+                        description = meta.get("description", "")
+                        table.append(
+                            [module_name, api_key_required, description, ",".join(flags), ",".join(produced_events)]
+                        )
                 for row in scanner.helpers.make_table(table, header).splitlines():
                     log_fn(row)
                 if options.list_modules:

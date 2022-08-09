@@ -9,6 +9,7 @@ class dnszonetransfer(BaseModule):
     flags = ["subdomain-enum", "active", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    meta = {"description": "Attempt DNS zone transfers"}
     max_event_handlers = 5
     suppress_dupes = False
 
@@ -33,6 +34,8 @@ class dnszonetransfer(BaseModule):
                 self.debug(f"Error retrieving zone: {e}")
                 continue
             self.hugesuccess(f"Successful zone transfer against {nameserver} for domain {domain}!")
+            finding_description = f"Successful DNS zone transfer against {nameserver} for {domain}"
+            self.emit_event({"host": str(event.host), "description": finding_description}, "FINDING", source=event)
             for name, ttl, rdata in zone.iterate_rdatas():
                 if str(name) == "@":
                     parent_data = domain

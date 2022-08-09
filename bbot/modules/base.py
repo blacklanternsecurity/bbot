@@ -17,10 +17,11 @@ class BaseModule:
     watched_events = []
     # Event types to produce
     produced_events = []
+    # Module description, etc.
+    meta = {"auth_required": False, "description": "Base module"}
     # Flags, must include either "passive" or "active"
     flags = []
-    # Whether the module requires an API key
-    auth_required = False
+
     # python dependencies (pip install ____)
     deps_pip = []
     # apt dependencies (apt install ____)
@@ -503,6 +504,10 @@ class BaseModule:
     @property
     def priority(self):
         return int(max(1, min(5, self._priority)))
+
+    @property
+    def auth_required(self):
+        return self.meta.get("auth_required", False)
 
     @property
     def log(self):

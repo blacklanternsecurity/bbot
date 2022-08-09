@@ -8,6 +8,7 @@ class naabu(BaseModule):
     watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active", "portscan", "aggressive"]
+    meta = {"description": "Execute port scans with naabu"}
     options = {
         "ports": "",
         "top_ports": 100,
@@ -23,21 +24,22 @@ class naabu(BaseModule):
 
     deps_ansible = [
         {
-            "name": "install libpcap (debian)",
+            "name": "install libpcap (Debian)",
             "package": {"name": "libpcap0.8", "state": "present"},
             "become": True,
-            "ignore_errors": "yes",
+            "when": """ansible_facts['os_family'] == 'Debian'""",
         },
         {
             "name": "install libpcap (others)",
             "package": {"name": "libpcap", "state": "present"},
             "become": True,
-            "ignore_errors": "yes",
+            "when": """ansible_facts['os_family'] != 'Debian'""",
         },
         {
             "name": "symlink libpcap",
             "file": {"src": "/usr/lib/libpcap.so", "dest": "{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
             "ignore_errors": "yes",
+            "when": """ansible_facts['os_family'] != 'Debian'""",
         },
         {
             "name": "Download naabu",
@@ -71,10 +73,18 @@ class naabu(BaseModule):
                     break
             # then make a broader check, for cidrs etc.
             if source_event is None:
+                intermediary_event = None
                 for event in events:
                     if host in event:
-                        source_event = event
+                        intermediary_event = event
                         break
+                if intermediary_event is not None:
+                    source_event = self.make_event(host, "IP_ADDRESS", source=intermediary_event)
+                    self.emit_event(source_event)
+
+            if source_event is None:
+                self.warning(f'Failed to correlate source event for host "{host}"')
+                continue
 
             self.emit_event(f"{host}:{port}", "OPEN_TCP_PORT", source=source_event)
 

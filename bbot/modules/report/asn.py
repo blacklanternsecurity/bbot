@@ -8,6 +8,7 @@ class asn(ReportModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["ASN"]
     flags = ["passive", "subdomain-enum", "safe"]
+    meta = {"description": "Query bgpview.io for ASNs"}
     scope_distance_modifier = 0
 
     base_url = "https://api.bgpview.io"

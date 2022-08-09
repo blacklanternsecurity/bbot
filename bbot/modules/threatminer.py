@@ -5,6 +5,9 @@ class threatminer(crobat):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {
+        "description": "Query threatminer's API for subdomains",
+    }
 
     base_url = "https://api.threatminer.org/v2"
 

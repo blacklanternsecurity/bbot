@@ -7,6 +7,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class CSV(BaseOutputModule):
     watched_events = ["*"]
+    meta = {"description": "Output to CSV"}
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to CSV file"}
     emit_graph_trail = False

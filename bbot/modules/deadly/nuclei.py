@@ -12,6 +12,8 @@ class nuclei(BaseModule):
     watched_events = ["URL", "TECHNOLOGY"]
     produced_events = ["VULNERABILITY"]
     flags = ["active", "aggressive", "web"]
+    meta = {"description": "Fast and customisable vulnerability scanner"}
+
     batch_size = 100
     options = {
         "version": "2.7.3",
