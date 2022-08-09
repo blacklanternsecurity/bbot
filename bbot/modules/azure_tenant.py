@@ -7,6 +7,8 @@ class azure_tenant(viewdns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query Azure for tenant sister domains"}
+
     base_url = "https://autodiscover-s.outlook.com"
     in_scope_only = True
 

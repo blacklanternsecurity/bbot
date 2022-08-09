@@ -5,6 +5,7 @@ class affiliates(ReportModule):
     watched_events = ["*"]
     produced_events = []
     flags = ["passive", "safe"]
+    meta = {"description": "Summarize affiliate domains at the end of a scan"}
     scope_distance_modifier = None
     accept_dupes = True
 

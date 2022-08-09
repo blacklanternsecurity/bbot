@@ -5,6 +5,7 @@ class leakix(crobat):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query leakix.net for subdomains"}
 
     base_url = "https://leakix.net"
 

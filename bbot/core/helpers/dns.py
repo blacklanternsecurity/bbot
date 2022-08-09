@@ -110,18 +110,19 @@ class DNSHelper:
                 for error in e:
                     errors.append((t, error))
 
-            return results, errors
+            return (results, errors)
 
     def _resolve_hostname(self, query, **kwargs):
         self.debug(f"Resolving {query} with kwargs={kwargs}")
         results = []
         errors = []
         parent = self.parent_helper.parent_domain(query)
-        parent_hash = hash(parent)
+        rdtype = kwargs.get("rdtype", "A")
+        parent_hash = hash(f"{parent}:{rdtype}")
         error_count = self._errors.get(parent_hash, 0)
         if error_count >= self.abort_threshold:
             log.verbose(
-                f'Aborting query "{query}" because failed queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
             )
             return results, errors
         try:
@@ -135,7 +136,9 @@ class DNSHelper:
                     self._errors[parent_hash] += 1
                 except KeyError:
                     self._errors[parent_hash] = 1
-                log.verbose(f'DNS error or timeout for query "{query}" ({self._errors[parent_hash]:,} so far)')
+                log.verbose(
+                    f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far)'
+                )
                 errors.append(e)
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors
@@ -429,10 +432,11 @@ class DNSHelper:
 
     def _is_wildcard(self, query):
         parent = parent_domain(query)
+        parent_hash = hash(parent)
 
         # try to return from cache
         with suppress(KeyError):
-            return self._wildcard_cache[parent], parent
+            return self._wildcard_cache[parent_hash], parent
 
         with self._wildcard_lock.get_lock(parent):
 
@@ -459,7 +463,7 @@ class DNSHelper:
                 # then ladies and gentlemen we have a wildcard
                 is_wildcard = True
 
-            self._wildcard_cache.update({parent: is_wildcard})
+            self._wildcard_cache.update({parent_hash: is_wildcard})
             if is_wildcard:
                 log.verbose(f"Encountered domain with wildcard DNS: {parent}")
             return is_wildcard, parent

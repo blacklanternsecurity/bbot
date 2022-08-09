@@ -5,9 +5,9 @@ class passivetotal(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query the PassiveTotal API for subdomains", "auth_required": True}
     options = {"username": "", "api_key": ""}
     options_desc = {"username": "RiskIQ Username", "api_key": "RiskIQ API Key"}
-    auth_required = True
 
     base_url = "https://api.passivetotal.org/v2"
 

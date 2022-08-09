@@ -6,9 +6,9 @@ class hunterio(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe"]
+    meta = {"description": "Query hunter.io for emails", "auth_required": True}
     options = {"api_key": ""}
     options_desc = {"api_key": "Hunter.IO API key"}
-    auth_required = True
 
     base_url = "https://api.hunter.io/v2"
 

@@ -747,8 +747,8 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert any([helpers.is_subdomain(h) for h in resolved])
     # wildcards
     assert helpers.is_wildcard("asdf.wat.blacklanternsecurity.github.io") == (True, "_wildcard.github.io")
-    assert "github.io" in helpers.dns._wildcard_cache
-    assert helpers.dns._wildcard_cache["github.io"] == True
+    assert hash("github.io") in helpers.dns._wildcard_cache
+    assert helpers.dns._wildcard_cache[hash("github.io")] == True
     assert helpers.is_wildcard("asdf.asdf.asdf.github.io") == (True, "_wildcard.github.io")
     assert helpers.is_wildcard("github.io") == (False, "github.io")
     assert helpers.is_wildcard("mail.google.com") == (False, "mail.google.com")
@@ -930,13 +930,13 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
     assert all_preloaded["massdns"]["deps"]["ansible"]
 
     for module_name, preloaded in all_preloaded.items():
-        assert preloaded.get("auth_required") in (True, False)
         # either active or passive and never both
         flags = preloaded.get("flags", [])
         if preloaded["type"] == "scan":
             assert ("active" in flags and not "passive" in flags) or (
                 not "active" in flags and "passive" in flags
             ), f'module "{module_name}" must have either "active" or "passive" flag'
+            assert preloaded["meta"]["description"], f"{module_name} must have a description"
 
         # attribute checks
         watched_events = preloaded.get("watched_events")

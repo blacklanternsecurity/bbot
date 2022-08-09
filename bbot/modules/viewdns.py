@@ -9,6 +9,9 @@ class viewdns(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {
+        "description": "Query viewdns.info's reverse whois for related domains",
+    }
     deps_pip = ["beautifulsoup4", "lxml"]
     base_url = "https://viewdns.info"
     in_scope_only = True

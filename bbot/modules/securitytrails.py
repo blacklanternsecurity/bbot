@@ -6,9 +6,9 @@ class securitytrails(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query the SecurityTrails API for subdomains", "auth_required": True}
     options = {"api_key": ""}
     options_desc = {"api_key": "SecurityTrails API key"}
-    auth_required = True
 
     base_url = "https://api.securitytrails.com/v1"
 

@@ -12,9 +12,12 @@ warnings.filterwarnings(
 
 class wappalyzer(BaseModule):
 
-    flags = ["active", "safe", "web"]
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["TECHNOLOGY"]
+    flags = ["active", "safe", "web"]
+    meta = {
+        "description": "Extract technologies from web responses",
+    }
     deps_pip = ["python-Wappalyzer"]
     # accept all events regardless of scope distance
     scope_distance_modifier = None

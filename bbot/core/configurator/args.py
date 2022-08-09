@@ -122,7 +122,7 @@ for p in (parser, dummy_parser):
     )
     p.add_argument(
         "-c",
-        "--configuration",
+        "--config",
         nargs="*",
         help="custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'",
         metavar="CONFIG",

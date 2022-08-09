@@ -5,13 +5,13 @@ class zoomeye(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query ZoomEye's API for subdomains", "auth_required": True}
     options = {"api_key": "", "max_pages": 20, "include_related": False}
     options_desc = {
         "api_key": "ZoomEye API key",
         "max_pages": "How many pages of results to fetch",
         "include_related": "Include domains which may be related to the target",
     }
-    auth_required = True
 
     base_url = "https://api.zoomeye.org"
 

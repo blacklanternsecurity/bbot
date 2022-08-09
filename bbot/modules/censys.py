@@ -11,13 +11,13 @@ class censys(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "IP_ADDRESS", "OPEN_PORT", "PROTOCOL"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query the Censys API", "auth_required": True}
     options = {"api_id": "", "api_secret": "", "max_records": 1000}
     options_desc = {
         "api_id": "Censys.io API ID",
         "api_secret": "Censys.io API Secret",
         "max_records": "Limit results to help prevent exceeding API quota",
     }
-    auth_required = True
 
     deps_pip = ["censys"]
 

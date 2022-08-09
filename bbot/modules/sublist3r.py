@@ -5,6 +5,9 @@ class sublist3r(crobat):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {
+        "description": "Query sublist3r's API for subdomains",
+    }
 
     base_url = "https://api.sublist3r.com/search.php"
 

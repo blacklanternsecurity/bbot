@@ -9,6 +9,7 @@ class neo4j(BaseOutputModule):
     """
 
     watched_events = ["*"]
+    meta = {"description": "Output to Neo4j"}
     options = {"uri": "bolt://localhost:7687", "username": "neo4j", "password": "bbotislife"}
     options_desc = {
         "uri": "Neo4j server + port",

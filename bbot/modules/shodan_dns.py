@@ -9,10 +9,10 @@ class shodan_dns(crobat):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query Shodan for subdomains", "auth_required": True}
     options = {"api_key": ""}
     options_desc = {"api_key": "Shodan API key"}
-    flags = ["subdomain-enum", "passive", "safe"]
-    auth_required = True
 
     base_url = "https://api.shodan.io"
 
