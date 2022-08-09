@@ -8,6 +8,7 @@ class crt(crobat):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    meta = {"description": "Query crt.sh (certificate transparency) for subdomains"}
 
     base_url = "https://crt.sh"
 

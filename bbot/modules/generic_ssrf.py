@@ -116,6 +116,7 @@ class generic_ssrf(blind_ssrf):
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
     flags = ["active", "aggressive", "web"]
+    meta = {"description": "Check for generic SSRFs"}
     in_scope_only = True
 
     def setup(self):
@@ -142,7 +143,7 @@ class generic_ssrf(blind_ssrf):
 
         for m in BaseSubmodule.__subclasses__():
             if m.__name__.startswith("Generic_"):
-                self.verbose(f"Starting blind_ssrf submodule: {m.__name__}")
+                self.verbose(f"Starting generic_ssrf submodule: {m.__name__}")
                 self.submodules[m.__name__] = m(self)
 
         return True

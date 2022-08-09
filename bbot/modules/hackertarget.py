@@ -5,6 +5,7 @@ class hackertarget(crobat):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query the hackertarget.com API for subdomains"}
 
     base_url = "https://api.hackertarget.com"
 

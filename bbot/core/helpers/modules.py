@@ -71,14 +71,14 @@ class ModuleLoader:
         return self._preloaded[module]["type"] == type
 
     def preload_module(self, module_file):
-        flags = []
         watched_events = []
         produced_events = []
+        flags = []
+        meta = {}
         pip_deps = []
         shell_deps = []
         apt_deps = []
         ansible_tasks = []
-        auth_required = False
         python_code = open(module_file).read()
         # take a hash of the code so we can keep track of when it changes
         module_hash = sha1(python_code).hexdigest()
@@ -88,17 +88,14 @@ class ModuleLoader:
             # look for classes
             if type(root_element) == ast.ClassDef:
                 for class_attr in root_element.body:
-                    # class attributes that are costants
-                    if type(class_attr) == ast.Assign and type(class_attr.value) == ast.Constant:
-                        # module options
-                        if any([target.id == "auth_required" for target in class_attr.targets]):
-                            auth_required = ast.literal_eval(class_attr.value)
-
                     # class attributes that are dictionaries
                     if type(class_attr) == ast.Assign and type(class_attr.value) == ast.Dict:
                         # module options
                         if any([target.id == "options" for target in class_attr.targets]):
                             config.update(ast.literal_eval(class_attr.value))
+                        # module metadata
+                        if any([target.id == "meta" for target in class_attr.targets]):
+                            meta = ast.literal_eval(class_attr.value)
 
                     # class attributes that are lists
                     if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
@@ -135,10 +132,10 @@ class ModuleLoader:
                         elif any([target.id == "deps_ansible" for target in class_attr.targets]):
                             ansible_tasks = ast.literal_eval(class_attr.value)
         preloaded_data = {
-            "flags": flags,
             "watched_events": watched_events,
             "produced_events": produced_events,
-            "auth_required": auth_required,
+            "flags": flags,
+            "meta": meta,
             "config": config,
             "hash": module_hash,
             "deps": {"pip": pip_deps, "shell": shell_deps, "apt": apt_deps, "ansible": ansible_tasks},

@@ -10,6 +10,7 @@ class crobat(BaseModule):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    meta = {"description": "Query Project Crobat for subdomains"}
 
     base_url = "https://sonar.omnisint.io"
 

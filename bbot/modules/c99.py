@@ -5,9 +5,9 @@ class c99(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    meta = {"description": "Query the C99 API for subdomains", "auth_required": True}
     options = {"api_key": ""}
     options_desc = {"api_key": "c99.nl API key"}
-    auth_required = True
 
     base_url = "https://api.c99.nl"
 

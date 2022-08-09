@@ -246,16 +246,20 @@ def smart_encode(data):
     return str(data).encode("utf-8", errors="ignore")
 
 
-rand_pool = string.ascii_lowercase + string.digits
+rand_pool = string.ascii_lowercase
+rand_pool_digits = rand_pool + string.digits
 
 
-def rand_string(length=10):
+def rand_string(length=10, digits=True):
     """
     rand_string() --> "c4hp4i9jzx"
     rand_string(20) --> "ap4rsdtg5iw7ey7y3oa5"
     rand_string(30) --> "xdmyxtglqf0z3q8t46n430kesq68yu"
     """
-    return "".join([random.choice(rand_pool) for _ in range(int(length))])
+    pool = rand_pool
+    if digits:
+        pool = rand_pool_digits
+    return "".join([random.choice(pool) for _ in range(int(length))])
 
 
 def extract_words(data, max_length=100):

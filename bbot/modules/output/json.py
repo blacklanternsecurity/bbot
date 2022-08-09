@@ -7,6 +7,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class JSON(BaseOutputModule):
     watched_events = ["*"]
+    meta = {"description": "Output to JSON"}
     options = {"output_file": "", "console": False}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
 

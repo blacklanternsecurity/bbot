@@ -396,26 +396,26 @@ class ScanManager:
                 tasks_queued_str = " (" + ", ".join([f"{m}: {q:,}" for m, q in tasks_queued]) + ")"
 
             num_events_queued = sum([sum(m[-1]) for m in events_queued])
-            self.scan.verbose(f"Events queued: {num_events_queued:,}{events_queued_str}")
+            self.scan.hugeverbose(f"Events queued: {num_events_queued:,}{events_queued_str}")
 
             num_tasks_queued = sum([m[-1] for m in tasks_queued])
-            self.scan.verbose(f"Module tasks queued: {num_tasks_queued:,}{tasks_queued_str}")
+            self.scan.hugeverbose(f"Module tasks queued: {num_tasks_queued:,}{tasks_queued_str}")
 
             num_scan_tasks = status["scan"]["queued_tasks"]["total"]
             dns_tasks = status["scan"]["queued_tasks"]["dns"]
             event_tasks = status["scan"]["queued_tasks"]["event"]
             main_tasks = status["scan"]["queued_tasks"]["main"]
             internal_tasks = status["scan"]["queued_tasks"]["internal"]
-            self.scan.verbose(
+            self.scan.hugeverbose(
                 f"Scan tasks queued: {num_scan_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
             )
 
             if modules_running:
-                self.scan.verbose(
+                self.scan.hugeverbose(
                     f'Modules running: {len(modules_running):,} ({", ".join([m for m in modules_running])})'
                 )
             if modules_errored:
-                self.scan.verbose(
+                self.scan.hugeverbose(
                     f'Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
                 )
 

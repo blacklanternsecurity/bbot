@@ -44,7 +44,9 @@ class Interactsh:
             headers["Authorization"] = self.token
 
         data = {"public-key": encoded_public_key, "secret-key": self.secret, "correlation-id": self.correlation_id}
-        r = self.parent_helper.request(f"https://{self.server}/register", headers=headers, json=data, method="POST")
+        r = self.parent_helper.request(
+            f"https://{self.server}/register", headers=headers, json=data, method="POST", retries="infinite"
+        )
         msg = r.json().get("message", "")
         if msg != "registration successful":
             raise InteractshError(f"Failed to register with interactsh server {self.server}")

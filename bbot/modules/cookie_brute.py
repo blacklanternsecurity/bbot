@@ -1,11 +1,15 @@
 from .header_brute import header_brute
+from bbot.core.errors import ScanCancelledError
 
 
 class cookie_brute(header_brute):
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["brute-force", "active", "aggressive", "web"]
+    flags = ["brute-force", "active", "aggressive", "slow", "web"]
+    meta = {
+        "description": "Check for common HTTP cookie parameters",
+    }
     options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params"}
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
     scanned_hosts = []
@@ -16,6 +20,8 @@ class cookie_brute(header_brute):
 
     def check_batch(self, compare_helper, url, cookie_list):
 
+        if self.scan.stopping:
+            raise ScanCancelledError()
         cookies = {p: self.helpers.rand_string(14) for p in cookie_list}
         return compare_helper.compare(url, cookies=cookies)
 

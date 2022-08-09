@@ -277,6 +277,8 @@ class blind_ssrf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
     flags = ["active", "aggressive", "web"]
+    meta = {"description": "Check for common blind SSRFs"}
+
     in_scope_only = True
 
     def test_submodules(self, submodules, event, **kwargs):

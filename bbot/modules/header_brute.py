@@ -6,7 +6,8 @@ class header_brute(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["brute-force", "active", "aggressive", "web"]
+    flags = ["brute-force", "active", "aggressive", "slow", "web"]
+    meta = {"description": "Check for common HTTP header parameters"}
     options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
     options_desc = {"wordlist": "Define the wordlist to be used to derive headers"}
     scanned_hosts = []
@@ -87,11 +88,13 @@ class header_brute(BaseModule):
     def count_test(self, url):
 
         baseline = self.helpers.request(url)
-        if (str(baseline.status_code)[0] == "4") and (str(baseline.status_code)[0] == "5"):
-            return None
+        if baseline is None:
+            return
+        if str(baseline.status_code)[0] in ("4", "5"):
+            return
         for count, args, kwargs in self.gen_count_args(url):
             r = self.helpers.request(*args, **kwargs)
-            if r is not None and not ((str(r.status_code)[0] == "4") or (str(r.status_code)[0] == "5")):
+            if r is not None and not ((str(r.status_code)[0] in ("4", "5"))):
                 return count
 
     def gen_count_args(self, url):
@@ -125,7 +128,7 @@ class header_brute(BaseModule):
     def check_batch(self, compare_helper, url, header_list):
 
         if self.scan.stopping:
-            raise ScanCancelledError
+            raise ScanCancelledError()
         rand = self.helpers.rand_string()
         test_headers = {}
         for header in header_list:

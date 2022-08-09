@@ -9,6 +9,7 @@ class gowitness(BaseModule):
     watched_events = ["URL"]
     produced_events = ["SCREENSHOT"]
     flags = ["active", "web", "safe"]
+    meta = {"description": "Take screenshots of webpages"}
     batch_size = 100
     options = {
         "version": "2.4.0",

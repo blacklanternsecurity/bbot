@@ -5,6 +5,7 @@ class emailformat(viewdns):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
     flags = ["passive", "safe"]
+    meta = {"description": "Query email-format.com for email addresses"}
     in_scope_only = False
 
     base_url = "https://www.email-format.com"
