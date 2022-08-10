@@ -301,6 +301,7 @@ def test_manager(bbot_config):
     module_queue = []
     manager_queue = []
     scan1 = Scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["json"], config=bbot_config)
+    scan1.status = "RUNNING"
     scan1.load_modules()
     manager = scan1.manager
     test_event1 = scan1.make_event("1.2.3.4", source=scan1.root_event)
