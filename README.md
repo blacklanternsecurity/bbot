@@ -7,6 +7,12 @@
 
 ![subdomain demo](https://user-images.githubusercontent.com/20261699/182274919-d4f5aa69-993a-40aa-95d5-f5e69e96026c.gif)
 
+### **BBOT** is a **recursive**, **modular** OSINT framework written in Python.
+
+It is capable of executing virtually the entire OSINT process in a single command, including subdomain enumeration, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
+
+BBOT currently has over **40 modules** and counting.
+
 ## Installation
 ~~~bash
 # pipx will install bbot in its own environment (pip install pipx)
@@ -94,7 +100,7 @@ bbot -f subdomain-enum -t evilcorp.com -om human neo4j
 | zoomeye          | X               | Query ZoomEye's API for subdomains                                | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 
 ## Usage
-~~~bash
+~~~
 $ bbot --help
 usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-n SCAN_NAME] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]]
             [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [-o DIR] [-c [CONFIG ...]] [--allow-deadly] [-v] [-d] [--force] [-y] [--dry-run] [--current-config] [--save-wordcloud FILE]
@@ -295,11 +301,11 @@ Writing a module is easy and requires only a basic understanding of Python. It c
 1. Create a new `.py` file in `bbot/modules`
 1. At the top of the file, import `BaseModule`
 1. Declare a class that inherits from `BaseModule`
-  - the class must have the same name as your file (case-insensitive)
+    - the class must have the same name as your file (case-insensitive)
 1. Define (via `watched_events` and `produced_events`) what types of events your module consumes
 1. Define (via `flags`) whether your module is `active` or `passive`
 1. Override `.handle_event()`
-  - this is where you put your custom code
+    - this is where you put your custom code
 
 Here is a simple example of a working module (`bbot/modules/mymodule.py`):
 ~~~python
