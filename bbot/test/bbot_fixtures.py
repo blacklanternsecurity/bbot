@@ -72,6 +72,7 @@ def scan(neuter_ansible, patch_requests, patch_commands, bbot_config):
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
+    bbot_scan.status = "RUNNING"
     return bbot_scan
 
 

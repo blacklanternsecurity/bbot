@@ -85,7 +85,9 @@ class ScanManager:
                 emit_event = False
 
             # Wait for parent event to resolve (in case its scope distance changes)
-            while not self.scan.stopping:
+            while 1:
+                if self.scan.stopping:
+                    raise ScanCancelledError()
                 resolved = event._resolved.wait(timeout=0.1)
                 if resolved:
                     # update event's scope distance based on its parent
