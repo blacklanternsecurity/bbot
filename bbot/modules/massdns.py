@@ -12,7 +12,7 @@ class massdns(crobat):
     meta = {"description": "Brute-force subdomains with massdns (highly effective)"}
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
-        "max_resolvers": 1000,
+        "max_resolvers": 500,
     }
     options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
     subdomain_file = None
