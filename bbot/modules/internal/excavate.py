@@ -26,6 +26,19 @@ class BaseExtractor:
         pass
 
 
+class HostnameExtractor(BaseExtractor):
+    regexes = {}
+
+    def __init__(self, excavate):
+        dns_targets = [t for t in excavate.scan.target if t.type == "DNS_NAME"]
+        for i, t in enumerate(dns_targets):
+            self.regexes[f"dns_name_{i+1}"] = r"(?:(?:[\w-]+)\.)+" + str(t.host)
+        super().__init__(excavate)
+
+    def report(self, result, name, event, **kwargs):
+        self.excavate.emit_event(result, "DNS_NAME", source=event)
+
+
 class URLExtractor(BaseExtractor):
     regexes = {
         "fullurl": r"https?://(?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?",
@@ -195,10 +208,13 @@ class excavate(BaseInternalModule):
     flags = ["passive"]
     meta = {"description": "Passively extract juicy tidbits from scan data"}
 
+    scope_distance_modifier = None
+
     deps_pip = ["pyjwt"]
 
     def setup(self):
 
+        self.hostname = HostnameExtractor(self)
         self.url = URLExtractor(self)
         self.email = EmailExtractor(self)
         self.error = ErrorExtractor(self)
@@ -229,16 +245,21 @@ class excavate(BaseInternalModule):
             body = event.data.get("response-body", "")
             self.search(
                 body,
-                [self.url, self.email, self.error, self.jwt, self.javascript, self.serialization],
+                [self.hostname, self.url, self.email, self.error, self.jwt, self.javascript, self.serialization],
                 event,
                 spider_danger=True,
             )
 
             headers = event.data.get("response-header", "")
             self.search(
-                headers, [self.url, self.email, self.error, self.jwt, self.serialization], event, spider_danger=False
+                headers,
+                [self.hostname, self.url, self.email, self.error, self.jwt, self.serialization],
+                event,
+                spider_danger=False,
             )
 
         else:
 
-            self.search(str(data), [self.url, self.email, self.error, self.jwt, self.serialization], event)
+            self.search(
+                str(data), [self.hostname, self.url, self.email, self.error, self.jwt, self.serialization], event
+            )

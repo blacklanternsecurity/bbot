@@ -281,6 +281,16 @@ class BaseEvent:
     def _data_human(self):
         return str(self.data)
 
+    @property
+    def data_graph(self):
+        return self._data_graph()
+
+    def _data_graph(self):
+        try:
+            return json.dumps(self.data)
+        except Exception:
+            return smart_decode(self.data)
+
     def _setup(self):
         """
         Perform optional setup, e.g. adding custom tags
@@ -308,13 +318,20 @@ class BaseEvent:
             return host_in_host(other.host, self.host)
         return False
 
-    @property
-    def json(self):
+    def json(self, mode="graph"):
         j = dict()
-        for i in ("type", "data", "id"):
+        for i in ("type", "id"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
+        data_attr = getattr(self, f"data_{mode}", None)
+        if data_attr is not None:
+            j["data"] = data_attr
+        else:
+            try:
+                j["data"] = json.dumps(self.data)
+            except Exception:
+                j["data"] = smart_decode(self.data)
         j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
         j["scope_distance"] = self.scope_distance
@@ -326,8 +343,11 @@ class BaseEvent:
             j.update({"tags": list(self.tags)})
         if self.module:
             j.update({"module": str(self.module)})
+
         # normalize non-primitive python objects
         for k, v in list(j.items()):
+            if k == "data":
+                continue
             if type(v) not in (str, int, float, bool, list, type(None)):
                 try:
                     j[k] = json.dumps(v)
@@ -346,7 +366,7 @@ class BaseEvent:
         """
         For dict(event)
         """
-        yield from self.json.items()
+        yield from self.json().items()
 
     def __lt__(self, other):
         """
@@ -393,6 +413,19 @@ class DictEvent(BaseEvent):
 class DictHostEvent(DictEvent):
     def _host(self):
         return make_ip_type(self.data["host"])
+
+
+class CODE_REPOSITORY(DictHostEvent):
+    class _data_validator(BaseModel):
+        url: str
+        _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
+
+    def _host(self):
+        self.parsed = validators.validate_url_parsed(self.data["url"])
+        return make_ip_type(self.parsed.hostname)
+
+    def _data_graph(self):
+        return self.data["url"]
 
 
 class IP_ADDRESS(BaseEvent):
@@ -564,6 +597,11 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 class VULNERABILITY(DictHostEvent):
     _priority = 1
 
+    def _sanitize_data(self, data):
+        data = super()._sanitize_data(data)
+        self.tags.add(data["severity"].lower())
+        return data
+
     class _data_validator(BaseModel):
         host: str
         severity: str
@@ -571,6 +609,9 @@ class VULNERABILITY(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
         _validate_severity = validator("severity", allow_reuse=True)(validators.validate_severity)
+
+    def _data_graph(self):
+        return f'[{self.data["severity"]}] {self.data["description"]}'
 
 
 class FINDING(DictHostEvent):
@@ -582,6 +623,9 @@ class FINDING(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
+    def _data_graph(self):
+        return self.data["description"]
+
 
 class TECHNOLOGY(DictHostEvent):
     _priority = 2
@@ -592,6 +636,9 @@ class TECHNOLOGY(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
+    def _data_graph(self):
+        return self.data["technology"]
+
 
 class VHOST(DictHostEvent):
     class _data_validator(BaseModel):
@@ -599,6 +646,9 @@ class VHOST(DictHostEvent):
         vhost: str
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+
+    def _data_graph(self):
+        return self.data["vhost"]
 
 
 class PROTOCOL(DictHostEvent):
@@ -610,6 +660,9 @@ class PROTOCOL(DictHostEvent):
     def _host(self):
         host, self._port = split_host_port(self.data["host"])
         return host
+
+    def _data_graph(self):
+        return self.data["protocol"]
 
 
 def make_event(

@@ -32,7 +32,7 @@ class crobat(BaseModule):
         query = self.make_query(event)
         if self.already_processed(query):
             return False
-        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string()}.{query}")
+        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string(digits=False)}.{query}")
         if is_wildcard:
             return False
         self.processed.add(hash(query))
