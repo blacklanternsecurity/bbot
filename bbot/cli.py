@@ -197,6 +197,7 @@ def main():
                 if scanner._scan_modules and deadly_modules:
                     if not options.allow_deadly:
                         log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
+                        log.hugewarning(f"Deadly modules are highly intrusive")
                         log.hugewarning(f"Please specify --allow-deadly to continue")
                         return
 

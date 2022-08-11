@@ -3,6 +3,7 @@ import logging
 import ipaddress
 from typing import Optional
 from datetime import datetime
+from contextlib import suppress
 from pydantic import BaseModel, validator
 from threading import Event as ThreadingEvent
 
@@ -252,13 +253,16 @@ class BaseEvent:
 
         return source_trail
 
-    def make_in_scope(self):
+    def make_in_scope(self, set_scope_distance=0):
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
         if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=0, force_output=True, emit_trail=True)
-        self.tags.add("in-scope")
-        self.scope_distance = 0
+            source_trail = self.unmake_internal(
+                set_scope_distance=set_scope_distance, force_output=True, emit_trail=True
+            )
+        self.scope_distance = set_scope_distance
+        if set_scope_distance == 0:
+            self.tags.add("in-scope")
         return source_trail
 
     def _host(self):
@@ -286,10 +290,10 @@ class BaseEvent:
         return self._data_graph()
 
     def _data_graph(self):
-        try:
-            return json.dumps(self.data)
-        except Exception:
-            return smart_decode(self.data)
+        if type(self.data) in (list, dict):
+            with suppress(Exception):
+                return json.dumps(self.data)
+        return smart_decode(self.data)
 
     def _setup(self):
         """
@@ -328,10 +332,7 @@ class BaseEvent:
         if data_attr is not None:
             j["data"] = data_attr
         else:
-            try:
-                j["data"] = json.dumps(self.data)
-            except Exception:
-                j["data"] = smart_decode(self.data)
+            j["data"] = smart_decode(self.data)
         j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
         j["scope_distance"] = self.scope_distance
