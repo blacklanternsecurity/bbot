@@ -9,7 +9,7 @@
 
 ### **BBOT** is a **recursive**, **modular** OSINT framework written in Python.
 
-It is capable of executing virtually the entire OSINT process in a single command, including subdomain enumeration, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
+It is capable of executing virtually the entire OSINT process in a single command, including subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
 BBOT currently has over **40 modules** and counting.
 

@@ -139,7 +139,7 @@ class DNSHelper:
                 except KeyError:
                     self._errors[parent_hash] = 1
                 log.verbose(
-                    f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far)'
+                    f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far): {e}'
                 )
                 errors.append(e)
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")

@@ -24,6 +24,10 @@ class passivetotal(shodan_dns):
         used = j["user"]["counts"]["search_api"]
         assert used < limit, "No quota remaining"
 
+    def abort_if(self, event):
+        # RiskIQ is famous for their junk data
+        return super().abort_if(event) or "unresolved" in event.tags
+
     def query(self, query):
         url = f"{self.base_url}/enrichment/subdomains?query={self.helpers.quote(query)}"
         j = self.helpers.request(url, auth=self.auth).json()

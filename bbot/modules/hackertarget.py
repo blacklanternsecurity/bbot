@@ -14,4 +14,6 @@ class hackertarget(crobat):
 
     def parse_results(self, r, query):
         for line in r.text.splitlines():
-            yield line.split(",")[0]
+            host = line.split(",")[0]
+            if self.validators.validate_host(host):
+                yield host

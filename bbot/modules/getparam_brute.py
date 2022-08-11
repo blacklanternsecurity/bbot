@@ -1,4 +1,5 @@
 from .header_brute import header_brute
+from bbot.core.errors import ScanCancelledError
 
 
 class getparam_brute(header_brute):
@@ -17,7 +18,8 @@ class getparam_brute(header_brute):
     compare_mode = "getparam"
 
     def check_batch(self, compare_helper, url, getparam_list):
-
+        if self.scan.stopping:
+            raise ScanCancelledError()
         test_getparams = {p: self.helpers.rand_string(14) for p in getparam_list}
         return compare_helper.compare(self.helpers.add_get_params(url, test_getparams).geturl())
 
