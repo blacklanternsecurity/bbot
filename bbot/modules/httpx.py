@@ -29,6 +29,8 @@ class httpx(BaseModule):
         }
     ]
 
+    scope_distance_modifier = 0
+
     def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
         self.max_response_size = self.config.get("max_response_size", 5242880)
@@ -44,7 +46,8 @@ class httpx(BaseModule):
 
         # scope filtering
         in_scope_only = self.config.get("in_scope_only", True)
-        if in_scope_only and not self.scan.in_scope(event):
+        safe_to_visit = "httpx-safe" in event.tags
+        if not safe_to_visit and (in_scope_only and not self.scan.in_scope(event)):
             return False
         # reject base URLs to avoid visiting a resource twice
         # note: speculate makes open ports from

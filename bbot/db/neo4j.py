@@ -17,7 +17,7 @@ class Neo4j:
         self.graph = py2neo.Graph(uri=uri, auth=(username, password))
 
     def insert_event(self, event):
-        event_json = event.json
+        event_json = event.json(mode="graph")
         source_id = event_json.get("source", "")
         if not source_id:
             log.warning(f"Skipping event without source: {event}")
@@ -37,7 +37,7 @@ class Neo4j:
         event_list = []
 
         for event in events:
-            event_json = event.json
+            event_json = event.json(mode="graph")
             source_id = event_json.get("source", "")
             if not source_id:
                 log.warning(f"Skipping event without source: {event}")
