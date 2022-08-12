@@ -49,7 +49,7 @@ def validate_host(host):
         return str(ip)
     except Exception:
         # if IPv6 fails, strip ports and root zone
-        host = host.split(":")[0].rstrip(".")
+        host = host.split(":")[0].split("@")[-1].rstrip(".")
         try:
             ip = ipaddress.IPv4Address(host)
             return str(ip)

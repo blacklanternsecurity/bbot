@@ -31,6 +31,8 @@ class asn(ReportModule):
                 for asn in asns:
                     if asn not in self.asn_metadata:
                         contacts = self.get_asn_metadata(asn)
+                        if not contacts:
+                            continue
                         for c in contacts:
                             self.emit_event(c, "EMAIL_ADDRESS", source=event)
                         self.asn_metadata[asn] = True

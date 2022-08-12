@@ -207,6 +207,7 @@ class DNSHelper:
                     event_tags.add("dns-error")
                 for rdtype, records in resolved_raw:
                     event_tags.add("resolved")
+                    event_tags.add(f"{rdtype.lower()}_record")
                     rdtype = str(rdtype).upper()
                     # whitelisting and blacklist of IPs
                     if rdtype in ("A", "AAAA"):
@@ -220,7 +221,6 @@ class DNSHelper:
                                         event_blacklisted = True
                     for r in records:
                         for _, t in self.extract_targets(r):
-                            event_tags.add(f"{rdtype.lower()}_record")
                             if t:
                                 if self.filter_bad_ptrs and rdtype in ("PTR") and self.bad_ptr_regex.search(t):
                                     self.debug(f"Filtering out bad PTR: {t}")
@@ -423,7 +423,7 @@ class DNSHelper:
         for d in self.wildcard_ignore:
             if self.parent_helper.host_in_host(query, d):
                 return False, query
-        if query.startswith("_wildcard."):
+        if "_wildcard" in query.split("."):
             return True, query
         hosts = list(domain_parents(query, include_self=True))[:-1]
         for host in hosts[::-1]:

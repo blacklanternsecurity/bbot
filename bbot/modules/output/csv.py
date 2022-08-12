@@ -20,7 +20,7 @@ class CSV(BaseOutputModule):
         else:
             self.output_file = self.scan.home / "output.csv"
         self.helpers.mkdir(self.output_file.parent)
-        self.file = open(self.output_file, mode="w", newline="")
+        self.file = open(self.output_file, mode="a", newline="")
         self.writer = csv.writer(self.file)
         self.writerow(["Event type", "Event data", "Source Module", "Scope Distance", "Event Tags"])
         return True

@@ -10,7 +10,7 @@ from bbot.modules.shodan_dns import shodan_dns
 class censys(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "IP_ADDRESS", "OPEN_PORT", "PROTOCOL"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["subdomain-enum", "email-enum", "passive", "safe"]
     meta = {"description": "Query the Censys API", "auth_required": True}
     options = {"api_id": "", "api_secret": "", "max_records": 1000}
     options_desc = {

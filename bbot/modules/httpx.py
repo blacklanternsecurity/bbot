@@ -73,6 +73,9 @@ class httpx(BaseModule):
                     if url_hash is not None:
                         self.visited.add(url_hash)
 
+        if not stdin:
+            return
+
         command = [
             "httpx",
             "-silent",
