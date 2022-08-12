@@ -4,7 +4,7 @@ from bbot.modules.crobat import crobat
 class pgp(crobat):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
-    flags = ["passive", "safe"]
+    flags = ["passive", "email-enum", "safe"]
     meta = {"description": "Query common PGP servers for email addresses"}
     options = {
         "search_urls": [

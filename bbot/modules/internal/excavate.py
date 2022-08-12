@@ -67,9 +67,9 @@ class URLExtractor(BaseExtractor):
                     self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
                     return
 
-        url_depth = self.excavate.helpers.url_depth(result)
-        web_spider_depth = self.excavate.scan.config.get("web_spider_depth", 0)
-        if spider_danger and url_depth > web_spider_depth:
+        spider_distance = getattr(event, "web_spider_distance", 0)
+        web_spider_distance = self.excavate.scan.config.get("web_spider_distance", 0)
+        if spider_danger and spider_distance > web_spider_distance:
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")

@@ -30,8 +30,8 @@ http_timeout: 30
 httpx_timeout: 5
 # Enable/disable debug messages for web requests/responses
 http_debug: false
-# Set the level with which web spidering behavior is allowed (0 is none)
-web_spider_depth: 0
+# Set the maximum number of HTTP links that can be followed in a row (1 == no spidering allowed)
+web_spider_distance: 1
 # Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
 dns_resolution: true
 # DNS query timeout

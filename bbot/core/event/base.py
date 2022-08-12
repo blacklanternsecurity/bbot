@@ -324,7 +324,7 @@ class BaseEvent:
 
     def json(self, mode="graph"):
         j = dict()
-        for i in ("type", "id"):
+        for i in ("type", "id", "scope_distance", "web_spider_distance"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
@@ -335,7 +335,6 @@ class BaseEvent:
             j["data"] = smart_decode(self.data)
         j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
-        j["scope_distance"] = self.scope_distance
         source = self.get_source()
         source_id = getattr(source, "id", "")
         if source_id:
@@ -495,6 +494,10 @@ class OPEN_TCP_PORT(BaseEvent):
 
 
 class URL_UNVERIFIED(BaseEvent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
+
     def sanitize_data(self, data):
         self.parsed = validators.validate_url_parsed(data)
 
@@ -576,6 +579,10 @@ class EMAIL_ADDRESS(BaseEvent):
 
 class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     _priority = 2
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0) + 1
 
     def sanitize_data(self, data):
         url = data.get("url", "")
@@ -695,6 +702,7 @@ def make_event(
         event_type = str(event_type).strip().upper()
 
         # Catch these common whoopsies
+
         # DNS_NAME <--> IP_ADDRESS confusion
         if event_type in ("DNS_NAME", "IP_ADDRESS"):
             try:
@@ -705,6 +713,14 @@ def make_event(
             if event_type == "DNS_NAME" and data_is_ip:
                 event_type = "IP_ADDRESS"
             elif event_type == "IP_ADDRESS" and not data_is_ip:
+                event_type = "DNS_NAME"
+
+        # DNS_NAME <--> EMAIL_ADDRESS confusion
+        if event_type in ("DNS_NAME", "EMAIL_ADDRESS"):
+            data_is_email = validators.soft_validate(data, "email")
+            if event_type == "DNS_NAME" and data_is_email:
+                event_type = "EMAIL_ADDRESS"
+            elif event_type == "EMAIL_ADDRESS" and not data_is_email:
                 event_type = "DNS_NAME"
 
         event_class = globals().get(event_type, DefaultEvent)

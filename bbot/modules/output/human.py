@@ -18,7 +18,7 @@ class Human(BaseOutputModule):
         else:
             self.output_file = self.scan.home / "output.txt"
         self.helpers.mkdir(self.output_file.parent)
-        self.file = open(self.output_file, mode="w")
+        self.file = open(self.output_file, mode="a")
         return True
 
     def handle_event(self, event):
