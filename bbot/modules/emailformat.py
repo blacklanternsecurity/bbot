@@ -4,7 +4,7 @@ from .viewdns import viewdns
 class emailformat(viewdns):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
-    flags = ["passive", "safe"]
+    flags = ["passive", "email-enum", "safe"]
     meta = {"description": "Query email-format.com for email addresses"}
     in_scope_only = False
 

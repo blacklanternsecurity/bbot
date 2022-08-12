@@ -10,7 +10,7 @@ from contextlib import suppress
 sys.stdout.reconfigure(line_buffering=True)
 
 # logging
-from bbot.core.logger import init_logging
+from bbot.core.logger import init_logging, get_log_level
 
 logging_queue, logging_handlers = init_logging()
 
@@ -22,12 +22,16 @@ log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
 
 
+log_level = get_log_level()
+
+
 def log_to_stderr(msg, level=logging.INFO):
-    handler = logging_handlers["stderr"]
-    record = logging.LogRecord(
-        name="bbot.cli", msg=str(msg), level=level, pathname=None, lineno=0, args=None, exc_info=None
-    )
-    print(handler.formatter.format(record), file=sys.stderr)
+    if log_level <= level:
+        handler = logging_handlers["stderr"]
+        record = logging.LogRecord(
+            name="bbot.cli", msg=str(msg), level=level, pathname=None, lineno=0, args=None, exc_info=None
+        )
+        print(handler.formatter.format(record), file=sys.stderr)
 
 
 from . import config

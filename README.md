@@ -11,15 +11,15 @@
 
 It is capable of executing virtually the entire OSINT process in a single command, including subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
-BBOT currently has over **40 modules** and counting.
+BBOT currently has over **50 modules** and counting.
 
 ## Installation
 ~~~bash
-# pipx will install bbot in its own environment (pip install pipx)
 pipx install bbot
-
-bbot --help
 ~~~
+Prerequisites: 
+- Python 3.9 or newer MUST be installed
+- pipx is recommended (`pip install pipx`)
 
 ## Examples
 ~~~bash
@@ -36,17 +36,43 @@ bbot --flags passive --targets evilcorp.com
 bbot --modules naabu httpx gowitness --name my_scan --output-dir . --targets evilcorp.com 1.2.3.4/28 4.3.2.1 targets.txt
 ~~~
 
-## Output to Neo4j
+# Output
+BBOT outputs to STDOUT by default, but it can output in multiple formats simultaneously (with `--output-module`).
 ~~~bash
-# start Neo4j in docker
-docker run -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+# tee to a file
+bbot -f subdomain-enum -t evilcorp.com | tee evilcorp.txt
 
-# run bbot with -om neo4j
-bbot -f subdomain-enum -t evilcorp.com -om human neo4j
+# output to JSON
+bbot --output-module json -f subdomain-enum -t evilcorp.com | jq
+
+# output to CSV, TXT, and JSON, in current directory
+bbot -o . --output-module human csv json -f subdomain-enum -t evilcorp.com
 ~~~
+For every scan, BBOT generates a unique and mildly entertaining name like `fuzzy_gandalf`. Output for that scan, including the word cloud and any gowitness screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
+
+If you reuse a scan name, it will append to its original output files and leverage the previous word cloud.
+
+# Neo4j
+Neo4j is the funnest (and prettiest) way to view and interact with BBOT data. You can get up and running with a single docker command:
+
 ![neo4j](https://user-images.githubusercontent.com/20261699/182398274-729f3c48-c23c-4db0-8c2e-8b403c1bf790.png)
 
-## Modules
+- Start Neo4j in docker
+~~~bash
+# recommend setting a secure password in secrets.yml:
+# output_modules:
+#   neo4j:
+#     username: neo4j
+#     password: <supersecurepassword>
+docker run -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+~~~
+- Run bbot with `-om neo4j`
+~~~bash
+bbot -f subdomain-enum -t evilcorp.com -om human neo4j
+~~~
+- Browse data at http://localhost:7474
+
+# Modules
 | Module           | Needs API Key   | Description                                                       | Flags                                         | Produced Events                                      |
 |------------------|-----------------|-------------------------------------------------------------------|-----------------------------------------------|------------------------------------------------------|
 | aspnet_viewstate |                 | Parse web pages for viewstates and check them against blacklist3r | active,safe,web                               | VULNERABILITY                                        |
@@ -70,11 +96,11 @@ bbot -f subdomain-enum -t evilcorp.com -om human neo4j
 | smuggler         |                 | Check for HTTP smuggling                                          | active,aggressive,brute-force,slow,web        | FINDING                                              |
 | sslcert          |                 | Visit open ports and retrieve SSL certificates                    | active,safe,subdomain-enum                    | DNS_NAME,EMAIL_ADDRESS                               |
 | telerik          |                 | Scan for critical Telerik vulnerabilities                         | active,aggressive,web                         | FINDING,VULNERABILITY                                |
-| vhost            |                 | Fuzz for virtual hosts                                            | active,aggressive,brute-force,deadly,web      | DNS_NAME,VHOST                                       |
 | wappalyzer       |                 | Extract technologies from web responses                           | active,safe,web                               | TECHNOLOGY                                           |
 | affiliates       |                 | Summarize affiliate domains at the end of a scan                  | passive,report,safe                           |                                                      |
 | asn              |                 | Query bgpview.io for ASNs                                         | passive,report,safe,subdomain-enum            | ASN                                                  |
 | azure_tenant     |                 | Query Azure for tenant sister domains                             | passive,safe,subdomain-enum                   | DNS_NAME                                             |
+| binaryedge       | X               | Query the BinaryEdge API                                          | passive,safe,subdomain-enum                   | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_PORT,PROTOCOL |
 | c99              | X               | Query the C99 API for subdomains                                  | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | censys           | X               | Query the Censys API                                              | passive,safe,subdomain-enum                   | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_PORT,PROTOCOL |
 | certspotter      |                 | Query Certspotter's API for subdomains                            | passive,safe,subdomain-enum                   | DNS_NAME                                             |
@@ -83,12 +109,14 @@ bbot -f subdomain-enum -t evilcorp.com -om human neo4j
 | dnscommonsrv     |                 | Check for common SRV records                                      | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | dnsdumpster      |                 | Query dnsdumpster for subdomains                                  | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | emailformat      |                 | Query email-format.com for email addresses                        | passive,safe                                  | EMAIL_ADDRESS                                        |
+| github           |                 | Query Github's API for related repositories                       | passive,safe,subdomain-enum                   | URL_UNVERIFIED                                       |
 | hackertarget     |                 | Query the hackertarget.com API for subdomains                     | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | hunterio         | X               | Query hunter.io for emails                                        | passive,safe,subdomain-enum                   | DNS_NAME,EMAIL_ADDRESS,URL_UNVERIFIED                |
 | ipneighbor       |                 | Look beside IPs in their surrounding subnet                       | aggressive,passive,subdomain-enum             | IP_ADDRESS                                           |
 | leakix           |                 | Query leakix.net for subdomains                                   | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | massdns          |                 | Brute-force subdomains with massdns (highly effective)            | aggressive,brute-force,passive,subdomain-enum | DNS_NAME                                             |
 | passivetotal     | X               | Query the PassiveTotal API for subdomains                         | passive,safe,subdomain-enum                   | DNS_NAME                                             |
+| pgp              |                 | Query common PGP servers for email addresses                      | passive,safe                                  | EMAIL_ADDRESS                                        |
 | securitytrails   | X               | Query the SecurityTrails API for subdomains                       | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | shodan_dns       | X               | Query Shodan for subdomains                                       | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | skymem           |                 | Query skymem.info for email addresses                             | passive,safe                                  | EMAIL_ADDRESS                                        |
@@ -99,7 +127,7 @@ bbot -f subdomain-enum -t evilcorp.com -om human neo4j
 | wayback          |                 | Query archive.org's API for subdomains                            | passive,safe,subdomain-enum                   | DNS_NAME,URL_UNVERIFIED                              |
 | zoomeye          | X               | Query ZoomEye's API for subdomains                                | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 
-## Usage
+# Usage
 ~~~
 $ bbot --help
 usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-n SCAN_NAME] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]]
@@ -113,7 +141,7 @@ options:
   -n SCAN_NAME, --name SCAN_NAME
                         Name of scan (default: random)
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,asn,aspnet_viewstate,azure_tenant,blind_ssrf,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,generic_ssrf,getparam_brute,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,passivetotal,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,urlscan,vhost,viewdns,wappalyzer,wayback,zoomeye
+                        Modules to enable. Choices: affiliates,asn,aspnet_viewstate,azure_tenant,binaryedge,blind_ssrf,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,generic_ssrf,getparam_brute,github,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,passivetotal,pgp,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,urlscan,viewdns,wappalyzer,wayback,zoomeye
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
@@ -167,7 +195,7 @@ Agent:
   -a, --agent-mode      Start in agent mode
 ~~~
 
-## BBOT Config
+# BBOT Config
 BBOT loads its config from these places in the following order:
 
 - `bbot/defaults.yml`
@@ -210,8 +238,8 @@ http_timeout: 30
 httpx_timeout: 5
 # Enable/disable debug messages for web requests/responses
 http_debug: false
-# Set the level with which web spidering behavior is allowed (0 is none)
-web_spider_depth: 0
+# Set the maximum number of HTTP links that can be followed in a row by the spider (0 == no spidering allowed)
+web_spider_distance: 0
 # Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
 dns_resolution: true
 # DNS query timeout
@@ -278,6 +306,7 @@ agent_token: ''
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
+
 ~~~
 
 # Devving on BBOT
@@ -354,6 +383,7 @@ class MyModule(BaseModule):
     ]
 ~~~
 
+## Module helpers
 Modules have easy access to scan information (via `self.scan`) and helper functions (via `self.helpers`):
 ~~~python
 # Access scan target:
@@ -427,6 +457,9 @@ self.helpers.word_cloud.mutations("www")
 # run tests
 bbot/test/run_tests.sh
 
+# re-run a specific test
+pytest --disable-warnings --log-cli-level=ERROR -k test_modules
+
 # format with black
 black .
 ~~~
@@ -435,3 +468,10 @@ black .
 ~~~
 1. poetry add <package>
 ~~~
+
+# Credit
+BBOT is written by @TheTechromancer. Most web functionality in BBOT is created by @pmueller-bls, who wrote most of the web-oriented modules and helpers.
+
+Very special thanks to the following people who made BBOT possible:
+- Steve Micallef (@smicallef) for creating Spiderfoot, by which BBOT is heavily inspired
+- Aleksei Kornev (@alekseiko) for allowing us to use the `bbot` Pypi repository
