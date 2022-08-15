@@ -218,7 +218,7 @@ class BaseModule:
         event = self.make_event(*args, **kwargs)
         if event:
             okay = False
-            while not self.scan.stopping and not okay:
+            while not self.scan.stopping:
                 okay = self._event_semaphore.acquire(timeout=0.1)
                 if okay:
                     self.scan.manager.emit_event(
@@ -227,6 +227,7 @@ class BaseModule:
                         on_success_callback=on_success_callback,
                         quick=quick,
                     )
+                    break
 
     @property
     def events_waiting(self):

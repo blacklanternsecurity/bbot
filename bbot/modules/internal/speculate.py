@@ -39,7 +39,7 @@ class speculate(BaseInternalModule):
         if event.type == "IP_RANGE" and self.range_to_ip:
             net = ipaddress.ip_network(event.data)
             for x in net:
-                self.speculate_event(x, "IP_ADDRESS", source=event, internal=True)
+                self.emit_event(x, "IP_ADDRESS", source=event, internal=True)
 
         # parent domains
         if event.type == "DNS_NAME":
@@ -52,7 +52,7 @@ class speculate(BaseInternalModule):
         # from URLs
         if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
             if event.host and event.port not in (80, 443):
-                self.speculate_event(
+                self.emit_event(
                     self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
                 )
         # from hosts
@@ -61,22 +61,10 @@ class speculate(BaseInternalModule):
             if event.type == "IP_ADDRESS" or (
                 event.type == "DNS_NAME" and any([x in event.tags for x in ("a_record", "aaaa_record")])
             ):
-                self.speculate_event(
-                    self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True
-                )
-                self.speculate_event(
+                self.emit_event(self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True)
+                self.emit_event(
                     self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
                 )
-
-    def speculate_event(self, *args, **kwargs):
-        """
-        Wrapper around self.emit_event that sets the scope distance
-        of an event to that of its parent
-        """
-        event = self.make_event(*args, **kwargs)
-        if event:
-            event.scope_distance = event.source.scope_distance
-            self.emit_event(event)
 
     def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self
