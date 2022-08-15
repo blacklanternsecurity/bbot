@@ -6,7 +6,7 @@ from .crobat import crobat
 
 class massdns(crobat):
 
-    flags = ["brute-force", "subdomain-enum", "passive", "aggressive"]
+    flags = ["brute-force", "subdomain-enum", "passive", "slow", "aggressive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {"description": "Brute-force subdomains with massdns (highly effective)"}
