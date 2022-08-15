@@ -173,7 +173,7 @@ class BaseEvent:
     @property
     def id(self):
         if self._id is None:
-            self._id = make_event_id(self.data, self.type)
+            self._id = make_event_id(self.data_id, self.type)
         return self._id
 
     @property
@@ -249,7 +249,7 @@ class BaseEvent:
 
         if emit_trail and self.scan:
             for e in source_trail:
-                self.scan.manager.emit_event(e)
+                self.scan.manager.emit_event(e, release=False)
 
         return source_trail
 
@@ -286,13 +286,20 @@ class BaseEvent:
         return str(self.data)
 
     @property
+    def data_id(self):
+        return self._data_id()
+
+    def _data_id(self):
+        return self.data
+
+    @property
     def data_graph(self):
         return self._data_graph()
 
     def _data_graph(self):
         if type(self.data) in (list, dict):
             with suppress(Exception):
-                return json.dumps(self.data)
+                return json.dumps(self.data, sort_keys=True)
         return smart_decode(self.data)
 
     def _setup(self):
@@ -324,7 +331,7 @@ class BaseEvent:
 
     def json(self, mode="graph"):
         j = dict()
-        for i in ("type", "id", "scope_distance", "web_spider_distance"):
+        for i in ("type", "id", "web_spider_distance"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
@@ -333,6 +340,7 @@ class BaseEvent:
             j["data"] = data_attr
         else:
             j["data"] = smart_decode(self.data)
+        j["scope_distance"] = self.scope_distance
         j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
         source = self.get_source()
@@ -350,7 +358,7 @@ class BaseEvent:
                 continue
             if type(v) not in (str, int, float, bool, list, type(None)):
                 try:
-                    j[k] = json.dumps(v)
+                    j[k] = json.dumps(v, sort_keys=True)
                 except Exception:
                     j[k] = smart_decode(v)
         return j
@@ -407,7 +415,7 @@ class DefaultEvent(BaseEvent):
 
 class DictEvent(BaseEvent):
     def _data_human(self):
-        return json.dumps(self.data)
+        return json.dumps(self.data, sort_keys=True)
 
 
 class DictHostEvent(DictEvent):

@@ -84,7 +84,7 @@ class asn(ReportModule):
                 self.debug(f'No results for "{ip}"')
         except Exception as e:
             self.warning(f"Error retrieving ASN for {ip}: {e}")
-            self.debug(f"Got data: {r.get('content', '')}")
+            self.debug(f"Got data: {getattr(r, 'content', '')}")
             self.debug(traceback.format_exc())
 
     def get_asn_metadata(self, asn):
