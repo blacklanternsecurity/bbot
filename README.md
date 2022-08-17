@@ -87,7 +87,6 @@ bbot -f subdomain-enum -t evilcorp.com --output-modules human neo4j
 | Module           | Needs API Key   | Description                                                       | Flags                                         | Produced Events                                      |
 |------------------|-----------------|-------------------------------------------------------------------|-----------------------------------------------|------------------------------------------------------|
 | aspnet_viewstate |                 | Parse web pages for viewstates and check them against blacklist3r | active,safe,web                               | VULNERABILITY                                        |
-| blind_ssrf       |                 | Check for common blind SSRFs                                      | active,aggressive,web                         | VULNERABILITY                                        |
 | bypass403        |                 | Check 403 pages for common bypasses                               | active,aggressive,web                         | FINDING                                              |
 | cookie_brute     |                 | Check for common HTTP cookie parameters                           | active,aggressive,brute-force,slow,web        | FINDING                                              |
 | dnszonetransfer  |                 | Attempt DNS zone transfers                                        | active,safe,subdomain-enum                    | DNS_NAME                                             |
@@ -111,7 +110,6 @@ bbot -f subdomain-enum -t evilcorp.com --output-modules human neo4j
 | affiliates       |                 | Summarize affiliate domains at the end of a scan                  | passive,report,safe                           |                                                      |
 | asn              |                 | Query bgpview.io for ASNs                                         | passive,report,safe,subdomain-enum            | ASN                                                  |
 | azure_tenant     |                 | Query Azure for tenant sister domains                             | passive,safe,subdomain-enum                   | DNS_NAME                                             |
-| binaryedge       | X               | Query the BinaryEdge API                                          | passive,safe,subdomain-enum                   | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_PORT,PROTOCOL |
 | c99              | X               | Query the C99 API for subdomains                                  | passive,safe,subdomain-enum                   | DNS_NAME                                             |
 | censys           | X               | Query the Censys API                                              | passive,safe,subdomain-enum                   | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_PORT,PROTOCOL |
 | certspotter      |                 | Query Certspotter's API for subdomains                            | passive,safe,subdomain-enum                   | DNS_NAME                                             |
