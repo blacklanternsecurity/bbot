@@ -34,6 +34,7 @@ class ConfigAwareHelper:
         self.tools_dir = self.bbot_home / "tools"
         self.lib_dir = self.bbot_home / "lib"
         self.scans_dir = self.bbot_home / "scans"
+        self.current_dir = Path.cwd()
         self.keep_old_scans = self.config.get("keep_scans", 20)
         self.mkdir(self.cache_dir)
         self.mkdir(self.temp_dir)

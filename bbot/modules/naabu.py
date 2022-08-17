@@ -103,3 +103,7 @@ class naabu(BaseModule):
         else:
             command += ["-top-ports", top_ports]
         return command
+
+    def cleanup(self):
+        resume_file = self.helpers.current_dir / "resume.cfg"
+        resume_file.unlink(missing_ok=True)
