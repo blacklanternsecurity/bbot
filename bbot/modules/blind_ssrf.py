@@ -1,51 +1,6 @@
 # https://github.com/assetnote/blind-ssrf-chains
-from bbot.modules.base import BaseModule
 from bbot.core.errors import InteractshError
-
-
-class BaseSubmodule:
-
-    technique_description = "base technique description"
-    severity = "INFO"
-    paths = None
-
-    def __init__(self, parent_module):
-        self.parent_module = parent_module
-        self.test_paths = self.create_paths()
-
-    def set_base_url(self, event):
-        return f"{event.parsed.scheme}://{event.parsed.netloc}"
-
-    def create_paths(self):
-        return self.paths
-
-    def test(self, event):
-        base_url = self.set_base_url(event)
-
-        for test_path in self.test_paths:
-            subdomain_tag = self.parent_module.helpers.rand_string(4)
-            test_path_prepared = test_path.replace(
-                "SSRF_CANARY", f"{subdomain_tag}.{self.parent_module.interactsh_domain}"
-            )
-            test_url = f"{base_url}{test_path_prepared}"
-            self.parent_module.debug(f"Sending request to URL: {test_url}")
-            r = self.parent_module.helpers.curl(url=test_url)
-            if r:
-                self.process(event, r, subdomain_tag)
-
-    def process(self, event, r, subdomain_tag):
-        response_token = self.parent_module.interactsh_domain.split(".")[0][::-1]
-        if response_token in r:
-            read_response = True
-        else:
-            read_response = False
-
-        self.parent_module.interactsh_subdomain_tags[subdomain_tag] = (
-            event,
-            self.technique_description,
-            self.severity,
-            read_response,
-        )
+from bbot.modules.generic_ssrf import generic_ssrf, BaseSubmodule
 
 
 class ApacheStruts(BaseSubmodule):
@@ -163,7 +118,7 @@ class W3TotalCache(BaseSubmodule):
                     "SSRF_CANARY", f"{subdomain_tag}.{self.parent_module.interactsh_domain}"
                 ),
             }
-            test_url = f"{event.parsed.scheme}://{event.parsed.netloc}/{test_path}"
+            test_url = f"{event.parsed.scheme}://{event.parsed.netloc}{test_path}"
             r = self.parent_module.helpers.curl(url=test_url, method="PUT", post_data=put_data)
             if r:
                 self.process(event, r, subdomain_tag)
@@ -272,18 +227,15 @@ class PeopleSoftXXE_2(BaseSubmodule):
                 self.process(event, r, subdomain_tag)
 
 
-class blind_ssrf(BaseModule):
+class blind_ssrf(generic_ssrf):
 
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
     flags = ["active", "aggressive", "web"]
     meta = {"description": "Check for common blind SSRFs"}
+    deps_apt = ["curl"]
 
     in_scope_only = True
-
-    def test_submodules(self, submodules, event, **kwargs):
-        for s in submodules.values():
-            s.test(event, **kwargs)
 
     def setup(self):
 
@@ -295,7 +247,7 @@ class blind_ssrf(BaseModule):
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
-                self.interactsh_domain = self.interactsh_instance.register()
+                self.interactsh_domain = self.interactsh_instance.register(callback=self.interactsh_callback)
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
                 return False
@@ -303,7 +255,7 @@ class blind_ssrf(BaseModule):
             self.warning(
                 "The blind_ssrf module is completely dependent on interactsh to function, but it is disabled globally. Aborting."
             )
-            return False
+            return None
 
         # instantiate submodules
         self.submodules = {}
@@ -312,31 +264,6 @@ class blind_ssrf(BaseModule):
                 self.verbose(f"Starting blind_ssrf submodule: {m.__name__}")
                 self.submodules[m.__name__] = m(self)
         return True
-
-    def finish(self):
-        for r in self.interactsh_instance.poll():
-            full_id = r.get("full-id", None)
-            if full_id:
-                if "." in full_id:
-                    match = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
-                    matched_event = match[0]
-                    matched_technique = match[1]
-                    matched_severity = match[2]
-                    matched_read_response = str(match[3])
-
-                    self.emit_event(
-                        {
-                            "severity": matched_severity,
-                            "host": str(matched_event.host),
-                            "url": matched_event.data,
-                            "description": f"Out-of-band interaction: [{matched_technique}] [{r.get('protocol').upper()}] Read Response: {matched_read_response}",
-                        },
-                        "VULNERABILITY",
-                        matched_event,
-                    )
-                else:
-                    # this is likely caused by something trying to resolve the base domain first and can be ignored
-                    self.debug("skipping result because subdomain tag was missing")
 
     def handle_event(self, event):
 

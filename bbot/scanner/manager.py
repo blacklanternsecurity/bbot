@@ -39,7 +39,6 @@ class ScanManager:
             mod._handle_batch(force=True)
 
     def emit_event(self, event, *args, **kwargs):
-        self.scan.stats.event_emitted(event)
         quick = kwargs.pop("quick", False)
         release = kwargs.get("release", True)
         if quick:
@@ -243,7 +242,6 @@ class ScanManager:
         Queue event with manager
         """
         event = self.scan.make_event(*args, **kwargs)
-        self.scan.stats.event_produced(event)
         self.event_queue.put(event)
 
     def distribute_event(self, event):
@@ -272,6 +270,8 @@ class ScanManager:
                 if mod._type == "output":
                     if event_within_report_distance or (event._force_output and mod.emit_graph_trail):
                         mod.queue_event(event)
+                        self.scan.stats.event_emitted(event)
+                        self.scan.stats.event_produced(event)
                 else:
                     if event_within_scope_distance:
                         mod.queue_event(event)

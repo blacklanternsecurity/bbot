@@ -1,4 +1,5 @@
 from pathlib import Path
+from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
 
@@ -12,14 +13,19 @@ class Human(BaseOutputModule):
 
     def setup(self):
         self.output_file = self.config.get("output_file", "")
-        self.file = None
         if self.output_file:
             self.output_file = Path(self.output_file)
         else:
             self.output_file = self.scan.home / "output.txt"
         self.helpers.mkdir(self.output_file.parent)
-        self.file = open(self.output_file, mode="a")
+        self._file = None
         return True
+
+    @property
+    def file(self):
+        if self._file is None:
+            self._file = open(self.output_file, mode="a")
+        return self._file
 
     def handle_event(self, event):
         event_type = f"[{event.type}]"
@@ -32,3 +38,8 @@ class Human(BaseOutputModule):
             self.file.flush()
         if self.config.get("console", True):
             self.stdout(event_str)
+
+    def cleanup(self):
+        if self._file is not None:
+            with suppress(Exception):
+                self.file.close()
