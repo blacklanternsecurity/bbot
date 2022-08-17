@@ -193,9 +193,9 @@ def test_events(events, scan, helpers, bbot_config):
     sort3._priority = 3
     mod1 = helpers._make_dummy_module(name="MOD1", _type="ASDF")
     mod1._priority = 1
-    mod2 = helpers._make_dummy_module(name="MOD1", _type="ASDF")
+    mod2 = helpers._make_dummy_module(name="MOD2", _type="ASDF")
     mod2._priority = 2
-    mod3 = helpers._make_dummy_module(name="MOD1", _type="ASDF")
+    mod3 = helpers._make_dummy_module(name="MOD3", _type="ASDF")
     mod3._priority = 3
     sort1.module = mod1
     sort2.module = mod2
@@ -866,9 +866,11 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
     # base cases
     assert base_module._filter_event("FINISHED") == True
     assert base_module._filter_event("WAT") == False
+    base_module._watched_events = None
     base_module.watched_events = ["*"]
     assert base_module._filter_event("WAT") == False
     assert base_module._filter_event(events.emoji) == True
+    base_module._watched_events = None
     base_module.watched_events = ["IP_ADDRESS"]
     assert base_module._filter_event(events.ipv4) == True
     assert base_module._filter_event(events.domain) == False

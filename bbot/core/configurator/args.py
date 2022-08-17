@@ -35,6 +35,9 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         for m in ret.modules:
             if m not in module_choices and not self._dummy:
                 raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(module_choices)}')
+        for m in ret.exclude_modules:
+            if m not in module_choices and not self._dummy:
+                raise ArgumentError(f'Cannot exclude module "{m}". Choose from: {",".join(module_choices)}')
         for m in ret.output_modules:
             if m not in output_module_choices and not self._dummy:
                 raise ArgumentError(

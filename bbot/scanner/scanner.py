@@ -22,6 +22,19 @@ log = logging.getLogger("bbot.scanner")
 
 
 class Scanner:
+
+    _status_codes = {
+        "NOT_STARTED": 0,
+        "STARTING": 1,
+        "RUNNING": 2,
+        "FINISHING": 3,
+        "CLEANING_UP": 4,
+        "ABORTING": 5,
+        "ABORTED": 6,
+        "FAILED": 7,
+        "FINISHED": 8,
+    }
+
     def __init__(
         self,
         *targets,
@@ -55,6 +68,7 @@ class Scanner:
         else:
             self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
         self._status = "NOT_STARTED"
+        self._status_code = 0
 
         # Set up thread pools
         max_workers = max(1, self.config.get("max_threads", 100))
@@ -196,13 +210,7 @@ class Scanner:
         finally:
 
             self.cleanup()
-
-            # Shut down thread pools
-            self.process_pool.shutdown(wait=True)
-            self.helpers.dns._thread_pool.shutdown(wait=True)
-            self._event_thread_pool.shutdown(wait=True)
-            self._thread_pool.shutdown(wait=True)
-            self._internal_thread_pool.shutdown(wait=True)
+            self.shutdown_threadpools(wait=True)
 
             log_fn = self.hugesuccess
             if self.status == "ABORTING":
@@ -265,23 +273,30 @@ class Scanner:
             for i in range(max(10, self.max_brute_forcers * 10)):
                 self._brute_lock.release()
             self.helpers.kill_children()
-            self.debug(f"Shutting down thread pools with wait={wait}")
-            threads = []
-            for pool in [
-                self.process_pool,
-                self._internal_thread_pool,
-                self.helpers.dns._thread_pool,
-                self._event_thread_pool,
-                self._thread_pool,
-            ]:
-                t = threading.Thread(target=pool.shutdown, kwargs={"wait": wait, "cancel_futures": True}, daemon=True)
-                t.start()
-                threads.append(t)
-            if wait:
-                for t in threads:
-                    t.join()
-            self.debug("Finished shutting down thread pools")
+            self.shutdown_threadpools(wait=False)
             self.helpers.kill_children()
+
+    def shutdown_threadpools(self, wait=True):
+        pools = [
+            self.process_pool,
+            self._internal_thread_pool,
+            self.helpers.dns._thread_pool,
+            self._event_thread_pool,
+            self._thread_pool,
+        ]
+        self.debug(f"Shutting down thread pools with wait={wait}")
+        threads = []
+        for pool in pools:
+            t = threading.Thread(target=pool.shutdown, kwargs={"wait": False, "cancel_futures": True}, daemon=True)
+            t.start()
+            threads.append(t)
+        if wait:
+            for t in threads:
+                t.join()
+        if wait:
+            for pool in pools:
+                pool.shutdown(wait=True)
+        self.debug("Finished shutting down thread pools")
 
     def cleanup(self):
         # clean up modules
@@ -318,6 +333,14 @@ class Scanner:
         return self.helpers.word_cloud
 
     @property
+    def stopping(self):
+        return not self.running
+
+    @property
+    def running(self):
+        return 0 < self._status_code < 4
+
+    @property
     def status(self):
         return self._status
 
@@ -326,17 +349,23 @@ class Scanner:
         """
         Block setting after status has been aborted
         """
-        if (not self.status == "ABORTING") or (status == "ABORTED"):
-            self._status = status
-            self.dispatcher.on_status(self._status, self.id)
+        status = str(status).strip().upper()
+        if status in self._status_codes:
+            if self.status == "ABORTING" and not status == "ABORTED":
+                self.debug(f'Attempt to set invalid status "{status}" on aborted scan')
+            else:
+                self._status = status
+                self._status_code = self._status_codes[status]
+                self.dispatcher.on_status(self._status, self.id)
         else:
-            self.debug(f'Attempt to set invalid status "{status}" on aborted scan')
+            self.debug(f'Attempt to set invalid status "{status}" on scan')
 
     @property
     def status_detailed(self):
         main_tasks = self._thread_pool.num_tasks
         dns_tasks = self.helpers.dns._thread_pool.num_tasks
-        event_tasks = self._event_thread_pool.num_tasks
+        event_threadpool_tasks = self._event_thread_pool.num_tasks
+        event_tasks = self.manager.event_queue.qsize()
         internal_tasks = self._internal_thread_pool.num_tasks
         process_tasks = self.process_pool.num_tasks
         total_tasks = main_tasks + dns_tasks + event_tasks + internal_tasks
@@ -346,9 +375,12 @@ class Scanner:
                 "dns": dns_tasks,
                 "internal": internal_tasks,
                 "process": process_tasks,
-                "event": event_tasks,
+                "event": event_threadpool_tasks,
                 "total": total_tasks,
-            }
+            },
+            "queued_events": {
+                "manager": event_tasks,
+            },
         }
         return status
 
@@ -362,14 +394,6 @@ class Scanner:
         if self._log is None:
             self._log = logging.getLogger(f"bbot.agent.scanner")
         return self._log
-
-    @property
-    def stopping(self):
-        return self.status not in ("STARTING", "RUNNING", "FINISHING")
-
-    @property
-    def running(self):
-        return self.status in ("STARTING", "RUNNING", "FINISHING")
 
     @property
     def root_event(self):

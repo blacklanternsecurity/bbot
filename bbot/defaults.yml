@@ -9,7 +9,7 @@ scope_report_distance: 1
 # How far out from the main scope to resolve DNS names / IPs
 scope_dns_search_distance: 2
 # Limit the number of BBOT threads
-max_threads: 50
+max_threads: 20
 # Limit the number of brute force modules that can run at one time
 max_brute_forcers: 2
 
