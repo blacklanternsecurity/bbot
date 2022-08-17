@@ -18,7 +18,7 @@ class host_header(BaseModule):
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
-                self.interactsh_domain = self.interactsh_instance.register()
+                self.interactsh_domain = self.interactsh_instance.register(callback=self.interactsh_callback)
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
                 return False
@@ -26,28 +26,33 @@ class host_header(BaseModule):
             self.interactsh_subdomain_tags = {}
         return True
 
+    def interactsh_callback(self, r):
+        full_id = r.get("full-id", None)
+        if full_id:
+            if "." in full_id:
+                match = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
+                self.hugewarning(match)
+                if match is None:
+                    return
+                matched_event = match[0]
+                matched_technique = match[1]
+
+                self.emit_event(
+                    {
+                        "host": str(matched_event.host),
+                        "url": matched_event.data["url"],
+                        "description": f"Spoofed Host header ({matched_technique}) [{r.get('protocol').upper()}] interaction",
+                    },
+                    "FINDING",
+                    matched_event,
+                )
+            else:
+                # this is likely caused by something trying to resolve the base domain first and can be ignored
+                self.debug("skipping results because subdomain tag was missing")
+
     def finish(self):
-
         for r in self.interactsh_instance.poll():
-            full_id = r.get("full-id", None)
-            if full_id:
-                if "." in full_id:
-                    match = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
-                    matched_event = match[0]
-                    matched_technique = match[1]
-
-                    self.emit_event(
-                        {
-                            "host": str(matched_event.host),
-                            "url": matched_event.data["url"],
-                            "description": f"Spoofed Host header ({matched_technique}) [{r.get('protocol').upper()}] interaction",
-                        },
-                        "FINDING",
-                        matched_event,
-                    )
-                else:
-                    # this is likely caused by something trying to resolve the base domain first and can be ignored
-                    self.debug("skipping results because subdomain tag was missing")
+            self.interactsh_callback(r)
 
     def cleanup(self):
         try:
@@ -77,7 +82,7 @@ class host_header(BaseModule):
         # host header replacement
         technique_description = "standard"
         self.debug(f"Performing {technique_description} case")
-        subdomain_tag = self.helpers.rand_string(4)
+        subdomain_tag = self.helpers.rand_string(4, digits=False)
         self.interactsh_subdomain_tags[subdomain_tag] = (event, technique_description)
         output = self.helpers.curl(
             url=event.data["url"],
@@ -92,7 +97,7 @@ class host_header(BaseModule):
         # absolute URL / Host header transposition
         technique_description = "absolute URL transposition"
         self.debug(f"Performing {technique_description} case")
-        subdomain_tag = self.helpers.rand_string(4)
+        subdomain_tag = self.helpers.rand_string(4, digits=False)
         self.interactsh_subdomain_tags[subdomain_tag] = (event, technique_description)
         output = self.helpers.curl(
             url=event.data["url"],
@@ -131,7 +136,7 @@ class host_header(BaseModule):
 
         technique_description = "host override headers"
         self.debug(f"Performing {technique_description} case")
-        subdomain_tag = self.helpers.rand_string(4)
+        subdomain_tag = self.helpers.rand_string(4, digits=False)
         self.interactsh_subdomain_tags[subdomain_tag] = (event, technique_description)
 
         override_headers_list = [

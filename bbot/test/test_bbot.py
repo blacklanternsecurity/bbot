@@ -1204,7 +1204,7 @@ def test_cli(monkeypatch, bbot_config):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bbot", "-y", "-t", "127.0.0.1", "-m", "ipneighbor", "-om", "human", "csv", "json", "-n", "test_scan"],
+        ["bbot", "-y", "-t", "localhost", "-m", "ipneighbor", "-om", "human", "csv", "json", "-n", "test_scan"],
     )
     cli.main()
     scan_home = home_dir / "scans" / "test_scan"

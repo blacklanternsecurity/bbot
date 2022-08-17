@@ -5,7 +5,7 @@ class vhost(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VHOST", "DNS_NAME"]
-    flags = ["active", "brute-force", "aggressive", "web"]
+    flags = ["active", "brute-force", "aggressive", "slow", "web"]
     meta = {"description": "Fuzz for virtual hosts"}
 
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
@@ -15,8 +15,19 @@ class vhost(BaseModule):
     }
     options_desc = {
         "subdomain_wordlist": "Wordlist containing subdomains",
-        "force_basehost": "Override the default behavior of using the current URL to make the basehost and add a custom basehost",
+        "force_basehost": "Use a custom base host (e.g. evilcorp.com) instead of the default behavior of using the current URL",
     }
+    deps_ansible = [
+        {
+            "name": "Download ffuf",
+            "unarchive": {
+                "src": "https://github.com/ffuf/ffuf/releases/download/v{BBOT_MODULES_FFUF_VERSION}/ffuf_{BBOT_MODULES_FFUF_VERSION}_linux_amd64.tar.gz",
+                "include": "ffuf",
+                "dest": "{BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        }
+    ]
     in_scope_only = True
 
     def setup(self):
@@ -37,11 +48,10 @@ class vhost(BaseModule):
 
             # subdomain vhost check
             self.debug("Main vhost bruteforce")
-            self.debug(self.config.get("force_basehost"))
             if self.config.get("force_basehost"):
                 basehostraw = self.config.get("force_basehost")
             else:
-                basehostraw = ".".join(parsed_host.netloc.split(".")[-2:])
+                basehostraw = self.helpers.parent_domain(event.host)
 
             self.debug(f"Basehost: {basehostraw}")
             basehost = f".{basehostraw}"

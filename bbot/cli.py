@@ -243,10 +243,14 @@ def main():
         err = True
 
     finally:
+        # save word cloud
         with suppress(Exception):
             save_success, filename = scanner.helpers.word_cloud.save(options.save_wordcloud)
             if save_success:
                 log_to_stderr(f"Saved word cloud ({len(scanner.helpers.word_cloud):,} words) to {filename}")
+        # remove output directory if empty
+        with suppress(Exception):
+            scanner.home.rmdir()
         if err:
             os._exit(1)
 

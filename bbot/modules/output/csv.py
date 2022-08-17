@@ -14,23 +14,31 @@ class CSV(BaseOutputModule):
 
     def setup(self):
         self.output_file = self.config.get("output_file", "")
-        self.file = None
         if self.output_file:
             self.output_file = Path(self.output_file)
         else:
             self.output_file = self.scan.home / "output.csv"
         self.helpers.mkdir(self.output_file.parent)
-        self.file = open(self.output_file, mode="a", newline="")
-        self.writer = csv.writer(self.file)
-        self.writerow(["Event type", "Event data", "Source Module", "Scope Distance", "Event Tags"])
+        self._file = None
+        self._writer = None
         return True
+
+    @property
+    def writer(self):
+        if self._writer is None:
+            self._writer = csv.writer(self.file)
+            self._writer.writerow(["Event type", "Event data", "Source Module", "Scope Distance", "Event Tags"])
+        return self._writer
+
+    @property
+    def file(self):
+        if self._file is None:
+            self._file = open(self.output_file, mode="a", newline="")
+        return self._file
 
     def writerow(self, row):
         self.writer.writerow(row)
-        if self.output_file and self.file is not None:
-            self.file.flush()
-        elif not self.output_file:
-            self.stdout(self.file.read().strip())
+        self.file.flush()
 
     def handle_event(self, event):
         self.writerow(
@@ -44,6 +52,6 @@ class CSV(BaseOutputModule):
         )
 
     def cleanup(self):
-        if self.output_file and self.file is not None:
+        if self._file is not None:
             with suppress(Exception):
                 self.file.close()

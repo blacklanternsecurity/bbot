@@ -149,14 +149,16 @@ class WordCloud(dict):
             if not self.parent_helper.mkdir(filename.parent):
                 log.error(f"Failure creating or error writing to {filename.parent} when saving word cloud")
                 return
-            log.debug(f"Saving word cloud to {filename}")
-            with open(str(filename), mode="w", newline="") as f:
-                c = csv.writer(f, delimiter="\t")
-                for word, count in self.json(limit).items():
-                    c.writerow([count, word])
             if len(self) > 0:
+                log.debug(f"Saving word cloud to {filename}")
+                with open(str(filename), mode="w", newline="") as f:
+                    c = csv.writer(f, delimiter="\t")
+                    for word, count in self.json(limit).items():
+                        c.writerow([count, word])
                 log.debug(f"Saved word cloud ({len(self):,} words) to {filename}")
                 return True, filename
+            else:
+                log.debug(f"No words to save")
         except Exception as e:
             import traceback
 
