@@ -141,11 +141,11 @@ class WordCloud(dict):
         return self.parent_helper.scan.home / f"wordcloud.tsv"
 
     def save(self, filename=None, limit=None):
+        if filename is None:
+            filename = self.default_filename
+        else:
+            filename = Path(filename).resolve()
         try:
-            if filename is None:
-                filename = self.default_filename
-            else:
-                filename = Path(filename).resolve()
             if not self.parent_helper.mkdir(filename.parent):
                 log.error(f"Failure creating or error writing to {filename.parent} when saving word cloud")
                 return
@@ -155,12 +155,14 @@ class WordCloud(dict):
                 for word, count in self.json(limit).items():
                     c.writerow([count, word])
             if len(self) > 0:
-                log.info(f"Saved word cloud ({len(self):,} words) to {filename}")
+                log.debug(f"Saved word cloud ({len(self):,} words) to {filename}")
+                return True, filename
         except Exception as e:
             import traceback
 
             log.warning(f"Failed to save word cloud to {filename}: {e}")
             log.debug(traceback.format_exc())
+        return False, filename
 
     def load(self, filename=None):
         if filename is None:
