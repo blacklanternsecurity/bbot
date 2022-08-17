@@ -196,9 +196,15 @@ def init_logging():
     Initializes logging, returns logging queue and dictionary containing log handlers
     """
 
-    logging_queue = SimpleQueue()
-    handlers = log_listener_setup(logging_queue)
-    log_worker_setup(logging_queue)
+    handlers = {}
+    logging_queue = None
+
+    log = logging.getLogger("bbot")
+    # Don't do this more than once
+    if len(log.handlers) == 0:
+        logging_queue = SimpleQueue()
+        handlers = log_listener_setup(logging_queue)
+        log_worker_setup(logging_queue)
 
     return logging_queue, handlers
 

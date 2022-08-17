@@ -5,6 +5,8 @@ import threading
 import subprocess
 from contextlib import suppress
 
+from .misc import smart_decode
+
 log = logging.getLogger("bbot.core.helpers.command")
 
 
@@ -29,7 +31,7 @@ def run_live(self, command, *args, **kwargs):
     if not "stdout" in kwargs:
         kwargs["stdout"] = subprocess.PIPE
     if not "stderr" in kwargs:
-        kwargs["stderr"] = subprocess.DEVNULL
+        kwargs["stderr"] = subprocess.PIPE
     _input = kwargs.pop("input", "")
     input_msg = ""
     if _input:
@@ -45,6 +47,14 @@ def run_live(self, command, *args, **kwargs):
             self.feed_pipe(process.stdin, _input, text=False)
         for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
             yield line
+
+        # surface stderr
+        process.wait()
+        if process.stderr and process.returncode != 0:
+            stderr = smart_decode(process.stderr.read())
+            if stderr:
+                command_str = " ".join(command)
+                log.warning(f"Stderr for {command_str}:\n\t{stderr}")
 
 
 def run(self, command, *args, **kwargs):
@@ -66,6 +76,14 @@ def run(self, command, *args, **kwargs):
     command = [str(s) for s in command]
     log.hugeverbose(f"run: {' '.join(command)}")
     result = catch(subprocess.run, command, *args, **kwargs)
+
+    # surface stderr
+    if result.stderr and result.returncode != 0:
+        stderr = smart_decode(result.stderr)
+        if stderr:
+            command_str = " ".join(command)
+            log.warning(f"Stderr for {command_str}:\n\t{stderr}")
+
     return result
 
 
