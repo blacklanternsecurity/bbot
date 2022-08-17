@@ -96,6 +96,7 @@ class BaseModule:
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []
         self._cleanedup = False
+        self._watched_events = None
 
     def setup(self):
         """
@@ -159,7 +160,9 @@ class BaseModule:
         """
         Override if you need your watched_events to be dynamic
         """
-        return self.watched_events
+        if self._watched_events is None:
+            self._watched_events = set(self.watched_events)
+        return self._watched_events
 
     def submit_task(self, *args, **kwargs):
         return self.thread_pool.submit_task(self.catch, *args, **kwargs)
@@ -351,30 +354,30 @@ class BaseModule:
             self.set_error_state(f"Exception ({e.__class__.__name__}) in module {self.name}:\n{e}")
             self.debug(traceback.format_exc())
 
-    def _filter_event(self, e):
+    def _filter_event(self, event):
         # special "FINISHED" event
-        if type(e) == str:
-            if e in ("FINISHED", "REPORT"):
+        if type(event) == str:
+            if event in ("FINISHED", "REPORT"):
                 return True
             else:
                 return False
         # exclude non-watched types
-        if not any(t in self.get_watched_events() for t in ("*", e.type)):
+        if not any(t in self.get_watched_events() for t in ("*", event.type)):
             return False
         # built-in filtering based on scope distance, etc.
-        acceptable, reason = self.event_acceptable(e)
+        acceptable, reason = self.event_acceptable(event)
         if not acceptable:
-            self.debug(f"Not accepting {e} because {reason}")
+            self.debug(f"Not accepting {event} because {reason}")
             return False
         # custom filtering
         try:
-            if not self.filter_event(e):
-                self.debug(f"{e} did not meet custom filter criteria")
+            if not self.filter_event(event):
+                self.debug(f"{event} did not meet custom filter criteria")
                 return False
         except Exception as e:
             import traceback
 
-            self.error(f"Error in filter_event(): {e}")
+            self.error(f"Error in filter_event({event}): {e}")
             self.debug(traceback.format_exc())
         return True
 

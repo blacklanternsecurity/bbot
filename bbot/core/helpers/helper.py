@@ -48,6 +48,7 @@ class ConfigAwareHelper:
         self.dns = DNSHelper(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
+        self.dummy_modules = {}
 
     def interactsh(self):
         return Interactsh(self)
@@ -95,7 +96,12 @@ class ConfigAwareHelper:
         """
         Construct a dummy module, for attachment to events
         """
-        return DummyModule(scan=self.scan, name=name, _type=_type)
+        try:
+            return self.dummy_modules[name]
+        except KeyError:
+            dummy = DummyModule(scan=self.scan, name=name, _type=_type)
+            self.dummy_modules[name] = dummy
+            return dummy
 
     def __getattribute__(self, attr):
         """

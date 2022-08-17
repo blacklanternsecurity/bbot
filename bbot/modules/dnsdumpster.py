@@ -51,6 +51,9 @@ class dnsdumpster(crobat):
         else:
             self.debug("Successfully obtained CSRF tokens")
 
+        if self.scan.stopping:
+            return
+
         # Otherwise, do the needful
         subdomains = set()
         res2 = self.helpers.request(

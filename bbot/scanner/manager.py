@@ -109,7 +109,8 @@ class ScanManager:
                 set_scope_distance = 0
             if event.host:
                 if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
-                    log.debug(f"Making {event} in-scope")
+                    if set_scope_distance == 0:
+                        log.debug(f"Making {event} in-scope")
                     event.make_in_scope(set_scope_distance)
                 else:
                     if event.scope_distance > self.scan.scope_report_distance:
@@ -255,23 +256,19 @@ class ScanManager:
 
         dup = False
         event_hash = hash(event)
-        with self.events_distributed_lock:
-            if event_hash in self.events_distributed:
-                self.scan.verbose(f"{event.module}: Duplicate event: {event}")
-                dup = True
-            else:
-                self.events_distributed.add(event_hash)
+        # with self.events_distributed_lock:
+        if event_hash in self.events_distributed:
+            self.scan.verbose(f"{event.module}: Duplicate event: {event}")
+            dup = True
+        else:
+            self.events_distributed.add(event_hash)
         # absorb event into the word cloud if it's in scope
         if not dup and -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:
-                event_within_scope_distance = (
-                    event.scope_distance <= self.scan.scope_search_distance and event.scope_distance > -1
-                )
-                event_within_report_distance = (
-                    event.scope_distance <= self.scan.scope_report_distance and event.scope_distance > -1
-                )
+                event_within_scope_distance = -1 < event.scope_distance <= self.scan.scope_search_distance
+                event_within_report_distance = -1 < event.scope_distance <= self.scan.scope_report_distance
                 if mod._type == "output":
                     if event_within_report_distance or (event._force_output and mod.emit_graph_trail):
                         mod.queue_event(event)
@@ -364,8 +361,9 @@ class ScanManager:
 
             status = {"modules": {}, "scan": self.scan.status_detailed}
 
-            if self.event_queue.qsize() > 0:
-                finished = False
+            for num_events in status["scan"]["queued_events"].values():
+                if num_events > 0:
+                    finished = False
 
             for num_tasks in status["scan"]["queued_tasks"].values():
                 if num_tasks > 0:
@@ -420,8 +418,9 @@ class ScanManager:
             event_tasks = status["scan"]["queued_tasks"]["event"]
             main_tasks = status["scan"]["queued_tasks"]["main"]
             internal_tasks = status["scan"]["queued_tasks"]["internal"]
+            manager_events_queued = status["scan"]["queued_events"]["manager"]
             self.scan.hugeverbose(
-                f"Scan tasks queued: {num_scan_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
+                f"Scan tasks queued: {num_scan_tasks:,} (Main: {main_tasks:,}, Events: {event_tasks:,} waiting, {manager_events_queued:,} in queue, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
             )
 
             if modules_running:
