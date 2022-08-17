@@ -220,8 +220,6 @@ def main():
                 raise
             finally:
                 with suppress(NameError):
-                    scanner.helpers.word_cloud.save(options.save_wordcloud)
-                with suppress(NameError):
                     scanner.cleanup()
 
     except bbot.core.errors.BBOTError as e:
@@ -245,6 +243,10 @@ def main():
         err = True
 
     finally:
+        with suppress(Exception):
+            save_success, filename = scanner.helpers.word_cloud.save(options.save_wordcloud)
+            if save_success:
+                log_to_stderr(f"Saved word cloud ({len(scanner.helpers.word_cloud):,} words) to {filename}")
         if err:
             os._exit(1)
 
