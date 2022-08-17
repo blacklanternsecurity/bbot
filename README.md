@@ -36,6 +36,16 @@ bbot --flags passive --targets evilcorp.com
 bbot --modules naabu httpx gowitness --name my_scan --output-dir . --targets evilcorp.com 1.2.3.4/28 4.3.2.1 targets.txt
 ~~~
 
+## BBOT as a Python library
+~~~python
+from bbot.scanner import Scanner
+
+# this will prompt for a sudo password
+# if you prefere, you can export BBOT_SUDO_PASS instead
+scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["naabu"], output_modules=["http"])
+scan.start()
+~~~
+
 # Output
 BBOT outputs to STDOUT by default, but it can output in multiple formats simultaneously (with `--output-module`).
 ~~~bash

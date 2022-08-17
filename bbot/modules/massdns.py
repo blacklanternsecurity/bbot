@@ -110,6 +110,7 @@ class massdns(crobat):
             "AAAA",
             "-o",
             "J",
+            "-q",
         )
         subdomains = self.gen_subdomains(subdomains, domain)
         for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL, input=subdomains):
