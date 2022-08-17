@@ -225,3 +225,7 @@ class nuclei(BaseModule):
                 yield (severity, template, host, name)
             else:
                 self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
+
+    def cleanup(self):
+        resume_file = self.helpers.current_dir / "resume.cfg"
+        resume_file.unlink(missing_ok=True)
