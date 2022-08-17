@@ -44,8 +44,10 @@ from bbot.scanner import Scanner
 # if you prefer, you can export BBOT_SUDO_PASS instead
 scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["naabu"], output_modules=["http"])
 
-"www.evilcorp.com" in scan.target # --> True
 len(scan.target) # --> 257
+"1.2.3.4" in scan.target # --> True
+"4.3.2.1" in scan.target # --> False
+"www.evilcorp.com" in scan.target # --> True
 
 scan.start()
 ~~~
@@ -231,7 +233,9 @@ scope_report_distance: 1
 # How far out from the main scope to resolve DNS names / IPs
 scope_dns_search_distance: 2
 # Limit the number of BBOT threads
-max_threads: 50
+max_threads: 20
+# Limit the number of DNS threads
+max_dns_threads: 100
 # Limit the number of brute force modules that can run at one time
 max_brute_forcers: 2
 
@@ -252,8 +256,10 @@ http_timeout: 30
 httpx_timeout: 5
 # Enable/disable debug messages for web requests/responses
 http_debug: false
-# Set the maximum number of HTTP links that can be followed in a row by the spider (0 == no spidering allowed)
+# Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
 web_spider_distance: 0
+# Set the maximum directory depth for the web spider
+web_spider_depth: 1
 # Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
 dns_resolution: true
 # DNS query timeout
@@ -320,7 +326,6 @@ agent_token: ''
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
-
 ~~~
 
 # Devving on BBOT
