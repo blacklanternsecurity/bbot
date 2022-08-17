@@ -96,7 +96,7 @@ class dnscommonsrv(BaseModule):
     meta = {"description": "Check for common SRV records"}
 
     def filter_event(self, event):
-        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string()}.{event.host}")
+        is_wildcard, _ = self.helpers.is_wildcard(event.host)
         if is_wildcard:
             return False
         return True

@@ -21,7 +21,7 @@ class urlscan(crobat):
         query = self.make_query(event)
         for domain, url in self.query(query):
             source_event = event
-            if domain:
+            if domain and domain != query:
                 domain_event = self.make_event(domain, "DNS_NAME", source=event)
                 if str(domain_event.host).endswith(query) and not str(domain_event.host) == str(event.host):
                     self.emit_event(domain_event, abort_if=self.abort_if)

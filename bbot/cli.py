@@ -248,6 +248,14 @@ def main():
         if err:
             os._exit(1)
 
+        # debug troublesome modules
+        """
+        from time import sleep
+        while 1:
+            scanner.manager.modules_status(_log=True)
+            sleep(1)
+        """
+
 
 if __name__ == "__main__":
     main()
