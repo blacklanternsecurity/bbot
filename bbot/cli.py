@@ -123,7 +123,7 @@ def main():
                         required_by = deps.get("required_by", [])
                         recommended = deps.get("recommended", [])
                         if not recommended:
-                            log.warning(
+                            log.hugewarning(
                                 f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no modules produce it"
                             )
                         elif len(recommended) == 1:
@@ -134,14 +134,14 @@ def main():
                             scanner._scan_modules = list(set(scanner._scan_modules + list(recommended)))
                             changed = True
                         else:
-                            log.warning(
+                            log.hugewarning(
                                 f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no enabled module produces it"
                             )
                             log.warning(
                                 f"Recommend enabling one or more of the following modules which produce {event_type}:"
                             )
                             for m in recommended:
-                                log.info(f" - {m}")
+                                log.warning(f" - {m}")
                     if not changed:
                         break
 

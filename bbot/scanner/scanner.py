@@ -12,6 +12,7 @@ from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.modules import module_loader
 from bbot.core.event import make_event
+from bbot.core.logger import init_logging
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.names_generator import random_name
@@ -19,6 +20,8 @@ from bbot.core.helpers.threadpool import ThreadPoolWrapper
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
+
+init_logging()
 
 
 class Scanner:
