@@ -13,14 +13,19 @@ class JSON(BaseOutputModule):
 
     def setup(self):
         self.output_file = self.config.get("output_file", "")
-        self.file = None
         if self.output_file:
             self.output_file = Path(self.output_file)
         else:
             self.output_file = self.scan.home / "output.json"
         self.helpers.mkdir(self.output_file.parent)
-        self.file = open(self.output_file, mode="a")
+        self._file = None
         return True
+
+    @property
+    def file(self):
+        if self._file is None:
+            self._file = open(self.output_file, mode="a")
+        return self._file
 
     def handle_event(self, event):
         event_str = json.dumps(dict(event))
@@ -31,6 +36,6 @@ class JSON(BaseOutputModule):
             self.stdout(event_str)
 
     def cleanup(self):
-        if self.output_file:
+        if self._file is not None:
             with suppress(Exception):
                 self.file.close()

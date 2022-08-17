@@ -1,13 +1,16 @@
 # based on https://github.com/ElSicarius/interactsh-python/blob/main/sources/interactsh.py
 import json
+import base64
+import random
+import logging
+from time import sleep
 from uuid import uuid4
+from threading import Thread
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
+
 from bbot.core.errors import InteractshError
-import random
-import logging
-import base64
 
 log = logging.getLogger("bbot.core.helpers.interactsh")
 
@@ -19,8 +22,9 @@ class Interactsh:
         self.parent_helper = parent_helper
         self.server = self.parent_helper.config.get("interactsh_server", None)
         self.token = self.parent_helper.config.get("interactsh_token", None)
+        self._thread = None
 
-    def register(self):
+    def register(self, callback=None):
         if self.server == None:
             self.server = random.choice(server_list)
 
@@ -54,6 +58,11 @@ class Interactsh:
         log.info(
             f"Successfully registered to interactsh server {self.server} with correlation_id {self.correlation_id} [{self.domain}]"
         )
+
+        if callable(callback):
+            self._thread = Thread(target=self.poll_loop, args=(callback,), daemon=True)
+            self._thread.start()
+
         return self.domain
 
     def deregister(self):
@@ -86,6 +95,22 @@ class Interactsh:
 
                 decrypted_data = self.decrypt(aes_key, data)
                 yield decrypted_data
+
+    def poll_loop(self, callback):
+        return self.parent_helper.scan.manager.catch(self._poll_loop, callback, _force=True)
+
+    def _poll_loop(self, callback):
+        while 1:
+            if self.parent_helper.scan.stopping:
+                sleep(1)
+                continue
+            data_list = list(self.poll())
+            if not data_list:
+                sleep(10)
+                continue
+            for data in data_list:
+                if data:
+                    callback(data)
 
     def decrypt(self, aes_key, data):
         private_key = RSA.importKey(self.private_key)

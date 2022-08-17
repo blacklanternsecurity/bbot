@@ -9,7 +9,7 @@
 
 ### **BBOT** is a **recursive**, **modular** OSINT framework written in Python.
 
-It is capable of executing virtually the entire OSINT process in a single command, including subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
+It is capable of executing the entire OSINT process in a single command, including subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
 BBOT currently has over **50 modules** and counting.
 
@@ -69,22 +69,17 @@ For every scan, BBOT generates a unique and mildly entertaining name like `fuzzy
 If you reuse a scan name, it will append to its original output files and leverage the previous word cloud.
 
 # Neo4j
-Neo4j is the funnest (and prettiest) way to view and interact with BBOT data. You can get up and running with a single docker command:
+Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
 
 ![neo4j](https://user-images.githubusercontent.com/20261699/182398274-729f3c48-c23c-4db0-8c2e-8b403c1bf790.png)
 
-- Start Neo4j in docker
+- You can get Neo4j up and running with a single docker command:
 ~~~bash
-# recommend setting a secure password in secrets.yml:
-# output_modules:
-#   neo4j:
-#     username: neo4j
-#     password: <supersecurepassword>
 docker run -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
 ~~~
-- Run bbot with `-om neo4j`
+- After that, run bbot with `--output-modules neo4j`
 ~~~bash
-bbot -f subdomain-enum -t evilcorp.com -om human neo4j
+bbot -f subdomain-enum -t evilcorp.com --output-modules human neo4j
 ~~~
 - Browse data at http://localhost:7474
 
