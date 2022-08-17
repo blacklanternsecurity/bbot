@@ -40,9 +40,13 @@ bbot --modules naabu httpx gowitness --name my_scan --output-dir . --targets evi
 ~~~python
 from bbot.scanner import Scanner
 
-# this will prompt for a sudo password
-# if you prefere, you can export BBOT_SUDO_PASS instead
+# this will prompt for a sudo password on first run
+# if you prefer, you can export BBOT_SUDO_PASS instead
 scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["naabu"], output_modules=["http"])
+
+"www.evilcorp.com" in scan.target # --> True
+len(scan.target) # --> 257
+
 scan.start()
 ~~~
 
