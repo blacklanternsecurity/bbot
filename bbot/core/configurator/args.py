@@ -170,8 +170,8 @@ with suppress(Exception):
 def get_config():
     cli_config = []
     with suppress(Exception):
-        if cli_options.configuration:
-            cli_config = cli_options.configuration
+        if cli_options.config:
+            cli_config = cli_options.config
     if len(cli_config) == 1:
         filename = Path(cli_config[0]).resolve()
         if filename.is_file():
