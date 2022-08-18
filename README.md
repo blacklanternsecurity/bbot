@@ -27,7 +27,7 @@ python3 -m pipx ensurepath
 
 ## Scanning with BBOT
 
-#### Examples
+### Examples
 ~~~bash
 # list modules
 bbot -l
@@ -45,7 +45,7 @@ bbot --modules naabu httpx gowitness --name my_scan --output-dir . --targets evi
 bbot -m httpx -c web_spider_distance=2 -t www.evilcorp.com
 ~~~
 
-#### Notes
+### Notes
 
 Running a BBOT scan is as simple as specifying a target and a list of modules.
 
