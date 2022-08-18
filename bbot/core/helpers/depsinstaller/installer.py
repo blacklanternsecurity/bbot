@@ -6,6 +6,7 @@ import getpass
 import logging
 from time import sleep
 import subprocess as sp
+from pathlib import Path
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
@@ -31,6 +32,20 @@ class DepsInstaller:
         self.force_deps = self.parent_helper.config.get("force_deps", False)
         self.retry_deps = self.parent_helper.config.get("retry_deps", False)
         self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
+        self.venv = ""
+        if sys.prefix != sys.base_prefix:
+            self.venv = sys.prefix
+            # ensure that we have pip
+            venv_bin = Path(self.venv) / "bin"
+            python_executable = venv_bin / "python"
+            pip_executable = venv_bin / "pip"
+            if not pip_executable.is_file():
+                with open(pip_executable, "w") as f:
+                    f.write(
+                        f'''#!/bin/bash
+{python_executable} -m pip "$@"'''
+                    )
+                pip_executable.chmod(0o755)
 
         self.all_modules_preloaded = module_loader.preloaded()
 
@@ -51,8 +66,7 @@ class DepsInstaller:
                     continue
                 preloaded = self.all_modules_preloaded[m]
                 # make a hash of the dependencies and check if it's already been handled
-                pipenv = os.environ.get("VIRTUAL_ENV", "")
-                module_hash = self.parent_helper.sha1(str(preloaded["deps"]) + pipenv).hexdigest()
+                module_hash = self.parent_helper.sha1(str(preloaded["deps"]) + self.venv).hexdigest()
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
                 if len(dependencies) <= 0:
@@ -123,10 +137,9 @@ class DepsInstaller:
         packages = ",".join(packages)
         log.verbose(f"Installing the following pip packages: {packages}")
         args = {"name": packages}
-        venv = os.environ.get("VIRTUAL_ENV", None)
-        if venv is not None:
-            args["virtualenv"] = venv
-            args["virtualenv_python"] = self.parent_helper.which("python3", "python")
+        if self.venv:
+            args["virtualenv"] = self.venv
+            args["virtualenv_python"] = sys.executable
         success, err = self.ansible_run(
             module="pip", args=args, ansible_args={"ansible_python_interpreter": sys.executable}
         )
