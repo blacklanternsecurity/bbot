@@ -19,7 +19,11 @@ pipx install bbot
 ~~~
 Prerequisites: 
 - Python 3.9 or newer MUST be installed
-- pipx is recommended (`pip install pipx`)
+- `pipx` is recommended as an alternative to `pip` because it installs BBOT in its own Python environment. To install `pipx`:
+~~~bash
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+~~~
 
 ## Examples
 ~~~bash
@@ -484,8 +488,8 @@ black .
 ~~~
 
 # Credit
-BBOT is written by @TheTechromancer. Most web functionality in BBOT is created by @pmueller-bls, who wrote most of the web-oriented modules and helpers.
+BBOT is written by @TheTechromancer. Web hacking in BBOT is made possible by @pmueller-bls, who wrote most of the web-oriented modules and helpers.
 
 Very special thanks to the following people who made BBOT possible:
 - Steve Micallef (@smicallef) for creating Spiderfoot, by which BBOT is heavily inspired
-- Aleksei Kornev (@alekseiko) for allowing us to use the `bbot` Pypi repository
+- Aleksei Kornev (@alekseiko) for allowing us ownership of the `bbot` Pypi repository <3
