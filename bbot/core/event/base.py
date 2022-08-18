@@ -590,7 +590,9 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0) + 1
+        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
+        if not str(self.data.get("status-code", 0)).startswith("3"):
+            self.web_spider_distance += 1
 
     def sanitize_data(self, data):
         url = data.get("url", "")

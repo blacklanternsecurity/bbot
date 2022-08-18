@@ -25,7 +25,14 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ~~~
 
-## Examples
+## Scanning with BBOT
+Running a BBOT scan is as simple as specifying a target and a list of modules.
+
+There is one module, however, that's especially important, and that's `httpx`. BBOT's `httpx` module is the core of its web capability and used heavily by other modules. `httpx` is responsible for visiting webpages and verifying the validity of URLS. For this reason, if you want to run any web-related module, e.g. `wappalyzer`, `gowitness`, `nuclei`, etc., you'll need to make sure to enable `httpx` as well.
+
+`httpx` is especially powerful because it enables other BBOT modules (like `excavate`) to passively parse web pages for goodies like cleartext passwords, emails, subdomains, etc.
+
+#### Examples
 ~~~bash
 # list modules
 bbot -l
@@ -36,11 +43,14 @@ bbot --flags subdomain-enum --targets evilcorp.com
 # passive only
 bbot --flags passive --targets evilcorp.com
 
-# web screenshots
+# web screenshots with gowitness
 bbot --modules naabu httpx gowitness --name my_scan --output-dir . --targets evilcorp.com 1.2.3.4/28 4.3.2.1 targets.txt
+
+# web spider (search for emails, etc.)
+bbot -m httpx -c web_spider_distance=2 -t www.evicorp.com
 ~~~
 
-## BBOT as a Python library
+## Using BBOT as a Python library
 ~~~python
 from bbot.scanner import Scanner
 
