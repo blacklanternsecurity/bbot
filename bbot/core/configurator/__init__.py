@@ -46,10 +46,16 @@ if not files.secrets_filename.exists():
     secrets_only_config = filter_dict(secrets_only_config, "api_key", "username", "password", "token", fuzzy=True)
     OmegaConf.save(config=OmegaConf.create(secrets_only_config), f=str(files.secrets_filename))
 
+# if we're running in a virtual environment, make sure to include its /bin in PATH
+if sys.prefix != sys.base_prefix:
+    bin_dir = str(Path(sys.prefix) / "bin")
+    if bin_dir not in os.environ["PATH"].split(":"):
+        os.environ["PATH"] = f'{bin_dir}:{os.environ.get("PATH", "")}'
+
 # ensure bbot_tools
 bbot_tools = home / "tools"
 os.environ["BBOT_TOOLS"] = str(bbot_tools)
-os.environ["PATH"] = f"{bbot_tools}:" + os.environ.get("PATH", "")
+os.environ["PATH"] = f'{bbot_tools}:{os.environ.get("PATH", "")}'
 # ensure bbot_cache
 bbot_cache = home / "cache"
 os.environ["BBOT_CACHE"] = str(bbot_cache)
