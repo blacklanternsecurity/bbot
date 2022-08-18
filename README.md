@@ -64,7 +64,7 @@ bbot --output-module json -f subdomain-enum -t evilcorp.com | jq
 # output to CSV, TXT, and JSON, in current directory
 bbot -o . --output-module human csv json -f subdomain-enum -t evilcorp.com
 ~~~
-For every scan, BBOT generates a unique and mildly entertaining name like `fuzzy_gandalf`. Output for that scan, including the word cloud and any gowitness screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
+For every scan, BBOT generates a unique and mildly-entertaining name like `fuzzy_gandalf`. Output for that scan, including the word cloud and any gowitness screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
 
 If you reuse a scan name, it will append to its original output files and leverage the previous word cloud.
 
@@ -209,9 +209,9 @@ Agent:
 # BBOT Config
 BBOT loads its config from these places in the following order:
 
-- `bbot/defaults.yml`
-- `bbot.yml`
-- `secrets.yml`
+- `~/.config/bbot/defaults.yml`
+- `~/.config/bbot/bbot.yml`
+- `~/.config/bbot/secrets.yml`
 - command line (via `--config`)
 
 Command-line arguments take precedence over all others. You can give BBOT a custom config file with `--config myconf.yml`, or individual arguments like this: `--config http_proxy=http://127.0.0.1:8080 modules.shodan_dns.api_key=1234`. To display the full and current BBOT config, including any command-line arguments, use `bbot --current-config`.
@@ -266,7 +266,7 @@ dns_wildcard_ignore: []
 dns_wildcard_tests: 5
 # Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
 # This helps prevent faulty DNS servers from hanging up the scan
-dns_abort_threshold: 5
+dns_abort_threshold: 10
 # Enable/disable filtering of PTR records containing IP addresses
 dns_filter_ptrs: true
 # Enable/disable debug messages for dns queries
