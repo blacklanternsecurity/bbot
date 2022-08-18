@@ -42,7 +42,7 @@ bbot --flags passive --targets evilcorp.com
 bbot --modules naabu httpx gowitness --name my_scan --output-dir . --targets evilcorp.com 1.2.3.4/28 4.3.2.1 targets.txt
 
 # web spider (search for emails, etc.)
-bbot -m httpx -c web_spider_distance=2 -t www.evicorp.com
+bbot -m httpx -c web_spider_distance=2 -t www.evilcorp.com
 ~~~
 
 #### Notes
