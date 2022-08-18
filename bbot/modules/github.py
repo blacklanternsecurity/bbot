@@ -5,9 +5,7 @@ class github(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe"]
-    meta = {
-        "description": "Query Github's API for related repositories",
-    }
+    meta = {"description": "Query Github's API for related repositories", "auth_required": True}
     options = {"api_key": ""}
     options_desc = {"api_key": "Github token"}
 
