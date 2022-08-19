@@ -19,10 +19,28 @@ pipx install bbot
 ~~~
 Prerequisites: 
 - Python 3.9 or newer MUST be installed
-- `pipx` is recommended as an alternative to `pip` because it installs BBOT in its own Python environment. To install `pipx`:
+- `pipx` is recommended as an alternative to `pip` because it installs BBOT in its own Python environment.
+
+Troubleshooting:
+- `Fatal error from pip prevented installation.`
+- `ERROR: No matching distribution found for bbot`
+- `bash: /home/user/.local/bin/bbot: /home/user/.local/pipx/venvs/bbot/bin/python: bad interpreter`
+
+If you get errors resembling any of the above, you need to do something like this:
 ~~~bash
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
+# install a newer version of python
+sudo apt install python3.9 python3.9-venv
+# install pipx
+python3.9 -m pip install --user pipx
+# add pipx to your path
+python3.9 -m pipx ensurepath
+# reboot
+reboot
+# install bbot
+python3.9 -m pipx install bbot
+# run bbot
+bbot --help
+# if that doesn't work, try going home and rethinking your life.
 ~~~
 
 ## Scanning with BBOT
