@@ -15,6 +15,7 @@
 import requests
 from bbot.modules.base import BaseModule
 
+
 class builtwithDomains(BaseModule):
 
     watched_events = ["DNS_NAME"]
@@ -44,12 +45,12 @@ class builtwithDomains(BaseModule):
         self.api_key = self.config.get("api_key", "")
         if self.api_key:
             try:
-                status=self.ping()
-                assert status==True
+                status = self.ping()
+                assert status == True
                 self.hugesuccess(f"Domains API is ready")
                 return status
             except Exception as e:
-                return None,f"Error with API"
+                return None, f"Error with API"
         else:
             return None, "No API key set"
 
@@ -65,14 +66,16 @@ class builtwithDomains(BaseModule):
         -------
         status (bool)
         """
-        status=True
+        status = True
         try:
-            r = self.helpers.request(f"{self.base_url}/v20/api.json?KEY={self.api_key}&LOOKUP=blacklanternsecurity.com")
+            r = self.helpers.request(
+                f"{self.base_url}/v20/api.json?KEY={self.api_key}&LOOKUP=blacklanternsecurity.com"
+            )
             resp_content = getattr(r, "text", "")
             assert getattr(r, "status_code", 0) == 200, f"The DOMAINS API is UNAVAILABLE"
         except AssertionError as iae:
             self.warning(iae)
-            status=False
+            status = False
         return status
 
     def apiTechnologyRequest(self, domain):
@@ -108,10 +111,10 @@ class builtwithDomains(BaseModule):
         """
         domainRoster = []  # Initialize final list
         try:
-            assert len(raw_data.get("Errors", [])) == 0, (raw_data.get("Errors",[]))[0]["Message"]
+            assert len(raw_data.get("Errors", [])) == 0, (raw_data.get("Errors", []))[0]["Message"]
             assert len(raw_data.get("Results", [])) > 0, "No results returned from BUILTWITH query"
-            
-            for chunk in raw_data["Results"][0]["Result"]["Paths"]: # Extract subdomains from results
+
+            for chunk in raw_data["Results"][0]["Result"]["Paths"]:  # Extract subdomains from results
                 if chunk["SubDomain"]:
                     fqdn = str(chunk["SubDomain"]) + "." + str(chunk["Domain"])
                 else:

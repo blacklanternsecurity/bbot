@@ -15,6 +15,7 @@
 import requests
 from bbot.modules.base import BaseModule
 
+
 class builtwithRedirects(BaseModule):
 
     watched_events = ["DNS_NAME"]
@@ -44,12 +45,12 @@ class builtwithRedirects(BaseModule):
         self.api_key = self.config.get("api_key", "")
         if self.api_key:
             try:
-                status=self.ping()
-                assert status==True
+                status = self.ping()
+                assert status == True
                 self.hugesuccess(f"REDIRECTs API is ready")
                 return status
             except Exception as e:
-                return None,f"Error with REDIRECTs APIs"
+                return None, f"Error with REDIRECTs APIs"
         else:
             return None, "No API key set"
 
@@ -65,14 +66,16 @@ class builtwithRedirects(BaseModule):
         -------
         status (bool)
         """
-        status=True
+        status = True
         try:
-            r2 = self.helpers.request(f"{self.base_url}/redirect1/api.json?KEY={self.api_key}&LOOKUP=blacklanternsecurity.com")
+            r2 = self.helpers.request(
+                f"{self.base_url}/redirect1/api.json?KEY={self.api_key}&LOOKUP=blacklanternsecurity.com"
+            )
             resp2_content = getattr(r2, "text", "")
             assert getattr(r2, "status_code", 0) == 200, f"The REDIRECTs API is UNAVAILABLE"
         except AssertionError as iae:
             self.warning(iae)
-            status=False
+            status = False
         return status
 
     def apiRedirectRequest(self, domain):
@@ -119,7 +122,7 @@ class builtwithRedirects(BaseModule):
                     self.warning(iae)
         except AssertionError as ae:
             self.warning(ae)
-        
+
         return redirectsRoster
 
     def handle_event(self, event):
