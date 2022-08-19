@@ -522,5 +522,5 @@ black .
 BBOT is written by @TheTechromancer. Web hacking in BBOT is made possible by @pmueller-bls, who wrote most of the web-oriented modules and helpers. Thanks to @kerrymilan for his work on the agent feature and for his expertise on Ansible and Neo4j.
 
 Very special thanks to the following people who made BBOT possible:
-- Steve Micallef (@smicallef) for creating Spiderfoot, by which BBOT is heavily inspired
-- Aleksei Kornev (@alekseiko) for allowing us ownership of the `bbot` Pypi repository <3
+ - Steve Micallef (@smicallef) for creating Spiderfoot, by which BBOT is heavily inspired
+ - Aleksei Kornev (@alekseiko) for allowing us ownership of the `bbot` Pypi repository <3
