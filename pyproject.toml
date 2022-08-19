@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bbot"
-version = "1.0.1"
+version = "1.0.2"
 description = "OSINT automation for hackers."
 authors = ["TheTechromancer"]
 license = "GPL-3.0"
