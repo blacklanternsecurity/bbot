@@ -40,7 +40,7 @@ reboot
 python3.9 -m pipx install bbot
 # run bbot
 bbot --help
-# if that doesn't work, try going home and rethinking your life.
+# if that doesn't work, you may want to go home and rethink your life.
 ~~~
 
 ## Scanning with BBOT
@@ -245,8 +245,8 @@ Agent:
 BBOT loads its config from these places in the following order:
 
 - `~/.config/bbot/defaults.yml`
-- `~/.config/bbot/bbot.yml`
-- `~/.config/bbot/secrets.yml`
+- `~/.config/bbot/bbot.yml` <-- Use this one for everything else
+- `~/.config/bbot/secrets.yml` <-- Use this one for API keys and stuff
 - command line (via `--config`)
 
 Command-line arguments take precedence over all others. You can give BBOT a custom config file with `--config myconf.yml`, or individual arguments like this: `--config http_proxy=http://127.0.0.1:8080 modules.shodan_dns.api_key=1234`. To display the full and current BBOT config, including any command-line arguments, use `bbot --current-config`.
