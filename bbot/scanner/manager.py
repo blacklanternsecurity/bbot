@@ -57,6 +57,7 @@ class ScanManager:
 
     def _emit_event(self, event, *args, **kwargs):
         release = kwargs.pop("release", True)
+        emit_event = True
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
@@ -82,7 +83,6 @@ class ScanManager:
                 event.tags.add("blacklisted")
 
             # Blacklist purging
-            emit_event = True
             if "blacklisted" in event.tags:
                 reason = "event host"
                 if event_blacklisted_dns:
@@ -173,6 +173,8 @@ class ScanManager:
             if release:
                 with suppress(Exception):
                     event.module._event_semaphore.release()
+                if emit_event:
+                    self.scan.stats.event_emitted(event)
 
     def hash_event(self, event):
         """
@@ -263,6 +265,7 @@ class ScanManager:
         # absorb event into the word cloud if it's in scope
         if not dup and -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
+        stats_recorded = False
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:
                 event_within_scope_distance = -1 < event.scope_distance <= self.scan.scope_search_distance
@@ -270,8 +273,9 @@ class ScanManager:
                 if mod._type == "output":
                     if event_within_report_distance or (event._force_output and mod.emit_graph_trail):
                         mod.queue_event(event)
-                        self.scan.stats.event_emitted(event)
-                        self.scan.stats.event_produced(event)
+                        if not stats_recorded:
+                            stats_recorded = True
+                            self.scan.stats.event_produced(event)
                 else:
                     if event_within_scope_distance:
                         mod.queue_event(event)
