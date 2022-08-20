@@ -49,7 +49,7 @@ class builtwithRedirects(BaseModule):
                 assert status == True
                 self.hugesuccess(f"REDIRECTs API is ready")
                 return status
-            except Exception as e:
+            except Exception:
                 return None, f"Error with REDIRECTs APIs"
         else:
             return None, "No API key set"
@@ -71,7 +71,6 @@ class builtwithRedirects(BaseModule):
             r2 = self.helpers.request(
                 f"{self.base_url}/redirect1/api.json?KEY={self.api_key}&LOOKUP=blacklanternsecurity.com"
             )
-            resp2_content = getattr(r2, "text", "")
             assert getattr(r2, "status_code", 0) == 200, f"The REDIRECTs API is UNAVAILABLE"
         except AssertionError as iae:
             self.warning(iae)

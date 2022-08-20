@@ -49,7 +49,7 @@ class builtwithDomains(BaseModule):
                 assert status == True
                 self.hugesuccess(f"Domains API is ready")
                 return status
-            except Exception as e:
+            except Exception:
                 return None, f"Error with API"
         else:
             return None, "No API key set"
@@ -71,7 +71,6 @@ class builtwithDomains(BaseModule):
             r = self.helpers.request(
                 f"{self.base_url}/v20/api.json?KEY={self.api_key}&LOOKUP=blacklanternsecurity.com"
             )
-            resp_content = getattr(r, "text", "")
             assert getattr(r, "status_code", 0) == 200, f"The DOMAINS API is UNAVAILABLE"
         except AssertionError as iae:
             self.warning(iae)
