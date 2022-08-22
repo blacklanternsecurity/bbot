@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bbot"
-version = "1.0.2"
+version = "1.0.3"
 description = "OSINT automation for hackers."
 authors = ["TheTechromancer"]
 license = "GPL-3.0"
@@ -36,8 +36,13 @@ black = "^22.3.0"
 pytest-cov = "^3.0.0"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 119
+
+[tool.poetry-dynamic-versioning]
+enable = true
+metadata = false
+format = 'v1.0.3.{distance}'
