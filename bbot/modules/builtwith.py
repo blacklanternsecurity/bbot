@@ -1,5 +1,3 @@
-# /usr/bin/python
-
 ############################################################
 #                                                          #
 #                                                          #
@@ -53,7 +51,7 @@ class builtwith(shodan_dns):
         url = f"{self.base_url}/redirect1/api.json?KEY={self.api_key}&LOOKUP={query}"
         return self.helpers.request(url)
 
-    def parse_domains(self, r, query=None):
+    def parse_domains(self, r, query):
         """
         This method yields subdomains.
         Each subdomain is an "FQDN" that was reported in the "Detailed Technology Profile" page on builtwith.com
@@ -73,8 +71,12 @@ class builtwith(shodan_dns):
                         if subdomain:
                             domain = f"{subdomain}.{domain}"
                         yield domain
+            else:
+                error = json.get("Errors", [{}])[0].get("Message", "Unknown Error")
+                if error:
+                    self.warning(f"No results for {query}: {error}")
 
-    def parse_redirects(self, r, query=None):
+    def parse_redirects(self, r, query):
         """
         This method creates a set.
         Each entry in the set is either an Inbound or Outbound Redirect reported in the "Redirect Profile" page on builtwith.com
@@ -103,4 +105,8 @@ class builtwith(shodan_dns):
                     domain = o.get("Domain", "")
                     if domain:
                         results.add(domain)
+        if not results:
+            error = json.get("error", "")
+            if error:
+                self.warning(f"No results for {query}: {error}")
         return results
