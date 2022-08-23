@@ -72,9 +72,13 @@ class crobat(BaseModule):
             for hostname in json:
                 yield hostname
 
-    def query(self, query):
+    def query(self, query, parse_fn=None, request_fn=None):
+        if parse_fn is None:
+            parse_fn = self.parse_results
+        if request_fn is None:
+            request_fn = self.request_url
         try:
-            results = list(self.parse_results(self.request_url(query), query))
+            results = list(parse_fn(request_fn(query), query))
             if results:
                 return results
             self.debug(f'No results for "{query}"')
