@@ -27,8 +27,19 @@ class gowitness(BaseModule):
         "resolution_y": "screenshot resolution y",
         "output_path": "where to save screenshots",
     }
-    deps_apt = ["chromium-browser"]
     deps_ansible = [
+        {
+            "name": "install chromium (Debian)",
+            "package": {"name": "chromium-browser", "state": "present"},
+            "become": True,
+            "when": """ansible_facts['os_family'] == 'Debian'""",
+        },
+        {
+            "name": "install chromium (others)",
+            "package": {"name": "chromium", "state": "present"},
+            "become": True,
+            "when": """ansible_facts['os_family'] != 'Debian'""",
+        },
         {
             "name": "Download gowitness",
             "get_url": {
@@ -36,7 +47,7 @@ class gowitness(BaseModule):
                 "dest": "{BBOT_TOOLS}/gowitness",
                 "mode": "755",
             },
-        }
+        },
     ]
     # visit up to and including the scan's configured search distance
     # this is one hop further than the default
