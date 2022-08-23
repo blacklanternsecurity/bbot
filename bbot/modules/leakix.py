@@ -29,6 +29,8 @@ class leakix(crobat):
                 if not host:
                     continue
                 source_event = self.make_event(host, "DNS_NAME", source=event)
+                if not source_event:
+                    continue
                 self.emit_event(source_event)
                 ssl = s.get("ssl", {})
                 if not ssl:

@@ -115,7 +115,7 @@ class Agent:
                     config=config,
                     dispatcher=self.dispatcher,
                 )
-                self.thread = threading.Thread(target=self.scan.start, daemon=True)
+                self.thread = threading.Thread(target=self._start_scan, args=(self.scan,), daemon=True)
                 self.thread.start()
 
                 return {"success": f"Started scan", "scan_id": self.scan.id}
@@ -174,3 +174,12 @@ class Agent:
 
             log.debug(traceback.format_exc())
             return {"error": msg}
+
+    def _start_scan(self, scan):
+        try:
+            scan.start()
+        except Exception:
+            import traceback
+
+            log.critical(f"Encountered error: {traceback.format_exc()}")
+            self.on_scan_status("FAILED", scan.id)

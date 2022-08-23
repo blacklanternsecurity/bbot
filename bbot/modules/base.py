@@ -220,7 +220,6 @@ class BaseModule:
         quick = kwargs.pop("quick", False)
         event = self.make_event(*args, **kwargs)
         if event:
-            okay = False
             while not self.scan.stopping:
                 okay = self._event_semaphore.acquire(timeout=0.1)
                 if okay:

@@ -25,7 +25,7 @@ If you need help with installation, please refer to the [wiki](https://github.co
 
 ## Scanning with BBOT
 
-#### Note: the `httpx` module is needed in most scans because it is used by BBOT to visit webpages. For details, see the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#note-on-the-httpx-module).
+#### Note: the `httpx` module is recommended in most scans because it is used by BBOT to visit webpages. For details, see the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#note-on-the-httpx-module).
 
 ### Examples
 ~~~bash
@@ -33,31 +33,23 @@ If you need help with installation, please refer to the [wiki](https://github.co
 bbot -l
 
 # subdomain enumeration
-bbot --flags subdomain-enum --modules httpx --targets evilcorp.com
+bbot --flags subdomain-enum --modules naabu httpx --targets evilcorp.com
 
-# passive only
+# passive modules only
 bbot --flags passive --targets evilcorp.com
 
 # web screenshots with gowitness
 bbot -m naabu httpx gowitness --name my_scan --output-dir . -t evilcorp.com 1.2.3.4/28 4.3.2.1 targets.txt
 
 # web spider (search for emails, etc.)
-bbot -m httpx -c web_spider_distance=2 -t www.evilcorp.com
+bbot -m httpx -c web_spider_distance=2 web_spider_depth=2 -t www.evilcorp.com
 ~~~
 
 ## Using BBOT as a Python library
 ~~~python
 from bbot.scanner import Scanner
 
-# this will prompt for a sudo password on first run
-# if you prefer, you can export BBOT_SUDO_PASS instead
-scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["naabu"], output_modules=["http"])
-
-len(scan.target) # --> 257
-"1.2.3.4" in scan.target # --> True
-"4.3.2.1" in scan.target # --> False
-"www.evilcorp.com" in scan.target # --> True
-
+scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["naabu"], output_modules=["json"])
 scan.start()
 ~~~
 
