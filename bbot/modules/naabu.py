@@ -80,7 +80,8 @@ class naabu(BaseModule):
                         break
                 if intermediary_event is not None:
                     source_event = self.make_event(host, "IP_ADDRESS", source=intermediary_event)
-                    self.emit_event(source_event)
+                    if source_event:
+                        self.emit_event(source_event)
 
             if source_event is None:
                 self.warning(f'Failed to correlate source event for host "{host}"')

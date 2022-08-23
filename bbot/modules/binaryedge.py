@@ -3,7 +3,7 @@ from bbot.modules.shodan_dns import shodan_dns
 
 class binaryedge(shodan_dns):
     watched_events = ["DNS_NAME"]
-    produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "IP_ADDRESS", "OPEN_PORT", "PROTOCOL"]
+    produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Query the BinaryEdge API", "auth_required": True}
     options = {"api_key": "", "max_records": 1000}
@@ -27,7 +27,6 @@ class binaryedge(shodan_dns):
     def query(self, query):
         # todo: host query (certs + services)
         url = f"{self.base_url}/query/domains/subdomain/{self.helpers.quote(query)}"
-        self.hugesuccess(url)
         j = self.helpers.request(url, headers=self.headers).json()
         for subdomain in j.get("events", []):
             yield subdomain

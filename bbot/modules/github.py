@@ -30,6 +30,8 @@ class github(shodan_dns):
             self.emit_event(repo_event)
             for raw_url in raw_urls:
                 url_event = self.make_event(raw_url, "URL_UNVERIFIED", source=repo_event, tags=["httpx-safe"])
+                if not url_event:
+                    continue
                 url_event.scope_distance = repo_event.scope_distance
                 self.emit_event(url_event)
 

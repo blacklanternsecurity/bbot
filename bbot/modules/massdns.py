@@ -50,12 +50,18 @@ class massdns(crobat):
         if not h in self.source_events:
             self.source_events[h] = event
 
-        # wildcard sanity check
-        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string()}.{query}")
-        if is_wildcard:
-            self.debug(f"Skipping wildcard: {query}")
+        # make sure base query resolves
+        if not self.helpers.resolve(query, type="any"):
+            self.debug(f"Skipping unresolved query: {query}")
             return
 
+        # make double-sure we're not dealing with a wildcard
+        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string(digits=False)}.{query}")
+        if is_wildcard:
+            self.debug(f"Skipping wildcard query: {query}")
+            return
+
+        self.verbose(f"Brute-forcing subdomains for {query}")
         for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):
             self.emit_result(hostname, event, query)
 
@@ -65,6 +71,11 @@ class massdns(crobat):
             if result.endswith(f".{query}"):
                 kwargs["on_success_callback"] = self.add_found
             self.emit_event(result, "DNS_NAME", source_event, **kwargs)
+
+    def already_processed(self, hostname):
+        if hash(hostname) in self.processed:
+            return True
+        return False
 
     def massdns(self, domain, subdomains):
         """
@@ -97,7 +108,6 @@ class massdns(crobat):
         if self.scan.stopping:
             return
 
-        self.debug(f"Brute-forcing subdomains for {domain}")
         command = (
             "massdns",
             "-r",

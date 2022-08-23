@@ -102,11 +102,15 @@ class censys(shodan_dns):
             self.emit_event(dns_name, "DNS_NAME", source=event)
         for ip, services in ip_addresses.items():
             ip_event = self.make_event(ip, "IP_ADDRESS", source=event)
+            if not ip_event:
+                continue
             self.emit_event(ip_event)
             for port, service_name, transport_protocol in services:
                 port_data = self.helpers.make_netloc(ip, port)
                 port_type = f"OPEN_{transport_protocol.upper()}_PORT"
                 port_event = self.make_event(port_data, port_type, source=ip_event)
+                if not port_event:
+                    continue
                 self.emit_event(port_event)
                 if service_name:
                     service_name = str(service_name).upper()
