@@ -30,7 +30,7 @@ class affiliates(ReportModule):
     def add_affiliate(self, event):
         if event.scope_distance > 0 and event.host and isinstance(event.host, str):
             subdomain, domain = self.helpers.split_domain(event.host)
-            weight = 1 / event.scope_distance + (1 if "affiliate" in event.tags else 0)
+            weight = (1 / event.scope_distance) + (1 if "affiliate" in event.tags else 0)
             if domain and not self.scan.in_scope(domain):
                 try:
                     self.affiliates[domain]["weight"] += weight

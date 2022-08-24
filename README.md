@@ -3,7 +3,7 @@
 # BEE·bot
 ### OSINT automation for hackers.
 
-[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/workflows/tests/badge.svg)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
+[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
 
 ![subdomain demo](https://user-images.githubusercontent.com/20261699/182274919-d4f5aa69-993a-40aa-95d5-f5e69e96026c.gif)
 
@@ -54,7 +54,7 @@ scan.start()
 ~~~
 
 # Output
-BBOT outputs to STDOUT by default, but it can output in multiple formats simultaneously (with `--output-module`).
+BBOT can output to TXT, JSON, CSV, Neo4j, and more with `--output-module`. You can output to multiple formats simultaneously.
 ~~~bash
 # tee to a file
 bbot -f subdomain-enum -t evilcorp.com | tee evilcorp.txt
@@ -192,7 +192,8 @@ For explanations of config options, see `defaults.yml` or the [wiki](https://git
 | affiliates       |                 | Summarize affiliate domains at the end of a scan                  | passive,report,safe                                |                                                      |
 | asn              |                 | Query bgpview.io for ASNs                                         | passive,report,safe,subdomain-enum                 | ASN                                                  |
 | azure_tenant     |                 | Query Azure for tenant sister domains                             | passive,safe,subdomain-enum                        | DNS_NAME                                             |
-| binaryedge       | X               | Query the BinaryEdge API                                          | passive,safe,subdomain-enum                        | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_PORT,PROTOCOL |
+| binaryedge       | X               | Query the BinaryEdge API                                          | passive,safe,subdomain-enum                        | DNS_NAME                                             |
+| builtwith        | X               | Query Builtwith.com for subdomains                                | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | c99              | X               | Query the C99 API for subdomains                                  | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | censys           | X               | Query the Censys API                                              | email-enum,passive,safe,subdomain-enum             | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_PORT,PROTOCOL |
 | certspotter      |                 | Query Certspotter's API for subdomains                            | passive,safe,subdomain-enum                        | DNS_NAME                                             |
