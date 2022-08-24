@@ -28,12 +28,14 @@ class passivetotal(shodan_dns):
         # RiskIQ is famous for their junk data
         return super().abort_if(event) or "unresolved" in event.tags
 
-    def query(self, query):
+    def request_url(self, query):
         url = f"{self.base_url}/enrichment/subdomains?query={self.helpers.quote(query)}"
-        j = self.helpers.request(url, auth=self.auth).json()
-        for subdomain in j.get("subdomains", []):
+        return self.helpers.request(url, auth=self.auth)
+
+    def parse_results(self, r, query):
+        for subdomain in r.json().get("subdomains", []):
             yield f"{subdomain}.{query}"
 
     @property
-    def api_secret(self):
+    def auth_secret(self):
         return self.username and self.api_key

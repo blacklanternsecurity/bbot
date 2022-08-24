@@ -16,22 +16,16 @@ class c99(shodan_dns):
         response = self.helpers.request(url)
         assert response.json()["success"] == True
 
-    def query(self, query):
+    def request_url(self, query):
         url = f"{self.base_url}/subdomainfinder?key={self.api_key}&domain={self.helpers.quote(query)}&json"
-        results = self.helpers.request(url)
-        try:
-            json = results.json()
-            if json:
-                subdomains = json.get("subdomains", [])
-                if subdomains:
-                    for s in subdomains:
-                        subdomain = s.get("subdomain", "")
-                        if subdomain:
-                            yield subdomain
-            else:
-                self.debug(f'No results for "{query}"')
-        except Exception:
-            import traceback
+        return self.helpers.request(url)
 
-            self.warning(f"Error retrieving c99.nl subdomains for {query}")
-            self.debug(traceback.format_exc())
+    def parse_results(self, r, query):
+        j = r.json()
+        if isinstance(j, dict):
+            subdomains = j.get("subdomains", [])
+            if subdomains:
+                for s in subdomains:
+                    subdomain = s.get("subdomain", "")
+                    if subdomain:
+                        yield subdomain

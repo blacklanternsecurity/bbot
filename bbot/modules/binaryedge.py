@@ -24,9 +24,11 @@ class binaryedge(shodan_dns):
         j = self.helpers.request(url, headers=self.headers).json()
         assert j.get("requests_left", 0) > 0
 
-    def query(self, query):
+    def request_url(self, query):
         # todo: host query (certs + services)
         url = f"{self.base_url}/query/domains/subdomain/{self.helpers.quote(query)}"
-        j = self.helpers.request(url, headers=self.headers).json()
-        for subdomain in j.get("events", []):
-            yield subdomain
+        return self.helpers.request(url, headers=self.headers)
+
+    def parse_results(self, r, query):
+        j = r.json()
+        return j.get("events", [])
