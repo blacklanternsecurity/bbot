@@ -45,6 +45,7 @@ if not files.secrets_filename.exists():
     secrets_only_config = OmegaConf.to_object(config)
     secrets_only_config = filter_dict(secrets_only_config, "api_key", "username", "password", "token", fuzzy=True)
     OmegaConf.save(config=OmegaConf.create(secrets_only_config), f=str(files.secrets_filename))
+    files.secrets_filename.chmod(0o600)
 
 # if we're running in a virtual environment, make sure to include its /bin in PATH
 if sys.prefix != sys.base_prefix:
