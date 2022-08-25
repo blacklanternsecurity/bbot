@@ -165,6 +165,9 @@ Command-line arguments take precedence over all others. You can give BBOT a cust
 For explanations of config options, see `defaults.yml` or the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#yaml-config)
 
 # Modules
+
+### Note: You can find more fun and interesting modules at the [Module Playground](https://github.com/blacklanternsecurity/bbot-module-playground). For instructions on how to install these other modules, see the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#module-playground).
+
 | Module           | Needs API Key   | Description                                                       | Flags                                              | Produced Events                                      |
 |------------------|-----------------|-------------------------------------------------------------------|----------------------------------------------------|------------------------------------------------------|
 | aspnet_viewstate |                 | Parse web pages for viewstates and check them against blacklist3r | active,safe,web                                    | VULNERABILITY                                        |
