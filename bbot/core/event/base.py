@@ -109,7 +109,7 @@ class BaseEvent:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
 
         self._source = None
-        self.source_id = None
+        self._source_id = None
         self.source = source
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
@@ -195,11 +195,12 @@ class BaseEvent:
                 new_scope_distance = scope_distance
             else:
                 new_scope_distance = min(self.scope_distance, scope_distance)
-            self._scope_distance = new_scope_distance
-            for t in list(self.tags):
-                if t.startswith("distance-"):
-                    self.tags.remove(t)
-            self.tags.add(f"distance-{new_scope_distance}")
+            if self._scope_distance != new_scope_distance:
+                self._scope_distance = new_scope_distance
+                for t in list(self.tags):
+                    if t.startswith("distance-"):
+                        self.tags.remove(t)
+                self.tags.add(f"distance-{new_scope_distance}")
 
     @property
     def source(self):
@@ -215,9 +216,15 @@ class BaseEvent:
                 if not self.host == source.host:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
-            self.source_id = str(source.id)
         elif not self._dummy:
             log.warning(f"Tried to set invalid source on {self}: (got: {source})")
+
+    @property
+    def source_id(self):
+        source_id = getattr(self.get_source(), "id", None)
+        if source_id is not None:
+            return source_id
+        return self._source_id
 
     def get_source(self):
         """
@@ -360,8 +367,7 @@ class BaseEvent:
         j["scope_distance"] = self.scope_distance
         j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
-        source = self.get_source()
-        source_id = getattr(source, "id", "")
+        source_id = self.source_id
         if source_id:
             j["source"] = source_id
         if self.tags:
@@ -799,6 +805,9 @@ def event_from_json(j):
         event = make_event(**kwargs)
         event.timestamp = datetime.fromtimestamp(j["timestamp"])
         event.scope_distance = j["scope_distance"]
+        source_id = j.get("source", None)
+        if source_id is not None:
+            event._source_id = source_id
         return event
     except KeyError as e:
         raise ValidationError(f"Event missing required field: {e}")
