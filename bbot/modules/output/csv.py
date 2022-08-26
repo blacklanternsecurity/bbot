@@ -55,3 +55,7 @@ class CSV(BaseOutputModule):
         if self._file is not None:
             with suppress(Exception):
                 self.file.close()
+
+    def report(self):
+        if self._file is not None:
+            self.info(f"Saved CSV output to {self.output_file}")

@@ -39,3 +39,7 @@ class JSON(BaseOutputModule):
         if self._file is not None:
             with suppress(Exception):
                 self.file.close()
+
+    def report(self):
+        if self._file is not None:
+            self.info(f"Saved JSON output to {self.output_file}")
