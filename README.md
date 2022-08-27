@@ -3,7 +3,7 @@
 # BEE·bot
 ### OSINT automation for hackers.
 
-[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/workflows/tests/badge.svg)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
+[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
 
 ![subdomain demo](https://user-images.githubusercontent.com/20261699/182274919-d4f5aa69-993a-40aa-95d5-f5e69e96026c.gif)
 
@@ -54,7 +54,7 @@ scan.start()
 ~~~
 
 # Output
-BBOT outputs to STDOUT by default, but it can output in multiple formats simultaneously (with `--output-module`).
+BBOT can output to TXT, JSON, CSV, Neo4j, and more with `--output-module`. You can output to multiple formats simultaneously.
 ~~~bash
 # tee to a file
 bbot -f subdomain-enum -t evilcorp.com | tee evilcorp.txt
@@ -165,6 +165,9 @@ Command-line arguments take precedence over all others. You can give BBOT a cust
 For explanations of config options, see `defaults.yml` or the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#yaml-config)
 
 # Modules
+
+### Note: You can find more fun and interesting modules at the [Module Playground](https://github.com/blacklanternsecurity/bbot-module-playground). For instructions on how to install these other modules, see the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#module-playground).
+
 | Module           | Needs API Key   | Description                                                       | Flags                                              | Produced Events                                      |
 |------------------|-----------------|-------------------------------------------------------------------|----------------------------------------------------|------------------------------------------------------|
 | aspnet_viewstate |                 | Parse web pages for viewstates and check them against blacklist3r | active,safe,web                                    | VULNERABILITY                                        |
@@ -192,7 +195,8 @@ For explanations of config options, see `defaults.yml` or the [wiki](https://git
 | affiliates       |                 | Summarize affiliate domains at the end of a scan                  | passive,report,safe                                |                                                      |
 | asn              |                 | Query bgpview.io for ASNs                                         | passive,report,safe,subdomain-enum                 | ASN                                                  |
 | azure_tenant     |                 | Query Azure for tenant sister domains                             | passive,safe,subdomain-enum                        | DNS_NAME                                             |
-| binaryedge       | X               | Query the BinaryEdge API                                          | passive,safe,subdomain-enum                        | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_PORT,PROTOCOL |
+| binaryedge       | X               | Query the BinaryEdge API                                          | passive,safe,subdomain-enum                        | DNS_NAME                                             |
+| builtwith        | X               | Query Builtwith.com for subdomains                                | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | c99              | X               | Query the C99 API for subdomains                                  | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | censys           | X               | Query the Censys API                                              | email-enum,passive,safe,subdomain-enum             | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_PORT,PROTOCOL |
 | certspotter      |                 | Query Certspotter's API for subdomains                            | passive,safe,subdomain-enum                        | DNS_NAME                                             |
@@ -201,14 +205,17 @@ For explanations of config options, see `defaults.yml` or the [wiki](https://git
 | dnscommonsrv     |                 | Check for common SRV records                                      | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | dnsdumpster      |                 | Query dnsdumpster for subdomains                                  | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | emailformat      |                 | Query email-format.com for email addresses                        | email-enum,passive,safe                            | EMAIL_ADDRESS                                        |
+| fullhunt         | X               | Query the fullhunt.io API for subdomains                          | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | github           | X               | Query Github's API for related repositories                       | passive,safe,subdomain-enum                        | URL_UNVERIFIED                                       |
 | hackertarget     |                 | Query the hackertarget.com API for subdomains                     | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | hunterio         | X               | Query hunter.io for emails                                        | email-enum,passive,safe,subdomain-enum             | DNS_NAME,EMAIL_ADDRESS,URL_UNVERIFIED                |
 | ipneighbor       |                 | Look beside IPs in their surrounding subnet                       | aggressive,passive,subdomain-enum                  | IP_ADDRESS                                           |
 | leakix           |                 | Query leakix.net for subdomains                                   | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | massdns          |                 | Brute-force subdomains with massdns (highly effective)            | aggressive,brute-force,passive,slow,subdomain-enum | DNS_NAME                                             |
+| otx              |                 | Query otx.alienvault.com for subdomains                           | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | passivetotal     | X               | Query the PassiveTotal API for subdomains                         | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | pgp              |                 | Query common PGP servers for email addresses                      | email-enum,passive,safe                            | EMAIL_ADDRESS                                        |
+| rapiddns         |                 | Query rapiddns.io for subdomains                                  | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | securitytrails   | X               | Query the SecurityTrails API for subdomains                       | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | shodan_dns       | X               | Query Shodan for subdomains                                       | passive,safe,subdomain-enum                        | DNS_NAME                                             |
 | skymem           |                 | Query skymem.info for email addresses                             | email-enum,passive,safe                            | EMAIL_ADDRESS                                        |

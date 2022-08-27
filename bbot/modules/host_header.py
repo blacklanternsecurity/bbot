@@ -31,7 +31,6 @@ class host_header(BaseModule):
         if full_id:
             if "." in full_id:
                 match = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
-                self.hugewarning(match)
                 if match is None:
                     return
                 matched_event = match[0]

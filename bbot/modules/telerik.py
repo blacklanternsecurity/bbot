@@ -101,7 +101,7 @@ class telerik(BaseModule):
     RAUConfirmed = []
 
     options = {"exploit_RAU_crypto": False}
-    options_desc = {"exploit_RAU_crypto": "Ettempt to confirm any RAU AXD detections are vulnerable"}
+    options_desc = {"exploit_RAU_crypto": "Attempt to confirm any RAU AXD detections are vulnerable"}
 
     in_scope_only = True
 

@@ -46,8 +46,10 @@ class BaseEvent:
         source=None,
         module=None,
         scan=None,
+        scans=None,
         tags=None,
-        confidence=100,
+        confidence=5,
+        timestamp=None,
         _dummy=False,
         _internal=None,
     ):
@@ -76,9 +78,16 @@ class BaseEvent:
         self._internal = False
 
         self.module = module
+        # self.scan holds the instantiated scan object (for helpers, etc.)
         self.scan = scan
         if (not self.scan) and (not self._dummy):
             raise ValidationError(f"Must specify scan")
+        # self.scans holds a list of scan IDs from scans that encountered this event
+        self.scans = []
+        if scans is not None:
+            self.scans = scans
+        if self.scan:
+            self.scans = list(set([self.scan.id] + self.scans))
 
         # check type blacklist
         if self.scan is not None:
@@ -100,13 +109,10 @@ class BaseEvent:
             raise ValidationError(f'Invalid event data "{data}" for type "{self.type}"')
 
         self._source = None
-        self.source_id = None
+        self._source_id = None
         self.source = source
         if (not self.source) and (not self._dummy):
             raise ValidationError(f"Must specify event source")
-
-        if not self._dummy:
-            self._setup()
 
         # internal events are not ingested by output modules
         if not self._dummy:
@@ -189,11 +195,12 @@ class BaseEvent:
                 new_scope_distance = scope_distance
             else:
                 new_scope_distance = min(self.scope_distance, scope_distance)
-            self._scope_distance = new_scope_distance
-            for t in list(self.tags):
-                if t.startswith("distance-"):
-                    self.tags.remove(t)
-            self.tags.add(f"distance-{new_scope_distance}")
+            if self._scope_distance != new_scope_distance:
+                self._scope_distance = new_scope_distance
+                for t in list(self.tags):
+                    if t.startswith("distance-"):
+                        self.tags.remove(t)
+                self.tags.add(f"distance-{new_scope_distance}")
 
     @property
     def source(self):
@@ -209,9 +216,15 @@ class BaseEvent:
                 if not self.host == source.host:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
-            self.source_id = str(source.id)
         elif not self._dummy:
             log.warning(f"Tried to set invalid source on {self}: (got: {source})")
+
+    @property
+    def source_id(self):
+        source_id = getattr(self.get_source(), "id", None)
+        if source_id is not None:
+            return source_id
+        return self._source_id
 
     def get_source(self):
         """
@@ -269,6 +282,7 @@ class BaseEvent:
         return ""
 
     def _sanitize_data(self, data):
+        data = self._data_load(data)
         if self._data_validator is not None:
             if not isinstance(data, dict):
                 raise ValidationError(f"data is not of type dict: {data}")
@@ -280,13 +294,25 @@ class BaseEvent:
 
     @property
     def data_human(self):
+        """
+        Human representation of event.data
+        """
         return self._data_human()
 
     def _data_human(self):
         return str(self.data)
 
+    def _data_load(self, data):
+        """
+        How to load the event data (JSON-decode it, etc.)
+        """
+        return data
+
     @property
     def data_id(self):
+        """
+        Representation of the event.data used to calculate the event's ID
+        """
         return self._data_id()
 
     def _data_id(self):
@@ -294,18 +320,16 @@ class BaseEvent:
 
     @property
     def data_graph(self):
+        """
+        Graph representation of event.data
+        """
         return self._data_graph()
 
     def _data_graph(self):
-        if type(self.data) in (list, dict):
+        if isinstance(self.data, dict):
             with suppress(Exception):
                 return json.dumps(self.data, sort_keys=True)
         return smart_decode(self.data)
-
-    def _setup(self):
-        """
-        Perform optional setup, e.g. adding custom tags
-        """
 
     def __contains__(self, other):
         """
@@ -343,8 +367,7 @@ class BaseEvent:
         j["scope_distance"] = self.scope_distance
         j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
-        source = self.get_source()
-        source_id = getattr(source, "id", "")
+        source_id = self.source_id
         if source_id:
             j["source"] = source_id
         if self.tags:
@@ -362,6 +385,10 @@ class BaseEvent:
                 except Exception:
                     j[k] = smart_decode(v)
         return j
+
+    @staticmethod
+    def from_json(j):
+        return event_from_json(j)
 
     @property
     def priority(self):
@@ -416,6 +443,11 @@ class DefaultEvent(BaseEvent):
 class DictEvent(BaseEvent):
     def _data_human(self):
         return json.dumps(self.data, sort_keys=True)
+
+    def _data_load(self, data):
+        if isinstance(data, str):
+            return json.loads(data)
+        return data
 
 
 class DictHostEvent(DictEvent):
@@ -684,7 +716,16 @@ class PROTOCOL(DictHostEvent):
 
 
 def make_event(
-    data, event_type=None, source=None, module=None, scan=None, tags=None, confidence=100, dummy=False, internal=None
+    data,
+    event_type=None,
+    source=None,
+    module=None,
+    scan=None,
+    scans=None,
+    tags=None,
+    confidence=5,
+    dummy=False,
+    internal=None,
 ):
     """
     If data is already an event, simply return it
@@ -693,6 +734,8 @@ def make_event(
     if is_event(data):
         if scan is not None and not data.scan:
             data.scan = scan
+        if scans is not None and not data.scans:
+            data.scans = scans
         if module is not None:
             data.module = module
         if source is not None:
@@ -741,11 +784,33 @@ def make_event(
             source=source,
             module=module,
             scan=scan,
+            scans=scans,
             tags=tags,
             confidence=confidence,
             _dummy=dummy,
             _internal=internal,
         )
+
+
+def event_from_json(j):
+    try:
+        kwargs = {
+            "data": j["data"],
+            "event_type": j["type"],
+            "scans": j.get("scans", []),
+            "tags": j.get("tags", []),
+            "confidence": j.get("confidence", 5),
+            "dummy": True,
+        }
+        event = make_event(**kwargs)
+        event.timestamp = datetime.fromtimestamp(j["timestamp"])
+        event.scope_distance = j["scope_distance"]
+        source_id = j.get("source", None)
+        if source_id is not None:
+            event._source_id = source_id
+        return event
+    except KeyError as e:
+        raise ValidationError(f"Event missing required field: {e}")
 
 
 def is_event(e):

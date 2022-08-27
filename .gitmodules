@@ -1,0 +1,4 @@
+[submodule "bbot/modules/playground"]
+    path = bbot/modules/playground
+    url = https://github.com/blacklanternsecurity/bbot-module-playground
+    branch = main

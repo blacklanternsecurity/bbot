@@ -21,18 +21,12 @@ class securitytrails(shodan_dns):
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
-    def query(self, query):
+    def request_url(self, query):
         url = f"{self.base_url}/domain/{query}/subdomains?apikey={self.api_key}"
-        r = self.helpers.request(url)
-        try:
-            j = r.json()
-            if type(j) == dict:
-                for host in j.get("subdomains", []):
-                    yield f"{host}.{query}"
-            else:
-                self.debug(f'No results for "{query}"')
-        except Exception:
-            import traceback
+        return self.helpers.request(url)
 
-            self.warning(f'Error retrieving subdomains for "{query}"')
-            self.debug(traceback.format_exc())
+    def parse_results(self, r, query):
+        j = r.json()
+        if isinstance(j, dict):
+            for host in j.get("subdomains", []):
+                yield f"{host}.{query}"

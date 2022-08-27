@@ -287,7 +287,6 @@ class ScanManager:
         timedelta_2secs = timedelta(seconds=2)
         last_log_time = datetime.now()
 
-        reported = False
         try:
             self.scan.dispatcher.on_start(self.scan)
 
@@ -315,7 +314,7 @@ class ScanManager:
                     event_counter += 1
                 except queue.Empty:
                     finished = self.modules_status().get("finished", False)
-                    if finished and reported:
+                    if finished:
                         break
                     # If the scan finished
                     if finished:
@@ -326,11 +325,6 @@ class ScanManager:
                             for mod in self.scan.modules.values():
                                 mod.queue_event("FINISHED")
                             event_counter = 0
-                        elif not reported:
-                            # Run .report() on every module and start over
-                            for mod in self.scan.modules.values():
-                                self.catch(mod.report)
-                            reported = True
                         else:
                             # Otherwise stop the scan if no new events were generated in this iteration
                             break
@@ -350,6 +344,11 @@ class ScanManager:
             import traceback
 
             log.critical(traceback.format_exc())
+
+        finally:
+            # Run .report() on every module and start over
+            for mod in self.scan.modules.values():
+                self.catch(mod.report, _force=True)
 
     def modules_status(self, _log=False, passes=None):
 

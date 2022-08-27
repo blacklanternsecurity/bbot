@@ -233,6 +233,37 @@ def test_events(events, scan, helpers, bbot_config):
             {"host": "evilcorp.com", "severity": "WACK", "description": "asdf"}, "VULNERABILITY", dummy=True
         )
 
+    # test event serialization
+    from .bbot_fixtures import httpx_response
+    from bbot.core.event import event_from_json
+
+    db_event = scan.make_event("127.0.0.1", dummy=True)
+    db_event.scope_distance = 1
+    timestamp = db_event.timestamp.timestamp()
+    json_event = db_event.json()
+    assert json_event["scope_distance"] == 1
+    assert json_event["data"] == "127.0.0.1"
+    assert json_event["type"] == "IP_ADDRESS"
+    assert json_event["timestamp"] == timestamp
+    reconstituted_event = event_from_json(json_event)
+    assert reconstituted_event.scope_distance == 1
+    assert reconstituted_event.timestamp.timestamp() == timestamp
+    assert reconstituted_event.data == "127.0.0.1"
+    assert reconstituted_event.type == "IP_ADDRESS"
+
+    http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
+    assert http_response.source_id == scan.root_event.id
+    assert http_response.data["input"] == "http://example.com"
+    json_event = http_response.json()
+    assert isinstance(json_event["data"], str)
+    assert json_event["type"] == "HTTP_RESPONSE"
+    assert json_event["source"] == scan.root_event.id
+    reconstituted_event = event_from_json(json_event)
+    assert isinstance(reconstituted_event.data, dict)
+    assert reconstituted_event.data["input"] == "http://example.com"
+    assert reconstituted_event.type == "HTTP_RESPONSE"
+    assert reconstituted_event.source_id == scan.root_event.id
+
 
 def test_manager(bbot_config):
     from bbot.scanner import Scanner
@@ -291,7 +322,7 @@ def test_manager(bbot_config):
     googledns._force_output = False
     results.clear()
     # same dns event but different source
-    googledns.source_id = "fdsa"
+    googledns.source = manager.scan.make_event("1.2.3.4", "IP_ADDRESS", source=manager.scan.root_event)
     manager._emit_event(googledns)
     assert len(event_children) == 0
     assert googledns in results

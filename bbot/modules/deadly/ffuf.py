@@ -18,6 +18,7 @@ class ffuf(BaseModule):
         "lines": 5000,
         "max_depth": 0,
         "version": "1.5.0",
+        "extensions": "",
     }
 
     options_desc = {
@@ -25,6 +26,7 @@ class ffuf(BaseModule):
         "lines": "take only the first N lines from the wordlist when finding directories",
         "max_depth": "the maxium directory depth to attempt to solve",
         "version": "ffuf version",
+        "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
     }
 
     blacklist = ["images", "css", "image"]
@@ -49,6 +51,7 @@ class ffuf(BaseModule):
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist_url)
         self.tempfile = self.generate_templist(self.wordlist)
+        self.extensions = self.config.get("extensions")
         return True
 
     def handle_event(self, event):
@@ -69,28 +72,36 @@ class ffuf(BaseModule):
 
     def execute_ffuf(self, tempfile, event, url, suffix=""):
 
-        fuzz_url = f"{url}FUZZ{suffix}"
-        command = ["ffuf", "-ac", "-json", "-w", tempfile, "-u", fuzz_url]
-        for found in self.helpers.run_live(command):
-            try:
-                found_json = json.loads(found)
-                input_json = found_json.get("input", {})
-                if type(input_json) != dict:
-                    self.debug("Error decoding JSON from ffuf")
-                    continue
-                encoded_input = input_json.get("FUZZ", "")
-                input_val = base64.b64decode(encoded_input).decode()
-                if len(input_val.rstrip()) > 0:
-                    if self.scan.stopping:
-                        break
-                    if input_val.rstrip() == self.sanity_canary:
-                        self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
-                        return
-                    else:
-                        yield found_json
+        ffuf_exts = [""]
 
-            except json.decoder.JSONDecodeError:
-                self.debug("Received invalid JSON from FFUF")
+        if self.extensions:
+            for ext in self.extensions.split(","):
+                ffuf_exts.append(f".{ext}")
+
+        for x in ffuf_exts:
+            fuzz_url = f"{url}FUZZ{suffix}"
+            command = ["ffuf", "-ac", "-json", "-w", tempfile, "-u", f"{fuzz_url}{x}"]
+
+            for found in self.helpers.run_live(command):
+                try:
+                    found_json = json.loads(found)
+                    input_json = found_json.get("input", {})
+                    if type(input_json) != dict:
+                        self.debug("Error decoding JSON from ffuf")
+                        continue
+                    encoded_input = input_json.get("FUZZ", "")
+                    input_val = base64.b64decode(encoded_input).decode()
+                    if len(input_val.rstrip()) > 0:
+                        if self.scan.stopping:
+                            break
+                        if input_val.rstrip() == self.sanity_canary:
+                            self.debug("Found sanity canary! aborting remainder of run to avoid junk data...")
+                            return
+                        else:
+                            yield found_json
+
+                except json.decoder.JSONDecodeError:
+                    self.debug("Received invalid JSON from FFUF")
 
     def generate_templist(self, wordlist, prefix=None):
 

@@ -1,5 +1,3 @@
-from urllib.parse import urlencode
-
 from .crobat import crobat
 
 
@@ -18,7 +16,8 @@ class crt(crobat):
 
     def request_url(self, query):
         params = {"q": query, "output": "json"}
-        return self.helpers.request(f"{self.base_url}?{urlencode(params)}")
+        url = self.helpers.add_get_params(self.base_url, params).geturl()
+        return self.helpers.request(url)
 
     def parse_results(self, r, query):
         j = r.json()
