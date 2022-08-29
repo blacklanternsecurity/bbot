@@ -1,9 +1,17 @@
+import sys
 import pytest
+import logging
 import urllib3
 import requests
+import subprocess
 import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
+
+from bbot.modules import module_loader
+
+available_modules = list(module_loader.configs(type="scan"))
+available_output_modules = list(module_loader.configs(type="output"))
 
 # make the necessary web requests before nuking them to high heaven
 example_url = "https://api.publicapis.org/health"
@@ -11,6 +19,31 @@ http = urllib3.PoolManager()
 urllib_response = http.request("GET", example_url)
 requests_response = requests.get(example_url)
 tldextract.extract("www.evilcorp.com")
+
+
+log = logging.getLogger(f"bbot.test.fixtures")
+
+
+@pytest.fixture
+def patch_requests(monkeypatch):
+    from bbot.core.helpers.web import request, download
+
+    monkeypatch.setattr("urllib3.connectionpool.HTTPConnectionPool.urlopen", lambda *args, **kwargs: urllib_response)
+    monkeypatch.setattr("urllib3.poolmanager.PoolManager.urlopen", lambda *args, **kwargs: urllib_response)
+    monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
+    monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
+    current_dir = Path(__file__).resolve().parent
+    downloaded_file = current_dir / "test_output.json"
+    monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
+    return request, download
+
+
+@pytest.fixture(autouse=True)
+def install_all_python_deps(neuter_ansible):
+    deps_pip = set()
+    for module in module_loader.preloaded().values():
+        deps_pip.update(set(module.get("deps", {}).get("pip", [])))
+    subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
 
 
 @pytest.fixture
@@ -42,11 +75,7 @@ def neuter_ansible(monkeypatch):
         events = []
 
     def ansible_run(*args, **kwargs):
-        module = kwargs.get("module", "")
-        if module != "pip":
-            return AnsibleRunnerResult()
-        else:
-            return run(*args, **kwargs)
+        return AnsibleRunnerResult()
 
     from bbot.core.helpers.depsinstaller import installer
 
@@ -176,20 +205,6 @@ def events(scan):
         e.make_in_scope()
 
     return bbot_events
-
-
-@pytest.fixture
-def patch_requests(monkeypatch):
-    from bbot.core.helpers.web import request, download
-
-    monkeypatch.setattr("urllib3.connectionpool.HTTPConnectionPool.urlopen", lambda *args, **kwargs: urllib_response)
-    monkeypatch.setattr("urllib3.poolmanager.PoolManager.urlopen", lambda *args, **kwargs: urllib_response)
-    monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
-    monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
-    current_dir = Path(__file__).resolve().parent
-    downloaded_file = current_dir / "test_output.json"
-    monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
-    return request, download
 
 
 @pytest.fixture

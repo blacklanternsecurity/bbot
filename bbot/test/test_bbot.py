@@ -8,7 +8,6 @@ from time import sleep
 import bbot.core.logger  # noqa: F401
 from bbot.core.errors import *
 from .bbot_fixtures import *  # noqa: F401
-from bbot.modules import module_loader
 
 log = logging.getLogger(f"bbot.test")
 
@@ -18,9 +17,6 @@ for h in root_logger.handlers:
     h.addFilter(lambda x: x.levelno != 100)
 
 os.environ["BBOT_SUDO_PASS"] = "nah"
-
-available_modules = list(module_loader.configs(type="scan"))
-available_output_modules = list(module_loader.configs(type="output"))
 
 
 def test_events(events, scan, helpers, bbot_config):
