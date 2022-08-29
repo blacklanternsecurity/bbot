@@ -134,20 +134,17 @@ class DepsInstaller:
         return success
 
     def pip_install(self, packages):
-        packages = ",".join(packages)
-        log.verbose(f"Installing the following pip packages: {packages}")
-        args = {"name": packages}
-        if self.venv:
-            args["virtualenv"] = self.venv
-            args["virtualenv_python"] = sys.executable
-        success, err = self.ansible_run(
-            module="pip", args=args, ansible_args={"ansible_python_interpreter": sys.executable}
-        )
-        if success:
-            log.info(f'Successfully installed pip packages "{packages}"')
-        else:
+        packages_str = ",".join(packages)
+        log.verbose(f"Installing the following pip packages: {packages_str}")
+
+        command = [sys.executable, "-m", "pip", "install"] + packages
+        try:
+            self.parent_helper.run(command, check=True)
+            log.info(f'Successfully installed pip packages "{packages_str}"')
+            return True
+        except Exception as err:
             log.warning(f"Failed to install pip packages: {err}")
-        return success
+        return False
 
     def apt_install(self, packages):
         """
