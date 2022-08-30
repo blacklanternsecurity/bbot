@@ -32,13 +32,13 @@ class gowitness(BaseModule):
             "name": "install chromium (Debian)",
             "package": {"name": "chromium-browser", "state": "present"},
             "become": True,
-            "when": """ansible_facts['os_family'] == 'Debian'""",
+            "when": """ansible_facts['distribution'] == 'Ubuntu'""",
         },
         {
             "name": "install chromium (others)",
             "package": {"name": "chromium", "state": "present"},
             "become": True,
-            "when": """ansible_facts['os_family'] != 'Debian'""",
+            "when": """ansible_facts['distribution'] != 'Ubuntu'""",
         },
         {
             "name": "Download gowitness",
