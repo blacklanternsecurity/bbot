@@ -6,7 +6,6 @@ import getpass
 import logging
 from time import sleep
 import subprocess as sp
-from pathlib import Path
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
@@ -35,21 +34,11 @@ class DepsInstaller:
         self.venv = ""
         if sys.prefix != sys.base_prefix:
             self.venv = sys.prefix
-            # ensure that we have pip
-            venv_bin = Path(self.venv) / "bin"
-            python_executable = venv_bin / "python"
-            pip_executable = venv_bin / "pip"
-            if not pip_executable.is_file():
-                with open(pip_executable, "w") as f:
-                    f.write(
-                        f'''#!/bin/bash
-{python_executable} -m pip "$@"'''
-                    )
-                pip_executable.chmod(0o755)
 
         self.all_modules_preloaded = module_loader.preloaded()
 
     def install(self, *modules):
+        self.install_core_deps()
         succeeded = []
         failed = []
         try:
@@ -284,3 +273,14 @@ class DepsInstaller:
         except sp.CalledProcessError:
             return False
         return True
+
+    def install_core_deps(self):
+        # command: package_name
+        core_deps = {"unzip": "unzip"}
+        to_install = set()
+        for command, package_name in core_deps.items():
+            if not self.parent_helper.which(command):
+                to_install.add(package_name)
+        if to_install:
+            self.ensure_root()
+            self.apt_install(list(to_install))
