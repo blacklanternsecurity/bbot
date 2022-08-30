@@ -83,7 +83,7 @@ class DNSHelper:
         return results
 
     def resolve_raw(self, query, **kwargs):
-        kwargs["tcp"] = True
+        #kwargs["tcp"] = True
         if self.parent_helper.scan.stopping:
             return [], []
         query = str(query).strip()

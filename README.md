@@ -13,14 +13,13 @@ It is capable of executing the entire OSINT process in a single command, includi
 
 BBOT currently has over **50 modules** and counting.
 
-## Installation (pipx)
+## Installation (pip)
 ~~~bash
-pipx install bbot
+pip install bbot
 bbot --help
 ~~~
 Prerequisites: 
 - Python 3.9 or newer MUST be installed
-- `pipx` is recommended as an alternative to `pip` because it installs BBOT in its own Python environment.
 
 ## Installation (docker)
 ~~~bash
