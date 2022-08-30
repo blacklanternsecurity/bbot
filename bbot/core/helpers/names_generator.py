@@ -77,6 +77,7 @@ adjectives = [
     "gentle",
     "giddy",
     "glutinous",
+    "gothic",
     "grievous",
     "gummy",
     "hallucinogenic",

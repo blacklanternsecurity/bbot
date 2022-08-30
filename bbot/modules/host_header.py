@@ -15,6 +15,7 @@ class host_header(BaseModule):
 
     def setup(self):
 
+        self.interactsh_subdomain_tags = {}
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
@@ -22,8 +23,6 @@ class host_header(BaseModule):
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
                 return False
-
-            self.interactsh_subdomain_tags = {}
         return True
 
     def interactsh_callback(self, r):

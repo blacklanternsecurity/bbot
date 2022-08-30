@@ -208,6 +208,13 @@ def test_events(events, scan, helpers, bbot_config):
     assert tuple(sorted([sort3, sort2, sort1])) == (sort1, sort2, sort3)
 
     # test validation
+    corrected_event1 = scan.make_event("asdf@asdf.com", "DNS_NAME", dummy=True)
+    assert corrected_event1.type == "EMAIL_ADDRESS"
+    corrected_event2 = scan.make_event("127.0.0.1", "DNS_NAME", dummy=True)
+    assert corrected_event2.type == "IP_ADDRESS"
+    corrected_event3 = scan.make_event("wat.asdf.com", "IP_ADDRESS", dummy=True)
+    assert corrected_event3.type == "DNS_NAME"
+
     test_vuln = scan.make_event(
         {"host": "EVILcorp.com", "severity": "iNfo ", "description": "asdf"}, "VULNERABILITY", dummy=True
     )
@@ -966,7 +973,7 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
             assert ("active" in flags and not "passive" in flags) or (
                 not "active" in flags and "passive" in flags
             ), f'module "{module_name}" must have either "active" or "passive" flag'
-            assert preloaded["meta"]["description"], f"{module_name} must have a description"
+            assert preloaded.get("meta", {}).get("description", ""), f"{module_name} must have a description"
 
         # attribute checks
         watched_events = preloaded.get("watched_events")

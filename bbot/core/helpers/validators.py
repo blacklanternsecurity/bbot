@@ -49,7 +49,7 @@ def validate_host(host):
         return str(ip)
     except Exception:
         # if IPv6 fails, strip ports and root zone
-        host = host.split(":")[0].split("@")[-1].rstrip(".")
+        host = host.split(":")[0].rstrip(".")
         try:
             ip = ipaddress.IPv4Address(host)
             return str(ip)
@@ -88,9 +88,7 @@ def validate_severity(severity):
 @validator
 def validate_email(email):
     email = str(email).strip().lower()
-    match_1 = any(r.match(email) for r in regexes.event_type_regexes["EMAIL_ADDRESS"])
-    match_2 = regexes._hostname_regex.match(email)
-    if match_1 or match_2:
+    if any(r.match(email) for r in regexes.event_type_regexes["EMAIL_ADDRESS"]):
         return email
     assert False, f'Invalid email: "{email}"'
 

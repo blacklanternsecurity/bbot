@@ -755,26 +755,21 @@ def make_event(
         event_type = str(event_type).strip().upper()
 
         # Catch these common whoopsies
-
-        # DNS_NAME <--> IP_ADDRESS confusion
         if event_type in ("DNS_NAME", "IP_ADDRESS"):
-            try:
-                data = validators.validate_host(data)
-            except Exception as e:
-                raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
-            data_is_ip = is_ip(data)
-            if event_type == "DNS_NAME" and data_is_ip:
-                event_type = "IP_ADDRESS"
-            elif event_type == "IP_ADDRESS" and not data_is_ip:
-                event_type = "DNS_NAME"
-
-        # DNS_NAME <--> EMAIL_ADDRESS confusion
-        if event_type in ("DNS_NAME", "EMAIL_ADDRESS"):
-            data_is_email = validators.soft_validate(data, "email")
-            if event_type == "DNS_NAME" and data_is_email:
+            # DNS_NAME <--> EMAIL_ADDRESS confusion
+            if validators.soft_validate(data, "email"):
                 event_type = "EMAIL_ADDRESS"
-            elif event_type == "EMAIL_ADDRESS" and not data_is_email:
-                event_type = "DNS_NAME"
+            else:
+                # DNS_NAME <--> IP_ADDRESS confusion
+                try:
+                    data = validators.validate_host(data)
+                except Exception as e:
+                    raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
+                data_is_ip = is_ip(data)
+                if event_type == "DNS_NAME" and data_is_ip:
+                    event_type = "IP_ADDRESS"
+                elif event_type == "IP_ADDRESS" and not data_is_ip:
+                    event_type = "DNS_NAME"
 
         event_class = globals().get(event_type, DefaultEvent)
 

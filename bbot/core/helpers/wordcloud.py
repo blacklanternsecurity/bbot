@@ -121,7 +121,6 @@ class WordCloud(dict):
         for s in number_suffixes:
             results.add(f"{base}{s}")
             results.add(base)
-            results.add(s)
 
         return results
 

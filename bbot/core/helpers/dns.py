@@ -83,7 +83,9 @@ class DNSHelper:
         return results
 
     def resolve_raw(self, query, **kwargs):
-        #kwargs["tcp"] = True
+        # DNS over TCP is more reliable
+        # But setting this breaks DNS resolution on Ubuntu because systemd-resolve doesn't support TCP
+        # kwargs["tcp"] = True
         if self.parent_helper.scan.stopping:
             return [], []
         query = str(query).strip()

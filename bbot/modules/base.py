@@ -60,7 +60,7 @@ class BaseModule:
     # Maximum concurrent instances of handle_event() or handle_batch()
     max_event_handlers = 1
     # Max number of concurrent calls to submit_task()
-    max_threads = 1
+    max_threads = 10
     # Batch size
     # If batch size > 1, override handle_batch() instead of handle_event()
     batch_size = 1
