@@ -18,6 +18,11 @@ log = logging.getLogger("bbot.core.helpers.depsinstaller")
 class DepsInstaller:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
+
+        # respect BBOT's http timeout
+        http_timeout = self.parent_helper.config.get("http_timeout", 30)
+        os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
+
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.parent_helper.mkdir(self.data_dir)

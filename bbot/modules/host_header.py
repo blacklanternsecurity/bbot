@@ -56,7 +56,7 @@ class host_header(BaseModule):
         try:
             self.interactsh_instance.deregister()
             self.debug(
-                f"successfully degregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
+                f"successfully deregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
             )
         except InteractshError as e:
             self.warning(f"Interactsh failure: {e}")
