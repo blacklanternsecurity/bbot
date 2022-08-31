@@ -7,7 +7,7 @@ class httpx(BaseModule):
 
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
-    flags = ["active", "safe", "web"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Visit webpages. Many other modules rely on httpx"}
 
     batch_size = 100

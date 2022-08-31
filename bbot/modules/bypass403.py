@@ -73,7 +73,7 @@ class bypass403(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web"]
+    flags = ["active", "aggressive", "web-advanced"]
     meta = {"description": "Check 403 pages for common bypasses"}
     in_scope_only = True
 

@@ -8,7 +8,7 @@ from bbot.modules.base import BaseModule
 class gowitness(BaseModule):
     watched_events = ["URL"]
     produced_events = ["SCREENSHOT"]
-    flags = ["active", "web", "safe"]
+    flags = ["active", "safe", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages"}
     batch_size = 100
     options = {

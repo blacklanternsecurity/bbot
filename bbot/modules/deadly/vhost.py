@@ -5,7 +5,7 @@ class vhost(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VHOST", "DNS_NAME"]
-    flags = ["active", "brute-force", "aggressive", "slow", "web"]
+    flags = ["active", "brute-force", "aggressive", "slow", "web-advanced"]
     meta = {"description": "Fuzz for virtual hosts"}
 
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]

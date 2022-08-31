@@ -26,16 +26,33 @@ class BaseExtractor:
         pass
 
 
+"""
+class StorageBucketExtractor(BaseExtractor):
+    regexes = re.compile()
+    # detect cloud storage buckets
+    if event.type == "URL_UNVERIFIED":
+        event_host = str(event.host)
+        for d in self.helpers.cloud.storagebucket_domains:
+            if event_host.endswith(d):
+                bucket_name = event_host.replace(f".{d}", "")
+                if bucket_name:
+                    self.emit_event({"name": bucket_name}, "STORAGE_BUCKET")
+"""
+
+
 class HostnameExtractor(BaseExtractor):
     regexes = {}
 
     def __init__(self, excavate):
         dns_targets = [t for t in excavate.scan.target if t.type == "DNS_NAME"]
         for i, t in enumerate(dns_targets):
-            self.regexes[f"dns_name_{i+1}"] = r"(?:(?:[\w-]+)\.)+" + str(t.host)
+            self.regexes[f"dns_name_{i+1}"] = r"%{,1}(?:(?:[\w-]+)\.)+" + str(t.host).replace(".", r"\.")
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
+        # purge URL encodings
+        if result.startswith("%"):
+            result = result[3:]
         self.excavate.emit_event(result, "DNS_NAME", source=event)
 
 

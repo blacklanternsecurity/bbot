@@ -516,7 +516,7 @@ class DNS_NAME(BaseEvent):
         stem = self.host_stem
         if "wildcard" in self.tags:
             stem = "".join(stem.split(".")[1:])
-        return extract_words(self.host_stem)
+        return extract_words(stem)
 
 
 class OPEN_TCP_PORT(BaseEvent):
@@ -598,6 +598,19 @@ class URL(URL_UNVERIFIED):
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
         return super().sanitize_data(data)
+
+
+class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):
+    def sanitize_data(self, data):
+        self.parsed = validators.validate_url_parsed(data["url"])
+        return data
+
+    class _data_validator(BaseModel):
+        name: str
+        url: str
+
+    def _words(self):
+        return self.parsed.hostname.split(".")[0]
 
 
 class URL_HINT(URL_UNVERIFIED):

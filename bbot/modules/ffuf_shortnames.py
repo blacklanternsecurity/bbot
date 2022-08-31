@@ -8,7 +8,7 @@ class ffuf_shortnames(ffuf):
 
     watched_events = ["URL_HINT"]
     produced_events = ["URL"]
-    flags = ["brute-force", "aggressive", "active", "web"]
+    flags = ["brute-force", "aggressive", "active", "web-advanced", "iis-shortnames"]
     meta = {"description": "Use ffuf in combination IIS shortnames"}
 
     options = {

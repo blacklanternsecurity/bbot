@@ -5,7 +5,7 @@ class iis_shortnames(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
-    flags = ["active", "safe"]
+    flags = ["active", "safe", "web-basic", "iis-shortnames"]
     meta = {"description": "Check for IIS shortname vulnerability"}
     options = {"detect_only": True, "threads": 8}
     options_desc = {

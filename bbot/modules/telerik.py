@@ -7,7 +7,7 @@ class telerik(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
-    flags = ["active", "aggressive", "web"]
+    flags = ["active", "aggressive", "web-basic"]
     meta = {
         "description": "Scan for critical Telerik vulnerabilities",
     }

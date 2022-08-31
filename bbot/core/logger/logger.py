@@ -164,7 +164,21 @@ def log_listener_setup(logging_queue):
 
     log_level = get_log_level()
 
-    stderr_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= log_level)
+    config_debug = config.get("debug", False)
+    config_silent = config.get("silent", False)
+
+    def stderr_filter(record):
+        if record.levelno == logging.STDOUT:
+            return False
+        if record.levelno >= logging.ERROR:
+            return True
+        if record.levelno < log_level:
+            return False
+        if config_silent and not record.levelname.startswith("HUGE"):
+            return False
+        return True
+
+    stderr_handler.addFilter(stderr_filter)
     stdout_handler.addFilter(lambda x: x.levelno == logging.STDOUT)
     debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
     main_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.VERBOSE)
@@ -177,7 +191,7 @@ def log_listener_setup(logging_queue):
     stdout_handler.setFormatter(logging.Formatter("%(message)s"))
 
     handlers = [stdout_handler, stderr_handler, main_handler]
-    if config.get("debug", False):
+    if config_debug:
         handlers.append(debug_handler)
 
     log_listener = QueueListener(logging_queue, *handlers)

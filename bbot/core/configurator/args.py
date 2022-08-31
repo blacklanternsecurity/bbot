@@ -70,7 +70,6 @@ for p in (parser, dummy_parser):
     )
     target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
     target.add_argument(
-        "-s",
         "--strict-scope",
         action="store_true",
         help="Don't consider subdomains of target/whitelist to be in-scope",
@@ -133,6 +132,7 @@ for p in (parser, dummy_parser):
     p.add_argument("--allow-deadly", action="store_true", help="Enable the use of highly aggressive modules")
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
+    p.add_argument("-s", "--silent", action="store_true", help="Be quiet")
     p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
     p.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
     p.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")

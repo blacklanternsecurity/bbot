@@ -2,12 +2,10 @@
 
 # BBOT working directory
 home: ~/.bbot
-# How far out from the main scope to search
-scope_search_distance: 1
 # Don't output events that are further than this from the main scope
 scope_report_distance: 1
-# How far out from the main scope to resolve DNS names / IPs
-scope_dns_search_distance: 2
+# Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
+dns_resolution: true
 # Limit the number of BBOT threads
 max_threads: 20
 # Limit the number of DNS threads
@@ -18,12 +16,18 @@ max_brute_forcers: 2
 
 ### ADVANCED OPTIONS ###
 
+# How far out from the main scope to search
+scope_search_distance: 1
+# How far out from the main scope to resolve DNS names / IPs
+scope_dns_search_distance: 2
+
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
 # Passively search event data for URLs, hostnames, emails, etc.
 excavate: True
 # Summarize activity at the end of a scan
 aggregate: True
+
 # HTTP proxy
 http_proxy: 
 # HTTP timeout (for Python requests; API calls, etc.)
@@ -36,8 +40,6 @@ http_debug: false
 web_spider_distance: 0
 # Set the maximum directory depth for the web spider
 web_spider_depth: 1
-# Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
-dns_resolution: true
 # DNS query timeout
 dns_timeout: 10
 # Disable BBOT's smart DNS wildcard handling for select domains

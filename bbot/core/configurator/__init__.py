@@ -43,7 +43,9 @@ if not files.config_filename.exists():
 if not files.secrets_filename.exists():
     print(f"[INFO] Creating BBOT secrets at {files.secrets_filename}")
     secrets_only_config = OmegaConf.to_object(config)
-    secrets_only_config = filter_dict(secrets_only_config, "api_key", "username", "password", "token", fuzzy=True)
+    secrets_only_config = filter_dict(
+        secrets_only_config, "api_key", "username", "password", "token", "secret", "_id", fuzzy=True
+    )
     OmegaConf.save(config=OmegaConf.create(secrets_only_config), f=str(files.secrets_filename))
     files.secrets_filename.chmod(0o600)
 
@@ -76,6 +78,7 @@ if args.cli_options is not None:
     config["ignore_failed_deps"] = args.cli_options.ignore_failed_deps
     # debug
     config["debug"] = args.cli_options.debug
+    config["silent"] = args.cli_options.silent
     if args.cli_options.output_dir:
         config["output_dir"] = args.cli_options.output_dir
 
