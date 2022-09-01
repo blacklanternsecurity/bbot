@@ -291,11 +291,11 @@ class ScanManager:
                     if event_within_scope_distance:
                         mod.queue_event(event)
 
-    def loop_until_finished(self):
+    def loop_until_finished(self, status_frequency=10):
 
         counter = 0
         event_counter = 0
-        timedelta_2secs = timedelta(seconds=2)
+        timedelta_2secs = timedelta(seconds=status_frequency)
         last_log_time = datetime.now()
 
         try:

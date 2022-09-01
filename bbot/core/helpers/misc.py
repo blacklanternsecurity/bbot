@@ -616,3 +616,14 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
 def extract_emails(s):
     for email in regexes.email_regex.findall(smart_decode(s)):
         yield email.lower()
+
+
+def errprint(*args, **kwargs):
+    """
+    Print to stderr
+    """
+    force = kwargs.pop("force", False)
+    if force or not any(x in sys.argv for x in ("-s", "--silent")):
+        if not "file" in kwargs:
+            kwargs["file"] = sys.stderr
+        print(*args, **kwargs)

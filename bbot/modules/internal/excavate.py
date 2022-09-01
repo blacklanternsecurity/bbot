@@ -8,6 +8,7 @@ from bbot.modules.internal.base import BaseInternalModule
 
 
 class BaseExtractor:
+    # If using capture groups, be sure to name them beginning with "capture".
     regexes = {}
 
     def __init__(self, excavate):
@@ -17,27 +18,27 @@ class BaseExtractor:
             self.compiled_regexes[rname] = re.compile(r)
 
     def search(self, content, event, **kwargs):
+        for result, name, event, kwargs in self._search(content, event, **kwargs):
+            self.report(result, name, event, **kwargs)
+
+    def _search(self, content, event, **kwargs):
         for name, regex in self.compiled_regexes.items():
-            results = regex.findall(content)
-            for result in results:
-                self.report(result, name, event, **kwargs)
+            for match in regex.finditer(content):
+                if match:
+                    # use named capture groups if present
+                    result = []
+                    for k, v in match.re.groupindex.items():
+                        if k.startswith("capture"):
+                            result.append(match.groupdict().get(k, ""))
+                    # otherwise, match normally
+                    else:
+                        start, end = match.span()
+                        result = match.string[start:end]
+                    if result:
+                        yield result, name, event, kwargs
 
     def report(self, result, name, event):
         pass
-
-
-"""
-class StorageBucketExtractor(BaseExtractor):
-    regexes = re.compile()
-    # detect cloud storage buckets
-    if event.type == "URL_UNVERIFIED":
-        event_host = str(event.host)
-        for d in self.helpers.cloud.storagebucket_domains:
-            if event_host.endswith(d):
-                bucket_name = event_host.replace(f".{d}", "")
-                if bucket_name:
-                    self.emit_event({"name": bucket_name}, "STORAGE_BUCKET")
-"""
 
 
 class HostnameExtractor(BaseExtractor):
@@ -46,21 +47,20 @@ class HostnameExtractor(BaseExtractor):
     def __init__(self, excavate):
         dns_targets = [t for t in excavate.scan.target if t.type == "DNS_NAME"]
         for i, t in enumerate(dns_targets):
-            self.regexes[f"dns_name_{i+1}"] = r"%{,1}(?:(?:[\w-]+)\.)+" + str(t.host).replace(".", r"\.")
+            self.regexes[f"dns_name_{i+1}"] = (
+                r"(?:%[a-f0-9]{2})?(?P<capture>(?:(?:[\w-]+)\.)+" + str(t.host).replace(".", r"\.") + ")"
+            )
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
-        # purge URL encodings
-        if result.startswith("%"):
-            result = result[3:]
         self.excavate.emit_event(result, "DNS_NAME", source=event)
 
 
 class URLExtractor(BaseExtractor):
     regexes = {
         "fullurl": r"https?://(?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?",
-        "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
-        "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
+        "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(?P<capture>.*?)\1",
+        "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(?P<capture>.*?)\1",
     }
 
     prefix_blacklist = ["javascript:", "mailto:", "tel:"]
@@ -73,7 +73,7 @@ class URLExtractor(BaseExtractor):
         parsed = getattr(event, "parsed", None)
 
         if (name == "a-tag" or name == "script-tag") and parsed:
-            path = html.unescape(result[1]).lstrip("/")
+            path = html.unescape(result).lstrip("/")
             if not path.startswith("http://") and not path.startswith("https://"):
                 result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
             else:
@@ -176,11 +176,11 @@ class JavascriptExtractor(BaseExtractor):
         "google_oauth": r"ya29\.[0-9A-Za-z\-_]+",
         "amazon_aws_access_key_id": r"A[SK]IA[0-9A-Z]{16}",
         "amazon_mws_auth_toke": r"amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
-        "amazon_aws_url": r"s3\.amazonaws.com[/]+|[a-zA-Z0-9_-]*\.s3\.amazonaws.com",
-        "amazon_aws_url2": r"[a-zA-Z0-9-\.\_]+\.s3\.amazonaws\.com",
-        "amazon_aws_url3": r"s3://[a-zA-Z0-9-\.\_]+",
-        "amazon_aws_url4": r"s3.amazonaws.com/[a-zA-Z0-9-\.\_]+",
-        "amazon_aws_url5": r"s3.console.aws.amazon.com/s3/buckets/[a-zA-Z0-9-\.\_]+",
+        # "amazon_aws_url": r"s3\.amazonaws.com[/]+|[a-zA-Z0-9_-]*\.s3\.amazonaws.com",
+        # "amazon_aws_url2": r"[a-zA-Z0-9-\.\_]+\.s3\.amazonaws\.com",
+        # "amazon_aws_url3": r"s3://[a-zA-Z0-9-\.\_]+",
+        # "amazon_aws_url4": r"s3.amazonaws.com/[a-zA-Z0-9-\.\_]+",
+        # "amazon_aws_url5": r"s3.console.aws.amazon.com/s3/buckets/[a-zA-Z0-9-\.\_]+",
         "facebook_access_token": r"EAACEdEose0cBA[0-9A-Za-z]+",
         "authorization_basic": r"(?i)basic [a-zA-Z0-9:_\+\/-]{4,100}={0,2}",
         "authorization_bearer": r"bearer [a-zA-Z0-9_\-\.=:_\+\/]{5,100}",
