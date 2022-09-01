@@ -3,7 +3,7 @@ from shutil import copyfile
 from omegaconf import OmegaConf
 
 from ..errors import ConfigLoadError
-from ..helpers.misc import mkdir, errprint
+from ..helpers.misc import mkdir, log_to_stderr
 
 config_dir = (Path.home() / ".config" / "bbot").resolve()
 defaults_filename = (Path(__file__).parent.parent.parent / "defaults.yml").resolve()
@@ -19,7 +19,7 @@ def _get_config(filename, name="config", notify=True):
     try:
         conf = OmegaConf.load(str(filename))
         if notify:
-            errprint(f"[CONF] Loaded {name} from {filename}")
+            log_to_stderr(f"Loaded {name} from {filename}")
         return conf
     except Exception as e:
         if filename.exists():

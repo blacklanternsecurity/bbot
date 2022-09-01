@@ -8,7 +8,7 @@ from contextlib import suppress
 from logging.handlers import QueueHandler, QueueListener
 
 from ..configurator import config
-from ..helpers.misc import mkdir, error_and_exit
+from ..helpers.misc import mkdir, error_and_exit, colorize, loglevel_mapping
 
 
 class ColoredFormatter(logging.Formatter):
@@ -16,47 +16,13 @@ class ColoredFormatter(logging.Formatter):
     Pretty colors for terminal
     """
 
-    color_mapping = {
-        "DEBUG": 242,  # grey
-        "VERBOSE": 242,  # grey
-        "INFO": 69,  # blue
-        "HUGEINFO": 69,  # blue
-        "SUCCESS": 118,  # green
-        "HUGESUCCESS": 118,  # green
-        "WARNING": 208,  # orange
-        "HUGEWARNING": 208,  # orange
-        "ERROR": 196,  # red
-        "CRITICAL": 196,  # red
-    }
-
-    char_mapping = {
-        "DEBUG": "DBUG",
-        "VERBOSE": "VERB",
-        "HUGEVERBOSE": "VERB",
-        "INFO": "INFO",
-        "HUGEINFO": "INFO",
-        "SUCCESS": "SUCC",
-        "HUGESUCCESS": "SUCC",
-        "WARNING": "WARN",
-        "HUGEWARNING": "WARN",
-        "ERROR": "ERRR",
-        "CRITICAL": "CRIT",
-    }
-
-    prefix = "\033[1;38;5;"
-    suffix = "\033[0m"
-
     def format(self, record):
-
         colored_record = copy(record)
         levelname = colored_record.levelname
-        levelchar = self.char_mapping.get(levelname, "INFO")
-        seq = self.color_mapping.get(levelname, 15)  # default white
-        colored_levelname = f"{self.prefix}{seq}m[{levelchar}]{self.suffix}"
+        levelshort = loglevel_mapping.get(levelname, "INFO")
+        colored_record.levelname = colorize(f"[{levelshort}]", level=levelname)
         if levelname == "CRITICAL" or levelname.startswith("HUGE"):
-            colored_record.msg = f"{self.prefix}{seq}m{colored_record.msg}{self.suffix}"
-        colored_record.levelname = colored_levelname
-
+            colored_record.msg = colorize(colored_record.msg, level=levelname)
         return logging.Formatter.format(self, colored_record)
 
 

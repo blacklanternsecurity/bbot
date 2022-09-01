@@ -6,7 +6,7 @@ from contextlib import suppress
 
 from ..errors import ArgumentError
 from ...modules import module_loader
-from ..helpers.misc import chain_lists, errprint
+from ..helpers.misc import chain_lists, log_to_stderr
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
@@ -177,13 +177,13 @@ def get_config():
         if filename.is_file():
             try:
                 conf = OmegaConf.load(str(filename))
-                errprint(f"[CONF] Loaded custom config from {filename}")
+                log_to_stderr(f"Loaded custom config from {filename}")
                 return conf
             except Exception as e:
-                errprint(f"[ERRR] Error parsing custom config at {filename}: {e}", force=True)
+                log_to_stderr(f"Error parsing custom config at {filename}: {e}", level="ERROR")
                 sys.exit(2)
     try:
         return OmegaConf.from_cli(cli_config)
     except Exception as e:
-        errprint(f"[ERRR] Error parsing command-line config: {e}", force=True)
+        log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
         sys.exit(2)

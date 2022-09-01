@@ -18,24 +18,10 @@ class BaseExtractor:
             self.compiled_regexes[rname] = re.compile(r)
 
     def search(self, content, event, **kwargs):
-        for result, name, event, kwargs in self._search(content, event, **kwargs):
-            self.report(result, name, event, **kwargs)
-
-    def _search(self, content, event, **kwargs):
         for name, regex in self.compiled_regexes.items():
-            for match in regex.finditer(content):
-                if match:
-                    # use named capture groups if present
-                    result = []
-                    for k, v in match.re.groupindex.items():
-                        if k.startswith("capture"):
-                            result.append(match.groupdict().get(k, ""))
-                    # otherwise, match normally
-                    else:
-                        start, end = match.span()
-                        result = match.string[start:end]
-                    if result:
-                        yield result, name, event, kwargs
+            results = regex.findall(content)
+            for result in results:
+                self.report(result, name, event, **kwargs)
 
     def report(self, result, name, event):
         pass
@@ -48,19 +34,19 @@ class HostnameExtractor(BaseExtractor):
         dns_targets = [t for t in excavate.scan.target if t.type == "DNS_NAME"]
         for i, t in enumerate(dns_targets):
             self.regexes[f"dns_name_{i+1}"] = (
-                r"(?:%[a-f0-9]{2})?(?P<capture>(?:(?:[\w-]+)\.)+" + str(t.host).replace(".", r"\.") + ")"
+                r"(%[a-f0-9]{2})?((?:(?:[\w-]+)\.)+" + str(t.host).replace(".", r"\.") + ")"
             )
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
-        self.excavate.emit_event(result, "DNS_NAME", source=event)
+        self.excavate.emit_event(result[1], "DNS_NAME", source=event)
 
 
 class URLExtractor(BaseExtractor):
     regexes = {
         "fullurl": r"https?://(?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?",
-        "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(?P<capture>.*?)\1",
-        "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(?P<capture>.*?)\1",
+        "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
+        "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
 
     prefix_blacklist = ["javascript:", "mailto:", "tel:"]
@@ -73,7 +59,7 @@ class URLExtractor(BaseExtractor):
         parsed = getattr(event, "parsed", None)
 
         if (name == "a-tag" or name == "script-tag") and parsed:
-            path = html.unescape(result).lstrip("/")
+            path = html.unescape(result[1]).lstrip("/")
             if not path.startswith("http://") and not path.startswith("https://"):
                 result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
             else:

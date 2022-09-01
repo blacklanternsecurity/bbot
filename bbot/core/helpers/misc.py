@@ -618,12 +618,49 @@ def extract_emails(s):
         yield email.lower()
 
 
-def errprint(*args, **kwargs):
+loglevel_mapping = {
+    "DEBUG": "DBUG",
+    "VERBOSE": "VERB",
+    "HUGEVERBOSE": "VERB",
+    "INFO": "INFO",
+    "HUGEINFO": "INFO",
+    "SUCCESS": "SUCC",
+    "HUGESUCCESS": "SUCC",
+    "WARNING": "WARN",
+    "HUGEWARNING": "WARN",
+    "ERROR": "ERRR",
+    "CRITICAL": "CRIT",
+}
+color_mapping = {
+    "DEBUG": 242,  # grey
+    "VERBOSE": 242,  # grey
+    "INFO": 69,  # blue
+    "HUGEINFO": 69,  # blue
+    "SUCCESS": 118,  # green
+    "HUGESUCCESS": 118,  # green
+    "WARNING": 208,  # orange
+    "HUGEWARNING": 208,  # orange
+    "ERROR": 196,  # red
+    "CRITICAL": 196,  # red
+}
+color_prefix = "\033[1;38;5;"
+color_suffix = "\033[0m"
+
+
+def colorize(s, level="INFO"):
+    seq = color_mapping.get(level, 15)  # default white
+    colored = f"{color_prefix}{seq}m{s}{color_suffix}"
+    return colored
+
+
+def log_to_stderr(msg, level="INFO"):
     """
-    Print to stderr
+    Print to stderr with BBOT logger colors
     """
-    force = kwargs.pop("force", False)
-    if force or not any(x in sys.argv for x in ("-s", "--silent")):
-        if not "file" in kwargs:
-            kwargs["file"] = sys.stderr
-        print(*args, **kwargs)
+    levelname = level.upper()
+    if not any(x in sys.argv for x in ("-s", "--silent")):
+        levelshort = f"[{loglevel_mapping.get(level, 'INFO')}]"
+        levelshort = f"{colorize(levelshort, level=levelname)}"
+        if levelname == "CRITICAL" or levelname.startswith("HUGE"):
+            msg = colorize(msg)
+        print(f"{levelshort} bbot: {msg}", file=sys.stderr)
