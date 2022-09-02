@@ -47,3 +47,7 @@ class InteractshError(BBOTError):
 
 class WordlistError(BBOTError):
     pass
+
+
+class DNSError(BBOTError):
+    pass

@@ -57,7 +57,7 @@ class massdns(crobat):
 
         # make double-sure we're not dealing with a wildcard
         is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string(digits=False)}.{query}")
-        if is_wildcard:
+        if is_wildcard in (True, None):
             self.debug(f"Skipping wildcard query: {query}")
             return
 

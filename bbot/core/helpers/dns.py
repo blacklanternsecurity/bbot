@@ -8,8 +8,8 @@ from contextlib import suppress
 from concurrent.futures import ThreadPoolExecutor
 
 from .regexes import dns_name_regex
-from bbot.core.errors import ValidationError
 from .threadpool import ThreadPoolWrapper, NamedLock
+from bbot.core.errors import ValidationError, DNSError
 from .misc import is_ip, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
@@ -23,7 +23,10 @@ class DNSHelper:
     def __init__(self, parent_helper):
 
         self.parent_helper = parent_helper
-        self.resolver = dns.resolver.Resolver()
+        try:
+            self.resolver = dns.resolver.Resolver()
+        except Exception as e:
+            raise DNSError(f"Failed to create BBOT DNS resolver: {e}")
         self.timeout = self.parent_helper.config.get("dns_timeout", 10)
         self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 5)
         self.resolver.timeout = self.timeout
@@ -125,41 +128,60 @@ class DNSHelper:
         errors = []
         parent = self.parent_helper.parent_domain(query)
         rdtype = kwargs.get("rdtype", "A")
+        retries = kwargs.pop("retries", 0)
+        tries_left = int(retries) + 1
         parent_hash = hash(f"{parent}:{rdtype}")
         error_count = self._errors.get(parent_hash, 0)
-        if error_count >= self.abort_threshold:
-            log.verbose(
-                f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
-            )
-            return results, errors
-        try:
-            results = list(self._catch(self.resolver.resolve, query, **kwargs))
-            with self._error_lock:
-                if parent_hash in self._errors:
-                    self._errors[parent_hash] = 0
-        except (dns.resolver.NoNameservers, dns.exception.Timeout, dns.resolver.LifetimeTimeout) as e:
-            with self._error_lock:
-                try:
-                    self._errors[parent_hash] += 1
-                except KeyError:
-                    self._errors[parent_hash] = 1
+        while tries_left > 0:
+            if error_count >= self.abort_threshold:
                 log.verbose(
-                    f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far): {e}'
+                    f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                 )
-                errors.append(e)
+                return results, errors
+            try:
+                results = list(self._catch(self.resolver.resolve, query, **kwargs))
+                with self._error_lock:
+                    if parent_hash in self._errors:
+                        self._errors[parent_hash] = 0
+                break
+            except (dns.resolver.NoNameservers, dns.exception.Timeout, dns.resolver.LifetimeTimeout) as e:
+                with self._error_lock:
+                    try:
+                        self._errors[parent_hash] += 1
+                    except KeyError:
+                        self._errors[parent_hash] = 1
+                    log.verbose(
+                        f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far): {e}'
+                    )
+                    errors.append(e)
+                # don't retry if we get a SERVFAIL
+                if isinstance(e, dns.resolver.NoNameservers):
+                    break
+                tries_left -= 1
+                if tries_left > 0:
+                    retry_num = (retries + 1) - tries_left
+                    self.debug(f"Retry (#{retry_num}) resolving {query} with kwargs={kwargs}")
+
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors
 
     def _resolve_ip(self, query, **kwargs):
         self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
+        retries = kwargs.pop("retries", 0)
+        tries_left = int(retries) + 1
         results = []
         errors = []
-        try:
-            return list(self._catch(self.resolver.resolve_address, query, **kwargs)), errors
-        except dns.resolver.NoNameservers as e:
-            self.debug(f"{e} (query={query}, kwargs={kwargs})")
-        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout) as e:
-            errors.append(e)
+        while tries_left > 0:
+            try:
+                return list(self._catch(self.resolver.resolve_address, query, **kwargs)), errors
+            except dns.resolver.NoNameservers as e:
+                self.debug(f"{e} (query={query}, kwargs={kwargs})")
+            except (dns.exception.Timeout, dns.resolver.LifetimeTimeout) as e:
+                errors.append(e)
+                tries_left -= 1
+                if tries_left > 0:
+                    retry_num = (retries + 2) - tries_left
+                    self.debug(f"Retrying (#{retry_num}) {query} with kwargs={kwargs}")
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors
 
@@ -196,6 +218,8 @@ class DNSHelper:
                     if event_is_wildcard and event.type in ("DNS_NAME",):
                         event.data = wildcard_parent
                         return (event,)
+                    elif event_is_wildcard is None:
+                        event_tags.add("dns-error")
                 else:
                     event_tags.add("wildcard")
 
@@ -423,21 +447,28 @@ class DNSHelper:
         return list()
 
     def is_wildcard(self, query):
+        # we can skip wildcard checking if it's an IP
         if is_ip(query) or not "." in query:
             return False, query
+        # we can skip wildcard checking if the domain is excluded in the config
         for d in self.wildcard_ignore:
             if self.parent_helper.host_in_host(query, d):
                 return False, query
+        # if it's already been marked as a wildcard, return True
         if "_wildcard" in query.split("."):
             return True, query
+        # make a list of its parents
         hosts = list(domain_parents(query, include_self=True))[:-1]
+        # and check them all to make sure we don't miss it
         for host in hosts[::-1]:
             is_wildcard, parent = self._is_wildcard(host)
             if is_wildcard:
                 return True, f"_wildcard.{parent}"
+            elif is_wildcard is None:
+                return None, query
         return False, query
 
-    def _is_wildcard(self, query):
+    def _is_wildcard(self, query, retries=5):
         parent = parent_domain(query)
         parent_hash = hash(parent)
 
@@ -448,14 +479,21 @@ class DNSHelper:
         with self._wildcard_lock.get_lock(parent):
 
             # resolve the base query
-            orig_results = self.resolve(query)
+            orig_results = self.resolve(query, retries=retries)
             is_wildcard = False
+
+            # return None (inconclusive) if main query fails to resolve
+            if not orig_results:
+                is_wildcard = None
+                return is_wildcard, parent
 
             futures = []
             # resolve a bunch of random subdomains of the same parent
             for _ in range(self.wildcard_tests):
                 rand_query = f"{rand_string(length=10)}.{parent}"
-                future = self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.resolve, rand_query)
+                future = self._thread_pool.submit_task(
+                    self._catch_keyboardinterrupt, self.resolve, rand_query, retries=retries
+                )
                 futures.append(future)
 
             # put all the IPs from the random subdomains in one bucket
@@ -466,7 +504,7 @@ class DNSHelper:
                     wildcard_ips.update(ips)
 
             # if all of the original results are in the random bucket
-            if orig_results and wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):
+            if wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):
                 # then ladies and gentlemen we have a wildcard
                 is_wildcard = True
 

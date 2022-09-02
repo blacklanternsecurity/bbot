@@ -44,7 +44,7 @@ Note: the `httpx` module is recommended in most scans because it is [used by BBO
 bbot -l
 
 # subdomain enumeration
-bbot --flags subdomain-enum --modules naabu httpx --targets evilcorp.com
+bbot --flags subdomain-enum --modules httpx --targets evilcorp.com
 
 # passive modules only
 bbot --flags passive --targets evilcorp.com

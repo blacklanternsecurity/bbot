@@ -33,7 +33,7 @@ class crobat(BaseModule):
         if self.already_processed(query):
             return False
         is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string(digits=False)}.{query}")
-        if is_wildcard:
+        if is_wildcard in (True, None):
             return False
         self.processed.add(hash(query))
         return True
