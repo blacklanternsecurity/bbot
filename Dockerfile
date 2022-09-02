@@ -6,7 +6,7 @@ ENV PIP_NO_CACHE_DIR=off
 
 WORKDIR /usr/src/bbot
 
-RUN apt-get update && apt-get install -y openssl gcc git make curl
+RUN apt-get update && apt-get install -y openssl gcc git make curl wget nano
 
 COPY . .
 
