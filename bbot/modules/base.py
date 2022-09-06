@@ -225,8 +225,7 @@ class BaseModule:
         event = self.make_event(*args, **kwargs)
         if event:
             while not self.scan.stopping:
-                okay = event.module._event_semaphore.acquire(timeout=0.1)
-                self.hugesuccess(f"acquired {event}")
+                okay = event.acquire_semaphore(timeout=0.1)
                 if okay:
                     self.scan.manager.emit_event(
                         event,
@@ -480,7 +479,6 @@ class BaseModule:
             "errored": self.errored,
         }
         status["running"] = self._is_running(status)
-        self.critical(status)
         return status
 
     @staticmethod

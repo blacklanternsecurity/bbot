@@ -121,6 +121,7 @@ class BaseEvent:
                 self.make_internal()
 
         self._resolved = ThreadingEvent()
+        self._event_semaphore_acquired = False
         self._event_semaphore_released = False
 
     @property
@@ -398,11 +399,18 @@ class BaseEvent:
         timestamp = self.timestamp.timestamp()
         return self_priority + mod_priority + (1 / timestamp)
 
+    def acquire_semaphore(self, *args, **kwargs):
+        if not self._event_semaphore_acquired:
+            with suppress(AttributeError):
+                ret = self.module._event_semaphore.acquire(*args, **kwargs)
+                if ret:
+                    self._event_semaphore_acquired = True
+                return ret
+
     def release_semaphore(self):
         if not self._event_semaphore_released:
             with suppress(AttributeError):
                 self.module._event_semaphore.release()
-                log.critical(f"release {self}")
                 self._event_semaphore_released = True
 
     def __iter__(self):
