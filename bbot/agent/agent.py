@@ -1,6 +1,7 @@
 import json
 import logging
 import threading
+import traceback
 import websocket
 from time import sleep
 from omegaconf import OmegaConf
@@ -58,6 +59,7 @@ class Agent:
                 break
             except Exception as e:
                 log.warning(f"Error sending message: {e}, retrying")
+                log.debug(traceback.format_exc())
                 sleep(1)
                 continue
 
