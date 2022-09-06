@@ -509,7 +509,7 @@ class DNSHelper:
                         is_wildcard = all(r in wildcard_ips for r in query_ips)
                         return is_wildcard, host
             else:
-                log.critical(f"{parent} is mising from wildcard cache!")
+                log.critical(f"{parent} is missing from wildcard cache!")
 
     def is_wildcard_domain(self, domain, retries=5):
         """
