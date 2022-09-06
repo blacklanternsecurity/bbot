@@ -402,7 +402,7 @@ class BaseEvent:
         if not self._event_semaphore_released:
             with suppress(AttributeError):
                 self.module._event_semaphore.release()
-                self.critical(f"release {event}")
+                log.critical(f"release {self}")
                 self._event_semaphore_released = True
 
     def __iter__(self):

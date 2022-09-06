@@ -329,6 +329,7 @@ class ScanManager:
                         if event_counter > 0:
                             self.scan.status = "FINISHING"
                             # Trigger .finished() on every module and start over
+                            log.info("Finishing scan")
                             for mod in self.scan.modules.values():
                                 mod.queue_event("FINISHED")
                             event_counter = 0

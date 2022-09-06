@@ -480,6 +480,7 @@ class BaseModule:
             "errored": self.errored,
         }
         status["running"] = self._is_running(status)
+        self.critical(status)
         return status
 
     @staticmethod
