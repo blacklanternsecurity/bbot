@@ -226,14 +226,20 @@ class BaseModule:
         if event:
             while not self.scan.stopping:
                 okay = event.acquire_semaphore(timeout=0.1)
-                if okay:
+                if not okay:
+                    continue
+                try:
                     self.scan.manager.emit_event(
                         event,
                         abort_if=abort_if,
                         on_success_callback=on_success_callback,
                         quick=quick,
                     )
-                    break
+                except Exception:
+                    event.release_semaphore()
+                    self.error(f"Unexpected error in {self.name}.emit_event()")
+                    self.debug(traceback.format_exc())
+                break
 
     @property
     def events_waiting(self):
