@@ -1,3 +1,4 @@
+import os
 import sys
 import atexit
 import logging
@@ -191,6 +192,9 @@ def init_logging():
 
 def get_log_level():
     from bbot.core.configurator.args import cli_options
+
+    if config.get("debug", False) or os.environ.get("BBOT_DEBUG", "").lower() in ("true", "yes"):
+        return logging.DEBUG
 
     loglevel = logging.INFO
     if cli_options is not None:

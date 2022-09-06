@@ -5,6 +5,8 @@ import logging
 import ipaddress
 from time import sleep
 
+os.environ["BBOT_DEBUG"] = "True"
+
 import bbot.core.logger  # noqa: F401
 from bbot.core.errors import *
 from .bbot_fixtures import *  # noqa: F401

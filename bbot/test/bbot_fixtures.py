@@ -23,6 +23,12 @@ tldextract.extract("www.evilcorp.com")
 
 log = logging.getLogger(f"bbot.test.fixtures")
 
+# bbot config
+from bbot import config as default_config
+
+test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
+test_config = OmegaConf.merge(default_config, test_config)
+
 
 @pytest.fixture
 def patch_requests(monkeypatch):
@@ -89,11 +95,7 @@ def neuter_ansible(monkeypatch):
 
 @pytest.fixture
 def bbot_config():
-    from bbot import config as default_config
-
-    test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
-    config = OmegaConf.merge(default_config, test_config)
-    return config
+    return test_config
 
 
 @pytest.fixture
