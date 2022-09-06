@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from .regexes import dns_name_regex
 from .threadpool import ThreadPoolWrapper, NamedLock
 from bbot.core.errors import ValidationError, DNSError
-from .misc import is_ip, domain_parents, parent_domain, rand_string
+from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
@@ -212,15 +212,21 @@ class DNSHelper:
                 event_whitelisted = False
                 event_blacklisted = False
 
+                host_is_domain = is_domain(event_host)
+
                 # wildcard check first
                 if check_wildcard:
-                    event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
-                    if event_is_wildcard and event.type in ("DNS_NAME",):
-                        event.data = wildcard_parent
-                        return (event,)
-                    elif event_is_wildcard is None:
-                        event_tags.add("dns-error")
-                else:
+                    if host_is_domain:
+                        if self.is_wildcard_domain(event_host):
+                            event_tags.add("wildcard-dns")
+                    else:
+                        event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
+                        if event_is_wildcard and event.type in ("DNS_NAME",):
+                            event.data = f"_wildcard.{wildcard_parent}"
+                            return (event,)
+                        elif event_is_wildcard is None:
+                            event_tags.add("dns-error")
+                elif not host_is_domain:
                     event_tags.add("wildcard")
 
                 # try to get data from cache
@@ -414,7 +420,7 @@ class DNSHelper:
             error = f"Nameserver {nameserver} failed to resolve basic query within {timeout} seconds"
 
         # then, make sure it isn't feeding us garbage data
-        randhost = f"www-m.{rand_string(9)}.{rand_string(10)}.com"
+        randhost = f"www-m.{rand_string(9, digits=False)}.{rand_string(10, digits=False)}.com"
         if error is None:
             try:
                 a_results = list(resolver.resolve(randhost, "A"))
@@ -446,51 +452,81 @@ class DNSHelper:
             log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}")
         return list()
 
-    def is_wildcard(self, query):
-        # we can skip wildcard checking if it's an IP
+    def is_wildcard(self, query, ips=None, retries=5):
+        """
+        Use this method to check whether a *host* is a wildcard entry
+
+        This works (it will return False) for valid A-records in a wildcard domain.
+
+        If you want to know whether a domain is using wildcard DNS, use is_wildcard_domain() instead.
+
+        Note that this method returns a tuple: (is_wildcard, parent_domain) where parent_domain is
+        the highest level where wildcard checking occurred for that host.
+
+        e.g. if you are checking www.external.evilcorp.com and evilcorp.com is a wildcard domain,
+        this method will return (True, "evilcorp.com").
+        """
+        # skip check if it's an IP
         if is_ip(query) or not "." in query:
             return False, query
-        # we can skip wildcard checking if the domain is excluded in the config
+        # skip check if the query is a domain
+        if is_domain(query):
+            return False, query
+        # skip check if the query's parent domain is excluded in the config
         for d in self.wildcard_ignore:
             if self.parent_helper.host_in_host(query, d):
                 return False, query
         # if it's already been marked as a wildcard, return True
         if "_wildcard" in query.split("."):
             return True, query
-        # make a list of its parents
-        hosts = list(domain_parents(query, include_self=True))[:-1]
-        # and check them all to make sure we don't miss it
-        for host in hosts[::-1]:
-            is_wildcard, parent = self._is_wildcard(host)
-            if is_wildcard:
-                return True, f"_wildcard.{parent}"
-            elif is_wildcard is None:
-                return None, query
-        return False, query
 
-    def _is_wildcard(self, query, retries=5):
+        # populate wildcard cache
         parent = parent_domain(query)
-        parent_hash = hash(parent)
+        self.is_wildcard_domain(parent)
 
-        # try to return from cache
-        with suppress(KeyError):
-            return self._wildcard_cache[parent_hash], parent
-
-        with self._wildcard_lock.get_lock(parent):
-
-            # resolve the base query
-            orig_results = self.resolve(query, retries=retries)
-            is_wildcard = False
-
+        parents = list(domain_parents(query))
+        # resolve the base query
+        if ips is None:
+            query_ips = self.resolve(query, type=("A", "AAAA"), retries=retries)
+        else:
+            query_ips = set(ips)
+        if not query_ips:
             # return None (inconclusive) if main query fails to resolve
-            if not orig_results:
-                is_wildcard = None
-                return is_wildcard, parent
+            return None, parent
 
+        for host in parents[::-1]:
+            host_hash = hash(host)
+            # if we've seen this domain before
+            if host_hash in self._wildcard_cache:
+                wildcard_ips = self._wildcard_cache[host_hash]
+                # return False if it's not a wildcard domain
+                if not wildcard_ips:
+                    return False, host
+                # otherwise check to see if the dns name matches the wildcard IPs
+                else:
+                    if query_ips:
+                        # if the results are the same as the wildcard IPs, then ladies and gentlemen we have a wildcard
+                        is_wildcard = all(r in wildcard_ips for r in query_ips)
+                        return is_wildcard, host
+            else:
+                log.critical(f"{parent} is mising from wildcard cache!")
+
+    def is_wildcard_domain(self, domain, retries=5):
+        """
+        Check whether a domain is using wildcard DNS
+        """
+        # make a list of its parents
+        parents = list(domain_parents(domain, include_self=True))
+        # and check each of them
+        for host in parents[::-1]:
+            host_hash = hash(host)
+            if host_hash in self._wildcard_cache:
+                return bool(self._wildcard_cache[host_hash])
+            # determine if this is a wildcard domain
             futures = []
             # resolve a bunch of random subdomains of the same parent
             for _ in range(self.wildcard_tests):
-                rand_query = f"{rand_string(length=10)}.{parent}"
+                rand_query = f"{rand_string(digits=False, length=10)}.{host}"
                 future = self._thread_pool.submit_task(
                     self._catch_keyboardinterrupt, self.resolve, rand_query, retries=retries
                 )
@@ -503,15 +539,11 @@ class DNSHelper:
                 if ips:
                     wildcard_ips.update(ips)
 
-            # if all of the original results are in the random bucket
-            if wildcard_ips and all([ip in wildcard_ips for ip in orig_results]):
-                # then ladies and gentlemen we have a wildcard
-                is_wildcard = True
-
-            self._wildcard_cache.update({parent_hash: is_wildcard})
-            if is_wildcard:
-                log.verbose(f"Encountered domain with wildcard DNS: {parent}")
-            return is_wildcard, parent
+            self._wildcard_cache.update({host_hash: wildcard_ips})
+            if wildcard_ips:
+                log.verbose(f"Encountered domain with wildcard DNS: {host}")
+                return True
+        return False
 
     def _catch_keyboardinterrupt(self, callback, *args, **kwargs):
         try:

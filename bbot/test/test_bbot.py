@@ -781,12 +781,12 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     resolved = helpers.resolve("google.com", type="any")
     assert any([helpers.is_subdomain(h) for h in resolved])
     # wildcards
-    assert helpers.is_wildcard("asdf.wat.blacklanternsecurity.github.io") == (True, "_wildcard.github.io")
+    assert helpers.is_wildcard("asdf.wat.blacklanternsecurity.github.io") == (True, "github.io")
     assert hash("github.io") in helpers.dns._wildcard_cache
-    assert helpers.dns._wildcard_cache[hash("github.io")] == True
-    assert helpers.is_wildcard("asdf.asdf.asdf.github.io") == (True, "_wildcard.github.io")
+    assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
+    assert helpers.is_wildcard("asdf.asdf.asdf.github.io") == (True, "github.io")
     assert helpers.is_wildcard("github.io") == (False, "github.io")
-    assert helpers.is_wildcard("mail.google.com") == (False, "mail.google.com")
+    assert helpers.is_wildcard("mail.google.com") == (False, "google.com")
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
     children, event_tags1, event_whitelisted1, event_blacklisted1 = scan.helpers.resolve_event(wildcard_event1)
@@ -1084,7 +1084,10 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
     # event filters
     for module_name, module in scan2.modules.items():
         log.info(f"Testing {module_name}.filter_event()")
-        assert module.filter_event(events.emoji) in (True, False)
+        assert module.filter_event(events.emoji) in (
+            True,
+            False,
+        ), f"{module_name}.filter_event() must return either True or False"
 
 
 def test_config(bbot_config):
