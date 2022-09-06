@@ -413,6 +413,12 @@ class BaseEvent:
             with suppress(AttributeError):
                 self.module._event_semaphore.release()
                 log.hugesuccess(f"{self.module.name}.release {self.data}")
+                try:
+                    assert False
+                except AssertionError:
+                    import traceback
+
+                    log.critical(traceback.format_exc())
                 self._event_semaphore_released = True
 
     def __iter__(self):

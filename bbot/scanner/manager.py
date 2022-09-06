@@ -44,10 +44,13 @@ class ScanManager:
     def emit_event(self, event, *args, **kwargs):
         quick = kwargs.pop("quick", False)
         if quick:
+            kwargs.pop("abort_if", None)
+            kwargs.pop("on_success_callback", None)
             try:
-                kwargs.pop("abort_if")
-                kwargs.pop("on_success_callback")
                 self.queue_event(event, *args, **kwargs)
+            except Exception as e:
+                self.error(f"Unexpected error in manager.emit_event(): {e}")
+                self.debug(traceback.format_exc())
             finally:
                 event.release_semaphore()
         else:
