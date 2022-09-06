@@ -50,8 +50,10 @@ class ScanManager:
                 event.release_semaphore()
         else:
             # don't raise an exception if the thread pool has been shutdown
-            with suppress(RuntimeError):
+            try:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
+            except RuntimeError:
+                event.release_semaphore()
 
     def _emit_event(self, event, *args, **kwargs):
         emit_event = True
