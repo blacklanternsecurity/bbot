@@ -30,7 +30,7 @@ class ThreadPoolWrapper:
         with self._submit_task_lock:
             if self.max_workers is not None:
                 while self.num_tasks > self.max_workers:
-                    self.critical(f"num_tasks: {self.num_tasks} > self.max_workers: {self.max_workers}")
+                    log.critical(f"num_tasks: {self.num_tasks} > self.max_workers: {self.max_workers}")
                     sleep(0.1)
             try:
                 future = self.executor.submit(callback, *args, **kwargs)

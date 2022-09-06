@@ -1,4 +1,3 @@
-import json
 import queue
 import logging
 import threading
@@ -69,7 +68,7 @@ class ScanManager:
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
-            log.debug(f'module "{event.module}" raised {event}')
+            log.debug(f'Module "{event.module}" raised {event}')
 
             if event._dummy:
                 log.warning(f"Cannot emit dummy event: {event}")
@@ -188,6 +187,7 @@ class ScanManager:
             event.release_semaphore()
             if event_emitted:
                 self.scan.stats.event_emitted(event)
+            log.debug(f"{event.module}.emit_event() finished for {event}")
 
     def hash_event(self, event):
         """
@@ -422,7 +422,7 @@ class ScanManager:
                 self.scan.info(f"Modules: {modules_status_str}")
             event_type_summary = sorted(self.queued_event_types.items(), key=lambda x: x[-1], reverse=True)
             self.scan.info(f'Events: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}')
-            self.scan.critical(json.dumps(status, indent=4))
+            # self.scan.critical(json.dumps(status, indent=4))
 
             num_scan_tasks = status["scan"]["queued_tasks"]["total"]
             dns_tasks = status["scan"]["queued_tasks"]["dns"]
