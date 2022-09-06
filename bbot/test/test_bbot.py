@@ -1135,7 +1135,9 @@ def test_target(neuter_ansible, patch_requests, patch_commands, bbot_config):
     assert scan4.target != scan1.target
 
 
-def test_scan(neuter_ansible, patch_requests, patch_commands, events, bbot_config, helpers, neograph):
+def test_scan(
+    neuter_ansible, patch_requests, patch_commands, events, bbot_config, helpers, neograph, websocketapp, monkeypatch
+):
     from bbot.scanner.scanner import Scanner
 
     scan0 = Scanner("8.8.8.8/31", "evilcorp.com", blacklist=["8.8.8.8/28", "www.evilcorp.com"], config=bbot_config)
@@ -1191,6 +1193,8 @@ def test_scan(neuter_ansible, patch_requests, patch_commands, events, bbot_confi
     assert scan3.blacklisted("127.0.0.3")
     assert scan3.in_scope("127.0.0.1")
     assert not scan3.in_scope("127.0.0.3")
+    scan3.prep()
+    monkeypatch.setattr(scan3.modules["websocket"], "ws", websocketapp())
     scan3.start()
 
 
