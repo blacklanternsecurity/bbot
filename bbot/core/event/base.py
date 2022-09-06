@@ -404,6 +404,7 @@ class BaseEvent:
             with suppress(AttributeError):
                 ret = self.module._event_semaphore.acquire(*args, **kwargs)
                 if ret:
+                    log.critical(f"{self.module.name}.acquire {self.data}")
                     self._event_semaphore_acquired = True
                 return ret
 
@@ -411,6 +412,7 @@ class BaseEvent:
         if not self._event_semaphore_released:
             with suppress(AttributeError):
                 self.module._event_semaphore.release()
+                log.hugesuccess(f"{self.module.name}.release {self.data}")
                 self._event_semaphore_released = True
 
     def __iter__(self):

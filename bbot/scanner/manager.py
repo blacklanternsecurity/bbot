@@ -2,6 +2,7 @@ import json
 import queue
 import logging
 import threading
+import traceback
 from time import sleep
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -53,11 +54,15 @@ class ScanManager:
             # don't raise an exception if the thread pool has been shutdown
             try:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
-            except RuntimeError:
+            except Exception as e:
+                if not isinstance(e, RuntimeError):
+                    self.error(f"Unexpected error in manager.emit_event(): {e}")
+                    self.debug(traceback.format_exc())
                 event.release_semaphore()
 
     def _emit_event(self, event, *args, **kwargs):
         emit_event = True
+        event_emitted = False
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
@@ -138,6 +143,7 @@ class ScanManager:
             # queue the event before emitting its DNS children
             if emit_event:
                 self.queue_event(event)
+                event_emitted = True
 
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
@@ -171,13 +177,11 @@ class ScanManager:
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
-            import traceback
-
             log.debug(traceback.format_exc())
 
         finally:
             event.release_semaphore()
-            if emit_event:
+            if event_emitted:
                 self.scan.stats.event_emitted(event)
 
     def hash_event(self, event):
@@ -224,8 +228,6 @@ class ScanManager:
         except BrokenPipeError as e:
             log.debug(f"BrokenPipeError in {callback.__qualname__}(): {e}")
         except Exception as e:
-            import traceback
-
             log.error(f"Error in {callback.__qualname__}(): {e}")
             log.debug(traceback.format_exc())
         except KeyboardInterrupt:
@@ -235,8 +237,6 @@ class ScanManager:
             try:
                 on_finish_callback()
             except Exception as e:
-                import traceback
-
                 log.error(
                     f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {callback.__qualname__}(): {e}"
                 )
@@ -350,8 +350,6 @@ class ScanManager:
             self.scan.stop()
 
         except Exception:
-            import traceback
-
             log.critical(traceback.format_exc())
 
         finally:
