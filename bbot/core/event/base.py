@@ -121,6 +121,7 @@ class BaseEvent:
                 self.make_internal()
 
         self._resolved = ThreadingEvent()
+        self._event_semaphore_released = False
 
     @property
     def data(self):
@@ -262,7 +263,7 @@ class BaseEvent:
 
         if emit_trail and self.scan:
             for e in source_trail:
-                self.scan.manager.emit_event(e, release=False)
+                self.scan.manager.emit_event(e)
 
         return source_trail
 
@@ -396,6 +397,12 @@ class BaseEvent:
         mod_priority = int(max(1, min(5, getattr(self.module, "priority", 1))))
         timestamp = self.timestamp.timestamp()
         return self_priority + mod_priority + (1 / timestamp)
+
+    def release_semaphore(self):
+        if not self._event_semaphore_released:
+            with suppress(AttributeError):
+                self.module._event_semaphore.release()
+                self._event_semaphore_released = True
 
     def __iter__(self):
         """

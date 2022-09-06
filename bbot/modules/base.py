@@ -85,6 +85,8 @@ class BaseModule:
         self.errored = False
         self._log = None
         self._event_queue = None
+        # this semaphore allows us to track how many events are waiting to go out
+        # so that a single module can't raise too many events at once
         self._event_semaphore = threading.Semaphore(self._qsize)
         self._batch_idle = 0
         self.thread_pool = ThreadPoolWrapper(
@@ -221,7 +223,7 @@ class BaseModule:
         event = self.make_event(*args, **kwargs)
         if event:
             while not self.scan.stopping:
-                okay = self._event_semaphore.acquire(timeout=0.1)
+                okay = event.module._event_semaphore.acquire(timeout=0.1)
                 if okay:
                     self.scan.manager.emit_event(
                         event,

@@ -41,23 +41,19 @@ class ScanManager:
 
     def emit_event(self, event, *args, **kwargs):
         quick = kwargs.pop("quick", False)
-        release = kwargs.get("release", True)
         if quick:
             try:
                 kwargs.pop("abort_if")
                 kwargs.pop("on_success_callback")
                 self.queue_event(event, *args, **kwargs)
             finally:
-                if release:
-                    with suppress(Exception):
-                        event.module._event_semaphore.release()
+                event.release_semaphore()
         else:
             # don't raise an exception if the thread pool has been shutdown
             with suppress(RuntimeError):
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
 
     def _emit_event(self, event, *args, **kwargs):
-        release = kwargs.pop("release", True)
         emit_event = True
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
@@ -177,11 +173,9 @@ class ScanManager:
             log.debug(traceback.format_exc())
 
         finally:
-            if release:
-                with suppress(Exception):
-                    event.module._event_semaphore.release()
-                if emit_event:
-                    self.scan.stats.event_emitted(event)
+            event.release_semaphore()
+            if emit_event:
+                self.scan.stats.event_emitted(event)
 
     def hash_event(self, event):
         """
