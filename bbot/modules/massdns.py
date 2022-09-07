@@ -44,6 +44,15 @@ class massdns(crobat):
         self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
         return super().setup()
 
+    def filter_event(self, event):
+        if "unresolved" in event.tags:
+            return False
+        query = self.make_query(event)
+        if self.already_processed(query):
+            return False
+        self.processed.add(hash(query))
+        return True
+
     def handle_event(self, event):
         query = self.make_query(event)
         h = hash(query)
@@ -53,12 +62,6 @@ class massdns(crobat):
         # make sure base query resolves
         if not self.helpers.resolve(query, type="any"):
             self.debug(f"Skipping unresolved query: {query}")
-            return
-
-        # make double-sure we're not dealing with a wildcard
-        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string(digits=False)}.{query}")
-        if is_wildcard:
-            self.debug(f"Skipping wildcard query: {query}")
             return
 
         self.verbose(f"Brute-forcing subdomains for {query}")
@@ -137,8 +140,12 @@ class massdns(crobat):
                         data = answer.get("data", "")
                         # avoid garbage answers like this:
                         # 8AAAA queries have been locally blocked by dnscrypt-proxy/Set block_ipv6 to false to disable this feature
-                        if " " not in data:
-                            yield hostname.rstrip(".")
+                        if not " " in data:
+                            is_wildcard, _ = self.helpers.is_wildcard(hostname, ips=(data,))
+                            rdtype = answer.get("type", "").upper()
+                            # as long as it's not a wildcard we're okay
+                            if rdtype not in ("A", "AAAA") or is_wildcard == False:
+                                yield hostname.rstrip(".")
 
     def finish(self):
         found = list(self.found.items())

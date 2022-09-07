@@ -1,6 +1,7 @@
 import queue
 import logging
 import threading
+import traceback
 from time import sleep
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -17,7 +18,8 @@ class ScanManager:
 
     def __init__(self, scan):
         self.scan = scan
-        self.event_queue = queue.PriorityQueue()
+        self.event_queue = queue.Queue()
+        self.queued_event_types = dict()
         self.events_distributed = set()
         self.events_distributed_lock = threading.Lock()
         self.events_accepted = set()
@@ -40,28 +42,33 @@ class ScanManager:
 
     def emit_event(self, event, *args, **kwargs):
         quick = kwargs.pop("quick", False)
-        release = kwargs.get("release", True)
         if quick:
+            kwargs.pop("abort_if", None)
+            kwargs.pop("on_success_callback", None)
             try:
-                kwargs.pop("abort_if")
-                kwargs.pop("on_success_callback")
                 self.queue_event(event, *args, **kwargs)
+            except Exception as e:
+                self.error(f"Unexpected error in manager.emit_event(): {e}")
+                self.debug(traceback.format_exc())
             finally:
-                if release:
-                    with suppress(Exception):
-                        event.module._event_semaphore.release()
+                event.release_semaphore()
         else:
             # don't raise an exception if the thread pool has been shutdown
-            with suppress(RuntimeError):
+            try:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
+            except Exception as e:
+                if not isinstance(e, RuntimeError):
+                    self.error(f"Unexpected error in manager.emit_event(): {e}")
+                    self.debug(traceback.format_exc())
+                event.release_semaphore()
 
     def _emit_event(self, event, *args, **kwargs):
-        release = kwargs.pop("release", True)
         emit_event = True
+        event_emitted = False
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
-            log.debug(f'module "{event.module}" raised {event}')
+            log.debug(f'Module "{event.module}" raised {event}')
 
             if event._dummy:
                 log.warning(f"Cannot emit dummy event: {event}")
@@ -71,55 +78,61 @@ class ScanManager:
                 log.debug(f"Omitting event with self as source: {event}")
                 return
 
-            # DNS resolution
-            dns_children, dns_tags, event_whitelisted_dns, event_blacklisted_dns = self.scan.helpers.dns.resolve_event(
-                event
-            )
-            event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
-            event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
-            if event.type in ("DNS_NAME", "IP_ADDRESS"):
-                event.tags.update(dns_tags)
-            if event_blacklisted:
-                event.tags.add("blacklisted")
+            skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
+            # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
+            if not skip_dns_resolution:
+                # DNS resolution
+                (
+                    dns_children,
+                    dns_tags,
+                    event_whitelisted_dns,
+                    event_blacklisted_dns,
+                ) = self.scan.helpers.dns.resolve_event(event)
+                event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
+                event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
+                if event.type in ("DNS_NAME", "IP_ADDRESS"):
+                    event.tags.update(dns_tags)
+                if event_blacklisted:
+                    event.tags.add("blacklisted")
 
-            # Blacklist purging
-            if "blacklisted" in event.tags:
-                reason = "event host"
-                if event_blacklisted_dns:
-                    reason = "DNS associations"
-                log.debug(f"Omitting due to blacklisted {reason}: {event}")
-                emit_event = False
+                # Blacklist purging
+                if "blacklisted" in event.tags:
+                    reason = "event host"
+                    if event_blacklisted_dns:
+                        reason = "DNS associations"
+                    log.debug(f"Omitting due to blacklisted {reason}: {event}")
+                    emit_event = False
 
-            # Wait for parent event to resolve (in case its scope distance changes)
-            while 1:
-                if self.scan.stopping:
-                    raise ScanCancelledError()
-                resolved = event._resolved.wait(timeout=0.1)
-                if resolved:
-                    # update event's scope distance based on its parent
-                    event.scope_distance = event.source.scope_distance + 1
-                    break
+                # Wait for parent event to resolve (in case its scope distance changes)`
+                while 1:
+                    if self.scan.stopping:
+                        raise ScanCancelledError()
+                    resolved = event._resolved.wait(timeout=0.1)
+                    if resolved:
+                        # update event's scope distance based on its parent
+                        event.scope_distance = event.source.scope_distance + 1
+                        break
 
-            # Scope shepherding
-            event_is_duplicate = self.is_duplicate_event(event)
-            event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
-            set_scope_distance = event.scope_distance
-            if event_whitelisted:
-                set_scope_distance = 0
-            if event.host:
-                if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
-                    if set_scope_distance == 0:
-                        log.debug(f"Making {event} in-scope")
-                    event.make_in_scope(set_scope_distance)
+                # Scope shepherding
+                event_is_duplicate = self.is_duplicate_event(event)
+                event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
+                set_scope_distance = event.scope_distance
+                if event_whitelisted:
+                    set_scope_distance = 0
+                if event.host:
+                    if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
+                        if set_scope_distance == 0:
+                            log.debug(f"Making {event} in-scope")
+                        event.make_in_scope(set_scope_distance)
+                    else:
+                        if event.scope_distance > self.scan.scope_report_distance:
+                            log.debug(
+                                f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                            )
+                            event.make_internal()
                 else:
-                    if event.scope_distance > self.scan.scope_report_distance:
-                        log.debug(
-                            f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                        )
-                        event.make_internal()
-            else:
-                log.debug(f"Making {event} in-scope because it does not have identifying scope information")
-                event.make_in_scope(0)
+                    log.debug(f"Making {event} in-scope because it does not have identifying scope information")
+                    event.make_in_scope(0)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if) and abort_if(event):
@@ -132,6 +145,7 @@ class ScanManager:
             # queue the event before emitting its DNS children
             if emit_event:
                 self.queue_event(event)
+                event_emitted = True
 
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
@@ -165,16 +179,13 @@ class ScanManager:
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
-            import traceback
-
             log.debug(traceback.format_exc())
 
         finally:
-            if release:
-                with suppress(Exception):
-                    event.module._event_semaphore.release()
-                if emit_event:
-                    self.scan.stats.event_emitted(event)
+            event.release_semaphore()
+            if event_emitted:
+                self.scan.stats.event_emitted(event)
+            log.debug(f"{event.module}.emit_event() finished for {event}")
 
     def hash_event(self, event):
         """
@@ -220,8 +231,6 @@ class ScanManager:
         except BrokenPipeError as e:
             log.debug(f"BrokenPipeError in {callback.__qualname__}(): {e}")
         except Exception as e:
-            import traceback
-
             log.error(f"Error in {callback.__qualname__}(): {e}")
             log.debug(traceback.format_exc())
         except KeyboardInterrupt:
@@ -231,8 +240,6 @@ class ScanManager:
             try:
                 on_finish_callback()
             except Exception as e:
-                import traceback
-
                 log.error(
                     f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {callback.__qualname__}(): {e}"
                 )
@@ -244,6 +251,10 @@ class ScanManager:
         Queue event with manager
         """
         event = self.scan.make_event(*args, **kwargs)
+        try:
+            self.queued_event_types[event.type] += 1
+        except KeyError:
+            self.queued_event_types[event.type] = 1
         self.event_queue.put(event)
 
     def distribute_event(self, event):
@@ -280,11 +291,11 @@ class ScanManager:
                     if event_within_scope_distance:
                         mod.queue_event(event)
 
-    def loop_until_finished(self):
+    def loop_until_finished(self, status_frequency=10):
 
         counter = 0
         event_counter = 0
-        timedelta_2secs = timedelta(seconds=2)
+        timedelta_2secs = timedelta(seconds=status_frequency)
         last_log_time = datetime.now()
 
         try:
@@ -322,6 +333,7 @@ class ScanManager:
                         if event_counter > 0:
                             self.scan.status = "FINISHING"
                             # Trigger .finished() on every module and start over
+                            log.info("Finishing scan")
                             for mod in self.scan.modules.values():
                                 mod.queue_event("FINISHED")
                             event_counter = 0
@@ -341,8 +353,6 @@ class ScanManager:
             self.scan.stop()
 
         except Exception:
-            import traceback
-
             log.critical(traceback.format_exc())
 
         finally:
@@ -391,30 +401,25 @@ class ScanManager:
 
         status["finished"] = finished
 
-        modules_running = [m for m, s in status["modules"].items() if s["running"]]
         modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
 
         if _log:
-            events_queued = [
-                (m, (s["events"]["incoming"], s["events"]["outgoing"])) for m, s in status["modules"].items()
-            ]
-            events_queued.sort(key=lambda x: sum(x[-1]), reverse=True)
-            events_queued = [(m, q) for m, q in events_queued if sum(q) > 0][:5]
-            events_queued_str = ""
-            if events_queued:
-                events_queued_str = " (" + ", ".join([f"{m}: I:{i:,} O:{o:,}" for m, (i, o) in events_queued]) + ")"
-            tasks_queued = [(m, s["tasks"]["total"]) for m, s in status["modules"].items()]
-            tasks_queued.sort(key=lambda x: x[-1], reverse=True)
-            tasks_queued = [(m, q) for m, q in tasks_queued if q > 0][:5]
-            tasks_queued_str = ""
-            if tasks_queued:
-                tasks_queued_str = " (" + ", ".join([f"{m}: {q:,}" for m, q in tasks_queued]) + ")"
 
-            num_events_queued = sum([sum(m[-1]) for m in events_queued])
-            self.scan.hugeverbose(f"Events queued: {num_events_queued:,}{events_queued_str}")
+            modules_status = []
+            for m, s in status["modules"].items():
+                incoming = s["events"]["incoming"]
+                outgoing = s["events"]["outgoing"]
+                tasks = s["tasks"]["total"]
+                total = sum([incoming, outgoing, tasks])
+                modules_status.append((m, incoming, outgoing, tasks, total))
+            modules_status.sort(key=lambda x: x[-1], reverse=True)
 
-            num_tasks_queued = sum([m[-1] for m in tasks_queued])
-            self.scan.hugeverbose(f"Module tasks queued: {num_tasks_queued:,}{tasks_queued_str}")
+            modules_status = [s for s in modules_status if s[-2] or s[-1] > 0][:5]
+            if modules_status:
+                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, i, o, t, _ in modules_status])
+                self.scan.info(f"Modules: {modules_status_str}")
+            event_type_summary = sorted(self.queued_event_types.items(), key=lambda x: x[-1], reverse=True)
+            self.scan.info(f'Events: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}')
 
             num_scan_tasks = status["scan"]["queued_tasks"]["total"]
             dns_tasks = status["scan"]["queued_tasks"]["dns"]
@@ -422,19 +427,15 @@ class ScanManager:
             main_tasks = status["scan"]["queued_tasks"]["main"]
             internal_tasks = status["scan"]["queued_tasks"]["internal"]
             manager_events_queued = status["scan"]["queued_events"]["manager"]
-            self.scan.hugeverbose(
-                f"Scan tasks queued: {num_scan_tasks:,} (Main: {main_tasks:,}, Events: {event_tasks:,} waiting, {manager_events_queued:,} in queue, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
+            self.scan.verbose(
+                f"Thread pools: {num_scan_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,} waiting, {manager_events_queued:,} in queue, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
             )
 
-            if modules_running:
-                self.scan.hugeverbose(
-                    f'Modules running: {len(modules_running):,} ({", ".join([m for m in modules_running])})'
-                )
             if modules_errored:
-                self.scan.hugeverbose(
+                self.scan.verbose(
                     f'Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
                 )
 
-        status.update({"modules_running": len(modules_running), "modules_errored": len(modules_errored)})
+        status.update({"modules_errored": len(modules_errored)})
 
         return status

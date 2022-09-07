@@ -6,7 +6,6 @@ import getpass
 import logging
 from time import sleep
 import subprocess as sp
-from pathlib import Path
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
@@ -19,6 +18,11 @@ log = logging.getLogger("bbot.core.helpers.depsinstaller")
 class DepsInstaller:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
+
+        # respect BBOT's http timeout
+        http_timeout = self.parent_helper.config.get("http_timeout", 30)
+        os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
+
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.parent_helper.mkdir(self.data_dir)
@@ -35,21 +39,11 @@ class DepsInstaller:
         self.venv = ""
         if sys.prefix != sys.base_prefix:
             self.venv = sys.prefix
-            # ensure that we have pip
-            venv_bin = Path(self.venv) / "bin"
-            python_executable = venv_bin / "python"
-            pip_executable = venv_bin / "pip"
-            if not pip_executable.is_file():
-                with open(pip_executable, "w") as f:
-                    f.write(
-                        f'''#!/bin/bash
-{python_executable} -m pip "$@"'''
-                    )
-                pip_executable.chmod(0o755)
 
         self.all_modules_preloaded = module_loader.preloaded()
 
     def install(self, *modules):
+        self.install_core_deps()
         succeeded = []
         failed = []
         try:
@@ -134,20 +128,17 @@ class DepsInstaller:
         return success
 
     def pip_install(self, packages):
-        packages = ",".join(packages)
-        log.verbose(f"Installing the following pip packages: {packages}")
-        args = {"name": packages}
-        if self.venv:
-            args["virtualenv"] = self.venv
-            args["virtualenv_python"] = sys.executable
-        success, err = self.ansible_run(
-            module="pip", args=args, ansible_args={"ansible_python_interpreter": sys.executable}
-        )
-        if success:
-            log.info(f'Successfully installed pip packages "{packages}"')
-        else:
+        packages_str = ",".join(packages)
+        log.verbose(f"Installing the following pip packages: {packages_str}")
+
+        command = [sys.executable, "-m", "pip", "install"] + packages
+        try:
+            self.parent_helper.run(command, check=True)
+            log.info(f'Successfully installed pip packages "{packages_str}"')
+            return True
+        except Exception as err:
             log.warning(f"Failed to install pip packages: {err}")
-        return success
+        return False
 
     def apt_install(self, packages):
         """
@@ -197,6 +188,7 @@ class DepsInstaller:
         return success
 
     def tasks(self, module, tasks):
+        log.info(f"Running {len(tasks):,} Ansible tasks for {module}")
         success, err = self.ansible_run(tasks=tasks)
         if success:
             log.info(f"Successfully ran {len(tasks):,} Ansible tasks for {module}")
@@ -287,3 +279,14 @@ class DepsInstaller:
         except sp.CalledProcessError:
             return False
         return True
+
+    def install_core_deps(self):
+        # command: package_name
+        core_deps = {"unzip": "unzip"}
+        to_install = set()
+        for command, package_name in core_deps.items():
+            if not self.parent_helper.which(command):
+                to_install.add(package_name)
+        if to_install:
+            self.ensure_root()
+            self.apt_install(list(to_install))

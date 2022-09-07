@@ -60,7 +60,7 @@ class BaseModule:
     # Maximum concurrent instances of handle_event() or handle_batch()
     max_event_handlers = 1
     # Max number of concurrent calls to submit_task()
-    max_threads = 1
+    max_threads = 10
     # Batch size
     # If batch size > 1, override handle_batch() instead of handle_event()
     batch_size = 1
@@ -85,8 +85,12 @@ class BaseModule:
         self.errored = False
         self._log = None
         self._event_queue = None
+        # this semaphore allows us to track how many events are waiting to go out
+        # so that a single module can't raise too many events at once
         self._event_semaphore = threading.Semaphore(self._qsize)
+        # how many seconds we've gone without processing a batch
         self._batch_idle = 0
+        # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
         self.thread_pool = ThreadPoolWrapper(
             self.scan._thread_pool.executor, max_workers=self.config.get("max_threads", self.max_threads)
         )
@@ -221,15 +225,21 @@ class BaseModule:
         event = self.make_event(*args, **kwargs)
         if event:
             while not self.scan.stopping:
-                okay = self._event_semaphore.acquire(timeout=0.1)
-                if okay:
+                okay = event.acquire_semaphore(timeout=0.1)
+                if not okay:
+                    continue
+                try:
                     self.scan.manager.emit_event(
                         event,
                         abort_if=abort_if,
                         on_success_callback=on_success_callback,
                         quick=quick,
                     )
-                    break
+                except Exception:
+                    event.release_semaphore()
+                    self.error(f"Unexpected error in {self.name}.emit_event()")
+                    self.debug(traceback.format_exc())
+                break
 
     @property
     def events_waiting(self):

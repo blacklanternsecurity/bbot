@@ -22,6 +22,11 @@ class ThreadPoolWrapper:
         self._submit_task_lock = threading.Lock()
 
     def submit_task(self, callback, *args, **kwargs):
+        """
+        A wrapper around threadpool.submit()
+
+        This blocks, which isn't ideal, but it ensures that modules don't hog the shared thread pool
+        """
         with self._submit_task_lock:
             if self.max_workers is not None:
                 while self.num_tasks > self.max_workers:

@@ -6,7 +6,7 @@ class host_header(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web"]
+    flags = ["active", "aggressive", "web-advanced"]
     meta = {"description": "Try common HTTP Host header spoofing techniques"}
 
     in_scope_only = True
@@ -15,6 +15,7 @@ class host_header(BaseModule):
 
     def setup(self):
 
+        self.interactsh_subdomain_tags = {}
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
@@ -22,8 +23,6 @@ class host_header(BaseModule):
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
                 return False
-
-            self.interactsh_subdomain_tags = {}
         return True
 
     def interactsh_callback(self, r):
@@ -57,7 +56,7 @@ class host_header(BaseModule):
         try:
             self.interactsh_instance.deregister()
             self.debug(
-                f"successfully degregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
+                f"successfully deregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
             )
         except InteractshError as e:
             self.warning(f"Interactsh failure: {e}")

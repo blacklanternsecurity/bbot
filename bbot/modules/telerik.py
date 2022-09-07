@@ -7,7 +7,7 @@ class telerik(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
-    flags = ["active", "aggressive", "web"]
+    flags = ["active", "aggressive", "slow", "web-basic"]
     meta = {
         "description": "Scan for critical Telerik vulnerabilities",
     }
@@ -120,6 +120,8 @@ class telerik(BaseModule):
             },
         },
     ]
+
+    max_event_handlers = 5
 
     def handle_event(self, event):
 

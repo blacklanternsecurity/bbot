@@ -8,7 +8,7 @@ class ffuf_shortnames(ffuf):
 
     watched_events = ["URL_HINT"]
     produced_events = ["URL"]
-    flags = ["brute-force", "aggressive", "active", "web"]
+    flags = ["brute-force", "aggressive", "active", "web-advanced", "iis-shortnames"]
     meta = {"description": "Use ffuf in combination IIS shortnames"}
 
     options = {
@@ -16,6 +16,7 @@ class ffuf_shortnames(ffuf):
         "lines": 20000,
         "max_depth": 1,
         "version": "1.5.0",
+        "extensions": "",
     }
 
     in_scope_only = True
@@ -46,6 +47,7 @@ class ffuf_shortnames(ffuf):
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist)
+        self.extensions = self.config.get("extensions")
         return True
 
     def handle_event(self, event):

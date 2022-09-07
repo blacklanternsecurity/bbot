@@ -6,7 +6,7 @@ from contextlib import suppress
 
 from ..errors import ArgumentError
 from ...modules import module_loader
-from ..helpers.misc import chain_lists
+from ..helpers.misc import chain_lists, log_to_stderr
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
@@ -70,7 +70,6 @@ for p in (parser, dummy_parser):
     )
     target.add_argument("-b", "--blacklist", nargs="+", default=[], help="Don't touch these things")
     target.add_argument(
-        "-s",
         "--strict-scope",
         action="store_true",
         help="Don't consider subdomains of target/whitelist to be in-scope",
@@ -133,6 +132,7 @@ for p in (parser, dummy_parser):
     p.add_argument("--allow-deadly", action="store_true", help="Enable the use of highly aggressive modules")
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
+    p.add_argument("-s", "--silent", action="store_true", help="Be quiet")
     p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
     p.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
     p.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
@@ -176,12 +176,14 @@ def get_config():
         filename = Path(cli_config[0]).resolve()
         if filename.is_file():
             try:
-                return OmegaConf.load(str(filename))
+                conf = OmegaConf.load(str(filename))
+                log_to_stderr(f"Loaded custom config from {filename}")
+                return conf
             except Exception as e:
-                print(f"[ERR] Error parsing custom config at {filename}: {e}")
+                log_to_stderr(f"Error parsing custom config at {filename}: {e}", level="ERROR")
                 sys.exit(2)
     try:
         return OmegaConf.from_cli(cli_config)
     except Exception as e:
-        print(f"[ERR] Error parsing command-line config: {e}")
+        log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
         sys.exit(2)

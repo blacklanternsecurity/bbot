@@ -124,7 +124,7 @@ class hunt(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web"]
+    flags = ["active", "safe", "web-advanced"]
     meta = {"description": "Watch for commonly-exploitable HTTP parameters"}
     # accept all events regardless of scope distance
     scope_distance_modifier = None

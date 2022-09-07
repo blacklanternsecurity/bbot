@@ -13,19 +13,31 @@ It is capable of executing the entire OSINT process in a single command, includi
 
 BBOT currently has over **50 modules** and counting.
 
-## Installation
+## Installation (pip)
 ~~~bash
-pipx install bbot
+pip install bbot
+
+bbot --help
 ~~~
-Prerequisites: 
-- Python 3.9 or newer MUST be installed
-- `pipx` is recommended as an alternative to `pip` because it installs BBOT in its own Python environment.
+Prerequisites:
+- Linux or WSL
+- Python 3.9 or newer
+
+## Installation (docker)
+~~~bash
+git clone https://github.com/blacklanternsecurity/bbot && cd bbot
+docker build . -t bbot
+docker run bbot --help
+
+# note: alternatively there is a helper script that will automatically map docker volumes to persist your BBOT scan data:
+./bbot-docker.sh --help
+~~~
 
 If you need help with installation, please refer to the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#installation).
 
 ## Scanning with BBOT
 
-#### Note: the `httpx` module is recommended in most scans because it is used by BBOT to visit webpages. For details, see the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#note-on-the-httpx-module).
+Note: the `httpx` module is recommended in most scans because it is [used by BBOT to visit webpages](https://github.com/blacklanternsecurity/bbot/wiki#note-on-the-httpx-module).
 
 ### Examples
 ~~~bash
@@ -33,17 +45,25 @@ If you need help with installation, please refer to the [wiki](https://github.co
 bbot -l
 
 # subdomain enumeration
-bbot --flags subdomain-enum --modules naabu httpx --targets evilcorp.com
+bbot --flags subdomain-enum --modules httpx --targets evilcorp.com
 
 # passive modules only
 bbot --flags passive --targets evilcorp.com
 
 # web screenshots with gowitness
-bbot -m naabu httpx gowitness --name my_scan --output-dir . -t evilcorp.com 1.2.3.4/28 4.3.2.1 targets.txt
+bbot -m naabu httpx gowitness --name my_scan --output-dir . -t subdomains.txt
+
+# web scan
+bbot -f web-basic -t www.evilcorp.com
 
 # web spider (search for emails, etc.)
 bbot -m httpx -c web_spider_distance=2 web_spider_depth=2 -t www.evilcorp.com
+
+# everything at once because yes
+bbot -f subdomain-enum web-basic -m naabu gowitness -c web_spider_distance=2 web_spider_depth=2 -t evilcorp.com
 ~~~
+
+Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurity/bbot/wiki#tips-and-tricks).
 
 ## Using BBOT as a Python library
 ~~~python
@@ -159,6 +179,8 @@ BBOT loads its config from these places in the following order:
 - `~/.config/bbot/bbot.yml` <-- Use this one as your main config
 - `~/.config/bbot/secrets.yml` <-- Use this one for sensitive stuff like API keys
 - command line (via `--config`)
+
+These config files will be automatically created for you when you first run BBOT.
 
 Command-line arguments take precedence over all others. You can give BBOT a custom config file with `--config myconf.yml`, or individual arguments like this: `--config http_proxy=http://127.0.0.1:8080 modules.shodan_dns.api_key=1234`. To display the full and current BBOT config, including any command-line arguments, use `bbot --current-config`.
 

@@ -121,6 +121,8 @@ class BaseEvent:
                 self.make_internal()
 
         self._resolved = ThreadingEvent()
+        self._event_semaphore_acquired = False
+        self._event_semaphore_released = False
 
     @property
     def data(self):
@@ -262,7 +264,7 @@ class BaseEvent:
 
         if emit_trail and self.scan:
             for e in source_trail:
-                self.scan.manager.emit_event(e, release=False)
+                self.scan.manager.emit_event(e)
 
         return source_trail
 
@@ -397,6 +399,20 @@ class BaseEvent:
         timestamp = self.timestamp.timestamp()
         return self_priority + mod_priority + (1 / timestamp)
 
+    def acquire_semaphore(self, *args, **kwargs):
+        if not self._event_semaphore_acquired:
+            with suppress(AttributeError):
+                ret = self.module._event_semaphore.acquire(*args, **kwargs)
+                if ret:
+                    self._event_semaphore_acquired = True
+                return ret
+
+    def release_semaphore(self):
+        if self._event_semaphore_acquired and not self._event_semaphore_released:
+            with suppress(AttributeError):
+                self.module._event_semaphore.release()
+                self._event_semaphore_released = True
+
     def __iter__(self):
         """
         For dict(event)
@@ -516,7 +532,7 @@ class DNS_NAME(BaseEvent):
         stem = self.host_stem
         if "wildcard" in self.tags:
             stem = "".join(stem.split(".")[1:])
-        return extract_words(self.host_stem)
+        return extract_words(stem)
 
 
 class OPEN_TCP_PORT(BaseEvent):
@@ -598,6 +614,19 @@ class URL(URL_UNVERIFIED):
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
         return super().sanitize_data(data)
+
+
+class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):
+    def sanitize_data(self, data):
+        self.parsed = validators.validate_url_parsed(data["url"])
+        return data
+
+    class _data_validator(BaseModel):
+        name: str
+        url: str
+
+    def _words(self):
+        return self.parsed.hostname.split(".")[0]
 
 
 class URL_HINT(URL_UNVERIFIED):
@@ -755,26 +784,21 @@ def make_event(
         event_type = str(event_type).strip().upper()
 
         # Catch these common whoopsies
-
-        # DNS_NAME <--> IP_ADDRESS confusion
         if event_type in ("DNS_NAME", "IP_ADDRESS"):
-            try:
-                data = validators.validate_host(data)
-            except Exception as e:
-                raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
-            data_is_ip = is_ip(data)
-            if event_type == "DNS_NAME" and data_is_ip:
-                event_type = "IP_ADDRESS"
-            elif event_type == "IP_ADDRESS" and not data_is_ip:
-                event_type = "DNS_NAME"
-
-        # DNS_NAME <--> EMAIL_ADDRESS confusion
-        if event_type in ("DNS_NAME", "EMAIL_ADDRESS"):
-            data_is_email = validators.soft_validate(data, "email")
-            if event_type == "DNS_NAME" and data_is_email:
+            # DNS_NAME <--> EMAIL_ADDRESS confusion
+            if validators.soft_validate(data, "email"):
                 event_type = "EMAIL_ADDRESS"
-            elif event_type == "EMAIL_ADDRESS" and not data_is_email:
-                event_type = "DNS_NAME"
+            else:
+                # DNS_NAME <--> IP_ADDRESS confusion
+                try:
+                    data = validators.validate_host(data)
+                except Exception as e:
+                    raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
+                data_is_ip = is_ip(data)
+                if event_type == "DNS_NAME" and data_is_ip:
+                    event_type = "IP_ADDRESS"
+                elif event_type == "IP_ADDRESS" and not data_is_ip:
+                    event_type = "DNS_NAME"
 
         event_class = globals().get(event_type, DefaultEvent)
 

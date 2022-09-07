@@ -133,7 +133,7 @@ class Scanner:
     def prep(self):
         self.helpers.mkdir(self.home)
         if not self._prepped:
-            start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target)} targets"
+            start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target):,} targets"
             details = []
             if self.whitelist != self.target:
                 details.append(f"{len(self.whitelist):,} in whitelist")

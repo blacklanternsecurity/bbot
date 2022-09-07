@@ -1,5 +1,6 @@
 import json
 import threading
+import traceback
 import websocket
 from time import sleep
 
@@ -35,7 +36,7 @@ class Websocket(BaseOutputModule):
             sleep(1)
 
     def handle_event(self, event):
-        event_json = event.json
+        event_json = event.json()
         self.send(event_json)
 
     def send(self, message):
@@ -45,6 +46,7 @@ class Websocket(BaseOutputModule):
                 break
             except Exception as e:
                 self.warning(f"Error sending message: {e}, retrying")
+                self.debug(traceback.format_exc())
                 sleep(1)
                 continue
 

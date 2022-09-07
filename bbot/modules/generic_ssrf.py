@@ -159,7 +159,7 @@ class generic_ssrf(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
-    flags = ["active", "aggressive", "web"]
+    flags = ["active", "aggressive", "web-advanced"]
     meta = {"description": "Check for generic SSRFs"}
     in_scope_only = True
 
@@ -167,6 +167,7 @@ class generic_ssrf(BaseModule):
 
     def setup(self):
 
+        self.submodules = {}
         self.interactsh_subdomain_tags = {}
         self.severity = None
         self.generic_only = self.config.get("generic_only", False)
@@ -185,8 +186,6 @@ class generic_ssrf(BaseModule):
             return None
 
         # instantiate submodules
-        self.submodules = {}
-
         for m in BaseSubmodule.__subclasses__():
             if m.__name__.startswith("Generic_"):
                 self.verbose(f"Starting generic_ssrf submodule: {m.__name__}")

@@ -10,7 +10,7 @@ class ffuf(BaseModule):
 
     watched_events = ["URL"]
     produced_events = ["URL"]
-    flags = ["brute-force", "aggressive", "active", "web"]
+    flags = ["brute-force", "aggressive", "active", "web-advanced"]
     meta = {"description": "A fast web fuzzer written in Go"}
 
     options = {
@@ -80,7 +80,7 @@ class ffuf(BaseModule):
 
         for x in ffuf_exts:
             fuzz_url = f"{url}FUZZ{suffix}"
-            command = ["ffuf", "-ac", "-json", "-w", tempfile, "-u", f"{fuzz_url}{x}"]
+            command = ["ffuf", "-ac", "-json", "-noninteractive", "-w", tempfile, "-u", f"{fuzz_url}{x}"]
 
             for found in self.helpers.run_live(command):
                 try:
