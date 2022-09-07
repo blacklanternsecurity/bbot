@@ -19,8 +19,9 @@ pip install bbot
 
 bbot --help
 ~~~
-Prerequisites: 
-- Python 3.9 or newer MUST be installed
+Prerequisites:
+- Linux or WSL
+- Python 3.9 or newer
 
 ## Installation (docker)
 ~~~bash

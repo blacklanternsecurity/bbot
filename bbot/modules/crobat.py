@@ -27,13 +27,13 @@ class crobat(BaseModule):
 
         This filter_event is used across many modules
         """
-        if any(t in event.tags for t in ("dns-error", "unresolved")):
+        if "unresolved" in event.tags:
             return False
         query = self.make_query(event)
         if self.already_processed(query):
             return False
-        is_wildcard, _ = self.helpers.is_wildcard(f"{self.helpers.rand_string(digits=False)}.{query}")
-        if is_wildcard in (True, None):
+        is_wildcard = self.helpers.is_wildcard_domain(query)
+        if is_wildcard != False:
             return False
         self.processed.add(hash(query))
         return True

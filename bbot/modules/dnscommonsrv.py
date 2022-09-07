@@ -98,7 +98,7 @@ class dnscommonsrv(BaseModule):
 
     def filter_event(self, event):
         is_wildcard, _ = self.helpers.is_wildcard(event.host)
-        if is_wildcard in (True, None):
+        if is_wildcard != False:
             return False
         return True
 

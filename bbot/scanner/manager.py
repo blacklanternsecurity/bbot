@@ -1,6 +1,7 @@
 import queue
 import logging
 import threading
+import traceback
 from time import sleep
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -17,7 +18,7 @@ class ScanManager:
 
     def __init__(self, scan):
         self.scan = scan
-        self.event_queue = queue.PriorityQueue()
+        self.event_queue = queue.Queue()
         self.queued_event_types = dict()
         self.events_distributed = set()
         self.events_distributed_lock = threading.Lock()
@@ -41,28 +42,33 @@ class ScanManager:
 
     def emit_event(self, event, *args, **kwargs):
         quick = kwargs.pop("quick", False)
-        release = kwargs.get("release", True)
         if quick:
+            kwargs.pop("abort_if", None)
+            kwargs.pop("on_success_callback", None)
             try:
-                kwargs.pop("abort_if")
-                kwargs.pop("on_success_callback")
                 self.queue_event(event, *args, **kwargs)
+            except Exception as e:
+                self.error(f"Unexpected error in manager.emit_event(): {e}")
+                self.debug(traceback.format_exc())
             finally:
-                if release:
-                    with suppress(Exception):
-                        event.module._event_semaphore.release()
+                event.release_semaphore()
         else:
             # don't raise an exception if the thread pool has been shutdown
-            with suppress(RuntimeError):
+            try:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
+            except Exception as e:
+                if not isinstance(e, RuntimeError):
+                    self.error(f"Unexpected error in manager.emit_event(): {e}")
+                    self.debug(traceback.format_exc())
+                event.release_semaphore()
 
     def _emit_event(self, event, *args, **kwargs):
-        release = kwargs.pop("release", True)
         emit_event = True
+        event_emitted = False
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
-            log.debug(f'module "{event.module}" raised {event}')
+            log.debug(f'Module "{event.module}" raised {event}')
 
             if event._dummy:
                 log.warning(f"Cannot emit dummy event: {event}")
@@ -97,7 +103,7 @@ class ScanManager:
                     log.debug(f"Omitting due to blacklisted {reason}: {event}")
                     emit_event = False
 
-                # Wait for parent event to resolve (in case its scope distance changes)
+                # Wait for parent event to resolve (in case its scope distance changes)`
                 while 1:
                     if self.scan.stopping:
                         raise ScanCancelledError()
@@ -139,6 +145,7 @@ class ScanManager:
             # queue the event before emitting its DNS children
             if emit_event:
                 self.queue_event(event)
+                event_emitted = True
 
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
@@ -172,16 +179,13 @@ class ScanManager:
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
-            import traceback
-
             log.debug(traceback.format_exc())
 
         finally:
-            if release:
-                with suppress(Exception):
-                    event.module._event_semaphore.release()
-                if emit_event:
-                    self.scan.stats.event_emitted(event)
+            event.release_semaphore()
+            if event_emitted:
+                self.scan.stats.event_emitted(event)
+            log.debug(f"{event.module}.emit_event() finished for {event}")
 
     def hash_event(self, event):
         """
@@ -227,8 +231,6 @@ class ScanManager:
         except BrokenPipeError as e:
             log.debug(f"BrokenPipeError in {callback.__qualname__}(): {e}")
         except Exception as e:
-            import traceback
-
             log.error(f"Error in {callback.__qualname__}(): {e}")
             log.debug(traceback.format_exc())
         except KeyboardInterrupt:
@@ -238,8 +240,6 @@ class ScanManager:
             try:
                 on_finish_callback()
             except Exception as e:
-                import traceback
-
                 log.error(
                     f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {callback.__qualname__}(): {e}"
                 )
@@ -333,6 +333,7 @@ class ScanManager:
                         if event_counter > 0:
                             self.scan.status = "FINISHING"
                             # Trigger .finished() on every module and start over
+                            log.info("Finishing scan")
                             for mod in self.scan.modules.values():
                                 mod.queue_event("FINISHED")
                             event_counter = 0
@@ -352,8 +353,6 @@ class ScanManager:
             self.scan.stop()
 
         except Exception:
-            import traceback
-
             log.critical(traceback.format_exc())
 
         finally:

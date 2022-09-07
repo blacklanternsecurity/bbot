@@ -13,7 +13,7 @@ class WordCloud(dict):
         self.parent_helper = parent_helper
         self.max_backups = 20
 
-        devops_filename = Path(__file__).parent.parent.parent / "wordlists" / "devops_mutations.txt"
+        devops_filename = self.parent_helper.wordlist_dir / "devops_mutations.txt"
         self.devops_mutations = set(self.parent_helper.read_file(devops_filename))
 
         super().__init__(*args, **kwargs)
