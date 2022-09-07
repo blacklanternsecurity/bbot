@@ -174,14 +174,17 @@ class DNSHelper:
         while tries_left > 0:
             try:
                 return list(self._catch(self.resolver.resolve_address, query, **kwargs)), errors
-            except dns.resolver.NoNameservers as e:
-                self.debug(f"{e} (query={query}, kwargs={kwargs})")
-            except (dns.exception.Timeout, dns.resolver.LifetimeTimeout) as e:
+            except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, dns.resolver.NoNameservers) as e:
                 errors.append(e)
-                tries_left -= 1
-                if tries_left > 0:
-                    retry_num = (retries + 2) - tries_left
-                    self.debug(f"Retrying (#{retry_num}) {query} with kwargs={kwargs}")
+                # don't retry if we get a SERVFAIL
+                if isinstance(e, dns.resolver.NoNameservers):
+                    self.debug(f"{e} (query={query}, kwargs={kwargs})")
+                    break
+                else:
+                    tries_left -= 1
+                    if tries_left > 0:
+                        retry_num = (retries + 2) - tries_left
+                        self.debug(f"Retrying (#{retry_num}) {query} with kwargs={kwargs}")
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors
 

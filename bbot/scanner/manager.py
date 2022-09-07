@@ -422,7 +422,6 @@ class ScanManager:
                 self.scan.info(f"Modules: {modules_status_str}")
             event_type_summary = sorted(self.queued_event_types.items(), key=lambda x: x[-1], reverse=True)
             self.scan.info(f'Events: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}')
-            # self.scan.critical(json.dumps(status, indent=4))
 
             num_scan_tasks = status["scan"]["queued_tasks"]["total"]
             dns_tasks = status["scan"]["queued_tasks"]["dns"]
