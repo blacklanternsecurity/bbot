@@ -188,6 +188,7 @@ class DepsInstaller:
         return success
 
     def tasks(self, module, tasks):
+        log.info(f"Running {len(tasks):,} Ansible tasks for {module}")
         success, err = self.ansible_run(tasks=tasks)
         if success:
             log.info(f"Successfully ran {len(tasks):,} Ansible tasks for {module}")
