@@ -132,21 +132,21 @@ class hunt(BaseModule):
     def extract_params(self, body):
 
         # check for input tags
-        input_tag = re.findall(self.input_tag_regex, body)
+        input_tag = self.input_tag_regex.findall(body)
 
         for i in input_tag:
             self.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
             yield i
 
         # check for jquery get parameters
-        jquery_get = re.findall(self.jquery_get_regex, body)
+        jquery_get = self.jquery_get_regex.findall(body)
 
         for i in jquery_get:
             self.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
             yield i
 
         # check for jquery post parameters
-        jquery_post = re.findall(self.jquery_post_regex, body)
+        jquery_post = self.jquery_post_regex.findall(body)
         if jquery_post:
             for i in jquery_post:
                 for x in i.split(","):
@@ -154,7 +154,7 @@ class hunt(BaseModule):
                     self.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
                     yield s
 
-        a_tag = re.findall(self.a_tag_regex, body)
+        a_tag = self.a_tag_regex.findall(body)
         if a_tag:
             for url in a_tag:
                 if url.startswith("http"):
@@ -177,8 +177,8 @@ class hunt(BaseModule):
             for k in hunt_param_dict.keys():
                 if p.lower() in hunt_param_dict[k]:
                     description = f"Found potential {k.upper()} parameter [{p}]"
-                    self.emit_event(
-                        {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
-                        "FINDING",
-                        event,
-                    )
+                    data = {"host": str(event.host), "description": description}
+                    url = event.data.get("url", "")
+                    if url:
+                        data["url"] = url
+                    self.emit_event(data, "FINDING", event)
