@@ -24,6 +24,7 @@ for h in root_logger.handlers:
 
 log.critical(f"uid: {os.getuid()} euid: {os.geteuid()}")
 
+
 def test_events(events, scan, helpers, bbot_config):
 
     assert events.ipv4.type == "IP_ADDRESS"
