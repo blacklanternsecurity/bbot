@@ -25,7 +25,7 @@ log = logging.getLogger(f"bbot.test.fixtures")
 
 @pytest.fixture
 def ensure_root():
-    if not os.geteuid() == 0:
+    if os.getuid() != 0:
         sudo_pass = os.environ.get("BBOT_SUDO_PASS", None)
         while 1:
             if sudo_pass is None:
