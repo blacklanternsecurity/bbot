@@ -1097,7 +1097,7 @@ def test_config(bbot_config, bbot_scanner):
     scan1.load_modules()
     assert scan1.config.plumbus == "asdf"
     assert scan1.modules["ipneighbor"].config.test_option == "ipneighbor"
-    assert scan1.modules["human"].config.test_option == "human"
+    assert scan1.modules["python"].config.test_option == "asdf"
     assert scan1.modules["speculate"].config.test_option == "speculate"
 
 
