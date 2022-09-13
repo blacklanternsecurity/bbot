@@ -69,8 +69,10 @@ Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurit
 ~~~python
 from bbot.scanner import Scanner
 
-scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["naabu"], output_modules=["json"])
-scan.start()
+# any number of targets can be specified
+scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["naabu"])
+for event in scan.start():
+    print(event)
 ~~~
 
 # Output
