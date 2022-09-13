@@ -22,6 +22,7 @@ root_logger = logging.getLogger()
 for h in root_logger.handlers:
     h.addFilter(lambda x: x.levelno != 100)
 
+log.critical(f"uid: {os.getuid()} euid: {os.geteuid()}")
 
 def test_events(events, scan, helpers, bbot_config):
 
