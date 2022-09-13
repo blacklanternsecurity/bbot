@@ -25,17 +25,16 @@ log = logging.getLogger(f"bbot.test.fixtures")
 
 @pytest.fixture
 def ensure_root():
-    if os.geteuid() != 0:
-        sudo_pass = os.environ.get("BBOT_SUDO_PASS", None)
-        while 1:
-            if sudo_pass is None:
-                sudo_pass = getpass.getpass(prompt="[USER] Please enter sudo password: ")
-            if verify_sudo_password(sudo_pass):
-                log.success("Authentication successful")
-                break
-            log.warning("Invalid password")
-            sudo_pass = None
-        os.environ["BBOT_SUDO_PASS"] = sudo_pass
+    sudo_pass = os.environ.get("BBOT_SUDO_PASS", "")
+    while 1:
+        if sudo_pass is None:
+            sudo_pass = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+        if verify_sudo_password(sudo_pass):
+            log.success("Authentication successful")
+            break
+        log.warning("Invalid password")
+        sudo_pass = None
+    os.environ["BBOT_SUDO_PASS"] = sudo_pass
 
 
 @pytest.fixture
