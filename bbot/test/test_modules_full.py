@@ -22,4 +22,4 @@ def test_gowitness(monkeypatch, bbot_config, ensure_root):  # noqa: F811
 
     screenshots_path = Path(bbot_config["home"]) / "scans" / "gowitness_test" / "gowitness" / "screenshots"
     screenshots = list(screenshots_path.glob("*.png"))
-    assert screenshots
+    assert screenshots, "Gowitness failed to generate screenshots"
