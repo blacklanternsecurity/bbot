@@ -39,9 +39,9 @@ class nuclei(BaseModule):
         {
             "name": "Download nuclei",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v{BBOT_MODULES_NUCLEI_VERSION}/nuclei_{BBOT_MODULES_NUCLEI_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v#{BBOT_MODULES_NUCLEI_VERSION}/nuclei_#{BBOT_MODULES_NUCLEI_VERSION}_linux_amd64.zip",
                 "include": "nuclei",
-                "dest": "{BBOT_TOOLS}",
+                "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }
