@@ -41,7 +41,9 @@ web_spider_distance: 0
 # Set the maximum directory depth for the web spider
 web_spider_depth: 1
 # DNS query timeout
-dns_timeout: 10
+dns_timeout: 5
+# How many times to retry DNS queries
+dns_retries: 1
 # Disable BBOT's smart DNS wildcard handling for select domains
 dns_wildcard_ignore: []
 # How many sanity checks to make when verifying wildcard DNS
