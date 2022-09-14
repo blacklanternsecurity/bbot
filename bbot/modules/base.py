@@ -3,6 +3,7 @@ import logging
 import threading
 import traceback
 from time import sleep
+from sys import exc_info
 from contextlib import suppress
 
 from ..core.helpers.threadpool import ThreadPoolWrapper
@@ -557,12 +558,20 @@ class BaseModule:
 
     def warning(self, *args, **kwargs):
         self.log.warning(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log_traceback()
 
     def hugewarning(self, *args, **kwargs):
         self.log.hugewarning(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log_traceback()
 
     def error(self, *args, **kwargs):
         self.log.error(*args, extra={"scan_id": self.scan.id}, **kwargs)
+        self._log_traceback()
 
     def critical(self, *args, **kwargs):
         self.log.critical(*args, extra={"scan_id": self.scan.id}, **kwargs)
+
+    def _log_traceback(self):
+        e_type, e_val, e_traceback = exc_info()
+        if e_type is not None:
+            self.debug(traceback.format_exc())
