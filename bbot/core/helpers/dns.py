@@ -512,7 +512,10 @@ class DNSHelper:
                     if is_wildcard:
                         return True, host
             else:
-                log.warning(f"Failed to detect wildcard DNS for {parent}")
+                log.warning(
+                    f"Wildcard DNS detection failed for {parent}. Recommend increasing dns_wildcard_tests in config."
+                )
+                return None, host
         return False, parent
 
     def is_wildcard_domain(self, domain, retries=5):
