@@ -6,7 +6,8 @@ from contextlib import suppress
 
 from ..errors import ArgumentError
 from ...modules import module_loader
-from ..helpers.misc import chain_lists, log_to_stderr
+from ..helpers.misc import chain_lists
+from ..helpers.logger import log_to_stderr
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))

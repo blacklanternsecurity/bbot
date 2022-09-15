@@ -2,8 +2,9 @@ from pathlib import Path
 from shutil import copyfile
 from omegaconf import OmegaConf
 
+from ..helpers.misc import mkdir
 from ..errors import ConfigLoadError
-from ..helpers.misc import mkdir, log_to_stderr
+from ..helpers.logger import log_to_stderr
 
 config_dir = (Path.home() / ".config" / "bbot").resolve()
 defaults_filename = (Path(__file__).parent.parent.parent / "defaults.yml").resolve()
