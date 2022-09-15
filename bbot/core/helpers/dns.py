@@ -223,7 +223,10 @@ class DNSHelper:
                 if check_wildcard:
                     event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
                     if event_is_wildcard and event.type in ("DNS_NAME",):
-                        event.data = f"_wildcard.{wildcard_parent}"
+                        wildcard_data = f"_wildcard.{wildcard_parent}"
+                        if wildcard_data != event.data:
+                            log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
+                            event.data = wildcard_data
                         return (event,)
                     elif event_is_wildcard is None:
                         event_tags.add("dns-error")
@@ -484,7 +487,7 @@ class DNSHelper:
                 return False, query
         # if it's already been marked as a wildcard, return True
         if "_wildcard" in query.split("."):
-            return True, query
+            return True, query.split("_wildcard.")[-1]
 
         # populate wildcard cache
         parent = parent_domain(query)
