@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   pypi:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/auto-pypi-fix'
     continue-on-error: true
     steps:
       - uses: actions/checkout@v3
