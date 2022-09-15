@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: 3.9
       - name: Install dependencies
-        run: apt update; apt install curl; curl -sSL https://install.python-poetry.org | POETRY_PREVIEW=1 python3 -
+        run: sudo apt update; sudo apt install curl; curl -sSL https://install.python-poetry.org | POETRY_PREVIEW=1 python3 -
       - name: Build package
         run: poetry build
       - name: Add Pypi test repo
