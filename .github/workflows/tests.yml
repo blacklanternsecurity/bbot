@@ -1,30 +1,8 @@
 name: tests
 on: [push, pull_request]
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-      - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install
-      - name: Run tests with pytest
-        run: |
-          poetry run pytest --disable-warnings --log-cli-level=DEBUG --cov-report xml:cov.xml --cov=bbot .
-      - uses: codecov/codecov-action@v2
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./cov.xml
-          fail_ci_if_error: true
-          verbose: true
   pypi:
     runs-on: ubuntu-latest
-    needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/auto-pypi-fix'
     continue-on-error: true
     steps:
