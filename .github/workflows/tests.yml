@@ -20,6 +20,6 @@ jobs:
       - name: Build package
         run: poetry build
       - name: Add Pypi test repo
-        run: poetry config repositories.test-pypi.url https://test.pypi.org/legacy/
+        run: poetry config repositories.test-pypi https://test.pypi.org/legacy/
       - name: Publish package
         run: poetry publish -r test-pypi -u __token__ -p "${{ secrets.TEST_PYPI_API_TOKEN }}"
