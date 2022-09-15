@@ -13,8 +13,12 @@ A clear and concise description of what the bug is.
 **Expected behavior**
 A clear and concise description of what you expected to happen.
 
+**BBOT Installation Method + Version**
+You can get the bbot version with `pip show bbot`
+Example: `Installation method: pip, Version 1.0.3.545`
+
 **BBOT Command**
-Please include the full command that resulted in the bug.
+Example: `bbot -m httpx -t evilcorp.com`
 
 **BBOT Config**
 Please attach your BBOT config (`~/.config/bbot.yml`).
