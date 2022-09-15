@@ -1244,8 +1244,19 @@ def test_cli(monkeypatch, bbot_config):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(cli, "config", bbot_config)
-    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config", "-t", "127.0.0.1", "-m", "ipneighbor"])
+
+    # show version
+    monkeypatch.setattr("sys.argv", ["bbot", "--version"])
+    cli.main()
+
+    # show current config
+    monkeypatch.setattr(sys, "argv", ["bbot", "-y" "--current-config"])
+    cli.main()
+
+    # list modules
+    monkeypatch.setattr(sys, "argv", ["bbot", "-l"])
     cli.main()
 
     home_dir = Path(bbot_config["home"])

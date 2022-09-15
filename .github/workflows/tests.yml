@@ -25,7 +25,7 @@ jobs:
   pypi:
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/auto-pypi-fix'
     continue-on-error: true
     steps:
       - uses: actions/checkout@v3
@@ -40,8 +40,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install build
       - name: Build package
-        run: python -m build
+        run: poetry build
+      - name: Add Pypi test repo
+        run: poetry config repositories.test-pypi.url https://test.pypi.org/legacy/
       - name: Publish package
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        run: poetry publish -r test-pypi -u __token__ -p "${{ secrets.TEST_PYPI_API_TOKEN }}""

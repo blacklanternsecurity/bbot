@@ -14,7 +14,7 @@ A clear and concise description of what the bug is.
 A clear and concise description of what you expected to happen.
 
 **BBOT Installation Method + Version**
-You can get the bbot version with `pip show bbot`
+You can get the bbot version with `bbot --version`
 Example: `Installation method: pip, Version 1.0.3.545`
 
 **BBOT Command**

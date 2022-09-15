@@ -160,6 +160,8 @@ for p in (parser, dummy_parser):
     )
     agent = p.add_argument_group(title="Agent", description="Report back to a central server")
     agent.add_argument("-a", "--agent-mode", action="store_true", help="Start in agent mode")
+    misc = p.add_argument_group(title="Misc")
+    misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
 
 
 cli_options = None

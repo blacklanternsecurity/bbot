@@ -15,7 +15,9 @@ from bbot.core.logger import init_logging, get_log_level
 logging_queue, logging_handlers = init_logging()
 
 import bbot.core.errors
+from bbot import __version__
 from bbot.modules import module_loader
+from bbot.core.logger import ColoredFormatter
 from bbot.core.configurator.args import parser
 
 log = logging.getLogger("bbot.cli")
@@ -27,11 +29,10 @@ log_level = get_log_level()
 
 def log_to_stderr(msg, level=logging.INFO):
     if log_level <= level:
-        handler = logging_handlers["stderr"]
         record = logging.LogRecord(
             name="bbot.cli", msg=str(msg), level=level, pathname=None, lineno=0, args=None, exc_info=None
         )
-        print(handler.formatter.format(record), file=sys.stderr)
+        print(ColoredFormatter.format(record), file=sys.stderr)
 
 
 from . import config
@@ -57,10 +58,18 @@ def main():
             # this is intentional since sys.exit() is monkeypatched in the tests
             return
 
+        # --version
+        if options.version:
+            print(__version__)
+            sys.exit(1)
+            return
+
         # --current-config
         if options.current_config:
             log.stdout(f"{OmegaConf.to_yaml(config)}")
+            log.critical('asdfasdfasdf')
             sys.exit(0)
+            return
 
         log.verbose(f'Command: {" ".join(sys.argv)}')
 
