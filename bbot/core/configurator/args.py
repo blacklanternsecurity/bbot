@@ -6,7 +6,8 @@ from contextlib import suppress
 
 from ..errors import ArgumentError
 from ...modules import module_loader
-from ..helpers.misc import chain_lists, log_to_stderr
+from ..helpers.misc import chain_lists
+from ..helpers.logger import log_to_stderr
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
@@ -160,6 +161,8 @@ for p in (parser, dummy_parser):
     )
     agent = p.add_argument_group(title="Agent", description="Report back to a central server")
     agent.add_argument("-a", "--agent-mode", action="store_true", help="Start in agent mode")
+    misc = p.add_argument_group(title="Misc")
+    misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
 
 
 cli_options = None
