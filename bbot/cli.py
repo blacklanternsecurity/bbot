@@ -52,14 +52,13 @@ def main():
 
         # --version
         if options.version:
-            print(__version__)
-            sys.exit(1)
+            log.stdout(__version__)
+            sys.exit(0)
             return
 
         # --current-config
         if options.current_config:
             log.stdout(f"{OmegaConf.to_yaml(config)}")
-            log.critical("asdfasdfasdf")
             sys.exit(0)
             return
 
