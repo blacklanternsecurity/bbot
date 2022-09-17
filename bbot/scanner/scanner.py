@@ -115,11 +115,6 @@ class Scanner:
         self.manager = ScanManager(self)
         self.stats = ScanStats(self)
 
-        # prevent too many brute force modules from running at one time
-        # because they can bypass the global thread limit
-        self.max_brute_forcers = int(self.config.get("max_brute_forcers", 1))
-        self._brute_lock = threading.Semaphore(self.max_brute_forcers)
-
         # scope distance
         self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 1)))
         self.dns_search_distance = max(
@@ -273,8 +268,6 @@ class Scanner:
         if self.status != "ABORTING":
             self.status = "ABORTING"
             self.hugewarning(f"Aborting scan")
-            for i in range(max(10, self.max_brute_forcers * 10)):
-                self._brute_lock.release()
             self.helpers.kill_children()
             self.shutdown_threadpools(wait=False)
             self.helpers.kill_children()

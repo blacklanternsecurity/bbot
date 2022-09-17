@@ -172,15 +172,7 @@ class BaseModule:
         return self.thread_pool.submit_task(self.catch, *args, **kwargs)
 
     def catch(self, *args, **kwargs):
-        try:
-            lock_brutes = kwargs.pop("_lock_brutes", False) and "brute-force" in self.flags
-            lock_acquired = False
-            if lock_brutes:
-                lock_acquired = self.scan._brute_lock.acquire()
-            return self.scan.manager.catch(*args, **kwargs)
-        finally:
-            if lock_brutes and lock_acquired:
-                self.scan._brute_lock.release()
+        return self.scan.manager.catch(*args, **kwargs)
 
     def _handle_batch(self, force=False):
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
@@ -198,7 +190,6 @@ class BaseModule:
                     self.handle_batch,
                     *events,
                     _on_finish_callback=on_finish_callback,
-                    _lock_brutes=True,
                 )
                 return True
         return False
@@ -322,24 +313,23 @@ class BaseModule:
             while not self.scan.stopping:
                 iterations += 1
                 if self.batch_size > 1:
-                    if iterations % 3 == 0:
+                    if iterations % 10 == 0:
                         self._batch_idle += 1
                     force = self._force_batch
                     if force:
                         self._batch_idle = 0
                     submitted = self._handle_batch(force=force)
                     if not submitted:
-                        sleep(0.3333)
+                        sleep(0.1)
 
                 else:
                     try:
                         if self.event_queue:
-                            e = self.event_queue.get_nowait()
+                            e = self.event_queue.get(timeout=0.1)
                         else:
                             self.debug(f"Event queue is in bad state")
                             return
                     except queue.Empty:
-                        sleep(0.3333)
                         continue
                     self.debug(f"Got {e} from {getattr(e, 'module', e)}")
                     # if we receive the special "FINISHED" event
@@ -352,7 +342,7 @@ class BaseModule:
                         if self._type == "output":
                             self.catch(self.handle_event, e)
                         else:
-                            self._internal_thread_pool.submit_task(self.catch, self.handle_event, e, _lock_brutes=True)
+                            self._internal_thread_pool.submit_task(self.catch, self.handle_event, e)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted")
@@ -363,32 +353,11 @@ class BaseModule:
             self.set_error_state(f"Exception ({e.__class__.__name__}) in module {self.name}:\n{e}")
             self.debug(traceback.format_exc())
 
-    def _filter_event(self, event):
-        # special "FINISHED" event
-        if type(event) == str:
-            if event in ("FINISHED", "REPORT"):
-                return True
-            else:
-                return False
-        # exclude non-watched types
-        if not any(t in self.get_watched_events() for t in ("*", event.type)):
-            return False
-        # built-in filtering based on scope distance, etc.
-        acceptable, reason = self.event_acceptable(event)
-        if not acceptable:
-            self.debug(f"Not accepting {event} because {reason}")
-            return False
-        # custom filtering
-        try:
-            if not self.filter_event(event):
-                self.debug(f"{event} did not meet custom filter criteria")
-                return False
-        except Exception as e:
-            import traceback
-
-            self.error(f"Error in filter_event({event}): {e}")
-            self.debug(traceback.format_exc())
-        return True
+    def _filter_event(self, event, precheck_only=False):
+        acceptable, reason = self._event_precheck(event)
+        if acceptable and not precheck_only:
+            acceptable, reason = self._event_postcheck(event)
+        return acceptable, reason
 
     @property
     def max_scope_distance(self):
@@ -396,39 +365,69 @@ class BaseModule:
             return 0
         return max(0, self.scan.scope_search_distance + self.scope_distance_modifier)
 
-    def event_acceptable(self, e):
+    def _event_precheck(self, event):
         """
-        Return the max scope distance for an event that this module is qualified to accept
+        Check if an event should be accepted by the module
+        These checks are safe to run before an event has been DNS-resolved
         """
-        acceptable = True
-        reason = ""
+        # special "FINISHED" event
+        if type(event) == str:
+            if event in ("FINISHED", "REPORT"):
+                return True, ""
+            else:
+                return False, f'string value "{event}" is invalid'
+        # exclude non-watched types
+        if not any(t in self.get_watched_events() for t in ("*", event.type)):
+            return False, "its type is not in watched_events"
         if self.target_only:
-            if "target" not in e.tags:
-                acceptable = False
-                reason = "it did not meet target_only filter criteria"
-        if self.in_scope_only:
-            if e.scope_distance > 0:
-                acceptable = False
-                reason = "it did not meet in_scope_only filter criteria"
-        if self.scope_distance_modifier is not None:
-            if e.scope_distance < 0:
-                acceptable = False
-                reason = f"its scope_distance ({e.scope_distance}) is invalid."
-            elif e.scope_distance > self.max_scope_distance:
-                acceptable = False
-                reason = f"its scope_distance ({e.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}"
-
-        # if the event is an IP address that came from a CIDR
-        source_is_range = getattr(e.source, "type", "") == "IP_RANGE"
-        if source_is_range and e.type == "IP_ADDRESS" and str(e.module) == "speculate" and self.name != "speculate":
+            if "target" not in event.tags:
+                return False, "it did not meet target_only filter criteria"
+        # if event is an IP address that was speculated from a CIDR
+        source_is_range = getattr(event.source, "type", "") == "IP_RANGE"
+        if (
+            source_is_range
+            and event.type == "IP_ADDRESS"
+            and str(event.module) == "speculate"
+            and self.name != "speculate"
+        ):
             # and the current module listens for both ranges and CIDRs
             if all([x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")]):
                 # then skip the event.
                 # this helps avoid double-portscanning both an individual IP and its parent CIDR.
-                acceptable = False
-                reason = "module consumes IP ranges directly"
+                return False, "module consumes IP ranges directly"
+        return True, ""
 
-        return acceptable, reason
+    def _event_postcheck(self, event):
+        """
+        Check if an event should be accepted by the module
+        These checks must be run after an event has been DNS-resolved
+        """
+        if type(event) == str:
+            return True, ""
+
+        if self.in_scope_only:
+            if event.scope_distance > 0:
+                return False, "it did not meet in_scope_only filter criteria"
+        if self.scope_distance_modifier is not None:
+            if event.scope_distance < 0:
+                return False, f"its scope_distance ({event.scope_distance}) is invalid."
+            elif event.scope_distance > self.max_scope_distance:
+                return (
+                    False,
+                    f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
+                )
+
+        # custom filtering
+        try:
+            if not self.filter_event(event):
+                return False, f"{event} did not meet custom filter criteria"
+        except Exception as e:
+            import traceback
+
+            self.error(f"Error in filter_event({event}): {e}")
+            self.debug(traceback.format_exc())
+
+        return True, ""
 
     def _cleanup(self):
         if not self._cleanedup:
@@ -437,12 +436,15 @@ class BaseModule:
                 if callable(callback):
                     self.catch(callback, _force=True)
 
-    def queue_event(self, e):
+    def queue_event(self, event):
         if self.event_queue is not None and not self.errored:
-            if self._filter_event(e):
-                if is_event(e):
-                    self.scan.stats.event_consumed(e, self)
-                self.event_queue.put(e)
+            acceptable, reason = self._filter_event(event)
+            if not acceptable and reason:
+                self.debug(f"Not accepting {event} because {reason}")
+                return
+            if is_event(event):
+                self.scan.stats.event_consumed(event, self)
+            self.event_queue.put(event)
         else:
             self.debug(f"Not in an acceptable state to queue event")
 
