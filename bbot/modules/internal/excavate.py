@@ -37,7 +37,7 @@ class HostnameExtractor(BaseExtractor):
         for i, t in enumerate(dns_targets):
             if not any(x in dns_targets_set for x in excavate.helpers.domain_parents(t, include_self=True)):
                 dns_targets_set.add(t)
-                self.regexes[f"dns_name_{i+1}"] = r"(%[a-f0-9]{2})?((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
+                self.regexes[f"dns_name_{i+1}"] = r"(%[a-fA-F0-9]{2})?((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
