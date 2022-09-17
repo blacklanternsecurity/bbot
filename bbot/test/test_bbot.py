@@ -784,6 +784,15 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     # "any" type
     resolved = helpers.resolve("google.com", type="any")
     assert any([helpers.is_subdomain(h) for h in resolved])
+    # dns cache
+    assert hash(f"8.8.8.8:PTR") not in helpers.dns._dns_cache
+    assert hash(f"scanme.nmap.org:A") not in helpers.dns._dns_cache
+    assert hash(f"scanme.nmap.org:AAAA") not in helpers.dns._dns_cache
+    helpers.resolve("8.8.8.8", cache_result=True)
+    assert hash(f"8.8.8.8:PTR") in helpers.dns._dns_cache
+    helpers.resolve("scanme.nmap.org", cache_result=True)
+    assert hash(f"scanme.nmap.org:A") in helpers.dns._dns_cache
+    assert hash(f"scanme.nmap.org:AAAA") in helpers.dns._dns_cache
     # wildcards
     assert helpers.is_wildcard("asdf.wat.blacklanternsecurity.github.io") == (True, "github.io")
     assert hash("github.io") in helpers.dns._wildcard_cache

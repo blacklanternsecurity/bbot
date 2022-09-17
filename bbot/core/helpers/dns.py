@@ -133,6 +133,7 @@ class DNSHelper:
         parent = self.parent_helper.parent_domain(query)
         rdtype = kwargs.get("rdtype", "A")
         retries = kwargs.pop("retries", 0)
+        cache_result = kwargs.pop("cache_result", False)
         tries_left = int(retries) + 1
         parent_hash = hash(f"{parent}:{rdtype}")
         dns_cache_hash = hash(f"{query}:{rdtype}")
@@ -148,7 +149,8 @@ class DNSHelper:
                     results = self._dns_cache[dns_cache_hash]
                 else:
                     results = list(self._catch(self.resolver.resolve, query, **kwargs))
-                    self._dns_cache[dns_cache_hash] = results
+                    if cache_result:
+                        self._dns_cache[dns_cache_hash] = results
                     with self._error_lock:
                         if parent_hash in self._errors:
                             self._errors[parent_hash] = 0
@@ -177,12 +179,20 @@ class DNSHelper:
     def _resolve_ip(self, query, **kwargs):
         self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
         retries = kwargs.pop("retries", 0)
+        cache_result = kwargs.pop("cache_result", False)
         tries_left = int(retries) + 1
         results = []
         errors = []
+        dns_cache_hash = hash(f"{query}:PTR")
         while tries_left > 0:
             try:
-                return list(self._catch(self.resolver.resolve_address, query, **kwargs)), errors
+                if dns_cache_hash in self._dns_cache:
+                    result = self._dns_cache[dns_cache_hash]
+                else:
+                    result = list(self._catch(self.resolver.resolve_address, query, **kwargs))
+                    if cache_result:
+                        self._dns_cache[dns_cache_hash] = result
+                return result, errors
             except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, dns.resolver.NoNameservers) as e:
                 errors.append(e)
                 # don't retry if we get a SERVFAIL
@@ -250,7 +260,7 @@ class DNSHelper:
                     types = "any"
                 else:
                     types = ("A", "AAAA")
-                resolved_raw, errors = self.resolve_raw(event_host, type=types)
+                resolved_raw, errors = self.resolve_raw(event_host, type=types, cache_result=True)
                 if errors:
                     event_tags.add("dns-error")
                 for rdtype, records in resolved_raw:
@@ -503,7 +513,7 @@ class DNSHelper:
 
         # resolve the base query
         if ips is None:
-            query_ips = self.resolve(query, type=("A", "AAAA"), retries=retries)
+            query_ips = self.resolve(query, type=("A", "AAAA"), retries=retries, cache_result=True)
         else:
             query_ips = set(ips)
         if not query_ips:
