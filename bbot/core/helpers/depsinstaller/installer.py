@@ -5,7 +5,6 @@ import shutil
 import getpass
 import logging
 from time import sleep
-import subprocess as sp
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
@@ -60,7 +59,9 @@ class DepsInstaller:
                     continue
                 preloaded = self.all_modules_preloaded[m]
                 # make a hash of the dependencies and check if it's already been handled
-                module_hash = self.parent_helper.sha1(str(preloaded["deps"]) + self.venv).hexdigest()
+                module_hash = self.parent_helper.sha1(
+                    str(preloaded["deps"]) + self.venv + str(self.parent_helper.bbot_home) + os.uname()[1]
+                ).hexdigest()
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
                 if len(dependencies) <= 0:
@@ -70,7 +71,7 @@ class DepsInstaller:
                 else:
                     if success is None or (success is False and self.retry_deps) or self.force_deps:
                         if not notified:
-                            log.info(f"Installing module dependencies. Please be patient, this may take a while.")
+                            log.hugeinfo(f"Installing module dependencies. Please be patient, this may take a while.")
                             notified = True
                         log.verbose(f'Installing dependencies for module "{m}"')
                         # get sudo access if we need it
@@ -129,7 +130,7 @@ class DepsInstaller:
 
     def pip_install(self, packages):
         packages_str = ",".join(packages)
-        log.verbose(f"Installing the following pip packages: {packages_str}")
+        log.info(f"Installing the following pip packages: {packages_str}")
 
         command = [sys.executable, "-m", "pip", "install"] + packages
         try:
@@ -145,7 +146,7 @@ class DepsInstaller:
         Install packages with the OS's default package manager (apt, pacman, dnf, etc.)
         """
         packages_str = ",".join(packages)
-        log.verbose(f"Installing the following OS packages: {packages_str}")
+        log.info(f"Installing the following OS packages: {packages_str}")
         args = {"name": packages_str, "state": "present"}  # , "update_cache": True, "cache_valid_time": 86400}
         success, err = self.ansible_run(
             module="package",
@@ -234,8 +235,8 @@ class DepsInstaller:
         success = res.status == "successful"
         err = ""
         for e in res.events:
-            if self.ansible_debug and not success:
-                log.debug(json.dumps(e, indent=4))
+            # if self.ansible_debug and not success:
+            #    log.debug(json.dumps(e, indent=4))
             if e["event"] == "runner_on_failed":
                 err = e["event_data"]["res"]["msg"]
                 break
@@ -261,28 +262,15 @@ class DepsInstaller:
             while not self._sudo_password:
                 sleep(0.1)
                 password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
-                if self.verify_sudo_password(password):
+                if self.parent_helper.verify_sudo_password(password):
                     log.success("Authentication successful")
                     self._sudo_password = password
                 else:
                     log.warning("Incorrect password")
 
-    def verify_sudo_password(self, sudo_pass):
-        try:
-            sp.run(
-                ["sudo", "-S", "-k", "true"],
-                input=self.parent_helper.smart_encode(sudo_pass),
-                stderr=sp.DEVNULL,
-                stdout=sp.DEVNULL,
-                check=True,
-            )
-        except sp.CalledProcessError:
-            return False
-        return True
-
     def install_core_deps(self):
         # command: package_name
-        core_deps = {"unzip": "unzip"}
+        core_deps = {"unzip": "unzip", "curl": "curl"}
         to_install = set()
         for command, package_name in core_deps.items():
             if not self.parent_helper.which(command):

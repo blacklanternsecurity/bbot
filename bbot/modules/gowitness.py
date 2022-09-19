@@ -12,7 +12,7 @@ class gowitness(BaseModule):
     meta = {"description": "Take screenshots of webpages"}
     batch_size = 100
     options = {
-        "version": "2.4.0",
+        "version": "2.4.2",
         "threads": 4,
         "timeout": 10,
         "resolution_x": 1440,
@@ -29,22 +29,44 @@ class gowitness(BaseModule):
     }
     deps_ansible = [
         {
-            "name": "install chromium (Debian)",
-            "package": {"name": "chromium-browser", "state": "present"},
-            "become": True,
-            "when": """ansible_facts['distribution'] == 'Ubuntu'""",
-        },
-        {
-            "name": "install chromium (others)",
+            "name": "Install Chromium (Non-Debian)",
             "package": {"name": "chromium", "state": "present"},
             "become": True,
-            "when": """ansible_facts['distribution'] != 'Ubuntu'""",
+            "when": "ansible_facts['os_family'] != 'Debian'",
+        },
+        {
+            "name": "Install Chromium dependencies (Debian)",
+            "package": {
+                "name": "libasound2,libatk-bridge2.0-0,libatk1.0-0,libcairo2,libcups2,libdrm2,libgbm1,libnss3,libpango-1.0-0,libxcomposite1,libxdamage1,libxfixes3,libxkbcommon0,libxrandr2",
+                "state": "present",
+            },
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Debian'",
+        },
+        {
+            "name": "Get latest Chromium version (Debian)",
+            "uri": {
+                "url": "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2FLAST_CHANGE?alt=media",
+                "return_content": True,
+            },
+            "register": "chromium_version",
+            "when": "ansible_facts['os_family'] == 'Debian'",
+        },
+        {
+            "name": "Download Chromium (Debian)",
+            "unarchive": {
+                "src": "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F{{ chromium_version.content }}%2Fchrome-linux.zip?alt=media",
+                "remote_src": True,
+                "dest": "#{BBOT_TOOLS}",
+                "creates": "#{BBOT_TOOLS}/chrome-linux",
+            },
+            "when": "ansible_facts['os_family'] == 'Debian'",
         },
         {
             "name": "Download gowitness",
             "get_url": {
-                "url": "https://github.com/sensepost/gowitness/releases/download/{BBOT_MODULES_GOWITNESS_VERSION}/gowitness-{BBOT_MODULES_GOWITNESS_VERSION}-linux-amd64",
-                "dest": "{BBOT_TOOLS}/gowitness",
+                "url": "https://github.com/sensepost/gowitness/releases/download/#{BBOT_MODULES_GOWITNESS_VERSION}/gowitness-#{BBOT_MODULES_GOWITNESS_VERSION}-linux-amd64",
+                "dest": "#{BBOT_TOOLS}/gowitness",
                 "mode": "755",
             },
         },
@@ -64,6 +86,10 @@ class gowitness(BaseModule):
             self.base_path = Path(output_path) / "gowitness"
         else:
             self.base_path = self.scan.home / "gowitness"
+        self.chrome_path = None
+        custom_chrome_path = self.helpers.tools_dir / "chrome-linux" / "chrome"
+        if custom_chrome_path.is_file():
+            self.chrome_path = custom_chrome_path
         self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
         self.command = self.construct_command()
@@ -94,6 +120,9 @@ class gowitness(BaseModule):
     def construct_command(self):
         # base executable
         command = ["gowitness"]
+        # chrome path
+        if self.chrome_path is not None:
+            command += ["--chrome-path", str(self.chrome_path)]
         # db path
         command += ["--db-path", str(self.db_path)]
         # screenshot path
