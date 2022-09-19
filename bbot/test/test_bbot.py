@@ -166,6 +166,10 @@ def test_events(events, scan, helpers, bbot_config):
     assert event2._scope_distance == 1
     event3 = scan.make_event("3.4.5.6", source=event2)
     assert event3._scope_distance == 2
+    event4 = scan.make_event("3.4.5.6", source=event3)
+    assert event4._scope_distance == 2
+    event5 = scan.make_event("4.5.6.7", source=event4)
+    assert event5._scope_distance == 3
 
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
