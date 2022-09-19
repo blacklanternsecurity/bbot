@@ -9,7 +9,8 @@ from contextlib import suppress
 from logging.handlers import QueueHandler, QueueListener
 
 from ..configurator import config
-from ..helpers.misc import mkdir, error_and_exit, colorize, loglevel_mapping
+from ..helpers.misc import mkdir, error_and_exit
+from ..helpers.logger import colorize, loglevel_mapping
 
 
 class ColoredFormatter(logging.Formatter):

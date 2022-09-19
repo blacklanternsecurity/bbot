@@ -48,8 +48,8 @@ class ScanManager:
             try:
                 self.queue_event(event, *args, **kwargs)
             except Exception as e:
-                self.error(f"Unexpected error in manager.emit_event(): {e}")
-                self.debug(traceback.format_exc())
+                log.error(f"Unexpected error in manager.emit_event(): {e}")
+                log.debug(traceback.format_exc())
             finally:
                 event.release_semaphore()
         else:
@@ -58,8 +58,8 @@ class ScanManager:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
             except Exception as e:
                 if not isinstance(e, RuntimeError):
-                    self.error(f"Unexpected error in manager.emit_event(): {e}")
-                    self.debug(traceback.format_exc())
+                    log.error(f"Unexpected error in manager.emit_event(): {e}")
+                    log.debug(traceback.format_exc())
                 event.release_semaphore()
 
     def _emit_event(self, event, *args, **kwargs):

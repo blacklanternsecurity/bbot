@@ -1,5 +1,4 @@
 import ipaddress
-import traceback
 
 from bbot.modules.report.base import ReportModule
 
@@ -85,7 +84,6 @@ class asn(ReportModule):
         except Exception as e:
             self.warning(f"Error retrieving ASN for {ip}: {e}")
             self.debug(f"Got data: {getattr(r, 'content', '')}")
-            self.debug(traceback.format_exc())
 
     def get_asn_metadata(self, asn):
         url = f"{self.base_url}/asn/{asn}"
@@ -102,4 +100,3 @@ class asn(ReportModule):
             return list(set(contacts))
         except Exception as e:
             self.warning(f"Error retrieving ASN metadata for {asn}: {e}")
-            self.debug(traceback.format_exc())

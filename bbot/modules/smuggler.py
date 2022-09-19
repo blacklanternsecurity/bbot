@@ -18,7 +18,7 @@ class smuggler(BaseModule):
     deps_ansible = [
         {
             "name": "Get smuggler repo",
-            "git": {"repo": "https://github.com/defparam/smuggler.git", "dest": "{BBOT_TOOLS}/smuggler"},
+            "git": {"repo": "https://github.com/defparam/smuggler.git", "dest": "#{BBOT_TOOLS}/smuggler"},
         }
     ]
 
