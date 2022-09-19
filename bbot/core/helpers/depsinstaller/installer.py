@@ -281,6 +281,8 @@ class DepsInstaller:
         return True
 
     def install_core_deps(self):
+        # ensure tldextract data is cached
+        self.parent_helper.tldextract("evilcorp.co.uk")
         # command: package_name
         core_deps = {"unzip": "unzip"}
         to_install = set()
