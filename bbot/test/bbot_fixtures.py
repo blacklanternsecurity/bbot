@@ -258,14 +258,14 @@ def events(scan):
 
 
 @pytest.fixture
-def agent(monkeypatch, websocketapp):
+def agent(monkeypatch, websocketapp, bbot_config):
 
     from bbot import agent
     from bbot.modules.output.websocket import Websocket
 
     monkeypatch.setattr(Websocket, "send", lambda *args, **kwargs: True)
 
-    test_agent = agent.Agent({"agent_url": "test", "agent_token": "test"})
+    test_agent = agent.Agent(bbot_config)
     test_agent.setup()
     monkeypatch.setattr(test_agent, "ws", websocketapp())
     return test_agent
