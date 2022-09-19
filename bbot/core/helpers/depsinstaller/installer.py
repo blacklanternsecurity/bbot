@@ -269,6 +269,8 @@ class DepsInstaller:
                     log.warning("Incorrect password")
 
     def install_core_deps(self):
+        # ensure tldextract data is cached
+        self.parent_helper.tldextract("evilcorp.co.uk")
         # command: package_name
         core_deps = {"unzip": "unzip", "curl": "curl"}
         to_install = set()
