@@ -29,9 +29,6 @@ class neo4j(BaseOutputModule):
             self.neo4j.insert_event(self.scan.root_event)
         except Exception as e:
             self.warning(f"Error setting up Neo4j: {e}")
-            import traceback
-
-            self.debug(traceback.format_exc())
             return False
         return True
 

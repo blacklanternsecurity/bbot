@@ -86,10 +86,7 @@ class censys(shodan_dns):
         except exceptions.CensysException as e:
             self.warning(f"Error with API: {e}")
         except Exception as e:
-            import traceback
-
             self.warning(f"Unknown error: {e}")
-            self.debug(traceback.format_exc())
 
         return emails, dns_names, ip_addresses
 
