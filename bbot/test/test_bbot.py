@@ -1250,8 +1250,21 @@ def test_cli(monkeypatch, bbot_config):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(cli, "config", bbot_config)
-    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config", "-t", "127.0.0.1", "-m", "ipneighbor"])
+
+    old_sys_argv = sys.argv
+
+    # show version
+    monkeypatch.setattr("sys.argv", ["bbot", "--version"])
+    cli.main()
+
+    # show current config
+    monkeypatch.setattr("sys.argv", ["bbot", "-y" "--current-config"])
+    cli.main()
+
+    # list modules
+    monkeypatch.setattr("sys.argv", ["bbot", "-l"])
     cli.main()
 
     home_dir = Path(bbot_config["home"])
@@ -1261,6 +1274,10 @@ def test_cli(monkeypatch, bbot_config):
         ["bbot", "-y", "-t", "localhost", "-m", "ipneighbor", "-om", "human", "csv", "json", "-n", "test_scan"],
     )
     cli.main()
+
+    # unpatch sys.argv
+    monkeypatch.setattr("sys.argv", old_sys_argv)
+
     scan_home = home_dir / "scans" / "test_scan"
     assert (scan_home / "wordcloud.tsv").is_file()
     assert (scan_home / "output.txt").is_file()

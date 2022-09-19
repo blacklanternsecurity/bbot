@@ -36,7 +36,7 @@ pytest-cov = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry.core.masonry.api"
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.black]
 line-length = 119
@@ -45,3 +45,6 @@ line-length = 119
 enable = true
 metadata = false
 format = 'v1.0.3.{distance}'
+
+[tool.poetry-dynamic-versioning.substitution]
+files = ["*/__init__.py"]
