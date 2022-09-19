@@ -264,6 +264,8 @@ def test_events(events, scan, helpers, bbot_config):
     assert http_response.source_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com"
     json_event = http_response.json()
+    assert isinstance(json_event["data"], dict)
+    json_event = http_response.json(mode="graph")
     assert isinstance(json_event["data"], str)
     assert json_event["type"] == "HTTP_RESPONSE"
     assert json_event["source"] == scan.root_event.id
