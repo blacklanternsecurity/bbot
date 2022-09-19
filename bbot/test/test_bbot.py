@@ -1266,6 +1266,18 @@ def test_cli(monkeypatch, bbot_config):
         assert len(lines) > 1
 
 
+def test_python_api(bbot_config):
+    from bbot.scanner import Scanner
+
+    scan1 = Scanner("127.0.0.1", config=bbot_config)
+    events1 = list(scan1.start())
+    assert any("127.0.0.1" == e for e in events1)
+    scan2 = Scanner("127.0.0.1", config=bbot_config, output_modules=["json"], name="python_api_test")
+    scan2.start_without_generator()
+    out_file = scan2.helpers.scans_dir / "python_api_test" / "output.json"
+    assert list(scan2.helpers.read_file(out_file))
+
+
 def test_depsinstaller(monkeypatch, neuter_ansible, bbot_config, bbot_scanner):
     # un-neuter ansible
     from bbot.core.helpers.depsinstaller import installer
