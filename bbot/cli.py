@@ -15,23 +15,16 @@ from bbot.core.logger import init_logging, get_log_level
 logging_queue, logging_handlers = init_logging()
 
 import bbot.core.errors
+from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
+from bbot.core.helpers.logger import log_to_stderr
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
 
 
 log_level = get_log_level()
-
-
-def log_to_stderr(msg, level=logging.INFO):
-    if log_level <= level:
-        handler = logging_handlers["stderr"]
-        record = logging.LogRecord(
-            name="bbot.cli", msg=str(msg), level=level, pathname=None, lineno=0, args=None, exc_info=None
-        )
-        print(handler.formatter.format(record), file=sys.stderr)
 
 
 from . import config
@@ -57,10 +50,17 @@ def main():
             # this is intentional since sys.exit() is monkeypatched in the tests
             return
 
+        # --version
+        if options.version:
+            log.stdout(__version__)
+            sys.exit(0)
+            return
+
         # --current-config
         if options.current_config:
             log.stdout(f"{OmegaConf.to_yaml(config)}")
             sys.exit(0)
+            return
 
         log.verbose(f'Command: {" ".join(sys.argv)}')
 
@@ -228,21 +228,21 @@ def main():
     except bbot.core.errors.BBOTError as e:
         import traceback
 
-        log_to_stderr(e, level=logging.ERROR)
-        log_to_stderr(traceback.format_exc(), level=logging.DEBUG)
+        log_to_stderr(e, level="ERROR")
+        log_to_stderr(traceback.format_exc(), level="ERROR")
         err = True
 
     except Exception:
         import traceback
 
-        log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level=logging.ERROR)
+        log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level="ERROR")
         err = True
 
     except KeyboardInterrupt:
         msg = "Interrupted"
         if scan_name:
             msg = f"You killed {scan_name}"
-        log_to_stderr(msg, level=logging.ERROR)
+        log_to_stderr(msg, level="ERROR")
         err = True
 
     finally:

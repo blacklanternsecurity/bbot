@@ -212,10 +212,10 @@ class BaseEvent:
     def source(self, source):
         if is_event(source):
             self._source = source
-            if source.scope_distance >= 0 and source != self:
+            if source.scope_distance >= 0:
                 new_scope_distance = int(source.scope_distance)
                 # only increment the scope distance if the host changes
-                if not self.host == source.host:
+                if self.host != source.host:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
         elif not self._dummy:

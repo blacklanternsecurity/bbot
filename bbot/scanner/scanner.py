@@ -1,5 +1,7 @@
 import logging
 import threading
+import traceback
+from sys import exc_info
 from pathlib import Path
 import concurrent.futures
 from omegaconf import OmegaConf
@@ -207,14 +209,10 @@ class Scanner:
             self.error(f"{e}")
 
         except BBOTError as e:
-            import traceback
-
             self.critical(f"Error during scan: {e}")
             self.debug(traceback.format_exc())
 
         except Exception:
-            import traceback
-
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
@@ -459,15 +457,23 @@ class Scanner:
 
     def warning(self, *args, **kwargs):
         log.warning(*args, extra={"scan_id": self.id}, **kwargs)
+        self._log_traceback()
 
     def hugewarning(self, *args, **kwargs):
         log.hugewarning(*args, extra={"scan_id": self.id}, **kwargs)
+        self._log_traceback()
 
     def error(self, *args, **kwargs):
         log.error(*args, extra={"scan_id": self.id}, **kwargs)
+        self._log_traceback()
 
     def critical(self, *args, **kwargs):
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
+
+    def _log_traceback(self):
+        e_type, e_val, e_traceback = exc_info()
+        if e_type is not None:
+            self.debug(traceback.format_exc())
 
     def _internal_modules(self):
         for modname in module_loader.preloaded(type="internal"):
@@ -557,10 +563,7 @@ class Scanner:
                     self.verbose(f'Loaded module "{module_name}"')
                     continue
                 except Exception:
-                    import traceback
-
                     self.warning(f"Failed to load module {module_class}")
-                    self.debug(traceback.format_exc())
             else:
                 self.warning(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)

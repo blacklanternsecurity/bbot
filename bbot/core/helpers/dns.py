@@ -27,7 +27,8 @@ class DNSHelper:
             self.resolver = dns.resolver.Resolver()
         except Exception as e:
             raise DNSError(f"Failed to create BBOT DNS resolver: {e}")
-        self.timeout = self.parent_helper.config.get("dns_timeout", 10)
+        self.timeout = self.parent_helper.config.get("dns_timeout", 5)
+        self.retries = self.parent_helper.config.get("dns_retries", 1)
         self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 5)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
@@ -130,7 +131,7 @@ class DNSHelper:
         errors = []
         parent = self.parent_helper.parent_domain(query)
         rdtype = kwargs.get("rdtype", "A")
-        retries = kwargs.pop("retries", 0)
+        retries = kwargs.pop("retries", self.retries)
         tries_left = int(retries) + 1
         parent_hash = hash(f"{parent}:{rdtype}")
         error_count = self._errors.get(parent_hash, 0)
@@ -223,7 +224,10 @@ class DNSHelper:
                 if check_wildcard:
                     event_is_wildcard, wildcard_parent = self.is_wildcard(event_host)
                     if event_is_wildcard and event.type in ("DNS_NAME",):
-                        event.data = f"_wildcard.{wildcard_parent}"
+                        wildcard_data = f"_wildcard.{wildcard_parent}"
+                        if wildcard_data != event.data:
+                            log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
+                            event.data = wildcard_data
                         return (event,)
                     elif event_is_wildcard is None:
                         event_tags.add("dns-error")
@@ -484,7 +488,7 @@ class DNSHelper:
                 return False, query
         # if it's already been marked as a wildcard, return True
         if "_wildcard" in query.split("."):
-            return True, query
+            return True, query.split("_wildcard.")[-1]
 
         # populate wildcard cache
         parent = parent_domain(query)
@@ -512,7 +516,10 @@ class DNSHelper:
                     if is_wildcard:
                         return True, host
             else:
-                log.warning(f"Failed to detect wildcard DNS for {parent}")
+                log.warning(
+                    f"Wildcard DNS detection failed for {parent}. Recommend increasing dns_wildcard_tests in config."
+                )
+                return None, host
         return False, parent
 
     def is_wildcard_domain(self, domain, retries=5):

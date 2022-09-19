@@ -10,6 +10,7 @@ import string
 import logging
 import ipaddress
 import wordninja
+import subprocess as sp
 from pathlib import Path
 from itertools import islice
 from datetime import datetime
@@ -444,9 +445,9 @@ def search_format_dict(d, **kwargs):
     elif isinstance(d, list):
         return [search_format_dict(v, **kwargs) for v in d]
     elif isinstance(d, str):
-        return d.format(**kwargs)
-    else:
-        return d
+        for k, v in kwargs.items():
+            d = d.replace("#{" + str(k) + "}", v)
+    return d
 
 
 def filter_dict(d, *key_names, fuzzy=False, invert=False):
@@ -664,3 +665,17 @@ def log_to_stderr(msg, level="INFO"):
         if levelname == "CRITICAL" or levelname.startswith("HUGE"):
             msg = colorize(msg)
         print(f"{levelshort} bbot: {msg}", file=sys.stderr)
+
+
+def verify_sudo_password(sudo_pass):
+    try:
+        sp.run(
+            ["sudo", "-S", "-k", "true"],
+            input=smart_encode(sudo_pass),
+            stderr=sp.DEVNULL,
+            stdout=sp.DEVNULL,
+            check=True,
+        )
+    except sp.CalledProcessError:
+        return False
+    return True
