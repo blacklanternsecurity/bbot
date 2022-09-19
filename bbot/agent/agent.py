@@ -7,6 +7,7 @@ from time import sleep
 from omegaconf import OmegaConf
 
 from . import messages
+import bbot.core.errors
 from bbot.scanner import Scanner
 from bbot.scanner.dispatcher import Dispatcher
 
@@ -141,8 +142,6 @@ class Agent:
                 self.scan = None
                 return {"success": msg, "scan_id": scan_id}
         except Exception as e:
-            import traceback
-
             log.warning(f"Error while stopping scan: {e}")
             log.debug(traceback.format_exc())
         finally:
@@ -172,16 +171,15 @@ class Agent:
         except Exception as e:
             msg = f"Error in {callback.__qualname__}(): {e}"
             log.error(msg)
-            import traceback
-
             log.debug(traceback.format_exc())
             return {"error": msg}
 
     def _start_scan(self, scan):
         try:
             scan.start()
+        except bbot.core.errors.ScanError as e:
+            log.error(f"Scan error: {e}")
+            log.debug(traceback.format_exc())
         except Exception:
-            import traceback
-
             log.critical(f"Encountered error: {traceback.format_exc()}")
             self.on_scan_status("FAILED", scan.id)

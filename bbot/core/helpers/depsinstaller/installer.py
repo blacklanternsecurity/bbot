@@ -59,8 +59,12 @@ class DepsInstaller:
                     continue
                 preloaded = self.all_modules_preloaded[m]
                 # make a hash of the dependencies and check if it's already been handled
+                # take into consideration whether the venv or bbot home directory changes
                 module_hash = self.parent_helper.sha1(
-                    str(preloaded["deps"]) + self.venv + str(self.parent_helper.bbot_home) + os.uname()[1]
+                    json.dumps(preloaded["deps"], sort_keys=True)
+                    + self.venv
+                    + str(self.parent_helper.bbot_home)
+                    + os.uname()[1]
                 ).hexdigest()
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
