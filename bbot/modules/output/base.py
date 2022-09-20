@@ -10,20 +10,20 @@ class BaseOutputModule(BaseModule):
     scope_distance_modifier = None
     _stats_exclude = True
 
-    def _filter_event(self, e):
-        # special "FINISHED" event
-        if type(e) == str:
-            if e == "FINISHED":
-                return True
+    def _filter_event(self, event, precheck_only=False):
+        if type(event) == str:
+            if event in ("FINISHED", "REPORT"):
+                return True, ""
             else:
-                return False
-        if e._omit:
-            return False
-        if e._force_output:
-            return True
-        if e._internal:
-            return False
-        return True
+                return False, f'string value "{event}" is invalid'
+        if event._omit:
+            return False, "_omit is True"
+        if not precheck_only:
+            if event._force_output:
+                return True, "_force_output is True"
+            if event._internal:
+                return False, "_internal is True"
+        return True, ""
 
     @property
     def config(self):

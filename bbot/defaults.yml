@@ -10,8 +10,6 @@ dns_resolution: true
 max_threads: 20
 # Limit the number of DNS threads
 max_dns_threads: 100
-# Limit the number of brute force modules that can run at one time
-max_brute_forcers: 2
 
 
 ### ADVANCED OPTIONS ###
