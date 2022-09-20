@@ -5,7 +5,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-from .misc import list_files, sha1, search_dict_by_key, search_format_dict
+from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table
 
 
 class ModuleLoader:
@@ -84,6 +84,7 @@ class ModuleLoader:
         module_hash = sha1(python_code).hexdigest()
         parsed_code = ast.parse(python_code)
         config = {}
+        options_desc = {}
         for root_element in parsed_code.body:
             # look for classes
             if type(root_element) == ast.ClassDef:
@@ -93,10 +94,12 @@ class ModuleLoader:
                         # module options
                         if any([target.id == "options" for target in class_attr.targets]):
                             config.update(ast.literal_eval(class_attr.value))
+                        # module options
+                        if any([target.id == "options_desc" for target in class_attr.targets]):
+                            options_desc.update(ast.literal_eval(class_attr.value))
                         # module metadata
                         if any([target.id == "meta" for target in class_attr.targets]):
                             meta = ast.literal_eval(class_attr.value)
-
                     # class attributes that are lists
                     if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
                         # flags
@@ -137,6 +140,7 @@ class ModuleLoader:
             "flags": flags,
             "meta": meta,
             "config": config,
+            "options_desc": options_desc,
             "hash": module_hash,
             "deps": {"pip": pip_deps, "shell": shell_deps, "apt": apt_deps, "ansible": ansible_tasks},
             "sudo": len(apt_deps) > 0,
@@ -238,6 +242,48 @@ class ModuleLoader:
             d[k].update(set(items))
         except KeyError:
             d[k] = set(items)
+
+    def modules_table(self, modules=None, mod_type="scan"):
+        table = []
+        header = ["Module", "Needs\nAPI\nKey", "Description", "Flags", "Produced Events"]
+        maxcolwidths = [20, 5, 40, 40, 40]
+        for module_name, preloaded in self.filter_modules(modules, mod_type):
+            produced_events = sorted(preloaded.get("produced_events", []))
+            flags = sorted(preloaded.get("flags", []))
+            api_key_required = ""
+            meta = preloaded.get("meta", {})
+            if meta.get("auth_required", False):
+                api_key_required = "X"
+            description = meta.get("description", "")
+            table.append([module_name, api_key_required, description, ",".join(flags), ",".join(produced_events)])
+        return make_table(table, header, maxcolwidths=maxcolwidths)
+
+    def modules_options_table(self, modules=None, mod_type="scan"):
+        table = []
+        header = ["Option", "Type", "Default", "Description"]
+        for module_name, preloaded in self.filter_modules(modules, mod_type):
+            module_type = preloaded["type"]
+            module_options = preloaded["config"]
+            module_options_desc = preloaded["options_desc"]
+            for k, v in module_options.items():
+                if module_type not in ("internal", "output"):
+                    module_key = "modules"
+                else:
+                    module_key = f"{module_type}_modules"
+                option_name = f"{module_key}.{module_name}.{k}"
+                option_type = type(v).__name__
+                option_description = module_options_desc[k]
+                table.append([option_name, option_type, str(v), option_description])
+        return make_table(table, header)
+
+    def filter_modules(self, modules=None, mod_type="scan"):
+        if modules is None:
+            module_list = list(self.preloaded(type=mod_type).items())
+        else:
+            module_list = [(m, self._preloaded[m]) for m in modules]
+        module_list.sort(key=lambda x: x[0])
+        module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
+        return module_list
 
 
 module_loader = ModuleLoader()
