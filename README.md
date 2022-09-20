@@ -107,9 +107,10 @@ bbot -f subdomain-enum -t evilcorp.com --output-modules human neo4j
 # Usage
 ~~~
 $ bbot --help
-usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [-s] [-n SCAN_NAME] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]]
-            [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [-o DIR] [-c [CONFIG ...]] [--allow-deadly] [-v] [-d] [--force] [-y] [--dry-run] [--current-config] [--save-wordcloud FILE]
-            [--load-wordcloud FILE] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps] [-a]
+usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-n SCAN_NAME] [-m MODULE [MODULE ...]] [-l]
+            [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [-o DIR] [-c [CONFIG ...]] [--allow-deadly] [-v] [-d] [-s]
+            [--force] [-y] [--dry-run] [--current-config] [--save-wordcloud FILE] [--load-wordcloud FILE]
+            [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [-a]
 
 Bighuge BLS OSINT Tool
 
@@ -118,12 +119,12 @@ options:
   -n SCAN_NAME, --name SCAN_NAME
                         Name of scan (default: random)
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,asn,aspnet_viewstate,azure_tenant,binaryedge,blind_ssrf,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,generic_ssrf,getparam_brute,github,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,passivetotal,pgp,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,urlscan,viewdns,wappalyzer,wayback,zoomeye
+                        Modules to enable. Choices: affiliates,asn,azure_tenant,azureblob,binaryedge,builtwith,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fullhunt,generic_ssrf,getparam_brute,github,googleobjectstorage,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,otx,passivetotal,pgp,rapiddns,riddler,s3bucket,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,urlscan,vhost,viewdns,virustotal,wappalyzer,wayback,zoomeye
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,aggressive,brute-force,deadly,passive,portscan,report,safe,slow,subdomain-enum,web
+                        Enable modules by flag. Choices: active,aggressive,brute-force,cloud-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,slow,subdomain-enum,web-advanced,web-basic,web-paramminer,web-screenshots
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Disable modules that don't have these flags (e.g. --require-flags passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
@@ -133,9 +134,10 @@ options:
   -o DIR, --output-dir DIR
   -c [CONFIG ...], --config [CONFIG ...]
                         custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
-  --allow-deadly        Enable running modules tagged as "deadly"
+  --allow-deadly        Enable the use of highly aggressive modules
   -v, --verbose         Be more verbose
   -d, --debug           Enable debugging
+  -s, --silent          Be quiet
   --force               Run scan even if module setups fail
   -y, --yes             Skip scan confirmation prompt
   --dry-run             Abort before executing scan
@@ -148,7 +150,7 @@ Target:
                         What's considered in-scope (by default it's the same as --targets)
   -b BLACKLIST [BLACKLIST ...], --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things
-  -s, --strict-scope    Don't consider subdomains of target/whitelist to be in-scope
+  --strict-scope        Don't consider subdomains of target/whitelist to be in-scope
 
 Word cloud:
   Save/load wordlist of common words gathered during a scan
@@ -165,6 +167,7 @@ Module dependencies:
   --force-deps          Force install all module dependencies
   --retry-deps          Try again to install failed module dependencies
   --ignore-failed-deps  Run modules even if they have failed dependencies
+  --install-all-deps    Install dependencies for all modules
 
 Agent:
   Report back to a central server

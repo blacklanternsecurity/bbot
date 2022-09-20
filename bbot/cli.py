@@ -103,6 +103,13 @@ def main():
                     force_start=options.force,
                 )
 
+                if options.install_all_deps:
+                    all_modules = list(module_loader.preloaded())
+                    scanner.helpers.depsinstaller.force_deps = True
+                    scanner.helpers.depsinstaller.install(*all_modules)
+                    log.info("Finished installing module dependencies")
+                    return
+
                 scan_name = str(scanner.name)
 
                 # enable modules by dependency

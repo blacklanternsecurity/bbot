@@ -21,9 +21,9 @@ class httpx(BaseModule):
         {
             "name": "Download httpx",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/httpx/releases/download/v{BBOT_MODULES_HTTPX_VERSION}/httpx_{BBOT_MODULES_HTTPX_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/httpx/releases/download/v#{BBOT_MODULES_HTTPX_VERSION}/httpx_#{BBOT_MODULES_HTTPX_VERSION}_linux_amd64.zip",
                 "include": "httpx",
-                "dest": "{BBOT_TOOLS}",
+                "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }

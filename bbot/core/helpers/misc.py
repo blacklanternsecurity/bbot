@@ -10,6 +10,7 @@ import string
 import logging
 import ipaddress
 import wordninja
+import subprocess as sp
 from pathlib import Path
 from itertools import islice
 from datetime import datetime
@@ -444,9 +445,9 @@ def search_format_dict(d, **kwargs):
     elif isinstance(d, list):
         return [search_format_dict(v, **kwargs) for v in d]
     elif isinstance(d, str):
-        return d.format(**kwargs)
-    else:
-        return d
+        for k, v in kwargs.items():
+            d = d.replace("#{" + str(k) + "}", v)
+    return d
 
 
 def filter_dict(d, *key_names, fuzzy=False, invert=False):
@@ -616,3 +617,65 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
 def extract_emails(s):
     for email in regexes.email_regex.findall(smart_decode(s)):
         yield email.lower()
+
+
+loglevel_mapping = {
+    "DEBUG": "DBUG",
+    "VERBOSE": "VERB",
+    "HUGEVERBOSE": "VERB",
+    "INFO": "INFO",
+    "HUGEINFO": "INFO",
+    "SUCCESS": "SUCC",
+    "HUGESUCCESS": "SUCC",
+    "WARNING": "WARN",
+    "HUGEWARNING": "WARN",
+    "ERROR": "ERRR",
+    "CRITICAL": "CRIT",
+}
+color_mapping = {
+    "DEBUG": 242,  # grey
+    "VERBOSE": 242,  # grey
+    "INFO": 69,  # blue
+    "HUGEINFO": 69,  # blue
+    "SUCCESS": 118,  # green
+    "HUGESUCCESS": 118,  # green
+    "WARNING": 208,  # orange
+    "HUGEWARNING": 208,  # orange
+    "ERROR": 196,  # red
+    "CRITICAL": 196,  # red
+}
+color_prefix = "\033[1;38;5;"
+color_suffix = "\033[0m"
+
+
+def colorize(s, level="INFO"):
+    seq = color_mapping.get(level, 15)  # default white
+    colored = f"{color_prefix}{seq}m{s}{color_suffix}"
+    return colored
+
+
+def log_to_stderr(msg, level="INFO"):
+    """
+    Print to stderr with BBOT logger colors
+    """
+    levelname = level.upper()
+    if not any(x in sys.argv for x in ("-s", "--silent")):
+        levelshort = f"[{loglevel_mapping.get(level, 'INFO')}]"
+        levelshort = f"{colorize(levelshort, level=levelname)}"
+        if levelname == "CRITICAL" or levelname.startswith("HUGE"):
+            msg = colorize(msg)
+        print(f"{levelshort} bbot: {msg}", file=sys.stderr)
+
+
+def verify_sudo_password(sudo_pass):
+    try:
+        sp.run(
+            ["sudo", "-S", "-k", "true"],
+            input=smart_encode(sudo_pass),
+            stderr=sp.DEVNULL,
+            stdout=sp.DEVNULL,
+            check=True,
+        )
+    except sp.CalledProcessError:
+        return False
+    return True

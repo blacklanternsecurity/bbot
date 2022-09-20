@@ -22,8 +22,6 @@ root_logger = logging.getLogger()
 for h in root_logger.handlers:
     h.addFilter(lambda x: x.levelno != 100)
 
-os.environ["BBOT_SUDO_PASS"] = "nah"
-
 
 def test_events(events, scan, helpers, bbot_config):
 
@@ -166,6 +164,10 @@ def test_events(events, scan, helpers, bbot_config):
     assert event2._scope_distance == 1
     event3 = scan.make_event("3.4.5.6", source=event2)
     assert event3._scope_distance == 2
+    event4 = scan.make_event("3.4.5.6", source=event3)
+    assert event4._scope_distance == 2
+    event5 = scan.make_event("4.5.6.7", source=event4)
+    assert event5._scope_distance == 3
 
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
@@ -425,9 +427,8 @@ def test_curl(helpers):
     )
 
 
-def test_helpers(patch_requests, patch_commands, helpers, scan):
+def test_helpers(patch_requests, helpers, scan, bbot_scanner):
 
-    old_run, old_run_live = patch_commands
     request, download = patch_requests
 
     ### URL ###
@@ -600,7 +601,9 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert "filterme" in cleaned_dict3["modules"]["c99"]
     assert "ipneighbor" in cleaned_dict3["modules"]
 
-    replaced = helpers.search_format_dict({"asdf": [{"wat": {"here": "{replaceme}!"}}, {500: True}]}, replaceme="asdf")
+    replaced = helpers.search_format_dict(
+        {"asdf": [{"wat": {"here": "#{replaceme}!"}}, {500: True}]}, replaceme="asdf"
+    )
     assert replaced["asdf"][1][500] == True
     assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
 
@@ -698,16 +701,17 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     command.catch(raise_brokenpipe)
 
     ### COMMAND ###
-    assert "plumbus\n" in old_run(helpers, ["echo", "plumbus"], text=True).stdout
-    assert "plumbus\n" in list(old_run_live(helpers, ["echo", "plumbus"]))
+    scan1 = bbot_scanner()
+    assert "plumbus\n" in scan1.helpers.run(["echo", "plumbus"], text=True).stdout
+    assert "plumbus\n" in list(scan1.helpers.run_live(["echo", "plumbus"]))
     expected_output = ["lumbus\n", "plumbus\n", "rumbus\n"]
-    assert list(old_run_live(helpers, ["cat"], input="lumbus\nplumbus\nrumbus")) == expected_output
+    assert list(scan1.helpers.run_live(["cat"], input="lumbus\nplumbus\nrumbus")) == expected_output
 
     def plumbus_generator():
         yield "lumbus"
         yield "plumbus"
 
-    assert "plumbus\n" in list(old_run_live(helpers, ["cat"], input=plumbus_generator()))
+    assert "plumbus\n" in list(scan1.helpers.run_live(["cat"], input=plumbus_generator()))
     tempfile = helpers.tempfile(("lumbus", "plumbus"), pipe=True)
     with open(tempfile) as f:
         assert "plumbus\n" in list(f)
@@ -900,7 +904,9 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert word_cloud["rumbus"] == 1
 
 
-def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_config, bbot_scanner):
+def test_modules_basic(
+    patch_requests, patch_commands, patch_ansible, scan, helpers, events, bbot_config, bbot_scanner
+):
 
     # base module _filter_event()
     from bbot.modules.base import BaseModule
@@ -957,6 +963,8 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
     scan2 = bbot_scanner(
         modules=list(available_modules), output_modules=list(available_output_modules), config=bbot_config
     )
+    patch_commands(scan2)
+    patch_ansible(scan2)
     scan2.load_modules()
     scan2.status = "RUNNING"
 
@@ -1110,7 +1118,7 @@ def test_config(bbot_config, bbot_scanner):
     assert scan1.modules["speculate"].config.test_option == "speculate"
 
 
-def test_target(neuter_ansible, patch_requests, patch_commands, bbot_config, bbot_scanner):
+def test_target(patch_ansible, patch_requests, bbot_config, bbot_scanner):
     scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126", config=bbot_config)
     scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
     scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
@@ -1143,7 +1151,7 @@ def test_target(neuter_ansible, patch_requests, patch_commands, bbot_config, bbo
 
 
 def test_scan(
-    neuter_ansible,
+    patch_ansible,
     patch_requests,
     patch_commands,
     events,
@@ -1200,6 +1208,8 @@ def test_scan(
         blacklist=["http://127.0.0.3:8000/asdf"],
         whitelist=["127.0.0.0/29"],
     )
+    patch_commands(scan3)
+    patch_ansible(scan3)
     assert "targets" in scan3.json
     assert "127.0.0.3" in scan3.target
     assert "127.0.0.4" not in scan3.target
@@ -1292,15 +1302,7 @@ def test_cli(monkeypatch, bbot_config):
         assert len(lines) > 1
 
 
-def test_depsinstaller(monkeypatch, neuter_ansible, bbot_config, bbot_scanner):
-    # un-neuter ansible
-    from bbot.core.helpers.depsinstaller import installer
-
-    run, ensure_root = neuter_ansible
-    ensure_root = installer.DepsInstaller.ensure_root
-    monkeypatch.setattr(installer, "run", run)
-    monkeypatch.setattr(installer.DepsInstaller, "ensure_root", ensure_root)
-
+def test_depsinstaller(monkeypatch, bbot_config, bbot_scanner):
     scan = bbot_scanner(
         "127.0.0.1",
         modules=["dnsresolve"],

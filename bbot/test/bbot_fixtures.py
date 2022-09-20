@@ -1,5 +1,7 @@
+import os
 import sys
 import pytest
+import getpass
 import logging
 import urllib3
 import requests
@@ -7,6 +9,8 @@ import subprocess
 import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
+
+from bbot.core.helpers.misc import verify_sudo_password
 
 # make the necessary web requests before nuking them to high heaven
 example_url = "https://api.publicapis.org/health"
@@ -17,6 +21,20 @@ tldextract.extract("www.evilcorp.com")
 
 
 log = logging.getLogger(f"bbot.test.fixtures")
+
+
+@pytest.fixture
+def ensure_root():
+    sudo_pass = os.environ.get("BBOT_SUDO_PASS", "")
+    while 1:
+        if sudo_pass is None:
+            sudo_pass = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+        if verify_sudo_password(sudo_pass):
+            log.success("Authentication successful")
+            break
+        log.warning("Invalid password")
+        sudo_pass = None
+    os.environ["BBOT_SUDO_PASS"] = sudo_pass
 
 
 @pytest.fixture
@@ -34,7 +52,8 @@ def patch_requests(monkeypatch):
 
 
 @pytest.fixture
-def patch_commands(monkeypatch):
+def patch_commands():
+
     import subprocess
 
     sample_output = [
@@ -57,24 +76,26 @@ def patch_commands(monkeypatch):
         "https://8.8.8.8",
     ]
 
-    def run(*args, **kwargs):
-        text = kwargs.get("text", True)
-        return subprocess.run(["echo", "\n".join(sample_output)], text=text, stdout=subprocess.PIPE)
+    def patch_scan_commands(scanner):
+        def run(*args, **kwargs):
+            text = kwargs.get("text", True)
+            return subprocess.run(["echo", "\n".join(sample_output)], text=text, stdout=subprocess.PIPE)
 
-    def run_live(*args, **kwargs):
-        for line in sample_output:
-            yield line
+        def run_live(*args, **kwargs):
+            for line in sample_output:
+                yield line
 
-    from bbot.core.helpers.command import run as old_run, run_live as old_run_live
+        from bbot.core.helpers.command import run as old_run, run_live as old_run_live
 
-    monkeypatch.setattr("bbot.core.helpers.command.run", run)
-    monkeypatch.setattr("bbot.core.helpers.command.run_live", run_live)
+        scanner.helpers.run = run
+        scanner.helpers.run_live = run_live
+        return old_run, old_run_live
 
-    return old_run, old_run_live
+    return patch_scan_commands
 
 
 @pytest.fixture
-def bbot_scanner(patch_commands, patch_requests, neuter_ansible):
+def bbot_scanner(patch_requests):
     from bbot.scanner import Scanner
 
     return Scanner
@@ -100,7 +121,7 @@ def neograph(monkeypatch, helpers):
 
 
 @pytest.fixture
-def neuter_ansible(monkeypatch):
+def patch_ansible(monkeypatch):
     from ansible_runner.interface import run
 
     class AnsibleRunnerResult:
@@ -115,17 +136,21 @@ def neuter_ansible(monkeypatch):
 
     ensure_root = installer.DepsInstaller.ensure_root
 
-    monkeypatch.setattr(installer, "run", ansible_run)
-    monkeypatch.setattr(installer.DepsInstaller, "ensure_root", lambda *args, **kwargs: None)
+    def patch_scan_ansible(scanner):
+        monkeypatch.setattr(installer, "run", ansible_run)
+        monkeypatch.setattr(scanner.helpers.depsinstaller, "ensure_root", lambda *args, **kwargs: None)
+        return run, ensure_root
 
-    return run, ensure_root
+    return patch_scan_ansible
 
 
 @pytest.fixture
-def scan(neuter_ansible, patch_requests, patch_commands, bbot_config):
+def scan(patch_ansible, patch_requests, patch_commands, bbot_config):
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
+    patch_commands(bbot_scan)
+    patch_ansible(bbot_scan)
     bbot_scan.status = "RUNNING"
     return bbot_scan
 
@@ -233,14 +258,14 @@ def events(scan):
 
 
 @pytest.fixture
-def agent(monkeypatch, websocketapp):
+def agent(monkeypatch, websocketapp, bbot_config):
 
     from bbot import agent
     from bbot.modules.output.websocket import Websocket
 
     monkeypatch.setattr(Websocket, "send", lambda *args, **kwargs: True)
 
-    test_agent = agent.Agent({"agent_url": "test", "agent_token": "test"})
+    test_agent = agent.Agent(bbot_config)
     test_agent.setup()
     monkeypatch.setattr(test_agent, "ws", websocketapp())
     return test_agent
@@ -283,7 +308,7 @@ available_output_modules = list(module_loader.configs(type="output"))
 
 
 @pytest.fixture(autouse=True)
-def install_all_python_deps(neuter_ansible):
+def install_all_python_deps():
     deps_pip = set()
     for module in module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
