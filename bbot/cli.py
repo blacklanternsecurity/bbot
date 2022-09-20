@@ -76,7 +76,9 @@ def main():
             from bbot.scanner import Scanner
 
             try:
+                module_filtering = False
                 if (options.list_modules or options.help_all) and not any([options.flags, options.modules]):
+                    module_filtering = True
                     modules = set(module_loader.preloaded(type="scan"))
                 else:
                     modules = set(options.modules)
@@ -180,14 +182,18 @@ def main():
                 if options.list_modules or options.help_all:
                     log_fn = log.stdout
 
+                help_modules = list(modules)
+                if module_filtering:
+                    help_modules = None
+
                 log_fn("\n### MODULES ###\n")
-                for row in module_loader.modules_table(modules=modules).splitlines():
+                for row in module_loader.modules_table(modules=help_modules).splitlines():
                     log_fn(row)
 
                 if options.help_all:
                     parser.print_help()
                     log_fn("\n### MODULE OPTIONS ###\n")
-                    for row in module_loader.modules_options_table(modules=modules).splitlines():
+                    for row in module_loader.modules_options_table(modules=help_modules).splitlines():
                         log_fn(row)
 
                 if options.list_modules or options.help_all:

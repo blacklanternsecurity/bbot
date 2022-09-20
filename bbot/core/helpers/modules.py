@@ -243,11 +243,12 @@ class ModuleLoader:
         except KeyError:
             d[k] = set(items)
 
-    def modules_table(self, modules=None, mod_type="scan"):
+    def modules_table(self, modules=None, mod_type=None):
         table = []
-        header = ["Module", "Needs\nAPI\nKey", "Description", "Flags", "Produced Events"]
-        maxcolwidths = [20, 5, 40, 40, 40]
+        header = ["Module", "Type", "Needs\nAPI\nKey", "Description", "Flags", "Produced Events"]
+        maxcolwidths = [20, 20, 5, 40, 40, 40]
         for module_name, preloaded in self.filter_modules(modules, mod_type):
+            module_type = preloaded["type"]
             produced_events = sorted(preloaded.get("produced_events", []))
             flags = sorted(preloaded.get("flags", []))
             api_key_required = ""
@@ -255,10 +256,12 @@ class ModuleLoader:
             if meta.get("auth_required", False):
                 api_key_required = "X"
             description = meta.get("description", "")
-            table.append([module_name, api_key_required, description, ",".join(flags), ",".join(produced_events)])
+            table.append(
+                [module_name, module_type, api_key_required, description, ",".join(flags), ",".join(produced_events)]
+            )
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
-    def modules_options_table(self, modules=None, mod_type="scan"):
+    def modules_options_table(self, modules=None, mod_type=None):
         table = []
         header = ["Option", "Type", "Default", "Description"]
         for module_name, preloaded in self.filter_modules(modules, mod_type):
@@ -276,13 +279,14 @@ class ModuleLoader:
                 table.append([option_name, option_type, str(v), option_description])
         return make_table(table, header)
 
-    def filter_modules(self, modules=None, mod_type="scan"):
+    def filter_modules(self, modules=None, mod_type=None):
         if modules is None:
             module_list = list(self.preloaded(type=mod_type).items())
         else:
             module_list = [(m, self._preloaded[m]) for m in modules]
         module_list.sort(key=lambda x: x[0])
         module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
+        module_list.sort(key=lambda x: x[-1]["type"], reverse=True)
         return module_list
 
 
