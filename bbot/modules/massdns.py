@@ -42,7 +42,10 @@ class massdns(crobat):
         self.mutations_tried = set()
         self.source_events = dict()
         self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
-        return super().setup()
+        ret = super().setup()
+        if not len(self.helpers.resolvers) >= 100:
+            return None, "Not enough nameservers available for DNS brute-forcing"
+        return ret
 
     def filter_event(self, event):
         if "unresolved" in event.tags:

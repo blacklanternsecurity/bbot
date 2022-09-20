@@ -400,7 +400,12 @@ class DNSHelper:
                 valid_nameservers.add(nameserver)
             else:
                 self.debug(str(error))
-        log.info(f"Successfully verified {len(valid_nameservers):,}/{len(nameservers):,} nameservers")
+        if not valid_nameservers:
+            log.hugewarning(
+                "Unable to reach any nameservers. Please check your internet connection and ensure that DNS is not blocked outbound."
+            )
+        else:
+            log.info(f"Successfully verified {len(valid_nameservers):,}/{len(nameservers):,} nameservers")
 
         return valid_nameservers
 
