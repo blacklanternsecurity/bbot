@@ -31,11 +31,15 @@ class HostnameExtractor(BaseExtractor):
     regexes = {}
 
     def __init__(self, excavate):
-        dns_targets = [t for t in excavate.scan.target if t.type == "DNS_NAME"]
+        dns_targets = set(t.host for t in excavate.scan.target if t.host and isinstance(t.host, str))
+        dns_whitelist = set(t.host for t in excavate.scan.whitelist if t.host and isinstance(t.host, str))
+        dns_targets.update(dns_whitelist)
+        dns_targets = sorted(dns_targets, key=len)
+        dns_targets_set = set()
         for i, t in enumerate(dns_targets):
-            self.regexes[f"dns_name_{i+1}"] = (
-                r"(%[a-f0-9]{2})?((?:(?:[\w-]+)\.)+" + str(t.host).replace(".", r"\.") + ")"
-            )
+            if not any(x in dns_targets_set for x in excavate.helpers.domain_parents(t, include_self=True)):
+                dns_targets_set.add(t)
+                self.regexes[f"dns_name_{i+1}"] = r"(%[a-fA-F0-9]{2})?((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):

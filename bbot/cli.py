@@ -223,6 +223,8 @@ def main():
 
                     scanner.start()
 
+            except bbot.core.errors.ScanError as e:
+                log_to_stderr(str(e), level="ERROR")
             except Exception:
                 raise
             finally:
