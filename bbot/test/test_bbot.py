@@ -1015,10 +1015,10 @@ def test_modules_basic(
         assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pipe must be of type list"
         assert type(preloaded.get("deps_apt", [])) == list, f"{module_name}.deps_apt must be of type list"
         assert type(preloaded.get("deps_shell", [])) == list, f"{module_name}.deps_shell must be of type list"
-        assert type(preloaded.get("options", {})) == dict, f"{module_name}.options must be of type list"
-        assert type(preloaded.get("options_desc", {})) == dict, f"{module_name}.options_desc must be of type list"
+        assert type(preloaded.get("config", None)) == dict, f"{module_name}.options must be of type list"
+        assert type(preloaded.get("options_desc", None)) == dict, f"{module_name}.options_desc must be of type list"
         # options must have descriptions
-        assert set(preloaded.get("options", {})) == set(
+        assert set(preloaded.get("config", {})) == set(
             preloaded.get("options_desc", {})
         ), f"{module_name}.options do not match options_desc"
         # descriptions most not be blank

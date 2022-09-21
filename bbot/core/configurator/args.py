@@ -60,6 +60,7 @@ class DummyArgumentParser(BBOTArgumentParser):
 parser = BBOTArgumentParser(description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter)
 dummy_parser = DummyArgumentParser(description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter)
 for p in (parser, dummy_parser):
+    p.add_argument("--help-all", action="store_true", help="Display full help including module config options")
     target = p.add_argument_group(title="Target")
     target.add_argument("-t", "--targets", nargs="+", default=[], help="Targets to seed the scan", metavar="TARGET")
     target.add_argument(
