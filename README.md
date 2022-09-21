@@ -63,7 +63,19 @@ bbot -m httpx -c web_spider_distance=2 web_spider_depth=2 -t www.evilcorp.com
 bbot -f subdomain-enum web-basic -m naabu gowitness -c web_spider_distance=2 web_spider_depth=2 -t evilcorp.com
 ~~~
 
-Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurity/bbot/wiki#tips-and-tricks).
+### Targets
+
+In BBOT, targets are used to seed a scan. You can specify any number of targets, and if you require more granular control over scope, you can also use whitelists and blacklists.
+
+~~~bash
+# multiple targets
+bbot -t evilcorp.com evilcorp.co.uk 1.2.3.0/24 targets.txt
+
+# seed a scan with two domains, but only consider assets to be in scope if they are inside 1.2.3.0/24
+bbot -t evilcorp.com evilcorp.co.uk --whitelist 1.2.3.0/24 --blacklist test.evilcorp.com 1.2.3.4
+~~~
+
+Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurity/bbot/wiki#tips-and-tricks), including details on how BBOT handles scope, and how to tweak it if you need to.
 
 ## Using BBOT as a Python library
 ~~~python
