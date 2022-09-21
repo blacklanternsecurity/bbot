@@ -266,6 +266,8 @@ def test_events(events, scan, helpers, bbot_config):
     assert http_response.source_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com"
     json_event = http_response.json()
+    assert isinstance(json_event["data"], dict)
+    json_event = http_response.json(mode="graph")
     assert isinstance(json_event["data"], str)
     assert json_event["type"] == "HTTP_RESPONSE"
     assert json_event["source"] == scan.root_event.id
@@ -1114,7 +1116,7 @@ def test_config(bbot_config, bbot_scanner):
     scan1.load_modules()
     assert scan1.config.plumbus == "asdf"
     assert scan1.modules["ipneighbor"].config.test_option == "ipneighbor"
-    assert scan1.modules["human"].config.test_option == "human"
+    assert scan1.modules["python"].config.test_option == "asdf"
     assert scan1.modules["speculate"].config.test_option == "speculate"
 
 
@@ -1300,6 +1302,18 @@ def test_cli(monkeypatch, bbot_config):
         lines = f.readlines()
         assert lines[0] == "Event type,Event data,Source Module,Scope Distance,Event Tags\n"
         assert len(lines) > 1
+
+
+def test_python_api(bbot_config):
+    from bbot.scanner import Scanner
+
+    scan1 = Scanner("127.0.0.1", config=bbot_config)
+    events1 = list(scan1.start())
+    assert any("127.0.0.1" == e for e in events1)
+    scan2 = Scanner("127.0.0.1", config=bbot_config, output_modules=["json"], name="python_api_test")
+    scan2.start_without_generator()
+    out_file = scan2.helpers.scans_dir / "python_api_test" / "output.json"
+    assert list(scan2.helpers.read_file(out_file))
 
 
 def test_depsinstaller(monkeypatch, bbot_config, bbot_scanner):

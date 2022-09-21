@@ -345,6 +345,10 @@ class ScanManager:
                     self.modules_status(_log=True, passes=1)
                     last_log_time = now
 
+                if "python" in self.scan.modules:
+                    events, finish, report = self.scan.modules["python"].events_waiting
+                    yield from events
+
                 try:
                     event = self.event_queue.get(timeout=0.1)
                     event_counter += 1

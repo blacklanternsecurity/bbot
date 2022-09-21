@@ -91,6 +91,9 @@ def main():
                                     log.verbose(f'Enabling {m} because it has flag "{f}"')
                                     modules.add(m)
 
+                if not options.output_modules:
+                    options.output_modules = ["human"]
+
                 scanner = Scanner(
                     *options.targets,
                     modules=list(modules),
@@ -221,7 +224,7 @@ def main():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
 
-                    scanner.start()
+                    scanner.start_without_generator()
 
             except bbot.core.errors.ScanError as e:
                 log_to_stderr(str(e), level="ERROR")
