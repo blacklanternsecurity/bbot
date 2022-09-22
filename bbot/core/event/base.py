@@ -374,7 +374,8 @@ class BaseEvent:
         else:
             j["data"] = smart_decode(self.data)
         j["scope_distance"] = self.scope_distance
-        j["scan"] = self.scan.id
+        if self.scan:
+            j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
         source_id = self.source_id
         if source_id:
