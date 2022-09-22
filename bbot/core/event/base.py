@@ -59,6 +59,8 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self.__words = None
+        self._resolved_hosts = set()
+
         self._made_internal = False
         # whether to force-send to output modules
         self._force_output = False
@@ -127,6 +129,14 @@ class BaseEvent:
     @property
     def data(self):
         return self._data
+
+    @property
+    def resolved_hosts(self):
+        if is_ip(self.host):
+            return {
+                self.host,
+            }
+        return self._resolved_hosts
 
     @data.setter
     def data(self, data):
@@ -369,6 +379,8 @@ class BaseEvent:
         j["scope_distance"] = self.scope_distance
         j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
+        if self.host:
+            j["resolved_hosts"] = [str(h) for h in self.resolved_hosts]
         source_id = self.source_id
         if source_id:
             j["source"] = source_id

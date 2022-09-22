@@ -109,7 +109,11 @@ class ScanManager:
                     dns_tags,
                     event_whitelisted_dns,
                     event_blacklisted_dns,
+                    resolved_hosts,
                 ) = self.scan.helpers.dns.resolve_event(event)
+
+                event._resolved_hosts = resolved_hosts
+
                 event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
                 event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
                 if event.type in ("DNS_NAME", "IP_ADDRESS"):

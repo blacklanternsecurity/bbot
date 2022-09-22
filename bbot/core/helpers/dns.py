@@ -226,12 +226,14 @@ class DNSHelper:
         event_tags = set()
         try:
             if not event.host or event.type in ("IP_RANGE",):
-                return [], set(), False, False
+                return [], set(), False, False, set()
             children = []
             event_host = str(event.host)
 
             event_whitelisted = False
             event_blacklisted = False
+
+            resolved_hosts = set()
 
             host_is_domain = is_domain(event_host)
 
@@ -252,11 +254,11 @@ class DNSHelper:
             # lock to ensure resolution of the same host doesn't start while we're working here
             with self._event_cache_locks.get_lock(event_host):
                 # try to get data from cache
-                _event_tags, _event_whitelisted, _event_blacklisted = self.cache_get(event_host)
+                _event_tags, _event_whitelisted, _event_blacklisted, _resolved_hosts = self.event_cache_get(event_host)
                 event_tags.update(_event_tags)
                 # if we found it, return it
                 if _event_whitelisted is not None:
-                    return children, event_tags, _event_whitelisted, _event_blacklisted
+                    return children, event_tags, _event_whitelisted, _event_blacklisted, _resolved_hosts
 
                 # then resolve
                 if event.type == "DNS_NAME":
@@ -268,37 +270,41 @@ class DNSHelper:
                     event_tags.add("dns-error")
                 for rdtype, records in resolved_raw:
                     event_tags.add("resolved")
-                    event_tags.add(f"{rdtype.lower()}_record")
                     rdtype = str(rdtype).upper()
+                    event_tags.add(f"{rdtype.lower()}-record")
                     # whitelisting and blacklist of IPs
-                    if rdtype in ("A", "AAAA"):
-                        for r in records:
-                            for _, t in self.extract_targets(r):
-                                with suppress(ValidationError):
-                                    if self.parent_helper.scan.whitelisted(t):
-                                        event_whitelisted = True
-                                with suppress(ValidationError):
-                                    if self.parent_helper.scan.blacklisted(t):
-                                        event_blacklisted = True
+
                     for r in records:
                         for _, t in self.extract_targets(r):
                             if t:
+                                if rdtype in ("A", "AAAA"):
+                                    ip = self.parent_helper.make_ip_type(t)
+
+                                    with suppress(ValidationError):
+                                        if self.parent_helper.scan.whitelisted(ip):
+                                            event_whitelisted = True
+                                    with suppress(ValidationError):
+                                        if self.parent_helper.scan.blacklisted(ip):
+                                            event_blacklisted = True
+                                    resolved_hosts.add(ip)
+
                                 if self.filter_bad_ptrs and rdtype in ("PTR") and self.bad_ptr_regex.search(t):
                                     self.debug(f"Filtering out bad PTR: {t}")
                                     continue
                                 children.append((t, rdtype))
+
                 if "resolved" not in event_tags:
                     event_tags.add("unresolved")
-                self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted)
-            return children, event_tags, event_whitelisted, event_blacklisted
+                self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, resolved_hosts)
+            return children, event_tags, event_whitelisted, event_blacklisted, resolved_hosts
         finally:
             event._resolved.set()
 
-    def cache_get(self, host):
+    def event_cache_get(self, host):
         try:
             return self._event_cache[host]
         except KeyError:
-            return set(), None, None
+            return set(), None, None, set()
 
     def resolve_batch(self, queries, **kwargs):
         """
