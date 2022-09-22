@@ -16,7 +16,16 @@ def wordlist(self, path, lines=None, **kwargs):
         raise WordlistError(f"Invalid wordlist: {path}")
     if not "cache_hrs" in kwargs:
         kwargs["cache_hrs"] = 720
+    if not "retries" in kwargs:
+        kwargs["retries"] = 1
+    # longer timeout for large wordlists
+    if not "timeout" in kwargs:
+        kwargs["timeout"] = 60
     if self.is_url(path):
+        msg = f"Downloading wordlist from {path}"
+        if lines is not None:
+            msg += f" with lines={lines}"
+        log.verbose(msg)
         filename = self.download(str(path), **kwargs)
         if filename is None:
             raise WordlistError(f"Unable to retrieve wordlist from {path}")

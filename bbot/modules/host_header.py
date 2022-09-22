@@ -21,8 +21,7 @@ class host_header(BaseModule):
                 self.interactsh_instance = self.helpers.interactsh()
                 self.interactsh_domain = self.interactsh_instance.register(callback=self.interactsh_callback)
             except InteractshError as e:
-                self.warning(f"Interactsh failure: {e}")
-                return False
+                return False, f"Interactsh failure: {e}"
         return True
 
     def interactsh_callback(self, r):
@@ -60,6 +59,8 @@ class host_header(BaseModule):
             )
         except InteractshError as e:
             self.warning(f"Interactsh failure: {e}")
+        except AttributeError:
+            pass
 
     def handle_event(self, event):
 

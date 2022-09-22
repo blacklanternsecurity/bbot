@@ -177,13 +177,12 @@ class generic_ssrf(BaseModule):
                 self.interactsh_instance = self.helpers.interactsh()
                 self.interactsh_domain = self.interactsh_instance.register(callback=self.interactsh_callback)
             except InteractshError as e:
-                self.warning(f"Interactsh failure: {e}")
-                return False
+                return False, f"Interactsh failure: {e}"
         else:
-            self.warning(
-                "The generic_ssrf module is completely dependent on interactsh to function, but it is disabled globally. Aborting."
+            return (
+                None,
+                "The generic_ssrf module is completely dependent on interactsh to function, but it is disabled globally. Aborting.",
             )
-            return None
 
         # instantiate submodules
         for m in BaseSubmodule.__subclasses__():
@@ -232,3 +231,14 @@ class generic_ssrf(BaseModule):
         sleep(5)
         for r in self.interactsh_instance.poll():
             self.interactsh_callback(r)
+
+    def cleanup(self):
+        try:
+            self.interactsh_instance.deregister()
+            self.debug(
+                f"successfully deregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
+            )
+        except InteractshError as e:
+            self.warning(f"Interactsh failure: {e}")
+        except AttributeError:
+            pass

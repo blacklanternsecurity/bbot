@@ -1036,13 +1036,19 @@ def test_modules_basic(
                 type(msg) == str
             ), f"if tuple, the second element of {module.name}.setup()'s return value must be a message of type str"
         else:
-            assert result in (
+            status = result
+            assert status in (
                 True,
                 False,
                 None,
             ), f"{module.name}.setup() must return a status of either True, False, or None"
-        if result == False:
+        if status == False:
             module.set_error_state()
+
+    scan_dir_contents = scan2.home.glob("**/*")
+    assert not list(
+        scan_dir_contents
+    ), f"Scan directory was not empty after running module setups (contents: {scan_dir_contents}). Ensure that modules are not creating files or directories in their .setup() methods."
 
     futures.clear()
 

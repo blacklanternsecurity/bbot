@@ -135,16 +135,6 @@ class Scanner:
     def prep(self):
         self.helpers.mkdir(self.home)
         if not self._prepped:
-            start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target):,} targets"
-            details = []
-            if self.whitelist != self.target:
-                details.append(f"{len(self.whitelist):,} in whitelist")
-            if self.blacklist:
-                details.append(f"{len(self.blacklist):,} in blacklist")
-            if details:
-                start_msg += f" ({', '.join(details)})"
-            self.hugeinfo(start_msg)
-
             self.load_modules()
 
             self.info(f"Setting up modules...")
@@ -161,6 +151,16 @@ class Scanner:
 
         if not self.target:
             self.warning(f"No scan targets specified")
+
+        start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target):,} targets"
+        details = []
+        if self.whitelist != self.target:
+            details.append(f"{len(self.whitelist):,} in whitelist")
+        if self.blacklist:
+            details.append(f"{len(self.blacklist):,} in blacklist")
+        if details:
+            start_msg += f" ({', '.join(details)})"
+        self.hugeinfo(start_msg)
 
         try:
             self.status = "STARTING"

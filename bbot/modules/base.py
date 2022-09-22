@@ -83,6 +83,7 @@ class BaseModule:
 
     def __init__(self, scan):
         self.scan = scan
+        # whether this module is in an error state
         self.errored = False
         self._log = None
         self._event_queue = None
@@ -292,11 +293,13 @@ class BaseModule:
                 msg = status_codes[status]
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
-            self.set_error_state()
             if isinstance(e, WordlistError):
                 status = None
             msg = f"{e}"
             self.debug(traceback.format_exc())
+        finally:
+            if status == False:
+                self.set_error_state()
         return status, str(msg)
 
     @property

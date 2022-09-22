@@ -77,7 +77,7 @@ class DepsInstaller:
                         if not notified:
                             log.hugeinfo(f"Installing module dependencies. Please be patient, this may take a while.")
                             notified = True
-                        log.verbose(f'Installing dependencies for module "{m}"')
+                        log.info(f"Installing dependencies for {m}")
                         # get sudo access if we need it
                         if preloaded.get("sudo", False) == True:
                             self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')

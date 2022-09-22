@@ -76,7 +76,7 @@ def main():
             from bbot.scanner import Scanner
 
             try:
-                if options.list_modules and not any([options.flags, options.modules]):
+                if (options.install_all_deps or options.list_modules) and not any([options.flags, options.modules]):
                     modules = set(module_loader.preloaded(type="scan"))
                 else:
                     modules = set(options.modules)
@@ -107,6 +107,9 @@ def main():
                     all_modules = list(module_loader.preloaded())
                     scanner.helpers.depsinstaller.force_deps = True
                     scanner.helpers.depsinstaller.install(*all_modules)
+                    log.info("Running module setups")
+                    scanner.prep()
+                    scanner.cleanup()
                     log.info("Finished installing module dependencies")
                     return
 
