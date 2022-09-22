@@ -77,7 +77,9 @@ def main():
 
             try:
                 module_filtering = False
-                if (options.list_modules or options.install_all_deps or options.help_all) and not any([options.flags, options.modules]):
+                if (options.list_modules or options.install_all_deps or options.help_all) and not any(
+                    [options.flags, options.modules]
+                ):
                     module_filtering = True
                     modules = set(module_loader.preloaded(type="scan"))
                 else:
