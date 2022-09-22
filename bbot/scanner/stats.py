@@ -7,6 +7,13 @@ class ScanStats:
     def __init__(self, scan):
         self.scan = scan
         self.module_stats = {}
+        self.perf_stats = []
+
+    def function_called(self, qualname, runtime):
+        # uncomment the line below to track durations for function calls
+        # this is helpful for debugging elusive performance issues
+        # self.perf_stats.append((qualname, runtime))
+        pass
 
     def event_emitted(self, event):
         module_stat = self.get(event.module)
@@ -56,6 +63,10 @@ class ScanStats:
         return [header] + table
 
     def __str__(self):
+        self.perf_stats.sort(key=lambda x: x[-1])
+        for callback, runtime in self.perf_stats:
+            log.info(f"{callback}\t{runtime}")
+
         table = self.table()
         return self.scan.helpers.make_table(table[1:], table[0])
 

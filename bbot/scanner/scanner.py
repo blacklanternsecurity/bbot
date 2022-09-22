@@ -6,7 +6,9 @@ from pathlib import Path
 import concurrent.futures
 from omegaconf import OmegaConf
 from contextlib import suppress
-from collections import OrderedDict
+from collections import OrderedDict, deque
+
+from bbot import config as bbot_config
 
 from .stats import ScanStats
 from .target import ScanTarget
@@ -57,10 +59,12 @@ class Scanner:
         if modules is None:
             modules = []
         if output_modules is None:
-            output_modules = ["human"]
+            output_modules = ["python"]
         if config is None:
             config = OmegaConf.create({})
-        self.config = config
+        else:
+            config = OmegaConf.create(config)
+        self.config = OmegaConf.merge(bbot_config, config)
         if name is None:
             self.name = random_name()
         else:
@@ -117,11 +121,6 @@ class Scanner:
         self.manager = ScanManager(self)
         self.stats = ScanStats(self)
 
-        # prevent too many brute force modules from running at one time
-        # because they can bypass the global thread limit
-        self.max_brute_forcers = int(self.config.get("max_brute_forcers", 1))
-        self._brute_lock = threading.Semaphore(self.max_brute_forcers)
-
         # scope distance
         self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 1)))
         self.dns_search_distance = max(
@@ -142,6 +141,9 @@ class Scanner:
 
             self.success(f"Setup succeeded for {len(self.modules):,} modules.")
             self._prepped = True
+
+    def start_without_generator(self):
+        deque(self.start(), maxlen=0)
 
     def start(self):
 
@@ -188,7 +190,7 @@ class Scanner:
             if self.stopping:
                 return
 
-            self.manager.loop_until_finished()
+            yield from self.manager.loop_until_finished()
             failed = False
 
         except KeyboardInterrupt:
@@ -271,8 +273,6 @@ class Scanner:
         if self.status != "ABORTING":
             self.status = "ABORTING"
             self.hugewarning(f"Aborting scan")
-            for i in range(max(10, self.max_brute_forcers * 10)):
-                self._brute_lock.release()
             self.helpers.kill_children()
             self.shutdown_threadpools(wait=False)
             self.helpers.kill_children()

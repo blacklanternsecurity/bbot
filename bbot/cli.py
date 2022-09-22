@@ -76,7 +76,9 @@ def main():
             from bbot.scanner import Scanner
 
             try:
-                if (options.install_all_deps or options.list_modules) and not any([options.flags, options.modules]):
+                module_filtering = False
+                if (options.list_modules or options.install_all_deps or options.help_all) and not any([options.flags, options.modules]):
+                    module_filtering = True
                     modules = set(module_loader.preloaded(type="scan"))
                 else:
                     modules = set(options.modules)
@@ -90,6 +92,9 @@ def main():
                                 if f in flags:
                                     log.verbose(f'Enabling {m} because it has flag "{f}"')
                                     modules.add(m)
+
+                if not options.output_modules:
+                    options.output_modules = ["human"]
 
                 scanner = Scanner(
                     *options.targets,
@@ -180,31 +185,27 @@ def main():
                 scanner._scan_modules = list(modules)
 
                 log_fn = log.info
-                if options.list_modules:
+                if options.list_modules or options.help_all:
                     log_fn = log.stdout
 
-                module_list = list(module_loader.preloaded(type="scan").items())
-                module_list.sort(key=lambda x: x[0])
-                module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
-                header = ["Module", "Needs API Key", "Description", "Flags", "Produced Events"]
-                table = []
-                for module_name, preloaded in module_list:
-                    if module_name in modules:
-                        produced_events = sorted(preloaded.get("produced_events", []))
-                        flags = sorted(preloaded.get("flags", []))
-                        api_key_required = ""
-                        meta = preloaded.get("meta", {})
-                        if meta.get("auth_required", False):
-                            api_key_required = "X"
-                        description = meta.get("description", "")
-                        table.append(
-                            [module_name, api_key_required, description, ",".join(flags), ",".join(produced_events)]
-                        )
-                for row in scanner.helpers.make_table(table, header).splitlines():
+                help_modules = list(modules)
+                if module_filtering:
+                    help_modules = None
+
+                log_fn("\n### MODULES ###\n")
+                for row in module_loader.modules_table(modules=help_modules).splitlines():
                     log_fn(row)
-                if options.list_modules:
+
+                if options.help_all:
+                    parser.print_help()
+                    log_fn("\n### MODULE OPTIONS ###\n")
+                    for row in module_loader.modules_options_table(modules=help_modules).splitlines():
+                        log_fn(row)
+
+                if options.list_modules or options.help_all:
                     return
 
+                module_list = module_loader.filter_modules(modules=modules)
                 deadly_modules = [
                     m[0] for m in module_list if "deadly" in m[-1]["flags"] and m[0] in scanner._scan_modules
                 ]
@@ -224,8 +225,10 @@ def main():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
 
-                    scanner.start()
+                    scanner.start_without_generator()
 
+            except bbot.core.errors.ScanError as e:
+                log_to_stderr(str(e), level="ERROR")
             except Exception:
                 raise
             finally:

@@ -14,6 +14,7 @@ import subprocess as sp
 from pathlib import Path
 from itertools import islice
 from datetime import datetime
+from tabulate import tabulate
 from contextlib import suppress
 import tldextract as _tldextract
 from urllib.parse import urlparse, quote  # noqa F401
@@ -679,3 +680,22 @@ def verify_sudo_password(sudo_pass):
     except sp.CalledProcessError:
         return False
     return True
+
+
+def make_table(*args, **kwargs):
+    """
+    make_table([["row1", "row1"], ["row2", "row2"]], ["header1", "header2"]) -->
+
+    +-----------+-----------+
+    | header1   | header2   |
+    +===========+===========+
+    | row1      | row1      |
+    +-----------+-----------+
+    | row2      | row2      |
+    +-----------+-----------+
+    """
+    defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": 40}
+    for k, v in defaults.items():
+        if k not in kwargs:
+            kwargs[k] = v
+    return tabulate(*args, **kwargs)

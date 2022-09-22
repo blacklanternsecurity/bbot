@@ -333,6 +333,13 @@ class BaseEvent:
                 return json.dumps(self.data, sort_keys=True)
         return smart_decode(self.data)
 
+    @property
+    def data_json(self):
+        """
+        JSON representation of event.data
+        """
+        return self.data
+
     def __contains__(self, other):
         """
         Allows events to be compared using the "in" operator:
@@ -355,7 +362,7 @@ class BaseEvent:
             return host_in_host(other.host, self.host)
         return False
 
-    def json(self, mode="graph"):
+    def json(self, mode="json"):
         j = dict()
         for i in ("type", "id", "web_spider_distance"):
             v = getattr(self, i, "")
@@ -367,7 +374,8 @@ class BaseEvent:
         else:
             j["data"] = smart_decode(self.data)
         j["scope_distance"] = self.scope_distance
-        j["scan"] = self.scan.id
+        if self.scan:
+            j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
         source_id = self.source_id
         if source_id:
