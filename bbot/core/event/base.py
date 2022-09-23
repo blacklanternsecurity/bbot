@@ -627,6 +627,10 @@ class URL(URL_UNVERIFIED):
             )
         return super().sanitize_data(data)
 
+    @property
+    def resolved_hosts(self):
+        return [i.split('-')[1] for i in self.tags if i.startswith('ip-')]
+
 
 class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):
     def sanitize_data(self, data):
