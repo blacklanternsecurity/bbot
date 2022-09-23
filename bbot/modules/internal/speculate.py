@@ -58,9 +58,14 @@ class speculate(BaseInternalModule):
         # from hosts
         if emit_open_ports:
             # don't act on unresolved DNS_NAMEs
-            if event.type == "IP_ADDRESS" or (
-                event.type == "DNS_NAME" and any([x in event.tags for x in ("a_record", "aaaa_record")])
-            ):
+
+            usable_dns = False
+            if event.type == "DNS_NAME":
+
+                if "a-record" in event.tags or "aaaa-record" in event.tags:
+                    usable_dns = True
+
+            if event.type == "IP_ADDRESS" or usable_dns:
                 self.emit_event(self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True)
                 self.emit_event(
                     self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True

@@ -27,7 +27,9 @@ class CSV(BaseOutputModule):
     def writer(self):
         if self._writer is None:
             self._writer = csv.writer(self.file)
-            self._writer.writerow(["Event type", "Event data", "Source Module", "Scope Distance", "Event Tags"])
+            self._writer.writerow(
+                ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
+            )
         return self._writer
 
     @property
@@ -45,6 +47,7 @@ class CSV(BaseOutputModule):
             [
                 getattr(event, "type", ""),
                 getattr(event, "data", ""),
+                ",".join(str(x) for x in getattr(event, "resolved_hosts", set())),
                 str(getattr(event, "module", "")),
                 str(getattr(event, "scope_distance", "")),
                 ",".join(sorted(list(getattr(event, "tags", [])))),

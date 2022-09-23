@@ -808,8 +808,12 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     assert helpers.is_wildcard("mail.google.com") == (False, "google.com")
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
-    children, event_tags1, event_whitelisted1, event_blacklisted1 = scan.helpers.resolve_event(wildcard_event1)
-    children, event_tags2, event_whitelisted2, event_blacklisted2 = scan.helpers.resolve_event(wildcard_event2)
+    children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts = scan.helpers.resolve_event(
+        wildcard_event1
+    )
+    children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts = scan.helpers.resolve_event(
+        wildcard_event2
+    )
     assert "wildcard" in event_tags1
     assert "wildcard" in event_tags2
     assert wildcard_event1.data == "_wildcard.github.io"
@@ -817,6 +821,20 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     assert event_tags1 == event_tags2
     assert event_whitelisted1 == event_whitelisted2
     assert event_blacklisted1 == event_blacklisted2
+
+    # Ensure events with hosts have resolved_hosts attribute populated
+
+    resolved_hosts_event1 = scan.make_event("dns.google", "DNS_NAME", dummy=True)
+    resolved_hosts_event2 = scan.make_event("http://dns.google/", "URL_UNVERIFIED", dummy=True)
+    children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts1 = scan.helpers.resolve_event(
+        resolved_hosts_event1
+    )
+    children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts2 = scan.helpers.resolve_event(
+        resolved_hosts_event2
+    )
+
+    assert "8.8.8.8" in [str(x) for x in resolved_hosts1]
+    assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
 
     msg = "Ignore this error, it belongs here"
 
@@ -1300,7 +1318,7 @@ def test_cli(monkeypatch, bbot_config):
     assert (scan_home / "output.json").is_file()
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
-        assert lines[0] == "Event type,Event data,Source Module,Scope Distance,Event Tags\n"
+        assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
         assert len(lines) > 1
 
 
