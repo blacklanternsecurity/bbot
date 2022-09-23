@@ -25,11 +25,13 @@ Prerequisites:
 
 ## Installation (docker)
 ~~~bash
-git clone https://github.com/blacklanternsecurity/bbot && cd bbot
-docker build . -t bbot
-docker run bbot --help
+# bleeding edge (dev)
+docker run blacklanternsecurity/bbot --help
 
-# note: alternatively there is a helper script that will automatically map docker volumes to persist your BBOT scan data:
+# stable
+docker run blacklanternsecurity/bbot:stable --help
+
+# note: alternatively there is a helper script that will map docker volumes to persist your BBOT scan data:
 ./bbot-docker.sh --help
 ~~~
 
