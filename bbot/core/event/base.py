@@ -629,7 +629,7 @@ class URL(URL_UNVERIFIED):
 
     @property
     def resolved_hosts(self):
-        return [i.split('-')[1] for i in self.tags if i.startswith('ip-')]
+        return [i.split("-")[1] for i in self.tags if i.startswith("ip-")]
 
 
 class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):
