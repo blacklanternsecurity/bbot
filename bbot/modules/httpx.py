@@ -33,6 +33,7 @@ class httpx(BaseModule):
 
     def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
+        self.retries = self.scan.config.get("httpx_retries", 1)
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.visited = set()
         return True
@@ -88,6 +89,8 @@ class httpx(BaseModule):
             "-include-response",
             "-timeout",
             self.timeout,
+            "-retries",
+            self.retries,
             "-header",
             f"User-Agent: {self.scan.useragent}",
             "-response-size-to-read",
