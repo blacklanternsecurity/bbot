@@ -6,16 +6,24 @@ class aspnet_viewstate(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["VULNERABILITY"]
-    flags = ["active"]
+    flags = ["active", "safe", "web-basic"]
+    meta = {"description": "Parse web pages for viewstates and check them against blacklist3r"}
 
     generator_regex = re.compile(r'<input.+__VIEWSTATEGENERATOR"\svalue="(\w+)"')
     viewstate_regex = re.compile(r'<input.+__VIEWSTATE"\svalue="(.+)"')
 
     deps_ansible = [
         {
-            "name": "Install mono-runtime",
+            "name": "Install mono-runtime/zip (Debian, Redhat)",
             "become": True,
-            "apt": {"name": ["mono-runtime", "zip"], "state": "latest", "update_cache": True},
+            "apt": {"name": ["mono-runtime", "zip"], "state": "latest"},
+            "when": """ansible_facts['os_family'] in ['Debian', 'RedHat']""",
+        },
+        {
+            "name": "Install mono/zip (Archlinux)",
+            "become": True,
+            "package": {"name": ["mono", "zip"], "state": "latest"},
+            "when": """ansible_facts['os_family'] == 'Archlinux'""",
         },
         {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "{BBOT_TOOLS}/blacklist3r/"}},
         {
