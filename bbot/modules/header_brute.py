@@ -61,8 +61,8 @@ class header_brute(BaseModule):
         abort_threshold = 25
         try:
             for group in self.helpers.grouper(wordlist_cleaned, batch_size):
-                for result, reason, reflection in self.binary_search(compare_helper, url, group):
-                    results.add((result, reason, reflection))
+                for result, reasons, reflection in self.binary_search(compare_helper, url, group):
+                    results.add((result, ",".join(reasons), reflection))
                     if len(results) >= abort_threshold:
                         self.warning(
                             f"Abort threshold ({abort_threshold}) reached, too many {self.compare_mode}s found"
@@ -74,13 +74,13 @@ class header_brute(BaseModule):
         except AssertionError:
             pass
 
-        for result, reason, reflection in results:
+        for result, reasons, reflection in results:
+            self.hugewarning(reasons)
+
             tags = []
             if reflection:
                 tags = ["http_reflection"]
-            description = (
-                f"[{self.compare_mode.upper()}_BRUTE] {self.compare_mode.capitalize()}: [{result}] Reason: [{reason}]"
-            )
+            description = f"[{self.compare_mode.upper()}_BRUTE] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}]"
             self.emit_event(
                 {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
@@ -116,15 +116,15 @@ class header_brute(BaseModule):
             return True
         return False
 
-    def binary_search(self, compare_helper, url, group, reason=None, reflection=False):
+    def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
         if len(group) == 1:
-            yield group[0], reason, reflection
+            yield group[0], reasons, reflection
         elif len(group) > 1:
             for group_slice in self.helpers.split_list(group):
-                match, reason, reflection, subject_response = self.check_batch(compare_helper, url, group_slice)
+                match, reasons, reflection, subject_response = self.check_batch(compare_helper, url, group_slice)
                 if match == False:
-                    yield from self.binary_search(compare_helper, url, group_slice, reason, reflection)
+                    yield from self.binary_search(compare_helper, url, group_slice, reasons, reflection)
         else:
             self.warning(f"Submitted group of size 0 to binary_search()")
 

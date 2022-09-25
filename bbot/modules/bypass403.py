@@ -92,7 +92,7 @@ class bypass403(BaseModule):
                 headers = dict(sig[2])
             else:
                 headers = None
-            match, reason, reflection, subject_response = compare_helper.compare(
+            match, reasons, reflection, subject_response = compare_helper.compare(
                 sig[1], headers=headers, method=sig[0], allow_redirects=True
             )
 
@@ -104,7 +104,7 @@ class bypass403(BaseModule):
                         reported_signature = f"Added Header: {added_header_tuple[0]}: {added_header_tuple[1]}"
                     else:
                         reported_signature = f"Modified URL: {sig[1]}"
-                    description = f"403 Bypass Reason: [{reason}] Sig: [{reported_signature}]"
+                    description = f"403 Bypass Reasons: [{','.join(reasons)}] Sig: [{reported_signature}]"
                     self.emit_event(
                         {"description": description, "host": event.host, "url": event.data}, "FINDING", source=event
                     )

@@ -155,21 +155,29 @@ class HttpCompare:
             log.debug(f"Cant HTML parse for {subject.split('?')[0]}. Switching to text parsing as a backup")
             subject_json = subject_response.text.split("\n")
 
+        diff_conditions = []
+
         if self.baseline.status_code != subject_response.status_code:
             log.debug(
                 f"status code was different [{str(self.baseline.status_code)}] -> [{str(subject_response.status_code)}], no match"
             )
-            return (False, "code", reflection, subject_response)
+            diff_conditions.append("code")
+
 
         different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
         if different_headers:
             log.debug(f"headers were different, no match [{different_headers}]")
-            return (False, "header", reflection, subject_response)
+            diff_conditions.append("header")
 
         if self.compare_body(self.baseline_json, subject_json) == False:
             log.debug(f"difference in HTML body, no match")
-            return (False, "body", reflection, subject_response)
-        return (True, None, False, None)
+
+            diff_conditions.append("body")
+
+        if not diff_conditions:
+            return (True, [], False, None)
+        else:
+            return (False, diff_conditions, reflection, subject_response)
 
     def canary_check(self, url, mode, rounds=6):
         """
@@ -189,7 +197,7 @@ class HttpCompare:
             else:
                 raise ValueError(f'Invalid mode: "{mode}", choose from: getparam, header, cookie')
 
-            match, reason, reflection, subject_response = self.compare(new_url, headers=headers, cookies=cookies)
+            match, reasons, reflection, subject_response = self.compare(new_url, headers=headers, cookies=cookies)
 
             # a nonsense header "caused" a difference, we need to abort
             if match == False:
