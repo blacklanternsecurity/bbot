@@ -41,7 +41,6 @@ class url_manipulation(BaseModule):
         for sig in signatures:
 
             sig = self.format_signature(sig, event)
-            self.hugeinfo(sig[1])
             match, reasons, reflection, subject_response = compare_helper.compare(
                 sig[1], method=sig[0], allow_redirects=True
             )
