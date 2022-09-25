@@ -163,7 +163,6 @@ class HttpCompare:
             )
             diff_conditions.append("code")
 
-
         different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
         if different_headers:
             log.debug(f"headers were different, no match [{different_headers}]")
