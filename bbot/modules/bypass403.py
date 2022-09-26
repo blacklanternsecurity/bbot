@@ -106,7 +106,9 @@ class bypass403(BaseModule):
                         reported_signature = f"Modified URL: {sig[1]}"
                     description = f"403 Bypass Reasons: [{','.join(reasons)}] Sig: [{reported_signature}]"
                     self.emit_event(
-                        {"description": description, "host": event.host, "url": event.data}, "FINDING", source=event
+                        {"description": description, "host": str(event.host), "url": event.data},
+                        "FINDING",
+                        source=event,
                     )
                 else:
                     self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")

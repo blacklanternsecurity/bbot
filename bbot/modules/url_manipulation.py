@@ -52,7 +52,7 @@ class url_manipulation(BaseModule):
                         reported_signature = f"Modified URL: {sig[1]}"
                         description = f"Url Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
                         self.emit_event(
-                            {"description": description, "host": event.host, "url": event.data},
+                            {"description": description, "host": str(event.host), "url": event.data},
                             "FINDING",
                             source=event,
                         )
