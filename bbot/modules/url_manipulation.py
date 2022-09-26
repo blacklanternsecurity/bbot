@@ -42,7 +42,7 @@ class url_manipulation(BaseModule):
 
             sig = self.format_signature(sig, event)
             match, reasons, reflection, subject_response = compare_helper.compare(
-                sig[1], method=sig[0], allow_redirects=True
+                sig[1], method=sig[0], allow_redirects=False
             )
 
             if match == False:
