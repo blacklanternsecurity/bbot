@@ -44,6 +44,7 @@ class ScanManager:
         # skip event if it fails precheck
         if not self._event_precheck(event):
             event.release_semaphore()
+            event._resolved.set()
             return
         # "quick" queues the event immediately
         quick = kwargs.pop("quick", False)
@@ -57,6 +58,7 @@ class ScanManager:
                 log.debug(traceback.format_exc())
             finally:
                 event.release_semaphore()
+                event._resolved.set()
         else:
             # don't raise an exception if the thread pool has been shutdown
             try:
@@ -66,6 +68,7 @@ class ScanManager:
                     log.error(f"Unexpected error in manager.emit_event(): {e}")
                     log.debug(traceback.format_exc())
                 event.release_semaphore()
+                event._resolved.set()
 
     def _event_precheck(self, event):
         """
@@ -102,7 +105,9 @@ class ScanManager:
 
             # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
-            if not skip_dns_resolution:
+            if skip_dns_resolution:
+                event._resolved.set()
+            else:
                 # DNS resolution
                 (
                     dns_children,

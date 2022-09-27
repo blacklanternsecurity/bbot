@@ -122,7 +122,9 @@ class BaseEvent:
             if _internal:  # or source._internal:
                 self.make_internal()
 
+        # a threading event indicating whether the event has undergone DNS resolution yet
         self._resolved = ThreadingEvent()
+
         self._event_semaphore_acquired = False
         self._event_semaphore_released = False
 
