@@ -75,7 +75,6 @@ class header_brute(BaseModule):
             pass
 
         for result, reasons, reflection in results:
-            self.hugewarning(reasons)
 
             tags = []
             if reflection:
