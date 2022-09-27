@@ -14,24 +14,30 @@ class aspnet_viewstate(BaseModule):
 
     deps_ansible = [
         {
-            "name": "Install mono-runtime/zip (Debian, Redhat)",
+            "name": "Install mono (Debian)",
             "become": True,
-            "apt": {"name": ["mono-runtime", "zip"], "state": "latest"},
-            "when": """ansible_facts['os_family'] in ['Debian', 'RedHat']""",
+            "package": {"name": ["mono-complete"], "state": "latest"},
+            "when": """ansible_facts['os_family'] == 'Debian'""",
         },
         {
-            "name": "Install mono/zip (Archlinux)",
+            "name": "Install mono (Redhat)",
             "become": True,
-            "package": {"name": ["mono", "zip"], "state": "latest"},
+            "package": {"name": ["mono-complete"], "state": "latest"},
+            "when": """ansible_facts['os_family'] == 'RedHat'""",
+        },
+        {
+            "name": "Install mono (Archlinux)",
+            "become": True,
+            "package": {"name": ["mono"], "state": "latest"},
             "when": """ansible_facts['os_family'] == 'Archlinux'""",
         },
-        {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "{BBOT_TOOLS}/blacklist3r/"}},
+        {"name": "Create blacklist3r dir", "file": {"state": "directory", "path": "#{BBOT_TOOLS}/blacklist3r/"}},
         {
             "name": "Unarchive blacklist3r",
             "unarchive": {
                 "src": "https://github.com/NotSoSecure/Blacklist3r/releases/download/4.0/AspDotNetWrapper.zip",
                 "include": ["MachineKeys.txt", "CommandLine.dll", "AspDotNetWrapper.exe"],
-                "dest": "{BBOT_TOOLS}/blacklist3r/",
+                "dest": "#{BBOT_TOOLS}/blacklist3r/",
                 "remote_src": True,
             },
         },
@@ -46,8 +52,12 @@ class aspnet_viewstate(BaseModule):
             generator = generator_match.group(1)
             viewstate = viewstate_match.group(1)
             self.debug(f"Discovered viewstate for URL {event.data['url']}")
-            self.emit_event({"technology": "asp", "url": event.data["url"]}, "TECHNOLOGY", event)
-            self.emit_event({"technology": "iis", "url": event.data["url"]}, "TECHNOLOGY", event)
+            self.emit_event(
+                {"technology": "asp", "url": event.data["url"], "host": str(event.host)}, "TECHNOLOGY", event
+            )
+            self.emit_event(
+                {"technology": "iis", "url": event.data["url"], "host": str(event.host)}, "TECHNOLOGY", event
+            )
             tool_path = self.scan.helpers.tools_dir / "blacklist3r/"
             command = [
                 "mono",
@@ -69,7 +79,12 @@ class aspnet_viewstate(BaseModule):
                     if "ValidationKey" in x:
                         solvedValidation = x.split(":")[1]
 
-                data = f"[CRITICAL] Known MachineKey found. URL: [{event.data['url']}] EncryptionKey: [{solvedDecryption}] ValidationKey: [{solvedValidation}]"
-                self.emit_event(data, "VULNERABILITY", event, tags=["critical"])
+                data = {
+                    "severity": "CRITICAL",
+                    "description": f"Known MachineKey found. EncryptionKey: [{solvedDecryption}], ValidationKey: [{solvedValidation}]",
+                    "url": event.data["url"],
+                    "host": str(event.host),
+                }
+                self.emit_event(data, "VULNERABILITY", event)
         else:
             self.debug("aspnet_viewstate viewstate not found")
