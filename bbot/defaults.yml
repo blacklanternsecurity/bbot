@@ -32,6 +32,8 @@ http_proxy:
 http_timeout: 30
 # HTTP timeout (for httpx)
 httpx_timeout: 5
+# HTTP retries (for httpx)
+httpx_retries: 1
 # Enable/disable debug messages for web requests/responses
 http_debug: false
 # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
