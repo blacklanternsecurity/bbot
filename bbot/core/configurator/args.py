@@ -6,7 +6,8 @@ from contextlib import suppress
 
 from ..errors import ArgumentError
 from ...modules import module_loader
-from ..helpers.misc import chain_lists, log_to_stderr
+from ..helpers.misc import chain_lists
+from ..helpers.logger import log_to_stderr
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
@@ -59,6 +60,7 @@ class DummyArgumentParser(BBOTArgumentParser):
 parser = BBOTArgumentParser(description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter)
 dummy_parser = DummyArgumentParser(description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter)
 for p in (parser, dummy_parser):
+    p.add_argument("--help-all", action="store_true", help="Display full help including module config options")
     target = p.add_argument_group(title="Target")
     target.add_argument("-t", "--targets", nargs="+", default=[], help="Targets to seed the scan", metavar="TARGET")
     target.add_argument(
@@ -158,8 +160,11 @@ for p in (parser, dummy_parser):
     g2.add_argument(
         "--ignore-failed-deps", action="store_true", help="Run modules even if they have failed dependencies"
     )
+    g2.add_argument("--install-all-deps", action="store_true", help="Install dependencies for all modules")
     agent = p.add_argument_group(title="Agent", description="Report back to a central server")
     agent.add_argument("-a", "--agent-mode", action="store_true", help="Start in agent mode")
+    misc = p.add_argument_group(title="Misc")
+    misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
 
 
 cli_options = None

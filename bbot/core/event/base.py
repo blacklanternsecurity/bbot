@@ -59,6 +59,8 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self.__words = None
+        self._resolved_hosts = set()
+
         self._made_internal = False
         # whether to force-send to output modules
         self._force_output = False
@@ -120,13 +122,23 @@ class BaseEvent:
             if _internal:  # or source._internal:
                 self.make_internal()
 
+        # a threading event indicating whether the event has undergone DNS resolution yet
         self._resolved = ThreadingEvent()
+
         self._event_semaphore_acquired = False
         self._event_semaphore_released = False
 
     @property
     def data(self):
         return self._data
+
+    @property
+    def resolved_hosts(self):
+        if is_ip(self.host):
+            return {
+                self.host,
+            }
+        return self._resolved_hosts
 
     @data.setter
     def data(self, data):
@@ -212,10 +224,10 @@ class BaseEvent:
     def source(self, source):
         if is_event(source):
             self._source = source
-            if source.scope_distance >= 0 and source != self:
+            if source.scope_distance >= 0:
                 new_scope_distance = int(source.scope_distance)
                 # only increment the scope distance if the host changes
-                if not self.host == source.host:
+                if self.host != source.host:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
         elif not self._dummy:
@@ -333,6 +345,13 @@ class BaseEvent:
                 return json.dumps(self.data, sort_keys=True)
         return smart_decode(self.data)
 
+    @property
+    def data_json(self):
+        """
+        JSON representation of event.data
+        """
+        return self.data
+
     def __contains__(self, other):
         """
         Allows events to be compared using the "in" operator:
@@ -355,7 +374,7 @@ class BaseEvent:
             return host_in_host(other.host, self.host)
         return False
 
-    def json(self, mode="graph"):
+    def json(self, mode="json"):
         j = dict()
         for i in ("type", "id", "web_spider_distance"):
             v = getattr(self, i, "")
@@ -367,8 +386,11 @@ class BaseEvent:
         else:
             j["data"] = smart_decode(self.data)
         j["scope_distance"] = self.scope_distance
-        j["scan"] = self.scan.id
+        if self.scan:
+            j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
+        if self.host:
+            j["resolved_hosts"] = [str(h) for h in self.resolved_hosts]
         source_id = self.source_id
         if source_id:
             j["source"] = source_id
@@ -614,6 +636,10 @@ class URL(URL_UNVERIFIED):
                 'Must specify HTTP status tag for URL event, e.g. "status-200". Use URL_UNVERIFIED if the URL is unvisited.'
             )
         return super().sanitize_data(data)
+
+    @property
+    def resolved_hosts(self):
+        return [i.split("-")[1] for i in self.tags if i.startswith("ip-")]
 
 
 class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):

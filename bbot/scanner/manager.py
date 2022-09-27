@@ -41,6 +41,12 @@ class ScanManager:
             mod._handle_batch(force=True)
 
     def emit_event(self, event, *args, **kwargs):
+        # skip event if it fails precheck
+        if not self._event_precheck(event):
+            event.release_semaphore()
+            event._resolved.set()
+            return
+        # "quick" queues the event immediately
         quick = kwargs.pop("quick", False)
         if quick:
             kwargs.pop("abort_if", None)
@@ -48,19 +54,46 @@ class ScanManager:
             try:
                 self.queue_event(event, *args, **kwargs)
             except Exception as e:
-                self.error(f"Unexpected error in manager.emit_event(): {e}")
-                self.debug(traceback.format_exc())
+                log.error(f"Unexpected error in manager.emit_event(): {e}")
+                log.debug(traceback.format_exc())
             finally:
                 event.release_semaphore()
+                event._resolved.set()
         else:
             # don't raise an exception if the thread pool has been shutdown
             try:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
             except Exception as e:
                 if not isinstance(e, RuntimeError):
-                    self.error(f"Unexpected error in manager.emit_event(): {e}")
-                    self.debug(traceback.format_exc())
+                    log.error(f"Unexpected error in manager.emit_event(): {e}")
+                    log.debug(traceback.format_exc())
                 event.release_semaphore()
+                event._resolved.set()
+
+    def _event_precheck(self, event):
+        """
+        Check an event previous to its DNS resolution etc. to see if we can save on performance by skipping it
+        """
+        if event._dummy:
+            log.warning(f"Cannot emit dummy event: {event}")
+            return False
+        if event == event.get_source():
+            log.debug(f"Skipping event with self as source: {event}")
+            return False
+
+        # we exclude DNS_NAMEs because we haven't done wildcard checking yet
+        if event.type != "DNS_NAME":
+            if self.is_duplicate_event(event):
+                log.debug(f"Skipping {event} because it is a duplicate")
+                return False
+            any_acceptable = False
+            for mod in self.scan.modules.values():
+                acceptable, reason = mod._filter_event(event, precheck_only=True)
+                any_acceptable |= acceptable
+            if not any_acceptable:
+                log.debug(f"Skipping {event} because no modules would accept it")
+            return any_acceptable
+        return True
 
     def _emit_event(self, event, *args, **kwargs):
         emit_event = True
@@ -70,24 +103,22 @@ class ScanManager:
             abort_if = kwargs.pop("abort_if", None)
             log.debug(f'Module "{event.module}" raised {event}')
 
-            if event._dummy:
-                log.warning(f"Cannot emit dummy event: {event}")
-                return
-
-            if event == event.get_source():
-                log.debug(f"Omitting event with self as source: {event}")
-                return
-
-            skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
             # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
-            if not skip_dns_resolution:
+            skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
+            if skip_dns_resolution:
+                event._resolved.set()
+            else:
                 # DNS resolution
                 (
                     dns_children,
                     dns_tags,
                     event_whitelisted_dns,
                     event_blacklisted_dns,
+                    resolved_hosts,
                 ) = self.scan.helpers.dns.resolve_event(event)
+
+                event._resolved_hosts = resolved_hosts
+
                 event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
                 event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
                 if event.type in ("DNS_NAME", "IP_ADDRESS"):
@@ -104,14 +135,15 @@ class ScanManager:
                     emit_event = False
 
                 # Wait for parent event to resolve (in case its scope distance changes)`
-                while 1:
-                    if self.scan.stopping:
-                        raise ScanCancelledError()
-                    resolved = event._resolved.wait(timeout=0.1)
-                    if resolved:
-                        # update event's scope distance based on its parent
-                        event.scope_distance = event.source.scope_distance + 1
-                        break
+                if not event_whitelisted or "target" not in event.tags:
+                    while 1:
+                        if self.scan.stopping:
+                            raise ScanCancelledError()
+                        resolved = event._resolved.wait(timeout=0.1)
+                        if resolved:
+                            # update event's scope distance based on its parent
+                            event.scope_distance = event.source.scope_distance + 1
+                            break
 
                 # Scope shepherding
                 event_is_duplicate = self.is_duplicate_event(event)
@@ -223,6 +255,8 @@ class ScanManager:
         ret = None
         on_finish_callback = kwargs.pop("_on_finish_callback", None)
         force = kwargs.pop("_force", False)
+        start_time = datetime.now()
+        callback_name = f"{callback.__qualname__}({args}, {kwargs})"
         try:
             if not self.scan.stopping or force:
                 ret = callback(*args, **kwargs)
@@ -236,6 +270,9 @@ class ScanManager:
         except KeyboardInterrupt:
             log.debug(f"Interrupted")
             self.scan.stop()
+        finally:
+            run_time = datetime.now() - start_time
+            self.scan.stats.function_called(callback_name, run_time)
         if callable(on_finish_callback):
             try:
                 on_finish_callback()
@@ -261,9 +298,6 @@ class ScanManager:
         """
         Queue event with modules
         """
-        # TODO: save memory by removing reference to source object (this causes bugs)
-        # if not event._internal:
-        #    event._source = None
 
         dup = False
         event_hash = hash(event)
@@ -320,8 +354,12 @@ class ScanManager:
                     self.modules_status(_log=True, passes=1)
                     last_log_time = now
 
+                if "python" in self.scan.modules:
+                    events, finish, report = self.scan.modules["python"].events_waiting
+                    yield from events
+
                 try:
-                    event = self.event_queue.get_nowait()
+                    event = self.event_queue.get(timeout=0.1)
                     event_counter += 1
                 except queue.Empty:
                     finished = self.modules_status().get("finished", False)
@@ -340,9 +378,6 @@ class ScanManager:
                         else:
                             # Otherwise stop the scan if no new events were generated in this iteration
                             break
-                    else:
-                        # save on CPU
-                        sleep(0.01)
                     counter += 1
                     continue
 

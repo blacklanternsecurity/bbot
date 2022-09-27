@@ -10,9 +10,11 @@ import string
 import logging
 import ipaddress
 import wordninja
+import subprocess as sp
 from pathlib import Path
 from itertools import islice
 from datetime import datetime
+from tabulate import tabulate
 from contextlib import suppress
 import tldextract as _tldextract
 from urllib.parse import urlparse, quote  # noqa F401
@@ -444,9 +446,9 @@ def search_format_dict(d, **kwargs):
     elif isinstance(d, list):
         return [search_format_dict(v, **kwargs) for v in d]
     elif isinstance(d, str):
-        return d.format(**kwargs)
-    else:
-        return d
+        for k, v in kwargs.items():
+            d = d.replace("#{" + str(k) + "}", v)
+    return d
 
 
 def filter_dict(d, *key_names, fuzzy=False, invert=False):
@@ -664,3 +666,39 @@ def log_to_stderr(msg, level="INFO"):
         if levelname == "CRITICAL" or levelname.startswith("HUGE"):
             msg = colorize(msg)
         print(f"{levelshort} bbot: {msg}", file=sys.stderr)
+
+
+def verify_sudo_password(sudo_pass):
+    try:
+        sp.run(
+            ["sudo", "-S", "-k", "true"],
+            input=smart_encode(sudo_pass),
+            stderr=sp.DEVNULL,
+            stdout=sp.DEVNULL,
+            check=True,
+        )
+    except sp.CalledProcessError:
+        return False
+    return True
+
+
+def make_table(*args, **kwargs):
+    """
+    make_table([["row1", "row1"], ["row2", "row2"]], ["header1", "header2"]) -->
+
+    +-----------+-----------+
+    | header1   | header2   |
+    +===========+===========+
+    | row1      | row1      |
+    +-----------+-----------+
+    | row2      | row2      |
+    +-----------+-----------+
+    """
+    # fix IndexError: list index out of range
+    if args and not args[0]:
+        args = ([[]],) + args[1:]
+    defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": 40}
+    for k, v in defaults.items():
+        if k not in kwargs:
+            kwargs[k] = v
+    return tabulate(*args, **kwargs)

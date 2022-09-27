@@ -22,18 +22,18 @@ class massdns(crobat):
             "name": "Download massdns source code",
             "git": {
                 "repo": "https://github.com/blechschmidt/massdns.git",
-                "dest": "{BBOT_TEMP}/massdns",
+                "dest": "#{BBOT_TEMP}/massdns",
                 "single_branch": True,
                 "version": "master",
             },
         },
         {
             "name": "Build massdns",
-            "command": {"chdir": "{BBOT_TEMP}/massdns", "cmd": "make", "creates": "{BBOT_TEMP}/massdns/bin/massdns"},
+            "command": {"chdir": "#{BBOT_TEMP}/massdns", "cmd": "make", "creates": "#{BBOT_TEMP}/massdns/bin/massdns"},
         },
         {
             "name": "Install massdns",
-            "copy": {"src": "{BBOT_TEMP}/massdns/bin/massdns", "dest": "{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
+            "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
 
@@ -42,7 +42,10 @@ class massdns(crobat):
         self.mutations_tried = set()
         self.source_events = dict()
         self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
-        return super().setup()
+        ret = super().setup()
+        if not len(self.helpers.resolvers) >= 100:
+            return None, "Not enough nameservers available for DNS brute-forcing"
+        return ret
 
     def filter_event(self, event):
         if "unresolved" in event.tags:

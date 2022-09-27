@@ -19,15 +19,23 @@ class ffuf_shortnames(ffuf):
         "extensions": "",
     }
 
+    options_desc = {
+        "wordlist": "Specify wordlist to use when finding directories",
+        "lines": "take only the first N lines from the wordlist when finding directories",
+        "max_depth": "the maxium directory depth to attempt to solve",
+        "version": "ffuf version",
+        "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
+    }
+
     in_scope_only = True
 
     deps_ansible = [
         {
             "name": "Download ffuf",
             "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v{BBOT_MODULES_FFUF_VERSION}/ffuf_{BBOT_MODULES_FFUF_VERSION}_linux_amd64.tar.gz",
+                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_linux_amd64.tar.gz",
                 "include": "ffuf",
-                "dest": "{BBOT_TOOLS}",
+                "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }

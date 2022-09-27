@@ -15,23 +15,16 @@ from bbot.core.logger import init_logging, get_log_level
 logging_queue, logging_handlers = init_logging()
 
 import bbot.core.errors
+from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
+from bbot.core.helpers.logger import log_to_stderr
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
 
 
 log_level = get_log_level()
-
-
-def log_to_stderr(msg, level=logging.INFO):
-    if log_level <= level:
-        handler = logging_handlers["stderr"]
-        record = logging.LogRecord(
-            name="bbot.cli", msg=str(msg), level=level, pathname=None, lineno=0, args=None, exc_info=None
-        )
-        print(handler.formatter.format(record), file=sys.stderr)
 
 
 from . import config
@@ -57,10 +50,17 @@ def main():
             # this is intentional since sys.exit() is monkeypatched in the tests
             return
 
+        # --version
+        if options.version:
+            log.stdout(__version__)
+            sys.exit(0)
+            return
+
         # --current-config
         if options.current_config:
             log.stdout(f"{OmegaConf.to_yaml(config)}")
             sys.exit(0)
+            return
 
         log.verbose(f'Command: {" ".join(sys.argv)}')
 
@@ -76,7 +76,9 @@ def main():
             from bbot.scanner import Scanner
 
             try:
-                if options.list_modules and not any([options.flags, options.modules]):
+                module_filtering = False
+                if (options.list_modules or options.help_all) and not any([options.flags, options.modules]):
+                    module_filtering = True
                     modules = set(module_loader.preloaded(type="scan"))
                 else:
                     modules = set(options.modules)
@@ -91,6 +93,9 @@ def main():
                                     log.verbose(f'Enabling {m} because it has flag "{f}"')
                                     modules.add(m)
 
+                if not options.output_modules:
+                    options.output_modules = ["human"]
+
                 scanner = Scanner(
                     *options.targets,
                     modules=list(modules),
@@ -102,6 +107,13 @@ def main():
                     strict_scope=options.strict_scope,
                     force_start=options.force,
                 )
+
+                if options.install_all_deps:
+                    all_modules = list(module_loader.preloaded())
+                    scanner.helpers.depsinstaller.force_deps = True
+                    scanner.helpers.depsinstaller.install(*all_modules)
+                    log.info("Finished installing module dependencies")
+                    return
 
                 scan_name = str(scanner.name)
 
@@ -170,31 +182,27 @@ def main():
                 scanner._scan_modules = list(modules)
 
                 log_fn = log.info
-                if options.list_modules:
+                if options.list_modules or options.help_all:
                     log_fn = log.stdout
 
-                module_list = list(module_loader.preloaded(type="scan").items())
-                module_list.sort(key=lambda x: x[0])
-                module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
-                header = ["Module", "Needs API Key", "Description", "Flags", "Produced Events"]
-                table = []
-                for module_name, preloaded in module_list:
-                    if module_name in modules:
-                        produced_events = sorted(preloaded.get("produced_events", []))
-                        flags = sorted(preloaded.get("flags", []))
-                        api_key_required = ""
-                        meta = preloaded.get("meta", {})
-                        if meta.get("auth_required", False):
-                            api_key_required = "X"
-                        description = meta.get("description", "")
-                        table.append(
-                            [module_name, api_key_required, description, ",".join(flags), ",".join(produced_events)]
-                        )
-                for row in scanner.helpers.make_table(table, header).splitlines():
+                help_modules = list(modules)
+                if module_filtering:
+                    help_modules = None
+
+                log_fn("\n### MODULES ###\n")
+                for row in module_loader.modules_table(modules=help_modules).splitlines():
                     log_fn(row)
-                if options.list_modules:
+
+                if options.help_all:
+                    parser.print_help()
+                    log_fn("\n### MODULE OPTIONS ###\n")
+                    for row in module_loader.modules_options_table(modules=help_modules).splitlines():
+                        log_fn(row)
+
+                if options.list_modules or options.help_all:
                     return
 
+                module_list = module_loader.filter_modules(modules=modules)
                 deadly_modules = [
                     m[0] for m in module_list if "deadly" in m[-1]["flags"] and m[0] in scanner._scan_modules
                 ]
@@ -214,8 +222,10 @@ def main():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
 
-                    scanner.start()
+                    scanner.start_without_generator()
 
+            except bbot.core.errors.ScanError as e:
+                log_to_stderr(str(e), level="ERROR")
             except Exception:
                 raise
             finally:
@@ -225,21 +235,21 @@ def main():
     except bbot.core.errors.BBOTError as e:
         import traceback
 
-        log_to_stderr(e, level=logging.ERROR)
-        log_to_stderr(traceback.format_exc(), level=logging.DEBUG)
+        log_to_stderr(e, level="ERROR")
+        log_to_stderr(traceback.format_exc(), level="ERROR")
         err = True
 
     except Exception:
         import traceback
 
-        log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level=logging.ERROR)
+        log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level="ERROR")
         err = True
 
     except KeyboardInterrupt:
         msg = "Interrupted"
         if scan_name:
             msg = f"You killed {scan_name}"
-        log_to_stderr(msg, level=logging.ERROR)
+        log_to_stderr(msg, level="ERROR")
         err = True
 
     finally:

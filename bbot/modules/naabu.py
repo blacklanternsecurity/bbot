@@ -37,16 +37,16 @@ class naabu(BaseModule):
         },
         {
             "name": "symlink libpcap",
-            "file": {"src": "/usr/lib/libpcap.so", "dest": "{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
+            "file": {"src": "/usr/lib/libpcap.so", "dest": "#{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
             "ignore_errors": "yes",
             "when": """ansible_facts['os_family'] != 'Debian'""",
         },
         {
             "name": "Download naabu",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/naabu/releases/download/v{BBOT_MODULES_NAABU_VERSION}/naabu_{BBOT_MODULES_NAABU_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/naabu/releases/download/v#{BBOT_MODULES_NAABU_VERSION}/naabu_#{BBOT_MODULES_NAABU_VERSION}_linux_amd64.zip",
                 "include": "naabu",
-                "dest": "{BBOT_TOOLS}",
+                "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
             },
         },

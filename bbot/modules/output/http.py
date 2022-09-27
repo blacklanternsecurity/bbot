@@ -53,7 +53,4 @@ class HTTP(BaseOutputModule):
             timeout = self.config.get("timeout", 10)
             self.session.send(r.prepare(), timeout=timeout)
         except RequestException as e:
-            import traceback
-
             self.warning(f"Error sending {event}: {e}")
-            self.debug(traceback.format_exc())

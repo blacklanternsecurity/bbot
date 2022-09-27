@@ -21,9 +21,9 @@ class httpx(BaseModule):
         {
             "name": "Download httpx",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/httpx/releases/download/v{BBOT_MODULES_HTTPX_VERSION}/httpx_{BBOT_MODULES_HTTPX_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/httpx/releases/download/v#{BBOT_MODULES_HTTPX_VERSION}/httpx_#{BBOT_MODULES_HTTPX_VERSION}_linux_amd64.zip",
                 "include": "httpx",
-                "dest": "{BBOT_TOOLS}",
+                "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
             },
         }
@@ -33,6 +33,7 @@ class httpx(BaseModule):
 
     def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
+        self.retries = self.scan.config.get("httpx_retries", 1)
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.visited = set()
         return True
@@ -88,6 +89,8 @@ class httpx(BaseModule):
             "-include-response",
             "-timeout",
             self.timeout,
+            "-retries",
+            self.retries,
             "-header",
             f"User-Agent: {self.scan.useragent}",
             "-response-size-to-read",
@@ -123,7 +126,8 @@ class httpx(BaseModule):
                 continue
 
             # main URL
-            url_event = self.make_event(url, "URL", source_event, tags=[f"status-{status_code}"])
+            httpx_ip = j.get("host", "unknown")
+            url_event = self.make_event(url, "URL", source_event, tags=[f"status-{status_code}", f"ip-{httpx_ip}"])
             if url_event and not "httpx-only" in url_event.tags:
                 if url_event != source_event:
                     self.emit_event(url_event)

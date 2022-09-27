@@ -22,8 +22,6 @@ root_logger = logging.getLogger()
 for h in root_logger.handlers:
     h.addFilter(lambda x: x.levelno != 100)
 
-os.environ["BBOT_SUDO_PASS"] = "nah"
-
 
 def test_events(events, scan, helpers, bbot_config):
 
@@ -166,6 +164,10 @@ def test_events(events, scan, helpers, bbot_config):
     assert event2._scope_distance == 1
     event3 = scan.make_event("3.4.5.6", source=event2)
     assert event3._scope_distance == 2
+    event4 = scan.make_event("3.4.5.6", source=event3)
+    assert event4._scope_distance == 2
+    event5 = scan.make_event("4.5.6.7", source=event4)
+    assert event5._scope_distance == 3
 
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
@@ -264,6 +266,8 @@ def test_events(events, scan, helpers, bbot_config):
     assert http_response.source_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com"
     json_event = http_response.json()
+    assert isinstance(json_event["data"], dict)
+    json_event = http_response.json(mode="graph")
     assert isinstance(json_event["data"], str)
     assert json_event["type"] == "HTTP_RESPONSE"
     assert json_event["source"] == scan.root_event.id
@@ -387,7 +391,7 @@ def test_manager(bbot_config, bbot_scanner):
     assert test_event2 not in output_queue
     assert test_event2._internal == True
     assert test_event2._force_output == False
-    assert scan1.modules["json"]._filter_event(test_event2) == False
+    assert scan1.modules["json"]._filter_event(test_event2)[0] == False
     module_queue.clear()
     output_queue.clear()
     manager.events_distributed.clear()
@@ -425,9 +429,8 @@ def test_curl(helpers):
     )
 
 
-def test_helpers(patch_requests, patch_commands, helpers, scan):
+def test_helpers(patch_requests, helpers, scan, bbot_scanner):
 
-    old_run, old_run_live = patch_commands
     request, download = patch_requests
 
     ### URL ###
@@ -600,7 +603,9 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert "filterme" in cleaned_dict3["modules"]["c99"]
     assert "ipneighbor" in cleaned_dict3["modules"]
 
-    replaced = helpers.search_format_dict({"asdf": [{"wat": {"here": "{replaceme}!"}}, {500: True}]}, replaceme="asdf")
+    replaced = helpers.search_format_dict(
+        {"asdf": [{"wat": {"here": "#{replaceme}!"}}, {500: True}]}, replaceme="asdf"
+    )
     assert replaced["asdf"][1][500] == True
     assert replaced["asdf"][0]["wat"]["here"] == "asdf!"
 
@@ -698,16 +703,17 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     command.catch(raise_brokenpipe)
 
     ### COMMAND ###
-    assert "plumbus\n" in old_run(helpers, ["echo", "plumbus"], text=True).stdout
-    assert "plumbus\n" in list(old_run_live(helpers, ["echo", "plumbus"]))
+    scan1 = bbot_scanner()
+    assert "plumbus\n" in scan1.helpers.run(["echo", "plumbus"], text=True).stdout
+    assert "plumbus\n" in list(scan1.helpers.run_live(["echo", "plumbus"]))
     expected_output = ["lumbus\n", "plumbus\n", "rumbus\n"]
-    assert list(old_run_live(helpers, ["cat"], input="lumbus\nplumbus\nrumbus")) == expected_output
+    assert list(scan1.helpers.run_live(["cat"], input="lumbus\nplumbus\nrumbus")) == expected_output
 
     def plumbus_generator():
         yield "lumbus"
         yield "plumbus"
 
-    assert "plumbus\n" in list(old_run_live(helpers, ["cat"], input=plumbus_generator()))
+    assert "plumbus\n" in list(scan1.helpers.run_live(["cat"], input=plumbus_generator()))
     tempfile = helpers.tempfile(("lumbus", "plumbus"), pipe=True)
     with open(tempfile) as f:
         assert "plumbus\n" in list(f)
@@ -784,6 +790,15 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     # "any" type
     resolved = helpers.resolve("google.com", type="any")
     assert any([helpers.is_subdomain(h) for h in resolved])
+    # dns cache
+    assert hash(f"8.8.8.8:PTR") not in helpers.dns._dns_cache
+    assert hash(f"scanme.nmap.org:A") not in helpers.dns._dns_cache
+    assert hash(f"scanme.nmap.org:AAAA") not in helpers.dns._dns_cache
+    helpers.resolve("8.8.8.8", cache_result=True)
+    assert hash(f"8.8.8.8:PTR") in helpers.dns._dns_cache
+    helpers.resolve("scanme.nmap.org", cache_result=True)
+    assert hash(f"scanme.nmap.org:A") in helpers.dns._dns_cache
+    assert hash(f"scanme.nmap.org:AAAA") in helpers.dns._dns_cache
     # wildcards
     assert helpers.is_wildcard("asdf.wat.blacklanternsecurity.github.io") == (True, "github.io")
     assert hash("github.io") in helpers.dns._wildcard_cache
@@ -793,8 +808,12 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert helpers.is_wildcard("mail.google.com") == (False, "google.com")
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
-    children, event_tags1, event_whitelisted1, event_blacklisted1 = scan.helpers.resolve_event(wildcard_event1)
-    children, event_tags2, event_whitelisted2, event_blacklisted2 = scan.helpers.resolve_event(wildcard_event2)
+    children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts = scan.helpers.resolve_event(
+        wildcard_event1
+    )
+    children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts = scan.helpers.resolve_event(
+        wildcard_event2
+    )
     assert "wildcard" in event_tags1
     assert "wildcard" in event_tags2
     assert wildcard_event1.data == "_wildcard.github.io"
@@ -802,6 +821,20 @@ def test_helpers(patch_requests, patch_commands, helpers, scan):
     assert event_tags1 == event_tags2
     assert event_whitelisted1 == event_whitelisted2
     assert event_blacklisted1 == event_blacklisted2
+
+    # Ensure events with hosts have resolved_hosts attribute populated
+
+    resolved_hosts_event1 = scan.make_event("dns.google", "DNS_NAME", dummy=True)
+    resolved_hosts_event2 = scan.make_event("http://dns.google/", "URL_UNVERIFIED", dummy=True)
+    children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts1 = scan.helpers.resolve_event(
+        resolved_hosts_event1
+    )
+    children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts2 = scan.helpers.resolve_event(
+        resolved_hosts_event2
+    )
+
+    assert "8.8.8.8" in [str(x) for x in resolved_hosts1]
+    assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
 
     msg = "Ignore this error, it belongs here"
 
@@ -891,7 +924,9 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert word_cloud["rumbus"] == 1
 
 
-def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_config, bbot_scanner):
+def test_modules_basic(
+    patch_requests, patch_commands, patch_ansible, scan, helpers, events, bbot_config, bbot_scanner
+):
 
     # base module _filter_event()
     from bbot.modules.base import BaseModule
@@ -900,40 +935,40 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
     localhost2 = scan.make_event("127.0.0.2", source=events.subdomain)
     localhost2.make_in_scope()
     # base cases
-    assert base_module._filter_event("FINISHED") == True
-    assert base_module._filter_event("WAT") == False
+    assert base_module._filter_event("FINISHED")[0] == True
+    assert base_module._filter_event("WAT")[0] == False
     base_module._watched_events = None
     base_module.watched_events = ["*"]
-    assert base_module._filter_event("WAT") == False
-    assert base_module._filter_event(events.emoji) == True
+    assert base_module._filter_event("WAT")[0] == False
+    assert base_module._filter_event(events.emoji)[0] == True
     base_module._watched_events = None
     base_module.watched_events = ["IP_ADDRESS"]
-    assert base_module._filter_event(events.ipv4) == True
-    assert base_module._filter_event(events.domain) == False
-    assert base_module._filter_event(events.localhost) == True
-    assert base_module._filter_event(localhost2) == True
+    assert base_module._filter_event(events.ipv4)[0] == True
+    assert base_module._filter_event(events.domain)[0] == False
+    assert base_module._filter_event(events.localhost)[0] == True
+    assert base_module._filter_event(localhost2)[0] == True
     # target only
     base_module.target_only = True
-    assert base_module._filter_event(localhost2) == False
+    assert base_module._filter_event(localhost2)[0] == False
     localhost2.tags.add("target")
-    assert base_module._filter_event(localhost2) == True
+    assert base_module._filter_event(localhost2)[0] == True
     base_module.target_only = False
     # in scope only
     localhost3 = scan.make_event("127.0.0.2", source=events.subdomain)
     base_module.in_scope_only = True
-    assert base_module._filter_event(events.localhost) == True
-    assert base_module._filter_event(localhost3) == False
+    assert base_module._filter_event(events.localhost)[0] == True
+    assert base_module._filter_event(localhost3)[0] == False
     base_module.in_scope_only = False
     # scope distance
     base_module.scope_distance_modifier = 0
     localhost2._scope_distance = 0
-    assert base_module._filter_event(localhost2) == True
+    assert base_module._filter_event(localhost2)[0] == True
     localhost2._scope_distance = 1
-    assert base_module._filter_event(localhost2) == True
+    assert base_module._filter_event(localhost2)[0] == True
     localhost2._scope_distance = 2
-    assert base_module._filter_event(localhost2) == False
+    assert base_module._filter_event(localhost2)[0] == False
     localhost2._scope_distance = -1
-    assert base_module._filter_event(localhost2) == False
+    assert base_module._filter_event(localhost2)[0] == False
     base_module.scope_distance_modifier = -1
     # special case for IPs and ranges
     base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
@@ -941,13 +976,15 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
     localhost4 = scan.make_event("127.0.0.1", source=ip_range)
     localhost4.make_in_scope()
     localhost4.module = "plumbus"
-    assert base_module._filter_event(localhost4) == True
+    assert base_module._filter_event(localhost4)[0] == True
     localhost4.module = "speculate"
-    assert base_module._filter_event(localhost4) == False
+    assert base_module._filter_event(localhost4)[0] == False
 
     scan2 = bbot_scanner(
         modules=list(available_modules), output_modules=list(available_output_modules), config=bbot_config
     )
+    patch_commands(scan2)
+    patch_ansible(scan2)
     scan2.load_modules()
     scan2.status = "RUNNING"
 
@@ -996,10 +1033,10 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
         assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pipe must be of type list"
         assert type(preloaded.get("deps_apt", [])) == list, f"{module_name}.deps_apt must be of type list"
         assert type(preloaded.get("deps_shell", [])) == list, f"{module_name}.deps_shell must be of type list"
-        assert type(preloaded.get("options", {})) == dict, f"{module_name}.options must be of type list"
-        assert type(preloaded.get("options_desc", {})) == dict, f"{module_name}.options_desc must be of type list"
+        assert type(preloaded.get("config", None)) == dict, f"{module_name}.options must be of type list"
+        assert type(preloaded.get("options_desc", None)) == dict, f"{module_name}.options_desc must be of type list"
         # options must have descriptions
-        assert set(preloaded.get("options", {})) == set(
+        assert set(preloaded.get("config", {})) == set(
             preloaded.get("options_desc", {})
         ), f"{module_name}.options do not match options_desc"
         # descriptions most not be blank
@@ -1042,7 +1079,7 @@ def test_modules(patch_requests, patch_commands, scan, helpers, events, bbot_con
     futures = {}
     for module_name, module in scan2.modules.items():
         module.emit_event = lambda *args, **kwargs: None
-        module._filter = lambda *args, **kwargs: True
+        module._filter = lambda *args, **kwargs: True, ""
         events_to_submit = [e for e in events.all if e.type in module.watched_events]
         if module.batch_size > 1:
             log.info(f"Testing {module_name}.handle_batch()")
@@ -1097,11 +1134,11 @@ def test_config(bbot_config, bbot_scanner):
     scan1.load_modules()
     assert scan1.config.plumbus == "asdf"
     assert scan1.modules["ipneighbor"].config.test_option == "ipneighbor"
-    assert scan1.modules["human"].config.test_option == "human"
+    assert scan1.modules["python"].config.test_option == "asdf"
     assert scan1.modules["speculate"].config.test_option == "speculate"
 
 
-def test_target(neuter_ansible, patch_requests, patch_commands, bbot_config, bbot_scanner):
+def test_target(patch_ansible, patch_requests, bbot_config, bbot_scanner):
     scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126", config=bbot_config)
     scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
     scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
@@ -1134,7 +1171,7 @@ def test_target(neuter_ansible, patch_requests, patch_commands, bbot_config, bbo
 
 
 def test_scan(
-    neuter_ansible,
+    patch_ansible,
     patch_requests,
     patch_commands,
     events,
@@ -1191,6 +1228,8 @@ def test_scan(
         blacklist=["http://127.0.0.3:8000/asdf"],
         whitelist=["127.0.0.0/29"],
     )
+    patch_commands(scan3)
+    patch_ansible(scan3)
     assert "targets" in scan3.json
     assert "127.0.0.3" in scan3.target
     assert "127.0.0.4" not in scan3.target
@@ -1244,8 +1283,21 @@ def test_cli(monkeypatch, bbot_config):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(cli, "config", bbot_config)
-    monkeypatch.setattr(sys, "argv", ["bbot", "-y", "--current-config", "-t", "127.0.0.1", "-m", "ipneighbor"])
+
+    old_sys_argv = sys.argv
+
+    # show version
+    monkeypatch.setattr("sys.argv", ["bbot", "--version"])
+    cli.main()
+
+    # show current config
+    monkeypatch.setattr("sys.argv", ["bbot", "-y" "--current-config"])
+    cli.main()
+
+    # list modules
+    monkeypatch.setattr("sys.argv", ["bbot", "-l"])
     cli.main()
 
     home_dir = Path(bbot_config["home"])
@@ -1255,6 +1307,10 @@ def test_cli(monkeypatch, bbot_config):
         ["bbot", "-y", "-t", "localhost", "-m", "ipneighbor", "-om", "human", "csv", "json", "-n", "test_scan"],
     )
     cli.main()
+
+    # unpatch sys.argv
+    monkeypatch.setattr("sys.argv", old_sys_argv)
+
     scan_home = home_dir / "scans" / "test_scan"
     assert (scan_home / "wordcloud.tsv").is_file()
     assert (scan_home / "output.txt").is_file()
@@ -1262,19 +1318,23 @@ def test_cli(monkeypatch, bbot_config):
     assert (scan_home / "output.json").is_file()
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
-        assert lines[0] == "Event type,Event data,Source Module,Scope Distance,Event Tags\n"
+        assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
         assert len(lines) > 1
 
 
-def test_depsinstaller(monkeypatch, neuter_ansible, bbot_config, bbot_scanner):
-    # un-neuter ansible
-    from bbot.core.helpers.depsinstaller import installer
+def test_python_api(bbot_config):
+    from bbot.scanner import Scanner
 
-    run, ensure_root = neuter_ansible
-    ensure_root = installer.DepsInstaller.ensure_root
-    monkeypatch.setattr(installer, "run", run)
-    monkeypatch.setattr(installer.DepsInstaller, "ensure_root", ensure_root)
+    scan1 = Scanner("127.0.0.1", config=bbot_config)
+    events1 = list(scan1.start())
+    assert any("127.0.0.1" == e for e in events1)
+    scan2 = Scanner("127.0.0.1", config=bbot_config, output_modules=["json"], name="python_api_test")
+    scan2.start_without_generator()
+    out_file = scan2.helpers.scans_dir / "python_api_test" / "output.json"
+    assert list(scan2.helpers.read_file(out_file))
 
+
+def test_depsinstaller(monkeypatch, bbot_config, bbot_scanner):
     scan = bbot_scanner(
         "127.0.0.1",
         modules=["dnsresolve"],
