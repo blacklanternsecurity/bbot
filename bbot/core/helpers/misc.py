@@ -694,6 +694,9 @@ def make_table(*args, **kwargs):
     | row2      | row2      |
     +-----------+-----------+
     """
+    # fix IndexError: list index out of range
+    if args and not args[0]:
+        args = ([[]],) + args[1:]
     defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": 40}
     for k, v in defaults.items():
         if k not in kwargs:

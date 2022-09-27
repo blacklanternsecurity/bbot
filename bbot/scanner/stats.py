@@ -67,8 +67,6 @@ class ScanStats:
         for callback, runtime in self.perf_stats:
             log.info(f"{callback}\t{runtime}")
         table = self.table()
-        if len(table) == 1:
-            table += [["None", "None", "None"]]
         return self.scan.helpers.make_table(table[1:], table[0])
 
 
