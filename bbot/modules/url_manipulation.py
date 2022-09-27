@@ -19,7 +19,7 @@ extensions = [
 
 # Test for abuse of extension based routing
 for ext in extensions:
-    signatures.append(("GET", "{scheme}://{netloc}/{path}?foo=%s" % ext, None, True))
+    signatures.append(("GET", "{scheme}://{netloc}/{path}?foo=%s" % ext, False))
 
 
 class url_manipulation(BaseModule):
@@ -46,7 +46,7 @@ class url_manipulation(BaseModule):
             )
 
             if match == False:
-                if str(subject_response.status_code)[0] == "2":
+                if str(subject_response.status_code).startswith("2"):
 
                     if "body" in reasons:
                         reported_signature = f"Modified URL: {sig[1]}"
