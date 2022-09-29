@@ -15,7 +15,7 @@ class nuclei(BaseModule):
 
     batch_size = 100
     options = {
-        "version": "2.7.3",
+        "version": "2.7.7",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -100,7 +100,7 @@ class nuclei(BaseModule):
 
             self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
             self.hugeinfo(
-                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.config.get('budget'))}]"
+                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.config.get('budget'))}] request"
             )
             self.hugeinfo(
                 f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
