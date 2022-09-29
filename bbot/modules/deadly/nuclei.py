@@ -55,12 +55,15 @@ class nuclei(BaseModule):
         # attempt to update nuclei templates
         nulcei_templates_dir = f"{self.helpers.tools_dir}/nuclei-templates"
         update_results = self.helpers.run(["nuclei", "-update-directory", nulcei_templates_dir, "-update-templates"])
-        if "Successfully downloaded nuclei-templates" in update_results.stderr:
-            self.hugesuccess("Successfully updated nuclei templates")
-        elif "No new updates found for nuclei templates" in update_results.stderr:
-            self.hugeinfo("Nuclei templates already up-to-date")
+        if update_results.stderr:
+            if "Successfully downloaded nuclei-templates" in update_results.stderr:
+                self.hugesuccess("Successfully updated nuclei templates")
+            elif "No new updates found for nuclei templates" in update_results.stderr:
+                self.hugeinfo("Nuclei templates already up-to-date")
+            else:
+                self.hugewarning("Failure while updating nuclei templates")
         else:
-            self.hugewarning("Failed to update nuclei templates")
+            self.hugewarning("Error running nuclei template update command")
 
         self.templates = self.config.get("templates")
         self.tags = self.config.get("tags")
@@ -289,12 +292,10 @@ class NucleiBudget:
                                 severity_dict[severity] = 1
         return collapsable_templates, severity_dict
 
-    @staticmethod
-    def parse_yaml(yamlfile):
+    def parse_yaml(self, yamlfile):
         with open(yamlfile, "r") as stream:
             try:
                 y = yaml.safe_load(stream)
                 return y
-            except yaml.YAMLError as exc:
-                print(exc)
-                return none
+            except yaml.YAMLError as e:
+                self.debug(f"failed to read yaml file: {e}")
