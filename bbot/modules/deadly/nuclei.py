@@ -1,22 +1,20 @@
 import json
+import yaml
 import subprocess
-
+from itertools import islice
 from bbot.modules.base import BaseModule
-
-
-technology_map = {"f5 bigip": "bigip", "microsoft asp.net": "asp"}
 
 
 class nuclei(BaseModule):
 
     watched_events = ["URL", "TECHNOLOGY"]
-    produced_events = ["VULNERABILITY"]
+    produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "aggressive", "web-advanced"]
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
     batch_size = 100
     options = {
-        "version": "2.7.3",
+        "version": "2.7.7",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -24,6 +22,7 @@ class nuclei(BaseModule):
         "concurrency": 25,
         "mode": "severe",
         "etags": "intrusive",
+        "budget": 1,
     }
     options_desc = {
         "version": "nuclei version",
@@ -32,8 +31,9 @@ class nuclei(BaseModule):
         "severity": "Filter based on severity field available in the template.",
         "ratelimit": "maximum number of requests to send per second (default 150)",
         "concurrency": "maximum number of templates to be executed in parallel (default 25)",
-        "mode": "technology | severe | manual. Technology: Only activate based on technology events that match nuclei tags. On by default. Severe: Only critical and high severity templates without intrusive. Manual: Fully manual settings",
+        "mode": "technology | severe | manual | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Severe (DEFAULT): Only critical and high severity templates without intrusive. Manual: Fully manual settings. Budget: Limit Nuclei to a specified number of HTTP requests",
         "etags": "tags to exclude from the scan",
+        "budget": "Used in budget mode to set the number of requests which will be alloted to the nuclei scan",
     }
     deps_ansible = [
         {
@@ -46,10 +46,31 @@ class nuclei(BaseModule):
             },
         }
     ]
+    deps_pip = ["pyyaml"]
     in_scope_only = True
 
     def setup(self):
 
+        # attempt to update nuclei templates
+        self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
+        self.info("Updating Nuclei templates")
+        update_results = self.helpers.run(
+            ["nuclei", "-update-directory", self.nuclei_templates_dir, "-update-templates"]
+        )
+        if update_results.stderr:
+            if "Successfully downloaded nuclei-templates" in update_results.stderr:
+                self.success("Successfully updated nuclei templates")
+            elif "No new updates found for nuclei templates" in update_results.stderr:
+                self.info("Nuclei templates already up-to-date")
+            else:
+                self.warning("Failure while updating nuclei templates")
+        else:
+            self.warning("Error running nuclei template update command")
+
+        self.mode = self.config.get("mode", "severe")
+        self.ratelimit = int(self.config.get("ratelimit", 150))
+        self.concurrency = int(self.config.get("concurrency", 25))
+        self.budget = int(self.config.get("budget", 1))
         self.templates = self.config.get("templates")
         self.tags = self.config.get("tags")
         self.etags = self.config.get("etags")
@@ -57,96 +78,65 @@ class nuclei(BaseModule):
         self.iserver = self.scan.config.get("interactsh_server", None)
         self.itoken = self.scan.config.get("interactsh_token", None)
 
-        self.template_stats = self.helpers.download(
-            "https://raw.githubusercontent.com/projectdiscovery/nuclei-templates/master/TEMPLATES-STATS.json",
-            cache_hrs=72,
-        )
-        if not self.template_stats:
-            self.warning(f"Failed to download nuclei template stats.")
-            if self.config.get("mode ") == "technology":
-                self.warning("Can't run with technology_mode set to true without template tags JSON")
-                return False
-        else:
-            with open(self.template_stats) as f:
-                self.template_stats_json = json.load(f)
-                try:
-                    self.tag_list = [e.get("name", "") for e in self.template_stats_json.get("tags", [])]
-                except Exception as e:
-                    self.warning(f"Failed to parse template stats: {e}")
-                    return False
-
-        if self.config.get("mode") not in ("technology", "severe", "manual"):
-            self.warning(f"Unable to intialize nuclei: invalid mode selected: [{self.config.get('mode')}]")
+        if self.mode not in ("technology", "severe", "manual", "budget"):
+            self.warning(f"Unable to intialize nuclei: invalid mode selected: [{self.mode}]")
             return False
 
-        if self.config.get("mode") == "technology":
+        if self.mode == "technology":
             self.info(
-                "Running nuclei in TECHNOLOGY mode. Scans will only be performed against detected TECHNOLOGY events that match nuclei template tags"
+                "Running nuclei in TECHNOLOGY mode. Scans will only be performed with the --automatic-scan flag set. This limits the templates used to those that match wappalyzer signatures"
             )
-            if "wappalyzer" not in self.scan.modules:
-                self.hugewarning(
-                    "You are running nuclei in technology mode without wappalyzer to emit technologies. It will never execute unless another module is issuing technologies"
-                )
+            self.tags = ""
 
-        if self.config.get("mode") == "severe":
+        if self.mode == "severe":
             self.info(
                 "Running nuclei in SEVERE mode. Only critical and high severity templates will be used. Tag setting will be IGNORED."
             )
             self.severity = "critical,high"
             self.tags = ""
 
-        if self.config.get("mode") == "manual":
+        if self.mode == "manual":
             self.info(
                 "Running nuclei in MANUAL mode. Settings will be passed directly into nuclei with no modification"
             )
+
+        if self.mode == "budget":
+            self.info(
+                f"Running nuclei in BUDGET mode. This mode calculates which nuclei templates can be used, constrained by your 'budget' of number of requests. Current budget is set to: {self.budget}"
+            )
+
+            self.info("Processing nuclei templates to perform budget calculations...")
+
+            self.nucleibudget = NucleiBudget(self.budget, self.nuclei_templates_dir)
+            self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
+
+            self.info(
+                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.budget)}] request(s)"
+            )
+            self.info(
+                f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
+            )
+
         return True
 
     def handle_batch(self, *events):
 
-        if self.config.get("mode") == "technology":
-
-            tags_to_scan = {}
-            for e in events:
-                if e.type == "TECHNOLOGY":
-                    reported_tag = e.data.get("technology", "")
-                    if reported_tag in technology_map.keys():
-                        reported_tag = technology_map[reported_tag]
-                    if reported_tag in self.tag_list:
-                        tag = e.data.get("technology", "")
-                        if tag not in tags_to_scan.keys():
-                            tags_to_scan[tag] = [e]
-                        else:
-                            tags_to_scan[tag].append(e)
-
-            self.debug(f"finished processing this batch's tags with {str(len(tags_to_scan.keys()))} total tags")
-
-            for t in tags_to_scan.keys():
-                nuclei_input = [e.data["url"] for e in tags_to_scan[t]]
-                taglist = self.tags.split(",")
-                taglist.append(t)
-                override_tags = ",".join(taglist).lstrip(",")
-                self.verbose(f"Running nuclei against {str(len(nuclei_input))} host(s) with the {t} tag")
-                for severity, template, host, name in self.execute_nuclei(nuclei_input, override_tags=override_tags):
-                    source_event = self.correlate_event(events, host)
-                    if source_event == None:
-                        continue
-                    self.emit_event(
-                        {
-                            "severity": severity,
-                            "host": str(source_event.host),
-                            "url": host,
-                            "description": f"template: {template}, name: {name}",
-                        },
-                        "VULNERABILITY",
-                        source_event,
-                    )
-
-        else:
-            nuclei_input = [str(e.data) for e in events]
-            for severity, template, host, name in self.execute_nuclei(nuclei_input):
-                source_event = self.correlate_event(events, host)
-                if source_event == None:
-                    continue
+        nuclei_input = [str(e.data) for e in events]
+        for severity, template, host, name in self.execute_nuclei(nuclei_input):
+            source_event = self.correlate_event(events, host)
+            if source_event == None:
+                continue
+            if severity == "INFO":
+                self.emit_event(
+                    {
+                        "host": str(source_event.host),
+                        "url": host,
+                        "description": f"template: {template}, name: {name}",
+                    },
+                    "FINDING",
+                    source_event,
+                )
+            else:
                 self.emit_event(
                     {
                         "severity": severity,
@@ -164,41 +154,40 @@ class nuclei(BaseModule):
                 return event
         self.warning("Failed to correlate nuclei result with event")
 
-    def execute_nuclei(self, nuclei_input, override_tags=""):
+    def execute_nuclei(self, nuclei_input):
 
         command = [
             "nuclei",
             "-silent",
             "-json",
             "-update-directory",
-            f"{self.helpers.tools_dir}/nuclei-templates",
+            self.nuclei_templates_dir,
             "-rate-limit",
-            self.config.get("ratelimit"),
+            self.ratelimit,
             "-concurrency",
-            str(self.config.get("concurrency")),
+            self.concurrency,
+            "-duc",
             # "-r",
             # self.helpers.resolver_file,
         ]
 
-        for cli_option in ("severity", "templates", "iserver", "itoken", "etags"):
+        for cli_option in ("severity", "templates", "iserver", "itoken", "tags", "etags"):
             option = getattr(self, cli_option)
 
             if option:
                 command.append(f"-{cli_option}")
                 command.append(option)
 
-        if override_tags:
-            command.append(f"-tags")
-            command.append(override_tags)
-        else:
-            setup_tags = getattr(self, "tags")
-            if setup_tags:
-                command.append(f"-tags")
-                command.append(setup_tags)
-
         if self.scan.config.get("interactsh_disable") == True:
             self.info("Disbling interactsh in accordance with global settings")
             command.append("-no-interactsh")
+
+        if self.mode == "technology":
+            command.append("-as")
+
+        if self.mode == "budget":
+            command.append("-t")
+            command.append(self.budget_templates_file)
 
         for line in self.helpers.run_live(command, input=nuclei_input, stderr=subprocess.DEVNULL):
             try:
@@ -229,3 +218,97 @@ class nuclei(BaseModule):
     def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)
+
+
+class NucleiBudget:
+    def __init__(self, budget, templates_dir):
+        self.templates_dir = templates_dir
+        self.yaml_list = self.get_yaml_list()
+        self.budget_paths = self.find_budget_paths(budget)
+        self.collapsable_templates, self.severity_stats = self.find_collapsable_templates()
+
+    def get_yaml_list(self):
+        return list(self.templates_dir.rglob("*.yaml"))
+
+    # Given the current budget setting, scan all of the templates for paths, sort them by frequency and select the first N (budget) items
+    def find_budget_paths(self, budget):
+        path_frequency = {}
+        for yf in self.yaml_list:
+            if yf:
+                for paths in self.get_yaml_request_attr(yf, "path"):
+                    for path in paths:
+                        if path in path_frequency.keys():
+                            path_frequency[path] += 1
+                        else:
+                            path_frequency[path] = 1
+
+        sorted_dict = dict(sorted(path_frequency.items(), key=lambda item: item[1], reverse=True))
+        return list(dict(islice(sorted_dict.items(), budget)).keys())
+
+    def get_yaml_request_attr(self, yf, attr):
+        p = self.parse_yaml(yf)
+        requests = p.get("requests", [])
+        for r in requests:
+            raw = r.get("raw")
+            if not raw:
+                res = r.get(attr)
+                yield res
+
+    def get_yaml_info_attr(self, yf, attr):
+        p = self.parse_yaml(yf)
+        info = p.get("info", [])
+        res = info.get(attr)
+        yield res
+
+    # Parse through all templates and locate those which match the conditions necessary to collapse down to the budget setting
+    def find_collapsable_templates(self):
+        collapsable_templates = []
+        severity_dict = {}
+        for yf in self.yaml_list:
+            valid = True
+            if yf:
+                for paths in self.get_yaml_request_attr(yf, "path"):
+                    if set(paths).issubset(self.budget_paths):
+
+                        headers = self.get_yaml_request_attr(yf, "headers")
+                        for header in headers:
+                            if header:
+                                valid = False
+
+                        method = self.get_yaml_request_attr(yf, "method")
+                        for m in method:
+                            if m != "GET":
+                                valid = False
+
+                        max_redirects = self.get_yaml_request_attr(yf, "max-redirects")
+                        for mr in max_redirects:
+                            if mr:
+                                valid = False
+
+                        redirects = self.get_yaml_request_attr(yf, "redirects")
+                        for rd in redirects:
+                            if rd:
+                                valid = False
+
+                        cookie_reuse = self.get_yaml_request_attr(yf, "cookie-reuse")
+                        for c in cookie_reuse:
+                            if c:
+                                valid = False
+
+                        if valid:
+                            collapsable_templates.append(str(yf))
+                            severity_gen = self.get_yaml_info_attr(yf, "severity")
+                            severity = next(severity_gen)
+                            if severity in severity_dict.keys():
+                                severity_dict[severity] += 1
+                            else:
+                                severity_dict[severity] = 1
+        return collapsable_templates, severity_dict
+
+    def parse_yaml(self, yamlfile):
+        with open(yamlfile, "r") as stream:
+            try:
+                y = yaml.safe_load(stream)
+                return y
+            except yaml.YAMLError as e:
+                self.debug(f"failed to read yaml file: {e}")
