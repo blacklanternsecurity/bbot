@@ -1,3 +1,4 @@
+import csv
 from .csv import CSV
 from pathlib import Path
 
@@ -68,8 +69,14 @@ class asset_inventory(CSV):
             if event.type == "TECHNOLOGY":
                 self.assets[event.host].technologies.add(event.data["technology"])
 
+    @property
+    def writer(self):
+        if self._writer is None:
+            self._writer = csv.writer(self.file)
+            self._writer.writerow(["Host", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"])
+        return self._writer
+
     def report(self):
-        self.writerow(["Host", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"])
         for asset in self.assets.values():
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             self.writerow(
