@@ -1,7 +1,6 @@
 import json
 import yaml
 import subprocess
-from pathlib import Path
 from itertools import islice
 from bbot.modules.base import BaseModule
 
@@ -53,8 +52,11 @@ class nuclei(BaseModule):
     def setup(self):
 
         # attempt to update nuclei templates
-        nulcei_templates_dir = f"{self.helpers.tools_dir}/nuclei-templates"
-        update_results = self.helpers.run(["nuclei", "-update-directory", nulcei_templates_dir, "-update-templates"])
+        self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
+        self.info("Updating Nuclei templates")
+        update_results = self.helpers.run(
+            ["nuclei", "-update-directory", self.nuclei_templates_dir, "-update-templates"]
+        )
         if update_results.stderr:
             if "Successfully downloaded nuclei-templates" in update_results.stderr:
                 self.success("Successfully updated nuclei templates")
@@ -65,6 +67,10 @@ class nuclei(BaseModule):
         else:
             self.warning("Error running nuclei template update command")
 
+        self.mode = self.config.get("mode", "technology")
+        self.ratelimit = int(self.config.get("ratelimit", 150))
+        self.concurrency = int(self.config.get("concurrency", 25))
+        self.budget = int(self.config.get("budget", 1))
         self.templates = self.config.get("templates")
         self.tags = self.config.get("tags")
         self.etags = self.config.get("etags")
@@ -72,40 +78,40 @@ class nuclei(BaseModule):
         self.iserver = self.scan.config.get("interactsh_server", None)
         self.itoken = self.scan.config.get("interactsh_token", None)
 
-        if self.config.get("mode") not in ("technology", "severe", "manual", "budget"):
-            self.warning(f"Unable to intialize nuclei: invalid mode selected: [{self.config.get('mode')}]")
+        if self.mode not in ("technology", "severe", "manual", "budget"):
+            self.warning(f"Unable to intialize nuclei: invalid mode selected: [{self.mode}]")
             return False
 
-        if self.config.get("mode") == "technology":
+        if self.mode == "technology":
             self.info(
                 "Running nuclei in TECHNOLOGY mode. Scans will only be performed with the --automatic-scan flag set. This limits the templates used to those that match wappalyzer signatures"
             )
             self.tags = ""
 
-        if self.config.get("mode") == "severe":
+        if self.mode == "severe":
             self.info(
                 "Running nuclei in SEVERE mode. Only critical and high severity templates will be used. Tag setting will be IGNORED."
             )
             self.severity = "critical,high"
             self.tags = ""
 
-        if self.config.get("mode") == "manual":
+        if self.mode == "manual":
             self.info(
                 "Running nuclei in MANUAL mode. Settings will be passed directly into nuclei with no modification"
             )
 
-        if self.config.get("mode") == "budget":
+        if self.mode == "budget":
             self.info(
-                f"Running nuclei in BUDGET mode. This mode calculates which nuclei templates can be used, constrained by your 'budget' of number of requests. Current budget is set to: {self.config.get('budget')}"
+                f"Running nuclei in BUDGET mode. This mode calculates which nuclei templates can be used, constrained by your 'budget' of number of requests. Current budget is set to: {self.budget}"
             )
 
             self.info("Processing nuclei templates to perform budget calculations...")
 
-            self.nucleibudget = NucleiBudget(self.config.get("budget"), nulcei_templates_dir)
+            self.nucleibudget = NucleiBudget(self.budget, self.nuclei_templates_dir)
             self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
 
             self.info(
-                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.config.get('budget'))}] request(s)"
+                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.budget)}] request(s)"
             )
             self.info(
                 f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
@@ -155,36 +161,31 @@ class nuclei(BaseModule):
             "-silent",
             "-json",
             "-update-directory",
-            f"{self.helpers.tools_dir}/nuclei-templates",
+            self.nuclei_templates_dir,
             "-rate-limit",
-            self.config.get("ratelimit"),
+            self.ratelimit,
             "-concurrency",
-            str(self.config.get("concurrency")),
+            self.concurrency,
             "-duc",
             # "-r",
             # self.helpers.resolver_file,
         ]
 
-        for cli_option in ("severity", "templates", "iserver", "itoken", "etags"):
+        for cli_option in ("severity", "templates", "iserver", "itoken", "tags", "etags"):
             option = getattr(self, cli_option)
 
             if option:
                 command.append(f"-{cli_option}")
                 command.append(option)
 
-        setup_tags = getattr(self, "tags")
-        if setup_tags:
-            command.append(f"-tags")
-            command.append(setup_tags)
-
         if self.scan.config.get("interactsh_disable") == True:
             self.info("Disbling interactsh in accordance with global settings")
             command.append("-no-interactsh")
 
-        if self.config.get("mode") == "technology":
+        if self.mode == "technology":
             command.append("-as")
 
-        if self.config.get("mode") == "budget":
+        if self.mode == "budget":
             command.append("-t")
             command.append(self.budget_templates_file)
 
@@ -227,7 +228,7 @@ class NucleiBudget:
         self.collapsable_templates, self.severity_stats = self.find_collapsable_templates()
 
     def get_yaml_list(self):
-        return list(Path(self.templates_dir).rglob("*.yaml"))
+        return list(self.templates_dir.rglob("*.yaml"))
 
     # Given the current budget setting, scan all of the templates for paths, sort them by frequency and select the first N (budget) items
     def find_budget_paths(self, budget):
