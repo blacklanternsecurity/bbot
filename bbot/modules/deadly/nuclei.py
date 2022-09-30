@@ -98,12 +98,14 @@ class nuclei(BaseModule):
             self.info(
                 f"Running nuclei in BUDGET mode. This mode calculates which nuclei templates can be used, constrained by your 'budget' of number of requests. Current budget is set to: {self.config.get('budget')}"
             )
-            self.hugeinfo("Processing nuclei templates to perform budget calculations...")
-            self.nucleibudget = NucleiBudget(self.scan.config.get("budget", 1), nulcei_templates_dir)
 
+            self.hugeinfo("Processing nuclei templates to perform budget calculations...")
+
+            self.nucleibudget = NucleiBudget(self.config.get("budget"), nulcei_templates_dir)
             self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
+
             self.hugeinfo(
-                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.config.get('budget'))}] request"
+                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.config.get('budget'))}] request(s)"
             )
             self.hugeinfo(
                 f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
@@ -208,7 +210,6 @@ class nuclei(BaseModule):
 
 class NucleiBudget:
     def __init__(self, budget, templates_dir):
-
         self.templates_dir = templates_dir
         self.yaml_list = self.get_yaml_list()
         self.budget_paths = self.find_budget_paths(budget)
