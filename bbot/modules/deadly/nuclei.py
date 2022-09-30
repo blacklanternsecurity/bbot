@@ -32,7 +32,7 @@ class nuclei(BaseModule):
         "severity": "Filter based on severity field available in the template.",
         "ratelimit": "maximum number of requests to send per second (default 150)",
         "concurrency": "maximum number of templates to be executed in parallel (default 25)",
-        "mode": "technology | severe | manual. Technology: Only activate based on technology events that match nuclei tags. On by default. Severe: Only critical and high severity templates without intrusive. Manual: Fully manual settings",
+        "mode": "technology | severe | manual | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Severe (DEFAULT): Only critical and high severity templates without intrusive. Manual: Fully manual settings. Budget: Limit Nuclei to a specified number of HTTP requests",
         "etags": "tags to exclude from the scan",
         "budget": "Used in budget mode to set the number of requests which will be alloted to the nuclei scan",
     }
@@ -57,13 +57,13 @@ class nuclei(BaseModule):
         update_results = self.helpers.run(["nuclei", "-update-directory", nulcei_templates_dir, "-update-templates"])
         if update_results.stderr:
             if "Successfully downloaded nuclei-templates" in update_results.stderr:
-                self.hugesuccess("Successfully updated nuclei templates")
+                self.success("Successfully updated nuclei templates")
             elif "No new updates found for nuclei templates" in update_results.stderr:
-                self.hugeinfo("Nuclei templates already up-to-date")
+                self.info("Nuclei templates already up-to-date")
             else:
-                self.hugewarning("Failure while updating nuclei templates")
+                self.warning("Failure while updating nuclei templates")
         else:
-            self.hugewarning("Error running nuclei template update command")
+            self.warning("Error running nuclei template update command")
 
         self.templates = self.config.get("templates")
         self.tags = self.config.get("tags")
@@ -99,15 +99,15 @@ class nuclei(BaseModule):
                 f"Running nuclei in BUDGET mode. This mode calculates which nuclei templates can be used, constrained by your 'budget' of number of requests. Current budget is set to: {self.config.get('budget')}"
             )
 
-            self.hugeinfo("Processing nuclei templates to perform budget calculations...")
+            self.info("Processing nuclei templates to perform budget calculations...")
 
             self.nucleibudget = NucleiBudget(self.config.get("budget"), nulcei_templates_dir)
             self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
 
-            self.hugeinfo(
+            self.info(
                 f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.config.get('budget'))}] request(s)"
             )
-            self.hugeinfo(
+            self.info(
                 f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
             )
 
