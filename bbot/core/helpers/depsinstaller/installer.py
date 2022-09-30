@@ -262,8 +262,8 @@ class DepsInstaller:
         if os.geteuid() != 0 and self._sudo_password is None:
             if message:
                 log.warning(message)
-            # sleep for a split second to flush previous log messages
             while not self._sudo_password:
+                # sleep for a split second to flush previous log messages
                 sleep(0.1)
                 password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
                 if self.parent_helper.verify_sudo_password(password):

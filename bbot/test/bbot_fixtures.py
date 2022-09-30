@@ -10,7 +10,7 @@ import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
 
-from bbot.core.helpers.misc import verify_sudo_password
+from bbot.core.helpers.misc import verify_sudo_password, can_sudo_without_password
 
 # make the necessary web requests before nuking them to high heaven
 example_url = "https://api.publicapis.org/health"
@@ -25,15 +25,15 @@ log = logging.getLogger(f"bbot.test.fixtures")
 
 @pytest.fixture
 def ensure_root():
+    if can_sudo_without_password():
+        return
     sudo_pass = os.environ.get("BBOT_SUDO_PASS", "")
     while 1:
-        if sudo_pass is None:
-            sudo_pass = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+        sudo_pass = getpass.getpass(prompt="[USER] Please enter sudo password: ")
         if verify_sudo_password(sudo_pass):
             log.success("Authentication successful")
             break
         log.warning("Invalid password")
-        sudo_pass = None
     os.environ["BBOT_SUDO_PASS"] = sudo_pass
 
 
