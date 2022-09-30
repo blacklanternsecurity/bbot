@@ -4,7 +4,7 @@ from bbot.modules.shodan_dns import shodan_dns
 class zoomeye(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["affiliates", "subdomain-enum", "passive", "safe"]
     meta = {"description": "Query ZoomEye's API for subdomains", "auth_required": True}
     options = {"api_key": "", "max_pages": 20, "include_related": False}
     options_desc = {
