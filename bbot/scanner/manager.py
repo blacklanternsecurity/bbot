@@ -46,6 +46,7 @@ class ScanManager:
             event.release_semaphore()
             event._resolved.set()
             return
+
         # "quick" queues the event immediately
         quick = kwargs.pop("quick", False)
         if quick:
@@ -53,6 +54,8 @@ class ScanManager:
             kwargs.pop("on_success_callback", None)
             try:
                 self.queue_event(event, *args, **kwargs)
+            except ScanCancelledError:
+                return
             except Exception as e:
                 log.error(f"Unexpected error in manager.emit_event(): {e}")
                 log.debug(traceback.format_exc())
@@ -60,13 +63,25 @@ class ScanManager:
                 event.release_semaphore()
                 event._resolved.set()
         else:
+            # Wait for parent event to resolve (in case its scope distance changes)`
+            if "target" not in event.tags:
+                while 1:
+                    if self.scan.stopping:
+                        raise ScanCancelledError()
+                    resolved = event.source._resolved.wait(timeout=0.1)
+                    if resolved:
+                        # update event's scope distance based on its parent
+                        event.scope_distance = event.source.scope_distance + 1
+                        break
+
             # don't raise an exception if the thread pool has been shutdown
             try:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
+            except ScanCancelledError:
+                return
             except Exception as e:
-                if not isinstance(e, RuntimeError):
-                    log.error(f"Unexpected error in manager.emit_event(): {e}")
-                    log.debug(traceback.format_exc())
+                log.error(f"Unexpected error in manager.emit_event(): {e}")
+                log.debug(traceback.format_exc())
                 event.release_semaphore()
                 event._resolved.set()
 
@@ -133,17 +148,6 @@ class ScanManager:
                         reason = "DNS associations"
                     log.debug(f"Omitting due to blacklisted {reason}: {event}")
                     emit_event = False
-
-                # Wait for parent event to resolve (in case its scope distance changes)`
-                if not event_whitelisted or "target" not in event.tags:
-                    while 1:
-                        if self.scan.stopping:
-                            raise ScanCancelledError()
-                        resolved = event._resolved.wait(timeout=0.1)
-                        if resolved:
-                            # update event's scope distance based on its parent
-                            event.scope_distance = event.source.scope_distance + 1
-                            break
 
                 # Scope shepherding
                 event_is_duplicate = self.is_duplicate_event(event)

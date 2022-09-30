@@ -227,6 +227,8 @@ class BaseModule:
                         on_success_callback=on_success_callback,
                         quick=quick,
                     )
+                except ScanCancelledError:
+                    break
                 except Exception:
                     event.release_semaphore()
                     self.error(f"Unexpected error in {self.name}.emit_event()")
