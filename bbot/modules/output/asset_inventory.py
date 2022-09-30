@@ -1,6 +1,4 @@
-import csv
 from .csv import CSV
-from pathlib import Path
 
 severity_map = {
     "INFO": 0,
@@ -23,30 +21,24 @@ class asset_inventory(CSV):
     options = {"output_file": ""}
     options_desc = {"output_file": "Set a custom output file"}
 
+    header_row = ["Host", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
+    filename = "asset-inventory.csv"
+
     def setup(self):
-
         self.assets = {}
-
-        self.output_file = self.config.get("output_file", "")
-        if self.output_file:
-            self.output_file = Path(self.output_file)
-        else:
-            self.output_file = self.scan.home / "asset-inventory.csv"
-        self.helpers.mkdir(self.output_file.parent)
-        self._file = None
-        self._writer = None
-        return True
+        return super().setup()
 
     def handle_event(self, event):
 
         if (
-            event.type in self.watched_events
-            and not event._internal
+            (not event._internal)
             and str(event.module) != "speculate"
-            and "distance-0" in event.tags
+            and event.type in self.watched_events
+            and self.scan.in_scope(event)
+            and not "unresolved" in event.tags
         ):
 
-            if event.host not in self.assets.keys():
+            if event.host not in self.assets:
                 self.assets[event.host] = Asset(event.host)
 
             for rh in event.resolved_hosts:
@@ -62,19 +54,12 @@ class asset_inventory(CSV):
                 self.assets[event.host].findings.add(
                     f"{event.data['url']}:{event.data['description']}:{event.data['severity']}"
                 )
-                severity_int = severity_map[event.data["severity"]]
+                severity_int = severity_map.get(event.data.get("severity", "N/A"), 0)
                 if severity_int > self.assets[event.host].risk_rating:
                     self.assets[event.host].risk_rating = severity_int
 
             if event.type == "TECHNOLOGY":
                 self.assets[event.host].technologies.add(event.data["technology"])
-
-    @property
-    def writer(self):
-        if self._writer is None:
-            self._writer = csv.writer(self.file)
-            self._writer.writerow(["Host", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"])
-        return self._writer
 
     def report(self):
         for asset in self.assets.values():
