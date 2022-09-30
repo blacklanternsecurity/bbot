@@ -91,6 +91,9 @@ class asset_inventory(CSV):
                 ]
             )
 
+        if self._file is not None:
+            self.info(f"Saved asset-inventory output to {self.output_file}")
+
 
 class Asset:
     def __init__(self, host):
