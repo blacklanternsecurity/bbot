@@ -9,7 +9,7 @@ from bbot.modules.base import BaseModule
 class nuclei(BaseModule):
 
     watched_events = ["URL", "TECHNOLOGY"]
-    produced_events = ["VULNERABILITY"]
+    produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "aggressive", "web-advanced"]
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
@@ -120,16 +120,27 @@ class nuclei(BaseModule):
             source_event = self.correlate_event(events, host)
             if source_event == None:
                 continue
-            self.emit_event(
-                {
-                    "severity": severity,
-                    "host": str(source_event.host),
-                    "url": host,
-                    "description": f"template: {template}, name: {name}",
-                },
-                "VULNERABILITY",
-                source_event,
-            )
+            if severity == "INFO":
+                self.emit_event(
+                    {
+                        "host": str(source_event.host),
+                        "url": host,
+                        "description": f"template: {template}, name: {name}",
+                    },
+                    "FINDING",
+                    source_event,
+                )
+            else:
+                self.emit_event(
+                    {
+                        "severity": severity,
+                        "host": str(source_event.host),
+                        "url": host,
+                        "description": f"template: {template}, name: {name}",
+                    },
+                    "VULNERABILITY",
+                    source_event,
+                )
 
     def correlate_event(self, events, host):
         for event in events:
