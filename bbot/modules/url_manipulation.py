@@ -30,10 +30,19 @@ class url_manipulation(BaseModule):
     meta = {"description": "Attempt to identify URL parsing/routing based vulnerabilities"}
     in_scope_only = True
 
+    options = {"allow_redirects": True}
+    options_desc = {
+        "allow_redirects": "Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default."
+    }
+
+    def setup(self):
+        self.allow_redirects = self.config.get("allow_redirects", True)
+        return True
+
     def handle_event(self, event):
 
         try:
-            compare_helper = self.helpers.http_compare(event.data, allow_redirects=True)
+            compare_helper = self.helpers.http_compare(event.data, allow_redirects=self.allow_redirects)
         except HttpCompareError as e:
             self.debug(e)
             return
@@ -42,7 +51,7 @@ class url_manipulation(BaseModule):
 
             sig = self.format_signature(sig, event)
             match, reasons, reflection, subject_response = compare_helper.compare(
-                sig[1], method=sig[0], allow_redirects=False
+                sig[1], method=sig[0], allow_redirects=self.allow_redirects
             )
 
             if match == False:
