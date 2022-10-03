@@ -21,6 +21,7 @@ from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.threadpool import ThreadPoolWrapper
+from bbot.core.configurator.environ import prepare_environment
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
@@ -60,11 +61,14 @@ class Scanner:
             modules = []
         if output_modules is None:
             output_modules = ["python"]
+
         if config is None:
             config = OmegaConf.create({})
         else:
             config = OmegaConf.create(config)
         self.config = OmegaConf.merge(bbot_config, config)
+        prepare_environment(self.config)
+
         if name is None:
             self.name = random_name()
         else:
