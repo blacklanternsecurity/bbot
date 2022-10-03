@@ -149,7 +149,7 @@ def main():
                             log.hugewarning(
                                 f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no enabled module produces it"
                             )
-                            log.warning(
+                            log.hugewarning(
                                 f"Recommend enabling one or more of the following modules which produce {event_type}:"
                             )
                             for m in recommended:
