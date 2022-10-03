@@ -367,8 +367,6 @@ class ScanManager:
                     event_counter += 1
                 except queue.Empty:
                     finished = self.modules_status().get("finished", False)
-                    if finished:
-                        break
                     # If the scan finished
                     if finished:
                         # If new events were generated in the last iteration
