@@ -1,11 +1,9 @@
-import sys
 import shutil
 import logging
 from pathlib import Path
 from omegaconf import OmegaConf
 
-from bbot import cli
-from .bbot_fixtures import bbot_config  # noqa F401
+from .bbot_fixtures import bbot_config
 
 log = logging.getLogger(f"bbot.test")
 
