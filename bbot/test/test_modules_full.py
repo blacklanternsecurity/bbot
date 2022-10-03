@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from omegaconf import OmegaConf
 
-from .bbot_fixtures import bbot_config
+from .bbot_fixtures import bbot_config  # noqa: F401
 
 log = logging.getLogger(f"bbot.test")
 
