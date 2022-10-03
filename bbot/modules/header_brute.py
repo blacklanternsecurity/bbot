@@ -116,6 +116,8 @@ class header_brute(BaseModule):
         return False
 
     def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
+        if reasons is None:
+            reasons = []
         self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
         if len(group) == 1:
             yield group[0], reasons, reflection

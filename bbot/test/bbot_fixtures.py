@@ -35,6 +35,16 @@ def patch_requests(monkeypatch):
 
 
 @pytest.fixture
+def patch_scan_requests(monkeypatch):
+    def _patch_scan_requests(scanner):
+        old_request = scanner.helpers.request
+        monkeypatch.setattr(scanner.helpers, "request", lambda *args, **kwargs: requests_response)
+        return old_request
+
+    return _patch_scan_requests
+
+
+@pytest.fixture
 def patch_commands():
 
     import subprocess
@@ -128,13 +138,20 @@ def patch_ansible(monkeypatch):
 
 
 @pytest.fixture
-def scan(patch_ansible, patch_requests, patch_commands, bbot_config):
+def scan(monkeypatch, patch_ansible, patch_requests, patch_scan_requests, patch_commands, bbot_config):
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     patch_commands(bbot_scan)
     patch_ansible(bbot_scan)
+    patch_scan_requests(bbot_scan)
     bbot_scan.status = "RUNNING"
+
+    fallback_nameservers_file = bbot_scan.helpers.bbot_home / "fallback_nameservers.txt"
+    with open(fallback_nameservers_file, "w") as f:
+        f.write("8.8.8.8\n")
+    monkeypatch.setattr(bbot_scan.helpers.dns, "fallback_nameservers_file", fallback_nameservers_file)
+
     return bbot_scan
 
 
