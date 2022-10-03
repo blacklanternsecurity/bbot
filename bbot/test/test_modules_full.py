@@ -1,4 +1,5 @@
 import sys
+import shutil
 import logging
 from pathlib import Path
 from omegaconf import OmegaConf
@@ -9,17 +10,23 @@ from .bbot_fixtures import bbot_config  # noqa F401
 log = logging.getLogger(f"bbot.test")
 
 
-def test_gowitness(monkeypatch, bbot_config):  # noqa F811
+def test_module_httpx_gowitness(bbot_config):  # noqa: F811
+    """
+    Test httpx and gowitness
+    """
 
-    config = OmegaConf.merge(bbot_config, OmegaConf.create({"force_deps": True}))
+    from bbot.scanner import Scanner
 
-    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(cli, "config", config)
-    monkeypatch.setattr(
-        sys, "argv", ["bbot", "-y", "-m", "gowitness", "httpx", "-t", "http://www.example.com", "-n", "gowitness_test"]
-    )
-    cli.main()
+    home_dir = Path("/tmp/.bbot_gowitness_test")
+    shutil.rmtree(home_dir, ignore_errors=True)
+    config = OmegaConf.merge(bbot_config, OmegaConf.create({"force_deps": True, "home": str(home_dir)}))
 
-    screenshots_path = Path(bbot_config["home"]) / "scans" / "gowitness_test" / "gowitness" / "screenshots"
+    scan = Scanner("http://www.example.com", modules=["httpx", "gowitness"], name="gowitness_test", config=config)
+    events = list(scan.start())
+    assert any((e.type == "URL" and e.host == "www.example.com") for e in events)
+    assert (home_dir / "tools" / "httpx").is_file(), "Failed to download httpx"
+    assert (home_dir / "tools" / "gowitness").is_file(), "Failed to download gowitness"
+
+    screenshots_path = home_dir / "scans" / "gowitness_test" / "gowitness" / "screenshots"
     screenshots = list(screenshots_path.glob("*.png"))
     assert screenshots, "Gowitness failed to generate screenshots"

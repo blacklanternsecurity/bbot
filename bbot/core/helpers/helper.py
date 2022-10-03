@@ -8,10 +8,10 @@ from . import misc
 from .dns import DNSHelper
 from .diff import HttpCompare
 from .wordcloud import WordCloud
+from .interactsh import Interactsh
 from .threadpool import as_completed
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
-from .interactsh import Interactsh
 
 log = logging.getLogger("bbot.core.helpers")
 
