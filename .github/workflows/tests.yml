@@ -13,14 +13,17 @@ jobs:
         run: |
           pip install poetry
           poetry install
-      - name: Run tests with pytest
+      - name: Run tests
+        run: |
+          poetry run pytest --disable-warnings --log-cli-level=DEBUG -k "not test_module_" --cov-report xml:cov.xml --cov=bbot .
+      - name: Run module tests
         uses: nick-fields/retry@v2
         with:
-          max_attempts: 3
+          max_attempts: 5
           timeout_minutes: 20
           retry_wait_seconds: 0
           command: |
-            poetry run pytest --disable-warnings --log-cli-level=DEBUG --cov-report xml:cov.xml --cov=bbot .
+            poetry run pytest --disable-warnings --log-cli-level=DEBUG -k "test_module_"
       - name: Upload Code Coverage
         uses: codecov/codecov-action@v2
         with:
