@@ -40,7 +40,8 @@ def prepare_environment(bbot_config):
     # ensure bbot_tools
     bbot_tools = home / "tools"
     os.environ["BBOT_TOOLS"] = str(bbot_tools)
-    os.environ["PATH"] = f'{bbot_tools}:{os.environ.get("PATH", "")}'
+    if not str(bbot_tools) in os.environ.get("PATH", "").split(":"):
+        os.environ["PATH"] = f'{bbot_tools}:{os.environ.get("PATH", "").strip(":")}'
     # ensure bbot_cache
     bbot_cache = home / "cache"
     os.environ["BBOT_CACHE"] = str(bbot_cache)
