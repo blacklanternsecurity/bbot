@@ -44,7 +44,7 @@ class aspnet_viewstate(BaseModule):
         {
             "name": "Download MachineKeys.txt",
             "get_url": {
-                "src": "https://raw.githubusercontent.com/NotSoSecure/Blacklist3r/master/MachineKey/AspDotNetWrapper/AspDotNetWrapper/Resource/MachineKeys.txt",
+                "url": "https://raw.githubusercontent.com/NotSoSecure/Blacklist3r/master/MachineKey/AspDotNetWrapper/AspDotNetWrapper/Resource/MachineKeys.txt",
                 "dest": "#{BBOT_TOOLS}/blacklist3r/",
             },
         },
