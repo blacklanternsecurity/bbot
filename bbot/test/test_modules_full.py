@@ -4,12 +4,12 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from bbot import cli
-from .bbot_fixtures import bbot_config, ensure_root  # noqa: F401
+from .bbot_fixtures import bbot_config  # noqa F401
 
 log = logging.getLogger(f"bbot.test")
 
 
-def test_gowitness(monkeypatch, bbot_config, ensure_root):  # noqa: F811
+def test_gowitness(monkeypatch, bbot_config):  # noqa F811
 
     config = OmegaConf.merge(bbot_config, OmegaConf.create({"force_deps": True}))
 
