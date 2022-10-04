@@ -155,28 +155,28 @@ class HttpCompare:
             log.debug(f"Cant HTML parse for {subject.split('?')[0]}. Switching to text parsing as a backup")
             subject_json = subject_response.text.split("\n")
 
-        diff_conditions = []
+        diff_reasons = []
 
         if self.baseline.status_code != subject_response.status_code:
             log.debug(
                 f"status code was different [{str(self.baseline.status_code)}] -> [{str(subject_response.status_code)}], no match"
             )
-            diff_conditions.append("code")
+            diff_reasons.append("code")
 
         different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
         if different_headers:
             log.debug(f"headers were different, no match [{different_headers}]")
-            diff_conditions.append("header")
+            diff_reasons.append("header")
 
         if self.compare_body(self.baseline_json, subject_json) == False:
             log.debug(f"difference in HTML body, no match")
 
-            diff_conditions.append("body")
+            diff_reasons.append("body")
 
-        if not diff_conditions:
+        if not diff_reasons:
             return (True, [], False, None)
         else:
-            return (False, diff_conditions, reflection, subject_response)
+            return (False, diff_reasons, reflection, subject_response)
 
     def canary_check(self, url, mode, rounds=6):
         """

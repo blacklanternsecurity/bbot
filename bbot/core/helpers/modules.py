@@ -11,6 +11,7 @@ from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make
 class ModuleLoader:
     def __init__(self):
         self._preloaded = {}
+        self._preloaded_orig = None
         self._modules = {}
         self._configs = {}
 
@@ -65,7 +66,9 @@ class ModuleLoader:
         return OmegaConf.create(configs)
 
     def find_and_replace(self, **kwargs):
-        self._preloaded = search_format_dict(self._preloaded, **kwargs)
+        if self._preloaded_orig is None:
+            self._preloaded_orig = dict(self._preloaded)
+        self._preloaded = search_format_dict(self._preloaded_orig, **kwargs)
 
     def check_type(self, module, type):
         return self._preloaded[module]["type"] == type
