@@ -67,7 +67,7 @@ class massdns(crobat):
             self.debug(f"Skipping unresolved query: {query}")
             return
 
-        self.verbose(f"Brute-forcing subdomains for {query}")
+        self.info(f"Brute-forcing subdomains for {query}")
         for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):
             self.emit_result(hostname, event, query)
 
@@ -170,7 +170,7 @@ class massdns(crobat):
                     for delimiter in ("", ".", "-"):
                         m = delimiter.join(mutation).lower()
                         mutations.add(m)
-            self.verbose(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
+            self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
             for hostname in self.massdns(query, mutations):
                 source_event = self.get_source_event(hostname)
                 if source_event is None:
