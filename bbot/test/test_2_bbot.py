@@ -284,8 +284,8 @@ def test_manager(bbot_config, bbot_scanner):
     success_callback = lambda e: results.append("success")
     scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
     scan1.status = "RUNNING"
-    scan1.manager.queue_event = lambda e: results.append(e)
     manager = scan1.manager
+    manager.distribute_event = lambda e: results.append(e)
     localhost = scan1.make_event("127.0.0.1", source=scan1.root_event)
 
     class DummyModule1:
@@ -333,7 +333,9 @@ def test_manager(bbot_config, bbot_scanner):
     googledns._force_output = False
     results.clear()
     # same dns event but different source
-    googledns.source = manager.scan.make_event("1.2.3.4", "IP_ADDRESS", source=manager.scan.root_event)
+    source_event = manager.scan.make_event("1.2.3.4", "IP_ADDRESS", source=manager.scan.root_event)
+    source_event._resolved.set()
+    googledns.source = source_event
     manager._emit_event(googledns)
     assert len(event_children) == 0
     assert googledns in results
@@ -341,7 +343,6 @@ def test_manager(bbot_config, bbot_scanner):
     # event filtering based on scope_distance
     output_queue = []
     module_queue = []
-    manager_queue = []
     scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["json"], config=bbot_config)
     scan1.status = "RUNNING"
     scan1.load_modules()
@@ -351,20 +352,16 @@ def test_manager(bbot_config, bbot_scanner):
     test_event2 = scan1.make_event("2.3.4.5", source=test_event1)
     test_event3 = scan1.make_event("3.4.5.6", source=test_event2)
 
-    scan1.manager.queue_event = lambda e: manager_queue.append(e)
-
     scan1.scope_search_distance = 1
     scan1.scope_report_distance = 0
     assert test_event1.scope_distance == 0
     manager._emit_event(test_event1)
-    assert test_event1 in manager_queue
     assert test_event1._internal == False
     assert test_event2.scope_distance == 1
     manager._emit_event(test_event2)
-    assert test_event2 in manager_queue
     assert test_event2._internal == True
-    manager_queue.clear()
     manager.events_accepted.clear()
+    manager.events_distributed.clear()
 
     scan1.modules["json"].queue_event = lambda e: output_queue.append(e)
     scan1.modules["ipneighbor"].queue_event = lambda e: module_queue.append(e)

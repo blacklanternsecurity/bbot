@@ -155,7 +155,12 @@ class massdns(crobat):
 
         base_mutations = set()
         for domain, subdomains in found:
-            base_mutations.update(set(subdomains))
+            domain_hash = hash(domain)
+            for s in subdomains:
+                h = hash((domain_hash, s))
+                if not h in self.mutations_tried:
+                    self.mutations_tried.add(h)
+                    base_mutations.add(s)
 
         for i, (domain, subdomains) in enumerate(found):
             query = domain

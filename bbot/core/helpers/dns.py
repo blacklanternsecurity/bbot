@@ -392,7 +392,6 @@ class DNSHelper:
             if file_content is not None:
                 self._resolver_list = set([l for l in file_content.splitlines() if l])
             if not self._resolver_list:
-                log.info(f"Fetching and validating public DNS servers, this may take a few minutes")
                 resolvers = self.get_valid_resolvers()
                 if resolvers:
                     self._resolver_list = resolvers
@@ -413,7 +412,7 @@ class DNSHelper:
             nameservers (list): nameservers to verify
             timeout (int): timeout for dns query
         """
-        log.info(f"Verifying {len(nameservers):,} nameservers")
+        log.info(f"Verifying {len(nameservers):,} public nameservers. Please be patient, this may take a while.")
         futures = [
             self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.verify_nameserver, n)
             for n in nameservers

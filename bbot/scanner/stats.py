@@ -15,7 +15,7 @@ class ScanStats:
         # self.perf_stats.append((qualname, runtime))
         pass
 
-    def event_emitted(self, event):
+    def event_distributed(self, event):
         module_stat = self.get(event.module)
         if module_stat is not None:
             module_stat.increment_emitted(event)

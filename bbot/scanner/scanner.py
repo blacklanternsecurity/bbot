@@ -87,7 +87,7 @@ class Scanner:
         max_workers = max(1, self.config.get("max_threads", 100))
         # Shared thread pool, for module use
         self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
-        # Event thread pool, for event construction, initialization
+        # Event thread pool, for event emission
         self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2))
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
@@ -370,10 +370,9 @@ class Scanner:
         main_tasks = self._thread_pool.num_tasks
         dns_tasks = self.helpers.dns._thread_pool.num_tasks
         event_threadpool_tasks = self._event_thread_pool.num_tasks
-        event_tasks = self.manager.event_queue.qsize()
         internal_tasks = self._internal_thread_pool.num_tasks
         process_tasks = self.process_pool.num_tasks
-        total_tasks = main_tasks + dns_tasks + event_tasks + internal_tasks
+        total_tasks = main_tasks + dns_tasks + internal_tasks
         status = {
             "queued_tasks": {
                 "main": main_tasks,
@@ -382,9 +381,6 @@ class Scanner:
                 "process": process_tasks,
                 "event": event_threadpool_tasks,
                 "total": total_tasks,
-            },
-            "queued_events": {
-                "manager": event_tasks,
             },
         }
         return status
@@ -496,12 +492,12 @@ class Scanner:
             if failed:
                 msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
                 self.fail_setup(msg)
-            modules = [m for m in self._scan_modules if m in succeeded]
-            output_modules = [m for m in self._output_modules if m in succeeded]
-            internal_modules = [m for m in self._internal_modules if m in succeeded]
+            modules = sorted([m for m in self._scan_modules if m in succeeded])
+            output_modules = sorted([m for m in self._output_modules if m in succeeded])
+            internal_modules = sorted([m for m in self._internal_modules if m in succeeded])
 
             # Load scan modules
-            self.verbose(f"Loading {len(modules):,} scan modules: {','.join(list(modules))}")
+            self.verbose(f"Loading {len(modules):,} scan modules: {','.join(modules)}")
             loaded_modules, failed = self._load_modules(modules)
             self.modules.update(loaded_modules)
             if len(failed) > 0:
@@ -509,11 +505,11 @@ class Scanner:
                 self.fail_setup(msg)
             if loaded_modules:
                 self.info(
-                    f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules ({','.join(list(loaded_modules))})"
+                    f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules ({','.join(loaded_modules)})"
                 )
 
             # Load internal modules
-            self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(list(internal_modules))}")
+            self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(internal_modules)}")
             loaded_internal_modules, failed_internal = self._load_modules(internal_modules)
             self.modules.update(loaded_internal_modules)
             if len(failed_internal) > 0:
@@ -521,11 +517,11 @@ class Scanner:
                 self.fail_setup(msg)
             if loaded_internal_modules:
                 self.info(
-                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(list(loaded_internal_modules))})"
+                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(sorted(loaded_internal_modules))})"
                 )
 
             # Load output modules
-            self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(list(output_modules))}")
+            self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(output_modules)}")
             loaded_output_modules, failed_output = self._load_modules(output_modules)
             self.modules.update(loaded_output_modules)
             if len(failed_output) > 0:
@@ -533,7 +529,7 @@ class Scanner:
                 self.fail_setup(msg)
             if loaded_output_modules:
                 self.info(
-                    f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules, ({','.join(list(loaded_output_modules))})"
+                    f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules, ({','.join(loaded_output_modules)})"
                 )
 
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
