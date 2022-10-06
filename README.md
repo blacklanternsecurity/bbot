@@ -7,9 +7,9 @@
 
 ![subdomain demo](https://user-images.githubusercontent.com/20261699/182274919-d4f5aa69-993a-40aa-95d5-f5e69e96026c.gif)
 
-### **BBOT** is a **recursive**, **modular** OSINT framework written in Python.
+### **BBOT** is a **recursive**, **modular** OSINT framework inspired by Spiderfoot and written in Python.
 
-It is capable of executing the entire OSINT process in a single command, including subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
+Capable of executing the entire OSINT process in a single command, BBOT does subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
 BBOT currently has over **50 modules** and counting.
 
