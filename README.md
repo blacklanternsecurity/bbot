@@ -11,7 +11,7 @@
 
 Capable of executing the entire OSINT process in a single command, BBOT does subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
-BBOT currently has over **50 modules** and counting.
+BBOT currently has over **60 modules** and counting.
 
 ## Installation (pip)
 ~~~bash
