@@ -157,7 +157,7 @@ class massdns(crobat):
         for domain, subdomains in found:
             domain_hash = hash(domain)
             for s in subdomains:
-                h = hash((domain_hash, s))
+                h = hash((domain_hash, (s,)))
                 if not h in self.mutations_tried:
                     self.mutations_tried.add(h)
                     base_mutations.add(s)
@@ -175,13 +175,14 @@ class massdns(crobat):
                     for delimiter in ("", ".", "-"):
                         m = delimiter.join(mutation).lower()
                         mutations.add(m)
-            self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
-            for hostname in self.massdns(query, mutations):
-                source_event = self.get_source_event(hostname)
-                if source_event is None:
-                    self.debug(f"Could not correlate source event from: {hostname}")
-                    continue
-                self.emit_result(hostname, source_event, query)
+            if mutations:
+                self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
+                for hostname in self.massdns(query, mutations):
+                    source_event = self.get_source_event(hostname)
+                    if source_event is None:
+                        self.debug(f"Could not correlate source event from: {hostname}")
+                        continue
+                    self.emit_result(hostname, source_event, query)
 
     def add_found(self, event):
         if self.helpers.is_subdomain(event.data):

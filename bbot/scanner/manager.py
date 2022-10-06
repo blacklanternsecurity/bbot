@@ -332,7 +332,7 @@ class ScanManager:
         iteration = 0
         modules = list(self.scan.modules.values())
         num_modules = len(modules)
-        activity = False
+        activity = True
         timedelta_2secs = timedelta(seconds=status_frequency)
         last_log_time = datetime.now()
 
@@ -379,12 +379,12 @@ class ScanManager:
                         if finished:
                             # And if new events were generated since last time we were here
                             if activity:
+                                activity = False
                                 self.scan.status = "FINISHING"
                                 # Trigger .finished() on every module and start over
                                 log.info("Finishing scan")
                                 for module in modules:
                                     module.queue_event("FINISHED")
-                                activity = False
                             else:
                                 # Otherwise stop the scan if no new events were generated since last time
                                 break
@@ -467,8 +467,8 @@ class ScanManager:
             event_tasks = status["scan"]["queued_tasks"]["event"]
             main_tasks = status["scan"]["queued_tasks"]["main"]
             internal_tasks = status["scan"]["queued_tasks"]["internal"]
-            self.scan.verbose(
-                f"Threadpool tasks: {total_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
+            self.scan.info(
+                f"Tasks: {total_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
             )
 
             if modules_errored:
