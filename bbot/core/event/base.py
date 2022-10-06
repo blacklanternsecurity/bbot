@@ -537,7 +537,9 @@ class DNS_NAME(BaseEvent):
         stem = self.host_stem
         if "wildcard" in self.tags:
             stem = "".join(stem.split(".")[1:])
-        return extract_words(stem)
+        if "resolved" in self.tags:
+            return extract_words(stem)
+        return set()
 
 
 class OPEN_TCP_PORT(BaseEvent):

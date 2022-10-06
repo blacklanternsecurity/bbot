@@ -66,8 +66,8 @@ class DNSHelper:
         self._event_cache_locks = NamedLock()
 
         # copy the system's current resolvers to a text file for tool use
-        resolvers = dns.resolver.Resolver().nameservers
-        self.resolver_file = self.parent_helper.tempfile(resolvers, pipe=False)
+        self.system_resolvers = dns.resolver.Resolver().nameservers
+        self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
         self.bad_ptr_regex = re.compile(r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}")
         self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
@@ -413,10 +413,14 @@ class DNSHelper:
             timeout (int): timeout for dns query
         """
         log.info(f"Verifying {len(nameservers):,} public nameservers. Please be patient, this may take a while.")
-        futures = [
-            self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.verify_nameserver, n)
-            for n in nameservers
-        ]
+        futures = []
+        for nameserver in nameservers:
+            # don't use the system nameservers
+            if nameserver in self.system_resolvers:
+                continue
+            futures.append(
+                self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.verify_nameserver, nameserver)
+            )
 
         valid_nameservers = set()
         for future in self.parent_helper.as_completed(futures):
