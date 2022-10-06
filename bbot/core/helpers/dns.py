@@ -59,7 +59,7 @@ class DNSHelper:
         self._dummy_modules = dict()
         self._dummy_modules_lock = Lock()
 
-        self._dns_cache = self.parent_helper.CacheDict(max_size=10000)
+        self._dns_cache = self.parent_helper.CacheDict(max_size=100000)
 
         self._event_cache = self.parent_helper.CacheDict(max_size=10000)
         self._event_cache_lock = Lock()
@@ -146,9 +146,9 @@ class DNSHelper:
                 )
                 return results, errors
             try:
-                if dns_cache_hash in self._dns_cache:
+                try:
                     results = self._dns_cache[dns_cache_hash]
-                else:
+                except KeyError:
                     results = list(self._catch(self.resolver.resolve, query, **kwargs))
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = results
