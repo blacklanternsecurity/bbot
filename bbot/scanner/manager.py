@@ -354,7 +354,7 @@ class ScanManager:
                     break
 
                 # pause if the thread pool queue is full
-                while not self.scan.aborting and self.scan._event_thread_pool.qsize >= self.scan._thread_pool_qsize:
+                while not self.scan.aborting and self.scan._event_thread_pool.qsize >= self.scan._event_thread_pool_qsize:
                     sleep(0.01)
 
                 # print status every 2 seconds
