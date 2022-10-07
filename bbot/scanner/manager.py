@@ -353,10 +353,6 @@ class ScanManager:
                                 module.outgoing_event_queue.get_nowait()
                     break
 
-                # pause if the thread pool queue is full
-                while not self.scan.aborting and self.scan._event_thread_pool.qsize >= self.scan._event_thread_pool_qsize:
-                    sleep(0.01)
-
                 # print status every 2 seconds
                 now = datetime.now()
                 time_since_last_log = now - last_log_time
@@ -367,6 +363,12 @@ class ScanManager:
                 if "python" in self.scan.modules:
                     events, finish, report = self.scan.modules["python"].events_waiting
                     yield from events
+
+                # pause if the thread pool queue is full
+                while (
+                    not self.scan.aborting and self.scan._event_thread_pool.qsize >= self.scan._event_thread_pool_qsize
+                ):
+                    sleep(0.05)
 
                 module_index = iteration % num_modules
                 module = modules[module_index]
