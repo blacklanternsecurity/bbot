@@ -341,7 +341,8 @@ class ScanManager:
             self.scan.dispatcher.on_start(self.scan)
 
             while 1:
-                if self.scan.status == "ABORTING":
+                # abort if we're aborting
+                if self.scan.aborting:
                     # Empty incoming and outgoing module event queue
                     for module in self.scan.modules.values():
                         with suppress(queue.Empty):
@@ -351,6 +352,10 @@ class ScanManager:
                             while 1:
                                 module.outgoing_event_queue.get_nowait()
                     break
+
+                # pause if the thread pool queue is full
+                while not self.scan.aborting and self.scan._event_thread_pool.qsize >= self.scan._thread_pool_qsize:
+                    sleep(0.01)
 
                 # print status every 2 seconds
                 now = datetime.now()
@@ -368,8 +373,6 @@ class ScanManager:
                 end = module_index == num_modules - 1
                 try:
                     event, kwargs = module.outgoing_event_queue.get_nowait()
-                    while self.scan._event_thread_pool.qsize >= self.scan._thread_pool_qsize:
-                        sleep(0.01)
                     acceptable = self.emit_event(event, **kwargs)
                     if acceptable:
                         activity = True

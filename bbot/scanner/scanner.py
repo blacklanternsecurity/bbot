@@ -89,10 +89,10 @@ class Scanner:
         self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
         # Event thread pool, for event emission
         self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2))
+        self._event_thread_pool_qsize = 1000
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
         self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
-        self._thread_pool_qsize = 1000
 
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
         output_dir = self.config.get("output_dir", "")
@@ -345,6 +345,10 @@ class Scanner:
     @property
     def running(self):
         return 0 < self._status_code < 4
+
+    @property
+    def aborting(self):
+        return 5 <= self._status_code <= 6
 
     @property
     def status(self):
