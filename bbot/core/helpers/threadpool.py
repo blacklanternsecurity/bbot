@@ -47,6 +47,10 @@ class ThreadPoolWrapper:
                     self.futures.remove(f)
             return len(self.futures) + (1 if self._submit_task_lock.locked() else 0)
 
+    @property
+    def qsize(self):
+        return self.executor._work_queue.qsize()
+
     def shutdown(self, *args, **kwargs):
         self.executor.shutdown(*args, **kwargs)
 

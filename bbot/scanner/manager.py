@@ -368,6 +368,8 @@ class ScanManager:
                 end = module_index == num_modules - 1
                 try:
                     event, kwargs = module.outgoing_event_queue.get_nowait()
+                    while self.scan._event_thread_pool.qsize >= self.scan._thread_pool_qsize:
+                        sleep(0.01)
                     acceptable = self.emit_event(event, **kwargs)
                     if acceptable:
                         activity = True

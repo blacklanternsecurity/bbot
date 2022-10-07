@@ -92,6 +92,7 @@ class Scanner:
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
         self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
+        self._thread_pool_qsize = 1000
 
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
         output_dir = self.config.get("output_dir", "")
@@ -517,7 +518,7 @@ class Scanner:
                 self.fail_setup(msg)
             if loaded_internal_modules:
                 self.info(
-                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(sorted(loaded_internal_modules))})"
+                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(loaded_internal_modules)})"
                 )
 
             # Load output modules
