@@ -117,7 +117,6 @@ class ScanManager:
                     # update event's scope distance based on its parent
                     event.scope_distance = event.source.scope_distance + 1
                     break
-                log.verbose(f"{event} waiting for {event.source} to resolve")
 
             # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
@@ -191,14 +190,17 @@ class ScanManager:
             emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
-            if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE"):
+            if (
+                event.host
+                and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")
+                and not str(event.module) == "speculate"
+            ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     source_event.tags.add("target")
-                if not str(event.module) == "speculate":
-                    self.emit_event(source_event)
+                self.emit_event(source_event)
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:

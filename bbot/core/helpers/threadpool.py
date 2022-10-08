@@ -31,7 +31,6 @@ class ThreadPoolWrapper:
             if self.max_workers is not None:
                 while self.num_tasks > self.max_workers:
                     sleep(0.1)
-                    log.verbose(f"callback {callback.__qualname__} waiting for thread pool to free up")
             try:
                 future = self.executor.submit(callback, *args, **kwargs)
             except RuntimeError as e:
