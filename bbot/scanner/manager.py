@@ -22,14 +22,12 @@ class ScanManager:
 
         # tracks duplicate events on a global basis
         self.events_distributed = set()
-        self.events_distributed_lock = threading.Lock()
 
         # tracks duplicate events on a per-module basis
         self.events_accepted = set()
         self.events_accepted_lock = threading.Lock()
 
         self.events_resolved = dict()
-        self.events_resolved_lock = threading.Lock()
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
 
     def init_events(self):
@@ -53,6 +51,7 @@ class ScanManager:
         # "quick" queues the event immediately
         quick = kwargs.pop("quick", False)
         if quick:
+            event._resolved.set()
             kwargs.pop("abort_if", None)
             kwargs.pop("on_success_callback", None)
             try:
@@ -63,8 +62,6 @@ class ScanManager:
             except Exception as e:
                 log.error(f"Unexpected error in manager.emit_event(): {e}")
                 log.debug(traceback.format_exc())
-            finally:
-                event._resolved.set()
         else:
             # don't raise an exception if the thread pool has been shutdown
             try:
@@ -112,15 +109,15 @@ class ScanManager:
             log.debug(f'Module "{event.module}" raised {event}')
 
             # Wait for parent event to resolve (in case its scope distance changes)`
-            if "target" not in event.tags:
-                while 1:
-                    if self.scan.stopping:
-                        raise ScanCancelledError()
-                    resolved = event.source._resolved.wait(timeout=0.1)
-                    if resolved:
-                        # update event's scope distance based on its parent
-                        event.scope_distance = event.source.scope_distance + 1
-                        break
+            while 1:
+                if self.scan.stopping:
+                    raise ScanCancelledError()
+                resolved = event.source._resolved.wait(timeout=0.1)
+                if resolved:
+                    # update event's scope distance based on its parent
+                    event.scope_distance = event.source.scope_distance + 1
+                    break
+                log.verbose(f"{event} waiting for {event.source} to resolve")
 
             # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
@@ -305,7 +302,6 @@ class ScanManager:
 
         event_hash = hash(event)
         dup = event_hash in self.events_distributed
-        # with self.events_distributed_lock:
         if dup:
             self.scan.verbose(f"{event.module}: Duplicate event: {event}")
         else:
