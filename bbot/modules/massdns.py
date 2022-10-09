@@ -71,9 +71,17 @@ class massdns(crobat):
         for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):
             self.emit_result(hostname, event, query)
 
+    def abort_if(self, event):
+        # abort if the event is a wildcard
+        if "wildcard" in event.tags:
+            return True
+        # abort if the event is not a valid record type
+        if not any(x in event.tags for x in ("a-record", "aaaa-record", "cname-record")):
+            return True
+
     def emit_result(self, result, source_event, query):
         if not result == source_event:
-            kwargs = {"abort_if": lambda e: any([x in e.tags for x in ("wildcard", "unresolved")])}
+            kwargs = {"abort_if": self.abort_if}
             if result.endswith(f".{query}"):
                 kwargs["on_success_callback"] = self.add_found
             self.emit_event(result, "DNS_NAME", source_event, **kwargs)

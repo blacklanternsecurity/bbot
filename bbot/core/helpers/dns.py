@@ -20,6 +20,8 @@ class DNSHelper:
     For automatic wildcard detection, nameserver validation, etc.
     """
 
+    all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
+
     def __init__(self, parent_helper):
 
         self.parent_helper = parent_helper
@@ -111,7 +113,7 @@ class DNSHelper:
                 t = kwargs.pop("type")
                 if isinstance(t, str):
                     if t.strip().lower() in ("any", "all", "*"):
-                        types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
+                        types = self.all_rdtypes
                     else:
                         types = [t.strip().upper()]
                 elif any([isinstance(t, x) for x in (list, tuple)]):

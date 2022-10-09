@@ -224,8 +224,9 @@ class BaseModule:
         events = []
         finish = False
         report = False
-        left = int(self.batch_size)
-        while left > 0 and self.incoming_event_queue:
+        while self.incoming_event_queue:
+            if len(events) > self.batch_size:
+                break
             try:
                 event = self.incoming_event_queue.get_nowait()
                 if type(event) == str:
@@ -234,7 +235,6 @@ class BaseModule:
                     elif event == "REPORT":
                         report = True
                 else:
-                    left -= 1
                     events.append(event)
             except queue.Empty:
                 break
