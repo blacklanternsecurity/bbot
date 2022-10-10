@@ -37,7 +37,9 @@ class iis_shortnames(BaseModule):
 
     def setup(self):
         iis_shortname_jar = "https://github.com/irsdl/IIS-ShortName-Scanner/raw/master/iis_shortname_scanner.jar"
-        iis_shortname_config = "https://raw.githubusercontent.com/irsdl/IIS-ShortName-Scanner/master/config.xml"
+        iis_shortname_config = (
+            "https://raw.githubusercontent.com/irsdl/IIS-ShortName-Scanner/master/release/config.xml"
+        )
         self.iis_scanner_jar = self.helpers.download(iis_shortname_jar, cache_hrs=720)
         self.iis_scanner_config = self.helpers.download(iis_shortname_config, cache_hrs=720)
         if self.iis_scanner_jar and self.iis_scanner_config:
