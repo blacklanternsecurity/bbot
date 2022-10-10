@@ -16,7 +16,7 @@ signatures = [
     ("POST", "{scheme}://{netloc}/{path}", {"Content-Length": "0"}, False),
     ("GET", "{scheme}://{netloc}/{path}.php", None, False),
     ("GET", "{scheme}://{netloc}/{path}.json", None, False),
-    ("TRACE", "{scheme}://{netloc}/{path}/", None, True),
+    ("TRACE", "{scheme}://{netloc}/{path}", None, True),
 ]
 
 query_payloads = [
@@ -103,7 +103,7 @@ class bypass403(BaseModule):
                         added_header_tuple = next(iter(sig[2].items()))
                         reported_signature = f"Added Header: {added_header_tuple[0]}: {added_header_tuple[1]}"
                     else:
-                        reported_signature = f"Modified URL: {sig[1]}"
+                        reported_signature = f"Modified URL: {sig[0]} {sig[1]}"
                     description = f"403 Bypass Reasons: [{','.join(reasons)}] Sig: [{reported_signature}]"
                     self.emit_event(
                         {"description": description, "host": str(event.host), "url": event.data},
