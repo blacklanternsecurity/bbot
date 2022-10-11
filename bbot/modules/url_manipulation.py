@@ -74,7 +74,7 @@ class url_manipulation(BaseModule):
                         else:
                             self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")
                 else:
-                    self.debug("Ignoring positive result due to present of parameter name in result")
+                    self.debug("Ignoring positive result due to presence of parameter name in result")
 
     def filter_event(self, event):
 
