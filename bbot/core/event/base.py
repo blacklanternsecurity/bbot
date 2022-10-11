@@ -125,9 +125,6 @@ class BaseEvent:
         # a threading event indicating whether the event has undergone DNS resolution yet
         self._resolved = ThreadingEvent()
 
-        self._event_semaphore_acquired = False
-        self._event_semaphore_released = False
-
     @property
     def data(self):
         return self._data
@@ -421,20 +418,6 @@ class BaseEvent:
         timestamp = self.timestamp.timestamp()
         return self_priority + mod_priority + (1 / timestamp)
 
-    def acquire_semaphore(self, *args, **kwargs):
-        if not self._event_semaphore_acquired:
-            with suppress(AttributeError):
-                ret = self.module._event_semaphore.acquire(*args, **kwargs)
-                if ret:
-                    self._event_semaphore_acquired = True
-                return ret
-
-    def release_semaphore(self):
-        if self._event_semaphore_acquired and not self._event_semaphore_released:
-            with suppress(AttributeError):
-                self.module._event_semaphore.release()
-                self._event_semaphore_released = True
-
     def __iter__(self):
         """
         For dict(event)
@@ -554,7 +537,9 @@ class DNS_NAME(BaseEvent):
         stem = self.host_stem
         if "wildcard" in self.tags:
             stem = "".join(stem.split(".")[1:])
-        return extract_words(stem)
+        if "resolved" in self.tags:
+            return extract_words(stem)
+        return set()
 
 
 class OPEN_TCP_PORT(BaseEvent):

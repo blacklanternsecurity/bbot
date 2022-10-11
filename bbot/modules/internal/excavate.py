@@ -226,7 +226,7 @@ class excavate(BaseInternalModule):
         self.hostname = HostnameExtractor(self)
         self.url = URLExtractor(self)
         self.email = EmailExtractor(self)
-        self.error = ErrorExtractor(self)
+        self.error_extractor = ErrorExtractor(self)
         self.jwt = JWTExtractor(self)
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
@@ -254,7 +254,15 @@ class excavate(BaseInternalModule):
             body = event.data.get("response-body", "")
             self.search(
                 body,
-                [self.hostname, self.url, self.email, self.error, self.jwt, self.javascript, self.serialization],
+                [
+                    self.hostname,
+                    self.url,
+                    self.email,
+                    self.error_extractor,
+                    self.jwt,
+                    self.javascript,
+                    self.serialization,
+                ],
                 event,
                 spider_danger=True,
             )
@@ -262,7 +270,7 @@ class excavate(BaseInternalModule):
             headers = event.data.get("response-header", "")
             self.search(
                 headers,
-                [self.hostname, self.url, self.email, self.error, self.jwt, self.serialization],
+                [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,
                 spider_danger=False,
             )
@@ -270,5 +278,7 @@ class excavate(BaseInternalModule):
         else:
 
             self.search(
-                str(data), [self.hostname, self.url, self.email, self.error, self.jwt, self.serialization], event
+                str(data),
+                [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
+                event,
             )

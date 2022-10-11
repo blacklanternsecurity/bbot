@@ -20,6 +20,8 @@ class DNSHelper:
     For automatic wildcard detection, nameserver validation, etc.
     """
 
+    all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
+
     def __init__(self, parent_helper):
 
         self.parent_helper = parent_helper
@@ -59,15 +61,15 @@ class DNSHelper:
         self._dummy_modules = dict()
         self._dummy_modules_lock = Lock()
 
-        self._dns_cache = self.parent_helper.CacheDict(max_size=10000)
+        self._dns_cache = self.parent_helper.CacheDict(max_size=100000)
 
         self._event_cache = self.parent_helper.CacheDict(max_size=10000)
         self._event_cache_lock = Lock()
         self._event_cache_locks = NamedLock()
 
         # copy the system's current resolvers to a text file for tool use
-        resolvers = dns.resolver.Resolver().nameservers
-        self.resolver_file = self.parent_helper.tempfile(resolvers, pipe=False)
+        self.system_resolvers = dns.resolver.Resolver().nameservers
+        self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
         self.bad_ptr_regex = re.compile(r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}")
         self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
@@ -111,7 +113,7 @@ class DNSHelper:
                 t = kwargs.pop("type")
                 if isinstance(t, str):
                     if t.strip().lower() in ("any", "all", "*"):
-                        types = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
+                        types = self.all_rdtypes
                     else:
                         types = [t.strip().upper()]
                 elif any([isinstance(t, x) for x in (list, tuple)]):
@@ -146,9 +148,9 @@ class DNSHelper:
                 )
                 return results, errors
             try:
-                if dns_cache_hash in self._dns_cache:
+                try:
                     results = self._dns_cache[dns_cache_hash]
-                else:
+                except KeyError:
                     results = list(self._catch(self.resolver.resolve, query, **kwargs))
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = results
@@ -392,7 +394,6 @@ class DNSHelper:
             if file_content is not None:
                 self._resolver_list = set([l for l in file_content.splitlines() if l])
             if not self._resolver_list:
-                log.info(f"Fetching and validating public DNS servers, this may take a few minutes")
                 resolvers = self.get_valid_resolvers()
                 if resolvers:
                     self._resolver_list = resolvers
@@ -413,11 +414,15 @@ class DNSHelper:
             nameservers (list): nameservers to verify
             timeout (int): timeout for dns query
         """
-        log.info(f"Verifying {len(nameservers):,} nameservers")
-        futures = [
-            self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.verify_nameserver, n)
-            for n in nameservers
-        ]
+        log.info(f"Verifying {len(nameservers):,} public nameservers. Please be patient, this may take a while.")
+        futures = []
+        for nameserver in nameservers:
+            # don't use the system nameservers
+            if nameserver in self.system_resolvers:
+                continue
+            futures.append(
+                self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.verify_nameserver, nameserver)
+            )
 
         valid_nameservers = set()
         for future in self.parent_helper.as_completed(futures):

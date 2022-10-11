@@ -107,6 +107,8 @@ class DepsInstaller:
         finally:
             self.write_setup_status()
 
+        succeeded.sort()
+        failed.sort()
         return succeeded, failed
 
     def install_module(self, module):

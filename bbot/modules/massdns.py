@@ -67,13 +67,21 @@ class massdns(crobat):
             self.debug(f"Skipping unresolved query: {query}")
             return
 
-        self.verbose(f"Brute-forcing subdomains for {query}")
+        self.info(f"Brute-forcing subdomains for {query}")
         for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):
             self.emit_result(hostname, event, query)
 
+    def abort_if(self, event):
+        # abort if the event is a wildcard
+        if "wildcard" in event.tags:
+            return True
+        # abort if the event is not a valid record type
+        if not any(x in event.tags for x in ("a-record", "aaaa-record", "cname-record")):
+            return True
+
     def emit_result(self, result, source_event, query):
         if not result == source_event:
-            kwargs = {"abort_if": lambda e: any([x in e.tags for x in ("wildcard", "unresolved")])}
+            kwargs = {"abort_if": self.abort_if}
             if result.endswith(f".{query}"):
                 kwargs["on_success_callback"] = self.add_found
             self.emit_event(result, "DNS_NAME", source_event, **kwargs)
@@ -155,7 +163,12 @@ class massdns(crobat):
 
         base_mutations = set()
         for domain, subdomains in found:
-            base_mutations.update(set(subdomains))
+            domain_hash = hash(domain)
+            for s in subdomains:
+                h = hash((domain_hash, (s,)))
+                if not h in self.mutations_tried:
+                    self.mutations_tried.add(h)
+                    base_mutations.add(s)
 
         for i, (domain, subdomains) in enumerate(found):
             query = domain
@@ -170,13 +183,14 @@ class massdns(crobat):
                     for delimiter in ("", ".", "-"):
                         m = delimiter.join(mutation).lower()
                         mutations.add(m)
-            self.verbose(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
-            for hostname in self.massdns(query, mutations):
-                source_event = self.get_source_event(hostname)
-                if source_event is None:
-                    self.debug(f"Could not correlate source event from: {hostname}")
-                    continue
-                self.emit_result(hostname, source_event, query)
+            if mutations:
+                self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
+                for hostname in self.massdns(query, mutations):
+                    source_event = self.get_source_event(hostname)
+                    if source_event is None:
+                        self.debug(f"Could not correlate source event from: {hostname}")
+                        continue
+                    self.emit_result(hostname, source_event, query)
 
     def add_found(self, event):
         if self.helpers.is_subdomain(event.data):

@@ -14,6 +14,10 @@ class anubisdb(crobat):
         url = f"{self.base_url}/{self.helpers.quote(query)}"
         return self.helpers.request(url)
 
+    def abort_if(self, event):
+        # abort if dns name is unresolved
+        return not "resolved" in event.tags or super().abort_if(event)
+
     def parse_results(self, r, query):
         results = set()
         json = r.json()
