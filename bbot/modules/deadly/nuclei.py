@@ -122,16 +122,21 @@ class nuclei(BaseModule):
     def handle_batch(self, *events):
 
         nuclei_input = [str(e.data) for e in events]
-        for severity, template, host, name in self.execute_nuclei(nuclei_input):
+        for severity, template, host, name, extracted_results in self.execute_nuclei(nuclei_input):
             source_event = self.correlate_event(events, host)
             if source_event == None:
                 continue
+
+            description_string = f"template: [{template}], name: [{name}]"
+            if len(extracted_results) > 0:
+                description_string += f" Extracted Data: [{','.join(extracted_results)}]"
+
             if severity == "INFO":
                 self.emit_event(
                     {
                         "host": str(source_event.host),
                         "url": host,
-                        "description": f"template: {template}, name: {name}",
+                        "description": description_string,
                     },
                     "FINDING",
                     source_event,
@@ -142,7 +147,7 @@ class nuclei(BaseModule):
                         "severity": severity,
                         "host": str(source_event.host),
                         "url": host,
-                        "description": f"template: {template}, name: {name}",
+                        "description": description_string,
                     },
                     "VULNERABILITY",
                     source_event,
@@ -195,6 +200,7 @@ class nuclei(BaseModule):
             except json.decoder.JSONDecodeError:
                 self.debug(f"Failed to decode line: {line}")
                 continue
+
             template = j.get("template-id", "")
 
             # try to get the specific matcher name
@@ -210,8 +216,10 @@ class nuclei(BaseModule):
             severity = j.get("info", {}).get("severity", "").upper()
             host = j.get("host", "")
 
+            extracted_results = j.get("extracted-results", [])
+
             if template and name and severity and host:
-                yield (severity, template, host, name)
+                yield (severity, template, host, name, extracted_results)
             else:
                 self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
 
