@@ -37,6 +37,8 @@ docker run blacklanternsecurity/bbot:stable --help
 
 If you need help with installation, please refer to the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#installation).
 
+See also: [Release History](https://github.com/blacklanternsecurity/bbot/wiki/Release-History)
+
 ## Scanning with BBOT
 
 Note: the `httpx` module is recommended in most scans because it is [used by BBOT to visit webpages](https://github.com/blacklanternsecurity/bbot/wiki#note-on-the-httpx-module).
