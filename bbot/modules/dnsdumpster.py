@@ -20,10 +20,10 @@ class dnsdumpster(crobat):
         res1 = self.helpers.request(self.base_url)
         status_code = getattr(res1, "status_code", 0)
         if status_code in [429]:
-            self.warning(f'Too many requests "{status_code}"')
+            self.verbose(f'Too many requests "{status_code}"')
             return ret
         elif status_code not in [200]:
-            self.warning(f'Bad response code "{status_code}" from DNSDumpster')
+            self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
         else:
             self.debug(f'Valid response code "{status_code}" from DNSDumpster')
@@ -35,7 +35,7 @@ class dnsdumpster(crobat):
                 try:
                     k, v = cookie.split("=", 1)
                 except ValueError:
-                    self.warning("Error retrieving cookie")
+                    self.verbose("Error retrieving cookie")
                     return ret
                 if k == "csrftoken":
                     csrftoken = str(v)
@@ -72,7 +72,7 @@ class dnsdumpster(crobat):
         )
         status_code = getattr(res2, "status_code", 0)
         if status_code not in [200]:
-            self.warning(f'Bad response code "{status_code}" from DNSDumpster')
+            self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
 
         html = BeautifulSoup(res2.content, features="lxml")

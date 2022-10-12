@@ -39,7 +39,7 @@ class viewdns(BaseModule):
         r = self.helpers.request(url)
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200,):
-            self.warning(f"Error retrieving reverse whois results (status code: {status_code})")
+            self.verbose(f"Error retrieving reverse whois results (status code: {status_code})")
 
         content = getattr(r, "content", b"")
         html = BeautifulSoup(content, features="lxml")
