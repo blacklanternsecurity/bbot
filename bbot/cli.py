@@ -189,12 +189,14 @@ def main():
                 if module_filtering:
                     help_modules = None
 
+                if options.help_all:
+                    log_fn(parser.format_help())
+
                 log_fn("\n### MODULES ###\n")
                 for row in module_loader.modules_table(modules=help_modules).splitlines():
                     log_fn(row)
 
                 if options.help_all:
-                    parser.print_help()
                     log_fn("\n### MODULE OPTIONS ###\n")
                     for row in module_loader.modules_options_table(modules=help_modules).splitlines():
                         log_fn(row)
