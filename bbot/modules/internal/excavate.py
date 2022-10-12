@@ -88,10 +88,14 @@ class URLExtractor(BaseExtractor):
 class EmailExtractor(BaseExtractor):
 
     regexes = {"email": _email_regex}
+    tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
 
     def report(self, result, name, event, **kwargs):
-        self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
-        self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
+        result = result.lower()
+        tld = result.split(".")[-1]
+        if tld not in self.tld_blacklist:
+            self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
+            self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
 
 
 class ErrorExtractor(BaseExtractor):
