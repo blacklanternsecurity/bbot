@@ -12,12 +12,15 @@ class CSV(BaseOutputModule):
     options_desc = {"output_file": "Output to CSV file"}
     emit_graph_trail = False
 
+    header_row = ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
+    filename = "output.csv"
+
     def setup(self):
         self.output_file = self.config.get("output_file", "")
         if self.output_file:
             self.output_file = Path(self.output_file)
         else:
-            self.output_file = self.scan.home / "output.csv"
+            self.output_file = self.scan.home / self.filename
         self.helpers.mkdir(self.output_file.parent)
         self._file = None
         self._writer = None
@@ -27,9 +30,7 @@ class CSV(BaseOutputModule):
     def writer(self):
         if self._writer is None:
             self._writer = csv.writer(self.file)
-            self._writer.writerow(
-                ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
-            )
+            self._writer.writerow(self.header_row)
         return self._writer
 
     @property

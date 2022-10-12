@@ -12,7 +12,7 @@ from bbot.core.helpers.threadpool import NamedLock
 class sslcert(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS"]
-    flags = ["subdomain-enum", "email-enum", "active", "safe"]
+    flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe"]
     meta = {
         "description": "Visit open ports and retrieve SSL certificates",
     }
@@ -20,7 +20,7 @@ class sslcert(BaseModule):
     options_desc = {"timeout": "Socket connect timeout in seconds"}
     deps_apt = ["openssl"]
     deps_pip = ["pyOpenSSL"]
-    max_event_handlers = 20
+    max_event_handlers = 50
     scope_distance_modifier = 0
     _priority = 2
 

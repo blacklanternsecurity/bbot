@@ -17,7 +17,7 @@ class builtwith(shodan_dns):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["affiliates", "subdomain-enum", "passive", "safe"]
     meta = {"description": "Query Builtwith.com for subdomains", "auth_required": True}
     options = {"api_key": "", "redirects": True}
     options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
@@ -74,7 +74,7 @@ class builtwith(shodan_dns):
             else:
                 error = json.get("Errors", [{}])[0].get("Message", "Unknown Error")
                 if error:
-                    self.warning(f"No results for {query}: {error}")
+                    self.verbose(f"No results for {query}: {error}")
 
     def parse_redirects(self, r, query):
         """

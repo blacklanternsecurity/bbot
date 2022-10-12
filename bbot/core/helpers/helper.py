@@ -1,5 +1,3 @@
-import atexit
-import shutil
 import logging
 from pathlib import Path
 from threading import Lock
@@ -8,10 +6,10 @@ from . import misc
 from .dns import DNSHelper
 from .diff import HttpCompare
 from .wordcloud import WordCloud
+from .interactsh import Interactsh
 from .threadpool import as_completed
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
-from .interactsh import Interactsh
 
 log = logging.getLogger("bbot.core.helpers")
 
@@ -40,7 +38,6 @@ class ConfigAwareHelper:
         self.mkdir(self.temp_dir)
         self.mkdir(self.tools_dir)
         self.mkdir(self.lib_dir)
-        atexit.register(self.empty_temp_dir)
         # holds requests CachedSession() objects for duration of scan
         self.cache_sessions = dict()
         self._futures = set()
@@ -63,9 +60,6 @@ class ConfigAwareHelper:
         temp_filename() --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
         """
         return self.temp_dir / self.rand_string(20)
-
-    def empty_temp_dir(self):
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def clean_old_scans(self):
         _filter = lambda x: x.is_dir() and self.regexes.scan_name_regex.match(x.name)

@@ -60,4 +60,4 @@ class urlscan(crobat):
             else:
                 self.debug(f'No results for "{query}"')
         except Exception:
-            self.warning(f"Error retrieving urlscan results")
+            self.verbose(f"Error retrieving urlscan results")

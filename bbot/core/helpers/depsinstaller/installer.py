@@ -10,6 +10,7 @@ from contextlib import suppress
 from ansible_runner.interface import run
 
 from bbot.modules import module_loader
+from ..misc import can_sudo_without_password
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -23,6 +24,8 @@ class DepsInstaller:
         os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
 
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
+        if self._sudo_password is None and can_sudo_without_password():
+            self._sudo_password = ""
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.parent_helper.mkdir(self.data_dir)
         self.setup_status_cache = self.data_dir / "setup_status.json"
@@ -104,6 +107,8 @@ class DepsInstaller:
         finally:
             self.write_setup_status()
 
+        succeeded.sort()
+        failed.sort()
         return succeeded, failed
 
     def install_module(self, module):
@@ -262,8 +267,8 @@ class DepsInstaller:
         if os.geteuid() != 0 and self._sudo_password is None:
             if message:
                 log.warning(message)
-            # sleep for a split second to flush previous log messages
             while not self._sudo_password:
+                # sleep for a split second to flush previous log messages
                 sleep(0.1)
                 password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
                 if self.parent_helper.verify_sudo_password(password):

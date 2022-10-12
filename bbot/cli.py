@@ -149,7 +149,7 @@ def main():
                             log.hugewarning(
                                 f"{len(required_by):,} modules ({','.join(required_by)}) rely on {event_type} but no enabled module produces it"
                             )
-                            log.warning(
+                            log.hugewarning(
                                 f"Recommend enabling one or more of the following modules which produce {event_type}:"
                             )
                             for m in recommended:
@@ -189,12 +189,14 @@ def main():
                 if module_filtering:
                     help_modules = None
 
+                if options.help_all:
+                    log_fn(parser.format_help())
+
                 log_fn("\n### MODULES ###\n")
                 for row in module_loader.modules_table(modules=help_modules).splitlines():
                     log_fn(row)
 
                 if options.help_all:
-                    parser.print_help()
                     log_fn("\n### MODULE OPTIONS ###\n")
                     for row in module_loader.modules_options_table(modules=help_modules).splitlines():
                         log_fn(row)

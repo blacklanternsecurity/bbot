@@ -8,13 +8,14 @@ class viewdns(BaseModule):
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    flags = ["affiliates", "passive", "safe"]
     meta = {
         "description": "Query viewdns.info's reverse whois for related domains",
     }
     deps_pip = ["beautifulsoup4", "lxml"]
     base_url = "https://viewdns.info"
     in_scope_only = True
+    _qsize = 1
 
     def setup(self):
         self.processed = set()
@@ -39,7 +40,7 @@ class viewdns(BaseModule):
         r = self.helpers.request(url)
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200,):
-            self.warning(f"Error retrieving reverse whois results (status code: {status_code})")
+            self.verbose(f"Error retrieving reverse whois results (status code: {status_code})")
 
         content = getattr(r, "content", b"")
         html = BeautifulSoup(content, features="lxml")

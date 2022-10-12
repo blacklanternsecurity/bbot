@@ -85,10 +85,8 @@ class BaseModule:
         self.scan = scan
         self.errored = False
         self._log = None
-        self._event_queue = None
-        # this semaphore allows us to track how many events are waiting to go out
-        # so that a single module can't raise too many events at once
-        self._event_semaphore = threading.Semaphore(self._qsize)
+        self._incoming_event_queue = None
+        self._outgoing_event_queue = None
         # how many seconds we've gone without processing a batch
         self._batch_idle = 0
         # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
@@ -211,27 +209,12 @@ class BaseModule:
     def emit_event(self, *args, **kwargs):
         if self.scan.stopping:
             return
-        on_success_callback = kwargs.pop("on_success_callback", None)
-        abort_if = kwargs.pop("abort_if", lambda e: False)
-        quick = kwargs.pop("quick", False)
-        event = self.make_event(*args, **kwargs)
+        event_kwargs = dict(kwargs)
+        for o in ("on_success_callback", "abort_if", "quick"):
+            event_kwargs.pop(o, None)
+        event = self.make_event(*args, **event_kwargs)
         if event:
-            while not self.scan.stopping:
-                okay = event.acquire_semaphore(timeout=0.1)
-                if not okay:
-                    continue
-                try:
-                    self.scan.manager.emit_event(
-                        event,
-                        abort_if=abort_if,
-                        on_success_callback=on_success_callback,
-                        quick=quick,
-                    )
-                except Exception:
-                    event.release_semaphore()
-                    self.error(f"Unexpected error in {self.name}.emit_event()")
-                    self.debug(traceback.format_exc())
-                break
+            self.outgoing_event_queue.put((event, kwargs))
 
     @property
     def events_waiting(self):
@@ -241,17 +224,17 @@ class BaseModule:
         events = []
         finish = False
         report = False
-        left = int(self.batch_size)
-        while left > 0 and self.event_queue:
+        while self.incoming_event_queue:
+            if len(events) > self.batch_size:
+                break
             try:
-                event = self.event_queue.get_nowait()
+                event = self.incoming_event_queue.get_nowait()
                 if type(event) == str:
                     if event == "FINISHED":
                         finish = True
                     elif event == "REPORT":
                         report = True
                 else:
-                    left -= 1
                     events.append(event)
             except queue.Empty:
                 break
@@ -260,8 +243,8 @@ class BaseModule:
     @property
     def num_queued_events(self):
         ret = 0
-        if self.event_queue:
-            ret = self.event_queue.qsize()
+        if self.incoming_event_queue:
+            ret = self.incoming_event_queue.qsize()
         return ret
 
     def start(self):
@@ -313,6 +296,13 @@ class BaseModule:
         try:
             while not self.scan.stopping:
                 iterations += 1
+
+                # hold the reigns if our outgoing queue is full
+                if self.outgoing_event_queue.qsize() >= self._qsize:
+                    self._batch_idle += 1
+                    sleep(0.1)
+                    continue
+
                 if self.batch_size > 1:
                     if iterations % 10 == 0:
                         self._batch_idle += 1
@@ -325,8 +315,8 @@ class BaseModule:
 
                 else:
                     try:
-                        if self.event_queue:
-                            e = self.event_queue.get(timeout=0.1)
+                        if self.incoming_event_queue:
+                            e = self.incoming_event_queue.get(timeout=0.1)
                         else:
                             self.debug(f"Event queue is in bad state")
                             return
@@ -438,14 +428,14 @@ class BaseModule:
                     self.catch(callback, _force=True)
 
     def queue_event(self, event):
-        if self.event_queue is not None and not self.errored:
+        if self.incoming_event_queue is not None and not self.errored:
             acceptable, reason = self._filter_event(event)
             if not acceptable and reason:
                 self.debug(f"Not accepting {event} because {reason}")
                 return
             if is_event(event):
                 self.scan.stats.event_consumed(event, self)
-            self.event_queue.put(event)
+            self.incoming_event_queue.put(event)
         else:
             self.debug(f"Not in an acceptable state to queue event")
 
@@ -456,14 +446,14 @@ class BaseModule:
             self.debug(f"Setting error state for module {self.name}")
             self.errored = True
             # clear incoming queue
-            if self.event_queue:
+            if self.incoming_event_queue:
                 self.debug(f"Emptying event_queue")
                 with suppress(queue.Empty):
                     while 1:
-                        self.event_queue.get_nowait()
+                        self.incoming_event_queue.get_nowait()
                 # set queue to None to prevent its use
                 # if there are leftover objects in the queue, the scan will hang.
-                self._event_queue = False
+                self._incoming_event_queue = False
 
     @property
     def name(self):
@@ -479,9 +469,11 @@ class BaseModule:
         internal_pool = self._internal_thread_pool.num_tasks
         pool_total = main_pool + internal_pool
         incoming_qsize = 0
-        if self.event_queue:
-            incoming_qsize = self.event_queue.qsize()
-        outgoing_qsize = self._qsize - self._event_semaphore._value
+        outgoing_qsize = 0
+        if self.incoming_event_queue:
+            incoming_qsize = self.incoming_event_queue.qsize()
+        if self.outgoing_event_queue:
+            outgoing_qsize = self.outgoing_event_queue.qsize()
         status = {
             "events": {"incoming": incoming_qsize, "outgoing": outgoing_qsize},
             "tasks": {"main_pool": main_pool, "internal_pool": internal_pool, "total": pool_total},
@@ -512,10 +504,16 @@ class BaseModule:
         return config
 
     @property
-    def event_queue(self):
-        if self._event_queue is None:
-            self._event_queue = queue.SimpleQueue()
-        return self._event_queue
+    def incoming_event_queue(self):
+        if self._incoming_event_queue is None:
+            self._incoming_event_queue = queue.SimpleQueue()
+        return self._incoming_event_queue
+
+    @property
+    def outgoing_event_queue(self):
+        if self._outgoing_event_queue is None:
+            self._outgoing_event_queue = queue.SimpleQueue()
+        return self._outgoing_event_queue
 
     @property
     def priority(self):

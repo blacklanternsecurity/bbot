@@ -1,7 +1,5 @@
-import os
 import sys
 import pytest
-import getpass
 import logging
 import urllib3
 import requests
@@ -10,7 +8,6 @@ import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
 
-from bbot.core.helpers.misc import verify_sudo_password
 
 # make the necessary web requests before nuking them to high heaven
 example_url = "https://api.publicapis.org/health"
@@ -21,20 +18,6 @@ tldextract.extract("www.evilcorp.com")
 
 
 log = logging.getLogger(f"bbot.test.fixtures")
-
-
-@pytest.fixture
-def ensure_root():
-    sudo_pass = os.environ.get("BBOT_SUDO_PASS", "")
-    while 1:
-        if sudo_pass is None:
-            sudo_pass = getpass.getpass(prompt="[USER] Please enter sudo password: ")
-        if verify_sudo_password(sudo_pass):
-            log.success("Authentication successful")
-            break
-        log.warning("Invalid password")
-        sudo_pass = None
-    os.environ["BBOT_SUDO_PASS"] = sudo_pass
 
 
 @pytest.fixture
@@ -49,6 +32,16 @@ def patch_requests(monkeypatch):
     downloaded_file = current_dir / "test_output.json"
     monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
     return request, download
+
+
+@pytest.fixture
+def patch_scan_requests(monkeypatch):
+    def _patch_scan_requests(scanner):
+        old_request = scanner.helpers.request
+        monkeypatch.setattr(scanner.helpers, "request", lambda *args, **kwargs: requests_response)
+        return old_request
+
+    return _patch_scan_requests
 
 
 @pytest.fixture
@@ -145,13 +138,20 @@ def patch_ansible(monkeypatch):
 
 
 @pytest.fixture
-def scan(patch_ansible, patch_requests, patch_commands, bbot_config):
+def scan(monkeypatch, patch_ansible, patch_requests, patch_scan_requests, patch_commands, bbot_config):
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     patch_commands(bbot_scan)
     patch_ansible(bbot_scan)
+    patch_scan_requests(bbot_scan)
     bbot_scan.status = "RUNNING"
+
+    fallback_nameservers_file = bbot_scan.helpers.bbot_home / "fallback_nameservers.txt"
+    with open(fallback_nameservers_file, "w") as f:
+        f.write("8.8.8.8\n")
+    monkeypatch.setattr(bbot_scan.helpers.dns, "fallback_nameservers_file", fallback_nameservers_file)
+
     return bbot_scan
 
 

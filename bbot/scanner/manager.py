@@ -18,21 +18,23 @@ class ScanManager:
 
     def __init__(self, scan):
         self.scan = scan
-        self.event_queue = queue.Queue()
         self.queued_event_types = dict()
+
+        # tracks duplicate events on a global basis
         self.events_distributed = set()
-        self.events_distributed_lock = threading.Lock()
+
+        # tracks duplicate events on a per-module basis
         self.events_accepted = set()
         self.events_accepted_lock = threading.Lock()
+
         self.events_resolved = dict()
-        self.events_resolved_lock = threading.Lock()
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
 
     def init_events(self):
         """
         seed scanner with target events
         """
-        self.queue_event(self.scan.root_event)
+        self.distribute_event(self.scan.root_event)
         for event in self.scan.target.events:
             self.scan.verbose(f"Target: {event}")
             self.emit_event(event)
@@ -43,32 +45,35 @@ class ScanManager:
     def emit_event(self, event, *args, **kwargs):
         # skip event if it fails precheck
         if not self._event_precheck(event):
-            event.release_semaphore()
             event._resolved.set()
-            return
+            return False
+
         # "quick" queues the event immediately
         quick = kwargs.pop("quick", False)
         if quick:
+            event._resolved.set()
             kwargs.pop("abort_if", None)
             kwargs.pop("on_success_callback", None)
             try:
-                self.queue_event(event, *args, **kwargs)
+                self.distribute_event(event, *args, **kwargs)
+                return True
+            except ScanCancelledError:
+                return False
             except Exception as e:
                 log.error(f"Unexpected error in manager.emit_event(): {e}")
                 log.debug(traceback.format_exc())
-            finally:
-                event.release_semaphore()
-                event._resolved.set()
         else:
             # don't raise an exception if the thread pool has been shutdown
             try:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
+                return True
+            except ScanCancelledError:
+                return False
             except Exception as e:
-                if not isinstance(e, RuntimeError):
-                    log.error(f"Unexpected error in manager.emit_event(): {e}")
-                    log.debug(traceback.format_exc())
-                event.release_semaphore()
+                log.error(f"Unexpected error in manager.emit_event(): {e}")
+                log.debug(traceback.format_exc())
                 event._resolved.set()
+        return False
 
     def _event_precheck(self, event):
         """
@@ -80,12 +85,12 @@ class ScanManager:
         if event == event.get_source():
             log.debug(f"Skipping event with self as source: {event}")
             return False
+        if self.is_duplicate_event(event):
+            log.debug(f"Skipping {event} because it is a duplicate")
+            return False
 
         # we exclude DNS_NAMEs because we haven't done wildcard checking yet
         if event.type != "DNS_NAME":
-            if self.is_duplicate_event(event):
-                log.debug(f"Skipping {event} because it is a duplicate")
-                return False
             any_acceptable = False
             for mod in self.scan.modules.values():
                 acceptable, reason = mod._filter_event(event, precheck_only=True)
@@ -96,12 +101,22 @@ class ScanManager:
         return True
 
     def _emit_event(self, event, *args, **kwargs):
-        emit_event = True
-        event_emitted = False
+        distribute_event = True
+        event_distributed = False
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
             log.debug(f'Module "{event.module}" raised {event}')
+
+            # Wait for parent event to resolve (in case its scope distance changes)`
+            while 1:
+                if self.scan.stopping:
+                    raise ScanCancelledError()
+                resolved = event.source._resolved.wait(timeout=0.1)
+                if resolved:
+                    # update event's scope distance based on its parent
+                    event.scope_distance = event.source.scope_distance + 1
+                    break
 
             # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
@@ -132,18 +147,7 @@ class ScanManager:
                     if event_blacklisted_dns:
                         reason = "DNS associations"
                     log.debug(f"Omitting due to blacklisted {reason}: {event}")
-                    emit_event = False
-
-                # Wait for parent event to resolve (in case its scope distance changes)`
-                if not event_whitelisted or "target" not in event.tags:
-                    while 1:
-                        if self.scan.stopping:
-                            raise ScanCancelledError()
-                        resolved = event._resolved.wait(timeout=0.1)
-                        if resolved:
-                            # update event's scope distance based on its parent
-                            event.scope_distance = event.source.scope_distance + 1
-                            break
+                    distribute_event = False
 
                 # Scope shepherding
                 event_is_duplicate = self.is_duplicate_event(event)
@@ -175,9 +179,9 @@ class ScanManager:
                 return
 
             # queue the event before emitting its DNS children
-            if emit_event:
-                self.queue_event(event)
-                event_emitted = True
+            if distribute_event:
+                self.distribute_event(event)
+                event_distributed = True
 
             if callable(on_success_callback):
                 self.catch(on_success_callback, event)
@@ -186,14 +190,17 @@ class ScanManager:
             emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
-            if event.host and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE"):
+            if (
+                event.host
+                and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")
+                and not str(event.module) == "speculate"
+            ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     source_event.tags.add("target")
-                if not str(event.module) == "speculate":
-                    self.emit_event(source_event)
+                self.emit_event(source_event)
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:
@@ -214,9 +221,8 @@ class ScanManager:
             log.debug(traceback.format_exc())
 
         finally:
-            event.release_semaphore()
-            if event_emitted:
-                self.scan.stats.event_emitted(event)
+            if event_distributed:
+                self.scan.stats.event_distributed(event)
             log.debug(f"{event.module}.emit_event() finished for {event}")
 
     def hash_event(self, event):
@@ -234,6 +240,9 @@ class ScanManager:
             return hash((event, str(event.module)))
 
     def is_duplicate_event(self, event, add=False):
+        """
+        Calculate whether an event is a duplicate on a per-module basis
+        """
         event_hash = self.hash_event(event)
         suppress_dupes = getattr(event.module, "suppress_dupes", True)
         with self.events_accepted_lock:
@@ -283,28 +292,20 @@ class ScanManager:
                 log.debug(traceback.format_exc())
         return ret
 
-    def queue_event(self, *args, **kwargs):
+    def distribute_event(self, *args, **kwargs):
         """
-        Queue event with manager
+        Queue event with modules
         """
         event = self.scan.make_event(*args, **kwargs)
         try:
             self.queued_event_types[event.type] += 1
         except KeyError:
             self.queued_event_types[event.type] = 1
-        self.event_queue.put(event)
 
-    def distribute_event(self, event):
-        """
-        Queue event with modules
-        """
-
-        dup = False
         event_hash = hash(event)
-        # with self.events_distributed_lock:
-        if event_hash in self.events_distributed:
+        dup = event_hash in self.events_distributed
+        if dup:
             self.scan.verbose(f"{event.module}: Duplicate event: {event}")
-            dup = True
         else:
             self.events_distributed.add(event_hash)
         # absorb event into the word cloud if it's in scope
@@ -326,25 +327,28 @@ class ScanManager:
                         mod.queue_event(event)
 
     def loop_until_finished(self, status_frequency=10):
-
-        counter = 0
-        event_counter = 0
+        iteration = 0
+        modules = list(self.scan.modules.values())
+        num_modules = len(modules)
+        activity = True
         timedelta_2secs = timedelta(seconds=status_frequency)
         last_log_time = datetime.now()
 
         try:
+
             self.scan.dispatcher.on_start(self.scan)
 
-            # watch for newly-generated events
             while 1:
-
-                if self.scan.status == "ABORTING":
-                    while 1:
-                        try:
-                            # Empty event queue
-                            self.event_queue.get_nowait()
-                        except queue.Empty:
-                            break
+                # abort if we're aborting
+                if self.scan.aborting:
+                    # Empty incoming and outgoing module event queue
+                    for module in self.scan.modules.values():
+                        with suppress(queue.Empty):
+                            while 1:
+                                module.incoming_event_queue.get_nowait()
+                        with suppress(queue.Empty):
+                            while 1:
+                                module.outgoing_event_queue.get_nowait()
                     break
 
                 # print status every 2 seconds
@@ -358,31 +362,42 @@ class ScanManager:
                     events, finish, report = self.scan.modules["python"].events_waiting
                     yield from events
 
-                try:
-                    event = self.event_queue.get(timeout=0.1)
-                    event_counter += 1
-                except queue.Empty:
-                    finished = self.modules_status().get("finished", False)
-                    if finished:
-                        break
-                    # If the scan finished
-                    if finished:
-                        # If new events were generated in the last iteration
-                        if event_counter > 0:
-                            self.scan.status = "FINISHING"
-                            # Trigger .finished() on every module and start over
-                            log.info("Finishing scan")
-                            for mod in self.scan.modules.values():
-                                mod.queue_event("FINISHED")
-                            event_counter = 0
-                        else:
-                            # Otherwise stop the scan if no new events were generated in this iteration
-                            break
-                    counter += 1
-                    continue
+                # pause if the thread pool queue is full
+                while (
+                    not self.scan.aborting and self.scan._event_thread_pool.qsize >= self.scan._event_thread_pool_qsize
+                ):
+                    sleep(0.05)
 
-                # distribute event to modules
-                self.distribute_event(event)
+                module_index = iteration % num_modules
+                module = modules[module_index]
+                end = module_index == num_modules - 1
+                try:
+                    event, kwargs = module.outgoing_event_queue.get_nowait()
+                    acceptable = self.emit_event(event, **kwargs)
+                    if acceptable:
+                        activity = True
+                except queue.Empty:
+                    # if we're on the last module
+                    if end:
+                        finished = self.modules_status().get("finished", False)
+                        # And if the scan is finished
+                        if finished:
+                            # And if new events were generated since last time we were here
+                            if activity:
+                                activity = False
+                                self.scan.status = "FINISHING"
+                                # Trigger .finished() on every module and start over
+                                log.info("Finishing scan")
+                                for module in modules:
+                                    module.queue_event("FINISHED")
+                            else:
+                                # Otherwise stop the scan if no new events were generated since last time
+                                break
+                        continue
+                        # save on CPU
+                        sleep(0.1)
+                finally:
+                    iteration += 1
 
         except KeyboardInterrupt:
             self.scan.stop()
@@ -409,10 +424,6 @@ class ScanManager:
 
             status = {"modules": {}, "scan": self.scan.status_detailed}
 
-            for num_events in status["scan"]["queued_events"].values():
-                if num_events > 0:
-                    finished = False
-
             for num_tasks in status["scan"]["queued_tasks"].values():
                 if num_tasks > 0:
                     finished = False
@@ -424,7 +435,7 @@ class ScanManager:
                 status["modules"][m.name] = mod_status
 
             for mod in self.scan.modules.values():
-                if mod.errored and mod.event_queue not in [None, False]:
+                if mod.errored and mod.incoming_event_queue not in [None, False]:
                     with suppress(Exception):
                         mod.set_error_state()
 
@@ -456,14 +467,13 @@ class ScanManager:
             event_type_summary = sorted(self.queued_event_types.items(), key=lambda x: x[-1], reverse=True)
             self.scan.info(f'Events: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}')
 
-            num_scan_tasks = status["scan"]["queued_tasks"]["total"]
+            total_tasks = status["scan"]["queued_tasks"]["total"]
             dns_tasks = status["scan"]["queued_tasks"]["dns"]
             event_tasks = status["scan"]["queued_tasks"]["event"]
             main_tasks = status["scan"]["queued_tasks"]["main"]
             internal_tasks = status["scan"]["queued_tasks"]["internal"]
-            manager_events_queued = status["scan"]["queued_events"]["manager"]
-            self.scan.verbose(
-                f"Thread pools: {num_scan_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,} waiting, {manager_events_queued:,} in queue, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
+            self.scan.info(
+                f"Tasks: {total_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
             )
 
             if modules_errored:

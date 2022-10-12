@@ -88,10 +88,14 @@ class URLExtractor(BaseExtractor):
 class EmailExtractor(BaseExtractor):
 
     regexes = {"email": _email_regex}
+    tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
 
     def report(self, result, name, event, **kwargs):
-        self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
-        self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
+        result = result.lower()
+        tld = result.split(".")[-1]
+        if tld not in self.tld_blacklist:
+            self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
+            self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
 
 
 class ErrorExtractor(BaseExtractor):
@@ -226,7 +230,7 @@ class excavate(BaseInternalModule):
         self.hostname = HostnameExtractor(self)
         self.url = URLExtractor(self)
         self.email = EmailExtractor(self)
-        self.error = ErrorExtractor(self)
+        self.error_extractor = ErrorExtractor(self)
         self.jwt = JWTExtractor(self)
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
@@ -254,7 +258,15 @@ class excavate(BaseInternalModule):
             body = event.data.get("response-body", "")
             self.search(
                 body,
-                [self.hostname, self.url, self.email, self.error, self.jwt, self.javascript, self.serialization],
+                [
+                    self.hostname,
+                    self.url,
+                    self.email,
+                    self.error_extractor,
+                    self.jwt,
+                    self.javascript,
+                    self.serialization,
+                ],
                 event,
                 spider_danger=True,
             )
@@ -262,7 +274,7 @@ class excavate(BaseInternalModule):
             headers = event.data.get("response-header", "")
             self.search(
                 headers,
-                [self.hostname, self.url, self.email, self.error, self.jwt, self.serialization],
+                [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,
                 spider_danger=False,
             )
@@ -270,5 +282,7 @@ class excavate(BaseInternalModule):
         else:
 
             self.search(
-                str(data), [self.hostname, self.url, self.email, self.error, self.jwt, self.serialization], event
+                str(data),
+                [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
+                event,
             )

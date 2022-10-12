@@ -14,6 +14,10 @@ class crobat(BaseModule):
 
     base_url = "https://sonar.omnisint.io"
 
+    # this helps combat rate limiting by ensuring that a query doesn't execute
+    # until the queue is ready to receive its results
+    _qsize = 1
+
     def setup(self):
         self.processed = set()
         return True
@@ -85,5 +89,5 @@ class crobat(BaseModule):
         except Exception:
             import traceback
 
-            self.warning(f"Error retrieving results for {query}")
+            self.verbose(f"Error retrieving results for {query}")
             self.debug(traceback.format_exc())

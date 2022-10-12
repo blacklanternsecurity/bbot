@@ -18,7 +18,7 @@ class leakix(crobat):
         try:
             j = r.json()
         except Exception:
-            self.warning(f"Error decoding JSON")
+            self.verbose(f"Error decoding JSON")
             return
         services = j.get("Services", [])
         if services:

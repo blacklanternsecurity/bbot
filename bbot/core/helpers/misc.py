@@ -1,3 +1,4 @@
+import os
 import sys
 import copy
 import json
@@ -668,7 +669,23 @@ def log_to_stderr(msg, level="INFO"):
         print(f"{levelshort} bbot: {msg}", file=sys.stderr)
 
 
+def can_sudo_without_password():
+    """
+    Return True if the current user can sudo without a password
+    """
+    env = dict(os.environ)
+    env["SUDO_ASKPASS"] = "/bin/false"
+    try:
+        sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+    except sp.CalledProcessError:
+        return False
+    return True
+
+
 def verify_sudo_password(sudo_pass):
+    """
+    Return True if the sudo password is correct
+    """
     try:
         sp.run(
             ["sudo", "-S", "-k", "true"],

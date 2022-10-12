@@ -5,7 +5,7 @@ import threading
 import subprocess
 from contextlib import suppress
 
-from .misc import smart_decode
+from .misc import smart_decode, rm_at_exit
 
 log = logging.getLogger("bbot.core.helpers.command")
 
@@ -111,6 +111,7 @@ def tempfile(self, content, pipe=True):
     process without taking up disk space
     """
     filename = self.temp_filename()
+    rm_at_exit(filename)
     try:
         if type(content) not in (set, list, tuple):
             content = (content,)
