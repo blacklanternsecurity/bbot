@@ -25,8 +25,6 @@ class Interactsh:
         self._thread = None
 
     def register(self, callback=None):
-        if self.server == None:
-            self.server = random.choice(server_list)
 
         rsa = RSA.generate(1024)
 
@@ -38,8 +36,6 @@ class Interactsh:
         uuid = uuid4().hex.ljust(33, "a")
         guid = "".join(i if i.isdigit() else chr(ord(i) + random.randint(0, 20)) for i in uuid)
 
-        self.domain = f"{guid}.{self.server}"
-
         self.correlation_id = guid[:20]
         self.secret = str(uuid4())
         headers = {}
@@ -47,13 +43,28 @@ class Interactsh:
         if self.token:
             headers["Authorization"] = self.token
 
-        data = {"public-key": encoded_public_key, "secret-key": self.secret, "correlation-id": self.correlation_id}
-        r = self.parent_helper.request(
-            f"https://{self.server}/register", headers=headers, json=data, method="POST", retries="infinite"
-        )
-        msg = r.json().get("message", "")
-        if msg != "registration successful":
-            raise InteractshError(f"Failed to register with interactsh server {self.server}")
+        self.server_list = random.sample(server_list, k=len(server_list))
+        if self.server is None:
+            for server in self.server_list:
+                data = {
+                    "public-key": encoded_public_key,
+                    "secret-key": self.secret,
+                    "correlation-id": self.correlation_id,
+                }
+                r = self.parent_helper.request(f"https://{server}/register", headers=headers, json=data, method="POST")
+                if r is None:
+                    continue
+                try:
+                    msg = r.json().get("message", "")
+                    assert "registration successful" in msg
+                except Exception:
+                    raise InteractshError(f"Failed to register with interactsh server {self.server}")
+                self.server = server
+                self.domain = f"{guid}.{self.server}"
+                break
+
+        if not self.server:
+            raise InteractshError(f"Failed to register with an interactsh server")
 
         log.info(
             f"Successfully registered to interactsh server {self.server} with correlation_id {self.correlation_id} [{self.domain}]"
@@ -74,7 +85,7 @@ class Interactsh:
         data = {"secret-key": self.secret, "correlation-id": self.correlation_id}
 
         r = self.parent_helper.request(f"https://{self.server}/deregister", headers=headers, json=data, method="POST")
-        if "success" not in r.text:
+        if "success" not in getattr(r, "text", ""):
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")
 
     def poll(self):

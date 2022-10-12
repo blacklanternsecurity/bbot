@@ -63,18 +63,24 @@ epilog = """EXAMPLES
         bbot -l
 
     subdomain enumeration:
-        bbot -t evilcorp.com -f subdomain-enum --modules httpx
+        bbot -t evilcorp.com -f subdomain-enum -m httpx
 
     passive modules only:
         bbot -t evilcorp.com -f passive
 
-    web screenshots with gowitness:
-        bbot -t targets.txt -m naabu httpx gowitness --name my_scan --output-dir .
+    subdomains + web screenshots:
+        bbot -t targets.txt -f subdomain-enum -m httpx gowitness --name my_scan --output-dir .
 
-    web spider:
-        bbot -t www.evilcorp.com -m httpx --config web_spider_distance=2 web_spider_depth=2
+    subdomains + basic web scanning:
+        bbot -t evilcorp.com -f subdomain-enum web-basic
 
-    everything at once because yes:
+    single module:
+        bbot -t evilcorp.com -m github -c modules.github.api_key=deadbeef
+
+    web spider + advanced web scan:
+        bbot -t www.evilcorp.com -m httpx -f web-basic web-advanced -c web_spider_distance=2 web_spider_depth=2
+
+    subdomains + emails + portscan + screenshots + nuclei:
         bbot -t evilcorp.com -f subdomain-enum email-enum web-basic -m naabu gowitness nuclei --allow-deadly
 
 """
