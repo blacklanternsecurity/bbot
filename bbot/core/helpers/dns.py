@@ -45,6 +45,8 @@ class DNSHelper:
         # since wildcard detection takes some time, This is to prevent multiple
         # modules from kicking off wildcard detection for the same domain at the same time
         self._wildcard_lock = NamedLock()
+        # keeps track of warnings issued for wildcard detection to prevent duplicate warnings
+        self._wildcard_warnings = set()
 
         self._errors = dict()
         self._error_lock = Lock()
@@ -529,15 +531,17 @@ class DNSHelper:
 
         parent = parent_domain(query)
         parents = list(domain_parents(query))
+        query_hash = hash(query)
 
         # resolve the base query
         if ips is None:
             query_ips = self.resolve(query, type=("A", "AAAA"), retries=retries, cache_result=True)
         else:
             query_ips = set(ips)
-        if not query_ips:
+        if not query_ips and query_hash not in self._wildcard_warnings:
             # return None (inconclusive) if main query fails to resolve
             self.debug(f"Wildcard detection failed for {query} because it failed to resolve")
+            self._wildcard_warnings.add(query_hash)
             return None, parent
 
         for host in parents[::-1]:

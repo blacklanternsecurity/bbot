@@ -74,7 +74,7 @@ class builtwith(shodan_dns):
             else:
                 error = json.get("Errors", [{}])[0].get("Message", "Unknown Error")
                 if error:
-                    self.warning(f"No results for {query}: {error}")
+                    self.verbose(f"No results for {query}: {error}")
 
     def parse_redirects(self, r, query):
         """
