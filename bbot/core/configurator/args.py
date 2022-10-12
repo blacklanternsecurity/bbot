@@ -57,8 +57,34 @@ class DummyArgumentParser(BBOTArgumentParser):
         pass
 
 
-parser = BBOTArgumentParser(description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter)
-dummy_parser = DummyArgumentParser(description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter)
+epilog = """EXAMPLES
+
+    list modules:
+        bbot -l
+
+    subdomain enumeration:
+        bbot -t evilcorp.com -f subdomain-enum --modules httpx
+
+    passive modules only:
+        bbot -t evilcorp.com -f passive
+
+    web screenshots with gowitness:
+        bbot -t targets.txt -m naabu httpx gowitness --name my_scan --output-dir .
+
+    web spider:
+        bbot -t www.evilcorp.com -m httpx --config web_spider_distance=2 web_spider_depth=2
+
+    everything at once because yes:
+        bbot -t evilcorp.com -f subdomain-enum email-enum web-basic -m naabu gowitness nuclei --allow-deadly
+"""
+
+
+parser = BBOTArgumentParser(
+    description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter, epilog=epilog
+)
+dummy_parser = DummyArgumentParser(
+    description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter, epilog=epilog
+)
 for p in (parser, dummy_parser):
     p.add_argument("--help-all", action="store_true", help="Display full help including module config options")
     target = p.add_argument_group(title="Target")
