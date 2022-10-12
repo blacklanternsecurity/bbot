@@ -15,6 +15,7 @@ class viewdns(BaseModule):
     deps_pip = ["beautifulsoup4", "lxml"]
     base_url = "https://viewdns.info"
     in_scope_only = True
+    _qsize = 1
 
     def setup(self):
         self.processed = set()

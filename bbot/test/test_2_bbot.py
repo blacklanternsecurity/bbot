@@ -1290,7 +1290,7 @@ def test_cli(monkeypatch, bbot_config):
     cli.main()
 
     # show current config
-    monkeypatch.setattr("sys.argv", ["bbot", "-y" "--current-config"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-y", "--current-config"])
     cli.main()
 
     # list modules
@@ -1301,7 +1301,7 @@ def test_cli(monkeypatch, bbot_config):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bbot", "-y", "-t", "localhost", "-m", "ipneighbor", "-om", "human", "csv", "json", "-n", "test_scan"],
+        ["bbot", "-y", "-t", "www.example.com", "-om", "human", "csv", "json", "-n", "test_scan"],
     )
     cli.main()
 
