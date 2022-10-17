@@ -37,7 +37,7 @@ class smuggler(BaseModule):
             self.scanned_hosts.add(host_hash)
 
         command = [
-            "python",
+            "python3",
             f"{self.scan.helpers.tools_dir}/smuggler/smuggler.py",
             "--no-color",
             "-q",
