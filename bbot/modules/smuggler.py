@@ -1,4 +1,5 @@
 import sys
+
 from bbot.modules.base import BaseModule
 
 
