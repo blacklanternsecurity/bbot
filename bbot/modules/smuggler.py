@@ -1,3 +1,4 @@
+import sys
 from bbot.modules.base import BaseModule
 
 
@@ -37,7 +38,7 @@ class smuggler(BaseModule):
             self.scanned_hosts.add(host_hash)
 
         command = [
-            "python3",
+            sys.executable,
             f"{self.scan.helpers.tools_dir}/smuggler/smuggler.py",
             "--no-color",
             "-q",
