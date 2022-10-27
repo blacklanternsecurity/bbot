@@ -114,7 +114,7 @@ Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
 
 - You can get Neo4j up and running with a single docker command:
 ~~~bash
-docker run -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+docker run -p 7687:7687 -p 7474:7474 -v /root/data/:/data/ --env NEO4J_AUTH=neo4j/bbotislife neo4j
 ~~~
 - After that, run bbot with `--output-modules neo4j`
 ~~~bash
