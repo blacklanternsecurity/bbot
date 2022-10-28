@@ -7,7 +7,7 @@ class bevigil(shodan_dns):
     """
 
     watched_events = ["DNS_NAME"]
-    produced_events = ["DNS_NAME"]
+    produced_events = ["DNS_NAME", "URL_UNVERIFIED"]
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Retrieve OSINT data from mobile applications using BeVigil", "auth_required": True}
     options = {"api_key": "", "urls": False}
