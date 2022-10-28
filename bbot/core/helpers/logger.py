@@ -35,7 +35,7 @@ def colorize(s, level="INFO"):
     return colored
 
 
-def log_to_stderr(msg, level="INFO"):
+def log_to_stderr(msg, level="INFO", logname=True):
     """
     Print to stderr with BBOT logger colors
     """
@@ -44,5 +44,7 @@ def log_to_stderr(msg, level="INFO"):
         levelshort = f"[{loglevel_mapping.get(level, 'INFO')}]"
         levelshort = f"{colorize(levelshort, level=levelname)}"
         if levelname == "CRITICAL" or levelname.startswith("HUGE"):
-            msg = colorize(msg)
-        print(f"{levelshort} bbot: {msg}", file=sys.stderr)
+            msg = colorize(msg, level=levelname)
+        if logname:
+            msg = f"{levelshort} bbot: {msg}"
+        print(msg, file=sys.stderr)
