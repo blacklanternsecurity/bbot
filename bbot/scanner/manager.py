@@ -183,8 +183,8 @@ class ScanManager:
                 self.distribute_event(event)
                 event_distributed = True
 
-            if callable(on_success_callback):
-                self.catch(on_success_callback, event)
+                if callable(on_success_callback):
+                    self.catch(on_success_callback, event)
 
             ### Emit DNS children ###
             emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
