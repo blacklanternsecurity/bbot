@@ -282,7 +282,7 @@ def test_manager(bbot_config, bbot_scanner):
     # test _emit_event
     results = []
     success_callback = lambda e: results.append("success")
-    scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
+    scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     scan1.status = "RUNNING"
     manager = scan1.manager
     manager.distribute_event = lambda e: results.append(e)
@@ -300,6 +300,7 @@ def test_manager(bbot_config, bbot_scanner):
     # test abort_if
     manager._emit_event(localhost, abort_if=lambda e: e.module._type == "output")
     assert len(results) == 0
+    manager.events_accepted.clear()
     manager._emit_event(
         localhost, on_success_callback=success_callback, abort_if=lambda e: e.module._type == "plumbus"
     )
@@ -797,12 +798,23 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     assert hash(f"scanme.nmap.org:A") in helpers.dns._dns_cache
     assert hash(f"scanme.nmap.org:AAAA") in helpers.dns._dns_cache
     # wildcards
-    assert helpers.is_wildcard("asdf.wat.blacklanternsecurity.github.io") == (True, "github.io")
+    wildcard_rdtypes = helpers.is_wildcard_domain("github.io")
+    assert "A" in wildcard_rdtypes
+    assert "SRV" not in wildcard_rdtypes
+    assert wildcard_rdtypes["A"] and all(helpers.is_ip(r) for r in wildcard_rdtypes["A"])
+    wildcard_rdtypes = helpers.is_wildcard("blacklanternsecurity.github.io")
+    assert "A" in wildcard_rdtypes
+    assert "SRV" not in wildcard_rdtypes
+    assert wildcard_rdtypes["A"] == (True, "github.io")
     assert hash("github.io") in helpers.dns._wildcard_cache
     assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
-    assert helpers.is_wildcard("asdf.asdf.asdf.github.io") == (True, "github.io")
-    assert helpers.is_wildcard("github.io") == (False, "github.io")
-    assert helpers.is_wildcard("mail.google.com") == (False, "google.com")
+    helpers.dns._wildcard_cache.clear()
+    wildcard_rdtypes = helpers.is_wildcard("asdf.asdf.asdf.github.io")
+    assert "A" in wildcard_rdtypes
+    assert "SRV" not in wildcard_rdtypes
+    assert wildcard_rdtypes["A"] == (True, "github.io")
+    assert hash("github.io") in helpers.dns._wildcard_cache
+    assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
     children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts = scan.helpers.resolve_event(
@@ -812,7 +824,11 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
         wildcard_event2
     )
     assert "wildcard" in event_tags1
+    assert "a-wildcard" in event_tags1
+    assert "srv-wildcard" not in event_tags1
     assert "wildcard" in event_tags2
+    assert "a-wildcard" in event_tags2
+    assert "srv-wildcard" not in event_tags2
     assert wildcard_event1.data == "_wildcard.github.io"
     assert wildcard_event2.data == "_wildcard.github.io"
     assert event_tags1 == event_tags2

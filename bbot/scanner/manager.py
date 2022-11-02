@@ -75,7 +75,7 @@ class ScanManager:
                 event._resolved.set()
         return False
 
-    def _event_precheck(self, event):
+    def _event_precheck(self, event, exclude=("DNS_NAME",)):
         """
         Check an event previous to its DNS resolution etc. to see if we can save on performance by skipping it
         """
@@ -89,8 +89,8 @@ class ScanManager:
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
 
-        # we exclude DNS_NAMEs because we haven't done wildcard checking yet
-        if event.type != "DNS_NAME":
+        # we usually exclude DNS_NAMEs because we haven't done wildcard checking yet
+        if event.type not in exclude:
             any_acceptable = False
             for mod in self.scan.modules.values():
                 acceptable, reason = mod._filter_event(event, precheck_only=True)
@@ -131,6 +131,10 @@ class ScanManager:
                     event_blacklisted_dns,
                     resolved_hosts,
                 ) = self.scan.helpers.dns.resolve_event(event)
+
+                # We do this again in case event.data changed during resolve_event()
+                if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
+                    distribute_event = False
 
                 event._resolved_hosts = resolved_hosts
 
@@ -204,7 +208,7 @@ class ScanManager:
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:
-                    for record, rdtype in dns_children:
+                    for rdtype, record in dns_children:
                         module = self.scan.helpers.dns._get_dummy_module(rdtype)
                         try:
                             child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)
