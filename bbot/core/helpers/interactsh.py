@@ -20,7 +20,8 @@ server_list = ["oast.pro", "oast.live", "oast.site", "oast.online", "oast.fun", 
 class Interactsh:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self.server = self.parent_helper.config.get("interactsh_server", None)
+        self.server = None
+        self.custom_server = self.parent_helper.config.get("interactsh_server", None)
         self.token = self.parent_helper.config.get("interactsh_token", None)
         self._thread = None
 
@@ -40,11 +41,11 @@ class Interactsh:
         self.secret = str(uuid4())
         headers = {}
 
-        if self.token:
+        if self.custom_server:
+            if not self.token:
+                log.verbose("Interact.sh token is not set")
             headers["Authorization"] = self.token
-
-        if self.server:
-            self.server_list = [self.server]
+            self.server_list = [self.custom_server]
         else:
             self.server_list = random.sample(server_list, k=len(server_list))
         for server in self.server_list:
@@ -60,7 +61,8 @@ class Interactsh:
                 msg = r.json().get("message", "")
                 assert "registration successful" in msg
             except Exception:
-                raise InteractshError(f"Failed to register with interactsh server {self.server}")
+                log.debug(f"Failed to register with interactsh server {self.server}")
+                continue
             self.server = server
             self.domain = f"{guid}.{self.server}"
             break
