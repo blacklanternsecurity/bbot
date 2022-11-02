@@ -20,7 +20,8 @@ server_list = ["oast.pro", "oast.live", "oast.site", "oast.online", "oast.fun", 
 class Interactsh:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self.server = self.parent_helper.config.get("interactsh_server", None)
+        self.server = None
+        self.custom_server = self.parent_helper.config.get("interactsh_server", None)
         self.token = self.parent_helper.config.get("interactsh_token", None)
         self._thread = None
 
@@ -40,28 +41,31 @@ class Interactsh:
         self.secret = str(uuid4())
         headers = {}
 
-        if self.token:
+        if self.custom_server:
+            if not self.token:
+                log.verbose("Interact.sh token is not set")
             headers["Authorization"] = self.token
-
-        self.server_list = random.sample(server_list, k=len(server_list))
-        if self.server is None:
-            for server in self.server_list:
-                data = {
-                    "public-key": encoded_public_key,
-                    "secret-key": self.secret,
-                    "correlation-id": self.correlation_id,
-                }
-                r = self.parent_helper.request(f"https://{server}/register", headers=headers, json=data, method="POST")
-                if r is None:
-                    continue
-                try:
-                    msg = r.json().get("message", "")
-                    assert "registration successful" in msg
-                except Exception:
-                    raise InteractshError(f"Failed to register with interactsh server {self.server}")
-                self.server = server
-                self.domain = f"{guid}.{self.server}"
-                break
+            self.server_list = [self.custom_server]
+        else:
+            self.server_list = random.sample(server_list, k=len(server_list))
+        for server in self.server_list:
+            data = {
+                "public-key": encoded_public_key,
+                "secret-key": self.secret,
+                "correlation-id": self.correlation_id,
+            }
+            r = self.parent_helper.request(f"https://{server}/register", headers=headers, json=data, method="POST")
+            if r is None:
+                continue
+            try:
+                msg = r.json().get("message", "")
+                assert "registration successful" in msg
+            except Exception:
+                log.debug(f"Failed to register with interactsh server {self.server}")
+                continue
+            self.server = server
+            self.domain = f"{guid}.{self.server}"
+            break
 
         if not self.server:
             raise InteractshError(f"Failed to register with an interactsh server")
