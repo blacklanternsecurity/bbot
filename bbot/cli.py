@@ -192,12 +192,16 @@ def main():
                 if options.help_all:
                     log_fn(parser.format_help())
 
-                log_fn("\n### MODULES ###\n")
+                log_fn("")
+                log_fn("### MODULES ###")
+                log_fn("")
                 for row in module_loader.modules_table(modules=help_modules).splitlines():
                     log_fn(row)
 
                 if options.help_all:
-                    log_fn("\n### MODULE OPTIONS ###\n")
+                    log_fn("")
+                    log_fn("### MODULE OPTIONS ###")
+                    log_fn("")
                     for row in module_loader.modules_options_table(modules=help_modules).splitlines():
                         log_fn(row)
 

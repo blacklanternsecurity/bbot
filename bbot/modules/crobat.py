@@ -36,8 +36,12 @@ class crobat(BaseModule):
         query = self.make_query(event)
         if self.already_processed(query):
             return False
-        is_wildcard = self.helpers.is_wildcard_domain(query)
-        if is_wildcard != False:
+        # discard dns-names with errors
+        if any([t in event.tags for t in ("a-error", "aaaa-error")]):
+            return False
+        # discard wildcards
+        wildcard_rdtypes = self.helpers.is_wildcard_domain(query)
+        if any([t in wildcard_rdtypes for t in ("A", "AAAA")]):
             return False
         self.processed.add(hash(query))
         return True
@@ -66,9 +70,10 @@ class crobat(BaseModule):
 
     def make_query(self, event):
         if "target" in event.tags:
-            return str(event.data)
+            query = str(event.data)
         else:
-            return self.helpers.parent_domain(event.data).lower()
+            query = self.helpers.parent_domain(event.data).lower()
+        return ".".join([s for s in query.split(".") if s != "_wildcard"])
 
     def parse_results(self, r, query=None):
         json = r.json()
