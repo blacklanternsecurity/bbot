@@ -4,6 +4,7 @@ import traceback
 from sys import exc_info
 from pathlib import Path
 import concurrent.futures
+from datetime import datetime
 from omegaconf import OmegaConf
 from contextlib import suppress
 from collections import OrderedDict, deque
@@ -169,6 +170,7 @@ class Scanner:
         if not self.target:
             self.warning(f"No scan targets specified")
 
+        scan_start_time = datetime.now()
         try:
             self.status = "STARTING"
 
@@ -230,7 +232,9 @@ class Scanner:
             else:
                 self.status = "FINISHED"
 
-            log_fn(f"Scan {self.name} completed with status {self.status}")
+            scan_run_time = datetime.now() - scan_start_time
+            scan_run_time = self.helpers.human_timedelta(scan_run_time)
+            log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
 
             self.dispatcher.on_finish(self)
 
