@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+import datetime
 import ipaddress
 from time import sleep
 from pathlib import Path
@@ -646,6 +647,13 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
 
     helpers._rm_at_exit(test_file)
     assert not test_file.exists()
+
+    timedelta = datetime.timedelta(hours=1, minutes=2, seconds=3)
+    assert helpers.human_timedelta(timedelta) == "1 hour, 2 minutes, 3 seconds"
+    timedelta = datetime.timedelta(hours=3, seconds=1)
+    assert helpers.human_timedelta(timedelta) == "3 hours, 1 second"
+    timedelta = datetime.timedelta(seconds=2)
+    assert helpers.human_timedelta(timedelta) == "2 seconds"
 
     ### VALIDATORS ###
     # hosts
