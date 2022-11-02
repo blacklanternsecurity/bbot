@@ -43,25 +43,27 @@ class Interactsh:
         if self.token:
             headers["Authorization"] = self.token
 
-        self.server_list = random.sample(server_list, k=len(server_list))
-        if self.server is None:
-            for server in self.server_list:
-                data = {
-                    "public-key": encoded_public_key,
-                    "secret-key": self.secret,
-                    "correlation-id": self.correlation_id,
-                }
-                r = self.parent_helper.request(f"https://{server}/register", headers=headers, json=data, method="POST")
-                if r is None:
-                    continue
-                try:
-                    msg = r.json().get("message", "")
-                    assert "registration successful" in msg
-                except Exception:
-                    raise InteractshError(f"Failed to register with interactsh server {self.server}")
-                self.server = server
-                self.domain = f"{guid}.{self.server}"
-                break
+        if self.server:
+            self.server_list = [self.server]
+        else:
+            self.server_list = random.sample(server_list, k=len(server_list))
+        for server in self.server_list:
+            data = {
+                "public-key": encoded_public_key,
+                "secret-key": self.secret,
+                "correlation-id": self.correlation_id,
+            }
+            r = self.parent_helper.request(f"https://{server}/register", headers=headers, json=data, method="POST")
+            if r is None:
+                continue
+            try:
+                msg = r.json().get("message", "")
+                assert "registration successful" in msg
+            except Exception:
+                raise InteractshError(f"Failed to register with interactsh server {self.server}")
+            self.server = server
+            self.domain = f"{guid}.{self.server}"
+            break
 
         if not self.server:
             raise InteractshError(f"Failed to register with an interactsh server")
