@@ -35,7 +35,8 @@ class ScanManager:
         seed scanner with target events
         """
         self.distribute_event(self.scan.root_event)
-        for event in self.scan.target.events:
+        sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
+        for event in sorted_events:
             self.scan.verbose(f"Target: {event}")
             self.emit_event(event)
         # force submit batches

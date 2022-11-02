@@ -301,7 +301,7 @@ class DNSHelper:
                     wildcard_rdtypes_set = set(wildcard_rdtypes)
                     # consider the event a full wildcard if all its records are wildcards
                     event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
-                    if event_is_wildcard and event.type in ("DNS_NAME",):
+                    if event_is_wildcard and event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
                         wildcard_parent = self.parent_helper.parent_domain(event_host)
                         for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
                             if _is_wildcard:

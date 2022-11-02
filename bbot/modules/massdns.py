@@ -49,7 +49,7 @@ class massdns(crobat):
         return ret
 
     def filter_event(self, event):
-        if "unresolved" in event.tags:
+        if "unresolved" in event.tags and not "target" in event.tags:
             return False
         query = self.make_query(event)
         if self.already_processed(query):
@@ -62,11 +62,6 @@ class massdns(crobat):
         h = hash(query)
         if not h in self.source_events:
             self.source_events[h] = event
-
-        # make sure base query resolves
-        if not self.helpers.resolve(query, type="any"):
-            self.debug(f"Skipping unresolved query: {query}")
-            return
 
         self.info(f"Brute-forcing subdomains for {query}")
         for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):

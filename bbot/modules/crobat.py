@@ -70,9 +70,10 @@ class crobat(BaseModule):
 
     def make_query(self, event):
         if "target" in event.tags:
-            return str(event.data)
+            query = str(event.data)
         else:
-            return self.helpers.parent_domain(event.data).lower()
+            query = self.helpers.parent_domain(event.data).lower()
+        return ".".join([s for s in query.split(".") if s != "_wildcard"])
 
     def parse_results(self, r, query=None):
         json = r.json()
