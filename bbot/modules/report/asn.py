@@ -3,10 +3,11 @@ from bbot.modules.report.base import ReportModule
 
 
 class asn(ReportModule):
-    watched_events = ["DNS_NAME"]
+    watched_events = ["IP_ADDRESS"]
     produced_events = ["ASN"]
     flags = ["passive", "subdomain-enum", "safe"]
     meta = {"description": "Query ripe and bgpview.io for ASNs"}
+    scope_distance_modifier = 0
 
     def setup(self):
         self.asn_counts = {}
@@ -19,35 +20,27 @@ class asn(ReportModule):
             "description": "unknown",
             "country": "",
         }
-        self.unknown_ips = set()
+        return True
+
+    def filter_event(self, event):
+        if event.host.is_private:
+            return False
         return True
 
     def handle_event(self, event):
-        event_hosts = []
-        for host in event.resolved_hosts:
-            try:
-                host = self.helpers.make_ip_type(host)
-                if not host.is_private:
-                    event_hosts.append(host)
-            except AttributeError:
-                continue
-        for host in event_hosts:
-            if hash(host) in self.unknown_ips:
+        host = event.host
+        if self.cache_get(host) == False:
+            asns = list(self.get_asn(host))
+            if not asns:
                 self.cache_put(self.unknown_asn)
-                continue
-            if self.cache_get(host) == False:
-                asns = list(self.get_asn(host))
-                if not asns:
-                    self.unknown_ips.add(hash(host))
-                    self.cache_put(self.unknown_asn)
-                else:
-                    for asn in asns:
-                        emails = asn.pop("emails", [])
-                        self.cache_put(asn)
-                        asn_event = self.make_event(asn, "ASN", source=event)
-                        self.emit_event(asn_event)
-                        for email in emails:
-                            self.emit_event(email, "EMAIL_ADDRESS", source=asn_event)
+            else:
+                for asn in asns:
+                    emails = asn.pop("emails", [])
+                    self.cache_put(asn)
+                    asn_event = self.make_event(asn, "ASN", source=event)
+                    self.emit_event(asn_event)
+                    for email in emails:
+                        self.emit_event(email, "EMAIL_ADDRESS", source=asn_event)
 
     def report(self):
         asn_data = sorted(self.asn_cache.items(), key=lambda x: self.asn_counts[x[0]], reverse=True)
