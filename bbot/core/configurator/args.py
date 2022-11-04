@@ -80,8 +80,8 @@ epilog = """EXAMPLES
     web spider + advanced web scan:
         bbot -t www.evilcorp.com -m httpx -f web-basic web-advanced -c web_spider_distance=2 web_spider_depth=2
 
-    subdomains + emails + portscan + screenshots + nuclei:
-        bbot -t evilcorp.com -f subdomain-enum email-enum web-basic -m naabu gowitness nuclei --allow-deadly
+    subdomains + emails + cloud buckets + portscan + screenshots + nuclei:
+        bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m naabu gowitness nuclei --allow-deadly
 
 """
 

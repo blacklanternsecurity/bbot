@@ -282,6 +282,7 @@ def test_events(events, scan, helpers, bbot_config):
 def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
 
     scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
+    scan1.load_modules()
     aws_event1 = scan1.make_event("amazonaws.com", source=scan1.root_event)
     aws_event2 = scan1.make_event("asdf.amazonaws.com", source=scan1.root_event)
     aws_event3 = scan1.make_event("asdfamazonaws.com", source=scan1.root_event)
@@ -311,13 +312,13 @@ def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
     results = []
     for provider_name, provider in providers.items():
         monkeypatch.setattr(
-            provider.dummy_module,
+            provider,
             "emit_event",
             lambda *args, **kwargs: results.append(kwargs.get("data", {}).get("url", "")),
         )
         provider.excavate(http_response)
     for h in storage_bucket_hosts:
-        assert f"https://{h}" in results, f"cloud helpers failed to excavate {h}"
+        assert f"https://{h}" in results, f"cloud helpers failed to excavate {h} from {dummy_body}"
 
 
 def test_manager(bbot_config, bbot_scanner):

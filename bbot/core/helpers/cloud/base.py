@@ -47,11 +47,13 @@ class BaseCloudProvider:
     def emit_bucket(self, match, **kwargs):
         _, bucket_name, bucket_domain = match
         kwargs["data"] = {"name": bucket_name, "url": f"https://{bucket_name}.{bucket_domain}"}
-        kwargs["event_type"] = "STORAGE_BUCKET"
         self.emit_event(**kwargs)
 
     def emit_event(self, *args, **kwargs):
-        self.dummy_module.emit_event(*args, **kwargs)
+        excavate_module = self.parent_helper.scan.modules.get("excavate", None)
+        if excavate_module:
+            event = self.dummy_module.make_event(*args, **kwargs)
+            excavate_module.emit_event(event)
 
     def is_valid_bucket(self, bucket_name):
         return self.bucket_name_regex.match(bucket_name)

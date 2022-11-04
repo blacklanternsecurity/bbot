@@ -22,6 +22,13 @@ class bucket_aws(BaseModule):
         self.permutations = self.config.get("permutations", False)
         return True
 
+    def filter_event(self, event):
+        if event.scope_distance == 0:
+            return True
+        elif event.scope_distance <= self.max_scope_distance and f"cloud-{self.cloud_helper_name}" in event.tags:
+            return True
+        return False
+
     def handle_event(self, event):
         buckets = set()
         base = event.data
