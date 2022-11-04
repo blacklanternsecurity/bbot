@@ -23,7 +23,7 @@ class asn(ReportModule):
         return True
 
     def filter_event(self, event):
-        if event.host.is_private:
+        if getattr(event.host, "is_private", False):
             return False
         return True
 
