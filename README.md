@@ -3,6 +3,10 @@
 # BEE·bot
 ### OSINT automation for hackers.
 
+~~~bash
+pip install bbot
+~~~
+
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![CodeFactor](https://www.codefactor.io/repository/github/blacklanternsecurity/bbot/badge)](https://www.codefactor.io/repository/github/blacklanternsecurity/bbot) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
 
 ![subdomain demo](https://user-images.githubusercontent.com/20261699/182274919-d4f5aa69-993a-40aa-95d5-f5e69e96026c.gif)
@@ -12,6 +16,10 @@
 Capable of executing the entire OSINT process in a single command, BBOT does subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
 BBOT currently has over **70 modules** and counting.
+
+### [Subdomain Enumeration Face-off](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off)
+
+![graphs-small](https://user-images.githubusercontent.com/20261699/199602154-14c71a93-57aa-4ac0-ad81-87ce64fbffc7.png)
 
 ## Installation (pip)
 ~~~bash
@@ -23,7 +31,7 @@ Prerequisites:
 - Linux or WSL
 - Python 3.9 or newer
 
-## Installation (docker)
+## [Installation (Docker)](https://hub.docker.com/r/blacklanternsecurity/bbot)
 ~~~bash
 # bleeding edge (dev)
 docker run blacklanternsecurity/bbot --help
@@ -137,18 +145,18 @@ options:
   -n SCAN_NAME, --name SCAN_NAME
                         Name of scan (default: random)
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,asn,azure_tenant,binaryedge,builtwith,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fullhunt,generic_ssrf,getparam_brute,github,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,otx,passivetotal,pgp,rapiddns,riddler,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,urlscan,vhost,viewdns,virustotal,wappalyzer,wayback,zoomeye
+                        Modules to enable. Choices: affiliates,anubisdb,asn,aspnet_viewstate,azure_tenant,bevigil,binaryedge,bucket_aws,bucket_azure,bucket_gcp,builtwith,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fullhunt,generic_ssrf,getparam_brute,github,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,otx,passivetotal,pgp,rapiddns,riddler,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wappalyzer,wayback,zoomeye
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,aggressive,brute-force,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,slow,subdomain-enum,web-advanced,web-basic,web-paramminer,web-screenshots
+                        Enable modules by flag. Choices: active,affiliates,aggressive,brute-force,cloud-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,slow,subdomain-enum,web-advanced,web-basic,web-paramminer,web-screenshots
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Disable modules that don't have these flags (e.g. --require-flags passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. --exclude-flags brute-force)
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: csv,http,human,json,neo4j,websocket
+                        Output module(s). Choices: asset_inventory,csv,http,human,json,neo4j,python,websocket
   -o DIR, --output-dir DIR
   -c [CONFIG ...], --config [CONFIG ...]
                         custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
@@ -296,6 +304,8 @@ To view a full list of module config options, use `--help-all`.
 |                  |          |         | of a scan                                |                                         |                                          |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | anubisdb         | scan     |         | Query jldc.me's database for subdomains  | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| asn              | scan     |         | Query ripe and bgpview.io for ASNs       | passive,report,safe,subdomain-enum      | ASN                                      |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | azure_tenant     | scan     |         | Query Azure for tenant sister domains    | affiliates,passive,safe,subdomain-enum  | DNS_NAME                                 |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
