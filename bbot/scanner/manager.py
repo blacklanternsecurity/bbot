@@ -146,6 +146,10 @@ class ScanManager:
                 if event_blacklisted:
                     event.tags.add("blacklisted")
 
+                # Cloud tagging
+                for provider in self.scan.helpers.cloud.providers.values():
+                    provider.tag_event(event)
+
                 # Blacklist purging
                 if "blacklisted" in event.tags:
                     reason = "event host"

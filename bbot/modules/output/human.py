@@ -41,6 +41,8 @@ class Human(BaseOutputModule):
             if severity in self.vuln_severity_map:
                 loglevel = self.vuln_severity_map[severity]
                 log_to_stderr(event_str, level=loglevel, logname=False)
+        elif event.type == "FINDING":
+            log_to_stderr(event_str, level="HUGEINFO", logname=False)
 
         if self.file is not None:
             self.file.write(event_str + "\n")

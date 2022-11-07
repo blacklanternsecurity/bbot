@@ -637,7 +637,7 @@ class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):
         url: str
 
     def _words(self):
-        return self.parsed.hostname.split(".")[0]
+        return self.data["name"]
 
 
 class URL_HINT(URL_UNVERIFIED):

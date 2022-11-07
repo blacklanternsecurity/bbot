@@ -6,10 +6,12 @@ from . import misc
 from .dns import DNSHelper
 from .diff import HttpCompare
 from .wordcloud import WordCloud
+from .cloud import CloudProviders
 from .interactsh import Interactsh
 from .threadpool import as_completed
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
+
 
 log = logging.getLogger("bbot.core.helpers")
 
@@ -47,6 +49,9 @@ class ConfigAwareHelper:
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
+
+        # cloud helpers
+        self.cloud = CloudProviders(self)
 
     def interactsh(self):
         return Interactsh(self)

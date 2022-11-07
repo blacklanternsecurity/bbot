@@ -222,6 +222,9 @@ def events(scan):
         finding = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "FINDING", dummy=True)
         vhost = scan.make_event({"host": "evilcorp.com", "vhost": "www.evilcorp.com"}, "VHOST", dummy=True)
         http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", dummy=True)
+        storage_bucket = scan.make_event(
+            {"name": "storage", "url": "https://storage.blob.core.windows.net"}, "STORAGE_BUCKET", dummy=True
+        )
         emoji = scan.make_event("💩", "WHERE_IS_YOUR_GOD_NOW", dummy=True)
 
     bbot_events.all = [  # noqa: F841
@@ -248,6 +251,7 @@ def events(scan):
         bbot_events.finding,
         bbot_events.vhost,
         bbot_events.http_response,
+        bbot_events.storage_bucket,
         bbot_events.emoji,
     ]
 

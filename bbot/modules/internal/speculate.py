@@ -9,8 +9,8 @@ class speculate(BaseInternalModule):
     in situations where e.g. a port scanner isn't enabled
     """
 
-    watched_events = ["IP_RANGE", "URL", "URL_UNVERIFIED", "DNS_NAME", "IP_ADDRESS", "HTTP_RESPONSE"]
-    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS"]
+    watched_events = ["IP_RANGE", "URL", "URL_UNVERIFIED", "DNS_NAME", "IP_ADDRESS", "HTTP_RESPONSE", "STORAGE_BUCKET"]
+    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING"]
     flags = ["passive"]
     meta = {"description": "Derive certain event types from others by common sense"}
 
@@ -46,6 +46,15 @@ class speculate(BaseInternalModule):
             parent = self.helpers.parent_domain(event.data)
             if parent != event.data:
                 self.emit_event(parent, "DNS_NAME", source=event, internal=True)
+
+        # generate findings from open storage buckets
+        if event.type == "STORAGE_BUCKET":
+            if "open-bucket" in event.tags:
+                self.emit_event(
+                    {"host": event.host, "url": event.data["url"], "description": "Open storage bucket"},
+                    "FINDING",
+                    source=event,
+                )
 
         # generate open ports
         emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
