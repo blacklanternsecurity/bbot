@@ -725,3 +725,19 @@ def make_table(*args, **kwargs):
         if k not in kwargs:
             kwargs[k] = v
     return tabulate(*args, **kwargs)
+
+
+def human_timedelta(d):
+    """
+    Format a TimeDelta object in human-readable form
+    """
+    hours, remainder = divmod(d.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    result = []
+    if hours:
+        result.append(f"{hours:,} hour" + ("s" if hours > 1 else ""))
+    if minutes:
+        result.append(f"{minutes:,} minute" + ("s" if minutes > 1 else ""))
+    if seconds:
+        result.append(f"{seconds:,} second" + ("s" if seconds > 1 else ""))
+    return ", ".join(result)

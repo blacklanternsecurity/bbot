@@ -17,20 +17,7 @@ class Neo4j:
         self.graph = py2neo.Graph(uri=uri, auth=(username, password))
 
     def insert_event(self, event):
-        event_json = event.json(mode="graph")
-        source_id = event_json.get("source", "")
-        if not source_id:
-            log.warning(f"Skipping event without source: {event}")
-            return
-        source_type = source_id.split(":")[0]
-        source_node = self.make_node({"type": source_type, "id": source_id})
-
-        module = event_json.pop("module", "TARGET")
-        timestamp = datetime.fromtimestamp(event_json.pop("timestamp"))
-        event_node = self.make_node(event_json)
-
-        relationship = py2neo.Relationship(source_node, module, event_node, timestamp=timestamp)
-        self.graph.merge(relationship)
+        self.insert_events([event])
 
     def insert_events(self, events):
         event_nodes = dict()

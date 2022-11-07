@@ -35,7 +35,8 @@ class ScanManager:
         seed scanner with target events
         """
         self.distribute_event(self.scan.root_event)
-        for event in self.scan.target.events:
+        sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
+        for event in sorted_events:
             self.scan.verbose(f"Target: {event}")
             self.emit_event(event)
         # force submit batches
@@ -75,7 +76,7 @@ class ScanManager:
                 event._resolved.set()
         return False
 
-    def _event_precheck(self, event):
+    def _event_precheck(self, event, exclude=("DNS_NAME",)):
         """
         Check an event previous to its DNS resolution etc. to see if we can save on performance by skipping it
         """
@@ -89,8 +90,8 @@ class ScanManager:
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
 
-        # we exclude DNS_NAMEs because we haven't done wildcard checking yet
-        if event.type != "DNS_NAME":
+        # we usually exclude DNS_NAMEs because we haven't done wildcard checking yet
+        if event.type not in exclude:
             any_acceptable = False
             for mod in self.scan.modules.values():
                 acceptable, reason = mod._filter_event(event, precheck_only=True)
@@ -132,6 +133,10 @@ class ScanManager:
                     resolved_hosts,
                 ) = self.scan.helpers.dns.resolve_event(event)
 
+                # We do this again in case event.data changed during resolve_event()
+                if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
+                    distribute_event = False
+
                 event._resolved_hosts = resolved_hosts
 
                 event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
@@ -140,6 +145,10 @@ class ScanManager:
                     event.tags.update(dns_tags)
                 if event_blacklisted:
                     event.tags.add("blacklisted")
+
+                # Cloud tagging
+                for provider in self.scan.helpers.cloud.providers.values():
+                    provider.tag_event(event)
 
                 # Blacklist purging
                 if "blacklisted" in event.tags:
@@ -183,8 +192,8 @@ class ScanManager:
                 self.distribute_event(event)
                 event_distributed = True
 
-            if callable(on_success_callback):
-                self.catch(on_success_callback, event)
+                if callable(on_success_callback):
+                    self.catch(on_success_callback, event)
 
             ### Emit DNS children ###
             emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
@@ -204,7 +213,7 @@ class ScanManager:
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:
-                    for record, rdtype in dns_children:
+                    for rdtype, record in dns_children:
                         module = self.scan.helpers.dns._get_dummy_module(rdtype)
                         try:
                             child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)

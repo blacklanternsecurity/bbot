@@ -36,6 +36,7 @@ class massdns(crobat):
             "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
+    _qsize = 100
 
     def setup(self):
         self.found = dict()
@@ -48,7 +49,7 @@ class massdns(crobat):
         return ret
 
     def filter_event(self, event):
-        if "unresolved" in event.tags:
+        if "unresolved" in event.tags and not "target" in event.tags:
             return False
         query = self.make_query(event)
         if self.already_processed(query):
@@ -61,11 +62,6 @@ class massdns(crobat):
         h = hash(query)
         if not h in self.source_events:
             self.source_events[h] = event
-
-        # make sure base query resolves
-        if not self.helpers.resolve(query, type="any"):
-            self.debug(f"Skipping unresolved query: {query}")
-            return
 
         self.info(f"Brute-forcing subdomains for {query}")
         for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):
@@ -137,6 +133,7 @@ class massdns(crobat):
             "-q",
         )
         subdomains = self.gen_subdomains(subdomains, domain)
+        hosts_yielded = set()
         for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL, input=subdomains):
             try:
                 j = json.loads(line)
@@ -144,19 +141,25 @@ class massdns(crobat):
                 self.debug(f"Failed to decode line: {line}")
                 continue
             answers = j.get("data", {}).get("answers", [])
-            if type(answers) == list:
-                for answer in answers:
-                    hostname = answer.get("name", "")
-                    if hostname:
-                        data = answer.get("data", "")
-                        # avoid garbage answers like this:
-                        # 8AAAA queries have been locally blocked by dnscrypt-proxy/Set block_ipv6 to false to disable this feature
-                        if not " " in data:
-                            is_wildcard, _ = self.helpers.is_wildcard(hostname, ips=(data,))
-                            rdtype = answer.get("type", "").upper()
-                            # as long as it's not a wildcard we're okay
-                            if rdtype not in ("A", "AAAA") or is_wildcard == False:
-                                yield hostname.rstrip(".")
+            if type(answers) == list and len(answers) > 0:
+                answer = answers[0]
+                hostname = answer.get("name", "")
+                if hostname:
+                    data = answer.get("data", "")
+                    rdtype = answer.get("type", "").upper()
+                    # avoid garbage answers like this:
+                    # 8AAAA queries have been locally blocked by dnscrypt-proxy/Set block_ipv6 to false to disable this feature
+                    if data and rdtype and not " " in data:
+                        # skip wildcards
+                        wildcard_rdtypes = self.helpers.is_wildcard(hostname, ips=(data,))
+                        if rdtype in wildcard_rdtypes:
+                            self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
+                            continue
+                        hostname = hostname.rstrip(".").lower()
+                        hostname_hash = hash(hostname)
+                        if hostname_hash not in hosts_yielded:
+                            hosts_yielded.add(hostname_hash)
+                            yield hostname
 
     def finish(self):
         found = list(self.found.items())

@@ -15,7 +15,7 @@ pip install bbot
 
 Capable of executing the entire OSINT process in a single command, BBOT does subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
-BBOT currently has over **60 modules** and counting.
+BBOT currently has over **70 modules** and counting.
 
 ### [Subdomain Enumeration Face-off](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off)
 
@@ -72,7 +72,7 @@ bbot -f web-basic -t www.evilcorp.com
 bbot -m httpx -c web_spider_distance=2 web_spider_depth=2 -t www.evilcorp.com
 
 # everything at once because yes
-bbot -f subdomain-enum email-enum web-basic -m naabu gowitness nuclei --allow-deadly -t evilcorp.com
+bbot -f subdomain-enum email-enum cloud-enum web-basic -m naabu gowitness nuclei --allow-deadly -t evilcorp.com
 ~~~
 
 ### Targets
@@ -145,18 +145,18 @@ options:
   -n SCAN_NAME, --name SCAN_NAME
                         Name of scan (default: random)
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,asn,azure_tenant,binaryedge,builtwith,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fullhunt,generic_ssrf,getparam_brute,github,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,otx,passivetotal,pgp,rapiddns,riddler,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,urlscan,vhost,viewdns,virustotal,wappalyzer,wayback,zoomeye
+                        Modules to enable. Choices: affiliates,anubisdb,asn,aspnet_viewstate,azure_tenant,bevigil,binaryedge,bucket_aws,bucket_azure,bucket_gcp,builtwith,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fullhunt,generic_ssrf,getparam_brute,github,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,otx,passivetotal,pgp,rapiddns,riddler,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wappalyzer,wayback,zoomeye
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,aggressive,brute-force,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,slow,subdomain-enum,web-advanced,web-basic,web-paramminer,web-screenshots
+                        Enable modules by flag. Choices: active,affiliates,aggressive,brute-force,cloud-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,slow,subdomain-enum,web-advanced,web-basic,web-paramminer,web-screenshots
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Disable modules that don't have these flags (e.g. --require-flags passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. --exclude-flags brute-force)
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: csv,http,human,json,neo4j,websocket
+                        Output module(s). Choices: asset_inventory,csv,http,human,json,neo4j,python,websocket
   -o DIR, --output-dir DIR
   -c [CONFIG ...], --config [CONFIG ...]
                         custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
@@ -233,6 +233,14 @@ To view a full list of module config options, use `--help-all`.
 | aspnet_viewstate | scan     |         | Parse web pages for viewstates and check | active,safe,web-basic                   | VULNERABILITY                            |
 |                  |          |         | them against blacklist3r                 |                                         |                                          |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| bucket_aws       | scan     |         | Check for S3 buckets related to target   | active,cloud-enum,safe                  | STORAGE_BUCKET                           |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| bucket_azure     | scan     |         | Check for Azure storage blobs related to | active,cloud-enum,safe                  | STORAGE_BUCKET                           |
+|                  |          |         | target                                   |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| bucket_gcp       | scan     |         | Check for Google object storage related  | active,cloud-enum,safe                  | STORAGE_BUCKET                           |
+|                  |          |         | to target                                |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | bypass403        | scan     |         | Check 403 pages for common bypasses      | active,aggressive,web-advanced          | FINDING                                  |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | cookie_brute     | scan     |         | Check for common HTTP cookie parameters  | active,aggressive,brute-force,slow,web- | FINDING                                  |
@@ -296,6 +304,8 @@ To view a full list of module config options, use `--help-all`.
 |                  |          |         | of a scan                                |                                         |                                          |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | anubisdb         | scan     |         | Query jldc.me's database for subdomains  | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| asn              | scan     |         | Query ripe and bgpview.io for ASNs       | passive,report,safe,subdomain-enum      | ASN                                      |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | azure_tenant     | scan     |         | Query Azure for tenant sister domains    | affiliates,passive,safe,subdomain-enum  | DNS_NAME                                 |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
@@ -399,8 +409,8 @@ To view a full list of module config options, use `--help-all`.
 | excavate         | internal |         | Passively extract juicy tidbits from     | passive                                 | URL_UNVERIFIED                           |
 |                  |          |         | scan data                                |                                         |                                          |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| speculate        | internal |         | Derive certain event types from others   | passive                                 | DNS_NAME,IP_ADDRESS,OPEN_TCP_PORT        |
-|                  |          |         | by common sense                          |                                         |                                          |
+| speculate        | internal |         | Derive certain event types from others   | passive                                 | DNS_NAME,FINDING,IP_ADDRESS,OPEN_TCP_POR |
+|                  |          |         | by common sense                          |                                         | T                                        |
 +------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 ~~~
 

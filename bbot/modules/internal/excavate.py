@@ -286,3 +286,6 @@ class excavate(BaseInternalModule):
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,
             )
+
+        # Cloud extractors
+        self.helpers.cloud.excavate(event)

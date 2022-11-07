@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+import datetime
 import ipaddress
 from time import sleep
 from pathlib import Path
@@ -278,11 +279,53 @@ def test_events(events, scan, helpers, bbot_config):
     assert reconstituted_event.source_id == scan.root_event.id
 
 
+def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
+
+    scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
+    scan1.load_modules()
+    aws_event1 = scan1.make_event("amazonaws.com", source=scan1.root_event)
+    aws_event2 = scan1.make_event("asdf.amazonaws.com", source=scan1.root_event)
+    aws_event3 = scan1.make_event("asdfamazonaws.com", source=scan1.root_event)
+    providers = scan1.helpers.cloud.providers
+
+    # make sure they're all here
+    assert "aws" in providers
+    assert "gcp" in providers
+    assert "azure" in providers
+
+    # make sure tagging is working
+    aws = providers["aws"]
+    aws.tag_event(aws_event1)
+    assert "cloud-aws" in aws_event1.tags
+    aws.tag_event(aws_event2)
+    assert "cloud-aws" in aws_event2.tags
+    aws.tag_event(aws_event3)
+    assert not "cloud-aws" in aws_event3.tags
+
+    # test storage bucket extraction
+    storage_bucket_hosts = ["asdf.s3-asdf.amazonaws.com", "asdf.storage.googleapis.com", "asdf.blob.core.windows.net"]
+    dummy_body = ""
+    for h in storage_bucket_hosts:
+        dummy_body += f'<a src="https://{h}"/>'
+    dummy_response = {"response-body": dummy_body, "url": "http://example.com"}
+    http_response = scan1.make_event(dummy_response, "HTTP_RESPONSE", source=scan1.root_event)
+    results = []
+    for provider_name, provider in providers.items():
+        monkeypatch.setattr(
+            provider,
+            "emit_event",
+            lambda *args, **kwargs: results.append(kwargs.get("data", {}).get("url", "")),
+        )
+        provider.excavate(http_response)
+    for h in storage_bucket_hosts:
+        assert f"https://{h}" in results, f"cloud helpers failed to excavate {h} from {dummy_body}"
+
+
 def test_manager(bbot_config, bbot_scanner):
     # test _emit_event
     results = []
     success_callback = lambda e: results.append("success")
-    scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
+    scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     scan1.status = "RUNNING"
     manager = scan1.manager
     manager.distribute_event = lambda e: results.append(e)
@@ -300,6 +343,7 @@ def test_manager(bbot_config, bbot_scanner):
     # test abort_if
     manager._emit_event(localhost, abort_if=lambda e: e.module._type == "output")
     assert len(results) == 0
+    manager.events_accepted.clear()
     manager._emit_event(
         localhost, on_success_callback=success_callback, abort_if=lambda e: e.module._type == "plumbus"
     )
@@ -646,6 +690,13 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     helpers._rm_at_exit(test_file)
     assert not test_file.exists()
 
+    timedelta = datetime.timedelta(hours=1, minutes=2, seconds=3)
+    assert helpers.human_timedelta(timedelta) == "1 hour, 2 minutes, 3 seconds"
+    timedelta = datetime.timedelta(hours=3, seconds=1)
+    assert helpers.human_timedelta(timedelta) == "3 hours, 1 second"
+    timedelta = datetime.timedelta(seconds=2)
+    assert helpers.human_timedelta(timedelta) == "2 seconds"
+
     ### VALIDATORS ###
     # hosts
     assert helpers.validators.validate_host(" evilCorp.COM") == "evilcorp.com"
@@ -797,12 +848,23 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     assert hash(f"scanme.nmap.org:A") in helpers.dns._dns_cache
     assert hash(f"scanme.nmap.org:AAAA") in helpers.dns._dns_cache
     # wildcards
-    assert helpers.is_wildcard("asdf.wat.blacklanternsecurity.github.io") == (True, "github.io")
+    wildcard_rdtypes = helpers.is_wildcard_domain("github.io")
+    assert "A" in wildcard_rdtypes
+    assert "SRV" not in wildcard_rdtypes
+    assert wildcard_rdtypes["A"] and all(helpers.is_ip(r) for r in wildcard_rdtypes["A"])
+    wildcard_rdtypes = helpers.is_wildcard("blacklanternsecurity.github.io")
+    assert "A" in wildcard_rdtypes
+    assert "SRV" not in wildcard_rdtypes
+    assert wildcard_rdtypes["A"] == (True, "github.io")
     assert hash("github.io") in helpers.dns._wildcard_cache
     assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
-    assert helpers.is_wildcard("asdf.asdf.asdf.github.io") == (True, "github.io")
-    assert helpers.is_wildcard("github.io") == (False, "github.io")
-    assert helpers.is_wildcard("mail.google.com") == (False, "google.com")
+    helpers.dns._wildcard_cache.clear()
+    wildcard_rdtypes = helpers.is_wildcard("asdf.asdf.asdf.github.io")
+    assert "A" in wildcard_rdtypes
+    assert "SRV" not in wildcard_rdtypes
+    assert wildcard_rdtypes["A"] == (True, "github.io")
+    assert hash("github.io") in helpers.dns._wildcard_cache
+    assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
     children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts = scan.helpers.resolve_event(
@@ -812,7 +874,11 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
         wildcard_event2
     )
     assert "wildcard" in event_tags1
+    assert "a-wildcard" in event_tags1
+    assert "srv-wildcard" not in event_tags1
     assert "wildcard" in event_tags2
+    assert "a-wildcard" in event_tags2
+    assert "srv-wildcard" not in event_tags2
     assert wildcard_event1.data == "_wildcard.github.io"
     assert wildcard_event2.data == "_wildcard.github.io"
     assert event_tags1 == event_tags2
