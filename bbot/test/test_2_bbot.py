@@ -292,6 +292,7 @@ def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
     assert "aws" in providers
     assert "gcp" in providers
     assert "azure" in providers
+    assert "digitalocean" in providers
 
     # make sure tagging is working
     aws = providers["aws"]
@@ -303,7 +304,12 @@ def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
     assert not "cloud-aws" in aws_event3.tags
 
     # test storage bucket extraction
-    storage_bucket_hosts = ["asdf.s3-asdf.amazonaws.com", "asdf.storage.googleapis.com", "asdf.blob.core.windows.net"]
+    storage_bucket_hosts = [
+        "asdf.s3-asdf.amazonaws.com",
+        "asdf.storage.googleapis.com",
+        "asdf.blob.core.windows.net",
+        "asdf.digitaloceanspaces.com",
+    ]
     dummy_body = ""
     for h in storage_bucket_hosts:
         dummy_body += f'<a src="https://{h}"/>'

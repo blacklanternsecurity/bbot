@@ -47,15 +47,6 @@ class speculate(BaseInternalModule):
             if parent != event.data:
                 self.emit_event(parent, "DNS_NAME", source=event, internal=True)
 
-        # generate findings from open storage buckets
-        if event.type == "STORAGE_BUCKET":
-            if "open-bucket" in event.tags:
-                self.emit_event(
-                    {"host": event.host, "url": event.data["url"], "description": "Open storage bucket"},
-                    "FINDING",
-                    source=event,
-                )
-
         # generate open ports
         emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         # from URLs
