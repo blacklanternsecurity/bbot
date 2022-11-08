@@ -1,6 +1,5 @@
 import json
 import yaml
-import subprocess
 from itertools import islice
 from bbot.modules.base import BaseModule
 
@@ -14,7 +13,7 @@ class nuclei(BaseModule):
 
     batch_size = 100
     options = {
-        "version": "2.7.7",
+        "version": "2.7.9",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -63,7 +62,7 @@ class nuclei(BaseModule):
             elif "No new updates found for nuclei templates" in update_results.stderr:
                 self.info("Nuclei templates already up-to-date")
             else:
-                self.warning("Failure while updating nuclei templates")
+                self.warning(f"Failure while updating nuclei templates: {update_results.stderr}")
         else:
             self.warning("Error running nuclei template update command")
 
@@ -117,6 +116,8 @@ class nuclei(BaseModule):
                 f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
             )
 
+        self.stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
+
         return True
 
     def handle_batch(self, *events):
@@ -163,7 +164,6 @@ class nuclei(BaseModule):
 
         command = [
             "nuclei",
-            "-silent",
             "-json",
             "-update-directory",
             self.nuclei_templates_dir,
@@ -171,7 +171,8 @@ class nuclei(BaseModule):
             self.ratelimit,
             "-concurrency",
             self.concurrency,
-            "-duc",
+            "-disable-update-check",
+            "-stats-json",
             # "-r",
             # self.helpers.resolver_file,
         ]
@@ -194,34 +195,53 @@ class nuclei(BaseModule):
             command.append("-t")
             command.append(self.budget_templates_file)
 
-        for line in self.helpers.run_live(command, input=nuclei_input, stderr=subprocess.DEVNULL):
-            try:
-                j = json.loads(line)
-            except json.decoder.JSONDecodeError:
-                self.debug(f"Failed to decode line: {line}")
-                continue
+        with open(self.stats_file, "w") as stats_file:
+            for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_file):
+                try:
+                    j = json.loads(line)
+                except json.decoder.JSONDecodeError:
+                    self.debug(f"Failed to decode line: {line}")
+                    continue
 
-            template = j.get("template-id", "")
+                template = j.get("template-id", "")
 
-            # try to get the specific matcher name
-            name = j.get("matcher-name", "")
+                # try to get the specific matcher name
+                name = j.get("matcher-name", "")
 
-            # fall back to regular name
-            if not name:
-                self.debug(
-                    f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
-                )
-                name = j.get("info", {}).get("name", "")
+                # fall back to regular name
+                if not name:
+                    self.debug(
+                        f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
+                    )
+                    name = j.get("info", {}).get("name", "")
 
-            severity = j.get("info", {}).get("severity", "").upper()
-            host = j.get("host", "")
+                severity = j.get("info", {}).get("severity", "").upper()
+                host = j.get("host", "")
 
-            extracted_results = j.get("extracted-results", [])
+                extracted_results = j.get("extracted-results", [])
 
-            if template and name and severity and host:
-                yield (severity, template, host, name, extracted_results)
-            else:
-                self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
+                if template and name and severity and host:
+                    yield (severity, template, host, name, extracted_results)
+                else:
+                    self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
+
+    def log_nuclei_status(self, line):
+        try:
+            line = json.loads(line)
+        except Exception:
+            self.info(str(line))
+            return
+        duration = line.get("duration", "")
+        errors = line.get("errors", "")
+        hosts = line.get("hosts", "")
+        matched = line.get("matched", "")
+        percent = line.get("percent", "")
+        requests = line.get("requests", "")
+        rps = line.get("rps", "")
+        templates = line.get("templates", "")
+        total = line.get("total", "")
+        status = f"[{duration}] | Templates: {templates} | Hosts: {hosts} | RPS: {rps} | Matched: {matched} | Errors: {errors} | Requests: {requests}/{total} ({percent}%)"
+        self.info(status)
 
     def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"

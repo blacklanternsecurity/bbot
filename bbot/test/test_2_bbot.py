@@ -769,6 +769,13 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     with open(tempfile) as f:
         assert "plumbus\n" in list(f)
 
+    results = []
+    tempfile = helpers.tempfile_tail(callback=lambda x: results.append(x))
+    with open(tempfile, "w") as f:
+        f.write("asdf\n")
+    sleep(0.1)
+    assert "asdf" in results
+
     ### CACHE ###
     helpers.cache_put("string", "wat")
     helpers.cache_put("binary", b"wat")
