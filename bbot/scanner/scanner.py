@@ -381,7 +381,7 @@ class Scanner:
         event_threadpool_tasks = self._event_thread_pool.num_tasks
         internal_tasks = self._internal_thread_pool.num_tasks
         process_tasks = self.process_pool.num_tasks
-        total_tasks = main_tasks + dns_tasks + internal_tasks
+        total_tasks = main_tasks + dns_tasks + event_threadpool_tasks + internal_tasks + process_tasks
         status = {
             "queued_tasks": {
                 "main": main_tasks,
