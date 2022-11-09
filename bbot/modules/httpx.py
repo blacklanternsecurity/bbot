@@ -109,7 +109,7 @@ class httpx(BaseModule):
                 continue
 
             url = j.get("url", "")
-            status_code = int(j.get("status-code", 0))
+            status_code = int(j.get("status_code", 0))
             if status_code == 0:
                 self.debug(f'No HTTP status code for "{url}"')
                 continue
