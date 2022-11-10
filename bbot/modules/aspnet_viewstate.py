@@ -1,7 +1,5 @@
 from .base import BaseModule
 import re
-import sys
-import os
 from badsecrets import modules_loaded
 
 ASPNET_Viewstate = modules_loaded["aspnet_viewstate"]
