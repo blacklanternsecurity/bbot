@@ -205,10 +205,19 @@ class telerik(BaseModule):
             "WebUIDialogs/Telerik.Web.UI.DialogHandler.aspx",
         ]
 
+        futures = {}
         for dh in DialogHandlerUrls:
-            result = self.test_detector(event.data, f"{dh}?dp=1")
+            future = self.submit_task(self.test_detector, event.data, f"{dh}?dp=1")
+            futures[future] = dh
+
+        for future in self.helpers.as_completed(futures):
+            dh = futures[future]
+            result = future.result()
             if result:
                 if "Cannot deserialize dialog parameters" in result.text:
+                    for future in futures:
+                        future.cancel()
+
                     self.debug(f"Detected Telerik UI instance ({dh})")
                     description = f"Telerik DialogHandler detected"
                     self.emit_event(
@@ -217,6 +226,7 @@ class telerik(BaseModule):
                         event,
                     )
                 # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
+
                 break
 
         spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
