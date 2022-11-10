@@ -183,7 +183,7 @@ class telerik(BaseModule):
             "dashboard/UserControl/CMS/Page/Telerik.Web.UI.DialogHandler.aspx",
             "DesktopModule/UIQuestionControls/UIAskQuestion/Telerik.Web.UI.DialogHandler.aspx",
             "Desktopmodules/Admin/dnnWerk.Users/DialogHandler.aspx",
-            "DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx?dp=1",
+            "DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx",
             "desktopmodules/base/editcontrols/telerik.web.ui.dialoghandler.aspx",
             "desktopmodules/dnnwerk.radeditorprovider/dialoghandler.aspx",
             "DesktopModules/RadEditorProvider/telerik.web.ui.dialoghandler.aspx",
