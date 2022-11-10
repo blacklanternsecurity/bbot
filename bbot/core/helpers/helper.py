@@ -18,8 +18,8 @@ log = logging.getLogger("bbot.core.helpers")
 
 class ConfigAwareHelper:
     from .web import wordlist, request, download, api_page_iter, curl
-    from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached, CacheDict
+    from .command import run, run_live, tempfile, feed_pipe, _feed_pipe, tempfile_tail
     from . import ntlm
     from . import regexes
     from . import validators

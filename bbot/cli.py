@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
 
@@ -239,15 +240,12 @@ def main():
                     scanner.cleanup()
 
     except bbot.core.errors.BBOTError as e:
-        import traceback
-
-        log_to_stderr(e, level="ERROR")
-        log_to_stderr(traceback.format_exc(), level="ERROR")
+        log_to_stderr(f"{e} (--debug for details)", level="ERROR")
+        if log_level <= logging.DEBUG:
+            log_to_stderr(traceback.format_exc(), level="DEBUG")
         err = True
 
     except Exception:
-        import traceback
-
         log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level="ERROR")
         err = True
 

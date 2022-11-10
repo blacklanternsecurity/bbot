@@ -2,6 +2,7 @@ import io
 import os
 import logging
 import threading
+import traceback
 import subprocess
 from contextlib import suppress
 
@@ -24,8 +25,8 @@ def run_live(self, command, *args, **kwargs):
         - The above is roughly equivalent to:
             ls /etc | grep conf
 
-    NOTE: STDERR is hidden by default.
-        If you want to see it, pass stderr=None
+    NOTE: STDERR is logged after the process exits, if its exit code is non-zero
+        If you want to see it immediately, pass stderr=None
     """
 
     if not "stdout" in kwargs:
@@ -91,13 +92,9 @@ def catch(callback, *args, **kwargs):
     try:
         return callback(*args, **kwargs)
     except FileNotFoundError as e:
-        import traceback
-
         log.warning(f"{e} - missing executable?")
         log.debug(traceback.format_exc())
     except BrokenPipeError as e:
-        import traceback
-
         log.warning(f"Error in subprocess: {e}")
         log.debug(traceback.format_exc())
 
@@ -121,10 +118,9 @@ def tempfile(self, content, pipe=True):
         else:
             with open(filename, "w", errors="ignore") as f:
                 for c in content:
-                    f.write(f"{self.smart_decode(c)}\n")
+                    line = f"{self.smart_decode(c)}\n"
+                    f.write(line)
     except Exception as e:
-        import traceback
-
         log.error(f"Error creating temp file: {e}")
         log.debug(traceback.format_exc())
 
@@ -154,14 +150,10 @@ def _feed_pipe(self, pipe, content, text=True):
         except BrokenPipeError:
             log.debug(f"Broken pipe in _feed_pipe()")
         except ValueError:
-            import traceback
-
             log.debug(f"Error _feed_pipe(): {traceback.format_exc()}")
     except KeyboardInterrupt:
         self.scan.stop()
     except Exception as e:
-        import traceback
-
         log.error(f"Error in _feed_pipe(): {e}")
         log.debug(traceback.format_exc())
 
@@ -169,3 +161,31 @@ def _feed_pipe(self, pipe, content, text=True):
 def feed_pipe(self, pipe, content, text=True):
     t = threading.Thread(target=self._feed_pipe, args=(pipe, content), kwargs={"text": text}, daemon=True)
     t.start()
+
+
+def tempfile_tail(self, callback):
+    """
+    Create a named pipe and execute a callback on each line
+    """
+    filename = self.temp_filename()
+    rm_at_exit(filename)
+    try:
+        os.mkfifo(filename)
+        t = threading.Thread(target=tail, args=(filename, callback), daemon=True)
+        t.start()
+    except Exception as e:
+        log.error(f"Error setting up tail for file {filename}: {e}")
+        log.debug(traceback.format_exc())
+        return
+    return filename
+
+
+def tail(filename, callback):
+    try:
+        with open(filename) as f:
+            for line in f:
+                line = line.rstrip("\r\n")
+                callback(line)
+    except Exception as e:
+        log.error(f"Error tailing file {filename}: {e}")
+        log.debug(traceback.format_exc())
