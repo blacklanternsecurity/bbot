@@ -30,7 +30,7 @@ class BaseCloudProvider:
 
         # check for buckets in HTTP responses
         if event.type == "HTTP_RESPONSE":
-            body = event.data.get("response-body", "")
+            body = event.data.get("body", "")
             for event_type, sigs in self.signatures.items():
                 found = set()
                 for sig in sigs:

@@ -172,7 +172,7 @@ class hunt(BaseModule):
                     yield s
 
     def handle_event(self, event):
-        body = event.data.get("response-body", "")
+        body = event.data.get("body", "")
         for p in self.extract_params(body):
             for k in hunt_param_dict.keys():
                 if p.lower() in hunt_param_dict[k]:

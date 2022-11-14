@@ -671,7 +671,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         self.parsed = validators.validate_url_parsed(url)
 
         header_dict = {}
-        for i in data.get("response-header", "").splitlines():
+        for i in data.get("raw_header", "").splitlines():
             if len(i) > 0 and ":" in i:
                 k, v = i.split(":", 1)
                 k = k.strip().lower()

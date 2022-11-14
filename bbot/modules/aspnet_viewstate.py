@@ -52,7 +52,7 @@ class aspnet_viewstate(BaseModule):
 
     def handle_event(self, event):
 
-        resp_body = event.data.get("response-body", None)
+        resp_body = event.data.get("body", None)
         if resp_body:
 
             generator_match = self.generator_regex.search(resp_body)
