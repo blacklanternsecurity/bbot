@@ -8,9 +8,7 @@ class telerik(BaseModule):
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
     flags = ["active", "aggressive", "slow", "web-basic"]
-    meta = {
-        "description": "Scan for critical Telerik vulnerabilities",
-    }
+    meta = {"description": "Scan for critical Telerik vulnerabilities"}
 
     telerikVersions = [
         "2007.1423",
@@ -123,7 +121,19 @@ class telerik(BaseModule):
 
     max_event_handlers = 5
 
+    def setup(self):
+        self.scanned_hosts = set()
+        return True
+
     def handle_event(self, event):
+
+        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        host_hash = hash(host)
+        if host_hash in self.scanned_hosts:
+            self.debug(f"Host {host} was already scanned, exiting")
+            return
+        else:
+            self.scanned_hosts.add(host_hash)
 
         webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
         result = self.test_detector(event.data, webresource)
