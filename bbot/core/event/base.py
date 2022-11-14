@@ -251,7 +251,7 @@ class BaseEvent:
             self.tags.add("internal")
             self._made_internal = True
 
-    def unmake_internal(self, set_scope_distance=None, force_output=False, emit_trail=True):
+    def unmake_internal(self, set_scope_distance=None, force_output=False):
         source_trail = []
         if self._made_internal:
             if set_scope_distance is not None:
@@ -271,19 +271,13 @@ class BaseEvent:
             )
             source_trail.append(self.source)
 
-        if emit_trail and self.scan:
-            for e in source_trail:
-                self.scan.manager.emit_event(e)
-
         return source_trail
 
     def make_in_scope(self, set_scope_distance=0):
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
         if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(
-                set_scope_distance=set_scope_distance, force_output=True, emit_trail=True
-            )
+            source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output=True)
         self.scope_distance = set_scope_distance
         if set_scope_distance == 0:
             self.tags.add("in-scope")

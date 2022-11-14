@@ -168,7 +168,9 @@ class ScanManager:
                     if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
                         if set_scope_distance == 0:
                             log.debug(f"Making {event} in-scope")
-                        event.make_in_scope(set_scope_distance)
+                        source_trail = event.make_in_scope(set_scope_distance)
+                        for s in source_trail:
+                            self.emit_event(s)
                     else:
                         if event.scope_distance > self.scan.scope_report_distance:
                             log.debug(
@@ -177,7 +179,9 @@ class ScanManager:
                             event.make_internal()
                 else:
                     log.debug(f"Making {event} in-scope because it does not have identifying scope information")
-                    event.make_in_scope(0)
+                    source_trail = event.make_in_scope(0)
+                    for s in source_trail:
+                        self.emit_event(s)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if) and abort_if(event):
