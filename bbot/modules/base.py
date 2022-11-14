@@ -174,6 +174,8 @@ class BaseModule:
         return self.scan.manager.catch(*args, **kwargs)
 
     def _handle_batch(self, force=False):
+        if self.batch_size <= 1:
+            return
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
             self._batch_idle = 0
             on_finish_callback = None
