@@ -36,8 +36,6 @@ class aspnet_viewstate(BaseModule):
                 )
 
                 x = ASPNET_Viewstate()
-                self.hugesuccess(viewstate)
-                self.hugesuccess(generator)
                 r = x.check_secret(viewstate, generator)
                 if r:
                     data = {
