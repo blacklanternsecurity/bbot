@@ -143,8 +143,12 @@ class DepsInstaller:
 
         command = [sys.executable, "-m", "pip", "install"] + packages
         try:
-            self.parent_helper.run(command, check=True)
-            log.info(f'Successfully installed pip packages "{packages_str}"')
+            process = self.parent_helper.run(command, check=True)
+            message = f'Successfully installed pip packages "{packages_str}"'
+            output = process.stdout.splitlines()[-1]
+            if output:
+                message = output
+            log.info(message)
             return True
         except Exception as err:
             log.warning(f"Failed to install pip packages: {err}")
