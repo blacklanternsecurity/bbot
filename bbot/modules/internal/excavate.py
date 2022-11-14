@@ -255,7 +255,7 @@ class excavate(BaseInternalModule):
                     location = event.parsed._replace(path=location).geturl()
                 self.emit_event(location, "URL_UNVERIFIED", event)
 
-            body = event.data.get("response-body", "")
+            body = event.data.get("body", "")
             self.search(
                 body,
                 [
@@ -271,7 +271,7 @@ class excavate(BaseInternalModule):
                 spider_danger=True,
             )
 
-            headers = event.data.get("response-header", "")
+            headers = event.data.get("raw_header", "")
             self.search(
                 headers,
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
