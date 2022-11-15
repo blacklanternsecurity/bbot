@@ -1,3 +1,4 @@
+import os
 import sys
 import pytest
 import logging
@@ -7,6 +8,22 @@ import subprocess
 import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
+
+
+test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
+if test_config.get("debug", False):
+    os.environ["BBOT_DEBUG"] = "True"
+
+from .bbot_fixtures import *  # noqa: F401
+import bbot.core.logger  # noqa: F401
+from bbot.core.errors import *  # noqa: F401
+
+log = logging.getLogger(f"bbot.test")
+
+# silence stdout
+root_logger = logging.getLogger()
+for h in root_logger.handlers:
+    h.addFilter(lambda x: x.levelno != 100)
 
 
 # make the necessary web requests before nuking them to high heaven
