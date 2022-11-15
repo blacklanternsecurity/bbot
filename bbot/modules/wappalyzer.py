@@ -34,5 +34,5 @@ class wappalyzer(BaseModule):
             )
 
     def wappalyze(self, data):
-        w = WebPage(url=data["url"], html=data.get("response-body", ""), headers=data.get("header-dict", {}))
+        w = WebPage(url=data["url"], html=data.get("body", ""), headers=data.get("header-dict", {}))
         return self.wappalyzer.analyze(w)

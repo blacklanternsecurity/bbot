@@ -265,7 +265,7 @@ def test_events(events, scan, helpers, bbot_config):
 
     http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
     assert http_response.source_id == scan.root_event.id
-    assert http_response.data["input"] == "http://example.com"
+    assert http_response.data["input"] == "http://example.com:80"
     json_event = http_response.json()
     assert isinstance(json_event["data"], dict)
     json_event = http_response.json(mode="graph")
@@ -274,7 +274,7 @@ def test_events(events, scan, helpers, bbot_config):
     assert json_event["source"] == scan.root_event.id
     reconstituted_event = event_from_json(json_event)
     assert isinstance(reconstituted_event.data, dict)
-    assert reconstituted_event.data["input"] == "http://example.com"
+    assert reconstituted_event.data["input"] == "http://example.com:80"
     assert reconstituted_event.type == "HTTP_RESPONSE"
     assert reconstituted_event.source_id == scan.root_event.id
 
@@ -313,7 +313,7 @@ def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
     dummy_body = ""
     for h in storage_bucket_hosts:
         dummy_body += f'<a src="https://{h}"/>'
-    dummy_response = {"response-body": dummy_body, "url": "http://example.com"}
+    dummy_response = {"body": dummy_body, "url": "http://example.com"}
     http_response = scan1.make_event(dummy_response, "HTTP_RESPONSE", source=scan1.root_event)
     results = []
     for provider_name, provider in providers.items():
