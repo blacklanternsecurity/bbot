@@ -23,12 +23,13 @@ BBOT currently has over **70 modules** and counting.
 
 ## Installation (pip)
 ~~~bash
+# note: installing in a virtualenv is recommended
 pip install bbot
 
 bbot --help
 ~~~
 Prerequisites:
-- Linux or WSL
+- Linux (Windows including WSL is not supported)
 - Python 3.9 or newer
 
 ## [Installation (Docker)](https://hub.docker.com/r/blacklanternsecurity/bbot)

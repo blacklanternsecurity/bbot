@@ -35,7 +35,10 @@ if not files.config_filename.exists():
     log_to_stderr(f"Creating BBOT config at {files.config_filename}")
     no_secrets_config = OmegaConf.to_object(config)
     no_secrets_config = clean_dict(no_secrets_config, "api_key", "username", "password", "token", fuzzy=True)
-    OmegaConf.save(config=OmegaConf.create(no_secrets_config), f=str(files.config_filename))
+    yaml = OmegaConf.to_yaml(no_secrets_config)
+    yaml = "\n".join(f"# {line}" for line in yaml.splitlines())
+    with open(str(files.config_filename), "w") as f:
+        f.write(yaml)
 
 # ensure secrets.yml
 if not files.secrets_filename.exists():
@@ -44,5 +47,8 @@ if not files.secrets_filename.exists():
     secrets_only_config = filter_dict(
         secrets_only_config, "api_key", "username", "password", "token", "secret", "_id", fuzzy=True
     )
-    OmegaConf.save(config=OmegaConf.create(secrets_only_config), f=str(files.secrets_filename))
+    yaml = OmegaConf.to_yaml(secrets_only_config)
+    yaml = "\n".join(f"# {line}" for line in yaml.splitlines())
+    with open(str(files.secrets_filename), "w") as f:
+        f.write(yaml)
     files.secrets_filename.chmod(0o600)
