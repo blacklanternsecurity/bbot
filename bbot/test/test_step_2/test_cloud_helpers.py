@@ -35,7 +35,7 @@ def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
     dummy_body = ""
     for h in storage_bucket_hosts:
         dummy_body += f'<a src="https://{h}"/>'
-    dummy_response = {"response-body": dummy_body, "url": "http://example.com"}
+    dummy_response = {"body": dummy_body, "url": "http://example.com"}
     http_response = scan1.make_event(dummy_response, "HTTP_RESPONSE", source=scan1.root_event)
     results = []
     for provider_name, provider in providers.items():
