@@ -1,5 +1,4 @@
 import os
-import pty
 import sys
 import copy
 import json
@@ -674,18 +673,14 @@ def can_sudo_without_password():
     """
     Return True if the current user can sudo without a password
     """
-    old_askpass = os.environ.get("SUDO_ASKPASS", None)
+    env = dict(os.environ)
+    env["SUDO_ASKPASS"] = "/bin/false"
     try:
-        os.environ["SUDO_ASKPASS"] = "/bin/false"
-        status = pty.spawn(["sudo", "-An", "/bin/true"], master_read=lambda x: b"")
-        if status == 0:
-            return True
+        sp.run(["sudo", "-K"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+        sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+    except sp.CalledProcessError:
         return False
-    finally:
-        if old_askpass:
-            os.environ["SUDO_ASKPASS"] = old_askpass
-        else:
-            del os.environ["SUDO_ASKPASS"]
+    return True
 
 
 def verify_sudo_password(sudo_pass):
