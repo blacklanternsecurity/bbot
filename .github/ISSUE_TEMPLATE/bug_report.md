@@ -4,7 +4,6 @@ about: Create a report to help us improve
 title: ''
 labels: bug
 assignees: ''
-
 ---
 
 **Describe the bug**
@@ -19,7 +18,7 @@ Example: `bbot -m httpx -t evilcorp.com`
 **OS, BBOT Installation Method + Version**
 Example: `OS: Arch Linux, Installation method: pip, BBOT version: 1.0.3.545`
 Note: You can get the bbot version with `bbot --version`
-Note: Windows is **not** supported. (This includes WSL and Docker Desktop) Please do not submit bug reports for Windows.
+Note: Windows is **not** supported. We have successfully used BBOT on Docker Desktop in the past, however Windows is highly problematic so if you choose this path you are on your own.
 
 **BBOT Config**
 Attach your BBOT config (`bbot --current-config`).

@@ -7,4 +7,4 @@ assignees: ''
 ---
 
 **Description**
-Which feature would you like to see added to BBOT? What is your use case?
+Which feature would you like to see added to BBOT? What are its use cases?
