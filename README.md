@@ -208,14 +208,24 @@ Misc:
 # BBOT Config
 BBOT loads its config from these places in the following order:
 
-- `~/.config/bbot/defaults.yml`
 - `~/.config/bbot/bbot.yml` <-- Use this one as your main config
 - `~/.config/bbot/secrets.yml` <-- Use this one for sensitive stuff like API keys
-- command line (via `--config`)
+- command line (`--config`)
 
 These config files will be automatically created for you when you first run BBOT.
 
 Command-line arguments take precedence over all others. You can give BBOT a custom config file with `--config myconf.yml`, or individual arguments like this: `--config http_proxy=http://127.0.0.1:8080 modules.shodan_dns.api_key=1234`. To display the full and current BBOT config, including any command-line arguments, use `bbot --current-config`.
+
+Note that placing the following in `bbot.yml`:
+```yaml
+modules:
+  shodan:
+    api_key: deadbeef
+```
+Is the same as:
+```bash
+bbot --config modules.shodan.api_key=deadbeef
+```
 
 For explanations of config options, see `defaults.yml` or the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#yaml-config)
 
