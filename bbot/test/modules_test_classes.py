@@ -68,6 +68,21 @@ class Otx(RequestMockHelper):
                 return True
         return False
 
+class Anubisdb(RequestMockHelper):
+    def mock_args(self):
+        for t in self.targets:
+            self.register_uri(
+                f"https://jldc.me/anubis/subdomains/{t}",
+                json=["asdf.blacklanternsecurity.com","zzzz.blacklanternsecurity.com"],
+            )
+
+    def check_events(self, events):
+        for e in events:
+            print(e)
+            if e == "asdf.blacklanternsecurity.com":
+                return True
+        return False
+
 
 class Aspnet_viewstate(HttpxMockHelper):
 

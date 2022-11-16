@@ -40,6 +40,11 @@ def test_otx(bbot_config, bbot_scanner, bbot_httpserver):
     x = Otx(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
 
+def test_anubisdb(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Anubisdb(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
 
 def test_httpx(bbot_config, bbot_scanner, bbot_httpserver):
     x = Httpx(bbot_config, bbot_scanner, bbot_httpserver)
