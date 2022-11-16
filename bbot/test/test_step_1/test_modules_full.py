@@ -82,3 +82,51 @@ def test_otx(bbot_config, bbot_scanner, bbot_httpserver):
 def test_httpx(bbot_config, bbot_scanner, bbot_httpserver):
     x = Httpx(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+class Aspnet_viewstate(HttpxMockHelper):
+
+    sample_viewstate = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+    Untitled Page
+</title></head>
+<body>
+    <form method="post" action="./query.aspx" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="rJdyYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESf4nBu" />
+</div>
+
+<div class="aspNetHidden">
+
+    <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="EDD8C9AE" />
+    <input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
+</div>
+    <div>
+        <span id="dft">test</span>
+    </div>
+    </form>
+</body>
+</html>
+"""
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        respond_args = {"response_data": self.sample_viewstate}
+        self.set_expect_requests(respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            print(e)
+            if (
+                e.type == "VULNERABILITY"
+                and e.data["description"]
+                == "Known MachineKey found. EncryptionKey: [8CCFBC5B7589DD37DC3B4A885376D7480A69645DAEEC74F418B4877BEC008156], Encryption Algorithm: [AES] ValidationKey: [0F97BAE23F6F36801ABDB5F145124E00A6F795A97093D778EE5CD24F35B78B6FC4C0D0D4420657689C4F321F8596B59E83F02E296E970C4DEAD2DFE226294979] ValidationAlgo:  [SHA1]"
+            ):
+                return True
+        return False
+
+def test_aspnet_viewstate(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Aspnet_viewstate(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
