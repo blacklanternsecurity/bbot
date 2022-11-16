@@ -8,7 +8,7 @@ import subprocess
 import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
-
+from pytest_httpserver import HTTPServer
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
@@ -39,16 +39,17 @@ log = logging.getLogger(f"bbot.test.fixtures")
 
 @pytest.fixture
 def patch_requests(monkeypatch):
-    from bbot.core.helpers.web import request, download
+    pass
+    # from bbot.core.helpers.web import request, download
 
-    monkeypatch.setattr("urllib3.connectionpool.HTTPConnectionPool.urlopen", lambda *args, **kwargs: urllib_response)
-    monkeypatch.setattr("urllib3.poolmanager.PoolManager.urlopen", lambda *args, **kwargs: urllib_response)
-    monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
-    monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
-    current_dir = Path(__file__).resolve().parent
-    downloaded_file = current_dir / "test_output.json"
-    monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
-    return request, download
+    # monkeypatch.setattr("urllib3.connectionpool.HTTPConnectionPool.urlopen", lambda *args, **kwargs: urllib_response)
+    # monkeypatch.setattr("urllib3.poolmanager.PoolManager.urlopen", lambda *args, **kwargs: urllib_response)
+    # monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
+    # monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
+    # current_dir = Path(__file__).resolve().parent
+    # downloaded_file = current_dir / "test_output.json"
+    # monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
+    # return request, download
 
 
 @pytest.fixture
@@ -347,3 +348,21 @@ def install_all_python_deps():
     for module in module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
+
+
+@pytest.fixture
+def bbot_httpserver():
+    server = HTTPServer(host="127.0.0.1", port=8888)
+    server.start()
+
+    yield server
+
+    server.clear()
+    if server.is_running():
+        server.stop()
+
+    # this is to check if the client has made any request where no
+    # `assert_request` was called on it from the test
+
+    server.check_assertions()
+    server.clear()
