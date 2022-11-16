@@ -82,6 +82,9 @@ class Interactsh:
 
     def deregister(self):
 
+        if not self.server or not self.correlate_id or not self.secret:
+            raise InteractshError(f"Missing required information to deregister")
+
         headers = {}
         if self.token:
             headers["Authorization"] = self.token
@@ -93,6 +96,9 @@ class Interactsh:
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")
 
     def poll(self):
+
+        if not self.server or not self.correlate_id or not self.secret:
+            raise InteractshError(f"Missing required information to poll")
 
         headers = {}
         if self.token:

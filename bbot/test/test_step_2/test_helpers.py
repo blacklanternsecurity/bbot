@@ -1,13 +1,13 @@
+import re
 import datetime
 import ipaddress
+import requests_mock
 from time import sleep
 
 from ..bbot_fixtures import *
 
 
-def test_helpers(patch_requests, helpers, scan, bbot_scanner):
-
-    request, download = patch_requests
+def test_helpers(helpers, scan, bbot_scanner, bbot_config):
 
     ### URL ###
     bad_urls = (
@@ -49,13 +49,15 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     assert helpers.url_depth("http://evilcorp.com") == 0
 
     ### HTTP COMPARE ###
-    compare_helper = helpers.http_compare("http://www.example.com")
-    compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
-    compare_helper.compare("http://www.example.com", cookies={"asdf": "asdf"})
-    compare_helper.compare("http://www.example.com", check_reflection=True)
-    compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
-    for mode in ("getparam", "header", "cookie"):
-        compare_helper.canary_check("http://www.example.com", mode=mode) == True
+    with requests_mock.Mocker() as m:
+        m.get(re.compile(r"http://www.example.com.*"), text="wat")
+        compare_helper = helpers.http_compare("http://www.example.com")
+        compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
+        compare_helper.compare("http://www.example.com", cookies={"asdf": "asdf"})
+        compare_helper.compare("http://www.example.com", check_reflection=True)
+        compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
+        for mode in ("getparam", "header", "cookie"):
+            compare_helper.canary_check("http://www.example.com", mode=mode) == True
 
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
@@ -286,7 +288,7 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     command.catch(raise_brokenpipe)
 
     ### COMMAND ###
-    scan1 = bbot_scanner()
+    scan1 = bbot_scanner(config=bbot_config)
     assert "plumbus\n" in scan1.helpers.run(["echo", "plumbus"], text=True).stdout
     assert "plumbus\n" in list(scan1.helpers.run_live(["echo", "plumbus"]))
     expected_output = ["lumbus\n", "plumbus\n", "rumbus\n"]
@@ -339,13 +341,25 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
     assert tuple(cache_dict) == tuple(hash(str(x)) for x in range(10, 20))
 
     ### WEB ###
-    assert getattr(request(helpers, "https://api.publicapis.org/health"), "text", "").startswith("{")
-    assert getattr(request(helpers, "https://api.publicapis.org/health", cache_for=60), "text", "").startswith("{")
-    filename = download(helpers, "https://api.publicapis.org/health", cache_hrs=1)
-    assert Path(str(filename)).is_file()
-    assert helpers.is_cached("https://api.publicapis.org/health")
+    with requests_mock.Mocker() as m:
+        # test base request
+        m.get("http://blacklanternsecurity.com/yep", text="yep")
+        assert getattr(helpers.request("http://blacklanternsecurity.com/yep"), "text", "") == "yep"
+        # test cached request
+        m.get("http://blacklanternsecurity.com/yepyep", text="yepyep")
+        assert getattr(helpers.request("http://blacklanternsecurity.com/yepyep", cache_for=60), "text", "") == "yepyep"
+        # test caching
+        m.get("http://blacklanternsecurity.com/yepyep", text="nope")
+        assert getattr(helpers.request("http://blacklanternsecurity.com/yepyep", cache_for=60), "text", "") == "yepyep"
+        # test downloading
+        m.get("http://blacklanternsecurity.com/download", text="downloaded")
+        filename = helpers.download("http://blacklanternsecurity.com/download", cache_hrs=1)
+        assert Path(str(filename)).is_file()
+        assert helpers.is_cached("http://blacklanternsecurity.com/download")
+        # test wordlist
+        m.get("http://blacklanternsecurity.com/wordlist", text="wordlist")
+        assert helpers.wordlist("http://blacklanternsecurity.com/wordlist").is_file()
 
-    assert helpers.wordlist("https://api.publicapis.org/healthasdf").is_file()
     test_file = Path(scan.config["home"]) / "testfile.asdf"
     with open(test_file, "w") as f:
         for i in range(100):
@@ -474,18 +488,27 @@ def test_helpers(patch_requests, helpers, scan, bbot_scanner):
         helpers.ntlm.ntlmdecode("asdf")
 
     # interact.sh
-    interactsh_client = helpers.interactsh()
-    with pytest.raises(InteractshError):
-        interactsh_client.register()
-    assert not list(interactsh_client.poll())
-    with pytest.raises(InteractshError):
-        interactsh_client.deregister()
+    with requests_mock.Mocker() as m:
+        from bbot.core.helpers.interactsh import server_list
+
+        for server in server_list:
+            m.post(re.compile(rf"https://{server}/.*"), text="nope")
+
+        interactsh_client = helpers.interactsh()
+        with pytest.raises(InteractshError):
+            interactsh_client.register()
+        with pytest.raises(InteractshError):
+            list(interactsh_client.poll())
+        with pytest.raises(InteractshError):
+            interactsh_client.deregister()
 
 
-def test_dns_resolvers(patch_requests, helpers):
-    assert type(helpers.dns.resolvers) == set
-    assert hasattr(helpers.dns.resolver_file, "is_file")
-    assert hasattr(helpers.dns.mass_resolver_file, "is_file")
+def test_dns_resolvers(helpers):
+    with requests_mock.Mocker() as m:
+        m.get(helpers.dns.nameservers_url, json=[{"ip": "8.8.8.8", "reliability": 0.999}])
+        assert type(helpers.dns.resolvers) == set
+        assert hasattr(helpers.dns.resolver_file, "is_file")
+        assert hasattr(helpers.dns.mass_resolver_file, "is_file")
 
 
 def test_word_cloud(helpers, bbot_config, bbot_scanner):
@@ -529,14 +552,16 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert word_cloud["rumbus"] == 1
 
 
-def test_curl(helpers):
-
-    helpers.curl()
-    helpers.curl(url="http://www.example.com", ignore_bbot_global_settings=True)
-    helpers.curl(url="http://www.example.com", head_mode=True)
-    helpers.curl(url="http://www.example.com", raw_body=True)
+def test_curl(helpers, bbot_httpserver):
+    url = "http://127.0.0.1:8888/curl"
+    bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
+    bbot_httpserver.expect_request(uri="/index.html").respond_with_data("curl_yep_index")
+    helpers.curl(url=url)
+    helpers.curl(url=url, ignore_bbot_global_settings=True)
+    helpers.curl(url=url, head_mode=True)
+    helpers.curl(url=url, raw_body=True)
     helpers.curl(
-        url="http://www.example.com",
+        url=url,
         raw_path=True,
         headers={"test": "test", "test2": ["test2"]},
         ignore_bbot_global_settings=False,

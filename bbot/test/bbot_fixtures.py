@@ -2,8 +2,6 @@ import os
 import sys
 import pytest
 import logging
-import urllib3
-import requests
 import subprocess
 import tldextract
 from pathlib import Path
@@ -25,41 +23,9 @@ root_logger = logging.getLogger()
 for h in root_logger.handlers:
     h.addFilter(lambda x: x.levelno != 100)
 
-
-# make the necessary web requests before nuking them to high heaven
-example_url = "https://api.publicapis.org/health"
-http = urllib3.PoolManager()
-urllib_response = http.request("GET", example_url)
-requests_response = requests.get(example_url)
 tldextract.extract("www.evilcorp.com")
 
-
 log = logging.getLogger(f"bbot.test.fixtures")
-
-
-@pytest.fixture
-def patch_requests(monkeypatch):
-    pass
-    # from bbot.core.helpers.web import request, download
-
-    # monkeypatch.setattr("urllib3.connectionpool.HTTPConnectionPool.urlopen", lambda *args, **kwargs: urllib_response)
-    # monkeypatch.setattr("urllib3.poolmanager.PoolManager.urlopen", lambda *args, **kwargs: urllib_response)
-    # monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
-    # monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
-    # current_dir = Path(__file__).resolve().parent
-    # downloaded_file = current_dir / "test_output.json"
-    # monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
-    # return request, download
-
-
-@pytest.fixture
-def patch_scan_requests(monkeypatch):
-    def _patch_scan_requests(scanner):
-        old_request = scanner.helpers.request
-        monkeypatch.setattr(scanner.helpers, "request", lambda *args, **kwargs: requests_response)
-        return old_request
-
-    return _patch_scan_requests
 
 
 @pytest.fixture
@@ -106,7 +72,7 @@ def patch_commands():
 
 
 @pytest.fixture
-def bbot_scanner(patch_requests):
+def bbot_scanner():
     from bbot.scanner import Scanner
 
     return Scanner
@@ -156,13 +122,12 @@ def patch_ansible(monkeypatch):
 
 
 @pytest.fixture
-def scan(monkeypatch, patch_ansible, patch_requests, patch_scan_requests, patch_commands, bbot_config):
+def scan(monkeypatch, patch_ansible, patch_commands, bbot_config):
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     patch_commands(bbot_scan)
     patch_ansible(bbot_scan)
-    patch_scan_requests(bbot_scan)
     bbot_scan.status = "RUNNING"
 
     fallback_nameservers_file = bbot_scan.helpers.bbot_home / "fallback_nameservers.txt"

@@ -20,6 +20,7 @@ class DNSHelper:
     For automatic wildcard detection, nameserver validation, etc.
     """
 
+    nameservers_url = "https://public-dns.info/nameserver/nameservers.json"
     all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
 
     def __init__(self, parent_helper):
@@ -374,10 +375,9 @@ class DNSHelper:
 
     def get_valid_resolvers(self, min_reliability=0.99):
         nameservers = set()
-        nameservers_url = "https://public-dns.info/nameserver/nameservers.json"
-        nameservers_file = self.parent_helper.download(nameservers_url, cache_hrs=72)
+        nameservers_file = self.parent_helper.download(self.nameservers_url, cache_hrs=72)
         if nameservers_file is None:
-            log.warning(f"Failed to download nameservers from {nameservers_url}")
+            log.warning(f"Failed to download nameservers from {self.nameservers_url}")
         else:
             nameservers_json = []
             try:
@@ -396,7 +396,7 @@ class DNSHelper:
                     continue
                 if reliability >= min_reliability and is_ip(ip, version=4):
                     nameservers.add(ip)
-            log.verbose(f"Loaded {len(nameservers):,} nameservers from {nameservers_url}")
+            log.verbose(f"Loaded {len(nameservers):,} nameservers from {self.nameservers_url}")
         if not nameservers:
             log.info(f"Loading fallback nameservers from {self.fallback_nameservers_file}")
             lines = self.parent_helper.read_file(self.fallback_nameservers_file)
