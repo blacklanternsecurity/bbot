@@ -21,6 +21,7 @@ class Interactsh:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.server = None
+        self.correlate_id = None
         self.custom_server = self.parent_helper.config.get("interactsh_server", None)
         self.token = self.parent_helper.config.get("interactsh_token", None)
         self._thread = None

@@ -49,8 +49,11 @@ class host_header(BaseModule):
                 self.debug("skipping results because subdomain tag was missing")
 
     def finish(self):
-        for r in self.interactsh_instance.poll():
-            self.interactsh_callback(r)
+        try:
+            for r in self.interactsh_instance.poll():
+                self.interactsh_callback(r)
+        except InteractshError as e:
+            self.debug(f"Error in interact.sh: {e}")
 
     def cleanup(self):
         try:

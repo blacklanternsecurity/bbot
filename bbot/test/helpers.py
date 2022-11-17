@@ -22,7 +22,10 @@ class MockHelper:
         pass
 
     def run(self):
-        events = list(e for e in self.scan.start() if e.module == self.module)
+        events = list(self.scan.start())
+        for e in events:
+            print(e)
+        events = [e for e in events if e.module == self.module]
         assert self.check_events(events)
 
     @abstractmethod

@@ -1,6 +1,7 @@
 import re
 import json
 import logging
+import ipaddress
 import dns.resolver
 import dns.exception
 from threading import Lock
@@ -316,6 +317,14 @@ class DNSHelper:
 
                 if "resolved" not in event_tags:
                     event_tags.add("unresolved")
+                for ip in resolved_hosts:
+                    try:
+                        ip = ipaddress.ip_address(ip)
+                        if ip.is_private:
+                            event_tags.add("private-ip")
+                    except ValueError:
+                        continue
+
                 self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, resolved_hosts)
             return children, event_tags, event_whitelisted, event_blacklisted, resolved_hosts
         finally:

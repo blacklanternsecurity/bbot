@@ -55,10 +55,12 @@ def patch_commands():
 
     def patch_scan_commands(scanner):
         def run(*args, **kwargs):
+            log.debug(f"helpers.command.run(args={args}, kwargs={kwargs})")
             text = kwargs.get("text", True)
             return subprocess.run(["echo", "\n".join(sample_output)], text=text, stdout=subprocess.PIPE)
 
         def run_live(*args, **kwargs):
+            log.debug(f"helpers.command.run_live(args={args}, kwargs={kwargs})")
             for line in sample_output:
                 yield line
 
@@ -305,6 +307,7 @@ from bbot.modules import module_loader
 
 available_modules = list(module_loader.configs(type="scan"))
 available_output_modules = list(module_loader.configs(type="output"))
+available_internal_modules = list(module_loader.configs(type="internal"))
 
 
 @pytest.fixture(autouse=True)

@@ -123,6 +123,7 @@ class ScanManager:
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
             if skip_dns_resolution:
                 event._resolved.set()
+                event.tags.add("resolved")
             else:
                 # DNS resolution
                 (
