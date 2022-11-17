@@ -2,13 +2,11 @@ import os
 import sys
 import pytest
 import logging
-import urllib3
-import requests
 import subprocess
 import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
-
+from pytest_httpserver import HTTPServer
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
@@ -25,40 +23,9 @@ root_logger = logging.getLogger()
 for h in root_logger.handlers:
     h.addFilter(lambda x: x.levelno != 100)
 
-
-# make the necessary web requests before nuking them to high heaven
-example_url = "https://api.publicapis.org/health"
-http = urllib3.PoolManager()
-urllib_response = http.request("GET", example_url)
-requests_response = requests.get(example_url)
 tldextract.extract("www.evilcorp.com")
 
-
 log = logging.getLogger(f"bbot.test.fixtures")
-
-
-@pytest.fixture
-def patch_requests(monkeypatch):
-    from bbot.core.helpers.web import request, download
-
-    monkeypatch.setattr("urllib3.connectionpool.HTTPConnectionPool.urlopen", lambda *args, **kwargs: urllib_response)
-    monkeypatch.setattr("urllib3.poolmanager.PoolManager.urlopen", lambda *args, **kwargs: urllib_response)
-    monkeypatch.setattr("requests.adapters.HTTPAdapter.send", lambda *args, **kwargs: requests_response)
-    monkeypatch.setattr("bbot.core.helpers.web.request", lambda *args, **kwargs: requests_response)
-    current_dir = Path(__file__).resolve().parent
-    downloaded_file = current_dir / "test_output.json"
-    monkeypatch.setattr("bbot.core.helpers.web.download", lambda *args, **kwargs: downloaded_file)
-    return request, download
-
-
-@pytest.fixture
-def patch_scan_requests(monkeypatch):
-    def _patch_scan_requests(scanner):
-        old_request = scanner.helpers.request
-        monkeypatch.setattr(scanner.helpers, "request", lambda *args, **kwargs: requests_response)
-        return old_request
-
-    return _patch_scan_requests
 
 
 @pytest.fixture
@@ -88,10 +55,12 @@ def patch_commands():
 
     def patch_scan_commands(scanner):
         def run(*args, **kwargs):
+            log.debug(f"helpers.command.run(args={args}, kwargs={kwargs})")
             text = kwargs.get("text", True)
             return subprocess.run(["echo", "\n".join(sample_output)], text=text, stdout=subprocess.PIPE)
 
         def run_live(*args, **kwargs):
+            log.debug(f"helpers.command.run_live(args={args}, kwargs={kwargs})")
             for line in sample_output:
                 yield line
 
@@ -105,7 +74,7 @@ def patch_commands():
 
 
 @pytest.fixture
-def bbot_scanner(patch_requests):
+def bbot_scanner():
     from bbot.scanner import Scanner
 
     return Scanner
@@ -155,13 +124,12 @@ def patch_ansible(monkeypatch):
 
 
 @pytest.fixture
-def scan(monkeypatch, patch_ansible, patch_requests, patch_scan_requests, patch_commands, bbot_config):
+def scan(monkeypatch, patch_ansible, patch_commands, bbot_config):
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     patch_commands(bbot_scan)
     patch_ansible(bbot_scan)
-    patch_scan_requests(bbot_scan)
     bbot_scan.status = "RUNNING"
 
     fallback_nameservers_file = bbot_scan.helpers.bbot_home / "fallback_nameservers.txt"
@@ -339,6 +307,7 @@ from bbot.modules import module_loader
 
 available_modules = list(module_loader.configs(type="scan"))
 available_output_modules = list(module_loader.configs(type="output"))
+available_internal_modules = list(module_loader.configs(type="internal"))
 
 
 @pytest.fixture(autouse=True)
@@ -347,3 +316,21 @@ def install_all_python_deps():
     for module in module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
+
+
+@pytest.fixture
+def bbot_httpserver():
+    server = HTTPServer(host="127.0.0.1", port=8888)
+    server.start()
+
+    yield server
+
+    server.clear()
+    if server.is_running():
+        server.stop()
+
+    # this is to check if the client has made any request where no
+    # `assert_request` was called on it from the test
+
+    server.check_assertions()
+    server.clear()

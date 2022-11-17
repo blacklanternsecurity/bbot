@@ -1,6 +1,7 @@
 import re
 import json
 import logging
+import ipaddress
 import dns.resolver
 import dns.exception
 from threading import Lock
@@ -20,6 +21,7 @@ class DNSHelper:
     For automatic wildcard detection, nameserver validation, etc.
     """
 
+    nameservers_url = "https://public-dns.info/nameserver/nameservers.json"
     all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
 
     def __init__(self, parent_helper):
@@ -315,6 +317,14 @@ class DNSHelper:
 
                 if "resolved" not in event_tags:
                     event_tags.add("unresolved")
+                for ip in resolved_hosts:
+                    try:
+                        ip = ipaddress.ip_address(ip)
+                        if ip.is_private:
+                            event_tags.add("private-ip")
+                    except ValueError:
+                        continue
+
                 self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, resolved_hosts)
             return children, event_tags, event_whitelisted, event_blacklisted, resolved_hosts
         finally:
@@ -374,10 +384,9 @@ class DNSHelper:
 
     def get_valid_resolvers(self, min_reliability=0.99):
         nameservers = set()
-        nameservers_url = "https://public-dns.info/nameserver/nameservers.json"
-        nameservers_file = self.parent_helper.download(nameservers_url, cache_hrs=72)
+        nameservers_file = self.parent_helper.download(self.nameservers_url, cache_hrs=72)
         if nameservers_file is None:
-            log.warning(f"Failed to download nameservers from {nameservers_url}")
+            log.warning(f"Failed to download nameservers from {self.nameservers_url}")
         else:
             nameservers_json = []
             try:
@@ -396,7 +405,7 @@ class DNSHelper:
                     continue
                 if reliability >= min_reliability and is_ip(ip, version=4):
                     nameservers.add(ip)
-            log.verbose(f"Loaded {len(nameservers):,} nameservers from {nameservers_url}")
+            log.verbose(f"Loaded {len(nameservers):,} nameservers from {self.nameservers_url}")
         if not nameservers:
             log.info(f"Loading fallback nameservers from {self.fallback_nameservers_file}")
             lines = self.parent_helper.read_file(self.fallback_nameservers_file)

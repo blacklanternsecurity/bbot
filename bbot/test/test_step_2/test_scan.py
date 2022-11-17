@@ -3,7 +3,6 @@ from ..bbot_fixtures import *
 
 def test_scan(
     patch_ansible,
-    patch_requests,
     patch_commands,
     events,
     bbot_config,

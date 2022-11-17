@@ -2,10 +2,12 @@ from ..bbot_fixtures import *  # noqa: F401
 
 
 def test_manager(bbot_config, bbot_scanner):
+    dns_config = OmegaConf.merge(default_config, OmegaConf.create({"dns_resolution": True}))
+
     # test _emit_event
     results = []
     success_callback = lambda e: results.append("success")
-    scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
+    scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor"], config=dns_config)
     scan1.status = "RUNNING"
     manager = scan1.manager
     manager.distribute_event = lambda e: results.append(e)

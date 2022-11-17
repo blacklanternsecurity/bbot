@@ -41,21 +41,25 @@ def run_live(self, command, *args, **kwargs):
 
     command = [str(s) for s in command]
     log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}")
-    with catch(subprocess.Popen, command, *args, **kwargs) as process:
-        if _input:
-            if type(_input) in (str, bytes):
-                _input = (_input,)
-            self.feed_pipe(process.stdin, _input, text=False)
-        for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
-            yield line
+    try:
+        with catch(subprocess.Popen, command, *args, **kwargs) as process:
+            if _input:
+                if type(_input) in (str, bytes):
+                    _input = (_input,)
+                self.feed_pipe(process.stdin, _input, text=False)
+            for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
+                yield line
 
-        # surface stderr
-        process.wait()
-        if process.stderr and process.returncode != 0:
-            stderr = smart_decode(process.stderr.read())
-            if stderr:
-                command_str = " ".join(command)
-                log.warning(f"Stderr for {command_str}:\n\t{stderr}")
+            # surface stderr
+            process.wait()
+            if process.stderr and process.returncode != 0:
+                stderr = smart_decode(process.stderr.read())
+                if stderr:
+                    command_str = " ".join(command)
+                    log.warning(f"Stderr for {command_str}:\n\t{stderr}")
+    except AttributeError as e:
+        if not str(e) == "__enter__":
+            raise
 
 
 def run(self, command, *args, **kwargs):
