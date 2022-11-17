@@ -35,7 +35,7 @@ class header_brute(BaseModule):
         self.wordlist = self.helpers.wordlist(wordlist_url)
         return True
 
-    def rand_string(*args, **kwargs):
+    def rand_string(self, *args, **kwargs):
 
         return self.helpers.rand_string(*args, **kwargs)
 

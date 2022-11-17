@@ -1,7 +1,6 @@
 import json
 
 from .helpers import *
-from pytest_httpserver.httpserver import StringQueryMatcher
 
 
 class Httpx(HttpxMockHelper):
