@@ -23,7 +23,7 @@ class getparam_brute(header_brute):
     def check_batch(self, compare_helper, url, getparam_list):
         if self.scan.stopping:
             raise ScanCancelledError()
-        test_getparams = {p: self.helpers.rand_string(14) for p in getparam_list}
+        test_getparams = {p: self.rand_string(14) for p in getparam_list}
         return compare_helper.compare(self.helpers.add_get_params(url, test_getparams).geturl())
 
     def gen_count_args(self, url):
@@ -32,9 +32,7 @@ class getparam_brute(header_brute):
         while 1:
             if getparam_count < 0:
                 break
-            fake_getparams = {
-                self.helpers.rand_string(14): self.helpers.rand_string(14) for _ in range(0, getparam_count)
-            }
+            fake_getparams = {self.rand_string(14): self.rand_string(14) for _ in range(0, getparam_count)}
             yield getparam_count, (self.helpers.add_get_params(url, fake_getparams).geturl(),), {}
             getparam_count -= 5
 

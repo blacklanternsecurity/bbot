@@ -68,3 +68,16 @@ class HttpxMockHelper(MockHelper):
         if "uri" not in expect_args:
             expect_args["uri"] = "/"
         self.bbot_httpserver.expect_request(**expect_args).respond_with_data(**respond_args)
+
+
+def tempwordlist(content):
+    tmp_path = "/tmp/.bbot_test/"
+    from bbot.core.helpers.misc import rand_string, mkdir
+
+    mkdir(tmp_path)
+    filename = f"{tmp_path}{rand_string(8)}"
+    with open(filename, "w", errors="ignore") as f:
+        for c in content:
+            line = f"{c}\n"
+            f.write(line)
+    return filename

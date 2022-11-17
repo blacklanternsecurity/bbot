@@ -1,6 +1,7 @@
 import json
 
 from .helpers import *
+from pytest_httpserver.httpserver import StringQueryMatcher
 
 
 class Httpx(HttpxMockHelper):
@@ -81,7 +82,6 @@ class Anubisdb(RequestMockHelper):
 
     def check_events(self, events):
         for e in events:
-            print(e)
             if e == "asdf.blacklanternsecurity.com":
                 return True
         return False
@@ -121,11 +121,55 @@ class Aspnet_viewstate(HttpxMockHelper):
 
     def check_events(self, events):
         for e in events:
-            print(e)
             if (
                 e.type == "VULNERABILITY"
                 and e.data["description"]
                 == "Known MachineKey found. EncryptionKey: [8CCFBC5B7589DD37DC3B4A885376D7480A69645DAEEC74F418B4877BEC008156], Encryption Algorithm: [AES] ValidationKey: [0F97BAE23F6F36801ABDB5F145124E00A6F795A97093D778EE5CD24F35B78B6FC4C0D0D4420657689C4F321F8596B59E83F02E296E970C4DEAD2DFE226294979] ValidationAlgo:  [SHA1]"
             ):
+                return True
+        return False
+
+
+class Getparam_brute(HttpxMockHelper):
+
+    getparam_body = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello null!</p>';
+    </body>
+    </html>
+    """
+
+    getparam_body_match = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello AAAAAAAAAAAAAA!</p>';
+    </body>
+    </html>
+    """
+    additional_modules = ["httpx"]
+
+    config_overrides = {"modules": {"getparam_brute": {"wordlist": tempwordlist(["canary", "id"])}}}
+
+    def setup(self):
+        from bbot.core.helpers import helper
+
+        self.module.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        helper.HttpCompare.gen_cache_buster = lambda *args, **kwargs: {"AAAAAA": "1"}
+
+    def mock_args(self):
+
+        expect_args = {"query_string": b"id=AAAAAAAAAAAAAA&AAAAAA=1"}
+        respond_args = {"response_data": self.getparam_body_match}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        respond_args = {"response_data": self.getparam_body}
+        self.set_expect_requests(respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING" and e.data["description"] == "[GETPARAM_BRUTE] Getparam: [id] Reasons: [body]":
                 return True
         return False
