@@ -121,9 +121,6 @@ class ScanManager:
 
             # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
-
-            if not self.dns_resolution and event.type == "DNS_NAME":
-                event.tags.add("resolved")
             if skip_dns_resolution:
                 event._resolved.set()
             else:
@@ -138,6 +135,7 @@ class ScanManager:
 
                 # We do this again in case event.data changed during resolve_event()
                 if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
+                    log.debug(f"Omitting due to failed precheck: {event}")
                     distribute_event = False
 
                 event._resolved_hosts = resolved_hosts

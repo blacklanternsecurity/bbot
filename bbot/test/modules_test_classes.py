@@ -16,13 +16,12 @@ class Httpx(HttpxMockHelper):
 
 
 class Gowitness(HttpxMockHelper):
-    from pathlib import Path
+    additional_modules = ["httpx"]
     import shutil
+    from pathlib import Path
 
     home_dir = Path("/tmp/.bbot_gowitness_test")
     shutil.rmtree(home_dir, ignore_errors=True)
-    additional_modules = ["httpx"]
-
     config_overrides = {"force_deps": True, "home": str(home_dir)}
 
     def mock_args(self):
@@ -70,6 +69,9 @@ class Otx(RequestMockHelper):
 
 
 class Anubisdb(RequestMockHelper):
+    def setup(self):
+        self.module.abort_if = lambda e: False
+
     def mock_args(self):
         for t in self.targets:
             self.register_uri(

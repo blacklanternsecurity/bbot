@@ -16,6 +16,10 @@ class MockHelper:
         )
         self.scan.prep()
         self.module = self.scan.modules[self.name]
+        self.setup()
+
+    def setup(self):
+        pass
 
     def run(self):
         events = list(e for e in self.scan.start() if e.module == self.module)
