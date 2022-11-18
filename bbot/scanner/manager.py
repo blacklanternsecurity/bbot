@@ -134,6 +134,14 @@ class ScanManager:
                     resolved_hosts,
                 ) = self.scan.helpers.dns.resolve_event(event)
 
+                # kill runaway DNS chains
+                dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
+                if dns_resolve_distance >= self.scan.helpers.dns.dns_resolve_distance:
+                    log.debug(
+                        f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.dns_resolve_distance})"
+                    )
+                    dns_children = []
+
                 # We do this again in case event.data changed during resolve_event()
                 if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
                     log.debug(f"Omitting due to failed precheck: {event}")

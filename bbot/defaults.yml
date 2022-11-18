@@ -18,6 +18,8 @@ max_dns_threads: 100
 scope_search_distance: 1
 # How far out from the main scope to resolve DNS names / IPs
 scope_dns_search_distance: 2
+# Limit how many DNS records can be followed in a row (for malicious/misconfigured DNS records)
+dns_resolve_distance: 5
 
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
