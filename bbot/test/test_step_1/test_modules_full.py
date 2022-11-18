@@ -36,6 +36,11 @@ def test_getparam_brute(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_telerik(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Telerik(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
 def test_leakix(bbot_config, bbot_scanner, bbot_httpserver):
     x = LeakIX(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
