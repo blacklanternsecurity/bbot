@@ -97,7 +97,6 @@ class telerik(BaseModule):
         "2017.3.913",
     ]
 
-
     DialogHandlerUrls = [
         "Telerik.Web.UI.DialogHandler.aspx",
         "Telerik.Web.UI.DialogHandler.axd",
@@ -132,7 +131,6 @@ class telerik(BaseModule):
         "system/providers/htmleditor/Telerik.Web.UI.DialogHandler.aspx",
         "WebUIDialogs/Telerik.Web.UI.DialogHandler.aspx",
     ]
-
 
     RAUConfirmed = []
 
