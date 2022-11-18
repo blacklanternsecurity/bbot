@@ -34,6 +34,7 @@ class DNSHelper:
         self.timeout = self.parent_helper.config.get("dns_timeout", 5)
         self.retries = self.parent_helper.config.get("dns_retries", 1)
         self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 5)
+        self.dns_resolve_distance = self.parent_helper.config.get("dns_resolve_distance", 4)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
         self._resolver_list = None

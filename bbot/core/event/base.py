@@ -490,6 +490,7 @@ class IP_ADDRESS(BaseEvent):
         self.tags.add(f"ipv{ip.version}")
         if ip.is_private:
             self.tags.add("private")
+        self.dns_resolve_distance = getattr(self.source, "dns_resolve_distance", 0)
 
     def sanitize_data(self, data):
         return validators.validate_host(data)
@@ -498,7 +499,24 @@ class IP_ADDRESS(BaseEvent):
         return ipaddress.ip_address(self.data)
 
 
-class IP_RANGE(BaseEvent):
+class DnsEvent(BaseEvent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # prevent runaway DNS entries
+        self.dns_resolve_distance = 0
+        source = getattr(self, "source", None)
+        module = getattr(self, "module", None)
+        module_type = getattr(module, "_type", "")
+        source_module = getattr(source, "module", None)
+        source_module_type = getattr(source_module, "_type", "")
+        if module_type == "DNS":
+            self.dns_resolve_distance = getattr(source, "dns_resolve_distance", 0)
+            if source_module_type == "DNS":
+                self.dns_resolve_distance += 1
+        # self.tags.add(f"resolve-distance-{self.dns_resolve_distance}")
+
+
+class IP_RANGE(DnsEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         net = ipaddress.ip_network(self.data, strict=False)
@@ -511,7 +529,7 @@ class IP_RANGE(BaseEvent):
         return ipaddress.ip_network(self.data)
 
 
-class DNS_NAME(BaseEvent):
+class DNS_NAME(DnsEvent):
     _priority = 2
 
     def __init__(self, *args, **kwargs):
