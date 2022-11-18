@@ -1,3 +1,4 @@
+import os
 import logging
 from pathlib import Path
 from threading import Lock
@@ -77,6 +78,10 @@ class ConfigAwareHelper:
 
             self._scan = Scanner()
         return self._scan
+
+    @property
+    def in_tests(self):
+        return os.environ["BBOT_TESTING"] == "True"
 
     @staticmethod
     def as_completed(*args, **kwargs):

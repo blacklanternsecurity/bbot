@@ -33,6 +33,7 @@ telerik.DialogHandlerUrls = [
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
     os.environ["BBOT_DEBUG"] = "True"
+os.environ["BBOT_TESTING"] = "True"
 
 from .bbot_fixtures import *  # noqa: F401
 import bbot.core.logger  # noqa: F401
