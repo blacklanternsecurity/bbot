@@ -39,3 +39,8 @@ def test_getparam_brute(bbot_config, bbot_scanner, bbot_httpserver):
 def test_leakix(bbot_config, bbot_scanner, bbot_httpserver):
     x = LeakIX(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_massdns(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Massdns(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
