@@ -7,6 +7,23 @@ import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
 from pytest_httpserver import HTTPServer
+import pytest_httpserver
+
+from werkzeug.wrappers import Request
+
+class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
+
+    def match_data(self, request: Request) -> bool:
+        if self.data is None:
+            return True
+        return self.data in request.data
+pytest_httpserver.httpserver.RequestMatcher = SubstringRequestMatcher
+
+from bbot.modules.telerik import telerik
+telerik.telerikVersions = ["2014.2.724","2014.3.1024","2015.1.204"] 
+telerik.DialogHandlerUrls = ["Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
+            "App_Master/Telerik.Web.UI.DialogHandler.aspx",
+            "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx"]
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):

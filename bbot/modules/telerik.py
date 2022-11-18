@@ -96,6 +96,44 @@ class telerik(BaseModule):
         "2017.2.711",
         "2017.3.913",
     ]
+
+
+    DialogHandlerUrls = [
+        "Telerik.Web.UI.DialogHandler.aspx",
+        "Telerik.Web.UI.DialogHandler.axd",
+        "Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
+        "App_Master/Telerik.Web.UI.DialogHandler.aspx",
+        "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx",
+        "cms/portlets/telerik.web.ui.dialoghandler.aspx",
+        "common/admin/Calendar/Telerik.Web.UI.DialogHandler.aspx",
+        "common/admin/Jobs2/Telerik.Web.UI.DialogHandler.aspx,"
+        "common/admin/PhotoGallery2/Telerik.Web.UI.DialogHandler.aspx",
+        "dashboard/UserControl/CMS/Page/Telerik.Web.UI.DialogHandler.aspx",
+        "DesktopModule/UIQuestionControls/UIAskQuestion/Telerik.Web.UI.DialogHandler.aspx",
+        "Desktopmodules/Admin/dnnWerk.Users/DialogHandler.aspx",
+        "DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx",
+        "desktopmodules/base/editcontrols/telerik.web.ui.dialoghandler.aspx",
+        "desktopmodules/dnnwerk.radeditorprovider/dialoghandler.aspx",
+        "DesktopModules/RadEditorProvider/telerik.web.ui.dialoghandler.aspx",
+        "desktopmodules/tcmodules/tccategory/telerik.web.ui.dialoghandler.aspx",
+        "desktopmodules/telerikwebui/radeditorprovider/telerik.web.ui.dialoghandler.aspx",
+        "DesktopModules/TNComments/Telerik.Web.UI.DialogHandler.aspx",
+        "dotnetnuke/DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx",
+        "Modules/CMS/Telerik.Web.UI.DialogHandler.aspx",
+        "modules/shop/manage/telerik.web.ui.dialoghandler.aspx",
+        "portal/channels/fa/Cms_HtmlText_Manage/Telerik.Web.UI.DialogHandler.aspx",
+        "providers/htmleditorproviders/telerik/telerik.web.ui.dialoghandler.aspx",
+        "Resources/Telerik.Web.UI.DialogHandler.aspx",
+        "sitecore/shell/applications/contentmanager/telerik.web.ui.dialoghandler.aspx",
+        "sitecore/shell/Controls/RichTextEditor/Telerik.Web.UI.DialogHandler.aspx",
+        "Sitefinity/ControlTemplates/Blogs/Telerik.Web.UI.DialogHandler.aspx",
+        "SiteTemplates/Telerik.Web.UI.DialogHandler.aspx",
+        "static/usercontrols/Telerik.Web.UI.DialogHandler.aspx",
+        "system/providers/htmleditor/Telerik.Web.UI.DialogHandler.aspx",
+        "WebUIDialogs/Telerik.Web.UI.DialogHandler.aspx",
+    ]
+
+
     RAUConfirmed = []
 
     options = {"exploit_RAU_crypto": False}
@@ -180,43 +218,8 @@ class telerik(BaseModule):
                                 )
                                 break
 
-        DialogHandlerUrls = [
-            "Telerik.Web.UI.DialogHandler.aspx",
-            "Telerik.Web.UI.DialogHandler.axd",
-            "Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
-            "App_Master/Telerik.Web.UI.DialogHandler.aspx",
-            "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx",
-            "cms/portlets/telerik.web.ui.dialoghandler.aspx",
-            "common/admin/Calendar/Telerik.Web.UI.DialogHandler.aspx",
-            "common/admin/Jobs2/Telerik.Web.UI.DialogHandler.aspx,"
-            "common/admin/PhotoGallery2/Telerik.Web.UI.DialogHandler.aspx",
-            "dashboard/UserControl/CMS/Page/Telerik.Web.UI.DialogHandler.aspx",
-            "DesktopModule/UIQuestionControls/UIAskQuestion/Telerik.Web.UI.DialogHandler.aspx",
-            "Desktopmodules/Admin/dnnWerk.Users/DialogHandler.aspx",
-            "DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx",
-            "desktopmodules/base/editcontrols/telerik.web.ui.dialoghandler.aspx",
-            "desktopmodules/dnnwerk.radeditorprovider/dialoghandler.aspx",
-            "DesktopModules/RadEditorProvider/telerik.web.ui.dialoghandler.aspx",
-            "desktopmodules/tcmodules/tccategory/telerik.web.ui.dialoghandler.aspx",
-            "desktopmodules/telerikwebui/radeditorprovider/telerik.web.ui.dialoghandler.aspx",
-            "DesktopModules/TNComments/Telerik.Web.UI.DialogHandler.aspx",
-            "dotnetnuke/DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx",
-            "Modules/CMS/Telerik.Web.UI.DialogHandler.aspx",
-            "modules/shop/manage/telerik.web.ui.dialoghandler.aspx",
-            "portal/channels/fa/Cms_HtmlText_Manage/Telerik.Web.UI.DialogHandler.aspx",
-            "providers/htmleditorproviders/telerik/telerik.web.ui.dialoghandler.aspx",
-            "Resources/Telerik.Web.UI.DialogHandler.aspx",
-            "sitecore/shell/applications/contentmanager/telerik.web.ui.dialoghandler.aspx",
-            "sitecore/shell/Controls/RichTextEditor/Telerik.Web.UI.DialogHandler.aspx",
-            "Sitefinity/ControlTemplates/Blogs/Telerik.Web.UI.DialogHandler.aspx",
-            "SiteTemplates/Telerik.Web.UI.DialogHandler.aspx",
-            "static/usercontrols/Telerik.Web.UI.DialogHandler.aspx",
-            "system/providers/htmleditor/Telerik.Web.UI.DialogHandler.aspx",
-            "WebUIDialogs/Telerik.Web.UI.DialogHandler.aspx",
-        ]
-
         futures = {}
-        for dh in DialogHandlerUrls:
+        for dh in self.DialogHandlerUrls:
             future = self.submit_task(self.test_detector, event.data, f"{dh}?dp=1")
             futures[future] = dh
 
