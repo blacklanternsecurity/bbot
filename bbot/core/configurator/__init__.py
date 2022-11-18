@@ -8,6 +8,9 @@ from ..errors import ConfigLoadError
 from ...modules import module_loader
 from ..helpers.misc import mkdir, error_and_exit, filter_dict, clean_dict, log_to_stderr
 
+# cached sudo password
+bbot_sudo_pass = None
+
 try:
     config = OmegaConf.merge(
         # first, pull module defaults

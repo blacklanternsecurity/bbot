@@ -14,9 +14,13 @@ class MockHelper:
         self.scan = bbot_scanner(
             *self.targets, modules=[self.name] + self.additional_modules, name=f"{self.name}_test", config=self.config
         )
+        self.patch_scan(self.scan)
         self.scan.prep()
         self.module = self.scan.modules[self.name]
         self.setup()
+
+    def patch_scan(self, scan):
+        return
 
     def setup(self):
         pass
