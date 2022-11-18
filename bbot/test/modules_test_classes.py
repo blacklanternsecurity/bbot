@@ -172,3 +172,108 @@ class Getparam_brute(HttpxMockHelper):
             if e.type == "FINDING" and e.data["description"] == "[GETPARAM_BRUTE] Getparam: [id] Reasons: [body]":
                 return True
         return False
+
+
+class LeakIX(RequestMockHelper):
+    def mock_args(self):
+        self.register_uri(
+            "https://leakix.net/domain/blacklanternsecurity.com",
+            json={
+                "Services": [
+                    {
+                        "event_type": "service",
+                        "event_source": "HttpPlugin",
+                        "event_pipeline": ["CertStream", "l9scan", "tcpid", "HttpPlugin"],
+                        "event_fingerprint": "6d1f2e7ca5e9923ae691bd5ccbc6a29f4c7590907dc63317c958aafc5523fd76",
+                        "ip": "2606:50c0:8000::153",
+                        "host": "www.blacklanternsecurity.com",
+                        "reverse": "",
+                        "port": "443",
+                        "mac": "",
+                        "vendor": "",
+                        "transport": ["tcp", "tls", "http"],
+                        "protocol": "https",
+                        "http": {
+                            "root": "",
+                            "url": "",
+                            "status": 0,
+                            "length": 0,
+                            "header": {"content-length": "7567", "server": "GitHub.com"},
+                            "title": "Welcome | Black Lantern Security",
+                            "favicon_hash": "",
+                        },
+                        "summary": 'Connection: close\r\nContent-Length: 7567\r\nServer: GitHub.com\r\nContent-Type: text/html; charset=utf-8\r\nLast-Modified: Wed, 02 Mar 2022 18:16:15 GMT\r\nAccess-Control-Allow-Origin: *\r\nETag: "621fb46f-1d8f"\r\nexpires: Sun, 23 Oct 2022 10:32:07 GMT\r\nCache-Control: max-age=600\r\nx-proxy-cache: MISS\r\nX-GitHub-Request-Id: 080E:5274:2CE0396:3F21533:635515CF\r\nAccept-Ranges: bytes\r\nDate: Sun, 23 Oct 2022 20:46:28 GMT\r\nVia: 1.1 varnish\r\nAge: 0\r\nX-Served-By: cache-yyz4564-YYZ\r\nX-Cache: HIT\r\nX-Cache-Hits: 1\r\nX-Timer: S1666557989.582624,VS0,VE1\r\nVary: Accept-Encoding\r\nX-Fastly-Request-ID: d777ccbfc2b548eeb00cef0689cca2401789fefb\r\n\nPage title: Welcome | Black Lantern Security',
+                        "time": "2022-10-23T20:46:28.514950447Z",
+                        "ssl": {
+                            "detected": False,
+                            "enabled": True,
+                            "jarm": "29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af",
+                            "cypher_suite": "TLS_AES_128_GCM_SHA256",
+                            "version": "TLSv1.3",
+                            "certificate": {
+                                "cn": "www.blacklanternsecurity.com",
+                                "domain": ["www.blacklanternsecurity.com", "asdf.blacklanternsecurity.com"],
+                                "fingerprint": "65a85fca54f3429f63aadf9aae68a2ce7c292fd7d140afe618c58bf866112fea",
+                                "key_algo": "RSA",
+                                "key_size": 2048,
+                                "issuer_name": "R3",
+                                "not_before": "2022-08-24T17:27:08Z",
+                                "not_after": "2022-11-22T17:27:07Z",
+                                "valid": True,
+                            },
+                        },
+                        "ssh": {"fingerprint": "", "version": 0, "banner": "", "motd": ""},
+                        "service": {
+                            "credentials": {"noauth": False, "username": "", "password": "", "key": "", "raw": None},
+                            "software": {
+                                "name": "GitHub.com",
+                                "version": "",
+                                "os": "",
+                                "modules": None,
+                                "fingerprint": "",
+                            },
+                        },
+                        "leak": {
+                            "stage": "",
+                            "type": "",
+                            "severity": "",
+                            "dataset": {
+                                "rows": 0,
+                                "files": 0,
+                                "size": 0,
+                                "collections": 0,
+                                "infected": False,
+                                "ransom_notes": None,
+                            },
+                        },
+                        "tags": [],
+                        "geoip": {
+                            "continent_name": "North America",
+                            "region_iso_code": "",
+                            "city_name": "",
+                            "country_iso_code": "US",
+                            "country_name": "United States",
+                            "region_name": "",
+                            "location": {"lat": 37.751, "lon": -97.822},
+                        },
+                        "network": {
+                            "organization_name": "FASTLY",
+                            "asn": 54113,
+                            "network": "2606:50c0:8000:0:0:0:0:0/46",
+                        },
+                    }
+                ],
+                "Leaks": None,
+            },
+        )
+
+    def check_events(self, events):
+        www = False
+        asdf = False
+        for e in events:
+            if e.type == "DNS_NAME":
+                if e.data == "www.blacklanternsecurity.com":
+                    www = True
+                elif e.data == "asdf.blacklanternsecurity.com":
+                    asdf = True
+        return www and asdf
