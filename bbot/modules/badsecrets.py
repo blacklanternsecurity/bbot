@@ -1,0 +1,46 @@
+from .base import BaseModule
+import re
+import sys
+import os
+import json
+from badsecrets.base import carve_all_modules
+
+
+class badsecrets(BaseModule):
+
+    watched_events = ["HTTP_RESPONSE"]
+    produced_events = ["FINDING", "VULNERABILITY"]
+    flags = ["active", "safe", "web-basic"]
+    meta = {"description": "Library for detecting known or weak secrets on across many platforms"}
+
+    deps_pip = ["badsecrets"]
+
+    def handle_event(self, event):
+        self.hugewarning(event)
+        resp_body = event.data.get("body", None)
+        resp_headers = event.data.get("header", None)
+        resp_cookies = {}
+        resp_cookies_raw = resp_headers.get("set_cookie", None)
+        if resp_cookies_raw:
+            for c in resp_cookies_raw.split(","):
+                c2 = c.strip().split(";")[0].split("=")
+                resp_cookies[c2[0]] = c2[1]
+        r_list = carve_all_modules(body=resp_body, cookies=resp_cookies)
+        if r_list:
+            for r in r_list:
+                self.hugesuccess(r)
+                if r["type"] == "SecretFound":
+                    data = {
+                        "severity": "HIGH",
+                        "description": f"Known Secret Found. Secret Type: [{r['description']['Secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['Product']}] Product: [{r['source']}] Detecting Module: [{r['detecting_module']}]",
+                        "url": event.data["url"],
+                        "host": str(event.host),
+                    }
+                    self.emit_event(data, "VULNERABILITY", event)
+                elif r["type"] == "IdentifyOnly":
+                    data = {
+                        "description": f"Cryptographic Product identified. Product Type: [{r['description']['Product']}] Product: [{r['source']}] Detecting Module: [{r['detecting_module']}]",
+                        "url": event.data["url"],
+                        "host": str(event.host),
+                    }
+                    self.emit_event(data, "FINDING", event)
