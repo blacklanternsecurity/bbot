@@ -1,8 +1,5 @@
 from .base import BaseModule
-import re
-import sys
-import os
-import json
+
 from badsecrets.base import carve_all_modules
 
 
