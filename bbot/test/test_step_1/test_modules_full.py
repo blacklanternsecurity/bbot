@@ -49,3 +49,8 @@ def test_leakix(bbot_config, bbot_scanner, bbot_httpserver):
 def test_massdns(bbot_config, bbot_scanner, bbot_httpserver):
     x = Massdns(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_badsecrets(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Badsecrets(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
