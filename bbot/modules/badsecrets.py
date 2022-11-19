@@ -16,7 +16,6 @@ class badsecrets(BaseModule):
     deps_pip = ["badsecrets"]
 
     def handle_event(self, event):
-        self.hugewarning(event)
         resp_body = event.data.get("body", None)
         resp_headers = event.data.get("header", None)
         resp_cookies = {}
@@ -28,7 +27,6 @@ class badsecrets(BaseModule):
         r_list = carve_all_modules(body=resp_body, cookies=resp_cookies)
         if r_list:
             for r in r_list:
-                self.hugesuccess(r)
                 if r["type"] == "SecretFound":
                     data = {
                         "severity": "HIGH",
