@@ -18,24 +18,29 @@ class badsecrets(BaseModule):
         resp_cookies = {}
         resp_cookies_raw = resp_headers.get("set_cookie", None)
         if resp_cookies_raw:
-            for c in resp_cookies_raw.split(","):
-                c2 = c.strip().split(";")[0].split("=")
-                resp_cookies[c2[0]] = c2[1]
-        r_list = carve_all_modules(body=resp_body, cookies=resp_cookies)
-        if r_list:
-            for r in r_list:
-                if r["type"] == "SecretFound":
-                    data = {
-                        "severity": "HIGH",
-                        "description": f"Known Secret Found. Secret Type: [{r['description']['Secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['Product']}] Product: [{r['source']}] Detecting Module: [{r['detecting_module']}]",
-                        "url": event.data["url"],
-                        "host": str(event.host),
-                    }
-                    self.emit_event(data, "VULNERABILITY", event)
-                elif r["type"] == "IdentifyOnly":
-                    data = {
-                        "description": f"Cryptographic Product identified. Product Type: [{r['description']['Product']}] Product: [{r['source']}] Detecting Module: [{r['detecting_module']}]",
-                        "url": event.data["url"],
-                        "host": str(event.host),
-                    }
-                    self.emit_event(data, "FINDING", event)
+            if "," in resp_cookies_raw:
+                resp_cookies_list = resp_cookies_raw.split(",")
+            else:
+                resp_cookies_list = [resp_cookies_raw]
+                for c in resp_cookies_list:
+                    c2 = c.strip().split(";")[0].split("=")
+                    resp_cookies[c2[0]] = c2[1]
+        if resp_body or resp_cookies:
+            r_list = carve_all_modules(body=resp_body, cookies=resp_cookies)
+            if r_list:
+                for r in r_list:
+                    if r["type"] == "SecretFound":
+                        data = {
+                            "severity": "HIGH",
+                            "description": f"Known Secret Found. Secret Type: [{r['description']['Secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['Product']}] Product: [{r['source']}] Detecting Module: [{r['detecting_module']}]",
+                            "url": event.data["url"],
+                            "host": str(event.host),
+                        }
+                        self.emit_event(data, "VULNERABILITY", event)
+                    elif r["type"] == "IdentifyOnly":
+                        data = {
+                            "description": f"Cryptographic Product identified. Product Type: [{r['description']['Product']}] Product: [{r['source']}] Detecting Module: [{r['detecting_module']}]",
+                            "url": event.data["url"],
+                            "host": str(event.host),
+                        }
+                        self.emit_event(data, "FINDING", event)
