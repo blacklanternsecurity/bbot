@@ -33,7 +33,7 @@ class Ipstack(shodan_dns):
                     city = json.get("city")
                     latitude = json.get("latitude")
                     longitude = json.get("longitude")
-                    self.emit_event(location,city,latitude,longitude, "GEOLOCATION", event)
+                    self.emit_event(f"{location}, {city}, {latitude}, {longitude}", "GEOLOCATION", event)
                 else:
                     self.verbose(f"No JSON response from {url}")
             else:
