@@ -3,9 +3,11 @@ import json
 import base64
 import random
 import logging
+import traceback
 from time import sleep
 from uuid import uuid4
 from threading import Thread
+
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
@@ -21,7 +23,7 @@ class Interactsh:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.server = None
-        self.correlate_id = None
+        self.correlation_id = None
         self.custom_server = self.parent_helper.config.get("interactsh_server", None)
         self.token = self.parent_helper.config.get("interactsh_token", None)
         self._thread = None
@@ -83,7 +85,7 @@ class Interactsh:
 
     def deregister(self):
 
-        if not self.server or not self.correlate_id or not self.secret:
+        if not self.server or not self.correlation_id or not self.secret:
             raise InteractshError(f"Missing required information to deregister")
 
         headers = {}
@@ -98,7 +100,7 @@ class Interactsh:
 
     def poll(self):
 
-        if not self.server or not self.correlate_id or not self.secret:
+        if not self.server or not self.correlation_id or not self.secret:
             raise InteractshError(f"Missing required information to poll")
 
         headers = {}
@@ -126,7 +128,12 @@ class Interactsh:
             if self.parent_helper.scan.stopping:
                 sleep(1)
                 continue
-            data_list = list(self.poll())
+            data_list = []
+            try:
+                data_list = list(self.poll())
+            except InteractshError as e:
+                log.warning(e)
+                log.debug(traceback.format_exc())
             if not data_list:
                 sleep(10)
                 continue
