@@ -234,6 +234,7 @@ class excavate(BaseInternalModule):
         self.jwt = JWTExtractor(self)
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
+        self.max_redirects = self.scan.config.get("http_max_redirects", 5)
 
         return True
 
@@ -249,11 +250,15 @@ class excavate(BaseInternalModule):
         if event.type == "HTTP_RESPONSE":
 
             # handle redirects
+            num_redirects = getattr(event, "num_redirects", 0)
             location = event.data.get("location", "")
             if location:
                 if not location.lower().startswith("http"):
                     location = event.parsed._replace(path=location).geturl()
-                self.emit_event(location, "URL_UNVERIFIED", event)
+                if num_redirects <= self.max_redirects:
+                    self.emit_event(location, "URL_UNVERIFIED", event)
+                else:
+                    self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
 
             body = event.data.get("body", "")
             self.search(
