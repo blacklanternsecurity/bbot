@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import copy
 import json
@@ -57,6 +58,24 @@ def is_url(u):
         if r.match(u):
             return True
     return False
+
+
+uri_regex = re.compile(r"^([a-z0-9]{2,20})://", re.I)
+
+
+def is_uri(u, return_scheme=False):
+    """
+    is_uri("http://evilcorp.com") --> True
+    is_uri("ftp://evilcorp.com") --> True
+    is_uri("evilcorp.com") --> False
+    is_uri("ftp://evilcorp.com", return_scheme=True) --> "ftp"
+    """
+    match = uri_regex.match(u)
+    if return_scheme:
+        if match:
+            return match.groups()[0].lower()
+        return ""
+    return bool(match)
 
 
 def split_host_port(d):
