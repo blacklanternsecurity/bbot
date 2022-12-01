@@ -146,6 +146,7 @@ class DepsInstaller:
         log.info(f"Installing the following pip packages: {packages_str}")
 
         command = [sys.executable, "-m", "pip", "--upgrade", "install"] + packages
+        process = None
         try:
             process = self.parent_helper.run(command, check=True)
             message = f'Successfully installed pip packages "{packages_str}"'
@@ -155,7 +156,8 @@ class DepsInstaller:
             log.info(message)
             return True
         except Exception as err:
-            log.warning(f"Failed to install pip packages: {err}")
+            stderr = getattr(process, "stderr", "")
+            log.warning(f"Failed to install pip packages: {stderr}")
         return False
 
     def apt_install(self, packages):
