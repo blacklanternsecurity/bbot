@@ -66,6 +66,11 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
     assert not helpers.is_subdomain("evilcorp.co.uk")
     assert helpers.is_url("http://evilcorp.co.uk/asdf?a=b&c=d#asdf")
     assert helpers.is_url("https://evilcorp.co.uk/asdf?a=b&c=d#asdf")
+    assert helpers.is_uri("ftp://evilcorp.co.uk") == True
+    assert helpers.is_uri("http://evilcorp.co.uk") == True
+    assert helpers.is_uri("evilcorp.co.uk", return_scheme=True) == ""
+    assert helpers.is_uri("ftp://evilcorp.co.uk", return_scheme=True) == "ftp"
+    assert helpers.is_uri("FTP://evilcorp.co.uk", return_scheme=True) == "ftp"
     assert not helpers.is_url("https:/evilcorp.co.uk/asdf?a=b&c=d#asdf")
     assert not helpers.is_url("/evilcorp.co.uk/asdf?a=b&c=d#asdf")
     assert not helpers.is_url("ftp://evilcorp.co.uk")

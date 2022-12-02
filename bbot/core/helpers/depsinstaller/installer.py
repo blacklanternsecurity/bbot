@@ -8,6 +8,7 @@ from time import sleep
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
+from subprocess import CalledProcessError
 
 from bbot.modules import module_loader
 from ..misc import can_sudo_without_password
@@ -145,7 +146,8 @@ class DepsInstaller:
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
-        command = [sys.executable, "-m", "pip", "install"] + packages
+        command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
+        process = None
         try:
             process = self.parent_helper.run(command, check=True)
             message = f'Successfully installed pip packages "{packages_str}"'
@@ -154,8 +156,8 @@ class DepsInstaller:
                 message = output
             log.info(message)
             return True
-        except Exception as err:
-            log.warning(f"Failed to install pip packages: {err}")
+        except CalledProcessError as err:
+            log.warning(f"Failed to install pip packages {packages_str} (return code {err.returncode}): {err.stderr}")
         return False
 
     def apt_install(self, packages):

@@ -234,6 +234,7 @@ class excavate(BaseInternalModule):
         self.jwt = JWTExtractor(self)
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
+        self.max_redirects = self.scan.config.get("http_max_redirects", 5)
 
         return True
 
@@ -249,11 +250,25 @@ class excavate(BaseInternalModule):
         if event.type == "HTTP_RESPONSE":
 
             # handle redirects
+            num_redirects = getattr(event, "num_redirects", 0)
             location = event.data.get("location", "")
+            host = event.host
             if location:
-                if not location.lower().startswith("http"):
-                    location = event.parsed._replace(path=location).geturl()
-                self.emit_event(location, "URL_UNVERIFIED", event)
+                scheme = self.helpers.is_uri(location, return_scheme=True)
+                if not scheme:
+                    location_parsed = event.parsed._replace(path=location)
+                    host, _ = self.helpers.split_host_port(location_parsed.netloc)
+                    location = location_parsed.geturl()
+                    scheme = self.helpers.is_uri(location, return_scheme=True)
+                if scheme in ("http", "https"):
+                    if num_redirects <= self.max_redirects:
+                        self.emit_event(location, "URL_UNVERIFIED", event)
+                    else:
+                        self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
+                elif scheme:
+                    # we ran into a scheme that's not HTTP or HTTPS
+                    data = {"host": host, "description": f"Non-standard URI scheme: {scheme}://", "url": location}
+                    self.emit_event(data, "FINDING", event)
 
             body = event.data.get("body", "")
             self.search(
