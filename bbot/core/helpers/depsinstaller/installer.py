@@ -146,7 +146,7 @@ class DepsInstaller:
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
-        command = [sys.executable, "-m", "pip", "--upgrade", "install"] + packages
+        command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
         process = None
         try:
             process = self.parent_helper.run(command, check=True)
