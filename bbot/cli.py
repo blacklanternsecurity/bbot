@@ -225,7 +225,7 @@ def main():
                 scanner.prep()
 
                 if not options.dry_run:
-                    if not options.agent_mode and not options.yes:
+                    if not options.agent_mode and not options.yes and sys.stdin.isatty():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
 
