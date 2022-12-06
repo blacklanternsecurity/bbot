@@ -6,6 +6,7 @@ class Ipstack(shodan_dns):
     Ipstack GeoIP
     Leverages the ipstack.com API to geolocate a host by IP address.
     """
+
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
     flags = ["passive", "safe"]
@@ -14,9 +15,9 @@ class Ipstack(shodan_dns):
     options_desc = {"api_key": "IPStack GeoIP API Key"}
     scope_distance_modifier = 0
     suppress_dupes = False
-    
+
     base_url = "http://api.ipstack.com/"
-    
+
     def ping(self):
         r = self.helpers.request(f"{self.base_url}/check?access_key={self.api_key}")
         resp_content = getattr(r, "text", "")
@@ -35,7 +36,9 @@ class Ipstack(shodan_dns):
                     region = json.get("region_name")
                     latitude = json.get("latitude")
                     longitude = json.get("longitude")
-                    self.emit_event(f"{location}, {city}, {zip_code},{region_name}, {latitude}, {longitude}", "GEOLOCATION", event)
+                    self.emit_event(
+                        f"{location}, {city}, {zip_code}, {region}, {latitude}, {longitude}", "GEOLOCATION", event
+                    )
                 else:
                     self.verbose(f"No JSON response from {url}")
             else:
