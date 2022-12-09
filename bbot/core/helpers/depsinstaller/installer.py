@@ -8,9 +8,11 @@ from time import sleep
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
+from subprocess import CalledProcessError
 
 from bbot.modules import module_loader
 from ..misc import can_sudo_without_password
+from bbot.core import configurator
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -24,8 +26,11 @@ class DepsInstaller:
         os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
 
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
-        if self._sudo_password is None and can_sudo_without_password():
-            self._sudo_password = ""
+        if self._sudo_password is None:
+            if configurator.bbot_sudo_pass is not None:
+                self._sudo_password = configurator.bbot_sudo_pass
+            elif can_sudo_without_password():
+                self._sudo_password = ""
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
         self.parent_helper.mkdir(self.data_dir)
         self.setup_status_cache = self.data_dir / "setup_status.json"
@@ -141,13 +146,18 @@ class DepsInstaller:
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
-        command = [sys.executable, "-m", "pip", "install"] + packages
+        command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
+        process = None
         try:
-            self.parent_helper.run(command, check=True)
-            log.info(f'Successfully installed pip packages "{packages_str}"')
+            process = self.parent_helper.run(command, check=True)
+            message = f'Successfully installed pip packages "{packages_str}"'
+            output = process.stdout.splitlines()[-1]
+            if output:
+                message = output
+            log.info(message)
             return True
-        except Exception as err:
-            log.warning(f"Failed to install pip packages: {err}")
+        except CalledProcessError as err:
+            log.warning(f"Failed to install pip packages {packages_str} (return code {err.returncode}): {err.stderr}")
         return False
 
     def apt_install(self, packages):
@@ -274,6 +284,7 @@ class DepsInstaller:
                 if self.parent_helper.verify_sudo_password(password):
                     log.success("Authentication successful")
                     self._sudo_password = password
+                    configurator.bbot_sudo_pass = password
                 else:
                     log.warning("Incorrect password")
 

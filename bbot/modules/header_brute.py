@@ -35,6 +35,10 @@ class header_brute(BaseModule):
         self.wordlist = self.helpers.wordlist(wordlist_url)
         return True
 
+    def rand_string(self, *args, **kwargs):
+
+        return self.helpers.rand_string(*args, **kwargs)
+
     def handle_event(self, event):
 
         url = event.data
@@ -106,7 +110,7 @@ class header_brute(BaseModule):
                 break
             fake_headers = {}
             for i in range(0, header_count):
-                fake_headers[self.helpers.rand_string(14)] = self.helpers.rand_string(14)
+                fake_headers[self.rand_string(14)] = self.rand_string(14)
             yield header_count, (url,), {"headers": fake_headers}
             header_count -= 5
 
@@ -133,7 +137,7 @@ class header_brute(BaseModule):
 
         if self.scan.stopping:
             raise ScanCancelledError()
-        rand = self.helpers.rand_string()
+        rand = self.rand_string()
         test_headers = {}
         for header in header_list:
             test_headers[header] = rand

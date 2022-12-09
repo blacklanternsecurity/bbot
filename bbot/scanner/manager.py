@@ -35,7 +35,8 @@ class ScanManager:
         seed scanner with target events
         """
         self.distribute_event(self.scan.root_event)
-        for event in self.scan.target.events:
+        sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
+        for event in sorted_events:
             self.scan.verbose(f"Target: {event}")
             self.emit_event(event)
         # force submit batches
@@ -75,7 +76,7 @@ class ScanManager:
                 event._resolved.set()
         return False
 
-    def _event_precheck(self, event):
+    def _event_precheck(self, event, exclude=("DNS_NAME",)):
         """
         Check an event previous to its DNS resolution etc. to see if we can save on performance by skipping it
         """
@@ -89,15 +90,15 @@ class ScanManager:
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
 
-        # we exclude DNS_NAMEs because we haven't done wildcard checking yet
-        if event.type != "DNS_NAME":
-            any_acceptable = False
-            for mod in self.scan.modules.values():
-                acceptable, reason = mod._filter_event(event, precheck_only=True)
-                any_acceptable |= acceptable
-            if not any_acceptable:
-                log.debug(f"Skipping {event} because no modules would accept it")
-            return any_acceptable
+        # this is disabled because it doesn't consider the potential for new dns children / speculate derivatives
+        # if event.type not in exclude:
+        #     any_acceptable = False
+        #     for mod in self.scan.modules.values():
+        #         acceptable, reason = mod._filter_event(event, precheck_only=True)
+        #         any_acceptable |= acceptable
+        #     if not any_acceptable:
+        #         log.debug(f"Skipping {event} because no modules would accept it")
+        #     return any_acceptable
         return True
 
     def _emit_event(self, event, *args, **kwargs):
@@ -122,6 +123,7 @@ class ScanManager:
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
             if skip_dns_resolution:
                 event._resolved.set()
+                event.tags.add("resolved")
             else:
                 # DNS resolution
                 (
@@ -132,6 +134,19 @@ class ScanManager:
                     resolved_hosts,
                 ) = self.scan.helpers.dns.resolve_event(event)
 
+                # kill runaway DNS chains
+                dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
+                if dns_resolve_distance >= self.scan.helpers.dns.dns_resolve_distance:
+                    log.debug(
+                        f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.dns_resolve_distance})"
+                    )
+                    dns_children = []
+
+                # We do this again in case event.data changed during resolve_event()
+                if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
+                    log.debug(f"Omitting due to failed precheck: {event}")
+                    distribute_event = False
+
                 event._resolved_hosts = resolved_hosts
 
                 event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
@@ -140,6 +155,10 @@ class ScanManager:
                     event.tags.update(dns_tags)
                 if event_blacklisted:
                     event.tags.add("blacklisted")
+
+                # Cloud tagging
+                for provider in self.scan.helpers.cloud.providers.values():
+                    provider.tag_event(event)
 
                 # Blacklist purging
                 if "blacklisted" in event.tags:
@@ -159,7 +178,9 @@ class ScanManager:
                     if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
                         if set_scope_distance == 0:
                             log.debug(f"Making {event} in-scope")
-                        event.make_in_scope(set_scope_distance)
+                        source_trail = event.make_in_scope(set_scope_distance)
+                        for s in source_trail:
+                            self.emit_event(s)
                     else:
                         if event.scope_distance > self.scan.scope_report_distance:
                             log.debug(
@@ -168,7 +189,9 @@ class ScanManager:
                             event.make_internal()
                 else:
                     log.debug(f"Making {event} in-scope because it does not have identifying scope information")
-                    event.make_in_scope(0)
+                    source_trail = event.make_in_scope(0)
+                    for s in source_trail:
+                        self.emit_event(s)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if) and abort_if(event):
@@ -183,8 +206,8 @@ class ScanManager:
                 self.distribute_event(event)
                 event_distributed = True
 
-            if callable(on_success_callback):
-                self.catch(on_success_callback, event)
+                if callable(on_success_callback):
+                    self.catch(on_success_callback, event)
 
             ### Emit DNS children ###
             emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
@@ -204,7 +227,7 @@ class ScanManager:
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:
-                    for record, rdtype in dns_children:
+                    for rdtype, record in dns_children:
                         module = self.scan.helpers.dns._get_dummy_module(rdtype)
                         try:
                             child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)

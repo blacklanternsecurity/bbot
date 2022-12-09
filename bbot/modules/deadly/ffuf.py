@@ -80,7 +80,18 @@ class ffuf(BaseModule):
 
         for x in ffuf_exts:
             fuzz_url = f"{url}FUZZ{suffix}"
-            command = ["ffuf", "-ac", "-json", "-noninteractive", "-w", tempfile, "-u", f"{fuzz_url}{x}"]
+            command = [
+                "ffuf",
+                "-H",
+                f"User-Agent: {self.scan.useragent}",
+                "-ac",
+                "-json",
+                "-noninteractive",
+                "-w",
+                tempfile,
+                "-u",
+                f"{fuzz_url}{x}",
+            ]
 
             for found in self.helpers.run_live(command):
                 try:

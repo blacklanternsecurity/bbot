@@ -11,7 +11,7 @@ class httpx(BaseModule):
     meta = {"description": "Visit webpages. Many other modules rely on httpx"}
 
     batch_size = 500
-    options = {"in_scope_only": True, "version": "1.2.3", "max_response_size": 5242880}
+    options = {"in_scope_only": True, "version": "1.2.5", "max_response_size": 5242880}
     options_desc = {
         "in_scope_only": "Only visit web resources that are in scope.",
         "version": "httpx version",
@@ -109,7 +109,7 @@ class httpx(BaseModule):
                 continue
 
             url = j.get("url", "")
-            status_code = int(j.get("status-code", 0))
+            status_code = int(j.get("status_code", 0))
             if status_code == 0:
                 self.debug(f'No HTTP status code for "{url}"')
                 continue

@@ -8,9 +8,7 @@ class telerik(BaseModule):
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
     flags = ["active", "aggressive", "slow", "web-basic"]
-    meta = {
-        "description": "Scan for critical Telerik vulnerabilities",
-    }
+    meta = {"description": "Scan for critical Telerik vulnerabilities"}
 
     telerikVersions = [
         "2007.1423",
@@ -98,6 +96,42 @@ class telerik(BaseModule):
         "2017.2.711",
         "2017.3.913",
     ]
+
+    DialogHandlerUrls = [
+        "Telerik.Web.UI.DialogHandler.aspx",
+        "Telerik.Web.UI.DialogHandler.axd",
+        "Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
+        "App_Master/Telerik.Web.UI.DialogHandler.aspx",
+        "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx",
+        "cms/portlets/telerik.web.ui.dialoghandler.aspx",
+        "common/admin/Calendar/Telerik.Web.UI.DialogHandler.aspx",
+        "common/admin/Jobs2/Telerik.Web.UI.DialogHandler.aspx,"
+        "common/admin/PhotoGallery2/Telerik.Web.UI.DialogHandler.aspx",
+        "dashboard/UserControl/CMS/Page/Telerik.Web.UI.DialogHandler.aspx",
+        "DesktopModule/UIQuestionControls/UIAskQuestion/Telerik.Web.UI.DialogHandler.aspx",
+        "Desktopmodules/Admin/dnnWerk.Users/DialogHandler.aspx",
+        "DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx",
+        "desktopmodules/base/editcontrols/telerik.web.ui.dialoghandler.aspx",
+        "desktopmodules/dnnwerk.radeditorprovider/dialoghandler.aspx",
+        "DesktopModules/RadEditorProvider/telerik.web.ui.dialoghandler.aspx",
+        "desktopmodules/tcmodules/tccategory/telerik.web.ui.dialoghandler.aspx",
+        "desktopmodules/telerikwebui/radeditorprovider/telerik.web.ui.dialoghandler.aspx",
+        "DesktopModules/TNComments/Telerik.Web.UI.DialogHandler.aspx",
+        "dotnetnuke/DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx",
+        "Modules/CMS/Telerik.Web.UI.DialogHandler.aspx",
+        "modules/shop/manage/telerik.web.ui.dialoghandler.aspx",
+        "portal/channels/fa/Cms_HtmlText_Manage/Telerik.Web.UI.DialogHandler.aspx",
+        "providers/htmleditorproviders/telerik/telerik.web.ui.dialoghandler.aspx",
+        "Resources/Telerik.Web.UI.DialogHandler.aspx",
+        "sitecore/shell/applications/contentmanager/telerik.web.ui.dialoghandler.aspx",
+        "sitecore/shell/Controls/RichTextEditor/Telerik.Web.UI.DialogHandler.aspx",
+        "Sitefinity/ControlTemplates/Blogs/Telerik.Web.UI.DialogHandler.aspx",
+        "SiteTemplates/Telerik.Web.UI.DialogHandler.aspx",
+        "static/usercontrols/Telerik.Web.UI.DialogHandler.aspx",
+        "system/providers/htmleditor/Telerik.Web.UI.DialogHandler.aspx",
+        "WebUIDialogs/Telerik.Web.UI.DialogHandler.aspx",
+    ]
+
     RAUConfirmed = []
 
     options = {"exploit_RAU_crypto": False}
@@ -123,7 +157,19 @@ class telerik(BaseModule):
 
     max_event_handlers = 5
 
+    def setup(self):
+        self.scanned_hosts = set()
+        return True
+
     def handle_event(self, event):
+
+        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        host_hash = hash(host)
+        if host_hash in self.scanned_hosts:
+            self.debug(f"Host {host} was already scanned, exiting")
+            return
+        else:
+            self.scanned_hosts.add(host_hash)
 
         webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
         result = self.test_detector(event.data, webresource)
@@ -170,18 +216,19 @@ class telerik(BaseModule):
                                 )
                                 break
 
-        DialogHandlerUrls = [
-            "Telerik.Web.UI.DialogHandler.aspx?dp=1",
-            "DesktopModules/Admin/RadEditorProvider/DialogHandler.aspx?dp=1",
-            "providers/htmleditorproviders/telerik/telerik.web.ui.dialoghandler.aspx",
-            "desktopmodules/telerikwebui/radeditorprovider/telerik.web.ui.dialoghandler.aspx",
-            "desktopmodules/dnnwerk.radeditorprovider/dialoghandler.aspx",
-        ]
+        futures = {}
+        for dh in self.DialogHandlerUrls:
+            future = self.submit_task(self.test_detector, event.data, f"{dh}?dp=1")
+            futures[future] = dh
 
-        for dh in DialogHandlerUrls:
-            result = self.test_detector(event.data, dh)
+        for future in self.helpers.as_completed(futures):
+            dh = futures[future]
+            result = future.result()
             if result:
                 if "Cannot deserialize dialog parameters" in result.text:
+                    for future in futures:
+                        future.cancel()
+
                     self.debug(f"Detected Telerik UI instance ({dh})")
                     description = f"Telerik DialogHandler detected"
                     self.emit_event(
@@ -189,6 +236,9 @@ class telerik(BaseModule):
                         "FINDING",
                         event,
                     )
+                # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
+
+                break
 
         spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
         result = self.test_detector(event.data, spellcheckhandler)

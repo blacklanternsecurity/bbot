@@ -18,6 +18,8 @@ max_dns_threads: 100
 scope_search_distance: 1
 # How far out from the main scope to resolve DNS names / IPs
 scope_dns_search_distance: 2
+# Limit how many DNS records can be followed in a row (for malicious/misconfigured DNS records)
+dns_resolve_distance: 5
 
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
@@ -36,6 +38,8 @@ httpx_timeout: 5
 httpx_retries: 1
 # Enable/disable debug messages for web requests/responses
 http_debug: false
+# Maximum number of HTTP redirects to follow
+http_max_redirects: 5
 # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
 web_spider_distance: 0
 # Set the maximum directory depth for the web spider
@@ -61,7 +65,7 @@ ssl_verify: false
 # How many scan results to keep before cleaning up the older ones
 keep_scans: 20
 # Web user-agent
-user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36
 # Completely ignore URLs with these extensions
 url_extension_blacklist:
     # images

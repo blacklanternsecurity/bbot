@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import copy
 import json
@@ -57,6 +58,24 @@ def is_url(u):
         if r.match(u):
             return True
     return False
+
+
+uri_regex = re.compile(r"^([a-z0-9]{2,20})://", re.I)
+
+
+def is_uri(u, return_scheme=False):
+    """
+    is_uri("http://evilcorp.com") --> True
+    is_uri("ftp://evilcorp.com") --> True
+    is_uri("evilcorp.com") --> False
+    is_uri("ftp://evilcorp.com", return_scheme=True) --> "ftp"
+    """
+    match = uri_regex.match(u)
+    if return_scheme:
+        if match:
+            return match.groups()[0].lower()
+        return ""
+    return bool(match)
 
 
 def split_host_port(d):
@@ -676,6 +695,7 @@ def can_sudo_without_password():
     env = dict(os.environ)
     env["SUDO_ASKPASS"] = "/bin/false"
     try:
+        sp.run(["sudo", "-K"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
         sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
     except sp.CalledProcessError:
         return False
@@ -719,3 +739,19 @@ def make_table(*args, **kwargs):
         if k not in kwargs:
             kwargs[k] = v
     return tabulate(*args, **kwargs)
+
+
+def human_timedelta(d):
+    """
+    Format a TimeDelta object in human-readable form
+    """
+    hours, remainder = divmod(d.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    result = []
+    if hours:
+        result.append(f"{hours:,} hour" + ("s" if hours > 1 else ""))
+    if minutes:
+        result.append(f"{minutes:,} minute" + ("s" if minutes > 1 else ""))
+    if seconds:
+        result.append(f"{seconds:,} second" + ("s" if seconds > 1 else ""))
+    return ", ".join(result)

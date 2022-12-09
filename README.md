@@ -3,7 +3,11 @@
 # BEE·bot
 ### OSINT automation for hackers.
 
-[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![CodeFactor](https://www.codefactor.io/repository/github/blacklanternsecurity/bbot/badge)](https://www.codefactor.io/repository/github/blacklanternsecurity/bbot) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
+~~~bash
+pip install bbot
+~~~
+
+[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
 
 ![subdomain demo](https://user-images.githubusercontent.com/20261699/182274919-d4f5aa69-993a-40aa-95d5-f5e69e96026c.gif)
 
@@ -11,25 +15,30 @@
 
 Capable of executing the entire OSINT process in a single command, BBOT does subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
-BBOT currently has over **60 modules** and counting.
+BBOT currently has over **70 modules** and counting.
+
+### [Subdomain Enumeration Face-off](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off)
+
+![graphs-small](https://user-images.githubusercontent.com/20261699/199602154-14c71a93-57aa-4ac0-ad81-87ce64fbffc7.png)
 
 ## Installation (pip)
 ~~~bash
+# note: installing in a virtualenv is recommended
 pip install bbot
 
 bbot --help
 ~~~
 Prerequisites:
-- Linux or WSL
+- Linux (Windows including WSL is not supported)
 - Python 3.9 or newer
 
-## Installation (docker)
+## [Installation (Docker)](https://hub.docker.com/r/blacklanternsecurity/bbot)
 ~~~bash
 # bleeding edge (dev)
-docker run blacklanternsecurity/bbot --help
+docker run -it blacklanternsecurity/bbot --help
 
 # stable
-docker run blacklanternsecurity/bbot:stable --help
+docker run -it blacklanternsecurity/bbot:stable --help
 
 # note: alternatively there is a helper script that will map docker volumes to persist your BBOT scan data:
 ./bbot-docker.sh --help
@@ -64,7 +73,7 @@ bbot -f web-basic -t www.evilcorp.com
 bbot -m httpx -c web_spider_distance=2 web_spider_depth=2 -t www.evilcorp.com
 
 # everything at once because yes
-bbot -f subdomain-enum email-enum web-basic -m naabu gowitness nuclei --allow-deadly -t evilcorp.com
+bbot -f subdomain-enum email-enum cloud-enum web-basic -m naabu gowitness nuclei --allow-deadly -t evilcorp.com
 ~~~
 
 ### Targets
@@ -114,7 +123,7 @@ Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
 
 - You can get Neo4j up and running with a single docker command:
 ~~~bash
-docker run -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+docker run -p 7687:7687 -p 7474:7474 -v "$(pwd)/data/:/data/" --env NEO4J_AUTH=neo4j/bbotislife neo4j
 ~~~
 - After that, run bbot with `--output-modules neo4j`
 ~~~bash
@@ -137,18 +146,18 @@ options:
   -n SCAN_NAME, --name SCAN_NAME
                         Name of scan (default: random)
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,asn,azure_tenant,binaryedge,builtwith,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fullhunt,generic_ssrf,getparam_brute,github,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,otx,passivetotal,pgp,rapiddns,riddler,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,urlscan,vhost,viewdns,virustotal,wappalyzer,wayback,zoomeye
+                        Modules to enable. Choices: affiliates,anubisdb,asn,aspnet_viewstate,azure_tenant,bevigil,binaryedge,bucket_aws,bucket_azure,bucket_gcp,builtwith,bypass403,c99,censys,certspotter,cookie_brute,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fullhunt,generic_ssrf,getparam_brute,github,gowitness,hackertarget,header_brute,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,leakix,massdns,naabu,ntlm,nuclei,otx,passivetotal,pgp,rapiddns,riddler,securitytrails,shodan_dns,skymem,smuggler,sslcert,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wappalyzer,wayback,zoomeye
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,aggressive,brute-force,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,slow,subdomain-enum,web-advanced,web-basic,web-paramminer,web-screenshots
+                        Enable modules by flag. Choices: active,affiliates,aggressive,brute-force,cloud-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,slow,subdomain-enum,web-advanced,web-basic,web-paramminer,web-screenshots
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Disable modules that don't have these flags (e.g. --require-flags passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. --exclude-flags brute-force)
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: csv,http,human,json,neo4j,websocket
+                        Output module(s). Choices: asset_inventory,csv,http,human,json,neo4j,python,websocket
   -o DIR, --output-dir DIR
   -c [CONFIG ...], --config [CONFIG ...]
                         custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
@@ -199,14 +208,24 @@ Misc:
 # BBOT Config
 BBOT loads its config from these places in the following order:
 
-- `~/.config/bbot/defaults.yml`
 - `~/.config/bbot/bbot.yml` <-- Use this one as your main config
 - `~/.config/bbot/secrets.yml` <-- Use this one for sensitive stuff like API keys
-- command line (via `--config`)
+- command line (`--config`)
 
 These config files will be automatically created for you when you first run BBOT.
 
 Command-line arguments take precedence over all others. You can give BBOT a custom config file with `--config myconf.yml`, or individual arguments like this: `--config http_proxy=http://127.0.0.1:8080 modules.shodan_dns.api_key=1234`. To display the full and current BBOT config, including any command-line arguments, use `bbot --current-config`.
+
+Note that placing the following in `bbot.yml`:
+```yaml
+modules:
+  shodan:
+    api_key: deadbeef
+```
+Is the same as:
+```bash
+bbot --config modules.shodan.api_key=deadbeef
+```
 
 For explanations of config options, see `defaults.yml` or the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#yaml-config)
 
@@ -217,169 +236,193 @@ For explanations of config options, see `defaults.yml` or the [wiki](https://git
 To view a full list of module config options, use `--help-all`.
 
 ~~~
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| Module          | Type     | Needs   | Description                              | Flags                                   | Produced Events                          |
-|                 |          | API     |                                          |                                         |                                          |
-|                 |          | Key     |                                          |                                         |                                          |
-+=================+==========+=========+==========================================+=========================================+==========================================+
-| bypass403       | scan     |         | Check 403 pages for common bypasses      | active,aggressive,web-advanced          | FINDING                                  |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| cookie_brute    | scan     |         | Check for common HTTP cookie parameters  | active,aggressive,brute-force,slow,web- | FINDING                                  |
-|                 |          |         |                                          | paramminer                              |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| dnszonetransfer | scan     |         | Attempt DNS zone transfers               | active,safe,subdomain-enum              | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| ffuf            | scan     |         | A fast web fuzzer written in Go          | active,aggressive,brute-                | URL                                      |
-|                 |          |         |                                          | force,deadly,web-advanced               |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| ffuf_shortnames | scan     |         | Use ffuf in combination IIS shortnames   | active,aggressive,brute-force,iis-      | URL                                      |
-|                 |          |         |                                          | shortnames,web-advanced                 |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| generic_ssrf    | scan     |         | Check for generic SSRFs                  | active,aggressive,web-advanced          | VULNERABILITY                            |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| getparam_brute  | scan     |         | Check for common HTTP GET parameters     | active,aggressive,brute-force,slow,web- | FINDING                                  |
-|                 |          |         |                                          | paramminer                              |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| gowitness       | scan     |         | Take screenshots of webpages             | active,safe,web-screenshots             | SCREENSHOT                               |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| header_brute    | scan     |         | Check for common HTTP header parameters  | active,aggressive,brute-force,slow,web- | FINDING                                  |
-|                 |          |         |                                          | paramminer                              |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| host_header     | scan     |         | Try common HTTP Host header spoofing     | active,aggressive,web-advanced          | FINDING                                  |
-|                 |          |         | techniques                               |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| httpx           | scan     |         | Visit webpages. Many other modules rely  | active,safe,web-basic                   | HTTP_RESPONSE,URL                        |
-|                 |          |         | on httpx                                 |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| hunt            | scan     |         | Watch for commonly-exploitable HTTP      | active,safe,web-advanced                | FINDING                                  |
-|                 |          |         | parameters                               |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| iis_shortnames  | scan     |         | Check for IIS shortname vulnerability    | active,iis-shortnames,safe,web-basic    | URL_HINT                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| naabu           | scan     |         | Execute port scans with naabu            | active,aggressive,portscan              | OPEN_TCP_PORT                            |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| ntlm            | scan     |         | Watch for HTTP endpoints that support    | active,safe,web-basic                   | DNS_NAME,FINDING                         |
-|                 |          |         | NTLM authentication                      |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| nuclei          | scan     |         | Fast and customisable vulnerability      | active,aggressive,deadly,web-advanced   | VULNERABILITY                            |
-|                 |          |         | scanner                                  |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| smuggler        | scan     |         | Check for HTTP smuggling                 | active,aggressive,brute-force,slow,web- | FINDING                                  |
-|                 |          |         |                                          | advanced                                |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| sslcert         | scan     |         | Visit open ports and retrieve SSL        | active,email-enum,safe,subdomain-enum   | DNS_NAME,EMAIL_ADDRESS                   |
-|                 |          |         | certificates                             |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| telerik         | scan     |         | Scan for critical Telerik                | active,aggressive,slow,web-basic        | FINDING,VULNERABILITY                    |
-|                 |          |         | vulnerabilities                          |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| vhost           | scan     |         | Fuzz for virtual hosts                   | active,aggressive,brute-                | DNS_NAME,VHOST                           |
-|                 |          |         |                                          | force,deadly,slow,web-advanced          |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| wappalyzer      | scan     |         | Extract technologies from web responses  | active,safe,web-basic                   | TECHNOLOGY                               |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| affiliates      | scan     |         | Summarize affiliate domains at the end   | passive,report,safe                     |                                          |
-|                 |          |         | of a scan                                |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| asn             | scan     |         | Query bgpview.io for ASNs                | passive,report,safe,subdomain-enum      | ASN                                      |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| azure_tenant    | scan     |         | Query Azure for tenant sister domains    | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| binaryedge      | scan     | X       | Query the BinaryEdge API                 | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| builtwith       | scan     | X       | Query Builtwith.com for subdomains       | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| c99             | scan     | X       | Query the C99 API for subdomains         | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| censys          | scan     | X       | Query the Censys API                     | email-enum,passive,safe,subdomain-enum  | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_P |
-|                 |          |         |                                          |                                         | ORT,PROTOCOL                             |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| certspotter     | scan     |         | Query Certspotter's API for subdomains   | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| crobat          | scan     |         | Query Project Crobat for subdomains      | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| crt             | scan     |         | Query crt.sh (certificate transparency)  | passive,safe,subdomain-enum             | DNS_NAME                                 |
-|                 |          |         | for subdomains                           |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| dnscommonsrv    | scan     |         | Check for common SRV records             | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| dnsdumpster     | scan     |         | Query dnsdumpster for subdomains         | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| emailformat     | scan     |         | Query email-format.com for email         | email-enum,passive,safe                 | EMAIL_ADDRESS                            |
-|                 |          |         | addresses                                |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| fullhunt        | scan     | X       | Query the fullhunt.io API for subdomains | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| github          | scan     | X       | Query Github's API for related           | passive,safe,subdomain-enum             | URL_UNVERIFIED                           |
-|                 |          |         | repositories                             |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| hackertarget    | scan     |         | Query the hackertarget.com API for       | passive,safe,subdomain-enum             | DNS_NAME                                 |
-|                 |          |         | subdomains                               |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| hunterio        | scan     | X       | Query hunter.io for emails               | email-enum,passive,safe,subdomain-enum  | DNS_NAME,EMAIL_ADDRESS,URL_UNVERIFIED    |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| ipneighbor      | scan     |         | Look beside IPs in their surrounding     | aggressive,passive,subdomain-enum       | IP_ADDRESS                               |
-|                 |          |         | subnet                                   |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| leakix          | scan     |         | Query leakix.net for subdomains          | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| massdns         | scan     |         | Brute-force subdomains with massdns      | aggressive,brute-                       | DNS_NAME                                 |
-|                 |          |         | (highly effective)                       | force,passive,slow,subdomain-enum       |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| otx             | scan     |         | Query otx.alienvault.com for subdomains  | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| passivetotal    | scan     | X       | Query the PassiveTotal API for           | passive,safe,subdomain-enum             | DNS_NAME                                 |
-|                 |          |         | subdomains                               |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| pgp             | scan     |         | Query common PGP servers for email       | email-enum,passive,safe                 | EMAIL_ADDRESS                            |
-|                 |          |         | addresses                                |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| rapiddns        | scan     |         | Query rapiddns.io for subdomains         | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| riddler         | scan     |         | Query riddler.io for subdomains          | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| securitytrails  | scan     | X       | Query the SecurityTrails API for         | passive,safe,subdomain-enum             | DNS_NAME                                 |
-|                 |          |         | subdomains                               |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| shodan_dns      | scan     | X       | Query Shodan for subdomains              | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| skymem          | scan     |         | Query skymem.info for email addresses    | email-enum,passive,safe                 | EMAIL_ADDRESS                            |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| sublist3r       | scan     |         | Query sublist3r's API for subdomains     | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| threatminer     | scan     |         | Query threatminer's API for subdomains   | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| urlscan         | scan     |         | Query urlscan.io for subdomains          | passive,safe,subdomain-enum             | DNS_NAME,URL_UNVERIFIED                  |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| viewdns         | scan     |         | Query viewdns.info's reverse whois for   | passive,safe,subdomain-enum             | DNS_NAME                                 |
-|                 |          |         | related domains                          |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| virustotal      | scan     | X       | Query VirusTotal's API for subdomains    | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| wayback         | scan     |         | Query archive.org's API for subdomains   | passive,safe,subdomain-enum             | DNS_NAME,URL_UNVERIFIED                  |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| zoomeye         | scan     | X       | Query ZoomEye's API for subdomains       | passive,safe,subdomain-enum             | DNS_NAME                                 |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| csv             | output   |         | Output to CSV                            |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| http            | output   |         | Output to HTTP                           |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| human           | output   |         | Output to text                           |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| json            | output   |         | Output to JSON                           |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| neo4j           | output   |         | Output to Neo4j                          |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| websocket       | output   |         | Output to websockets                     |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| aggregate       | internal |         | Report on scan statistics                | passive,safe                            | SUMMARY                                  |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| excavate        | internal |         | Passively extract juicy tidbits from     | passive                                 | URL_UNVERIFIED                           |
-|                 |          |         | scan data                                |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| speculate       | internal |         | Derive certain event types from others   | passive                                 | DNS_NAME,IP_ADDRESS,OPEN_TCP_PORT        |
-|                 |          |         | by common sense                          |                                         |                                          |
-+-----------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| Module           | Type     | Needs   | Description                              | Flags                                   | Produced Events                          |
+|                  |          | API     |                                          |                                         |                                          |
+|                  |          | Key     |                                          |                                         |                                          |
++==================+==========+=========+==========================================+=========================================+==========================================+
+| aspnet_viewstate | scan     |         | Parse web pages for viewstates and check | active,safe,web-basic                   | VULNERABILITY                            |
+|                  |          |         | them against blacklist3r                 |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| bucket_aws       | scan     |         | Check for S3 buckets related to target   | active,cloud-enum,safe                  | STORAGE_BUCKET                           |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| bucket_azure     | scan     |         | Check for Azure storage blobs related to | active,cloud-enum,safe                  | STORAGE_BUCKET                           |
+|                  |          |         | target                                   |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| bucket_gcp       | scan     |         | Check for Google object storage related  | active,cloud-enum,safe                  | STORAGE_BUCKET                           |
+|                  |          |         | to target                                |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| bypass403        | scan     |         | Check 403 pages for common bypasses      | active,aggressive,web-advanced          | FINDING                                  |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| cookie_brute     | scan     |         | Check for common HTTP cookie parameters  | active,aggressive,brute-force,slow,web- | FINDING                                  |
+|                  |          |         |                                          | paramminer                              |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| dnszonetransfer  | scan     |         | Attempt DNS zone transfers               | active,safe,subdomain-enum              | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| ffuf             | scan     |         | A fast web fuzzer written in Go          | active,aggressive,brute-                | URL                                      |
+|                  |          |         |                                          | force,deadly,web-advanced               |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| ffuf_shortnames  | scan     |         | Use ffuf in combination IIS shortnames   | active,aggressive,brute-force,iis-      | URL                                      |
+|                  |          |         |                                          | shortnames,web-advanced                 |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| generic_ssrf     | scan     |         | Check for generic SSRFs                  | active,aggressive,web-advanced          | VULNERABILITY                            |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| getparam_brute   | scan     |         | Check for common HTTP GET parameters     | active,aggressive,brute-force,slow,web- | FINDING                                  |
+|                  |          |         |                                          | paramminer                              |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| gowitness        | scan     |         | Take screenshots of webpages             | active,safe,web-screenshots             | SCREENSHOT                               |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| header_brute     | scan     |         | Check for common HTTP header parameters  | active,aggressive,brute-force,slow,web- | FINDING                                  |
+|                  |          |         |                                          | paramminer                              |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| host_header      | scan     |         | Try common HTTP Host header spoofing     | active,aggressive,web-advanced          | FINDING                                  |
+|                  |          |         | techniques                               |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| httpx            | scan     |         | Visit webpages. Many other modules rely  | active,safe,web-basic                   | HTTP_RESPONSE,URL                        |
+|                  |          |         | on httpx                                 |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| hunt             | scan     |         | Watch for commonly-exploitable HTTP      | active,safe,web-advanced                | FINDING                                  |
+|                  |          |         | parameters                               |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| iis_shortnames   | scan     |         | Check for IIS shortname vulnerability    | active,iis-shortnames,safe,web-basic    | URL_HINT                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| naabu            | scan     |         | Execute port scans with naabu            | active,aggressive,portscan              | OPEN_TCP_PORT                            |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| ntlm             | scan     |         | Watch for HTTP endpoints that support    | active,safe,web-basic                   | DNS_NAME,FINDING                         |
+|                  |          |         | NTLM authentication                      |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| nuclei           | scan     |         | Fast and customisable vulnerability      | active,aggressive,deadly,web-advanced   | FINDING,VULNERABILITY                    |
+|                  |          |         | scanner                                  |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| smuggler         | scan     |         | Check for HTTP smuggling                 | active,aggressive,brute-force,slow,web- | FINDING                                  |
+|                  |          |         |                                          | advanced                                |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| sslcert          | scan     |         | Visit open ports and retrieve SSL        | active,affiliates,email-                | DNS_NAME,EMAIL_ADDRESS                   |
+|                  |          |         | certificates                             | enum,safe,subdomain-enum                |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| telerik          | scan     |         | Scan for critical Telerik                | active,aggressive,slow,web-basic        | FINDING,VULNERABILITY                    |
+|                  |          |         | vulnerabilities                          |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| url_manipulation | scan     |         | Attempt to identify URL parsing/routing  | active,aggressive,web-advanced          | FINDING                                  |
+|                  |          |         | based vulnerabilities                    |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| vhost            | scan     |         | Fuzz for virtual hosts                   | active,aggressive,brute-                | DNS_NAME,VHOST                           |
+|                  |          |         |                                          | force,deadly,slow,web-advanced          |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| wappalyzer       | scan     |         | Extract technologies from web responses  | active,safe,web-basic                   | TECHNOLOGY                               |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| affiliates       | scan     |         | Summarize affiliate domains at the end   | passive,report,safe                     |                                          |
+|                  |          |         | of a scan                                |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| anubisdb         | scan     |         | Query jldc.me's database for subdomains  | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| asn              | scan     |         | Query ripe and bgpview.io for ASNs       | passive,report,safe,subdomain-enum      | ASN                                      |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| azure_tenant     | scan     |         | Query Azure for tenant sister domains    | affiliates,passive,safe,subdomain-enum  | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| bevigil          | scan     | X       | Retrieve OSINT data from mobile          | passive,safe,subdomain-enum             | DNS_NAME,URL_UNVERIFIED                  |
+|                  |          |         | applications using BeVigil               |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| binaryedge       | scan     | X       | Query the BinaryEdge API                 | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| builtwith        | scan     | X       | Query Builtwith.com for subdomains       | affiliates,passive,safe,subdomain-enum  | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| c99              | scan     | X       | Query the C99 API for subdomains         | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| censys           | scan     | X       | Query the Censys API                     | email-enum,passive,safe,subdomain-enum  | DNS_NAME,EMAIL_ADDRESS,IP_ADDRESS,OPEN_P |
+|                  |          |         |                                          |                                         | ORT,PROTOCOL                             |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| certspotter      | scan     |         | Query Certspotter's API for subdomains   | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| crobat           | scan     |         | Query Project Crobat for subdomains      | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| crt              | scan     |         | Query crt.sh (certificate transparency)  | passive,safe,subdomain-enum             | DNS_NAME                                 |
+|                  |          |         | for subdomains                           |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| dnscommonsrv     | scan     |         | Check for common SRV records             | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| dnsdumpster      | scan     |         | Query dnsdumpster for subdomains         | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| emailformat      | scan     |         | Query email-format.com for email         | email-enum,passive,safe                 | EMAIL_ADDRESS                            |
+|                  |          |         | addresses                                |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| fullhunt         | scan     | X       | Query the fullhunt.io API for subdomains | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| github           | scan     | X       | Query Github's API for related           | passive,safe,subdomain-enum             | URL_UNVERIFIED                           |
+|                  |          |         | repositories                             |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| hackertarget     | scan     |         | Query the hackertarget.com API for       | passive,safe,subdomain-enum             | DNS_NAME                                 |
+|                  |          |         | subdomains                               |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| hunterio         | scan     | X       | Query hunter.io for emails               | email-enum,passive,safe,subdomain-enum  | DNS_NAME,EMAIL_ADDRESS,URL_UNVERIFIED    |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| ipneighbor       | scan     |         | Look beside IPs in their surrounding     | aggressive,passive,subdomain-enum       | IP_ADDRESS                               |
+|                  |          |         | subnet                                   |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| leakix           | scan     |         | Query leakix.net for subdomains          | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| massdns          | scan     |         | Brute-force subdomains with massdns      | aggressive,brute-                       | DNS_NAME                                 |
+|                  |          |         | (highly effective)                       | force,passive,slow,subdomain-enum       |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| otx              | scan     |         | Query otx.alienvault.com for subdomains  | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| passivetotal     | scan     | X       | Query the PassiveTotal API for           | passive,safe,subdomain-enum             | DNS_NAME                                 |
+|                  |          |         | subdomains                               |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| pgp              | scan     |         | Query common PGP servers for email       | email-enum,passive,safe                 | EMAIL_ADDRESS                            |
+|                  |          |         | addresses                                |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| rapiddns         | scan     |         | Query rapiddns.io for subdomains         | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| riddler          | scan     |         | Query riddler.io for subdomains          | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| securitytrails   | scan     | X       | Query the SecurityTrails API for         | passive,safe,subdomain-enum             | DNS_NAME                                 |
+|                  |          |         | subdomains                               |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| shodan_dns       | scan     | X       | Query Shodan for subdomains              | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| skymem           | scan     |         | Query skymem.info for email addresses    | email-enum,passive,safe                 | EMAIL_ADDRESS                            |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| sublist3r        | scan     |         | Query sublist3r's API for subdomains     | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| threatminer      | scan     |         | Query threatminer's API for subdomains   | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| urlscan          | scan     |         | Query urlscan.io for subdomains          | passive,safe,subdomain-enum             | DNS_NAME,URL_UNVERIFIED                  |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| viewdns          | scan     |         | Query viewdns.info's reverse whois for   | affiliates,passive,safe                 | DNS_NAME                                 |
+|                  |          |         | related domains                          |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| virustotal       | scan     | X       | Query VirusTotal's API for subdomains    | passive,safe,subdomain-enum             | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| wayback          | scan     |         | Query archive.org's API for subdomains   | passive,safe,subdomain-enum             | DNS_NAME,URL_UNVERIFIED                  |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| zoomeye          | scan     | X       | Query ZoomEye's API for subdomains       | affiliates,passive,safe,subdomain-enum  | DNS_NAME                                 |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| asset_inventory  | output   |         | Output to an asset inventory style       |                                         |                                          |
+|                  |          |         | flattened CSV file                       |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| csv              | output   |         | Output to CSV                            |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| http             | output   |         | Output to HTTP                           |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| human            | output   |         | Output to text                           |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| json             | output   |         | Output to JSON                           |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| neo4j            | output   |         | Output to Neo4j                          |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| python           | output   |         | Output via Python API                    |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| websocket        | output   |         | Output to websockets                     |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| aggregate        | internal |         | Report on scan statistics                | passive,safe                            | SUMMARY                                  |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| excavate         | internal |         | Passively extract juicy tidbits from     | passive                                 | URL_UNVERIFIED                           |
+|                  |          |         | scan data                                |                                         |                                          |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| speculate        | internal |         | Derive certain event types from others   | passive                                 | DNS_NAME,FINDING,IP_ADDRESS,OPEN_TCP_POR |
+|                  |          |         | by common sense                          |                                         | T                                        |
++------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 ~~~
 
 # Credit

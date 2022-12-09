@@ -230,5 +230,9 @@ class generic_ssrf(BaseModule):
         from time import sleep
 
         sleep(5)
-        for r in self.interactsh_instance.poll():
-            self.interactsh_callback(r)
+
+        try:
+            for r in self.interactsh_instance.poll():
+                self.interactsh_callback(r)
+        except InteractshError as e:
+            self.debug(f"Error in interact.sh: {e}")

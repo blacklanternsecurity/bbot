@@ -25,7 +25,7 @@ class cookie_brute(header_brute):
 
         if self.scan.stopping:
             raise ScanCancelledError()
-        cookies = {p: self.helpers.rand_string(14) for p in cookie_list}
+        cookies = {p: self.rand_string(14) for p in cookie_list}
         return compare_helper.compare(url, cookies=cookies)
 
     def gen_count_args(self, url):
@@ -34,7 +34,7 @@ class cookie_brute(header_brute):
         while 1:
             if cookie_count < 0:
                 break
-            fake_cookies = {self.helpers.rand_string(14): self.helpers.rand_string(14) for _ in range(0, cookie_count)}
+            fake_cookies = {self.rand_string(14): self.rand_string(14) for _ in range(0, cookie_count)}
             yield cookie_count, (url,), {"cookies": fake_cookies}
             cookie_count -= 5
 

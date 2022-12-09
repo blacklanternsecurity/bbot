@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
 
@@ -192,12 +193,16 @@ def main():
                 if options.help_all:
                     log_fn(parser.format_help())
 
-                log_fn("\n### MODULES ###\n")
+                log_fn("")
+                log_fn("### MODULES ###")
+                log_fn("")
                 for row in module_loader.modules_table(modules=help_modules).splitlines():
                     log_fn(row)
 
                 if options.help_all:
-                    log_fn("\n### MODULE OPTIONS ###\n")
+                    log_fn("")
+                    log_fn("### MODULE OPTIONS ###")
+                    log_fn("")
                     for row in module_loader.modules_options_table(modules=help_modules).splitlines():
                         log_fn(row)
 
@@ -220,7 +225,7 @@ def main():
                 scanner.prep()
 
                 if not options.dry_run:
-                    if not options.agent_mode and not options.yes:
+                    if not options.agent_mode and not options.yes and sys.stdin.isatty():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
 
@@ -235,15 +240,12 @@ def main():
                     scanner.cleanup()
 
     except bbot.core.errors.BBOTError as e:
-        import traceback
-
-        log_to_stderr(e, level="ERROR")
-        log_to_stderr(traceback.format_exc(), level="ERROR")
+        log_to_stderr(f"{e} (--debug for details)", level="ERROR")
+        if log_level <= logging.DEBUG:
+            log_to_stderr(traceback.format_exc(), level="DEBUG")
         err = True
 
     except Exception:
-        import traceback
-
         log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level="ERROR")
         err = True
 

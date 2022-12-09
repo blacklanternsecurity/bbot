@@ -12,7 +12,7 @@ class naabu(BaseModule):
     options = {
         "ports": "",
         "top_ports": 100,
-        "version": "2.0.7",
+        "version": "2.1.1",
     }
     options_desc = {
         "ports": "ports to scan",

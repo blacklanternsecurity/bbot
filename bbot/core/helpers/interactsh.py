@@ -3,9 +3,11 @@ import json
 import base64
 import random
 import logging
+import traceback
 from time import sleep
 from uuid import uuid4
 from threading import Thread
+
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
@@ -20,7 +22,9 @@ server_list = ["oast.pro", "oast.live", "oast.site", "oast.online", "oast.fun", 
 class Interactsh:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self.server = self.parent_helper.config.get("interactsh_server", None)
+        self.server = None
+        self.correlation_id = None
+        self.custom_server = self.parent_helper.config.get("interactsh_server", None)
         self.token = self.parent_helper.config.get("interactsh_token", None)
         self._thread = None
 
@@ -40,28 +44,31 @@ class Interactsh:
         self.secret = str(uuid4())
         headers = {}
 
-        if self.token:
+        if self.custom_server:
+            if not self.token:
+                log.verbose("Interact.sh token is not set")
             headers["Authorization"] = self.token
-
-        self.server_list = random.sample(server_list, k=len(server_list))
-        if self.server is None:
-            for server in self.server_list:
-                data = {
-                    "public-key": encoded_public_key,
-                    "secret-key": self.secret,
-                    "correlation-id": self.correlation_id,
-                }
-                r = self.parent_helper.request(f"https://{server}/register", headers=headers, json=data, method="POST")
-                if r is None:
-                    continue
-                try:
-                    msg = r.json().get("message", "")
-                    assert "registration successful" in msg
-                except Exception:
-                    raise InteractshError(f"Failed to register with interactsh server {self.server}")
-                self.server = server
-                self.domain = f"{guid}.{self.server}"
-                break
+            self.server_list = [self.custom_server]
+        else:
+            self.server_list = random.sample(server_list, k=len(server_list))
+        for server in self.server_list:
+            data = {
+                "public-key": encoded_public_key,
+                "secret-key": self.secret,
+                "correlation-id": self.correlation_id,
+            }
+            r = self.parent_helper.request(f"https://{server}/register", headers=headers, json=data, method="POST")
+            if r is None:
+                continue
+            try:
+                msg = r.json().get("message", "")
+                assert "registration successful" in msg
+            except Exception:
+                log.debug(f"Failed to register with interactsh server {self.server}")
+                continue
+            self.server = server
+            self.domain = f"{guid}.{self.server}"
+            break
 
         if not self.server:
             raise InteractshError(f"Failed to register with an interactsh server")
@@ -78,6 +85,9 @@ class Interactsh:
 
     def deregister(self):
 
+        if not self.server or not self.correlation_id or not self.secret:
+            raise InteractshError(f"Missing required information to deregister")
+
         headers = {}
         if self.token:
             headers["Authorization"] = self.token
@@ -89,6 +99,9 @@ class Interactsh:
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")
 
     def poll(self):
+
+        if not self.server or not self.correlation_id or not self.secret:
+            raise InteractshError(f"Missing required information to poll")
 
         headers = {}
         if self.token:
@@ -115,7 +128,12 @@ class Interactsh:
             if self.parent_helper.scan.stopping:
                 sleep(1)
                 continue
-            data_list = list(self.poll())
+            data_list = []
+            try:
+                data_list = list(self.poll())
+            except InteractshError as e:
+                log.warning(e)
+                log.debug(traceback.format_exc())
             if not data_list:
                 sleep(10)
                 continue

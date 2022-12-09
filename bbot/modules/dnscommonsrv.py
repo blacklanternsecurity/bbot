@@ -97,8 +97,8 @@ class dnscommonsrv(BaseModule):
     max_event_handlers = 10
 
     def filter_event(self, event):
-        is_wildcard, _ = self.helpers.is_wildcard(event.host)
-        if is_wildcard != False:
+        # skip SRV wildcards
+        if "SRV" in self.helpers.is_wildcard(event.host):
             return False
         return True
 

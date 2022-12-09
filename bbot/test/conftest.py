@@ -1,6 +1,6 @@
+import shutil
 import pytest
 import logging
-import shutil
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

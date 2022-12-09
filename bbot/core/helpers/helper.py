@@ -1,3 +1,4 @@
+import os
 import logging
 from pathlib import Path
 from threading import Lock
@@ -6,18 +7,20 @@ from . import misc
 from .dns import DNSHelper
 from .diff import HttpCompare
 from .wordcloud import WordCloud
+from .cloud import CloudProviders
 from .interactsh import Interactsh
 from .threadpool import as_completed
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
+
 
 log = logging.getLogger("bbot.core.helpers")
 
 
 class ConfigAwareHelper:
     from .web import wordlist, request, download, api_page_iter, curl
-    from .command import run, run_live, tempfile, feed_pipe, _feed_pipe
     from .cache import cache_get, cache_put, cache_filename, is_cached, CacheDict
+    from .command import run, run_live, tempfile, feed_pipe, _feed_pipe, tempfile_tail
     from . import ntlm
     from . import regexes
     from . import validators
@@ -48,6 +51,9 @@ class ConfigAwareHelper:
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
 
+        # cloud helpers
+        self.cloud = CloudProviders(self)
+
     def interactsh(self):
         return Interactsh(self)
 
@@ -72,6 +78,10 @@ class ConfigAwareHelper:
 
             self._scan = Scanner()
         return self._scan
+
+    @property
+    def in_tests(self):
+        return os.environ["BBOT_TESTING"] == "True"
 
     @staticmethod
     def as_completed(*args, **kwargs):

@@ -251,7 +251,7 @@ class BaseEvent:
             self.tags.add("internal")
             self._made_internal = True
 
-    def unmake_internal(self, set_scope_distance=None, force_output=False, emit_trail=True):
+    def unmake_internal(self, set_scope_distance=None, force_output=False):
         source_trail = []
         if self._made_internal:
             if set_scope_distance is not None:
@@ -271,19 +271,13 @@ class BaseEvent:
             )
             source_trail.append(self.source)
 
-        if emit_trail and self.scan:
-            for e in source_trail:
-                self.scan.manager.emit_event(e)
-
         return source_trail
 
     def make_in_scope(self, set_scope_distance=0):
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
         if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(
-                set_scope_distance=set_scope_distance, force_output=True, emit_trail=True
-            )
+            source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output=True)
         self.scope_distance = set_scope_distance
         if set_scope_distance == 0:
             self.tags.add("in-scope")
@@ -496,6 +490,7 @@ class IP_ADDRESS(BaseEvent):
         self.tags.add(f"ipv{ip.version}")
         if ip.is_private:
             self.tags.add("private")
+        self.dns_resolve_distance = getattr(self.source, "dns_resolve_distance", 0)
 
     def sanitize_data(self, data):
         return validators.validate_host(data)
@@ -504,7 +499,24 @@ class IP_ADDRESS(BaseEvent):
         return ipaddress.ip_address(self.data)
 
 
-class IP_RANGE(BaseEvent):
+class DnsEvent(BaseEvent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # prevent runaway DNS entries
+        self.dns_resolve_distance = 0
+        source = getattr(self, "source", None)
+        module = getattr(self, "module", None)
+        module_type = getattr(module, "_type", "")
+        source_module = getattr(source, "module", None)
+        source_module_type = getattr(source_module, "_type", "")
+        if module_type == "DNS":
+            self.dns_resolve_distance = getattr(source, "dns_resolve_distance", 0)
+            if source_module_type == "DNS":
+                self.dns_resolve_distance += 1
+        # self.tags.add(f"resolve-distance-{self.dns_resolve_distance}")
+
+
+class IP_RANGE(DnsEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         net = ipaddress.ip_network(self.data, strict=False)
@@ -517,7 +529,7 @@ class IP_RANGE(BaseEvent):
         return ipaddress.ip_network(self.data)
 
 
-class DNS_NAME(BaseEvent):
+class DNS_NAME(DnsEvent):
     _priority = 2
 
     def __init__(self, *args, **kwargs):
@@ -560,6 +572,7 @@ class URL_UNVERIFIED(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
+        self.num_redirects = getattr(self.source, "num_redirects", 0)
 
     def sanitize_data(self, data):
         self.parsed = validators.validate_url_parsed(data)
@@ -637,7 +650,7 @@ class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):
         url: str
 
     def _words(self):
-        return self.parsed.hostname.split(".")[0]
+        return self.data["name"]
 
 
 class URL_HINT(URL_UNVERIFIED):
@@ -663,7 +676,10 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
-        if not str(self.data.get("status-code", 0)).startswith("3"):
+        self.num_redirects = getattr(self.source, "num_redirects", 0)
+        if str(self.data.get("status_code", 0)).startswith("3"):
+            self.num_redirects += 1
+        else:
             self.web_spider_distance += 1
 
     def sanitize_data(self, data):
@@ -671,7 +687,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         self.parsed = validators.validate_url_parsed(url)
 
         header_dict = {}
-        for i in data.get("response-header", "").splitlines():
+        for i in data.get("raw_header", "").splitlines():
             if len(i) > 0 and ":" in i:
                 k, v = i.split(":", 1)
                 k = k.strip().lower()
