@@ -452,6 +452,16 @@ class BaseEvent:
         return str(self)
 
 
+class FINISHED(BaseEvent):
+    """
+    Special signal event to indicate end of scan
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._priority = (999999999999999999999,)
+
+
 class DefaultEvent(BaseEvent):
     def sanitize_data(self, data):
         return data
