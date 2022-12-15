@@ -508,13 +508,13 @@ class BaseModule:
     @property
     def incoming_event_queue(self):
         if self._incoming_event_queue is None:
-            self._incoming_event_queue = queue.SimpleQueue()
+            self._incoming_event_queue = queue.PriorityQueue()
         return self._incoming_event_queue
 
     @property
     def outgoing_event_queue(self):
         if self._outgoing_event_queue is None:
-            self._outgoing_event_queue = queue.SimpleQueue()
+            self._outgoing_event_queue = queue.PriorityQueue()
         return self._outgoing_event_queue
 
     @property

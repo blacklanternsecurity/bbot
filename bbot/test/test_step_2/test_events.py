@@ -1,4 +1,5 @@
 import json
+import random
 import ipaddress
 
 from ..bbot_fixtures import *
@@ -170,31 +171,48 @@ def test_events(events, scan, helpers, bbot_config):
     assert internal_event3 in source_trail
 
     # event sorting
-    sort1 = scan.make_event("127.0.0.1", dummy=True)
-    sort1._priority = 1
-    sort2 = scan.make_event("127.0.0.1", dummy=True)
-    sort2._priority = 2
-    sort3 = scan.make_event("127.0.0.1", dummy=True)
-    sort3._priority = 3
-    mod1 = helpers._make_dummy_module(name="MOD1", _type="ASDF")
-    mod1._priority = 1
-    mod2 = helpers._make_dummy_module(name="MOD2", _type="ASDF")
-    mod2._priority = 2
-    mod3 = helpers._make_dummy_module(name="MOD3", _type="ASDF")
-    mod3._priority = 3
-    sort1.module = mod1
-    sort2.module = mod2
-    sort3.module = mod3
-    assert 2 < sort1.priority < 2.01
-    assert sort1 < sort2
-    assert sort1 < sort3
-    assert 4 < sort2.priority < 4.01
-    assert sort2 > sort1
-    assert sort2 < sort3
-    assert 6 < sort3.priority < 6.01
-    assert sort3 > sort1
-    assert sort3 > sort2
-    assert tuple(sorted([sort3, sort2, sort1])) == (sort1, sort2, sort3)
+    parent1 = scan.make_event("127.0.0.1", source=scan.root_event)
+    parent2 = scan.make_event("127.0.0.1", source=scan.root_event)
+    parent2_child1 = scan.make_event("127.0.0.1", source=parent2)
+    parent1_child1 = scan.make_event("127.0.0.1", source=parent1)
+    parent1_child2 = scan.make_event("127.0.0.1", source=parent1)
+    parent1_child2_child1 = scan.make_event("127.0.0.1", source=parent1_child2)
+    parent1_child2_child2 = scan.make_event("127.0.0.1", source=parent1_child2)
+    parent1_child1_child1 = scan.make_event("127.0.0.1", source=parent1_child1)
+    parent2_child2 = scan.make_event("127.0.0.1", source=parent2)
+    parent1_child2_child1_child1 = scan.make_event("127.0.0.1", source=parent1_child2_child1)
+
+    sortable_events = {
+        "parent1": parent1,
+        "parent2": parent2,
+        "parent2_child1": parent2_child1,
+        "parent1_child1": parent1_child1,
+        "parent1_child2": parent1_child2,
+        "parent1_child2_child1": parent1_child2_child1,
+        "parent1_child2_child2": parent1_child2_child2,
+        "parent1_child1_child1": parent1_child1_child1,
+        "parent2_child2": parent2_child2,
+        "parent1_child2_child1_child1": parent1_child2_child1_child1,
+    }
+
+    ordered_list = [
+        parent1,
+        parent1_child1,
+        parent1_child1_child1,
+        parent1_child2,
+        parent1_child2_child1,
+        parent1_child2_child1_child1,
+        parent1_child2_child2,
+        parent2,
+        parent2_child1,
+        parent2_child2,
+    ]
+
+    shuffled_list = list(sortable_events.values())
+    random.shuffle(shuffled_list)
+
+    sorted_events = sorted(shuffled_list)
+    assert sorted_events == ordered_list
 
     # test validation
     corrected_event1 = scan.make_event("asdf@asdf.com", "DNS_NAME", dummy=True)
