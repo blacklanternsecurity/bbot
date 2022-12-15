@@ -49,7 +49,7 @@ line-length = 119
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format = 'v1.0.3.{distance}'
+format = 'v1.0.4.{distance}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]
