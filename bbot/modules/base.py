@@ -12,6 +12,18 @@ from ..core.errors import ScanCancelledError, ValidationError, WordlistError
 from bbot.core.event.base import is_event
 
 
+class OutgoingEventWrapper(tuple):
+    """
+    Allows sorting of tuples in outgoing PriorityQueue
+    """
+
+    def __gt__(self, other):
+        return self[0] > other[0]
+
+    def __lt__(self, other):
+        return self[0] < other[0]
+
+
 class BaseModule:
 
     # Event types to watch
@@ -216,7 +228,8 @@ class BaseModule:
             event_kwargs.pop(o, None)
         event = self.make_event(*args, **event_kwargs)
         if event:
-            self.outgoing_event_queue.put((event, kwargs))
+            outgoing_event = OutgoingEventWrapper((event, kwargs))
+            self.outgoing_event_queue.put(outgoing_event)
 
     @property
     def events_waiting(self):
@@ -231,11 +244,8 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                if type(event) == str:
-                    if event == "FINISHED":
-                        finish = True
-                    elif event == "REPORT":
-                        report = True
+                if event.type == "FINISHED":
+                    finish = True
                 else:
                     events.append(event)
             except queue.Empty:
@@ -326,11 +336,8 @@ class BaseModule:
                         continue
                     self.debug(f"Got {e} from {getattr(e, 'module', e)}")
                     # if we receive the special "FINISHED" event
-                    if type(e) == str:
-                        if e == "FINISHED":
-                            self._internal_thread_pool.submit_task(self.catch, self.finish)
-                        elif e == "REPORT":
-                            self._internal_thread_pool.submit_task(self.catch, self.report)
+                    if e.type == "FINISHED":
+                        self._internal_thread_pool.submit_task(self.catch, self.finish)
                     else:
                         if self._type == "output":
                             self.catch(self.handle_event, e)
@@ -363,12 +370,9 @@ class BaseModule:
         Check if an event should be accepted by the module
         These checks are safe to run before an event has been DNS-resolved
         """
-        # special "FINISHED" event
-        if type(event) == str:
-            if event in ("FINISHED", "REPORT"):
-                return True, ""
-            else:
-                return False, f'string value "{event}" is invalid'
+        # special signal event types
+        if event.type in ("FINISHED",):
+            return True, ""
         # exclude non-watched types
         if not any(t in self.get_watched_events() for t in ("*", event.type)):
             return False, "its type is not in watched_events"
@@ -395,7 +399,7 @@ class BaseModule:
         Check if an event should be accepted by the module
         These checks must be run after an event has been DNS-resolved
         """
-        if type(event) == str:
+        if event.type in ("FINISHED",):
             return True, ""
 
         if self.in_scope_only:

@@ -411,8 +411,9 @@ class ScanManager:
                                 self.scan.status = "FINISHING"
                                 # Trigger .finished() on every module and start over
                                 log.info("Finishing scan")
+                                finished_event = self.scan.make_event("FINISHED", "FINISHED", dummy=True)
                                 for module in modules:
-                                    module.queue_event("FINISHED")
+                                    module.queue_event(finished_event)
                             else:
                                 # Otherwise stop the scan if no new events were generated since last time
                                 break
@@ -429,7 +430,7 @@ class ScanManager:
             log.critical(traceback.format_exc())
 
         finally:
-            # Run .report() on every module and start over
+            # Run .report() on every module
             for mod in self.scan.modules.values():
                 self.catch(mod.report, _force=True)
 
