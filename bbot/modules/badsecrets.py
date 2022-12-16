@@ -9,7 +9,7 @@ class badsecrets(BaseModule):
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "web-basic"]
     meta = {"description": "Library for detecting known or weak secrets on across many platforms"}
-
+    max_event_handlers = 2
     deps_pip = ["badsecrets"]
 
     def handle_event(self, event):
@@ -23,10 +23,11 @@ class badsecrets(BaseModule):
             else:
                 resp_cookies_list = [resp_cookies_raw]
                 for c in resp_cookies_list:
-                    c2 = c.strip().split(";")[0].split("=")
+                    c2 = c.lstrip(";").strip().split(";")[0].split("=")
                     resp_cookies[c2[0]] = c2[1]
         if resp_body or resp_cookies:
-            r_list = carve_all_modules(body=resp_body, cookies=resp_cookies)
+            future = self.scan.process_pool.submit_task(carve_all_modules, body=resp_body, cookies=resp_cookies)
+            r_list = future.result()
             if r_list:
                 for r in r_list:
                     if r["type"] == "SecretFound":

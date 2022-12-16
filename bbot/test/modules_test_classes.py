@@ -89,7 +89,7 @@ class Anubisdb(RequestMockHelper):
 
 class Badsecrets(HttpxMockHelper):
 
-    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/test.aspx"]
+    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/test.aspx", "http://127.0.0.1:8888/cookie.aspx"]
 
     sample_viewstate = """
     <form method="post" action="./query.aspx" id="form1">
@@ -122,6 +122,7 @@ class Badsecrets(HttpxMockHelper):
 </body>
 </html>
 """
+
     additional_modules = ["httpx"]
 
     def mock_args(self):
@@ -132,9 +133,19 @@ class Badsecrets(HttpxMockHelper):
         respond_args = {"response_data": self.sample_viewstate_notvuln}
         self.set_expect_requests(respond_args=respond_args)
 
+        expect_args = {"uri": "/cookie.aspx"}
+        respond_args = {
+            "response_data": "<html><body><p>JWT Cookie Test</p></body></html>",
+            "headers": {
+                "set-cookie": "vulnjwt=eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo; secure"
+            },
+        }
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
     def check_events(self, events):
         SecretFound = False
         IdentifyOnly = False
+        CookieBasedDetection = False
         for e in events:
             if (
                 e.type == "VULNERABILITY"
@@ -149,7 +160,14 @@ class Badsecrets(HttpxMockHelper):
             ):
                 IdentifyOnly = True
 
-        if SecretFound and IdentifyOnly:
+            if (
+                e.type == "VULNERABILITY"
+                and e.data["description"]
+                == "Known Secret Found. Secret Type: [HMAC/RSA Key] Secret: [1234] Product Type: [JSON Web Token (JWT)] Product: [eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo] Detecting Module: [Generic_JWT]"
+            ):
+                CookieBasedDetection = True
+
+        if SecretFound and IdentifyOnly and CookieBasedDetection:
             return True
         return False
 
