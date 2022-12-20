@@ -28,7 +28,7 @@ class ffuf(BaseModule):
         "max_depth": "the maxium directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "ignore_redrects": "Explicitly ignore redirects. Enable if getting a excessive false positives.",
+        "ignore_redirects": "Explicitly ignore redirects. Enable if getting a excessive false positives.",
     }
 
     blacklist = ["images", "css", "image"]
