@@ -118,6 +118,12 @@ class massdns(crobat):
         if self.scan.stopping:
             return
 
+        domain_wildcard_rdtypes = set()
+        for domain, rdtypes in self.helpers.is_wildcard_domain(domain).items():
+            for rdtype, results in rdtypes.items():
+                if results:
+                    domain_wildcard_rdtypes.add(rdtype)
+
         command = (
             "massdns",
             "-r",
@@ -151,10 +157,18 @@ class massdns(crobat):
                     # 8AAAA queries have been locally blocked by dnscrypt-proxy/Set block_ipv6 to false to disable this feature
                     if data and rdtype and not " " in data:
                         # skip wildcards
-                        wildcard_rdtypes = self.helpers.is_wildcard(hostname, ips=(data,))
-                        if rdtype in wildcard_rdtypes:
-                            self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
-                            continue
+                        if rdtype in domain_wildcard_rdtypes:
+                            # skip wildcard checking on multi-level subdomains for performance reasons
+                            stem = hostname.split(domain)[0].strip(".")
+                            if "." in stem:
+                                self.debug(
+                                    f"Skipping {hostname}:{rdtype} because it may be a wildcard (reason: performance)"
+                                )
+                                continue
+                            wildcard_rdtypes = self.helpers.is_wildcard(hostname, ips=(data,))
+                            if rdtype in wildcard_rdtypes:
+                                self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
+                                continue
                         hostname = hostname.rstrip(".").lower()
                         hostname_hash = hash(hostname)
                         if hostname_hash not in hosts_yielded:
