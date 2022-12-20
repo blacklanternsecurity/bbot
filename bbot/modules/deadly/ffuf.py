@@ -19,6 +19,7 @@ class ffuf(BaseModule):
         "max_depth": 0,
         "version": "1.5.0",
         "extensions": "",
+        "ignore_redirects": False,
     }
 
     options_desc = {
@@ -27,6 +28,7 @@ class ffuf(BaseModule):
         "max_depth": "the maxium directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
+        "ignore_redrects": "Explicitly ignore redirects. Enable if getting a excessive false positives.",
     }
 
     blacklist = ["images", "css", "image"]
@@ -52,6 +54,7 @@ class ffuf(BaseModule):
         self.wordlist = self.helpers.wordlist(wordlist_url)
         self.tempfile = self.generate_templist(self.wordlist)
         self.extensions = self.config.get("extensions")
+        self.ignore_redrects = self.config.get("ignore_redrects")
         return True
 
     def handle_event(self, event):
@@ -92,6 +95,10 @@ class ffuf(BaseModule):
                 "-u",
                 f"{fuzz_url}{x}",
             ]
+
+            if self.ignore_redrects:
+                command.append("-fc")
+                command.append("301,302")
 
             for found in self.helpers.run_live(command):
                 try:
