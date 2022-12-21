@@ -131,6 +131,8 @@ class httpx(BaseModule):
             if url_event and not "httpx-only" in url_event.tags:
                 if url_event != source_event:
                     self.emit_event(url_event)
+                else:
+                    url_event._resolved.set()
                 # HTTP response
                 self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)
 
