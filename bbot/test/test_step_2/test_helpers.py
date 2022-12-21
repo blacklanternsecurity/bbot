@@ -409,10 +409,11 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
     assert hash(f"scanme.nmap.org:A") in helpers.dns._dns_cache
     assert hash(f"scanme.nmap.org:AAAA") in helpers.dns._dns_cache
     # wildcards
-    wildcard_rdtypes = helpers.is_wildcard_domain("github.io")
-    assert "A" in wildcard_rdtypes
-    assert "SRV" not in wildcard_rdtypes
-    assert wildcard_rdtypes["A"] and all(helpers.is_ip(r) for r in wildcard_rdtypes["A"])
+    wildcard_domains = helpers.is_wildcard_domain("asdf.github.io")
+    assert "github.io" in wildcard_domains
+    assert "A" in wildcard_domains["github.io"]
+    assert "SRV" not in wildcard_domains["github.io"]
+    assert wildcard_domains["github.io"]["A"] and all(helpers.is_ip(r) for r in wildcard_domains["github.io"]["A"])
     wildcard_rdtypes = helpers.is_wildcard("blacklanternsecurity.github.io")
     assert "A" in wildcard_rdtypes
     assert "SRV" not in wildcard_rdtypes
