@@ -81,6 +81,7 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
 
 # custom logging levels
 addLoggingLevel("STDOUT", 100)
+addLoggingLevel("TRACE", 49)
 addLoggingLevel("HUGEWARNING", 31)
 addLoggingLevel("HUGESUCCESS", 26)
 addLoggingLevel("SUCCESS", 25)
@@ -132,11 +133,10 @@ def log_listener_setup(logging_queue):
 
     log_level = get_log_level()
 
-    config_debug = config.get("debug", False)
     config_silent = config.get("silent", False)
 
     def stderr_filter(record):
-        if record.levelno == logging.STDOUT:
+        if record.levelno in (logging.STDOUT, logging.TRACE):
             return False
         if record.levelno >= logging.ERROR:
             return True
@@ -149,7 +149,7 @@ def log_listener_setup(logging_queue):
     stderr_handler.addFilter(stderr_filter)
     stdout_handler.addFilter(lambda x: x.levelno == logging.STDOUT)
     debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
-    main_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.VERBOSE)
+    main_handler.addFilter(lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE)
 
     # Set log format
     debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
@@ -158,9 +158,7 @@ def log_listener_setup(logging_queue):
     stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
     stdout_handler.setFormatter(logging.Formatter("%(message)s"))
 
-    handlers = [stdout_handler, stderr_handler, main_handler]
-    if config_debug:
-        handlers.append(debug_handler)
+    handlers = [stdout_handler, stderr_handler, main_handler, debug_handler]
 
     log_listener = QueueListener(logging_queue, *handlers)
     log_listener.start()

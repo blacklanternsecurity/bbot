@@ -212,7 +212,7 @@ class Scanner:
 
         except BBOTError as e:
             self.critical(f"Error during scan: {e}")
-            self.debug(traceback.format_exc())
+            self.trace()
 
         except Exception:
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
@@ -459,23 +459,23 @@ class Scanner:
 
     def warning(self, *args, **kwargs):
         log.warning(*args, extra={"scan_id": self.id}, **kwargs)
-        self._log_traceback()
+        self.trace()
 
     def hugewarning(self, *args, **kwargs):
         log.hugewarning(*args, extra={"scan_id": self.id}, **kwargs)
-        self._log_traceback()
+        self.trace()
 
     def error(self, *args, **kwargs):
         log.error(*args, extra={"scan_id": self.id}, **kwargs)
-        self._log_traceback()
+        self.trace()
+
+    def trace(self):
+        e_type, e_val, e_traceback = exc_info()
+        if e_type is not None:
+            log.trace(traceback.format_exc())
 
     def critical(self, *args, **kwargs):
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
-
-    def _log_traceback(self):
-        e_type, e_val, e_traceback = exc_info()
-        if e_type is not None:
-            self.debug(traceback.format_exc())
 
     def _internal_modules(self):
         for modname in module_loader.preloaded(type="internal"):

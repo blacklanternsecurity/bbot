@@ -167,7 +167,7 @@ def api_page_iter(self, url, page_size=100, json=True, **requests_kwargs):
             import traceback
 
             log.warning(f'Error in api_page_iter() for url: "{new_url}"')
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
             break
         finally:
             offset += page_size
