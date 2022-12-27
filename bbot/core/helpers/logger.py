@@ -2,6 +2,7 @@ import sys
 
 loglevel_mapping = {
     "DEBUG": "DBUG",
+    "TRACE": "TRCE",
     "VERBOSE": "VERB",
     "HUGEVERBOSE": "VERB",
     "INFO": "INFO",
@@ -15,6 +16,7 @@ loglevel_mapping = {
 }
 color_mapping = {
     "DEBUG": 242,  # grey
+    "TRACE": 242,  # red
     "VERBOSE": 242,  # grey
     "INFO": 69,  # blue
     "HUGEINFO": 69,  # blue

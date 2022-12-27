@@ -92,7 +92,5 @@ class crobat(BaseModule):
                 return results
             self.debug(f'No results for "{query}"')
         except Exception:
-            import traceback
-
             self.verbose(f"Error retrieving results for {query}")
-            self.debug(traceback.format_exc())
+            self.trace()

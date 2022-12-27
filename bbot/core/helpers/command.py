@@ -97,10 +97,10 @@ def catch(callback, *args, **kwargs):
         return callback(*args, **kwargs)
     except FileNotFoundError as e:
         log.warning(f"{e} - missing executable?")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
     except BrokenPipeError as e:
         log.warning(f"Error in subprocess: {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
 
 
 def tempfile(self, content, pipe=True):
@@ -126,7 +126,7 @@ def tempfile(self, content, pipe=True):
                     f.write(line)
     except Exception as e:
         log.error(f"Error creating temp file: {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
 
     return filename
 
@@ -159,7 +159,7 @@ def _feed_pipe(self, pipe, content, text=True):
         self.scan.stop()
     except Exception as e:
         log.error(f"Error in _feed_pipe(): {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
 
 
 def feed_pipe(self, pipe, content, text=True):
@@ -179,7 +179,7 @@ def tempfile_tail(self, callback):
         t.start()
     except Exception as e:
         log.error(f"Error setting up tail for file {filename}: {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
         return
     return filename
 
@@ -192,4 +192,4 @@ def tail(filename, callback):
                 callback(line)
     except Exception as e:
         log.error(f"Error tailing file {filename}: {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())

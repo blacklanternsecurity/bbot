@@ -660,7 +660,7 @@ class DNSHelper:
             import traceback
 
             log.error(f"Error in {callback.__qualname__}(): {e}")
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
         except KeyboardInterrupt:
             if self.parent_helper.scan:
                 self.parent_helper.scan.stop()

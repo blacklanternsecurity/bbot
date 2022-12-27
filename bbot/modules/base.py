@@ -272,7 +272,7 @@ class BaseModule:
             if isinstance(e, WordlistError):
                 status = None
             msg = f"{e}"
-            self.debug(traceback.format_exc())
+            self.trace()
         return status, str(msg)
 
     @property
@@ -344,7 +344,7 @@ class BaseModule:
             self.verbose(f"Scan cancelled, {e}")
         except Exception as e:
             self.set_error_state(f"Exception ({e.__class__.__name__}) in module {self.name}:\n{e}")
-            self.debug(traceback.format_exc())
+            self.trace()
 
     def _filter_event(self, event, precheck_only=False):
         acceptable, reason = self._event_precheck(event)
@@ -415,10 +415,8 @@ class BaseModule:
             if not self.filter_event(event):
                 return False, f"{event} did not meet custom filter criteria"
         except Exception as e:
-            import traceback
-
             self.error(f"Error in filter_event({event}): {e}")
-            self.debug(traceback.format_exc())
+            self.trace()
 
         return True, ""
 
@@ -560,20 +558,21 @@ class BaseModule:
 
     def warning(self, *args, **kwargs):
         self.log.warning(*args, extra={"scan_id": self.scan.id}, **kwargs)
-        self._log_traceback()
+        self.trace()
 
     def hugewarning(self, *args, **kwargs):
         self.log.hugewarning(*args, extra={"scan_id": self.scan.id}, **kwargs)
-        self._log_traceback()
+        self.trace()
 
     def error(self, *args, **kwargs):
         self.log.error(*args, extra={"scan_id": self.scan.id}, **kwargs)
-        self._log_traceback()
+        self.trace()
+
+    def trace(self):
+        e_type, e_val, e_traceback = exc_info()
+        if e_type is not None:
+            self.log.trace(traceback.format_exc())
 
     def critical(self, *args, **kwargs):
         self.log.critical(*args, extra={"scan_id": self.scan.id}, **kwargs)
-
-    def _log_traceback(self):
-        e_type, e_val, e_traceback = exc_info()
-        if e_type is not None:
-            self.debug(traceback.format_exc())
+        self.trace()
