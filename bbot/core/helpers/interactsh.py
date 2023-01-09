@@ -133,7 +133,7 @@ class Interactsh:
                 data_list = list(self.poll())
             except InteractshError as e:
                 log.warning(e)
-                log.debug(traceback.format_exc())
+                log.trace(traceback.format_exc())
             if not data_list:
                 sleep(10)
                 continue

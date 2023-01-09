@@ -104,7 +104,7 @@ class BaseEvent:
         except Exception as e:
             import traceback
 
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
             raise ValidationError(f'Error sanitizing event data "{data}" for type "{self.type}": {e}')
 
         if not self.data:
