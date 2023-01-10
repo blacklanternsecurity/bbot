@@ -1,7 +1,7 @@
 from .base import BaseCloudProvider
 
 
-class Google(BaseCloudProvider):
+class GCP(BaseCloudProvider):
     domains = [
         "googleapis.cn",
         "googleapis.com",

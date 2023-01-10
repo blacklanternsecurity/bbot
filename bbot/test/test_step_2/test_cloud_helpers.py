@@ -12,7 +12,7 @@ def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
 
     # make sure they're all here
     assert "aws" in providers
-    assert "google" in providers
+    assert "gcp" in providers
     assert "azure" in providers
     assert "digitalocean" in providers
 

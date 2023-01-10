@@ -29,20 +29,15 @@ class crobat(BaseModule):
 
         Kill wildcards with fire.
 
-        This filter_event is used across lots of other subdomain enumeration modules
+        This filter_event is used across many modules
         """
-        # don't accept unresolved DNS names
         if "unresolved" in event.tags:
             return False
         query = self.make_query(event)
-        # skip if we already processed it
         if self.already_processed(query):
             return False
-        # discard DNS names with errors
+        # discard dns-names with errors
         if any([t in event.tags for t in ("a-error", "aaaa-error")]):
-            return False
-        # discard cloud resources
-        if not "target" in event.tags and any([t.startswith("cloud-") for t in event.tags]):
             return False
         # discard wildcards
         for domain, rdtypes in self.helpers.is_wildcard_domain(query).items():
