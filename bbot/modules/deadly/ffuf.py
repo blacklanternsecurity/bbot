@@ -9,7 +9,7 @@ from bbot.modules.base import BaseModule
 class ffuf(BaseModule):
 
     watched_events = ["URL"]
-    produced_events = ["URL"]
+    produced_events = ["URL_UNVERIFIED"]
     flags = ["brute-force", "aggressive", "active", "web-advanced"]
     meta = {"description": "A fast web fuzzer written in Go"}
 
@@ -54,7 +54,7 @@ class ffuf(BaseModule):
         self.wordlist = self.helpers.wordlist(wordlist_url)
         self.tempfile = self.generate_templist(self.wordlist)
         self.extensions = self.config.get("extensions")
-        self.ignore_redrects = self.config.get("ignore_redrects")
+        self.ignore_redirects = self.config.get("ignore_redirects")
         return True
 
     def handle_event(self, event):
@@ -71,7 +71,7 @@ class ffuf(BaseModule):
             fixed_url = event.data.rstrip("/") + "/"
 
         for r in self.execute_ffuf(self.tempfile, event, fixed_url):
-            self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
+            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
     def execute_ffuf(self, tempfile, event, url, suffix=""):
 
@@ -96,7 +96,7 @@ class ffuf(BaseModule):
                 f"{fuzz_url}{x}",
             ]
 
-            if self.ignore_redrects:
+            if self.ignore_redirects:
                 command.append("-fc")
                 command.append("301,302")
 
@@ -137,6 +137,6 @@ class ffuf(BaseModule):
                 if val.strip().lower() in self.blacklist:
                     self.debug(f"Skipping adding [{val.strip()}] to wordlist because it was in the blacklist")
                 else:
-                    if not prefix or val.startswith(prefix):
-                        virtual_file.append(f"{val.strip()}")
+                    if not prefix or val.strip().lower().startswith(prefix.lower()):
+                        virtual_file.append(f"{val.strip().lower()}")
         return self.helpers.tempfile(virtual_file, pipe=False)

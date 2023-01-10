@@ -1,5 +1,11 @@
 from bbot.modules.base import BaseModule
 
+valid_chars = "ETAONRISHDLFCMUGYPWBVKJXQZ0123456789_-$~()&!#%'@^`{}]]"
+
+
+def encode_all(string):
+    return "".join("%{0:0>2}".format(format(ord(char), "x")) for char in string)
+
 
 class iis_shortnames(BaseModule):
 
@@ -14,117 +20,107 @@ class iis_shortnames(BaseModule):
     }
     in_scope_only = True
 
-    deps_ansible = [
-        {
-            "name": "Install Java JRE (Debian)",
-            "become": True,
-            "package": {"name": "default-jre", "state": "latest"},
-            "when": """ansible_facts['os_family'] == 'Debian'""",
-        },
-        {
-            "name": "Install Java JRE (RedHat)",
-            "become": True,
-            "package": {"name": "java-latest-openjdk", "state": "latest"},
-            "when": """ansible_facts['os_family'] == 'RedHat'""",
-        },
-        {
-            "name": "Install Java JRE (Archlinux)",
-            "package": {"name": "jre-openjdk", "state": "present"},
-            "become": True,
-            "when": """ansible_facts['os_family'] == 'Archlinux'""",
-        },
-    ]
+    def detect(self, target):
+        headers = {}
+        detected = []
+        random_string = self.helpers.rand_string(8)
+        control_url = f"{target}{random_string}*~1*/a.aspx"
+        test_url = f"{target}*~1*/a.aspx"
 
-    def setup(self):
-        iis_shortname_jar = (
-            "https://github.com/irsdl/IIS-ShortName-Scanner/raw/master/release/iis_shortname_scanner.jar"
-        )
+        for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
 
-        iis_shortname_config = (
-            "https://raw.githubusercontent.com/irsdl/IIS-ShortName-Scanner/master/release/config.xml"
-        )
-        self.iis_scanner_jar = self.helpers.download(iis_shortname_jar, cache_hrs=720)
-        self.iis_scanner_config = self.helpers.download(iis_shortname_config, cache_hrs=720)
-        if self.iis_scanner_jar and self.iis_scanner_config:
+            control = self.helpers.request(method=method, headers=headers, url=control_url)
+            test = self.helpers.request(method=method, headers=headers, url=test_url)
+            if (control != None) and (test != None):
+                if (control.status_code != 404) and (test.status_code == 404):
+                    detected.append(method)
+        return detected
+
+    def duplicate_check(self, target, method, url_hint):
+
+        duplicates = []
+        headers = {}
+        count = 2
+        while 1:
+            payload = encode_all(url_hint.replace("~1", f"*~{str(count)}*\\a.aspx"))
+            url = f"{target}{payload}"
+
+            duplicate_check_results = self.helpers.request(method=method, headers=headers, url=url)
+            if duplicate_check_results.status_code != 404:
+                break
+            duplicates.append(url_hint.replace("~1", f"~{str(count)}"))
+            count += 1
+
+            if count > 5:
+                self.warning("Found more than 5 files with the same shortname. Will stop further duplicate checking.")
+                break
+
+        return duplicates
+
+    def threaded_request(self, method, url):
+        r = self.helpers.request(method=method, url=url)
+        if r.status_code == 404:
             return True
-        return False
+        else:
+            return False
+
+    def solve_shortname_recursive(self, method, target, prefix, extension_mode=False):
+        url_hint_list = []
+        found_results = False
+
+        futures = {}
+        for c in valid_chars:
+            suffix = "\\"
+            wildcard = "*" if extension_mode else "*~1*"
+            payload = encode_all(f"{prefix}{c}{wildcard}")
+            url = f"{target}{payload}{suffix}"
+            future = self.submit_task(self.threaded_request, method, url)
+            futures[future] = c
+
+        for future in self.helpers.as_completed(futures):
+            c = futures[future]
+            result = future.result()
+            if result:
+                found_results = True
+                url_hint_list += self.solve_shortname_recursive(method, target, f"{prefix}{c}", extension_mode)
+        if len(prefix) > 0 and found_results == False:
+            url_hint_list.append(f"{prefix}")
+        return url_hint_list
 
     def handle_event(self, event):
-
         normalized_url = event.data.rstrip("/") + "/"
-        result = self.detect(normalized_url)
-
-        if result:
-            description = f"IIS Shortname Vulnerability"
+        vulnerable_methods = self.detect(normalized_url)
+        if vulnerable_methods:
+            description = f"IIS Shortname Vulnerability Detected. Vulnerable methods: [{','.join(vulnerable_methods)}]"
             self.emit_event(
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
                 event,
             )
             if not self.config.get("detect_only"):
-                command = [
-                    "java",
-                    "-jar",
-                    self.iis_scanner_jar,
-                    "0",
-                    str(self.config.get("threads", 8)),
-                    normalized_url,
-                    self.iis_scanner_config,
-                ]
-                output = self.helpers.run(command).stdout
-                self.debug(output)
-                discovered_directories, discovered_files = self.shortname_parse(output)
-                for d in discovered_directories:
-                    if d[-2] == "~":
-                        d = d.split("~")[:-1][0]
-                    self.emit_event(normalized_url + d, "URL_HINT", event, tags=["directory"])
-                for f in discovered_files:
-                    if f[-2] == "~":
-                        f = f.split("~")[:-1][0]
-                    self.emit_event(normalized_url + f, "URL_HINT", event, tags=["file"])
 
-    def detect(self, url):
+                file_name_hints = self.solve_shortname_recursive(vulnerable_methods[0], normalized_url, "")
+                file_name_hints = [f"{x}~1" for x in file_name_hints]
 
-        detected = False
-        http_methods = ["GET", "OPTIONS", "DEBUG"]
-        for http_method in http_methods:
-            dir_name = self.helpers.rand_string(8)
-            file_name = self.helpers.rand_string(1)
-            control_url = url.rstrip("/") + "/" + f"{dir_name}*~1*/{file_name}.aspx"
-            control = self.helpers.request(control_url, method=http_method)
-            test_url = url.rstrip("/") + "/" + f"*~1*/{file_name}.aspx"
-            test = self.helpers.request(test_url, method=http_method)
-            if (control != None) and (test != None):
-                if (control.status_code != 404) and (test.status_code == 404):
-                    detected = True
-        return detected
+                url_hint_list = []
+                for x in file_name_hints:
+                    duplicates = self.duplicate_check(normalized_url, vulnerable_methods[0], x)
+                    if duplicates:
+                        file_name_hints += duplicates
 
-    def shortname_parse(self, output):
-        discovered_directories = []
-        discovered_files = []
-        parseLines = output.split("\n")
-        inDirectories = False
-        inFiles = False
-        for idx, line in enumerate(parseLines):
-            if "Identified directories" in line:
-                inDirectories = True
-            elif "Indentified files" in line:
-                inFiles = True
-                inDirectories = False
-            elif ":" in line:
-                pass
-            elif "Actual" in line:
-                pass
-            else:
-                if inFiles == True:
-                    if len(line) > 0:
-                        shortname = line.split(" ")[-1].split(".")[0].split("~")[0]
-                        extension = line.split(" ")[-1].split(".")[1]
-                        if "?" not in extension:
-                            discovered_files.append(f"{shortname}.{extension}".lower())
+                for y in file_name_hints:
+                    file_name_extension_hints = self.solve_shortname_recursive(
+                        vulnerable_methods[0], normalized_url, f"{y}.", extension_mode=True
+                    )
+                    for z in file_name_extension_hints:
 
-                elif inDirectories == True:
-                    if len(line) > 0:
-                        shortname = line.split(" ")[-1]
-                        discovered_directories.append(shortname.lower())
-        return discovered_directories, discovered_files
+                        url_hint_list.append(z)
+
+                for url_hint in url_hint_list:
+                    if url_hint.endswith("."):
+                        url_hint = url_hint.rstrip(".")
+                    if "." in url_hint:
+                        hint_type = "shortname-file"
+                    else:
+                        hint_type = "shortname-directory"
+                    self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])

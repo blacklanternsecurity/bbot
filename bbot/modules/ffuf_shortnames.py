@@ -1,3 +1,4 @@
+import re
 import random
 import string
 
@@ -7,7 +8,7 @@ from bbot.modules.deadly.ffuf import ffuf
 class ffuf_shortnames(ffuf):
 
     watched_events = ["URL_HINT"]
-    produced_events = ["URL"]
+    produced_events = ["URL_UNVERIFIED"]
     flags = ["brute-force", "aggressive", "active", "web-advanced", "iis-shortnames"]
     meta = {"description": "Use ffuf in combination IIS shortnames"}
 
@@ -17,6 +18,7 @@ class ffuf_shortnames(ffuf):
         "max_depth": 1,
         "version": "1.5.0",
         "extensions": "",
+        "ignore_redirects": False,
     }
 
     options_desc = {
@@ -25,6 +27,7 @@ class ffuf_shortnames(ffuf):
         "max_depth": "the maxium directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
+        "ignore_redirects": "Explicitly ignore redirects. Enable if getting a excessive false positives.",
     }
 
     in_scope_only = True
@@ -56,18 +59,17 @@ class ffuf_shortnames(ffuf):
         wordlist = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist)
         self.extensions = self.config.get("extensions")
+        self.ignore_redirects = self.config.get("ignore_redirects")
         return True
 
     def handle_event(self, event):
 
-        filename_hint = event.parsed.path.rsplit(".", 1)[0].split("/")[-1]
-
+        filename_hint = re.sub(r"~\d", "", event.parsed.path.rsplit(".", 1)[0].split("/")[-1])
         tempfile = self.generate_templist(self.wordlist, prefix=filename_hint)
-
         root_stub = "/".join(event.parsed.path.split("/")[:-1])
         root_url = f"{event.parsed.scheme}://{event.parsed.netloc}{root_stub}/"
 
-        if "file" in event.tags:
+        if "shortname-file" in event.tags:
             extension_hint = event.parsed.path.rsplit(".", 1)[1]
             used_extensions = []
             used_extensions.append(extension_hint)
@@ -78,9 +80,9 @@ class ffuf_shortnames(ffuf):
 
             for ext in used_extensions:
                 for r in self.execute_ffuf(tempfile, event, root_url, suffix=f".{ext}"):
-                    self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
+                    self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
-        elif "dir" in event.tags:
+        elif "shortname-directory" in event.tags:
 
             for r in self.execute_ffuf(tempfile, event, root_url):
-                self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
+                self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
