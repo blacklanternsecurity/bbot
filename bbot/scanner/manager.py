@@ -62,7 +62,7 @@ class ScanManager:
                 return False
             except Exception as e:
                 log.error(f"Unexpected error in manager.emit_event(): {e}")
-                log.debug(traceback.format_exc())
+                log.trace(traceback.format_exc())
         else:
             # don't raise an exception if the thread pool has been shutdown
             try:
@@ -72,7 +72,7 @@ class ScanManager:
                 return False
             except Exception as e:
                 log.error(f"Unexpected error in manager.emit_event(): {e}")
-                log.debug(traceback.format_exc())
+                log.trace(traceback.format_exc())
                 event._resolved.set()
         return False
 
@@ -109,7 +109,7 @@ class ScanManager:
             abort_if = kwargs.pop("abort_if", None)
             log.debug(f'Module "{event.module}" raised {event}')
 
-            # Wait for parent event to resolve (in case its scope distance changes)`
+            # Wait for parent event to resolve (in case its scope distance changes)
             while 1:
                 if self.scan.stopping:
                     raise ScanCancelledError()
@@ -241,7 +241,7 @@ class ScanManager:
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
 
         finally:
             if event_distributed:
@@ -298,7 +298,7 @@ class ScanManager:
             log.debug(f"BrokenPipeError in {callback.__qualname__}(): {e}")
         except Exception as e:
             log.error(f"Error in {callback.__qualname__}(): {e}")
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
         except KeyboardInterrupt:
             log.debug(f"Interrupted")
             self.scan.stop()
@@ -312,7 +312,7 @@ class ScanManager:
                 log.error(
                     f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {callback.__qualname__}(): {e}"
                 )
-                log.debug(traceback.format_exc())
+                log.trace(traceback.format_exc())
         return ret
 
     def distribute_event(self, *args, **kwargs):

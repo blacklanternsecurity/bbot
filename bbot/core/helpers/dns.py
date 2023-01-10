@@ -247,12 +247,12 @@ class DNSHelper:
                 wildcard_rdtypes = self.is_wildcard(event_host)
             else:
                 wildcard_rdtypes = _wildcard_rdtypes
-                for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
-                    wildcard_tag = "error"
-                    if is_wildcard == True:
-                        event_tags.add("wildcard")
-                        wildcard_tag = "wildcard"
-                    event_tags.add(f"{rdtype.lower()}-{wildcard_tag}")
+            for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
+                wildcard_tag = "error"
+                if is_wildcard == True:
+                    event_tags.add("wildcard")
+                    wildcard_tag = "wildcard"
+                event_tags.add(f"{rdtype.lower()}-{wildcard_tag}")
 
             # lock to ensure resolution of the same host doesn't start while we're working here
             with self._event_cache_locks.get_lock(event_host):
@@ -603,55 +603,61 @@ class DNSHelper:
         Returns a dictionary containing any DNS record types that are wildcards, and their associated IPs
             is_wildcard_domain("github.io") --> {"A": {"1.2.3.4",}, "AAAA": {"dead::beef",}}
         """
+        wildcard_domain_results = {}
         domain = self._clean_dns_record(domain)
+
         # make a list of its parents
         parents = list(domain_parents(domain, include_self=True))
-        num_parents = len(parents)
-        # and check each of them, beginning with the highest parent (e.g. evilcorp.com)
+        # and check each of them, beginning with the highest parent (i.e. the root domain)
         for i, host in enumerate(parents[::-1]):
             # have we checked this host before?
             host_hash = hash(host)
             with self._wildcard_lock.get_lock(host_hash):
+
                 # if we've seen this host before
                 if host_hash in self._wildcard_cache:
-                    # return true if it's a wildcard
-                    if self._wildcard_cache[host_hash]:
-                        return self._wildcard_cache[host_hash]
-                    # return false if it's not a wildcard and it's the last one we're checking
-                    elif i + 1 == num_parents:
-                        return {}
-                    # otherwise keep going
-                    else:
-                        continue
+                    wildcard_domain_results[host] = self._wildcard_cache[host_hash]
+                    continue
+
                 # determine if this is a wildcard domain
                 wildcard_futures = {}
                 # resolve a bunch of random subdomains of the same parent
                 for rdtype in self.all_rdtypes:
-                    wildcard_futures[rdtype] = []
+                    # continue if a wildcard was already found for this rdtype
+                    # if rdtype in self._wildcard_cache[host_hash]:
+                    #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
                         future = self._thread_pool.submit_task(
-                            self._catch_keyboardinterrupt, self.resolve, rand_query, type=rdtype, retries=retries
+                            self._catch_keyboardinterrupt,
+                            self.resolve,
+                            rand_query,
+                            type=rdtype,
+                            retries=retries,
+                            cache_result=False,
                         )
-                        wildcard_futures[rdtype].append(future)
+                        wildcard_futures[future] = rdtype
 
                 # combine the random results
-                wildcard_rdtypes = {}
-                for rdtype, futures in wildcard_futures.items():
-                    wildcard_results = set()
-                    for future in self.parent_helper.as_completed(futures):
-                        results = future.result()
-                        if results:
-                            wildcard_results.update(results)
-                    if wildcard_results:
-                        wildcard_rdtypes[rdtype] = wildcard_results
+                is_wildcard = False
+                wildcard_results = dict()
+                for future in self.parent_helper.as_completed(wildcard_futures):
+                    results = future.result()
+                    rdtype = wildcard_futures[future]
+                    if results:
+                        is_wildcard = True
+                    if results:
+                        if not rdtype in wildcard_results:
+                            wildcard_results[rdtype] = set()
+                        wildcard_results[rdtype].update(results)
 
-                self._wildcard_cache.update({host_hash: wildcard_rdtypes})
-                if wildcard_rdtypes:
-                    wildcard_rdtypes_str = ",".join([t.upper() for t in wildcard_rdtypes])
+                self._wildcard_cache.update({host_hash: wildcard_results})
+                wildcard_domain_results.update({host: wildcard_results})
+                if is_wildcard:
+                    wildcard_rdtypes_str = ",".join([t.upper() for t, r in wildcard_results.items() if r])
                     log.info(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
-                    return wildcard_rdtypes
-        return {}
+
+        return wildcard_domain_results
 
     def _catch_keyboardinterrupt(self, callback, *args, **kwargs):
         try:
@@ -660,7 +666,7 @@ class DNSHelper:
             import traceback
 
             log.error(f"Error in {callback.__qualname__}(): {e}")
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
         except KeyboardInterrupt:
             if self.parent_helper.scan:
                 self.parent_helper.scan.stop()

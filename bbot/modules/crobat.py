@@ -40,9 +40,9 @@ class crobat(BaseModule):
         if any([t in event.tags for t in ("a-error", "aaaa-error")]):
             return False
         # discard wildcards
-        wildcard_rdtypes = self.helpers.is_wildcard_domain(query)
-        if any([t in wildcard_rdtypes for t in ("A", "AAAA")]):
-            return False
+        for domain, rdtypes in self.helpers.is_wildcard_domain(query).items():
+            if any([rdtypes.get(t, set()) for t in ("A", "AAAA", "CNAME")]):
+                return False
         self.processed.add(hash(query))
         return True
 
@@ -92,7 +92,5 @@ class crobat(BaseModule):
                 return results
             self.debug(f'No results for "{query}"')
         except Exception:
-            import traceback
-
             self.verbose(f"Error retrieving results for {query}")
-            self.debug(traceback.format_exc())
+            self.trace()

@@ -44,7 +44,5 @@ class Ipstack(shodan_dns):
             else:
                 self.verbose(f"No response from {url}")
         except Exception:
-            import traceback
-
             self.verbose(f"Error retrieving results for {event.data}")
-            self.debug(traceback.format_exc())
+            self.trace()

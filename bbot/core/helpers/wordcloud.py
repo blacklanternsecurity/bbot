@@ -162,7 +162,7 @@ class WordCloud(dict):
             import traceback
 
             log.warning(f"Failed to save word cloud to {filename}: {e}")
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
         return False, filename
 
     def load(self, filename=None):
@@ -192,4 +192,4 @@ class WordCloud(dict):
                 log_fn = log.warning
             log_fn(f"Failed to load word cloud from {wordcloud_path}: {e}")
             if filename is not None:
-                log.debug(traceback.format_exc())
+                log.trace(traceback.format_exc())
