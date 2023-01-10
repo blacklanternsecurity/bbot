@@ -9,7 +9,7 @@ from bbot.modules.base import BaseModule
 class ffuf(BaseModule):
 
     watched_events = ["URL"]
-    produced_events = ["URL"]
+    produced_events = ["URL_UNVERIFIED"]
     flags = ["brute-force", "aggressive", "active", "web-advanced"]
     meta = {"description": "A fast web fuzzer written in Go"}
 
@@ -71,7 +71,7 @@ class ffuf(BaseModule):
             fixed_url = event.data.rstrip("/") + "/"
 
         for r in self.execute_ffuf(self.tempfile, event, fixed_url):
-            self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
+            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
     def execute_ffuf(self, tempfile, event, url, suffix=""):
 

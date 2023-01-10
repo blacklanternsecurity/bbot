@@ -120,7 +120,7 @@ class iis_shortnames(BaseModule):
                     if url_hint.endswith("."):
                         url_hint = url_hint.rstrip(".")
                     if "." in url_hint:
-                        hint_type = "file"
+                        hint_type = "shortname-file"
                     else:
-                        hint_type = "directory"
+                        hint_type = "shortname-directory"
                     self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
