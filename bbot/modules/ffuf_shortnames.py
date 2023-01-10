@@ -1,3 +1,4 @@
+import re
 import random
 import string
 
@@ -17,6 +18,7 @@ class ffuf_shortnames(ffuf):
         "max_depth": 1,
         "version": "1.5.0",
         "extensions": "",
+        "ignore_redirects": False,
     }
 
     options_desc = {
@@ -25,6 +27,7 @@ class ffuf_shortnames(ffuf):
         "max_depth": "the maxium directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
+        "ignore_redirects": "Explicitly ignore redirects. Enable if getting a excessive false positives.",
     }
 
     in_scope_only = True
@@ -56,14 +59,13 @@ class ffuf_shortnames(ffuf):
         wordlist = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist)
         self.extensions = self.config.get("extensions")
+        self.ignore_redirects = self.config.get("ignore_redirects")
         return True
 
     def handle_event(self, event):
 
-        filename_hint = event.parsed.path.rsplit(".", 1)[0].split("/")[-1]
-
+        filename_hint = re.sub(r"~\d", "", event.parsed.path.rsplit(".", 1)[0].split("/")[-1])
         tempfile = self.generate_templist(self.wordlist, prefix=filename_hint)
-
         root_stub = "/".join(event.parsed.path.split("/")[:-1])
         root_url = f"{event.parsed.scheme}://{event.parsed.netloc}{root_stub}/"
 
@@ -80,7 +82,7 @@ class ffuf_shortnames(ffuf):
                 for r in self.execute_ffuf(tempfile, event, root_url, suffix=f".{ext}"):
                     self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
 
-        elif "dir" in event.tags:
+        elif "directory" in event.tags:
 
             for r in self.execute_ffuf(tempfile, event, root_url):
                 self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
