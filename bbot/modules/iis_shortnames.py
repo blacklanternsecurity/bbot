@@ -1,4 +1,3 @@
-import re
 from bbot.modules.base import BaseModule
 
 valid_chars = "ETAONRISHDLFCMUGYPWBVKJXQZ0123456789_-$~()&!#%'@^`{}]]"
@@ -124,5 +123,4 @@ class iis_shortnames(BaseModule):
                         hint_type = "file"
                     else:
                         hint_type = "directory"
-                    #   url_hint_processed = re.sub(r'~\d', '', url_hint)
                     self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
