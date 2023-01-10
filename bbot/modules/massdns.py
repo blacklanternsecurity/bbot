@@ -52,9 +52,6 @@ class massdns(crobat):
         if "unresolved" in event.tags and not "target" in event.tags:
             return False
         query = self.make_query(event)
-        # discard cloud resources
-        if not "target" in event.tags and any([t.startswith("cloud-") for t in event.tags]):
-            return False
         if self.already_processed(query):
             return False
         self.processed.add(hash(query))

@@ -5,7 +5,6 @@ import ipaddress
 import dns.resolver
 import dns.exception
 from threading import Lock
-from cdncheck import cdncheck
 from contextlib import suppress
 from concurrent.futures import ThreadPoolExecutor
 
@@ -316,17 +315,6 @@ class DNSHelper:
                             log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
                             event.data = wildcard_data
                         return (event, wildcard_rdtypes)
-
-                ips = set()
-                if event.type == "IP_ADDRESS":
-                    ips.add(event.data)
-                for rdtype, target in children:
-                    if rdtype in ("A", "AAAA"):
-                        ips.add(target)
-                for ip in ips:
-                    cdn = cdncheck(ip)
-                    if cdn:
-                        event_tags.add(f"cloud-{cdn}")
 
                 if "resolved" not in event_tags:
                     event_tags.add("unresolved")
