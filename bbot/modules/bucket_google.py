@@ -1,7 +1,7 @@
 from bbot.modules.bucket_aws import bucket_aws
 
 
-class bucket_gcp(bucket_aws):
+class bucket_google(bucket_aws):
     """
     Adapted from https://github.com/RhinoSecurityLabs/GCPBucketBrute/blob/master/gcpbucketbrute.py
     """
@@ -16,7 +16,7 @@ class bucket_gcp(bucket_aws):
         "permutations": "Whether to try permutations",
     }
 
-    cloud_helper_name = "gcp"
+    cloud_helper_name = "google"
     delimiters = ("", "-", ".", "_")
     base_domains = ["storage.googleapis.com"]
     bad_permissions = [
