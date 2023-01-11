@@ -81,6 +81,17 @@ class iis_shortnames(BaseModule):
             result = future.result()
             if result:
                 found_results = True
+
+                # check to make sure the file isn't shorter than 6 characters
+                wildcard = "~1*"
+                payload = encode_all(f"{prefix}{c}{wildcard}")
+                url = f"{target}{payload}{suffix}"
+                r = self.helpers.request(method=method, url=url)
+                if r is not None:
+                    if r.status_code == 404:
+                        url_hint_list.append(f"{prefix}{c}")
+
+
                 url_hint_list += self.solve_shortname_recursive(method, target, f"{prefix}{c}", extension_mode)
         if len(prefix) > 0 and found_results == False:
             url_hint_list.append(f"{prefix}")
@@ -90,7 +101,7 @@ class iis_shortnames(BaseModule):
         normalized_url = event.data.rstrip("/") + "/"
         vulnerable_methods = self.detect(normalized_url)
         if vulnerable_methods:
-            description = f"IIS Shortname Vulnerability Detected. Vulnerable methods: [{','.join(vulnerable_methods)}]"
+            description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable methods: [{','.join(vulnerable_methods)}]"
             self.emit_event(
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
