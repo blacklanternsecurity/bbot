@@ -61,7 +61,7 @@ class ffuf_shortnames(ffuf):
         filename_hint = re.sub(r"~\d", "", event.parsed.path.rsplit(".", 1)[0].split("/")[-1]).lower()
 
         if len(filename_hint) == 6:
-            tempfile,tempfile_len = self.generate_templist(self.wordlist, prefix=filename_hint)
+            tempfile, tempfile_len = self.generate_templist(self.wordlist, prefix=filename_hint)
         else:
             tempfile = self.helpers.tempfile([filename_hint], pipe=False)
             tempfile_len = 1
@@ -81,7 +81,7 @@ class ffuf_shortnames(ffuf):
                         l = l.lower().lstrip(".")
                         if l.lower().startswith(extension_hint):
                             used_extensions.append(l.strip())
-                        
+
                 for ext in used_extensions:
 
                     for r in self.execute_ffuf(tempfile, event, root_url, suffix=f".{ext}"):
