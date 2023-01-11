@@ -138,4 +138,4 @@ class ffuf(BaseModule):
                     if not prefix or val.strip().lower().startswith(prefix.lower()):
                         line_count += 1
                         virtual_file.append(f"{val.strip().lower()}")
-        return self.helpers.tempfile(virtual_file, pipe=False),line_count
+        return self.helpers.tempfile(virtual_file, pipe=False), line_count

@@ -91,7 +91,6 @@ class iis_shortnames(BaseModule):
                     if r.status_code == 404:
                         url_hint_list.append(f"{prefix}{c}")
 
-
                 url_hint_list += self.solve_shortname_recursive(method, target, f"{prefix}{c}", extension_mode)
         if len(prefix) > 0 and found_results == False:
             url_hint_list.append(f"{prefix}")
@@ -112,7 +111,6 @@ class iis_shortnames(BaseModule):
                 valid_method_confirmed = False
                 for m in vulnerable_methods:
 
-
                     if valid_method_confirmed:
                         break
 
@@ -131,7 +129,9 @@ class iis_shortnames(BaseModule):
                             file_name_hints += duplicates
 
                     for y in file_name_hints:
-                        file_name_extension_hints = self.solve_shortname_recursive(m, normalized_url, f"{y}.", extension_mode=True)
+                        file_name_extension_hints = self.solve_shortname_recursive(
+                            m, normalized_url, f"{y}.", extension_mode=True
+                        )
                         for z in file_name_extension_hints:
 
                             url_hint_list.append(z)
