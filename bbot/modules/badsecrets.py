@@ -10,7 +10,7 @@ class badsecrets(BaseModule):
     flags = ["active", "safe", "web-basic"]
     meta = {"description": "Library for detecting known or weak secrets on across many platforms"}
     max_event_handlers = 2
-    deps_pip = ["badsecrets"]
+    deps_pip = ["git+https://github.com/blacklanternsecurity/badsecrets.git@dev"]
 
     def handle_event(self, event):
         resp_body = event.data.get("body", None)

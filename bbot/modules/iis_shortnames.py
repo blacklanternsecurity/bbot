@@ -59,10 +59,9 @@ class iis_shortnames(BaseModule):
 
     def threaded_request(self, method, url):
         r = self.helpers.request(method=method, url=url)
-        if r.status_code == 404:
-            return True
-        else:
-            return False
+        if r:
+            if r.status_code == 404:
+                return True
 
     def solve_shortname_recursive(self, method, target, prefix, extension_mode=False):
         url_hint_list = []
