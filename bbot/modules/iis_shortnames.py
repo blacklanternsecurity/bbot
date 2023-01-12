@@ -21,6 +21,7 @@ class iis_shortnames(BaseModule):
     in_scope_only = True
 
     def detect(self, target):
+        technique = None
         headers = {}
         detected = []
         random_string = self.helpers.rand_string(8)
@@ -34,7 +35,14 @@ class iis_shortnames(BaseModule):
             if (control != None) and (test != None):
                 if (control.status_code != 404) and (test.status_code == 404):
                     detected.append(method)
-        return detected
+                    technique = "400/404 HTTP Code"
+
+                elif ("Error Code</th><td>0x80070002" in control.text) and (
+                    "Error Code</th><td>0x00000000" in test.text
+                ):
+                    detected.append(method)
+                    technique = "HTTP Body Error Message"
+        return detected, technique
 
     def duplicate_check(self, target, method, url_hint):
 
@@ -98,9 +106,9 @@ class iis_shortnames(BaseModule):
 
     def handle_event(self, event):
         normalized_url = event.data.rstrip("/") + "/"
-        vulnerable_methods = self.detect(normalized_url)
+        vulnerable_methods, technique = self.detect(normalized_url)
         if vulnerable_methods:
-            description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable methods: [{','.join(vulnerable_methods)}]"
+            description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable methods: [{','.join(vulnerable_methods)}] Technique: [{technique}]"
             self.emit_event(
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
