@@ -408,6 +408,10 @@ class BaseEvent:
     def priority(self):
         if self._priority is None:
             timestamp = self.timestamp.timestamp()
+            module = getattr(self, "module", None)
+            prioritize_event = getattr(module, "prioritize_event", None)
+            if prioritize_event:
+                timestamp = prioritize_event(self)
             if self.source.timestamp == self.timestamp:
                 self._priority = (timestamp,)
             else:

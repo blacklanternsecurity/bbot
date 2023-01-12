@@ -72,8 +72,8 @@ class BaseModule:
     _scope_shepherding = True
     # Exclude from scan statistics
     _stats_exclude = False
-    # outgoing queue size
-    _qsize = 100
+    # outgoing queue size (None == infinite)
+    _qsize = None
     # Priority of events raised by this module, 1-5, lower numbers == higher priority
     _priority = 3
     # Name, overridden automatically
@@ -222,6 +222,8 @@ class BaseModule:
                     # update event's scope distance based on its parent
                     event.scope_distance = event.source.scope_distance + 1
                     break
+                else:
+                    self.critical(f"{event} WAITING ON {event.source}")
             self.scan.manager.incoming_event_queue.put((event, kwargs))
 
     @property
@@ -303,7 +305,7 @@ class BaseModule:
                 iterations += 1
 
                 # hold the reigns if our outgoing queue is full
-                if self.outgoing_event_queue_qsize >= self._qsize:
+                if self._qsize and self.outgoing_event_queue_qsize >= self._qsize:
                     self._batch_idle += 1
                     sleep(0.1)
                     continue
@@ -513,13 +515,25 @@ class BaseModule:
     def priority(self):
         return int(max(1, min(5, self._priority)))
 
+    def prioritize_event(self, event):
+        # modify timestamp based on module priority
+        timestamp = event.timestamp.timestamp()
+        # self.hugewarning(f"{event} before: {timestamp}")
+        module_priority = self.priority - 3
+        if module_priority > 0:
+            timestamp = timestamp * (1 + module_priority)
+        elif module_priority < 0:
+            timestamp = timestamp / (1 + module_priority)
+        # self.hugesuccess(f"{event} after:  {timestamp}")
+        return timestamp
+
     @property
     def auth_required(self):
         return self.meta.get("auth_required", False)
 
     @property
     def log(self):
-        if self._log is None:
+        if getattr(self, "_log", None) is None:
             self._log = logging.getLogger(f"bbot.modules.{self.name}")
         return self._log
 

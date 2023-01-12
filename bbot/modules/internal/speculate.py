@@ -19,6 +19,7 @@ class speculate(BaseInternalModule):
     max_event_handlers = 5
     scope_distance_modifier = 0
     _scope_shepherding = False
+    _priority = 4
 
     def setup(self):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
