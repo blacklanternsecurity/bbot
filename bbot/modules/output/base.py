@@ -11,11 +11,8 @@ class BaseOutputModule(BaseModule):
     _stats_exclude = True
 
     def _filter_event(self, event, precheck_only=False):
-        if type(event) == str:
-            if event in ("FINISHED", "REPORT"):
-                return True, ""
-            else:
-                return False, f'string value "{event}" is invalid'
+        if event.type in ("FINISHED",):
+            return True, ""
         if event._omit:
             return False, "_omit is True"
         if not precheck_only:

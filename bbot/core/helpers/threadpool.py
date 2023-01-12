@@ -1,5 +1,6 @@
 import logging
 import threading
+from queue import Full
 from time import sleep
 
 log = logging.getLogger("bbot.core.helpers.threadpool")
@@ -14,9 +15,10 @@ class ThreadPoolWrapper:
     Allows setting lower thread limits for modules, etc.
     """
 
-    def __init__(self, executor, max_workers=None):
+    def __init__(self, executor, max_workers=None, qsize=None):
         self.executor = executor
         self.max_workers = max_workers
+        self.max_qsize = qsize
         self.futures = set()
         self._future_lock = threading.Lock()
         self._submit_task_lock = threading.Lock()
@@ -24,13 +26,13 @@ class ThreadPoolWrapper:
     def submit_task(self, callback, *args, **kwargs):
         """
         A wrapper around threadpool.submit()
-
-        This blocks, which isn't ideal, but it ensures that modules don't hog the shared thread pool
         """
         with self._submit_task_lock:
             if self.max_workers is not None:
                 while self.num_tasks > self.max_workers:
                     sleep(0.1)
+            if self.max_qsize is not None and self.qsize >= self.max_qsize:
+                raise Full()
             try:
                 future = self.executor.submit(callback, *args, **kwargs)
             except RuntimeError as e:

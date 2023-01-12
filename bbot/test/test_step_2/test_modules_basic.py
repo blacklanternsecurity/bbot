@@ -21,11 +21,8 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
         localhost2 = scan.make_event("127.0.0.2", source=events.subdomain)
         localhost2.make_in_scope()
         # base cases
-        assert base_module._filter_event("FINISHED")[0] == True
-        assert base_module._filter_event("WAT")[0] == False
         base_module._watched_events = None
         base_module.watched_events = ["*"]
-        assert base_module._filter_event("WAT")[0] == False
         assert base_module._filter_event(events.emoji)[0] == True
         base_module._watched_events = None
         base_module.watched_events = ["IP_ADDRESS"]
