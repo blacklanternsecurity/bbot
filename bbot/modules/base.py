@@ -12,18 +12,6 @@ from ..core.errors import ScanCancelledError, ValidationError, WordlistError
 from bbot.core.event.base import is_event
 
 
-class OutgoingEventWrapper(tuple):
-    """
-    Allows sorting of tuples in outgoing PriorityQueue
-    """
-
-    def __gt__(self, other):
-        return self[0] > other[0]
-
-    def __lt__(self, other):
-        return self[0] < other[0]
-
-
 class BaseModule:
 
     # Event types to watch
@@ -98,7 +86,6 @@ class BaseModule:
         self.errored = False
         self._log = None
         self._incoming_event_queue = None
-        self._outgoing_event_queue = None
         # how many seconds we've gone without processing a batch
         self._batch_idle = 0
         # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
@@ -221,15 +208,21 @@ class BaseModule:
         return event
 
     def emit_event(self, *args, **kwargs):
-        if self.scan.stopping:
-            return
         event_kwargs = dict(kwargs)
         for o in ("on_success_callback", "abort_if", "quick"):
             event_kwargs.pop(o, None)
         event = self.make_event(*args, **event_kwargs)
         if event:
-            outgoing_event = OutgoingEventWrapper((event, kwargs))
-            self.outgoing_event_queue.put(outgoing_event)
+            # Wait for parent event to resolve (in case its scope distance changes)
+            while 1:
+                if self.scan.stopping:
+                    return
+                resolved = event.source._resolved.wait(timeout=0.1)
+                if resolved:
+                    # update event's scope distance based on its parent
+                    event.scope_distance = event.source.scope_distance + 1
+                    break
+            self.scan.manager.incoming_event_queue.put((event, kwargs))
 
     @property
     def events_waiting(self):
@@ -310,7 +303,7 @@ class BaseModule:
                 iterations += 1
 
                 # hold the reigns if our outgoing queue is full
-                if self.outgoing_event_queue.qsize() >= self._qsize:
+                if self.outgoing_event_queue_qsize >= self._qsize:
                     self._batch_idle += 1
                     sleep(0.1)
                     continue
@@ -418,6 +411,8 @@ class BaseModule:
         try:
             if not self.filter_event(event):
                 return False, f"{event} did not meet custom filter criteria"
+        except ScanCancelledError:
+            return False, "Scan cancelled"
         except Exception as e:
             self.error(f"Error in filter_event({event}): {e}")
             self.trace()
@@ -473,13 +468,10 @@ class BaseModule:
         internal_pool = self._internal_thread_pool.num_tasks
         pool_total = main_pool + internal_pool
         incoming_qsize = 0
-        outgoing_qsize = 0
         if self.incoming_event_queue:
             incoming_qsize = self.incoming_event_queue.qsize()
-        if self.outgoing_event_queue:
-            outgoing_qsize = self.outgoing_event_queue.qsize()
         status = {
-            "events": {"incoming": incoming_qsize, "outgoing": outgoing_qsize},
+            "events": {"incoming": incoming_qsize, "outgoing": self.outgoing_event_queue_qsize},
             "tasks": {"main_pool": main_pool, "internal_pool": internal_pool, "total": pool_total},
             "errored": self.errored,
         }
@@ -514,10 +506,8 @@ class BaseModule:
         return self._incoming_event_queue
 
     @property
-    def outgoing_event_queue(self):
-        if self._outgoing_event_queue is None:
-            self._outgoing_event_queue = queue.PriorityQueue()
-        return self._outgoing_event_queue
+    def outgoing_event_queue_qsize(self):
+        return self.scan.manager.incoming_event_queue.modules.get(str(self), 0)
 
     @property
     def priority(self):
