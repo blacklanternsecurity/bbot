@@ -222,8 +222,6 @@ class BaseModule:
                     # update event's scope distance based on its parent
                     event.scope_distance = event.source.scope_distance + 1
                     break
-                else:
-                    self.critical(f"{event} WAITING ON {event.source}")
             self.scan.manager.incoming_event_queue.put((event, kwargs))
 
     @property
