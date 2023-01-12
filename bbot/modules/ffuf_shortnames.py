@@ -50,7 +50,7 @@ class ffuf_shortnames(ffuf):
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist = self.config.get("wordlist", "")
         if not wordlist:
-            wordlist = f"{self.parent_helper.wordlist_dir}/ffuf_shortname_candidates.txt"
+            wordlist = f"{self.helpers.wordlist_dir}/ffuf_shortname_candidates.txt"
         self.wordlist = self.helpers.wordlist(wordlist)
         wordlist_extensions = self.config.get("wordlist_extensions", "")
         self.wordlist_extensions = self.helpers.wordlist(wordlist_extensions)
