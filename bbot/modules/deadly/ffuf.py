@@ -122,21 +122,20 @@ class ffuf(BaseModule):
                     self.debug("Received invalid JSON from FFUF")
 
     def generate_templist(self, wordlist, prefix=None):
-
+        line_count = 0
         f = open(wordlist, "r")
         fl = f.readlines()
         f.close()
-
         virtual_file = []
         virtual_file.append(self.sanity_canary)
         for idx, val in enumerate(fl):
             if idx > self.config.get("lines"):
                 break
             if len(val) > 0:
-
                 if val.strip().lower() in self.blacklist:
                     self.debug(f"Skipping adding [{val.strip()}] to wordlist because it was in the blacklist")
                 else:
                     if not prefix or val.strip().lower().startswith(prefix.lower()):
+                        line_count += 1
                         virtual_file.append(f"{val.strip().lower()}")
-        return self.helpers.tempfile(virtual_file, pipe=False)
+        return self.helpers.tempfile(virtual_file, pipe=False), line_count
