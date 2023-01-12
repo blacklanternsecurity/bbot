@@ -6,6 +6,7 @@ from time import sleep
 from contextlib import suppress
 from datetime import datetime, timedelta
 
+from ..core.helpers.queueing import EventQueue
 from ..core.errors import ScanCancelledError, ValidationError
 
 log = logging.getLogger("bbot.scanner.manager")
@@ -19,6 +20,7 @@ class ScanManager:
     def __init__(self, scan):
         self.scan = scan
         self.queued_event_types = dict()
+        self.incoming_event_queue = EventQueue()
 
         # tracks duplicate events on a global basis
         self.events_distributed = set()
@@ -66,8 +68,12 @@ class ScanManager:
         else:
             # don't raise an exception if the thread pool has been shutdown
             try:
-                self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
-                return True
+                while not self.scan.stopping:
+                    try:
+                        self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
+                        return True
+                    except queue.Full:
+                        sleep(0.01)
             except ScanCancelledError:
                 return False
             except Exception as e:
@@ -108,16 +114,6 @@ class ScanManager:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
             log.debug(f'Module "{event.module}" raised {event}')
-
-            # Wait for parent event to resolve (in case its scope distance changes)
-            while 1:
-                if self.scan.stopping:
-                    raise ScanCancelledError()
-                resolved = event.source._resolved.wait(timeout=0.1)
-                if resolved:
-                    # update event's scope distance based on its parent
-                    event.scope_distance = event.source.scope_distance + 1
-                    break
 
             # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
@@ -244,6 +240,7 @@ class ScanManager:
             log.trace(traceback.format_exc())
 
         finally:
+            event._resolved.set()
             if event_distributed:
                 self.scan.stats.event_distributed(event)
             log.debug(f"{event.module}.emit_event() finished for {event}")
@@ -350,9 +347,7 @@ class ScanManager:
                         mod.queue_event(event)
 
     def loop_until_finished(self, status_frequency=10):
-        iteration = 0
         modules = list(self.scan.modules.values())
-        num_modules = len(modules)
         activity = True
         timedelta_2secs = timedelta(seconds=status_frequency)
         last_log_time = datetime.now()
@@ -364,14 +359,14 @@ class ScanManager:
             while 1:
                 # abort if we're aborting
                 if self.scan.aborting:
-                    # Empty incoming and outgoing module event queue
+                    # Empty event queues
                     for module in self.scan.modules.values():
                         with suppress(queue.Empty):
                             while 1:
                                 module.incoming_event_queue.get_nowait()
-                        with suppress(queue.Empty):
-                            while 1:
-                                module.outgoing_event_queue.get_nowait()
+                    with suppress(queue.Empty):
+                        while 1:
+                            self.incoming_event_queue.get_nowait()
                     break
 
                 # print status every 2 seconds
@@ -385,43 +380,31 @@ class ScanManager:
                     events, finish, report = self.scan.modules["python"].events_waiting
                     yield from events
 
-                # pause if the thread pool queue is full
-                while (
-                    not self.scan.aborting and self.scan._event_thread_pool.qsize >= self.scan._event_thread_pool_qsize
-                ):
-                    sleep(0.05)
-
-                module_index = iteration % num_modules
-                module = modules[module_index]
-                end = module_index == num_modules - 1
                 try:
-                    event, kwargs = module.outgoing_event_queue.get_nowait()
+                    event, kwargs = self.incoming_event_queue.get_nowait()
                     acceptable = self.emit_event(event, **kwargs)
                     if acceptable:
                         activity = True
                 except queue.Empty:
                     # if we're on the last module
-                    if end:
-                        finished = self.modules_status().get("finished", False)
-                        # And if the scan is finished
-                        if finished:
-                            # And if new events were generated since last time we were here
-                            if activity:
-                                activity = False
-                                self.scan.status = "FINISHING"
-                                # Trigger .finished() on every module and start over
-                                log.info("Finishing scan")
-                                finished_event = self.scan.make_event("FINISHED", "FINISHED", dummy=True)
-                                for module in modules:
-                                    module.queue_event(finished_event)
-                            else:
-                                # Otherwise stop the scan if no new events were generated since last time
-                                break
-                        continue
-                        # save on CPU
-                        sleep(0.1)
-                finally:
-                    iteration += 1
+                    finished = self.modules_status().get("finished", False)
+                    # And if the scan is finished
+                    if finished:
+                        # And if new events were generated since last time we were here
+                        if activity:
+                            activity = False
+                            self.scan.status = "FINISHING"
+                            # Trigger .finished() on every module and start over
+                            log.info("Finishing scan")
+                            finished_event = self.scan.make_event("FINISHED", "FINISHED", dummy=True)
+                            for module in modules:
+                                module.queue_event(finished_event)
+                        else:
+                            # Otherwise stop the scan if no new events were generated since last time
+                            break
+                    continue
+                    # save on CPU
+                    sleep(0.1)
 
         except KeyboardInterrupt:
             self.scan.stop()
@@ -487,23 +470,50 @@ class ScanManager:
             modules_status = [s for s in modules_status if s[-2] or s[-1] > 0][:5]
             if modules_status:
                 modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, i, o, t, _ in modules_status])
-                self.scan.info(f"Modules: {modules_status_str}")
+                running_modules_str = ", ".join([m[0] for m in modules_status])
+                self.scan.info(f"{self.scan.name}: Running modules: {running_modules_str}")
+                self.scan.verbose(
+                    f"{self.scan.name}: Modules status (incoming:processing:outgoing) {modules_status_str}"
+                )
             event_type_summary = sorted(self.queued_event_types.items(), key=lambda x: x[-1], reverse=True)
-            self.scan.info(f'Events: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}')
+            self.scan.info(
+                f'{self.scan.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
+            )
 
             total_tasks = status["scan"]["queued_tasks"]["total"]
             dns_tasks = status["scan"]["queued_tasks"]["dns"]
             event_tasks = status["scan"]["queued_tasks"]["event"]
             main_tasks = status["scan"]["queued_tasks"]["main"]
             internal_tasks = status["scan"]["queued_tasks"]["internal"]
-            self.scan.info(
-                f"Tasks: {total_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
+            self.scan.verbose(
+                f"{self.scan.name}: Thread pool tasks: {total_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
             )
 
             if modules_errored:
                 self.scan.verbose(
-                    f'Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
+                    f'{self.scan.name}: Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
                 )
+
+            queued_events_by_type = [(k, v) for k, v in self.incoming_event_queue.event_types.items() if v > 0]
+            if queued_events_by_type:
+                queued_events_by_type.sort(key=lambda x: x[-1], reverse=True)
+                queued_events_by_type_str = ", ".join(f"{m}: {t:,}" for m, t in queued_events_by_type)
+                self.scan.info(
+                    f"{self.scan.name}: {self.incoming_event_queue.qsize():,} events in queue ({queued_events_by_type_str})"
+                )
+            else:
+                self.scan.info(f"{self.scan.name}: No events in queued")
+
+            # Uncomment these lines to enable debugging of event queues
+
+            # queued_events = self.incoming_event_queue.events
+            # if queued_events:
+            #     queued_events_str = ", ".join(str(e) for e in queued_events)
+            #     self.scan.verbose(f"Queued events: {queued_events_str}")
+            #     queued_events_by_module = [(k, v) for k, v in self.incoming_event_queue.modules.items() if v > 0]
+            #     queued_events_by_module.sort(key=lambda x: x[-1], reverse=True)
+            #     queued_events_by_module_str = ", ".join(f"{m}: {t:,}" for m, t in queued_events_by_module)
+            #     self.scan.verbose(f"{self.scan.name}: Queued events by module: {queued_events_by_module_str}")
 
         status.update({"modules_errored": len(modules_errored)})
 

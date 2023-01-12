@@ -89,8 +89,9 @@ class Scanner:
         # Shared thread pool, for module use
         self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
         # Event thread pool, for event emission
-        self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2))
-        self._event_thread_pool_qsize = 1000
+        self._event_thread_pool = ThreadPoolWrapper(
+            concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2), qsize=max_workers
+        )
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
         self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
