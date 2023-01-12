@@ -125,7 +125,6 @@ class ffuf(BaseModule):
         line_count = 0
         f = open(wordlist, "r")
         fl = f.readlines()
-        self.critical(len(fl))
         f.close()
         virtual_file = []
         virtual_file.append(self.sanity_canary)
