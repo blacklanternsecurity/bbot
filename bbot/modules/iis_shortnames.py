@@ -1,3 +1,5 @@
+import re
+
 from bbot.modules.base import BaseModule
 
 valid_chars = "ETAONRISHDLFCMUGYPWBVKJXQZ0123456789_-$~()&!#%'@^`{}]]"
@@ -49,15 +51,19 @@ class iis_shortnames(BaseModule):
         duplicates = []
         headers = {}
         count = 2
+        base_hint = re.sub(r"~\d", "", url_hint)
+        suffix = "\\a.aspx"
+
         while 1:
-            payload = encode_all(url_hint.replace("~1", f"*~{str(count)}*\\a.aspx"))
-            url = f"{target}{payload}"
+            payload = encode_all(f"{base_hint}~{str(count)}*")
+            url = f"{target}{payload}{suffix}"
 
             duplicate_check_results = self.helpers.request(method=method, headers=headers, url=url)
             if duplicate_check_results.status_code != 404:
                 break
-            duplicates.append(url_hint.replace("~1", f"~{str(count)}"))
-            count += 1
+            else:
+                duplicates.append(f"{base_hint}~{str(count)}")
+                count += 1
 
             if count > 5:
                 self.warning("Found more than 5 files with the same shortname. Will stop further duplicate checking.")
@@ -77,7 +83,7 @@ class iis_shortnames(BaseModule):
 
         futures = {}
         for c in valid_chars:
-            suffix = "\\"
+            suffix = "\\a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
@@ -129,9 +135,11 @@ class iis_shortnames(BaseModule):
                         valid_method_confirmed = True
 
                     file_name_hints = [f"{x}~1" for x in file_name_hints]
-
                     url_hint_list = []
-                    for x in file_name_hints:
+
+                    file_name_hints_dedupe = file_name_hints[:]
+
+                    for x in file_name_hints_dedupe:
                         duplicates = self.duplicate_check(normalized_url, m, x)
                         if duplicates:
                             file_name_hints += duplicates
