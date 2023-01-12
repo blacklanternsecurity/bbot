@@ -523,7 +523,7 @@ class BaseModule:
         if module_priority > 0:
             timestamp = timestamp * (1 + module_priority)
         elif module_priority < 0:
-            timestamp = timestamp / (1 + module_priority)
+            timestamp = timestamp / (abs(module_priority) + 1)
         # self.hugesuccess(f"{event} after:  {timestamp}")
         return timestamp
 
