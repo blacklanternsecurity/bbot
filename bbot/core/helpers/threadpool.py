@@ -27,11 +27,12 @@ class ThreadPoolWrapper:
         """
         A wrapper around threadpool.submit()
         """
+        block = kwargs.pop("_block", True)
         with self._submit_task_lock:
             if self.max_workers is not None:
                 while self.num_tasks > self.max_workers:
                     sleep(0.1)
-            if self.max_qsize is not None and self.qsize >= self.max_qsize:
+            if block and self.max_qsize is not None and self.qsize >= self.max_qsize:
                 raise Full()
             try:
                 future = self.executor.submit(callback, *args, **kwargs)

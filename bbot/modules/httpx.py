@@ -30,6 +30,7 @@ class httpx(BaseModule):
     ]
 
     scope_distance_modifier = 0
+    _priority = 2
 
     def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
