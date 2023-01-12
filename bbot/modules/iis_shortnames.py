@@ -1,3 +1,5 @@
+import re
+
 from bbot.modules.base import BaseModule
 
 valid_chars = "ETAONRISHDLFCMUGYPWBVKJXQZ0123456789_-$~()&!#%'@^`{}]]"
@@ -21,6 +23,7 @@ class iis_shortnames(BaseModule):
     in_scope_only = True
 
     def detect(self, target):
+        technique = None
         headers = {}
         detected = []
         random_string = self.helpers.rand_string(8)
@@ -34,22 +37,33 @@ class iis_shortnames(BaseModule):
             if (control != None) and (test != None):
                 if (control.status_code != 404) and (test.status_code == 404):
                     detected.append(method)
-        return detected
+                    technique = "400/404 HTTP Code"
+
+                elif ("Error Code</th><td>0x80070002" in control.text) and (
+                    "Error Code</th><td>0x00000000" in test.text
+                ):
+                    detected.append(method)
+                    technique = "HTTP Body Error Message"
+        return detected, technique
 
     def duplicate_check(self, target, method, url_hint):
 
         duplicates = []
         headers = {}
         count = 2
+        base_hint = re.sub(r"~\d", "", url_hint)
+        suffix = "\\a.aspx"
+
         while 1:
-            payload = encode_all(url_hint.replace("~1", f"*~{str(count)}*\\a.aspx"))
-            url = f"{target}{payload}"
+            payload = encode_all(f"{base_hint}~{str(count)}*")
+            url = f"{target}{payload}{suffix}"
 
             duplicate_check_results = self.helpers.request(method=method, headers=headers, url=url)
             if duplicate_check_results.status_code != 404:
                 break
-            duplicates.append(url_hint.replace("~1", f"~{str(count)}"))
-            count += 1
+            else:
+                duplicates.append(f"{base_hint}~{str(count)}")
+                count += 1
 
             if count > 5:
                 self.warning("Found more than 5 files with the same shortname. Will stop further duplicate checking.")
@@ -69,7 +83,7 @@ class iis_shortnames(BaseModule):
 
         futures = {}
         for c in valid_chars:
-            suffix = "\\"
+            suffix = "\\a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
@@ -98,9 +112,9 @@ class iis_shortnames(BaseModule):
 
     def handle_event(self, event):
         normalized_url = event.data.rstrip("/") + "/"
-        vulnerable_methods = self.detect(normalized_url)
+        vulnerable_methods, technique = self.detect(normalized_url)
         if vulnerable_methods:
-            description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable methods: [{','.join(vulnerable_methods)}]"
+            description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable methods: [{','.join(vulnerable_methods)}] Technique: [{technique}]"
             self.emit_event(
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
@@ -121,9 +135,11 @@ class iis_shortnames(BaseModule):
                         valid_method_confirmed = True
 
                     file_name_hints = [f"{x}~1" for x in file_name_hints]
-
                     url_hint_list = []
-                    for x in file_name_hints:
+
+                    file_name_hints_dedupe = file_name_hints[:]
+
+                    for x in file_name_hints_dedupe:
                         duplicates = self.duplicate_check(normalized_url, m, x)
                         if duplicates:
                             file_name_hints += duplicates
