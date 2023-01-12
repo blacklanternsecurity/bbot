@@ -119,6 +119,7 @@ class ConfigAwareHelper:
 
 
 class DummyModule(BaseModule):
+    _priority = 4
     def __init__(self, *args, **kwargs):
         self._name = kwargs.pop("name")
         self._type = kwargs.pop("_type")
