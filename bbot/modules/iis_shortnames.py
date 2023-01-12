@@ -77,7 +77,7 @@ class iis_shortnames(BaseModule):
 
         futures = {}
         for c in valid_chars:
-            suffix = "\\"
+            suffix = "\\a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
