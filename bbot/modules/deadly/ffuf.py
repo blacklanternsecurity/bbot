@@ -125,6 +125,7 @@ class ffuf(BaseModule):
         line_count = 0
         f = open(wordlist, "r")
         fl = f.readlines()
+        self.critical(len(fl))
         f.close()
         virtual_file = []
         virtual_file.append(self.sanity_canary)
@@ -135,7 +136,7 @@ class ffuf(BaseModule):
                 if val.strip().lower() in self.blacklist:
                     self.debug(f"Skipping adding [{val.strip()}] to wordlist because it was in the blacklist")
                 else:
-                    if not prefix or val.strip().lower().startswith(prefix.lower()):
+                    if not prefix or val.strip().lower().startswith(prefix.strip().lower()):
                         line_count += 1
                         virtual_file.append(f"{val.strip().lower()}")
         return self.helpers.tempfile(virtual_file, pipe=False), line_count
