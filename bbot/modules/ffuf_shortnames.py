@@ -13,9 +13,9 @@ class ffuf_shortnames(ffuf):
     meta = {"description": "Use ffuf in combination IIS shortnames"}
 
     options = {
-        "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-large-words.txt",
+        "wordlist": "",  # default is defined within setup function
         "wordlist_extensions": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-extensions-lowercase.txt",
-        "lines": 20000,
+        "lines": 1000000,
         "max_depth": 1,
         "version": "1.5.0",
         "extensions": "",
@@ -49,6 +49,8 @@ class ffuf_shortnames(ffuf):
     def setup(self):
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist = self.config.get("wordlist", "")
+        if not wordlist:
+            wordlist = f"{self.helpers.wordlist_dir}/ffuf_shortname_candidates.txt"
         self.wordlist = self.helpers.wordlist(wordlist)
         wordlist_extensions = self.config.get("wordlist_extensions", "")
         self.wordlist_extensions = self.helpers.wordlist(wordlist_extensions)
@@ -62,6 +64,9 @@ class ffuf_shortnames(ffuf):
 
         if len(filename_hint) == 6:
             tempfile, tempfile_len = self.generate_templist(self.wordlist, prefix=filename_hint)
+            self.verbose(
+                f"generated temp word list of size [{str(tempfile_len)}] for filename hint: [{filename_hint}]"
+            )
         else:
             tempfile = self.helpers.tempfile([filename_hint], pipe=False)
             tempfile_len = 1
