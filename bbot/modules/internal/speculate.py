@@ -1,3 +1,4 @@
+import random
 import ipaddress
 
 from bbot.modules.internal.base import BaseInternalModule
@@ -39,8 +40,10 @@ class speculate(BaseInternalModule):
         # generate individual IP addresses from IP range
         if event.type == "IP_RANGE" and self.range_to_ip:
             net = ipaddress.ip_network(event.data)
-            for x in net:
-                self.emit_event(x, "IP_ADDRESS", source=event, internal=True)
+            ips = list(net)
+            random.shuffle(ips)
+            for ip in ips:
+                self.emit_event(ip, "IP_ADDRESS", source=event, internal=True)
 
         # parent domains
         if event.type == "DNS_NAME":
