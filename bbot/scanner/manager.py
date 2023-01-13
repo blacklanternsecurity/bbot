@@ -508,7 +508,7 @@ class ScanManager:
                     f"{self.scan.name}: {self.incoming_event_queue.qsize():,} events in queue ({queued_events_by_type_str})"
                 )
             else:
-                self.scan.info(f"{self.scan.name}: No events in queued")
+                self.scan.info(f"{self.scan.name}: No events in queue")
 
             # Uncomment these lines to enable debugging of event queues
 
