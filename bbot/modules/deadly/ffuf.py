@@ -52,7 +52,7 @@ class ffuf(BaseModule):
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist_url)
-        self.tempfile = self.generate_templist(self.wordlist)
+        self.tempfile, tempfile_len = self.generate_templist(self.wordlist)
         self.extensions = self.config.get("extensions")
         self.ignore_redirects = self.config.get("ignore_redirects")
         return True
