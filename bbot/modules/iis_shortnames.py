@@ -19,7 +19,7 @@ class iis_shortnames(BaseModule):
     options_desc = {"detect_only": "Only detect the vulnerability and do not run the shortname scanner"}
     in_scope_only = True
 
-    max_event_handlers = 5
+    max_event_handlers = 8
 
     def detect(self, target):
         technique = None
