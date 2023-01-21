@@ -15,12 +15,11 @@ class iis_shortnames(BaseModule):
     produced_events = ["URL_HINT"]
     flags = ["active", "safe", "web-basic", "iis-shortnames"]
     meta = {"description": "Check for IIS shortname vulnerability"}
-    options = {"detect_only": True, "threads": 8}
-    options_desc = {
-        "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
-        "threads": "the number of threads to run concurrently when executing the IIS shortname scanner",
-    }
+    options = {"detect_only": True}
+    options_desc = {"detect_only": "Only detect the vulnerability and do not run the shortname scanner"}
     in_scope_only = True
+
+    max_event_handlers = 5
 
     def detect(self, target):
         technique = None
