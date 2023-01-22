@@ -513,18 +513,6 @@ class BaseModule:
     def priority(self):
         return int(max(1, min(5, self._priority)))
 
-    def prioritize_event(self, event):
-        # modify timestamp based on module priority
-        timestamp = event.timestamp.timestamp()
-        # self.hugewarning(f"{event} before: {timestamp}")
-        module_priority = self.priority - 3
-        if module_priority > 0:
-            timestamp = timestamp * (1 + module_priority)
-        elif module_priority < 0:
-            timestamp = timestamp / (abs(module_priority) + 1)
-        # self.hugesuccess(f"{event} after:  {timestamp}")
-        return timestamp
-
     @property
     def auth_required(self):
         return self.meta.get("auth_required", False)
