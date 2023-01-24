@@ -2,6 +2,7 @@ import re
 import json
 import logging
 import ipaddress
+import cloudcheck
 import dns.resolver
 import dns.exception
 from threading import Lock
@@ -315,6 +316,18 @@ class DNSHelper:
                         event.data = wildcard_data
                     return (event, wildcard_rdtypes)
 
+            if not self.parent_helper.in_tests:
+                ips = set()
+                if event.type == "IP_ADDRESS":
+                    ips.add(event.data)
+                for rdtype, target in children:
+                    if rdtype in ("A", "AAAA"):
+                        ips.add(target)
+                for ip in ips:
+                    provider, subnet = cloudcheck.check(ip)
+                    if provider:
+                        event_tags.add(f"cloud-{provider.lower()}")
+
             if "resolved" not in event_tags:
                 event_tags.add("unresolved")
             for ip in resolved_hosts:
@@ -326,6 +339,7 @@ class DNSHelper:
                     continue
 
             self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, resolved_hosts)
+
         return children, event_tags, event_whitelisted, event_blacklisted, resolved_hosts
 
     def event_cache_get(self, host):
