@@ -2,10 +2,10 @@ import re
 import json
 import logging
 import ipaddress
+import cloudcheck
 import dns.resolver
 import dns.exception
 from threading import Lock
-from cdncheck import cdncheck
 from contextlib import suppress
 from concurrent.futures import ThreadPoolExecutor
 
@@ -324,9 +324,9 @@ class DNSHelper:
                     if rdtype in ("A", "AAAA"):
                         ips.add(target)
                 for ip in ips:
-                    cdn = cdncheck(ip)
-                    if cdn:
-                        event_tags.add(f"cloud-{cdn}")
+                    provider, subnet = cloudcheck.check(ip)
+                    if provider:
+                        event_tags.add(f"cloud-{provider.lower()}")
 
                 if "resolved" not in event_tags:
                     event_tags.add("unresolved")

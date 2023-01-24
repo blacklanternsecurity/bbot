@@ -105,14 +105,6 @@ attrs = ">=20"
 exceptiongroup = {version = "*", markers = "python_version < \"3.11\""}
 
 [[package]]
-name = "cdncheck"
-version = "1.0.0.8"
-description = "A Python wrapper for ProjectDiscovery's cdncheck (https://github.com/projectdiscovery/cdncheck)"
-category = "main"
-optional = false
-python-versions = ">=3.8,<4.0"
-
-[[package]]
 name = "certifi"
 version = "2022.12.7"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -152,6 +144,18 @@ python-versions = ">=3.7"
 
 [package.dependencies]
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[[package]]
+name = "cloudcheck"
+version = "1.0.0.10"
+description = "Check whether an IP address belongs to a cloud provider"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+
+[package.dependencies]
+requests = ">=2.28.2,<3.0.0"
+requests-cache = ">=0.9.7,<0.10.0"
 
 [[package]]
 name = "colorama"
@@ -570,7 +574,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "requests"
-version = "2.28.1"
+version = "2.28.2"
 description = "Python HTTP for Humans."
 category = "main"
 optional = false
@@ -578,7 +582,7 @@ python-versions = ">=3.7, <4"
 
 [package.dependencies]
 certifi = ">=2017.4.17"
-charset-normalizer = ">=2,<3"
+charset-normalizer = ">=2,<4"
 idna = ">=2.5,<4"
 urllib3 = ">=1.21.1,<1.27"
 
@@ -806,7 +810,7 @@ xmltodict = ">=0.12.0,<0.13.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "5ffe3f524c901ea4ff655ccc66f3bbeddda3547e9ef6c634520a041ff0b91359"
+content-hash = "389dcc393e3ec384ef74b7e81eaece801f82e242a243140715cbf1d00f9a7787"
 
 [metadata.files]
 ansible = [
@@ -847,10 +851,6 @@ black = [
 cattrs = [
     {file = "cattrs-22.2.0-py3-none-any.whl", hash = "sha256:bc12b1f0d000b9f9bee83335887d532a1d3e99a833d1bf0882151c97d3e68c21"},
     {file = "cattrs-22.2.0.tar.gz", hash = "sha256:f0eed5642399423cf656e7b66ce92cdc5b963ecafd041d1b24d136fdde7acf6d"},
-]
-cdncheck = [
-    {file = "cdncheck-1.0.0.8-cp310-cp310-manylinux_2_35_x86_64.whl", hash = "sha256:939d923f56168523de9b17cf86b88cfba949c9392aba99af43b6ccb090089c88"},
-    {file = "cdncheck-1.0.0.8.tar.gz", hash = "sha256:6e7752895f70cd1b3d1483996528f41b8c78b99d1f68d058e93617d25ab310c2"},
 ]
 certifi = [
     {file = "certifi-2022.12.7-py3-none-any.whl", hash = "sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18"},
@@ -929,6 +929,10 @@ charset-normalizer = [
 click = [
     {file = "click-8.1.3-py3-none-any.whl", hash = "sha256:bb4d8133cb15a609f44e8213d9b391b0809795062913b383c62be0ee95b1db48"},
     {file = "click-8.1.3.tar.gz", hash = "sha256:7682dc8afb30297001674575ea00d1814d808d6a36af415a82bd481d37ba7b8e"},
+]
+cloudcheck = [
+    {file = "cloudcheck-1.0.0.10-py3-none-any.whl", hash = "sha256:83c545496df0f5bd0841c2fa21b849b653548a49f01192b32944edb04feef516"},
+    {file = "cloudcheck-1.0.0.10.tar.gz", hash = "sha256:6ec9dd64ff857a4373ae52ca73fe1c7d31f9836fb24990061ee0dd335d0295b8"},
 ]
 colorama = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
@@ -1295,8 +1299,8 @@ pyyaml = [
     {file = "PyYAML-6.0.tar.gz", hash = "sha256:68fb519c14306fec9720a2a5b45bc9f0c8d1b9c72adf45c37baedfcd949c35a2"},
 ]
 requests = [
-    {file = "requests-2.28.1-py3-none-any.whl", hash = "sha256:8fefa2a1a1365bf5520aac41836fbee479da67864514bdb821f31ce07ce65349"},
-    {file = "requests-2.28.1.tar.gz", hash = "sha256:7c5599b102feddaa661c826c56ab4fee28bfd17f5abca1ebbe3e7f19d7c97983"},
+    {file = "requests-2.28.2-py3-none-any.whl", hash = "sha256:64299f4909223da747622c030b781c0d7811e359c37124b4bd368fb8c6518baa"},
+    {file = "requests-2.28.2.tar.gz", hash = "sha256:98b1b2782e3c6c4904938b84c0eb932721069dfdb9134313beff7c83c2df24bf"},
 ]
 requests-cache = [
     {file = "requests_cache-0.9.7-py3-none-any.whl", hash = "sha256:3f57badcd8406ecda7f8eaa8145afd0b180c5ae4ff05165a2c4d40f3dc88a6e5"},

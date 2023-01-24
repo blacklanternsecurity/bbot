@@ -27,7 +27,7 @@ deepdiff = "^5.8.1"
 xmltojson = "^2.0.1"
 pycryptodome = "^3.15.0"
 tabulate = "^0.8.10"
-cdncheck = "^1.0.0.8"
+cloudcheck = "^1.0.0.10"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.1.1"
