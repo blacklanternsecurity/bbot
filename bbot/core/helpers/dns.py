@@ -316,16 +316,17 @@ class DNSHelper:
                         event.data = wildcard_data
                     return (event, wildcard_rdtypes)
 
-            ips = set()
-            if event.type == "IP_ADDRESS":
-                ips.add(event.data)
-            for rdtype, target in children:
-                if rdtype in ("A", "AAAA"):
-                    ips.add(target)
-            for ip in ips:
-                provider, subnet = cloudcheck.check(ip)
-                if provider:
-                    event_tags.add(f"cloud-{provider.lower()}")
+            if not self.parent_helper.in_tests:
+                ips = set()
+                if event.type == "IP_ADDRESS":
+                    ips.add(event.data)
+                for rdtype, target in children:
+                    if rdtype in ("A", "AAAA"):
+                        ips.add(target)
+                for ip in ips:
+                    provider, subnet = cloudcheck.check(ip)
+                    if provider:
+                        event_tags.add(f"cloud-{provider.lower()}")
 
             if "resolved" not in event_tags:
                 event_tags.add("unresolved")
