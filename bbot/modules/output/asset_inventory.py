@@ -26,6 +26,9 @@ class asset_inventory(CSV):
 
     def setup(self):
         self.assets = {}
+        self.open_port_producers = "httpx" in self.scan.modules or any(
+            ["portscan" in m.flags for m in self.scan.modules.values()]
+        )
         return super().setup()
 
     def handle_event(self, event):
@@ -42,7 +45,8 @@ class asset_inventory(CSV):
                 self.assets[event.host] = Asset(event.host)
 
             for rh in event.resolved_hosts:
-                self.assets[event.host].ip_addresses.add(str(rh))
+                if self.helpers.is_ip(rh):
+                    self.assets[event.host].ip_addresses.add(str(rh))
 
             if event.port:
                 self.assets[event.host].ports.add(str(event.port))
@@ -68,7 +72,7 @@ class asset_inventory(CSV):
                 [
                     getattr(asset, "host", ""),
                     ",".join(str(x) for x in getattr(asset, "ip_addresses", set())),
-                    "Active" if (asset.ports) else "Timeout",
+                    "Active" if (asset.ports) else ("Inactive" if self.open_port_producers else "N/A"),
                     ",".join(str(x) for x in getattr(asset, "ports", set())),
                     severity_map[getattr(asset, "risk_rating", "")],
                     ",".join(findings_and_vulns),

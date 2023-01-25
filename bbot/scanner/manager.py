@@ -190,9 +190,15 @@ class ScanManager:
                         self.emit_event(s)
 
             # now that the event is properly tagged, we can finally make decisions about it
-            if callable(abort_if) and abort_if(event):
-                log.debug(f"{event.module}: not raising event {event} due to custom criteria in abort_if()")
-                return
+            if callable(abort_if):
+                abort_result = abort_if(event)
+                msg = f"{event.module}: not raising event {event} due to custom criteria in abort_if()"
+                with suppress(ValueError, TypeError):
+                    abort_result, reason = abort_result
+                    msg += f": {reason}"
+                if abort_result:
+                    log.debug(msg)
+                    return
 
             if not self.accept_event(event):
                 return

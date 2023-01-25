@@ -48,7 +48,7 @@ class CSV(BaseOutputModule):
             [
                 getattr(event, "type", ""),
                 getattr(event, "data", ""),
-                ",".join(str(x) for x in getattr(event, "resolved_hosts", set())),
+                ",".join(str(x) for x in getattr(event, "resolved_hosts", set()) if self.helpers.is_ip(x)),
                 str(getattr(event, "module", "")),
                 str(getattr(event, "scope_distance", "")),
                 ",".join(sorted(list(getattr(event, "tags", [])))),

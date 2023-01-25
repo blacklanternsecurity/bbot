@@ -100,6 +100,9 @@ class BaseModule:
         self._cleanedup = False
         self._watched_events = None
 
+        # string constant
+        self._custom_filter_criteria_msg = "it did not meet custom filter criteria"
+
     def setup(self):
         """
         Perform setup functions at the beginning of the scan.
@@ -409,8 +412,13 @@ class BaseModule:
 
         # custom filtering
         try:
-            if not self.filter_event(event):
-                return False, f"{event} did not meet custom filter criteria"
+            filter_result = self.filter_event(event)
+            msg = str(self._custom_filter_criteria_msg)
+            with suppress(ValueError, TypeError):
+                filter_result, reason = filter_result
+                msg += f": {reason}"
+            if not filter_result:
+                return False, msg
         except ScanCancelledError:
             return False, "Scan cancelled"
         except Exception as e:
@@ -430,7 +438,10 @@ class BaseModule:
         if self.incoming_event_queue is not None and not self.errored:
             acceptable, reason = self._filter_event(event)
             if not acceptable and reason:
-                self.debug(f"Not accepting {event} because {reason}")
+                if reason.startswith(self._custom_filter_criteria_msg):
+                    self.verbose(f"Not accepting {event} because {reason}")
+                else:
+                    self.debug(f"Not accepting {event} because {reason}")
                 return
             if is_event(event):
                 self.scan.stats.event_consumed(event, self)
