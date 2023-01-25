@@ -81,7 +81,7 @@ class ConfigAwareHelper:
 
     @property
     def in_tests(self):
-        return os.environ["BBOT_TESTING"] == "True"
+        return os.environ.get("BBOT_TESTING", "") == "True"
 
     @staticmethod
     def as_completed(*args, **kwargs):
