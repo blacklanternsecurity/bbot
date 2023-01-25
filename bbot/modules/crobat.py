@@ -31,18 +31,19 @@ class crobat(BaseModule):
 
         This filter_event is used across many modules
         """
-        if "unresolved" in event.tags:
-            return False
         query = self.make_query(event)
         if self.already_processed(query):
-            return False
-        # discard dns-names with errors
-        if any([t in event.tags for t in ("a-error", "aaaa-error")]):
-            return False
-        # discard wildcards
-        for domain, rdtypes in self.helpers.is_wildcard_domain(query).items():
-            if any([rdtypes.get(t, set()) for t in ("A", "AAAA", "CNAME")]):
-                return False
+            return False, "Event was already processed"
+        if not "target" in event.tags:
+            if "unresolved" in event.tags:
+                return False, "Event is unresolved"
+            if any(t.startswith("cloud-") for t in event.tags):
+                return False, "Event is a cloud resource and not a direct target"
+        for domain, wildcard_rdtypes in self.helpers.is_wildcard_domain(query).items():
+            if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
+                return False, "Event is a wildcard domain"
+        if any(t in event.tags for t in ("a-error", "aaaa-error")):
+            return False, "Event has a DNS resolution error"
         self.processed.add(hash(query))
         return True
 

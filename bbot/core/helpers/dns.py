@@ -280,7 +280,7 @@ class DNSHelper:
                 for r in records:
                     for _, t in self.extract_targets(r):
                         if t:
-                            if rdtype in ("A", "AAAA"):
+                            if rdtype in ("A", "AAAA", "CNAME"):
                                 ip = self.parent_helper.make_ip_type(t)
 
                                 with suppress(ValidationError):
