@@ -21,6 +21,7 @@ class naabu(BaseModule):
     }
     max_event_handlers = 2
     batch_size = 100
+    _priority = 2
 
     deps_ansible = [
         {

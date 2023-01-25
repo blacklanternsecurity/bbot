@@ -72,8 +72,8 @@ class BaseModule:
     _scope_shepherding = True
     # Exclude from scan statistics
     _stats_exclude = False
-    # outgoing queue size
-    _qsize = 100
+    # outgoing queue size (None == infinite)
+    _qsize = None
     # Priority of events raised by this module, 1-5, lower numbers == higher priority
     _priority = 3
     # Name, overridden automatically
@@ -303,7 +303,7 @@ class BaseModule:
                 iterations += 1
 
                 # hold the reigns if our outgoing queue is full
-                if self.outgoing_event_queue_qsize >= self._qsize:
+                if self._qsize and self.outgoing_event_queue_qsize >= self._qsize:
                     self._batch_idle += 1
                     sleep(0.1)
                     continue
@@ -519,7 +519,7 @@ class BaseModule:
 
     @property
     def log(self):
-        if self._log is None:
+        if getattr(self, "_log", None) is None:
             self._log = logging.getLogger(f"bbot.modules.{self.name}")
         return self._log
 

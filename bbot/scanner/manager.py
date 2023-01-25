@@ -32,6 +32,8 @@ class ScanManager:
         self.events_resolved = dict()
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
 
+        self.last_log_time = datetime.now()
+
     def init_events(self):
         """
         seed scanner with target events
@@ -40,7 +42,7 @@ class ScanManager:
         sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
         for event in sorted_events:
             self.scan.verbose(f"Target: {event}")
-            self.emit_event(event)
+            self.emit_event(event, _block=False)
         # force submit batches
         for mod in self.scan.modules.values():
             mod._handle_batch(force=True)
@@ -55,8 +57,8 @@ class ScanManager:
         quick = kwargs.pop("quick", False)
         if quick:
             event._resolved.set()
-            kwargs.pop("abort_if", None)
-            kwargs.pop("on_success_callback", None)
+            for kwarg in ["abort_if", "on_success_callback", "_block"]:
+                kwargs.pop(kwargs, None)
             try:
                 self.distribute_event(event, *args, **kwargs)
                 return True
@@ -68,17 +70,16 @@ class ScanManager:
         else:
             # don't raise an exception if the thread pool has been shutdown
             try:
-                while not self.scan.stopping:
-                    try:
-                        self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
-                        return True
-                    except queue.Full:
-                        sleep(0.01)
+                self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
+                return True
             except ScanCancelledError:
                 return False
+            except queue.Full:
+                raise
             except Exception as e:
                 log.error(f"Unexpected error in manager.emit_event(): {e}")
                 log.trace(traceback.format_exc())
+            finally:
                 event._resolved.set()
         return False
 
@@ -176,7 +177,7 @@ class ScanManager:
                             log.debug(f"Making {event} in-scope")
                         source_trail = event.make_in_scope(set_scope_distance)
                         for s in source_trail:
-                            self.emit_event(s)
+                            self.emit_event(s, _block=False)
                     else:
                         if event.scope_distance > self.scan.scope_report_distance:
                             log.debug(
@@ -187,7 +188,7 @@ class ScanManager:
                     log.debug(f"Making {event} in-scope because it does not have identifying scope information")
                     source_trail = event.make_in_scope(0)
                     for s in source_trail:
-                        self.emit_event(s)
+                        self.emit_event(s, _block=False)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if) and abort_if(event):
@@ -219,7 +220,7 @@ class ScanManager:
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     source_event.tags.add("target")
-                self.emit_event(source_event)
+                self.emit_event(source_event, _block=False)
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:
@@ -233,7 +234,7 @@ class ScanManager:
                                 f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
                             )
                 for child_event in dns_child_events:
-                    self.emit_event(child_event)
+                    self.emit_event(child_event, _block=False)
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
@@ -346,14 +347,11 @@ class ScanManager:
                     if event_within_scope_distance:
                         mod.queue_event(event)
 
-    def loop_until_finished(self, status_frequency=10):
+    def loop_until_finished(self):
         modules = list(self.scan.modules.values())
         activity = True
-        timedelta_2secs = timedelta(seconds=status_frequency)
-        last_log_time = datetime.now()
 
         try:
-
             self.scan.dispatcher.on_start(self.scan)
 
             while 1:
@@ -369,22 +367,22 @@ class ScanManager:
                             self.incoming_event_queue.get_nowait()
                     break
 
-                # print status every 2 seconds
-                now = datetime.now()
-                time_since_last_log = now - last_log_time
-                if time_since_last_log > timedelta_2secs:
-                    self.modules_status(_log=True, passes=1)
-                    last_log_time = now
-
                 if "python" in self.scan.modules:
                     events, finish, report = self.scan.modules["python"].events_waiting
                     yield from events
 
                 try:
+                    self.log_status()
                     event, kwargs = self.incoming_event_queue.get_nowait()
-                    acceptable = self.emit_event(event, **kwargs)
-                    if acceptable:
-                        activity = True
+                    while not self.scan.aborting:
+                        try:
+                            acceptable = self.emit_event(event, **kwargs)
+                            if acceptable:
+                                activity = True
+                            break
+                        except queue.Full:
+                            self.log_status()
+                            sleep(0.1)
                 except queue.Empty:
                     # if we're on the last module
                     finished = self.modules_status().get("finished", False)
@@ -402,7 +400,6 @@ class ScanManager:
                         else:
                             # Otherwise stop the scan if no new events were generated since last time
                             break
-                    continue
                     # save on CPU
                     sleep(0.1)
 
@@ -416,6 +413,15 @@ class ScanManager:
             # Run .report() on every module
             for mod in self.scan.modules.values():
                 self.catch(mod.report, _force=True)
+
+    def log_status(self, frequency=10):
+        # print status every 10 seconds
+        timedelta_secs = timedelta(seconds=frequency)
+        now = datetime.now()
+        time_since_last_log = now - self.last_log_time
+        if time_since_last_log > timedelta_secs:
+            self.modules_status(_log=True, passes=1)
+            self.last_log_time = now
 
     def modules_status(self, _log=False, passes=None):
 
@@ -502,7 +508,7 @@ class ScanManager:
                     f"{self.scan.name}: {self.incoming_event_queue.qsize():,} events in queue ({queued_events_by_type_str})"
                 )
             else:
-                self.scan.info(f"{self.scan.name}: No events in queued")
+                self.scan.info(f"{self.scan.name}: No events in queue")
 
             # Uncomment these lines to enable debugging of event queues
 

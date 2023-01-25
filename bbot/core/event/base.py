@@ -405,6 +405,11 @@ class BaseEvent:
         return event_from_json(j)
 
     @property
+    def module_priority(self):
+        module = getattr(self, "module", None)
+        return int(max(1, min(5, getattr(module, "priority", 3))))
+
+    @property
     def priority(self):
         if self._priority is None:
             timestamp = self.timestamp.timestamp()

@@ -87,7 +87,7 @@ class ConfigAwareHelper:
     def as_completed(*args, **kwargs):
         return as_completed(*args, **kwargs)
 
-    def _make_dummy_module(self, name, _type):
+    def _make_dummy_module(self, name, _type="scan"):
         """
         Construct a dummy module, for attachment to events
         """
@@ -119,6 +119,8 @@ class ConfigAwareHelper:
 
 
 class DummyModule(BaseModule):
+    _priority = 4
+
     def __init__(self, *args, **kwargs):
         self._name = kwargs.pop("name")
         self._type = kwargs.pop("_type")
