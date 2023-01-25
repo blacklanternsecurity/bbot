@@ -64,7 +64,7 @@ class BaseCloudProvider:
             # its host directly matches this cloud provider's domains
             if isinstance(event.host, str) and self.domain_match(event.host):
                 event.tags.update(self.base_tags)
-                break
+                return
             # it has a CNAME that matches this cloud provider's domains
             for rh in event.resolved_hosts:
                 if not self.parent_helper.is_ip(rh) and self.domain_match(rh):
