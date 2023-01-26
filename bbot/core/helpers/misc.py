@@ -364,8 +364,8 @@ def chain_lists(l, try_files=False, msg=None):
             f_path = Path(f).resolve()
             if try_files and f_path.is_file():
                 if msg is not None:
-                    msg = str(msg).format(filename=f_path)
-                    log.info(msg)
+                    new_msg = str(msg).format(filename=f_path)
+                    log.info(new_msg)
                 for line in str_or_file(f):
                     final_list[line] = None
             else:
