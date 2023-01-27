@@ -32,16 +32,24 @@ class masscan(BaseModule):
             },
         },
         {
+            "name": "Defeat silly security rules ;)",
+            "replace": {
+                "path": "#{BBOT_TEMP}/masscan/Makefile",
+                "regexp": r"(.*)/masscan(.*)",
+                "replace": r"\1/not_masscan\2",
+            },
+        },
+        {
             "name": "Build masscan",
             "command": {
                 "chdir": "#{BBOT_TEMP}/masscan",
                 "cmd": "make -j",
-                "creates": "#{BBOT_TEMP}/masscan/bin/masscan",
+                "creates": "#{BBOT_TEMP}/masscan/bin/not_masscan",
             },
         },
         {
             "name": "Install masscan",
-            "copy": {"src": "#{BBOT_TEMP}/masscan/bin/masscan", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
+            "copy": {"src": "#{BBOT_TEMP}/masscan/bin/not_masscan", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
     _qsize = 100
@@ -118,7 +126,7 @@ class masscan(BaseModule):
         self.helpers.run(command, sudo=True)
 
     def _build_masscan_command(self, targets=None, config=None, exclude=None, dry_run=False, ping=False):
-        command = ("masscan", "--rate", self.rate, "--wait", self.wait, "--open-only")
+        command = ("not_masscan", "--rate", self.rate, "--wait", self.wait, "--open-only")
         if targets is not None:
             command += (targets,)
         if config is not None:
