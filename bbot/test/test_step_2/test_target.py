@@ -31,3 +31,10 @@ def test_target(patch_ansible, bbot_config, bbot_scanner):
     assert scan3.target in scan2.target
     assert scan2.target == scan3.target
     assert scan4.target != scan1.target
+
+    assert str(scan1.target.get("8.8.8.9").host) == "8.8.8.8/30"
+    assert scan1.target.get("8.8.8.12") is None
+    assert str(scan1.target.get("2001:4860:4860::8889").host) == "2001:4860:4860::8888/126"
+    assert scan1.target.get("2001:4860:4860::888c") is None
+    assert str(scan1.target.get("www.api.publicapis.org").host) == "api.publicapis.org"
+    assert scan1.target.get("publicapis.org") is None
