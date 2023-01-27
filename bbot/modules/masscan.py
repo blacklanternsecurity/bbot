@@ -85,7 +85,7 @@ class masscan(BaseModule):
             self.verbose("Starting masscan (ping scan)")
 
             def append_alive_host(host, source):
-                host_event = self.make_event(host, "IP_ADDRESS", source=self.scan.target.get(host))
+                host_event = self.make_event(host, "IP_ADDRESS", source=self.scan.whitelist.get(host))
                 self.alive_hosts[host] = host_event
                 self.emit_event(host_event)
 
