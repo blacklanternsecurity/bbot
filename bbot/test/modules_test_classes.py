@@ -426,7 +426,7 @@ class Masscan(MockHelper):
 
     # massdns can't scan localhost
     targets = ["8.8.8.8/32"]
-    config_overrides = {"modules": {"masscan": {"ports": "53", "wait": 1}}}
+    config_overrides = {"force_deps": True, "modules": {"masscan": {"ports": "53", "wait": 1}}}
 
     def check_events(self, events):
         for e in events:
