@@ -88,13 +88,16 @@ class masscan(BaseModule):
     def process_output(self, line, source):
         try:
             j = json.loads(line)
-            ip = j.get("ip", "")
-            if ip:
-                ports = j.get("ports", [])
-                if ports:
-                    for p in ports:
-                        port_number = p.get("port", "")
-                        if port_number:
-                            self.emit_event(f"{ip}:{port_number}", "OPEN_TCP_PORT", source=source)
         except Exception:
             return
+        ip = j.get("ip", "")
+        if not ip:
+            return
+        ports = j.get("ports", [])
+        if not ports:
+            return
+        for p in ports:
+            port_number = p.get("port", "")
+            if not port_number:
+                continue
+            self.emit_event(f"{ip}:{port_number}", "OPEN_TCP_PORT", source=source)
