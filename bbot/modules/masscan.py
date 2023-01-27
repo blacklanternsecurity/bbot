@@ -70,7 +70,6 @@ class masscan(BaseModule):
             if not isinstance(b, str):
                 exclude.append(b)
         exclude = ",".join(str(e) for e in exclude)
-        exclude_arg = [str(t) for t in self.scan.target if self.helpers.is_ip_type(t)]
         command = (
             "masscan",
             event.data,
