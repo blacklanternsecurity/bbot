@@ -46,6 +46,12 @@ def test_massdns(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+# This is disabled because github's EDR is configured to delete the masscan binary
+# def test_masscan(bbot_config, bbot_scanner, bbot_httpserver):
+#     x = Masscan(bbot_config, bbot_scanner, bbot_httpserver)
+#     x.run()
+
+
 def test_badsecrets(bbot_config, bbot_scanner, bbot_httpserver):
     x = Badsecrets(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()

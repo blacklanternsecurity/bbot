@@ -3,7 +3,6 @@ import random
 adjectives = [
     "abnormal",
     "acrophobic",
-    "adhesive",
     "adorable",
     "adversarial",
     "affectionate",
@@ -137,6 +136,7 @@ adjectives = [
     "neurotic",
     "normal",
     "nihilistic",
+    "overattached",
     "overcompensating",
     "overmedicated",
     "overwhelming",

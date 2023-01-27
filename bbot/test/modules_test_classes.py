@@ -420,3 +420,16 @@ class Massdns(MockHelper):
             if e.type == "DNS_NAME" and e == "www.blacklanternsecurity.com":
                 return True
         return False
+
+
+class Masscan(MockHelper):
+
+    # massdns can't scan localhost
+    targets = ["8.8.8.8/32"]
+    config_overrides = {"force_deps": True, "modules": {"masscan": {"ports": "53", "wait": 1}}}
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:53":
+                return True
+        return False
