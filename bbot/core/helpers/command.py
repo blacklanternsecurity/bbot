@@ -34,13 +34,21 @@ def run_live(self, command, *args, **kwargs):
     if not "stderr" in kwargs:
         kwargs["stderr"] = subprocess.PIPE
     _input = kwargs.pop("input", "")
+    sudo = kwargs.pop("sudo", False)
     input_msg = ""
     if _input:
         kwargs["stdin"] = subprocess.PIPE
         input_msg = " (with stdin)"
 
     command = [str(s) for s in command]
-    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}")
+    env = kwargs.get("env", os.environ)
+    if sudo:
+        self.depsinstaller.ensure_root()
+        env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
+        env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
+        kwargs["env"] = env
+        command = ["sudo", "-A"] + command
+    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}, {kwargs}")
     try:
         with catch(subprocess.Popen, command, *args, **kwargs) as process:
             if _input:
@@ -77,8 +85,16 @@ def run(self, command, *args, **kwargs):
         kwargs["stderr"] = subprocess.PIPE
     if not "text" in kwargs:
         kwargs["text"] = True
+    sudo = kwargs.pop("sudo", False)
 
     command = [str(s) for s in command]
+    env = kwargs.get("env", os.environ)
+    if sudo:
+        self.depsinstaller.ensure_root()
+        env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
+        env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
+        kwargs["env"] = env
+        command = ["sudo", "-A"] + command
     log.hugeverbose(f"run: {' '.join(command)}")
     result = catch(subprocess.run, command, *args, **kwargs)
 

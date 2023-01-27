@@ -46,6 +46,11 @@ def test_massdns(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_masscan(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Masscan(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
 def test_badsecrets(bbot_config, bbot_scanner, bbot_httpserver):
     x = Badsecrets(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
