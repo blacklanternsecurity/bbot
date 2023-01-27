@@ -64,6 +64,13 @@ class masscan(BaseModule):
     def masscan(self, event, dry_run=False):
         process_output = functools.partial(self.process_output, source=event)
         tempfile = self.helpers.tempfile_tail(process_output)
+        exclude = []
+        for b in self.scan.blacklist:
+            b = self.helpers.make_ip_type(b.data)
+            if not isinstance(b, str):
+                exclude.append(b)
+        exclude = ",".join(str(e) for e in exclude)
+        exclude_arg = [str(t) for t in self.scan.target if self.helpers.is_ip_type(t)]
         command = (
             "masscan",
             event.data,
@@ -77,6 +84,8 @@ class masscan(BaseModule):
             "-oJ",
             tempfile,
         )
+        if exclude:
+            command += ("--exclude", exclude)
         if dry_run:
             command += ("--echo",)
 
