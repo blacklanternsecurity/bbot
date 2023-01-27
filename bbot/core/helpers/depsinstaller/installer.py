@@ -298,7 +298,7 @@ class DepsInstaller:
         shutil.copy(askpass_src, askpass_dst)
         askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)
         # ensure tldextract data is cached
-        self.parent_helper.tldextract("eviself.scan.namerp.co.uk")
+        self.parent_helper.tldextract("evilcorp.co.uk")
         # command: package_name
         core_deps = {"unzip": "unzip", "curl": "curl"}
         to_install = set()
