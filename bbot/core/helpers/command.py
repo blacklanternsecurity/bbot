@@ -48,7 +48,7 @@ def run_live(self, command, *args, **kwargs):
         env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
         kwargs["env"] = env
         command = ["sudo", "-A"] + command
-    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}, {kwargs}")
+    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}")
     try:
         with catch(subprocess.Popen, command, *args, **kwargs) as process:
             if _input:

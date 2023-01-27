@@ -32,24 +32,16 @@ class masscan(BaseModule):
             },
         },
         {
-            "name": "Defeat silly security rules ;)",
-            "replace": {
-                "path": "#{BBOT_TEMP}/masscan/Makefile",
-                "regexp": r"/masscan",
-                "replace": r"/msscn",
-            },
-        },
-        {
             "name": "Build masscan",
             "command": {
                 "chdir": "#{BBOT_TEMP}/masscan",
                 "cmd": "make -j",
-                "creates": "#{BBOT_TEMP}/masscan/bin/msscn",
+                "creates": "#{BBOT_TEMP}/masscan/bin/masscan",
             },
         },
         {
             "name": "Install masscan",
-            "copy": {"src": "#{BBOT_TEMP}/masscan/bin/msscn", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
+            "copy": {"src": "#{BBOT_TEMP}/masscan/bin/masscan", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
     _qsize = 100
@@ -66,6 +58,7 @@ class masscan(BaseModule):
             dry_run_command = self._build_masscan_command(self._target_findkey, dry_run=True)
             dry_run_result = self.helpers.run(dry_run_command)
             self.masscan_config = dry_run_result.stdout
+            self.masscan_config = "\n".join(l for l in self.masscan_config.splitlines() if "nocapture" not in l)
         except subprocess.CalledProcessError as e:
             self.warning(f"Error in masscan: {e.stderr}")
             return False
@@ -126,7 +119,7 @@ class masscan(BaseModule):
         self.helpers.run(command, sudo=True)
 
     def _build_masscan_command(self, targets=None, config=None, exclude=None, dry_run=False, ping=False):
-        command = ("msscn", "--rate", self.rate, "--wait", self.wait, "--open-only")
+        command = ("masscan", "--rate", self.rate, "--wait", self.wait, "--open-only")
         if targets is not None:
             command += (targets,)
         if config is not None:
