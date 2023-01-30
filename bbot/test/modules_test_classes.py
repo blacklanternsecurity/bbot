@@ -39,6 +39,30 @@ class Gowitness(HttpxMockHelper):
         return False
 
 
+class Subdomain_Hijack(HttpxMockHelper):
+    additional_modules = ["httpx", "excavate"]
+
+    def mock_args(self):
+        fingerprints = self.module.fingerprints
+        assert fingerprints, "No subdomain hijacking fingerprints available"
+        fingerprint = next(iter(fingerprints))
+        rand_string = self.scan.helpers.rand_string(length=15, digits=False)
+        self.rand_subdomain = f"{rand_string}.{next(iter(fingerprint.domains))}"
+        respond_args = {"response_data": f'<a src="http://{self.rand_subdomain}"/>'}
+        self.set_expect_requests(respond_args=respond_args)
+
+    def check_events(self, events):
+        for event in events:
+            if (
+                event.type == "FINDING"
+                and event.data["description"].startswith("Hijackable Subdomain")
+                and self.rand_subdomain in event.data["description"]
+                and event.data["host"] == self.rand_subdomain
+            ):
+                return True
+        return False
+
+
 class Otx(RequestMockHelper):
     def mock_args(self):
         for t in self.targets:

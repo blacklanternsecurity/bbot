@@ -20,7 +20,8 @@ class subdomain_hijack(BaseModule):
     max_event_handlers = 5
 
     def setup(self):
-        fingerprints_file = self.helpers.wordlist(self.config.get("fingerprints"))
+        fingerprints_url = self.config.get("fingerprints")
+        fingerprints_file = self.helpers.wordlist(fingerprints_url)
         with open(fingerprints_file) as f:
             fingerprints = json.load(f)
         self.fingerprints = []
@@ -30,13 +31,13 @@ class subdomain_hijack(BaseModule):
             except Exception as e:
                 self.warning(f"Error instantiating fingerprint: {e}")
                 continue
-            if not (f.domains and f.vulnerable and f.fingerprint and f.autocheck_pass):
+            if not (f.domains and f.vulnerable and f.fingerprint and f.cicd_pass):
                 self.debug(f"Skipping fingerprint: {f}")
                 continue
             self.debug(f"Processed fingerprint: {f}")
             self.fingerprints.append(f)
         if not self.fingerprints:
-            return False, "Failed to retrieve fingerprints"
+            return None, "No valid fingerprints"
         self.debug(f"Successfully processed {len(self.fingerprints):,} fingerprints")
         return True
 
@@ -91,11 +92,11 @@ class Fingerprint:
         self.nxdomain = fingerprint.get("nxdomain", False)
         self.vulnerable = fingerprint.get("vulnerable", False)
         self.fingerprint = fingerprint.get("fingerprint", "")
-        self.autocheck_pass = fingerprint.get("autocheck_pass", False)
+        self.cicd_pass = fingerprint.get("cicd_pass", False)
         try:
             self.fingerprint_regex = re.compile(self.fingerprint, re.MULTILINE)
         except re.error:
             self.fingerprint_regex = re.compile(re.escape(self.fingerprint), re.MULTILINE)
 
     def __str__(self):
-        return f"{self.engine}: {self.fingerprint} (cnames: {self.cnames}, vulnerable: {self.vulnerable}, autocheck_pass: {self.autocheck_pass})"
+        return f"{self.engine}: {self.fingerprint} (cnames: {self.cnames}, vulnerable: {self.vulnerable}, cicd_pass: {self.cicd_pass})"

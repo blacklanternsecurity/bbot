@@ -136,7 +136,10 @@ def log_listener_setup(logging_queue):
     config_silent = config.get("silent", False)
 
     def stderr_filter(record):
-        if record.levelno in (logging.STDOUT, logging.TRACE):
+        excluded_levels = [logging.STDOUT]
+        if log_level > logging.DEBUG:
+            excluded_levels.append(logging.TRACE)
+        if record.levelno in excluded_levels:
             return False
         if record.levelno >= logging.ERROR:
             return True
