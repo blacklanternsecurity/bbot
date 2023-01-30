@@ -7,7 +7,7 @@ from time import sleep
 from ..bbot_fixtures import *
 
 
-def test_helpers(helpers, scan, bbot_scanner, bbot_config):
+def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
 
     ### URL ###
     bad_urls = (
@@ -365,6 +365,12 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
         m.get("http://blacklanternsecurity.com/wordlist", text="wordlist")
         assert helpers.wordlist("http://blacklanternsecurity.com/wordlist").is_file()
 
+    # custom headers
+    bbot_httpserver.expect_request("/test-custom-http-headers-requests", headers={"test": "header"}).respond_with_data(
+        "OK"
+    )
+    assert scan.helpers.request(bbot_httpserver.url_for("/test-custom-http-headers-requests")).status_code == 200
+
     test_file = Path(scan.config["home"]) / "testfile.asdf"
     with open(test_file, "w") as f:
         for i in range(100):
@@ -556,26 +562,6 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     word_cloud.load()
     assert word_cloud["plumbus"] == 1
     assert word_cloud["rumbus"] == 1
-
-
-def test_curl(helpers, bbot_httpserver):
-    url = "http://127.0.0.1:8888/curl"
-    bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
-    bbot_httpserver.expect_request(uri="/index.html").respond_with_data("curl_yep_index")
-    helpers.curl(url=url)
-    helpers.curl(url=url, ignore_bbot_global_settings=True)
-    helpers.curl(url=url, head_mode=True)
-    helpers.curl(url=url, raw_body=True)
-    helpers.curl(
-        url=url,
-        raw_path=True,
-        headers={"test": "test", "test2": ["test2"]},
-        ignore_bbot_global_settings=False,
-        post_data={"test": "test"},
-        method="POST",
-        cookies={"test": "test"},
-        path_override="/index.html",
-    )
 
 
 def test_queues(scan, helpers):

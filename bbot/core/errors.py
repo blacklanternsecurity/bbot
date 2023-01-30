@@ -51,3 +51,7 @@ class WordlistError(BBOTError):
 
 class DNSError(BBOTError):
     pass
+
+
+class CurlError(BBOTError):
+    pass
