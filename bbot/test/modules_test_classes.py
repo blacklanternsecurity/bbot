@@ -66,6 +66,23 @@ class Subdomain_Hijack(HttpxMockHelper):
         return False
 
 
+class Fingerprintx(HttpxMockHelper):
+    targets = ["127.0.0.1:8888"]
+
+    def mock_args(self):
+        pass
+
+    def check_events(self, events):
+        for event in events:
+            if (
+                event.type == "PROTOCOL"
+                and event.data["host"] == "127.0.0.1:8888"
+                and event.data["protocol"] == "HTTP"
+            ):
+                return True
+        return False
+
+
 class Otx(RequestMockHelper):
     def mock_args(self):
         for t in self.targets:

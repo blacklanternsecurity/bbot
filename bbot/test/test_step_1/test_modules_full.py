@@ -16,6 +16,11 @@ def test_subdomain_hijack(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_fingerprintx(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Fingerprintx(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
 def test_otx(bbot_config, bbot_scanner, bbot_httpserver):
     x = Otx(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()

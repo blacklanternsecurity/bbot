@@ -52,11 +52,13 @@ class asset_inventory(CSV):
                 self.assets[event.host].ports.add(str(event.port))
 
             if event.type == "FINDING":
-                self.assets[event.host].findings.add(f"{event.data['url']}:{event.data['description']}")
+                location = event.data.get("url", event.data.get("host"))
+                self.assets[event.host].findings.add(f"{location}:{event.data['description']}")
 
             if event.type == "VULNERABILITY":
+                location = event.data.get("url", event.data.get("host"))
                 self.assets[event.host].findings.add(
-                    f"{event.data['url']}:{event.data['description']}:{event.data['severity']}"
+                    f"{location}:{event.data['description']}:{event.data['severity']}"
                 )
                 severity_int = severity_map.get(event.data.get("severity", "N/A"), 0)
                 if severity_int > self.assets[event.host].risk_rating:
