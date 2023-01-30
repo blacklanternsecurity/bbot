@@ -291,6 +291,7 @@ class BaseEvent:
             if not isinstance(data, dict):
                 raise ValidationError(f"data is not of type dict: {data}")
             data = self._data_validator(**data).dict()
+            data = {k: v for k, v in data.items() if v is not None}
         return self.sanitize_data(data)
 
     def sanitize_data(self, data):
@@ -768,6 +769,7 @@ class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
+        banner: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_open_port)
 
     def _host(self):
