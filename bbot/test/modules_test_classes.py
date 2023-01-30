@@ -6,13 +6,16 @@ from .helpers import *
 
 class Httpx(HttpxMockHelper):
     def mock_args(self):
-        respond_args = {"response_data": json.dumps({"foo": "bar"})}
-        self.set_expect_requests(respond_args=respond_args)
+        request_args = dict(headers={"test": "header"})
+        respond_args = dict(response_data=json.dumps({"foo": "bar"}))
+        self.set_expect_requests(request_args, respond_args)
 
     def check_events(self, events):
         for e in events:
-            if e.type == "HTTP_RESPONSE" and json.loads(e.data["body"])["foo"] == "bar":
-                return True
+            if e.type == "HTTP_RESPONSE":
+                j = json.loads(e.data["body"])
+                if j.get("foo", "") == "bar":
+                    return True
         return False
 
 
