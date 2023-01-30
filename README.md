@@ -268,6 +268,9 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 | ffuf_shortnames     | scan     |         | Use ffuf in combination IIS shortnames   | active,aggressive,brute-force,iis-      | URL_UNVERIFIED                           |
 |                     |          |         |                                          | shortnames,web-advanced                 |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| fingerprintx        | scan     |         | Fingerprint exposed services like RDP,   | active,aggressive,portscan              | PROTOCOL                                 |
+|                     |          |         | SSH, MySQL, etc.                         |                                         |                                          |
++---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | generic_ssrf        | scan     |         | Check for generic SSRFs                  | active,aggressive,web-advanced          | VULNERABILITY                            |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | getparam_brute      | scan     |         | Check for common HTTP GET parameters     | active,aggressive,brute-force,slow,web- | FINDING                                  |
