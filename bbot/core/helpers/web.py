@@ -6,7 +6,7 @@ from requests_cache import CachedSession
 from requests_cache.backends import SQLiteCache
 from requests.exceptions import RequestException
 
-from bbot.core.errors import WordlistError
+from bbot.core.errors import WordlistError, CurlError
 
 log = logging.getLogger("bbot.core.helpers.web")
 
@@ -126,6 +126,12 @@ def request(self, *args, **kwargs):
         headers = {}
     if "User-Agent" not in headers:
         headers.update({"User-Agent": user_agent})
+    # only add custom headers if the URL is in-scope
+    if self.scan.in_scope(url):
+        for hk, hv in self.scan.config.get("http_headers", {}).items():
+            # don't clobber headers
+            if hk not in headers:
+                headers[hk] = hv
     kwargs["headers"] = headers
 
     http_debug = self.config.get("http_debug", False)
@@ -179,8 +185,7 @@ def curl(self, *args, **kwargs):
     url = kwargs.get("url", "")
 
     if not url:
-        log.debug("No URL supplied to CURL helper")
-        return
+        raise CurlError("No URL supplied to CURL helper")
 
     curl_command = ["curl", url, "-s"]
 
@@ -206,6 +211,11 @@ def curl(self, *args, **kwargs):
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
 
+        # only add custom headers if the URL is in-scope
+        if self.scan.in_scope(url):
+            for hk, hv in self.scan.config.get("http_headers", {}).items():
+                headers[hk] = hv
+
         # add the timeout
         if not "timeout" in kwargs:
             timeout = http_timeout
@@ -214,7 +224,7 @@ def curl(self, *args, **kwargs):
         curl_command.append(str(timeout))
 
     for k, v in headers.items():
-        if type(v) == list:
+        if isinstance(v, list):
             for x in v:
                 curl_command.append("-H")
                 curl_command.append(f"{k}: {x}")

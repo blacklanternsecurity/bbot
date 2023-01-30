@@ -34,6 +34,11 @@ http_proxy:
 http_timeout: 30
 # HTTP timeout (for httpx)
 httpx_timeout: 5
+# Custom HTTP headers (e.g. cookies, etc.)
+# in the format { "Header-Key": "header_value" }
+# These are attached to all in-scope HTTP requests
+# Note that some modules (e.g. github) may end up sending these to out-of-scope resources
+http_headers: {}
 # HTTP retries (for httpx)
 httpx_retries: 1
 # Enable/disable debug messages for web requests/responses
