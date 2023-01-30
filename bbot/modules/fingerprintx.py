@@ -36,14 +36,15 @@ class fingerprintx(BaseModule):
             except Exception as e:
                 self.debug(f'Error parsing line "{line}" as JSON: {e}')
                 break
-            host = j.get("host", j.get("ip"))
-            port = j.get("port")
+            host = j.get("host", j.get("ip", ""))
+            port = str(j.get("port", ""))
             banner = j.get("metadata", {}).get("banner", "").strip()
             port_data = f"{host}:{port}"
-            protocol = j.get("protocol")
-            source_event = _input.get(port_data)
-            protocol_data = {"host": port_data, "protocol": protocol.upper()}
-            if banner:
-                self.hugesuccess(banner)
-                protocol_data["banner"] = banner
-            self.emit_event(protocol_data, "PROTOCOL", source=source_event)
+            protocol = j.get("protocol", "")
+            if host and port and protocol:
+                source_event = _input.get(port_data)
+                protocol_data = {"host": port_data, "protocol": protocol.upper()}
+                if banner:
+                    self.hugesuccess(banner)
+                    protocol_data["banner"] = banner
+                self.emit_event(protocol_data, "PROTOCOL", source=source_event)
