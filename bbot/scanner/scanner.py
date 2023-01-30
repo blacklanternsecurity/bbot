@@ -135,6 +135,13 @@ class Scanner:
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
 
+        # custom HTTP headers warning
+        self.custom_http_headers = self.config.get("http_headers", {})
+        if self.custom_http_headers:
+            self.warning(
+                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
+            )
+
         self._prepped = False
         self._cleanedup = False
 
