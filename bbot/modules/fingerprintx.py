@@ -7,7 +7,7 @@ class fingerprintx(BaseModule):
 
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["PROTOCOL"]
-    flags = ["active", "portscan", "aggressive"]
+    flags = ["active", "safe", "service-enum"]
     meta = {"description": "Fingerprint exposed services like RDP, SSH, MySQL, etc."}
     options = {"version": "1.1.4"}
     options_desc = {"version": "fingerprintx version"}
