@@ -233,7 +233,7 @@ For explanations of config options, see `defaults.yml` or the [wiki](https://git
 
 ### Note: You can find more fun and interesting modules at the [Module Playground](https://github.com/blacklanternsecurity/bbot-module-playground). For instructions on how to install these other modules, see the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#module-playground).
 
-To view a full list of module config options, use `--help-all`.
+To see modules' options (how to change wordlists, thread count, etc.), use `--help-all`.
 
 ~~~
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
