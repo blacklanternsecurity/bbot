@@ -45,6 +45,5 @@ class fingerprintx(BaseModule):
                 source_event = _input.get(port_data)
                 protocol_data = {"host": port_data, "protocol": protocol.upper()}
                 if banner:
-                    self.hugesuccess(banner)
                     protocol_data["banner"] = banner
                 self.emit_event(protocol_data, "PROTOCOL", source=source_event)
