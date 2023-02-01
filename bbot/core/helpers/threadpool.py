@@ -1,4 +1,3 @@
-import random
 import logging
 import threading
 from queue import Full
