@@ -459,6 +459,43 @@ class Massdns(MockHelper):
         return False
 
 
+class Robots(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    config_overrides = {"modules": {"robots": {"include_sitemap": True}}}
+
+    def mock_args(self):
+        sample_robots = f"Allow: /allow/\nDisallow: /disallow/\nJunk: test.com\nDisallow: /*/wildcard.txt\nSitemap: {self.targets[0]}sitemap.txt"
+
+        expect_args = {"method": "GET", "uri": "/robots.txt"}
+        respond_args = {"response_data": sample_robots}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        allow_bool = False
+        disallow_bool = False
+        sitemap_bool = False
+        wildcard_bool = False
+
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if e.data == "http://127.0.0.1:8888/allow/":
+                    allow_bool = True
+
+                if e.data == "http://127.0.0.1:8888/disallow/":
+                    disallow_bool = True
+
+                if e.data == "http://127.0.0.1:8888/sitemap.txt":
+                    sitemap_bool = True
+
+                if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.data):
+                    wildcard_bool = True
+
+        if allow_bool and disallow_bool and sitemap_bool and wildcard_bool:
+            return True
+        return False
+
+
 class Masscan(MockHelper):
     # massdns can't scan localhost
     targets = ["8.8.8.8/32"]
