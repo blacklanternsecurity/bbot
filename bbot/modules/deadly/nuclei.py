@@ -5,7 +5,6 @@ from bbot.modules.base import BaseModule
 
 
 class nuclei(BaseModule):
-
     watched_events = ["URL", "TECHNOLOGY"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "aggressive", "web-advanced"]
@@ -49,7 +48,6 @@ class nuclei(BaseModule):
     in_scope_only = True
 
     def setup(self):
-
         # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
         self.info("Updating Nuclei templates")
@@ -121,7 +119,6 @@ class nuclei(BaseModule):
         return True
 
     def handle_batch(self, *events):
-
         nuclei_input = [str(e.data) for e in events]
         for severity, template, host, name, extracted_results in self.execute_nuclei(nuclei_input):
             source_event = self.correlate_event(events, host)
@@ -161,7 +158,6 @@ class nuclei(BaseModule):
         self.warning("Failed to correlate nuclei result with event")
 
     def execute_nuclei(self, nuclei_input):
-
         command = [
             "nuclei",
             "-json",
@@ -297,7 +293,6 @@ class NucleiBudget:
             if yf:
                 for paths in self.get_yaml_request_attr(yf, "path"):
                     if set(paths).issubset(self.budget_paths):
-
                         headers = self.get_yaml_request_attr(yf, "headers")
                         for header in headers:
                             if header:

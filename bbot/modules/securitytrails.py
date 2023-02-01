@@ -2,7 +2,6 @@ from .shodan_dns import shodan_dns
 
 
 class securitytrails(shodan_dns):
-
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]

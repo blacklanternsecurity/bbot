@@ -110,7 +110,6 @@ def log_worker_setup(logging_queue):
 
 
 def log_listener_setup(logging_queue):
-
     log_dir = Path(config["home"]) / "logs"
     if not mkdir(log_dir, raise_error=False):
         error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")

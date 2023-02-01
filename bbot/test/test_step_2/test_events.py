@@ -6,7 +6,6 @@ from ..bbot_fixtures import *
 
 
 def test_events(events, scan, helpers, bbot_config):
-
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
     assert events.netv4.type == "IP_RANGE"

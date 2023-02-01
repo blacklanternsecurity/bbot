@@ -32,12 +32,10 @@ from . import config
 
 
 def main():
-
     err = False
     scan_name = ""
 
     try:
-
         if len(sys.argv) == 1:
             parser.print_help()
             sys.exit(1)

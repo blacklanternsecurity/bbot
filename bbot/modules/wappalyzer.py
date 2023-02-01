@@ -11,7 +11,6 @@ warnings.filterwarnings(
 
 
 class wappalyzer(BaseModule):
-
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["TECHNOLOGY"]
     flags = ["active", "safe", "web-basic"]

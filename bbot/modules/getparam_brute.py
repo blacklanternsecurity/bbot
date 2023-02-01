@@ -27,7 +27,6 @@ class getparam_brute(header_brute):
         return compare_helper.compare(self.helpers.add_get_params(url, test_getparams).geturl())
 
     def gen_count_args(self, url):
-
         getparam_count = 40
         while 1:
             if getparam_count < 0:

@@ -56,7 +56,6 @@ class RequestMockHelper(MockHelper):
 
 
 class HttpxMockHelper(MockHelper):
-
     targets = ["http://127.0.0.1:8888/"]
 
     def __init__(self, config, bbot_scanner, bbot_httpserver):

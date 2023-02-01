@@ -4,7 +4,6 @@ from bbot.modules.base import BaseModule
 
 
 class naabu(BaseModule):
-
     watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active", "portscan", "aggressive"]
@@ -58,7 +57,6 @@ class naabu(BaseModule):
         return True
 
     def handle_batch(self, *events):
-
         _input = [str(e.data) for e in events]
         command = self.construct_command()
         for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL, sudo=True):

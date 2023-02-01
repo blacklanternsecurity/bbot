@@ -4,7 +4,6 @@ from bbot.modules.base import BaseModule
 
 
 class fingerprintx(BaseModule):
-
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["PROTOCOL"]
     flags = ["active", "safe", "service-enum"]
@@ -27,7 +26,6 @@ class fingerprintx(BaseModule):
     ]
 
     def handle_batch(self, *events):
-
         _input = {e.data: e for e in events}
         command = ["fingerprintx", "--json"]
         for line in self.helpers.run_live(command, input=list(_input), stderr=subprocess.DEVNULL):
