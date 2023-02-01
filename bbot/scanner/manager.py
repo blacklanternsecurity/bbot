@@ -29,6 +29,9 @@ class ScanManager:
         self.events_accepted = set()
         self.events_accepted_lock = threading.Lock()
 
+        self._lock = threading.Lock()
+        self.event_emitted = threading.Condition(self._lock)
+
         self.events_resolved = dict()
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
 
@@ -42,7 +45,7 @@ class ScanManager:
         sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
         for event in sorted_events:
             self.scan.verbose(f"Target: {event}")
-            self.emit_event(event, _block=False)
+            self.emit_event(event, _block=False, _force_submit=True)
         # force submit batches
         for mod in self.scan.modules.values():
             mod._handle_batch(force=True)
@@ -177,7 +180,7 @@ class ScanManager:
                             log.debug(f"Making {event} in-scope")
                         source_trail = event.make_in_scope(set_scope_distance)
                         for s in source_trail:
-                            self.emit_event(s, _block=False)
+                            self.emit_event(s, _block=False, _force_submit=True)
                     else:
                         if event.scope_distance > self.scan.scope_report_distance:
                             log.debug(
@@ -188,7 +191,7 @@ class ScanManager:
                     log.debug(f"Making {event} in-scope because it does not have identifying scope information")
                     source_trail = event.make_in_scope(0)
                     for s in source_trail:
-                        self.emit_event(s, _block=False)
+                        self.emit_event(s, _block=False, _force_submit=True)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if):
@@ -226,7 +229,7 @@ class ScanManager:
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     source_event.tags.add("target")
-                self.emit_event(source_event, _block=False)
+                self.emit_event(source_event, _block=False, _force_submit=True)
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:
@@ -240,7 +243,7 @@ class ScanManager:
                                 f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
                             )
                 for child_event in dns_child_events:
-                    self.emit_event(child_event, _block=False)
+                    self.emit_event(child_event, _block=False, _force_submit=True)
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
@@ -250,6 +253,8 @@ class ScanManager:
             event._resolved.set()
             if event_distributed:
                 self.scan.stats.event_distributed(event)
+            with self.event_emitted:
+                self.event_emitted.notify()
             log.debug(f"{event.module}.emit_event() finished for {event}")
 
     def hash_event(self, event):
@@ -382,13 +387,14 @@ class ScanManager:
                     event, kwargs = self.incoming_event_queue.get_nowait()
                     while not self.scan.aborting:
                         try:
-                            acceptable = self.emit_event(event, **kwargs)
+                            acceptable = self.emit_event(event, _block=False, **kwargs)
                             if acceptable:
                                 activity = True
                             break
                         except queue.Full:
                             self.log_status()
-                            sleep(0.1)
+                            with self.event_emitted:
+                                self.event_emitted.wait(timeout=0.1)
                 except queue.Empty:
                     # if we're on the last module
                     finished = self.modules_status().get("finished", False)
@@ -406,8 +412,8 @@ class ScanManager:
                         else:
                             # Otherwise stop the scan if no new events were generated since last time
                             break
-                    # save on CPU
-                    sleep(0.1)
+                    with self.incoming_event_queue.not_empty:
+                        self.incoming_event_queue.not_empty.wait(timeout=0.1)
 
         except KeyboardInterrupt:
             self.scan.stop()
