@@ -459,6 +459,7 @@ class Massdns(MockHelper):
         return False
 
 
+<<<<<<< HEAD
 class Robots(HttpxMockHelper):
     additional_modules = ["httpx"]
 
@@ -494,7 +495,6 @@ class Robots(HttpxMockHelper):
         if allow_bool and disallow_bool and sitemap_bool and wildcard_bool:
             return True
         return False
-
 
 class Masscan(MockHelper):
     # massdns can't scan localhost
