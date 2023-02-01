@@ -495,6 +495,7 @@ class Robots(HttpxMockHelper):
             return True
         return False
 
+
 class Masscan(MockHelper):
     # massdns can't scan localhost
     targets = ["8.8.8.8/32"]
