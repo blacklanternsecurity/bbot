@@ -459,8 +459,6 @@ class Massdns(MockHelper):
         return False
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 class Robots(HttpxMockHelper):
     additional_modules = ["httpx"]
 
