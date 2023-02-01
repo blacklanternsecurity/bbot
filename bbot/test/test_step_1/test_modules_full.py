@@ -55,13 +55,3 @@ def test_robots(bbot_config, bbot_scanner, bbot_httpserver):
 
     x = Robots(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
-
-    # # All on
-
-    # x = Badsecrets(bbot_config, bbot_scanner, bbot_httpserver)
-    # x.run()
-
-    # # All off
-
-    # x = Badsecrets(bbot_config, bbot_scanner, bbot_httpserver)
-    # x.run()
