@@ -4,7 +4,6 @@ from bbot.modules.base import BaseModule
 
 
 class ipneighbor(BaseModule):
-
     watched_events = ["IP_ADDRESS"]
     produced_events = ["IP_ADDRESS"]
     flags = ["passive", "subdomain-enum", "aggressive"]

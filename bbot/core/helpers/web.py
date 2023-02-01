@@ -181,7 +181,6 @@ def api_page_iter(self, url, page_size=100, json=True, **requests_kwargs):
 
 
 def curl(self, *args, **kwargs):
-
     url = kwargs.get("url", "")
 
     if not url:
@@ -248,7 +247,6 @@ def curl(self, *args, **kwargs):
 
     cookies = kwargs.get("cookies", "")
     if cookies:
-
         curl_command.append("-b")
         cookies_str = ""
         for k, v in cookies.items():

@@ -2,7 +2,6 @@ from ..bbot_fixtures import *
 
 
 def test_cli(monkeypatch, bbot_config):
-
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)

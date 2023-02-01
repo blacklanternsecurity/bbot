@@ -123,7 +123,6 @@ class asn(ReportModule):
         return asns
 
     def get_asn_metadata_ripe(self, asn_number):
-
         metadata_keys = {
             "name": ["ASName", "OrgId"],
             "description": ["OrgName", "OrgTechName", "RTechName"],

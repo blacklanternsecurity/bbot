@@ -6,7 +6,6 @@ from bbot.modules.deadly.ffuf import ffuf
 
 
 class ffuf_shortnames(ffuf):
-
     watched_events = ["URL_HINT"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["brute-force", "aggressive", "active", "web-advanced", "iis-shortnames"]
@@ -59,7 +58,6 @@ class ffuf_shortnames(ffuf):
         return True
 
     def handle_event(self, event):
-
         filename_hint = re.sub(r"~\d", "", event.parsed.path.rsplit(".", 1)[0].split("/")[-1]).lower()
 
         if len(filename_hint) == 6:
@@ -72,12 +70,10 @@ class ffuf_shortnames(ffuf):
             tempfile_len = 1
 
         if tempfile_len > 0:
-
             root_stub = "/".join(event.parsed.path.split("/")[:-1])
             root_url = f"{event.parsed.scheme}://{event.parsed.netloc}{root_stub}/"
 
             if "shortname-file" in event.tags:
-
                 used_extensions = []
                 extension_hint = event.parsed.path.rsplit(".", 1)[1].lower().strip()
 
@@ -88,11 +84,9 @@ class ffuf_shortnames(ffuf):
                             used_extensions.append(l.strip())
 
                 for ext in used_extensions:
-
                     for r in self.execute_ffuf(tempfile, event, root_url, suffix=f".{ext}"):
                         self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
             elif "shortname-directory" in event.tags:
-
                 for r in self.execute_ffuf(tempfile, event, root_url):
                     self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])

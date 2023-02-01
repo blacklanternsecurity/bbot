@@ -32,7 +32,6 @@ class asset_inventory(CSV):
         return super().setup()
 
     def handle_event(self, event):
-
         if (
             (not event._internal)
             and str(event.module) != "speculate"
@@ -40,7 +39,6 @@ class asset_inventory(CSV):
             and self.scan.in_scope(event)
             and not "unresolved" in event.tags
         ):
-
             if event.host not in self.assets:
                 self.assets[event.host] = Asset(event.host)
 

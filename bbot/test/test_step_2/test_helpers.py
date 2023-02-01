@@ -8,7 +8,6 @@ from ..bbot_fixtures import *
 
 
 def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
-
     ### URL ###
     bad_urls = (
         "http://e.co/index.html",

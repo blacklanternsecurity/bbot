@@ -56,7 +56,6 @@ class URLExtractor(BaseExtractor):
     prefix_blacklist = ["javascript:", "mailto:", "tel:"]
 
     def report(self, result, name, event, **kwargs):
-
         spider_danger = kwargs.get("spider_danger", True)
 
         tags = []
@@ -86,7 +85,6 @@ class URLExtractor(BaseExtractor):
 
 
 class EmailExtractor(BaseExtractor):
-
     regexes = {"email": _email_regex}
     tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
 
@@ -99,7 +97,6 @@ class EmailExtractor(BaseExtractor):
 
 
 class ErrorExtractor(BaseExtractor):
-
     regexes = {
         "PHP:1": r"\.php on line [0-9]+",
         "PHP:2": r"\.php</b> on line <b>[0-9]+",
@@ -128,7 +125,6 @@ class ErrorExtractor(BaseExtractor):
 
 
 class JWTExtractor(BaseExtractor):
-
     regexes = {"JWT": r"eyJ(?:[\w-]*\.)(?:[\w-]*\.)[\w-]*"}
 
     def report(self, result, name, event, **kwargs):
@@ -197,7 +193,6 @@ class JavascriptExtractor(BaseExtractor):
     }
 
     def report(self, result, name, event, **kwargs):
-
         # ensure that basic auth matches aren't false positives
         if name == "authorization_basic":
             try:
@@ -215,7 +210,6 @@ class JavascriptExtractor(BaseExtractor):
 
 
 class excavate(BaseInternalModule):
-
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive"]
@@ -226,7 +220,6 @@ class excavate(BaseInternalModule):
     deps_pip = ["pyjwt"]
 
     def setup(self):
-
         self.hostname = HostnameExtractor(self)
         self.url = URLExtractor(self)
         self.email = EmailExtractor(self)
@@ -243,12 +236,10 @@ class excavate(BaseInternalModule):
             e.search(source, event, **kwargs)
 
     def handle_event(self, event):
-
         data = event.data
 
         # HTTP_RESPONSE is a special case
         if event.type == "HTTP_RESPONSE":
-
             # handle redirects
             num_redirects = getattr(event, "num_redirects", 0)
             location = event.data.get("location", "")
@@ -295,7 +286,6 @@ class excavate(BaseInternalModule):
             )
 
         else:
-
             self.search(
                 str(data),
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],

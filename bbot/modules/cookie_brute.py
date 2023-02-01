@@ -22,14 +22,12 @@ class cookie_brute(header_brute):
     compare_mode = "cookie"
 
     def check_batch(self, compare_helper, url, cookie_list):
-
         if self.scan.stopping:
             raise ScanCancelledError()
         cookies = {p: self.rand_string(14) for p in cookie_list}
         return compare_helper.compare(url, cookies=cookies)
 
     def gen_count_args(self, url):
-
         cookie_count = 40
         while 1:
             if cookie_count < 0:
