@@ -41,10 +41,14 @@ from bbot.core.errors import *  # noqa: F401
 
 log = logging.getLogger(f"bbot.test")
 
+# silence pytest_httpserver
+log = logging.getLogger("werkzeug")
+log.setLevel(logging.CRITICAL)
+
 # silence stdout
 root_logger = logging.getLogger()
 for h in root_logger.handlers:
-    h.addFilter(lambda x: x.levelno != 100)
+    h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
 
 tldextract.extract("www.evilcorp.com")
 
