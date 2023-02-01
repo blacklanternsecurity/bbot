@@ -31,21 +31,24 @@ class robots(BaseModule):
         result = None
         url = f"{host}robots.txt"
         result = self.helpers.request(url)
-        body = result.text
+        if result:
+            body = result.text
 
-        if body:
-            lines = body.split("\n")
-            for l in lines:
-                if len(l) > 0:
-                    split_l = l.split(": ")
-                    if (split_l[0].lower() == "allow" and self.config.get("include_allow") == True) or (
-                        split_l[0].lower() == "disallow" and self.config.get("include_disallow") == True
-                    ):
-                        unverified_url = f"{host}{split_l[1].lstrip('/')}".replace("*", self.helpers.rand_string(4))
+            if body:
+                lines = body.split("\n")
+                for l in lines:
+                    if len(l) > 0:
+                        split_l = l.split(": ")
+                        if (split_l[0].lower() == "allow" and self.config.get("include_allow") == True) or (
+                            split_l[0].lower() == "disallow" and self.config.get("include_disallow") == True
+                        ):
+                            unverified_url = f"{host}{split_l[1].lstrip('/')}".replace(
+                                "*", self.helpers.rand_string(4)
+                            )
 
-                    elif split_l[0].lower() == "sitemap" and self.config.get("include_sitemap") == True:
-                        unverified_url = split_l[1]
-                    else:
-                        continue
+                        elif split_l[0].lower() == "sitemap" and self.config.get("include_sitemap") == True:
+                            unverified_url = split_l[1]
+                        else:
+                            continue
 
-                    self.emit_event(unverified_url, "URL_UNVERIFIED", source=event)
+                        self.emit_event(unverified_url, "URL_UNVERIFIED", source=event)
