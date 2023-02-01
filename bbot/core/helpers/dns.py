@@ -26,7 +26,6 @@ class DNSHelper:
     all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
 
     def __init__(self, parent_helper):
-
         self.parent_helper = parent_helper
         try:
             self.resolver = dns.resolver.Resolver()
@@ -92,7 +91,7 @@ class DNSHelper:
         """
         results = set()
         raw_results, errors = self.resolve_raw(query, **kwargs)
-        for (rdtype, answers) in raw_results:
+        for rdtype, answers in raw_results:
             for answer in answers:
                 for _, t in self.extract_targets(answer):
                     results.add(t)
@@ -580,7 +579,7 @@ class DNSHelper:
                     self.debug(f"Failed to resolve {query} ({rdtype}) during wildcard detection")
                     result[rdtype] = (None, parent)
                     continue
-                for (rdtype, answers) in raw_results:
+                for rdtype, answers in raw_results:
                     for answer in answers:
                         for _, t in self.extract_targets(answer):
                             query_ips.add(t)
@@ -624,7 +623,6 @@ class DNSHelper:
             # have we checked this host before?
             host_hash = hash(host)
             with self._wildcard_lock.get_lock(host_hash):
-
                 # if we've seen this host before
                 if host_hash in self._wildcard_cache:
                     wildcard_domain_results[host] = self._wildcard_cache[host_hash]

@@ -53,7 +53,6 @@ log = logging.getLogger(f"bbot.test.fixtures")
 
 @pytest.fixture
 def patch_commands():
-
     import subprocess
 
     sample_output = [
@@ -284,7 +283,6 @@ def events(scan):
 
 @pytest.fixture
 def agent(monkeypatch, websocketapp, bbot_config):
-
     from bbot import agent
     from bbot.modules.output.websocket import Websocket
 

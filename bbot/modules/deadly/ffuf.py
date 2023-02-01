@@ -7,7 +7,6 @@ from bbot.modules.base import BaseModule
 
 
 class ffuf(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["brute-force", "aggressive", "active", "web-advanced"]
@@ -48,7 +47,6 @@ class ffuf(BaseModule):
     in_scope_only = True
 
     def setup(self):
-
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist_url)
@@ -74,7 +72,6 @@ class ffuf(BaseModule):
             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
     def execute_ffuf(self, tempfile, event, url, suffix=""):
-
         ffuf_exts = [""]
 
         if self.extensions:

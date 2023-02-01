@@ -132,7 +132,6 @@ class Anubisdb(RequestMockHelper):
 
 
 class Badsecrets(HttpxMockHelper):
-
     targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/test.aspx", "http://127.0.0.1:8888/cookie.aspx"]
 
     sample_viewstate = """
@@ -217,12 +216,10 @@ class Badsecrets(HttpxMockHelper):
 
 
 class Telerik(HttpxMockHelper):
-
     additional_modules = ["httpx"]
     config_overrides = {"modules": {"telerik": {"exploit_RAU_crypto": True}}}
 
     def mock_args(self):
-
         # Simulate Telerik.Web.UI.WebResource.axd?type=rau detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"}
         respond_args = {
@@ -261,7 +258,6 @@ class Telerik(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-
         telerik_axd_detection = False
         telerik_axd_vulnerable = False
         telerik_spellcheck_detection = False
@@ -296,7 +292,6 @@ class Telerik(HttpxMockHelper):
 
 
 class Getparam_brute(HttpxMockHelper):
-
     getparam_body = """
     <html>
     <title>the title</title>
@@ -325,7 +320,6 @@ class Getparam_brute(HttpxMockHelper):
         helper.HttpCompare.gen_cache_buster = lambda *args, **kwargs: {"AAAAAA": "1"}
 
     def mock_args(self):
-
         expect_args = {"query_string": b"id=AAAAAAAAAAAAAA&AAAAAA=1"}
         respond_args = {"response_data": self.getparam_body_match}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -446,7 +440,6 @@ class LeakIX(RequestMockHelper):
 
 
 class Massdns(MockHelper):
-
     subdomain_wordlist = tempwordlist(["www", "asdf"])
     nameserver_wordlist = tempwordlist(["8.8.8.8", "8.8.4.4", "1.1.1.1"])
     config_overrides = {"modules": {"massdns": {"wordlist": str(subdomain_wordlist)}}}
@@ -467,7 +460,6 @@ class Massdns(MockHelper):
 
 
 class Masscan(MockHelper):
-
     # massdns can't scan localhost
     targets = ["8.8.8.8/32"]
     config_overrides = {"force_deps": True, "modules": {"masscan": {"ports": "53", "wait": 1}}}

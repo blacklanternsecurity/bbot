@@ -5,7 +5,6 @@ from ..bbot_fixtures import *
 
 
 def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbot_config, bbot_scanner):
-
     fallback_nameservers = scan.helpers.temp_dir / "nameservers.txt"
     with open(fallback_nameservers, "w") as f:
         f.write("8.8.8.8\n")

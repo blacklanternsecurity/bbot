@@ -4,7 +4,6 @@ from bbot.modules.base import BaseModule
 
 
 class httpx(BaseModule):
-
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
     flags = ["active", "safe", "web-basic"]
@@ -40,7 +39,6 @@ class httpx(BaseModule):
         return True
 
     def filter_event(self, event):
-
         if "_wildcard" in str(event.host).split("."):
             return False
 
@@ -61,7 +59,6 @@ class httpx(BaseModule):
         return True
 
     def handle_batch(self, *events):
-
         stdin = {}
         for e in events:
             url_hash = None

@@ -2,7 +2,6 @@ from ..bbot_fixtures import *  # noqa: F401
 
 
 def test_cloud_helpers(monkeypatch, bbot_scanner, bbot_config):
-
     scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
     scan1.load_modules()
     aws_event1 = scan1.make_event("amazonaws.com", source=scan1.root_event)

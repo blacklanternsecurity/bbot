@@ -65,7 +65,6 @@ class speculate(BaseInternalModule):
 
             usable_dns = False
             if event.type == "DNS_NAME":
-
                 if "a-record" in event.tags or "aaaa-record" in event.tags:
                     usable_dns = True
 

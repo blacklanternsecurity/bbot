@@ -31,7 +31,6 @@ class sslcert(BaseModule):
         return True
 
     def handle_event(self, event):
-
         _host = event.host
         if event.port:
             port = event.port
@@ -114,7 +113,6 @@ class sslcert(BaseModule):
 
     @staticmethod
     def get_cert_sans(cert):
-
         sans = []
         raw_sans = None
         ext_count = cert.get_extension_count()

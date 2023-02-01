@@ -30,17 +30,14 @@ class header_brute(BaseModule):
     compare_mode = "header"
 
     def setup(self):
-
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist_url)
         return True
 
     def rand_string(self, *args, **kwargs):
-
         return self.helpers.rand_string(*args, **kwargs)
 
     def handle_event(self, event):
-
         url = event.data
         try:
             compare_helper = self.helpers.http_compare(url)
@@ -79,7 +76,6 @@ class header_brute(BaseModule):
             pass
 
         for result, reasons, reflection in results:
-
             tags = []
             if reflection:
                 tags = ["http_reflection"]
@@ -92,7 +88,6 @@ class header_brute(BaseModule):
             )
 
     def count_test(self, url):
-
         baseline = self.helpers.request(url)
         if baseline is None:
             return
@@ -134,7 +129,6 @@ class header_brute(BaseModule):
             self.warning(f"Submitted group of size 0 to binary_search()")
 
     def check_batch(self, compare_helper, url, header_list):
-
         if self.scan.stopping:
             raise ScanCancelledError()
         rand = self.rand_string()
