@@ -19,7 +19,6 @@ class robots(BaseModule):
         return True
 
     def handle_event(self, event):
-
         parsed_host = event.parsed
         host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
         host_hash = hash(host)
@@ -38,7 +37,6 @@ class robots(BaseModule):
             lines = body.split("\n")
             for l in lines:
                 if len(l) > 0:
-
                     split_l = l.split(": ")
                     if (split_l[0].lower() == "allow" and self.config.get("include_allow") == True) or (
                         split_l[0].lower() == "disallow" and self.config.get("include_disallow") == True

@@ -130,7 +130,6 @@ class hunt(BaseModule):
     scope_distance_modifier = None
 
     def extract_params(self, body):
-
         # check for input tags
         input_tag = self.input_tag_regex.findall(body)
 

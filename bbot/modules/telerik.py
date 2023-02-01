@@ -4,7 +4,6 @@ from sys import executable
 
 
 class telerik(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
     flags = ["active", "aggressive", "slow", "web-basic"]
@@ -162,7 +161,6 @@ class telerik(BaseModule):
         return True
 
     def handle_event(self, event):
-
         host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
         host_hash = hash(host)
         if host_hash in self.scanned_hosts:
@@ -264,7 +262,6 @@ class telerik(BaseModule):
             pass
 
     def test_detector(self, baseurl, detector):
-
         result = None
         if "/" != baseurl[-1]:
             url = f"{baseurl}/{detector}"
@@ -274,7 +271,6 @@ class telerik(BaseModule):
         return result
 
     def filter_event(self, event):
-
         if "endpoint" in event.tags:
             return False
         else:

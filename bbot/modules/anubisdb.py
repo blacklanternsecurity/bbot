@@ -2,7 +2,6 @@ from .crobat import crobat
 
 
 class anubisdb(crobat):
-
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]

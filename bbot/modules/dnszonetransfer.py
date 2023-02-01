@@ -5,7 +5,6 @@ from bbot.modules.base import BaseModule
 
 
 class dnszonetransfer(BaseModule):
-
     flags = ["subdomain-enum", "active", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]

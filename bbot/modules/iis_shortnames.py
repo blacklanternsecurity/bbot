@@ -10,7 +10,6 @@ def encode_all(string):
 
 
 class iis_shortnames(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
     flags = ["active", "safe", "web-basic", "iis-shortnames"]
@@ -30,7 +29,6 @@ class iis_shortnames(BaseModule):
         test_url = f"{target}*~1*/a.aspx"
 
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
-
             control = self.helpers.request(method=method, headers=headers, url=control_url)
             test = self.helpers.request(method=method, headers=headers, url=test_url)
             if (control != None) and (test != None):
@@ -46,7 +44,6 @@ class iis_shortnames(BaseModule):
         return detected, technique
 
     def duplicate_check(self, target, method, url_hint):
-
         duplicates = []
         headers = {}
         count = 2
@@ -120,10 +117,8 @@ class iis_shortnames(BaseModule):
                 event,
             )
             if not self.config.get("detect_only"):
-
                 valid_method_confirmed = False
                 for m in vulnerable_methods:
-
                     if valid_method_confirmed:
                         break
 
@@ -148,7 +143,6 @@ class iis_shortnames(BaseModule):
                             m, normalized_url, f"{y}.", extension_mode=True
                         )
                         for z in file_name_extension_hints:
-
                             url_hint_list.append(z)
 
                     for url_hint in url_hint_list:

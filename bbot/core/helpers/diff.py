@@ -11,7 +11,6 @@ log = logging.getLogger("bbot.core.helpers.diff")
 
 class HttpCompare:
     def __init__(self, baseline_url, parent_helper, method="GET", allow_redirects=False):
-
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
 
@@ -77,7 +76,6 @@ class HttpCompare:
         return {self.parent_helper.rand_string(6): "1"}
 
     def compare_headers(self, headers_1, headers_2):
-
         differing_headers = []
 
         for i, headers in enumerate((headers_1, headers_2)):
@@ -99,7 +97,6 @@ class HttpCompare:
         return differing_headers
 
     def compare_body(self, content_1, content_2):
-
         if content_1 == content_2:
             return True
 

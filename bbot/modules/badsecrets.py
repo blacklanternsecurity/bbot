@@ -4,7 +4,6 @@ from badsecrets.base import carve_all_modules
 
 
 class badsecrets(BaseModule):
-
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "web-basic"]

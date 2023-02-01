@@ -13,7 +13,6 @@ from bbot.core.event.base import is_event
 
 
 class BaseModule:
-
     # Event types to watch
     watched_events = []
     # Event types to produce
@@ -260,7 +259,6 @@ class BaseModule:
         self.thread.start()
 
     def _setup(self):
-
         status_codes = {False: "hard-fail", None: "soft-fail", True: "success"}
 
         status = False

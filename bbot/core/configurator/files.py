@@ -26,7 +26,6 @@ def _get_config(filename, name="config", notify=True):
 
 
 def get_config():
-
     return OmegaConf.merge(
         _get_config(defaults_filename, name="defaults"),
         _get_config(config_filename, name="config"),

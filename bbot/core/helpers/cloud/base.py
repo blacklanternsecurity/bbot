@@ -5,7 +5,6 @@ log = logging.getLogger("bbot.helpers.cloud.provider")
 
 
 class BaseCloudProvider:
-
     domains = []
     regexes = {}
 

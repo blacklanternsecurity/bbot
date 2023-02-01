@@ -7,7 +7,6 @@ from bbot.modules.base import BaseModule
 
 
 class masscan(BaseModule):
-
     flags = ["active", "portscan", "aggressive"]
     watched_events = ["SCAN"]
     produced_events = ["OPEN_TCP_PORT"]

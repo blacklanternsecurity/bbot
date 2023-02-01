@@ -3,7 +3,6 @@ from bbot.core.errors import HttpCompareError
 
 
 class url_manipulation(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "web-advanced"]
@@ -40,7 +39,6 @@ class url_manipulation(BaseModule):
         return True
 
     def handle_event(self, event):
-
         try:
             compare_helper = self.helpers.http_compare(event.data, allow_redirects=self.allow_redirects)
         except HttpCompareError as e:
@@ -48,7 +46,6 @@ class url_manipulation(BaseModule):
             return
 
         for sig in self.signatures:
-
             sig = self.format_signature(sig, event)
             match, reasons, reflection, subject_response = compare_helper.compare(
                 sig[1], method=sig[0], allow_redirects=self.allow_redirects
@@ -62,7 +59,6 @@ class url_manipulation(BaseModule):
                 if self.rand_string not in subject_content:
                     if match == False:
                         if str(subject_response.status_code).startswith("2"):
-
                             if "body" in reasons:
                                 reported_signature = f"Modified URL: {sig[1]}"
                                 description = f"Url Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
@@ -77,7 +73,6 @@ class url_manipulation(BaseModule):
                     self.debug("Ignoring positive result due to presence of parameter name in result")
 
     def filter_event(self, event):
-
         accepted_status_codes = ["200", "301", "302"]
 
         for c in accepted_status_codes:

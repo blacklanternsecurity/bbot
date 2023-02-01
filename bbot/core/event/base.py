@@ -29,7 +29,6 @@ log = logging.getLogger("bbot.core.event")
 
 
 class BaseEvent:
-
     # Exclude from output modules
     _omit = False
     # Disables certain data validations
@@ -51,7 +50,6 @@ class BaseEvent:
         _dummy=False,
         _internal=None,
     ):
-
         self._id = None
         self._hash = None
         self.__host = None

@@ -2,7 +2,6 @@ from bbot.modules.base import BaseModule
 
 
 class vhost(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["VHOST", "DNS_NAME"]
     flags = ["active", "brute-force", "aggressive", "slow", "web-advanced"]

@@ -5,7 +5,6 @@ from bbot.modules.base import BaseModule
 
 
 class viewdns(BaseModule):
-
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "passive", "safe"]

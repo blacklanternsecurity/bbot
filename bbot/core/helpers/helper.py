@@ -58,7 +58,6 @@ class ConfigAwareHelper:
         return Interactsh(self)
 
     def http_compare(self, url, allow_redirects=False):
-
         return HttpCompare(url, self, allow_redirects=allow_redirects)
 
     def temp_filename(self):

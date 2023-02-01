@@ -2,7 +2,6 @@ from .shodan_dns import shodan_dns
 
 
 class hunterio(shodan_dns):
-
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL_UNVERIFIED"]
     flags = ["passive", "email-enum", "subdomain-enum", "safe"]

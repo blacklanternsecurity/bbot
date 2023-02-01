@@ -430,7 +430,6 @@ class ScanManager:
             self.last_log_time = now
 
     def modules_status(self, _log=False, passes=None):
-
         # If scan looks to be finished, check an additional five times to ensure that it really is
         # There is a tiny chance of a race condition, which this helps to avoid
         if passes is None:
@@ -440,7 +439,6 @@ class ScanManager:
 
         finished = True
         while passes > 0:
-
             status = {"modules": {}, "scan": self.scan.status_detailed}
 
             for num_tasks in status["scan"]["queued_tasks"].values():
@@ -469,7 +467,6 @@ class ScanManager:
         modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
 
         if _log:
-
             modules_status = []
             for m, s in status["modules"].items():
                 incoming = s["events"]["incoming"]

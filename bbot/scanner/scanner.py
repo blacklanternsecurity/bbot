@@ -31,7 +31,6 @@ init_logging()
 
 
 class Scanner:
-
     _status_codes = {
         "NOT_STARTED": 0,
         "STARTING": 1,
@@ -170,7 +169,6 @@ class Scanner:
         deque(self.start(), maxlen=0)
 
     def start(self):
-
         self.prep()
 
         failed = True
@@ -226,7 +224,6 @@ class Scanner:
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
-
             self.cleanup()
             self.shutdown_threadpools(wait=True)
 
@@ -491,9 +488,7 @@ class Scanner:
                 yield modname
 
     def load_modules(self):
-
         if not self._modules_loaded:
-
             all_modules = list(set(self._scan_modules + self._output_modules + self._internal_modules))
             if not all_modules:
                 self.warning(f"No modules to load")
@@ -562,7 +557,6 @@ class Scanner:
             raise ScanError(msg)
 
     def _load_modules(self, modules):
-
         modules = [str(m) for m in modules]
         loaded_modules = {}
         failed = set()
