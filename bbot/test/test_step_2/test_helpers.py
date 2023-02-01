@@ -280,6 +280,18 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
 
     assert type(helpers.make_date()) == str
 
+    # punycode
+    assert helpers.smart_encode_punycode("ドメイン.テスト") == "xn--eckwd4c7c.xn--zckzah"
+    assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah") == "ドメイン.テスト"
+    assert helpers.smart_encode_punycode("evilcorp.com") == "evilcorp.com"
+    assert helpers.smart_decode_punycode("evilcorp.com") == "evilcorp.com"
+    assert helpers.smart_encode_punycode("bob@ドメイン.テスト") == "bob@xn--eckwd4c7c.xn--zckzah"
+    assert helpers.smart_decode_punycode("bob@xn--eckwd4c7c.xn--zckzah") == "bob@ドメイン.テスト"
+    with pytest.raises(ValueError):
+        helpers.smart_decode_punycode(b"asdf")
+    with pytest.raises(ValueError):
+        helpers.smart_encode_punycode(b"asdf")
+
     def raise_filenotfound():
         raise FileNotFoundError("asdf")
 

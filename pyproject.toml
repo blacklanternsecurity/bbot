@@ -28,6 +28,7 @@ xmltojson = "^2.0.1"
 pycryptodome = "^3.15.0"
 tabulate = "^0.8.10"
 cloudcheck = "^1.0.0.10"
+idna = "^3.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
