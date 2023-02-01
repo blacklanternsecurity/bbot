@@ -2,14 +2,12 @@ import queue
 import logging
 import threading
 import traceback
-from time import sleep
 from sys import exc_info
+from datetime import datetime
 from contextlib import suppress
 
 from ..core.helpers.threadpool import ThreadPoolWrapper
 from ..core.errors import ScanCancelledError, ValidationError, WordlistError
-
-from bbot.core.event.base import is_event
 
 
 class BaseModule:
@@ -85,8 +83,8 @@ class BaseModule:
         self.errored = False
         self._log = None
         self._incoming_event_queue = None
-        # how many seconds we've gone without processing a batch
-        self._batch_idle = 0
+        # seconds since we've submitted a batch
+        self._last_submitted_batch = None
         # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
         self.thread_pool = ThreadPoolWrapper(
             self.scan._thread_pool.executor, max_workers=self.config.get("max_threads", self.max_threads)
@@ -98,6 +96,9 @@ class BaseModule:
         self.cleanup_callbacks = []
         self._cleanedup = False
         self._watched_events = None
+
+        self._lock = threading.RLock()
+        self.event_received = threading.Condition(self._lock)
 
         # string constant
         self._custom_filter_criteria_msg = "it did not meet custom filter criteria"
@@ -178,7 +179,7 @@ class BaseModule:
         if self.batch_size <= 1:
             return
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
-            self._batch_idle = 0
+            self.batch_idle(reset=True)
             on_finish_callback = None
             events, finish, report = self.events_waiting
             if finish:
@@ -285,7 +286,7 @@ class BaseModule:
         Determine whether a batch should be forcefully submitted
         """
         # if we've been idle long enough
-        if self._batch_idle >= self.batch_wait:
+        if self.batch_idle() >= self.batch_wait:
             return True
         # if scan is finishing
         if self.scan.status == "FINISHING":
@@ -296,28 +297,28 @@ class BaseModule:
             return True
         return False
 
+    def batch_idle(self, reset=False):
+        now = datetime.now()
+        if self._last_submitted_batch is None or reset:
+            self._last_submitted_batch = now
+        delta = now - self._last_submitted_batch
+        return delta.total_seconds()
+
     def _worker(self):
-        # keep track of how long we've been running
-        iterations = 0
         try:
             while not self.scan.stopping:
-                iterations += 1
-
                 # hold the reigns if our outgoing queue is full
                 if self._qsize and self.outgoing_event_queue_qsize >= self._qsize:
-                    self._batch_idle += 1
-                    sleep(0.1)
+                    with self.event_received:
+                        self.event_received.wait(timeout=0.1)
                     continue
 
                 if self.batch_size > 1:
-                    if iterations % 10 == 0:
-                        self._batch_idle += 1
                     force = self._force_batch
-                    if force:
-                        self._batch_idle = 0
                     submitted = self._handle_batch(force=force)
                     if not submitted:
-                        sleep(0.1)
+                        with self.event_received:
+                            self.event_received.wait(timeout=0.1)
 
                 else:
                     try:
@@ -436,14 +437,12 @@ class BaseModule:
         if self.incoming_event_queue is not None and not self.errored:
             acceptable, reason = self._filter_event(event)
             if not acceptable and reason:
-                if reason.startswith(self._custom_filter_criteria_msg):
-                    self.verbose(f"Not accepting {event} because {reason}")
-                else:
-                    self.debug(f"Not accepting {event} because {reason}")
+                self.debug(f"Not accepting {event} because {reason}")
                 return
-            if is_event(event):
-                self.scan.stats.event_consumed(event, self)
+            self.scan.stats.event_consumed(event, self)
             self.incoming_event_queue.put(event)
+            with self.event_received:
+                self.event_received.notify()
         else:
             self.debug(f"Not in an acceptable state to queue event")
 

@@ -6,11 +6,12 @@ from bbot.modules.base import BaseModule
 class fingerprintx(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["PROTOCOL"]
-    flags = ["active", "safe", "service-enum"]
+    flags = ["active", "safe", "service-enum", "slow"]
     meta = {"description": "Fingerprint exposed services like RDP, SSH, MySQL, etc."}
     options = {"version": "1.1.4"}
     options_desc = {"version": "fingerprintx version"}
-    batch_size = 100
+    batch_size = 10
+    max_event_handlers = 2
     _priority = 2
 
     deps_ansible = [
@@ -34,14 +35,18 @@ class fingerprintx(BaseModule):
             except Exception as e:
                 self.debug(f'Error parsing line "{line}" as JSON: {e}')
                 break
-            host = j.get("host", j.get("ip", ""))
+            ip = j.get("ip", "")
+            host = j.get("host", ip)
             port = str(j.get("port", ""))
             banner = j.get("metadata", {}).get("banner", "").strip()
             port_data = f"{host}:{port}"
             protocol = j.get("protocol", "")
+            tags = set()
+            if host and ip:
+                tags.add(f"ip-{ip}")
             if host and port and protocol:
                 source_event = _input.get(port_data)
                 protocol_data = {"host": port_data, "protocol": protocol.upper()}
                 if banner:
                     protocol_data["banner"] = banner
-                self.emit_event(protocol_data, "PROTOCOL", source=source_event)
+                self.emit_event(protocol_data, "PROTOCOL", source=source_event, tags=tags)

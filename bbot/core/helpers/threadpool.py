@@ -1,7 +1,6 @@
 import logging
 import threading
 from queue import Full
-from time import sleep
 
 log = logging.getLogger("bbot.core.helpers.threadpool")
 
@@ -20,35 +19,67 @@ class ThreadPoolWrapper:
         self.max_workers = max_workers
         self.max_qsize = qsize
         self.futures = set()
-        self._future_lock = threading.Lock()
-        self._submit_task_lock = threading.Lock()
+        try:
+            self.executor._thread_pool_wrappers.append(self)
+        except AttributeError:
+            self.executor._thread_pool_wrappers = [self]
+        self.num_tasks = 0
+
+        self._lock = threading.Lock()
+        self.not_full = threading.Condition(self._lock)
 
     def submit_task(self, callback, *args, **kwargs):
         """
         A wrapper around threadpool.submit()
         """
-        block = kwargs.pop("_block", True)
-        with self._submit_task_lock:
-            if self.max_workers is not None:
-                while self.num_tasks > self.max_workers:
-                    sleep(0.1)
-            if block and self.max_qsize is not None and self.qsize >= self.max_qsize:
-                raise Full()
+        block = kwargs.get("_block", True)
+        force = kwargs.get("_force_submit", False)
+        success = False
+        with self.not_full:
+            self.num_tasks += 1
             try:
-                future = self.executor.submit(callback, *args, **kwargs)
-            except RuntimeError as e:
-                raise ScanCancelledError(e)
-        with self._future_lock:
-            self.futures.add(future)
-        return future
+                if not force:
+                    if not block:
+                        if self.is_full or self.underlying_executor_is_full:
+                            raise Full
+                    else:
+                        # wait until there's room
+                        while self.is_full or self.underlying_executor_is_full:
+                            self.not_full.wait()
+
+                try:
+                    # submit the job
+                    future = self.executor.submit(self.callback_wrapper, callback, *args, **kwargs)
+                    success = True
+                except RuntimeError as e:
+                    raise ScanCancelledError(e)
+            finally:
+                if not success:
+                    self.num_tasks -= 1
+
+            return future
+
+    def callback_wrapper(self, callback, *args, **kwargs):
+        try:
+            return callback(*args, **kwargs)
+        finally:
+            self.num_tasks -= 1
+            for wrapper in self.executor._thread_pool_wrappers:
+                try:
+                    with wrapper.not_full:
+                        wrapper.not_full.notify()
+                except RuntimeError:
+                    continue
 
     @property
-    def num_tasks(self):
-        with self._future_lock:
-            for f in list(self.futures):
-                if f.done():
-                    self.futures.remove(f)
-            return len(self.futures) + (1 if self._submit_task_lock.locked() else 0)
+    def is_full(self):
+        if self.max_workers is None:
+            return False
+        return self.num_tasks > self.max_workers
+
+    @property
+    def underlying_executor_is_full(self):
+        return self.max_qsize is not None and self.qsize >= self.max_qsize
 
     @property
     def qsize(self):
@@ -58,20 +89,58 @@ class ThreadPoolWrapper:
         self.executor.shutdown(*args, **kwargs)
 
 
-def as_completed(fs):
-    fs = list(fs)
-    while fs:
-        result = False
-        for i, f in enumerate(fs):
-            if f.done():
-                result = True
-                future = fs.pop(i)
-                if future._state in ("CANCELLED", "CANCELLED_AND_NOTIFIED"):
-                    continue
-                yield future
-                break
-        if not result:
-            sleep(0.05)
+import time
+from concurrent.futures._base import (
+    FINISHED,
+    _AS_COMPLETED,
+    _AcquireFutures,
+    _create_and_install_waiters,
+    _yield_finished_futures,
+)
+
+
+def as_completed(fs, timeout=None):
+    """
+    Copied from https://github.com/python/cpython/blob/main/Lib/concurrent/futures/_base.py
+    Modified to only yield FINISHED futures (not CANCELLED_AND_NOTIFIED)
+    """
+    if timeout is not None:
+        end_time = timeout + time.monotonic()
+
+    fs = set(fs)
+    total_futures = len(fs)
+    with _AcquireFutures(fs):
+        finished = set(f for f in fs if f._state == FINISHED)
+        pending = fs - finished
+        waiter = _create_and_install_waiters(fs, _AS_COMPLETED)
+    finished = list(finished)
+    try:
+        yield from _yield_finished_futures(finished, waiter, ref_collect=(fs,))
+
+        while pending:
+            if timeout is None:
+                wait_timeout = None
+            else:
+                wait_timeout = end_time - time.monotonic()
+                if wait_timeout < 0:
+                    raise TimeoutError("%d (of %d) futures unfinished" % (len(pending), total_futures))
+
+            waiter.event.wait(wait_timeout)
+
+            with waiter.lock:
+                finished = waiter.finished_futures
+                waiter.finished_futures = []
+                waiter.event.clear()
+
+            # reverse to keep finishing order
+            finished.reverse()
+            yield from _yield_finished_futures(finished, waiter, ref_collect=(fs, pending))
+
+    finally:
+        # Remove waiter from unfinished futures
+        for f in fs:
+            with f._condition:
+                f._waiters.remove(waiter)
 
 
 class _Lock:
