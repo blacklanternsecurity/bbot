@@ -32,8 +32,6 @@ class BaseEvent:
 
     # Exclude from output modules
     _omit = False
-    # Priority, 1-5, lower numbers == higher priority
-    _priority = 3
     # Disables certain data validations
     _dummy = False
     # Data validation, if data is a dictionary
@@ -59,6 +57,7 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self.__words = None
+        self._priority = None
         self._resolved_hosts = set()
 
         self._made_internal = False
@@ -292,6 +291,7 @@ class BaseEvent:
             if not isinstance(data, dict):
                 raise ValidationError(f"data is not of type dict: {data}")
             data = self._data_validator(**data).dict()
+            data = {k: v for k, v in data.items() if v is not None}
         return self.sanitize_data(data)
 
     def sanitize_data(self, data):
@@ -406,11 +406,19 @@ class BaseEvent:
         return event_from_json(j)
 
     @property
+    def module_priority(self):
+        module = getattr(self, "module", None)
+        return int(max(1, min(5, getattr(module, "priority", 3))))
+
+    @property
     def priority(self):
-        self_priority = int(max(1, min(5, self._priority)))
-        mod_priority = int(max(1, min(5, getattr(self.module, "priority", 1))))
-        timestamp = self.timestamp.timestamp()
-        return self_priority + mod_priority + (1 / timestamp)
+        if self._priority is None:
+            timestamp = self.timestamp.timestamp()
+            if self.source.timestamp == self.timestamp:
+                self._priority = (timestamp,)
+            else:
+                self._priority = getattr(self.source, "priority", ()) + (timestamp,)
+        return self._priority
 
     def __iter__(self):
         """
@@ -422,13 +430,13 @@ class BaseEvent:
         """
         For queue sorting
         """
-        return self.priority < int(getattr(other, "priority", 5))
+        return self.priority < getattr(other, "priority", (0,))
 
     def __gt__(self, other):
         """
         For queue sorting
         """
-        return self.priority > int(getattr(other, "priority", 5))
+        return self.priority > getattr(other, "priority", (0,))
 
     def __eq__(self, other):
         try:
@@ -448,6 +456,16 @@ class BaseEvent:
 
     def __repr__(self):
         return str(self)
+
+
+class FINISHED(BaseEvent):
+    """
+    Special signal event to indicate end of scan
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._priority = (999999999999999999999,)
 
 
 class DefaultEvent(BaseEvent):
@@ -530,8 +548,6 @@ class IP_RANGE(DnsEvent):
 
 
 class DNS_NAME(DnsEvent):
-    _priority = 2
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if is_subdomain(self.data):
@@ -671,8 +687,6 @@ class EMAIL_ADDRESS(BaseEvent):
 
 
 class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
-    _priority = 2
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
@@ -701,8 +715,6 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 
 class VULNERABILITY(DictHostEvent):
-    _priority = 1
-
     def _sanitize_data(self, data):
         data = super()._sanitize_data(data)
         self.tags.add(data["severity"].lower())
@@ -721,8 +733,6 @@ class VULNERABILITY(DictHostEvent):
 
 
 class FINDING(DictHostEvent):
-    _priority = 1
-
     class _data_validator(BaseModel):
         host: str
         description: str
@@ -734,8 +744,6 @@ class FINDING(DictHostEvent):
 
 
 class TECHNOLOGY(DictHostEvent):
-    _priority = 2
-
     class _data_validator(BaseModel):
         host: str
         technology: str
@@ -761,6 +769,7 @@ class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
+        banner: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_open_port)
 
     def _host(self):

@@ -6,13 +6,16 @@ from .helpers import *
 
 class Httpx(HttpxMockHelper):
     def mock_args(self):
-        respond_args = {"response_data": json.dumps({"foo": "bar"})}
-        self.set_expect_requests(respond_args=respond_args)
+        request_args = dict(headers={"test": "header"})
+        respond_args = dict(response_data=json.dumps({"foo": "bar"}))
+        self.set_expect_requests(request_args, respond_args)
 
     def check_events(self, events):
         for e in events:
-            if e.type == "HTTP_RESPONSE" and json.loads(e.data["body"])["foo"] == "bar":
-                return True
+            if e.type == "HTTP_RESPONSE":
+                j = json.loads(e.data["body"])
+                if j.get("foo", "") == "bar":
+                    return True
         return False
 
 
@@ -36,6 +39,47 @@ class Gowitness(HttpxMockHelper):
         screenshots = list(screenshots_path.glob("*.png"))
         if screenshots:
             return True
+        return False
+
+
+class Subdomain_Hijack(HttpxMockHelper):
+    additional_modules = ["httpx", "excavate"]
+
+    def mock_args(self):
+        fingerprints = self.module.fingerprints
+        assert fingerprints, "No subdomain hijacking fingerprints available"
+        fingerprint = next(iter(fingerprints))
+        rand_string = self.scan.helpers.rand_string(length=15, digits=False)
+        self.rand_subdomain = f"{rand_string}.{next(iter(fingerprint.domains))}"
+        respond_args = {"response_data": f'<a src="http://{self.rand_subdomain}"/>'}
+        self.set_expect_requests(respond_args=respond_args)
+
+    def check_events(self, events):
+        for event in events:
+            if (
+                event.type == "FINDING"
+                and event.data["description"].startswith("Hijackable Subdomain")
+                and self.rand_subdomain in event.data["description"]
+                and event.data["host"] == self.rand_subdomain
+            ):
+                return True
+        return False
+
+
+class Fingerprintx(HttpxMockHelper):
+    targets = ["127.0.0.1:8888"]
+
+    def mock_args(self):
+        pass
+
+    def check_events(self, events):
+        for event in events:
+            if (
+                event.type == "PROTOCOL"
+                and event.data["host"] == "127.0.0.1:8888"
+                and event.data["protocol"] == "HTTP"
+            ):
+                return True
         return False
 
 
@@ -458,5 +502,17 @@ class Robots(HttpxMockHelper):
 
         if allow_bool and disallow_bool and sitemap_bool and wildcard_bool:
             return True
+        return False
 
+
+class Masscan(MockHelper):
+
+    # massdns can't scan localhost
+    targets = ["8.8.8.8/32"]
+    config_overrides = {"force_deps": True, "modules": {"masscan": {"ports": "53", "wait": 1}}}
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:53":
+                return True
         return False

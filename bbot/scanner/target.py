@@ -1,5 +1,6 @@
 import logging
 import ipaddress
+from contextlib import suppress
 
 from bbot.core.errors import *
 from bbot.core.event import make_event
@@ -45,24 +46,29 @@ class ScanTarget:
         self_copy._events = dict(self._events)
         return self_copy
 
-    def _contains(self, other):
+    def get(self, host):
+        """
+        Get the matching target for a specified host. If not found, return None
+        """
         try:
-            other = make_event(other, dummy=True)
+            other = make_event(host, dummy=True)
         except ValidationError:
-            return False
-        if other in self.events:
-            return True
+            return
         if other.host:
-            if other.host in self._events:
-                return True
+            with suppress(KeyError, StopIteration):
+                return next(iter(self._events[other.host]))
             if self.scan.helpers.is_ip_type(other.host):
                 for n in self.scan.helpers.ip_network_parents(other.host, include_self=True):
-                    if n in self._events:
-                        return True
+                    with suppress(KeyError, StopIteration):
+                        return next(iter(self._events[n]))
             elif not self.strict_scope:
                 for h in self.scan.helpers.domain_parents(other.host):
-                    if h in self._events:
-                        return True
+                    with suppress(KeyError, StopIteration):
+                        return next(iter(self._events[h]))
+
+    def _contains(self, other):
+        if self.get(other) is not None:
+            return True
         return False
 
     def __str__(self):

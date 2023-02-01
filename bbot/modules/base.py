@@ -72,8 +72,8 @@ class BaseModule:
     _scope_shepherding = True
     # Exclude from scan statistics
     _stats_exclude = False
-    # outgoing queue size
-    _qsize = 100
+    # outgoing queue size (None == infinite)
+    _qsize = None
     # Priority of events raised by this module, 1-5, lower numbers == higher priority
     _priority = 3
     # Name, overridden automatically
@@ -86,7 +86,6 @@ class BaseModule:
         self.errored = False
         self._log = None
         self._incoming_event_queue = None
-        self._outgoing_event_queue = None
         # how many seconds we've gone without processing a batch
         self._batch_idle = 0
         # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
@@ -100,6 +99,9 @@ class BaseModule:
         self.cleanup_callbacks = []
         self._cleanedup = False
         self._watched_events = None
+
+        # string constant
+        self._custom_filter_criteria_msg = "it did not meet custom filter criteria"
 
     def setup(self):
         """
@@ -209,14 +211,21 @@ class BaseModule:
         return event
 
     def emit_event(self, *args, **kwargs):
-        if self.scan.stopping:
-            return
         event_kwargs = dict(kwargs)
         for o in ("on_success_callback", "abort_if", "quick"):
             event_kwargs.pop(o, None)
         event = self.make_event(*args, **event_kwargs)
         if event:
-            self.outgoing_event_queue.put((event, kwargs))
+            # Wait for parent event to resolve (in case its scope distance changes)
+            while 1:
+                if self.scan.stopping:
+                    return
+                resolved = event.source._resolved.wait(timeout=0.1)
+                if resolved:
+                    # update event's scope distance based on its parent
+                    event.scope_distance = event.source.scope_distance + 1
+                    break
+            self.scan.manager.incoming_event_queue.put((event, kwargs))
 
     @property
     def events_waiting(self):
@@ -231,11 +240,8 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                if type(event) == str:
-                    if event == "FINISHED":
-                        finish = True
-                    elif event == "REPORT":
-                        report = True
+                if event.type == "FINISHED":
+                    finish = True
                 else:
                     events.append(event)
             except queue.Empty:
@@ -300,7 +306,7 @@ class BaseModule:
                 iterations += 1
 
                 # hold the reigns if our outgoing queue is full
-                if self.outgoing_event_queue.qsize() >= self._qsize:
+                if self._qsize and self.outgoing_event_queue_qsize >= self._qsize:
                     self._batch_idle += 1
                     sleep(0.1)
                     continue
@@ -326,11 +332,8 @@ class BaseModule:
                         continue
                     self.debug(f"Got {e} from {getattr(e, 'module', e)}")
                     # if we receive the special "FINISHED" event
-                    if type(e) == str:
-                        if e == "FINISHED":
-                            self._internal_thread_pool.submit_task(self.catch, self.finish)
-                        elif e == "REPORT":
-                            self._internal_thread_pool.submit_task(self.catch, self.report)
+                    if e.type == "FINISHED":
+                        self._internal_thread_pool.submit_task(self.catch, self.finish)
                     else:
                         if self._type == "output":
                             self.catch(self.handle_event, e)
@@ -363,12 +366,9 @@ class BaseModule:
         Check if an event should be accepted by the module
         These checks are safe to run before an event has been DNS-resolved
         """
-        # special "FINISHED" event
-        if type(event) == str:
-            if event in ("FINISHED", "REPORT"):
-                return True, ""
-            else:
-                return False, f'string value "{event}" is invalid'
+        # special signal event types
+        if event.type in ("FINISHED",):
+            return True, ""
         # exclude non-watched types
         if not any(t in self.get_watched_events() for t in ("*", event.type)):
             return False, "its type is not in watched_events"
@@ -395,7 +395,7 @@ class BaseModule:
         Check if an event should be accepted by the module
         These checks must be run after an event has been DNS-resolved
         """
-        if type(event) == str:
+        if event.type in ("FINISHED",):
             return True, ""
 
         if self.in_scope_only:
@@ -412,8 +412,15 @@ class BaseModule:
 
         # custom filtering
         try:
-            if not self.filter_event(event):
-                return False, f"{event} did not meet custom filter criteria"
+            filter_result = self.filter_event(event)
+            msg = str(self._custom_filter_criteria_msg)
+            with suppress(ValueError, TypeError):
+                filter_result, reason = filter_result
+                msg += f": {reason}"
+            if not filter_result:
+                return False, msg
+        except ScanCancelledError:
+            return False, "Scan cancelled"
         except Exception as e:
             self.error(f"Error in filter_event({event}): {e}")
             self.trace()
@@ -431,7 +438,10 @@ class BaseModule:
         if self.incoming_event_queue is not None and not self.errored:
             acceptable, reason = self._filter_event(event)
             if not acceptable and reason:
-                self.debug(f"Not accepting {event} because {reason}")
+                if reason.startswith(self._custom_filter_criteria_msg):
+                    self.verbose(f"Not accepting {event} because {reason}")
+                else:
+                    self.debug(f"Not accepting {event} because {reason}")
                 return
             if is_event(event):
                 self.scan.stats.event_consumed(event, self)
@@ -469,13 +479,10 @@ class BaseModule:
         internal_pool = self._internal_thread_pool.num_tasks
         pool_total = main_pool + internal_pool
         incoming_qsize = 0
-        outgoing_qsize = 0
         if self.incoming_event_queue:
             incoming_qsize = self.incoming_event_queue.qsize()
-        if self.outgoing_event_queue:
-            outgoing_qsize = self.outgoing_event_queue.qsize()
         status = {
-            "events": {"incoming": incoming_qsize, "outgoing": outgoing_qsize},
+            "events": {"incoming": incoming_qsize, "outgoing": self.outgoing_event_queue_qsize},
             "tasks": {"main_pool": main_pool, "internal_pool": internal_pool, "total": pool_total},
             "errored": self.errored,
         }
@@ -506,14 +513,12 @@ class BaseModule:
     @property
     def incoming_event_queue(self):
         if self._incoming_event_queue is None:
-            self._incoming_event_queue = queue.SimpleQueue()
+            self._incoming_event_queue = queue.PriorityQueue()
         return self._incoming_event_queue
 
     @property
-    def outgoing_event_queue(self):
-        if self._outgoing_event_queue is None:
-            self._outgoing_event_queue = queue.SimpleQueue()
-        return self._outgoing_event_queue
+    def outgoing_event_queue_qsize(self):
+        return self.scan.manager.incoming_event_queue.modules.get(str(self), 0)
 
     @property
     def priority(self):
@@ -525,7 +530,7 @@ class BaseModule:
 
     @property
     def log(self):
-        if self._log is None:
+        if getattr(self, "_log", None) is None:
             self._log = logging.getLogger(f"bbot.modules.{self.name}")
         return self._log
 

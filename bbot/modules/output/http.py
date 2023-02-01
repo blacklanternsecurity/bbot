@@ -7,7 +7,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class HTTP(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Output to HTTP"}
+    meta = {"description": "Send every event to a custom URL via a web request"}
     options = {
         "url": "",
         "method": "POST",

@@ -49,11 +49,23 @@ class massdns(crobat):
         return ret
 
     def filter_event(self, event):
-        if "unresolved" in event.tags and not "target" in event.tags:
-            return False
         query = self.make_query(event)
         if self.already_processed(query):
-            return False
+            return False, "Event was already processed"
+        is_cloud = False
+        if any(t.startswith("cloud-") for t in event.tags):
+            is_cloud = True
+        is_wildcard = False
+        for domain, wildcard_rdtypes in self.helpers.is_wildcard_domain(query).items():
+            if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
+                is_wildcard = True
+        if not "target" in event.tags:
+            if "unresolved" in event.tags:
+                return False, "Event is unresolved"
+            if is_cloud:
+                return False, "Event is a cloud resource and not a direct target"
+        if is_wildcard and is_cloud:
+            return False, "Event is both a cloud resource and a wildcard domain"
         self.processed.add(hash(query))
         return True
 
@@ -68,12 +80,14 @@ class massdns(crobat):
             self.emit_result(hostname, event, query)
 
     def abort_if(self, event):
-        # abort if the event is a wildcard
+        if not event.scope_distance == 0:
+            return True, "event is not in scope"
+        if "unresolved" in event.tags:
+            return True, "event is unresolved"
         if "wildcard" in event.tags:
-            return True
-        # abort if the event is not a valid record type
+            return True, "event is a wildcard"
         if not any(x in event.tags for x in ("a-record", "aaaa-record", "cname-record")):
-            return True
+            return True, "event is not a valid record type"
 
     def emit_result(self, result, source_event, query):
         if not result == source_event:
@@ -219,7 +233,8 @@ class massdns(crobat):
 
     def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
-            yield f"{p}.{domain}"
+            d = f"{p}.{domain}"
+            yield d
 
     def get_source_event(self, hostname):
         for p in self.helpers.domain_parents(hostname):

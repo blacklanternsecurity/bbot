@@ -89,8 +89,9 @@ class Scanner:
         # Shared thread pool, for module use
         self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
         # Event thread pool, for event emission
-        self._event_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2))
-        self._event_thread_pool_qsize = 1000
+        self._event_thread_pool = ThreadPoolWrapper(
+            concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2), qsize=max_workers
+        )
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
         self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
@@ -133,6 +134,13 @@ class Scanner:
             self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 3))
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
+
+        # custom HTTP headers warning
+        self.custom_http_headers = self.config.get("http_headers", {})
+        if self.custom_http_headers:
+            self.warning(
+                "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
+            )
 
         self._prepped = False
         self._cleanedup = False

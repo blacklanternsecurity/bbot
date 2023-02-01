@@ -21,6 +21,7 @@ class naabu(BaseModule):
     }
     max_event_handlers = 2
     batch_size = 100
+    _priority = 2
 
     deps_ansible = [
         {
@@ -52,11 +53,15 @@ class naabu(BaseModule):
         },
     ]
 
+    def setup(self):
+        self.helpers.depsinstaller.ensure_root(message="Naabu requires root privileges")
+        return True
+
     def handle_batch(self, *events):
 
         _input = [str(e.data) for e in events]
         command = self.construct_command()
-        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL):
+        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL, sudo=True):
             try:
                 j = json.loads(line)
             except Exception as e:

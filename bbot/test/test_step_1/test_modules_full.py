@@ -11,6 +11,16 @@ def test_gowitness(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_subdomain_hijack(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Subdomain_Hijack(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
+def test_fingerprintx(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Fingerprintx(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
 def test_otx(bbot_config, bbot_scanner, bbot_httpserver):
     x = Otx(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
@@ -44,6 +54,12 @@ def test_leakix(bbot_config, bbot_scanner, bbot_httpserver):
 def test_massdns(bbot_config, bbot_scanner, bbot_httpserver):
     x = Massdns(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+# This is disabled because github's EDR is configured to delete the masscan binary
+# def test_masscan(bbot_config, bbot_scanner, bbot_httpserver):
+#     x = Masscan(bbot_config, bbot_scanner, bbot_httpserver)
+#     x.run()
 
 
 def test_badsecrets(bbot_config, bbot_scanner, bbot_httpserver):

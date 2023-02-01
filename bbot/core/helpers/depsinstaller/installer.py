@@ -1,10 +1,12 @@
 import os
 import sys
+import stat
 import json
 import shutil
 import getpass
 import logging
 from time import sleep
+from pathlib import Path
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
@@ -25,6 +27,7 @@ class DepsInstaller:
         http_timeout = self.parent_helper.config.get("http_timeout", 30)
         os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
 
+        self.askpass_filename = "sudo_askpass.py"
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         if self._sudo_password is None:
             if configurator.bbot_sudo_pass is not None:
@@ -289,6 +292,11 @@ class DepsInstaller:
                     log.warning("Incorrect password")
 
     def install_core_deps(self):
+        # install custom askpass script
+        askpass_src = Path(__file__).resolve().parent / self.askpass_filename
+        askpass_dst = self.parent_helper.tools_dir / self.askpass_filename
+        shutil.copy(askpass_src, askpass_dst)
+        askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)
         # ensure tldextract data is cached
         self.parent_helper.tldextract("evilcorp.co.uk")
         # command: package_name

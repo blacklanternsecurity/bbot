@@ -30,6 +30,7 @@ class httpx(BaseModule):
     ]
 
     scope_distance_modifier = 0
+    _priority = 2
 
     def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
@@ -98,6 +99,8 @@ class httpx(BaseModule):
             # "-r",
             # self.helpers.resolver_file,
         ]
+        for hk, hv in self.scan.config.get("http_headers", {}).items():
+            command += ["-header", f"{hk}: {hv}"]
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:
             command += ["-http-proxy", proxy]

@@ -332,7 +332,9 @@ def kill_children(parent_pid=None, sig=signal.SIGTERM):
             try:
                 child.send_signal(sig)
             except psutil.NoSuchProcess:
-                log.debug(f"No such PID: {parent_pid}")
+                log.debug(f"No such PID: {child.pid}")
+            except psutil.AccessDenied:
+                log.debug(f"Error killing PID: {child.pid} - access denied")
 
 
 def str_or_file(s):
@@ -364,8 +366,8 @@ def chain_lists(l, try_files=False, msg=None):
             f_path = Path(f).resolve()
             if try_files and f_path.is_file():
                 if msg is not None:
-                    msg = str(msg).format(filename=f_path)
-                    log.info(msg)
+                    new_msg = str(msg).format(filename=f_path)
+                    log.info(new_msg)
                 for line in str_or_file(f):
                     final_list[line] = None
             else:
