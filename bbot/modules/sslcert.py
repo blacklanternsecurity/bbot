@@ -99,7 +99,7 @@ class sslcert(BaseModule):
                     except SSL.WantReadError:
                         rd, _, _ = select.select([sock], [], [], sock.gettimeout())
                         if not rd:
-                            raise timeout("select timed out")
+                            raise SSL.Error("select timed out")
                         continue
                     break
             except Exception as e:
