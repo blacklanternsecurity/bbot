@@ -230,7 +230,9 @@ def events(scan):
         subdomain = scan.make_event("api.publicAPIs.org", dummy=True)
         email = scan.make_event("bob@evilcorp.co.uk", "EMAIL_ADDRESS", dummy=True)
         open_port = scan.make_event("api.publicAPIs.org:443", dummy=True)
-        protocol = scan.make_event({"host": "api.publicAPIs.org:443", "protocol": "HTTP"}, "PROTOCOL", dummy=True)
+        protocol = scan.make_event(
+            {"host": "api.publicAPIs.org", "port": 443, "protocol": "HTTP"}, "PROTOCOL", dummy=True
+        )
         ipv4_open_port = scan.make_event("8.8.8.8:443", dummy=True)
         ipv6_open_port = scan.make_event("[2001:4860:4860::8888]:443", "OPEN_TCP_PORT", dummy=True)
         url_unverified = scan.make_event("https://api.publicAPIs.org:443/hellofriend", dummy=True)
