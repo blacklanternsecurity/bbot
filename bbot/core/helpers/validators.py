@@ -3,7 +3,8 @@ import ipaddress
 
 from bbot.core.helpers import regexes
 from bbot.core.helpers.url import clean_url
-from bbot.core.helpers.misc import split_host_port, make_netloc, smart_decode_punycode
+from bbot.core.helpers.punycode import smart_decode_punycode
+from bbot.core.helpers.misc import split_host_port, make_netloc
 
 log = logging.getLogger("bbot.core.helpers.")
 

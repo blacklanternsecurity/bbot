@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import copy
-import idna
 import json
 import atexit
 import psutil
@@ -26,6 +25,7 @@ from hashlib import sha1 as hashlib_sha1
 from .url import *  # noqa F401
 from . import regexes
 from .. import errors
+from .punycode import *  # noqa F401
 from .names_generator import random_name  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -267,31 +267,6 @@ def smart_encode(data):
     if isinstance(data, bytes):
         return data
     return str(data).encode("utf-8", errors="ignore")
-
-
-def smart_decode_punycode(data):
-    """
-    xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
-    """
-    if not isinstance(data, str):
-        raise ValueError(f"data must be a string, not {type(data)}")
-    if "xn--" in data:
-        with suppress(UnicodeError):
-            parts = data.split("@")
-            return "@".join(idna.decode(p) for p in parts)
-    return data
-
-
-def smart_encode_punycode(data):
-    """
-    ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
-    """
-    if not isinstance(data, str):
-        raise ValueError(f"data must be a string, not {type(data)}")
-    with suppress(UnicodeError):
-        parts = data.split("@")
-        return "@".join(smart_decode(idna.encode(p)) for p in parts)
-    return data
 
 
 rand_pool = string.ascii_lowercase

@@ -4,7 +4,7 @@ import logging
 from contextlib import suppress
 from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 
-from .misc import smart_decode_punycode
+from .punycode import smart_decode_punycode
 
 
 log = logging.getLogger("bbot.core.helpers.url")
