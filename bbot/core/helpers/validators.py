@@ -66,7 +66,7 @@ def validate_host(host):
 
 @validator
 def validate_url(url):
-    return validate_url_parsed(smart_decode_punycode(url)).geturl()
+    return validate_url_parsed(url).geturl()
 
 
 @validator
