@@ -16,8 +16,8 @@ class sslcert(BaseModule):
     meta = {
         "description": "Visit open ports and retrieve SSL certificates",
     }
-    options = {"timeout": 5.0}
-    options_desc = {"timeout": "Socket connect timeout in seconds"}
+    options = {"timeout": 5.0, "skip_non_ssl": True}
+    options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
     deps_apt = ["openssl"]
     deps_pip = ["pyOpenSSL"]
     max_event_handlers = 50
@@ -25,9 +25,18 @@ class sslcert(BaseModule):
     _priority = 2
 
     def setup(self):
+        self.timeout = self.config.get("timeout", 5.0)
+        self.skip_non_ssl = self.config.get("skip_non_ssl", True)
+        self.non_ssl_ports = (22, 53, 80)
+
         self.hosts_visited = set()
         self.hosts_visited_lock = threading.Lock()
         self.ip_lock = NamedLock()
+        return True
+
+    def filter_event(self, event):
+        if self.skip_non_ssl and event.port in self.non_ssl_ports:
+            return False, f"Port {event.port} doesn't typically use SSL"
         return True
 
     def handle_event(self, event):
@@ -72,8 +81,7 @@ class sslcert(BaseModule):
                     socket_type = socket.AF_INET6
             host = str(host)
             sock = socket.socket(socket_type, socket.SOCK_STREAM)
-            timeout = self.config.get("timeout", 5.0)
-            sock.settimeout(timeout)
+            sock.settimeout(self.timeout)
             context = SSL.Context(PROTOCOL_TLSv1)
             self.debug(f"Connecting to {host} on port {port}")
             try:
