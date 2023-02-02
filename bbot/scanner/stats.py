@@ -92,8 +92,9 @@ class ModuleStat:
         self._increment(self.produced, event.type)
 
     def increment_consumed(self, event):
-        self.consumed_total += 1
-        self._increment(self.consumed, event.type)
+        if event.type not in ("FINISHED",):
+            self.consumed_total += 1
+            self._increment(self.consumed, event.type)
 
     @staticmethod
     def _increment(d, k):
