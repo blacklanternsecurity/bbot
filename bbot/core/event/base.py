@@ -777,7 +777,8 @@ class PROTOCOL(DictHostEvent):
         new_data["protocol"] = data.get("protocol", "").upper()
         return new_data
 
-    def _port(self):
+    @property
+    def port(self):
         return self.data.get("port", None)
 
     def _data_graph(self):
