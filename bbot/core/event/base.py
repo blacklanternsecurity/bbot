@@ -767,12 +767,18 @@ class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
+        port: Optional[int]
         banner: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_open_port)
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        _validate_port = validator("port", allow_reuse=True)(validators.validate_port)
 
-    def _host(self):
-        host, self._port = split_host_port(self.data["host"])
-        return host
+    def sanitize_data(self, data):
+        new_data = dict(data)
+        new_data["protocol"] = data.get("protocol", "").upper()
+        return new_data
+
+    def _port(self):
+        return self.data.get("port", None)
 
     def _data_graph(self):
         return self.data["protocol"]
