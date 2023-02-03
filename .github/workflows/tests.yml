@@ -46,10 +46,10 @@ jobs:
           pip install poetry build
           poetry self add "poetry-dynamic-versioning[plugin]"
       - name: Build Pypi package
-        if: github.ref == 'refs/heads/stable'
+        if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
         run: python -m build
       - name: Publish Pypi package
-        if: github.ref == 'refs/heads/stable'
+        if: github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/dev'
         uses: pypa/gh-action-pypi-publish@release/v1.5
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
