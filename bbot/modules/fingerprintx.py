@@ -39,14 +39,17 @@ class fingerprintx(BaseModule):
             host = j.get("host", ip)
             port = str(j.get("port", ""))
             banner = j.get("metadata", {}).get("banner", "").strip()
-            port_data = f"{host}:{port}"
+            if port:
+                port_data = f"{host}:{port}"
             protocol = j.get("protocol", "")
             tags = set()
             if host and ip:
                 tags.add(f"ip-{ip}")
             if host and port and protocol:
                 source_event = _input.get(port_data)
-                protocol_data = {"host": port_data, "protocol": protocol.upper()}
+                protocol_data = {"host": host, "protocol": protocol.upper()}
+                if port:
+                    protocol_data["port"] = port
                 if banner:
                     protocol_data["banner"] = banner
                 self.emit_event(protocol_data, "PROTOCOL", source=source_event, tags=tags)

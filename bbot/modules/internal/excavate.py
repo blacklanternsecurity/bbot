@@ -48,7 +48,7 @@ class HostnameExtractor(BaseExtractor):
 
 class URLExtractor(BaseExtractor):
     regexes = {
-        "fullurl": r"https?://(?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?",
+        "fullurl": r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
@@ -61,9 +61,13 @@ class URLExtractor(BaseExtractor):
         tags = []
         parsed = getattr(event, "parsed", None)
 
-        if (name == "a-tag" or name == "script-tag") and parsed:
+        if name == "fullurl":
+            protocol, other = result
+            result = f"{protocol}://{other}"
+
+        elif name in ("a-tag", "script-tag") and parsed:
             path = html.unescape(result[1]).lstrip("/")
-            if not path.startswith("http://") and not path.startswith("https://"):
+            if not self.compiled_regexes["fullurl"].match(path):
                 result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
             else:
                 result = path
@@ -72,6 +76,26 @@ class URLExtractor(BaseExtractor):
                 if path.startswith(p):
                     self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
                     return
+
+        parsed_uri = self.excavate.helpers.urlparse(result)
+        host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
+        # Handle non-HTTP URIs (ftp, s3, etc.)
+        if parsed_uri.scheme.lower() not in ("http", "https"):
+            event_data = {"host": str(host), "description": f"Non-HTTP URI: {result}"}
+            parsed_url = getattr(event, "parsed", None)
+            if parsed_url:
+                event_data["url"] = parsed_url.geturl()
+            self.excavate.emit_event(
+                event_data,
+                "FINDING",
+                source=event,
+            )
+            self.excavate.emit_event(
+                {"protocol": parsed_uri.scheme, "host": str(host)},
+                "PROTOCOL",
+                source=event,
+            )
+            return
 
         url_depth = self.excavate.helpers.url_depth(result)
         web_spider_depth = self.excavate.scan.config.get("web_spider_depth", 1)
