@@ -66,7 +66,7 @@ class asset_inventory(CSV):
                 self.assets[event.host].technologies.add(event.data["technology"])
 
     def report(self):
-        for asset in self.assets.values():
+        for asset in sorted(self.assets.values(), key=lambda a: str(a.host)):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             self.writerow(
                 [
