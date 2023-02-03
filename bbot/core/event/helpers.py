@@ -2,7 +2,8 @@ import logging
 import ipaddress
 from contextlib import suppress
 
-from bbot.core.helpers import sha1, smart_decode
+from bbot.core.errors import ValidationError
+from bbot.core.helpers import sha1, smart_decode, smart_decode_punycode
 from bbot.core.helpers.regexes import event_type_regexes, event_id_regex, _hostname_regex
 
 
@@ -14,7 +15,7 @@ def get_event_type(data):
     Attempt to divine event type from data
     """
 
-    data = smart_decode(data).strip()
+    data = smart_decode_punycode(smart_decode(data).strip())
 
     # IP address
     with suppress(Exception):
@@ -37,6 +38,8 @@ def get_event_type(data):
     # Assume DNS_NAME for basic words
     if _hostname_regex.match(data):
         return "DNS_NAME"
+
+    raise ValidationError(f'Unable to autodetect event type from "{data}"')
 
 
 def is_event_id(s):

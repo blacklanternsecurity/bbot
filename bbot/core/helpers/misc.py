@@ -25,6 +25,7 @@ from hashlib import sha1 as hashlib_sha1
 from .url import *  # noqa F401
 from . import regexes
 from .. import errors
+from .punycode import *  # noqa F401
 from .names_generator import random_name  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
