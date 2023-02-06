@@ -46,7 +46,7 @@ class naabu(BaseModule):
         {
             "name": "Download naabu",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/naabu/releases/download/v#{BBOT_MODULES_NAABU_VERSION}/naabu_#{BBOT_MODULES_NAABU_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH}.zip",
+                "src": "https://github.com/projectdiscovery/naabu/releases/download/v#{BBOT_MODULES_NAABU_VERSION}/naabu_#{BBOT_MODULES_NAABU_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
                 "include": "naabu",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,

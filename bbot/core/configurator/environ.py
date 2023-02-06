@@ -5,7 +5,7 @@ from pathlib import Path
 
 from . import args
 from ...modules import module_loader
-from ..helpers.misc import cpu_architecture, os_platform
+from ..helpers.misc import cpu_architecture, os_platform, os_platform_friendly
 
 
 def flatten_config(config, base="bbot"):
@@ -55,6 +55,7 @@ def prepare_environment(bbot_config):
 
     # platform variables
     os.environ["BBOT_OS_PLATFORM"] = os_platform()
+    os.environ["BBOT_OS"] = os_platform_friendly()
     os.environ["BBOT_CPU_ARCH"] = cpu_architecture()
 
     # exchange certain options between CLI args and config

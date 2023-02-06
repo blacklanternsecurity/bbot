@@ -32,8 +32,18 @@ class massdns(crobat):
             },
         },
         {
-            "name": "Build massdns",
+            "name": "Build massdns (Linux)",
             "command": {"chdir": "#{BBOT_TEMP}/massdns", "cmd": "make", "creates": "#{BBOT_TEMP}/massdns/bin/massdns"},
+            "when": "ansible_facts['system'] == 'Linux'",
+        },
+        {
+            "name": "Build massdns (non-Linux)",
+            "command": {
+                "chdir": "#{BBOT_TEMP}/massdns",
+                "cmd": "make nolinux",
+                "creates": "#{BBOT_TEMP}/massdns/bin/massdns",
+            },
+            "when": "ansible_facts['system'] != 'Linux'",
         },
         {
             "name": "Install massdns",

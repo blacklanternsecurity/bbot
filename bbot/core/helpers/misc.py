@@ -779,3 +779,13 @@ def os_platform():
     Returns the OS platform, e.g. "linux", "darwin", "windows", etc.
     """
     return platform.system().lower()
+
+
+def os_platform_friendly():
+    """
+    Returns the OS platform in a more human-friendly format, because apple is indecisive
+    """
+    p = os_platform()
+    if p == "darwin":
+        return "macOS"
+    return p
