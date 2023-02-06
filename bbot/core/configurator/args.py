@@ -148,7 +148,7 @@ for p in (parser, dummy_parser):
         "-om",
         "--output-modules",
         nargs="+",
-        default=["human"],
+        default=["human", "json", "csv"],
         help=f'Output module(s). Choices: {",".join(output_module_choices)}',
         metavar="MODULE",
     )

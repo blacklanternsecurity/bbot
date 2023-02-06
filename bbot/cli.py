@@ -93,7 +93,7 @@ def main():
                                     modules.add(m)
 
                 if not options.output_modules:
-                    options.output_modules = ["human"]
+                    options.output_modules = ["human", "json", "csv"]
 
                 scanner = Scanner(
                     *options.targets,
