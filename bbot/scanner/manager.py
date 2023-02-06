@@ -19,7 +19,6 @@ class ScanManager:
 
     def __init__(self, scan):
         self.scan = scan
-        self.queued_event_types = dict()
         self.incoming_event_queue = EventQueue()
 
         # tracks duplicate events on a global basis
@@ -329,10 +328,6 @@ class ScanManager:
         Queue event with modules
         """
         event = self.scan.make_event(*args, **kwargs)
-        try:
-            self.queued_event_types[event.type] += 1
-        except KeyError:
-            self.queued_event_types[event.type] = 1
 
         event_hash = hash(event)
         dup = event_hash in self.events_distributed
@@ -490,7 +485,9 @@ class ScanManager:
                 self.scan.verbose(
                     f"{self.scan.name}: Modules status (incoming:processing:outgoing) {modules_status_str}"
                 )
-            event_type_summary = sorted(self.queued_event_types.items(), key=lambda x: x[-1], reverse=True)
+            event_type_summary = sorted(
+                self.scan.stats.events_emitted_by_type.items(), key=lambda x: x[-1], reverse=True
+            )
             self.scan.info(
                 f'{self.scan.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
             )
