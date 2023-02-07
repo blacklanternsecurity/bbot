@@ -15,6 +15,7 @@ class CSV(BaseOutputModule):
     filename = "output.csv"
 
     def setup(self):
+        self._writer = None
         self._prep_output_dir(self.filename)
         return True
 
