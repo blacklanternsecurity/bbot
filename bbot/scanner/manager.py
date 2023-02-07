@@ -131,11 +131,11 @@ class ScanManager:
                     event_whitelisted_dns,
                     event_blacklisted_dns,
                     resolved_hosts,
-                ) = self.scan.helpers.dns.resolve_event(event)
+                ) = self.scan.helpers.dns.resolve_event(event, minimal=not self.dns_resolution)
 
                 # kill runaway DNS chains
                 dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
-                if dns_resolve_distance >= self.scan.helpers.dns.dns_resolve_distance:
+                if dns_resolve_distance >= self.scan.helpers.dns.max_dns_resolve_distance:
                     log.debug(
                         f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.dns_resolve_distance})"
                     )
