@@ -301,7 +301,7 @@ class DepsInstaller:
         # ensure tldextract data is cached
         self.parent_helper.tldextract("evilcorp.co.uk")
         # install python3-apt
-        if self.parent_helper.which("apt"):
+        if os.environ.get("BBOT_OS_PLATFORM", "") == "linux" and self.parent_helper.which("apt"):
             to_install.add("python3-apt")
         # command: package_name
         core_deps = {"unzip": "unzip", "curl": "curl"}
