@@ -13,6 +13,9 @@ from ..helpers.misc import mkdir, error_and_exit
 from ..helpers.logger import colorize, loglevel_mapping
 
 
+_log_level_override = None
+
+
 class ColoredFormatter(logging.Formatter):
     """
     Pretty colors for terminal
@@ -90,6 +93,9 @@ addLoggingLevel("HUGEVERBOSE", 16)
 addLoggingLevel("VERBOSE", 15)
 
 
+verbosity_levels_toggle = [logging.INFO, logging.VERBOSE, logging.DEBUG]
+
+
 def stop_listener(listener):
     with suppress(Exception):
         listener.stop()
@@ -130,11 +136,9 @@ def log_listener_setup(logging_queue):
         f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
     )
 
-    log_level = get_log_level()
-
-    config_silent = config.get("silent", False)
-
     def stderr_filter(record):
+        config_silent = config.get("silent", False)
+        log_level = get_log_level()
         excluded_levels = [logging.STDOUT]
         if log_level > logging.DEBUG:
             excluded_levels.append(logging.TRACE)
@@ -192,6 +196,9 @@ def init_logging():
 
 
 def get_log_level():
+    if _log_level_override is not None:
+        return _log_level_override
+
     from bbot.core.configurator.args import cli_options
 
     if config.get("debug", False) or os.environ.get("BBOT_DEBUG", "").lower() in ("true", "yes"):
@@ -204,3 +211,23 @@ def get_log_level():
         if cli_options.debug:
             loglevel = logging.DEBUG
     return loglevel
+
+
+def set_log_level(level, logger=None):
+    global _log_level_override
+    if logger is not None:
+        logger.hugeinfo(f"Setting log level to {logging.getLevelName(level)}")
+    config["silent"] = False
+    _log_level_override = level
+    log = logging.getLogger("bbot")
+    log.setLevel(level)
+
+
+def toggle_log_level(logger=None):
+    log_level = get_log_level()
+    if log_level in verbosity_levels_toggle:
+        for i, level in enumerate(verbosity_levels_toggle):
+            if log_level == level:
+                set_log_level(verbosity_levels_toggle[(i + 1) % len(verbosity_levels_toggle)], logger=logger)
+    else:
+        set_log_level(verbosity_levels_toggle[0], logger=logger)
