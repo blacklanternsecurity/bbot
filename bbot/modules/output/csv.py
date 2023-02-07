@@ -1,5 +1,4 @@
 import csv
-from pathlib import Path
 from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
@@ -16,14 +15,7 @@ class CSV(BaseOutputModule):
     filename = "output.csv"
 
     def setup(self):
-        self.output_file = self.config.get("output_file", "")
-        if self.output_file:
-            self.output_file = Path(self.output_file)
-        else:
-            self.output_file = self.scan.home / self.filename
-        self.helpers.mkdir(self.output_file.parent)
-        self._file = None
-        self._writer = None
+        self._prep_output_dir(self.filename)
         return True
 
     @property

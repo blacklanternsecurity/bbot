@@ -1,5 +1,5 @@
 import logging
-
+from pathlib import Path
 from bbot.modules.base import BaseModule
 
 
@@ -21,6 +21,21 @@ class BaseOutputModule(BaseModule):
             if event._internal:
                 return False, "_internal is True"
         return True, ""
+
+    def _prep_output_dir(self, filename):
+        self.output_file = self.config.get("output_file", "")
+        if self.output_file:
+            self.output_file = Path(self.output_file)
+        else:
+            self.output_file = self.scan.home / str(filename)
+        self.helpers.mkdir(self.output_file.parent)
+        self._file = None
+
+    @property
+    def file(self):
+        if self._file is None:
+            self._file = open(self.output_file, mode="a")
+        return self._file
 
     @property
     def config(self):
