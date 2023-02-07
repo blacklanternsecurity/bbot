@@ -16,7 +16,12 @@ class massdns(crobat):
     options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
     subdomain_file = None
     deps_ansible = [
-        {"name": "install dev tools", "package": {"name": ["gcc", "git", "make"], "state": "present"}, "become": True},
+        {
+            "name": "install dev tools",
+            "package": {"name": ["gcc", "git", "make"], "state": "present", "update_cache": True},
+            "become": True,
+            "ignore_errors": True,
+        },
         {
             "name": "Download massdns source code",
             "git": {
@@ -27,8 +32,18 @@ class massdns(crobat):
             },
         },
         {
-            "name": "Build massdns",
+            "name": "Build massdns (Linux)",
             "command": {"chdir": "#{BBOT_TEMP}/massdns", "cmd": "make", "creates": "#{BBOT_TEMP}/massdns/bin/massdns"},
+            "when": "ansible_facts['system'] == 'Linux'",
+        },
+        {
+            "name": "Build massdns (non-Linux)",
+            "command": {
+                "chdir": "#{BBOT_TEMP}/massdns",
+                "cmd": "make nolinux",
+                "creates": "#{BBOT_TEMP}/massdns/bin/massdns",
+            },
+            "when": "ansible_facts['system'] != 'Linux'",
         },
         {
             "name": "Install massdns",

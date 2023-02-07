@@ -25,26 +25,28 @@ class naabu(BaseModule):
     deps_ansible = [
         {
             "name": "install libpcap (Debian)",
-            "package": {"name": "libpcap0.8", "state": "present"},
+            "package": {"name": "libpcap0.8", "state": "present", "update_cache": True},
             "become": True,
             "when": """ansible_facts['os_family'] == 'Debian'""",
+            "ignore_errors": True,
         },
         {
             "name": "install libpcap (others)",
-            "package": {"name": "libpcap", "state": "present"},
+            "package": {"name": "libpcap", "state": "present", "update_cache": True},
             "become": True,
             "when": """ansible_facts['os_family'] != 'Debian'""",
+            "ignore_errors": True,
         },
         {
             "name": "symlink libpcap",
             "file": {"src": "/usr/lib/libpcap.so", "dest": "#{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
-            "ignore_errors": "yes",
             "when": """ansible_facts['os_family'] != 'Debian'""",
+            "ignore_errors": True,
         },
         {
             "name": "Download naabu",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/naabu/releases/download/v#{BBOT_MODULES_NAABU_VERSION}/naabu_#{BBOT_MODULES_NAABU_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/naabu/releases/download/v#{BBOT_MODULES_NAABU_VERSION}/naabu_#{BBOT_MODULES_NAABU_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
                 "include": "naabu",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,

@@ -292,6 +292,7 @@ class DepsInstaller:
                     log.warning("Incorrect password")
 
     def install_core_deps(self):
+        to_install = set()
         # install custom askpass script
         askpass_src = Path(__file__).resolve().parent / self.askpass_filename
         askpass_dst = self.parent_helper.tools_dir / self.askpass_filename
@@ -299,9 +300,11 @@ class DepsInstaller:
         askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)
         # ensure tldextract data is cached
         self.parent_helper.tldextract("evilcorp.co.uk")
+        # install python3-apt
+        if os.environ.get("BBOT_OS_PLATFORM", "") == "linux" and self.parent_helper.which("apt"):
+            to_install.add("python3-apt")
         # command: package_name
         core_deps = {"unzip": "unzip", "curl": "curl"}
-        to_install = set()
         for command, package_name in core_deps.items():
             if not self.parent_helper.which(command):
                 to_install.add(package_name)
