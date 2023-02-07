@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import threading
 import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
@@ -11,7 +12,7 @@ from contextlib import suppress
 sys.stdout.reconfigure(line_buffering=True)
 
 # logging
-from bbot.core.logger import init_logging, get_log_level
+from bbot.core.logger import init_logging, get_log_level, toggle_log_level
 
 logging_queue, logging_handlers = init_logging()
 
@@ -226,6 +227,15 @@ def main():
                     if not options.agent_mode and not options.yes and sys.stdin.isatty():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
+
+                    def keyboard_listen():
+                        while 1:
+                            keyboard_input = input()
+                            if not keyboard_input:
+                                toggle_log_level(logger=log)
+
+                    keyboard_listen_thread = threading.Thread(target=keyboard_listen, daemon=True)
+                    keyboard_listen_thread.start()
 
                     scanner.start_without_generator()
 
