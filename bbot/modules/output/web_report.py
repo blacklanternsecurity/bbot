@@ -1,5 +1,5 @@
 from bbot.modules.output.base import BaseOutputModule
-import markdown
+import markdown2
 import html
 
 
