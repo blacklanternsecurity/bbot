@@ -24,13 +24,13 @@ class secrets(BaseModule):
     deps_pip = ["pyyaml"]
 
     def setup(self):
+        self.rules = []
         templates_dir = self.helpers.tools_dir / "secrets-patterns-db"
         template_file = (templates_dir / "db" / "rules-stable.yml").resolve()
         if not template_file.is_file():
             return None, f"Could not find rules at {template_file}"
         with open(template_file) as f:
             rules_yaml = yaml.safe_load(f).get("patterns", [])
-        self.rules = []
         for r in rules_yaml:
             r = r.get("pattern", {})
             if not r:
@@ -40,7 +40,8 @@ class secrets(BaseModule):
             if name and confidence:
                 regex = r.get("regex", "")
                 try:
-                    r["regex"] = re.compile(regex)
+                    compiled_regex = re.compile(regex)
+                    r["regex"] = compiled_regex
                     self.rules.append(r)
                 except Exception:
                     self.debug(f"Error compiling regex: r'{regex}'")
