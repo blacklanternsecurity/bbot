@@ -761,7 +761,6 @@ class TECHNOLOGY(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
-
     def _data_id(self):
         tech = self.data.get("technology", "")
         return f"{self.host}:{self.port}:{tech}"
