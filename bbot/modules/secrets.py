@@ -26,7 +26,8 @@ class secrets(BaseModule):
     def setup(self):
         templates_dir = self.helpers.tools_dir / "secrets-patterns-db"
         template_file = (templates_dir / "db" / "rules-stable.yml").resolve()
-        assert template_file.is_file(), f"Could not find template at {template_file}"
+        if not template_file.is_file():
+            return None, f"Could not find rules at {template_file}"
         with open(template_file) as f:
             rules_yaml = yaml.safe_load(f).get("patterns", [])
         self.rules = []
