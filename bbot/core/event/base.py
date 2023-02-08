@@ -1,6 +1,7 @@
 import json
 import logging
 import ipaddress
+import traceback
 from typing import Optional
 from datetime import datetime
 from contextlib import suppress
@@ -22,6 +23,7 @@ from bbot.core.helpers import (
     smart_decode,
     get_file_extension,
     validators,
+    smart_decode_punycode,
 )
 
 
@@ -99,8 +101,6 @@ class BaseEvent:
         try:
             self.data = self._sanitize_data(data)
         except Exception as e:
-            import traceback
-
             log.trace(traceback.format_exc())
             raise ValidationError(f'Error sanitizing event data "{data}" for type "{self.type}": {e}')
 
@@ -162,6 +162,13 @@ class BaseEvent:
     @property
     def port(self):
         self.host
+        if getattr(self, "parsed", None):
+            if self.parsed.port is not None:
+                return self.parsed.port
+            elif self.parsed.scheme == "https":
+                return 443
+            elif self.parsed.scheme == "http":
+                return 80
         return self._port
 
     @property
@@ -479,6 +486,12 @@ class DefaultEvent(BaseEvent):
 
 
 class DictEvent(BaseEvent):
+    def sanitize_data(self, data):
+        url = data.get("url", "")
+        if url:
+            self.parsed = validators.validate_url_parsed(url)
+        return data
+
     def _data_human(self):
         return json.dumps(self.data, sort_keys=True)
 
@@ -638,15 +651,6 @@ class URL_UNVERIFIED(BaseEvent):
     def _host(self):
         return make_ip_type(self.parsed.hostname)
 
-    @property
-    def port(self):
-        if self.parsed.port is not None:
-            return self.parsed.port
-        elif self.parsed.scheme == "https":
-            return 443
-        elif self.parsed.scheme == "http":
-            return 80
-
 
 class URL(URL_UNVERIFIED):
     def sanitize_data(self, data):
@@ -665,11 +669,7 @@ class URL(URL_UNVERIFIED):
         return self.data
 
 
-class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):
-    def sanitize_data(self, data):
-        self.parsed = validators.validate_url_parsed(data["url"])
-        return data
-
+class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
     class _data_validator(BaseModel):
         name: str
         url: str
@@ -727,8 +727,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 
 class VULNERABILITY(DictHostEvent):
-    def _sanitize_data(self, data):
-        data = super()._sanitize_data(data)
+    def sanitize_data(self, data):
         self.tags.add(data["severity"].lower())
         return data
 
@@ -762,6 +761,11 @@ class TECHNOLOGY(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
+
+    def _data_id(self):
+        tech = self.data.get("technology", "")
+        return f"{self.host}:{self.port}:{tech}"
+
     def _pretty_string(self):
         return self.data["technology"]
 
@@ -781,12 +785,19 @@ class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
+        port: Optional[int]
         banner: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_open_port)
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        _validate_port = validator("port", allow_reuse=True)(validators.validate_port)
 
-    def _host(self):
-        host, self._port = split_host_port(self.data["host"])
-        return host
+    def sanitize_data(self, data):
+        new_data = dict(data)
+        new_data["protocol"] = data.get("protocol", "").upper()
+        return new_data
+
+    @property
+    def port(self):
+        return self.data.get("port", None)
 
     def _pretty_string(self):
         return self.data["protocol"]
@@ -823,11 +834,11 @@ def make_event(
         return data
     else:
         if event_type is None:
+            if isinstance(data, str):
+                data = smart_decode_punycode(data)
             event_type = get_event_type(data)
             if not dummy:
                 log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
-        if event_type is None:
-            raise ValidationError(f'Unable to autodetect event type from "{data}"')
 
         event_type = str(event_type).strip().upper()
 
@@ -841,6 +852,7 @@ def make_event(
                 try:
                     data = validators.validate_host(data)
                 except Exception as e:
+                    log.trace(traceback.format_exc())
                     raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
                 data_is_ip = is_ip(data)
                 if event_type == "DNS_NAME" and data_is_ip:

@@ -3,6 +3,7 @@ import ipaddress
 
 from bbot.core.helpers import regexes
 from bbot.core.helpers.url import clean_url
+from bbot.core.helpers.punycode import smart_decode_punycode
 from bbot.core.helpers.misc import split_host_port, make_netloc
 
 log = logging.getLogger("bbot.core.helpers.")
@@ -55,7 +56,7 @@ def validate_host(host):
             return str(ip)
         except Exception:
             # finally, try DNS_NAME
-            host = host.lstrip("*.")
+            host = smart_decode_punycode(host.lstrip("*."))
             for r in regexes.event_type_regexes["DNS_NAME"]:
                 if r.match(host):
                     return host
@@ -87,7 +88,7 @@ def validate_severity(severity):
 
 @validator
 def validate_email(email):
-    email = str(email).strip().lower()
+    email = smart_decode_punycode(str(email).strip().lower())
     if any(r.match(email) for r in regexes.event_type_regexes["EMAIL_ADDRESS"]):
         return email
     assert False, f'Invalid email: "{email}"'

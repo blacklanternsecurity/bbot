@@ -18,7 +18,7 @@ class fingerprintx(BaseModule):
         {
             "name": "Download fingerprintx",
             "unarchive": {
-                "src": "https://github.com/praetorian-inc/fingerprintx/releases/download/v#{BBOT_MODULES_FINGERPRINTX_VERSION}/fingerprintx_#{BBOT_MODULES_FINGERPRINTX_VERSION}_linux_amd64.tar.gz",
+                "src": "https://github.com/praetorian-inc/fingerprintx/releases/download/v#{BBOT_MODULES_FINGERPRINTX_VERSION}/fingerprintx_#{BBOT_MODULES_FINGERPRINTX_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH}.tar.gz",
                 "include": "fingerprintx",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -39,14 +39,17 @@ class fingerprintx(BaseModule):
             host = j.get("host", ip)
             port = str(j.get("port", ""))
             banner = j.get("metadata", {}).get("banner", "").strip()
-            port_data = f"{host}:{port}"
+            if port:
+                port_data = f"{host}:{port}"
             protocol = j.get("protocol", "")
             tags = set()
             if host and ip:
                 tags.add(f"ip-{ip}")
             if host and port and protocol:
                 source_event = _input.get(port_data)
-                protocol_data = {"host": port_data, "protocol": protocol.upper()}
+                protocol_data = {"host": host, "protocol": protocol.upper()}
+                if port:
+                    protocol_data["port"] = port
                 if banner:
                     protocol_data["banner"] = banner
                 self.emit_event(protocol_data, "PROTOCOL", source=source_event, tags=tags)

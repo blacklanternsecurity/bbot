@@ -20,7 +20,12 @@ class masscan(BaseModule):
         "ping_first": "Only portscan hosts that reply to pings",
     }
     deps_ansible = [
-        {"name": "install dev tools", "package": {"name": ["gcc", "git", "make"], "state": "present"}, "become": True},
+        {
+            "name": "install dev tools",
+            "package": {"name": ["gcc", "git", "make"], "state": "present"},
+            "become": True,
+            "ignore_errors": True,
+        },
         {
             "name": "Download masscan source code",
             "git": {

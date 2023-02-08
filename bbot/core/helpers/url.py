@@ -4,6 +4,8 @@ import logging
 from contextlib import suppress
 from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 
+from .punycode import smart_decode_punycode
+
 
 log = logging.getLogger("bbot.core.helpers.url")
 
@@ -76,6 +78,8 @@ def clean_url(url):
         # special case for IPv6 URLs
         if parsed.netloc.startswith("["):
             hostname = f"[{hostname}]"
+        # punycode
+        hostname = smart_decode_punycode(hostname)
         parsed = parsed._replace(netloc=hostname)
     # normalize double slashes
     parsed = parsed._replace(path=double_slash_regex.sub("/", parsed.path))

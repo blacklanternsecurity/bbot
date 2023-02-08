@@ -76,7 +76,8 @@ class Fingerprintx(HttpxMockHelper):
         for event in events:
             if (
                 event.type == "PROTOCOL"
-                and event.data["host"] == "127.0.0.1:8888"
+                and event.host == self.scan.helpers.make_ip_type("127.0.0.1")
+                and event.port == 8888
                 and event.data["protocol"] == "HTTP"
             ):
                 return True

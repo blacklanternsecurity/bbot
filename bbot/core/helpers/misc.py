@@ -10,6 +10,7 @@ import shutil
 import signal
 import string
 import logging
+import platform
 import ipaddress
 import wordninja
 import subprocess as sp
@@ -25,6 +26,7 @@ from hashlib import sha1 as hashlib_sha1
 from .url import *  # noqa F401
 from . import regexes
 from .. import errors
+from .punycode import *  # noqa F401
 from .names_generator import random_name  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -757,3 +759,33 @@ def human_timedelta(d):
     if seconds:
         result.append(f"{seconds:,} second" + ("s" if seconds > 1 else ""))
     return ", ".join(result)
+
+
+def cpu_architecture():
+    """
+    Returns the CPU architecture, e.g. "amd64, "armv7", "arm64", etc.
+    """
+    uname = platform.uname()
+    arch = uname.machine.lower()
+    if arch.startswith("aarch"):
+        return "arm64"
+    elif arch == "x86_64":
+        return "amd64"
+    return arch
+
+
+def os_platform():
+    """
+    Returns the OS platform, e.g. "linux", "darwin", "windows", etc.
+    """
+    return platform.system().lower()
+
+
+def os_platform_friendly():
+    """
+    Returns the OS platform in a more human-friendly format, because apple is indecisive
+    """
+    p = os_platform()
+    if p == "darwin":
+        return "macOS"
+    return p

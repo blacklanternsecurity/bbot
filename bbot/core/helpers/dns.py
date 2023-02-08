@@ -34,7 +34,7 @@ class DNSHelper:
         self.timeout = self.parent_helper.config.get("dns_timeout", 5)
         self.retries = self.parent_helper.config.get("dns_retries", 1)
         self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 5)
-        self.dns_resolve_distance = self.parent_helper.config.get("dns_resolve_distance", 4)
+        self.max_dns_resolve_distance = self.parent_helper.config.get("max_dns_resolve_distance", 4)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
         self._resolver_list = None
@@ -215,17 +215,17 @@ class DNSHelper:
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors
 
-    def resolve_event(self, event):
-        result = self._resolve_event(event)
+    def resolve_event(self, event, minimal=False):
+        result = self._resolve_event(event, minimal=minimal)
         # if it's a wildcard, go again with _wildcard.{domain}
         if len(result) == 2:
             event, wildcard_rdtypes = result
-            return self._resolve_event(event, wildcard_rdtypes)
+            return self._resolve_event(event, minimal=minimal, _wildcard_rdtypes=wildcard_rdtypes)
         # else we're good
         else:
             return result
 
-    def _resolve_event(self, event, _wildcard_rdtypes=None):
+    def _resolve_event(self, event, minimal=False, _wildcard_rdtypes=None):
         """
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
@@ -263,7 +263,7 @@ class DNSHelper:
                 return children, event_tags, _event_whitelisted, _event_blacklisted, _resolved_hosts
 
             # then resolve
-            if event.type == "DNS_NAME":
+            if event.type == "DNS_NAME" and not minimal:
                 types = "any"
             else:
                 types = ("A", "AAAA")
