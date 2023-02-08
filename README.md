@@ -9,22 +9,26 @@ pip install bbot
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
 
-![subdomain demo](https://user-images.githubusercontent.com/20261699/182274919-d4f5aa69-993a-40aa-95d5-f5e69e96026c.gif)
+![bbot-demo](https://user-images.githubusercontent.com/20261699/217346759-d5bf56c3-3936-43f7-ad14-4d73d2cd1417.gif)
 
 ### **BBOT** is a **recursive**, **modular** OSINT framework inspired by Spiderfoot and written in Python.
 
-Capable of executing the entire OSINT process in a single command, BBOT does subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
+BBOT is capable of executing the entire OSINT process in a single command. It does subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
 
-BBOT currently has over **70 modules** and counting.
+BBOT has over **80 modules** and counting.
 
 ### [Subdomain Enumeration Face-off](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off)
 
 ![graphs-small](https://user-images.githubusercontent.com/20261699/199602154-14c71a93-57aa-4ac0-ad81-87ce64fbffc7.png)
 
 ## Installation (pip)
+Note: installing in a virtualenv is recommended
 ~~~bash
-# note: installing in a virtualenv is recommended
+# stable version
 pip install bbot
+
+# bleeding edge (dev branch)
+pip install --pre bbot
 
 bbot --help
 ~~~
@@ -95,9 +99,9 @@ Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurit
 from bbot.scanner import Scanner
 
 # any number of targets can be specified
-scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["naabu"])
+scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["httpx", "sslcert"])
 for event in scan.start():
-    print(event)
+    print(event.json())
 ~~~
 
 # Output
@@ -268,7 +272,7 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 | ffuf_shortnames     | scan     |         | Use ffuf in combination IIS shortnames   | active,aggressive,brute-force,iis-      | URL_UNVERIFIED                           |
 |                     |          |         |                                          | shortnames,web-advanced                 |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| fingerprintx        | scan     |         | Fingerprint exposed services like RDP,   | active,safe,service-enum                | PROTOCOL                                 |
+| fingerprintx        | scan     |         | Fingerprint exposed services like RDP,   | active,safe,service-enum,slow           | PROTOCOL                                 |
 |                     |          |         | SSH, MySQL, etc.                         |                                         |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | generic_ssrf        | scan     |         | Check for generic SSRFs                  | active,aggressive,web-advanced          | VULNERABILITY                            |
@@ -301,6 +305,8 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | nuclei              | scan     |         | Fast and customisable vulnerability      | active,aggressive,deadly,web-advanced   | FINDING,VULNERABILITY                    |
 |                     |          |         | scanner                                  |                                         |                                          |
++---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| robots              | scan     |         | Look for and parse robots.txt            | active,safe,web-basic                   | URL_UNVERIFIED                           |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | smuggler            | scan     |         | Check for HTTP smuggling                 | active,aggressive,brute-force,slow,web- | FINDING                                  |
 |                     |          |         |                                          | advanced                                |                                          |
