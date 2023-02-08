@@ -1,5 +1,5 @@
 from bbot.modules.output.base import BaseOutputModule
-import markdown2
+import markdown
 import html
 
 
@@ -11,7 +11,7 @@ class web_report(BaseOutputModule):
         "css_theme_file": "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css",
     }
     options_desc = {"output_file": "Output to file", "css_theme_file": "CSS theme URL for HTML output"}
-    deps_pip = ["markdown2"]
+    deps_pip = ["markdown"]
 
     def setup(self):
         html_css_file = self.config.get("css_theme_file", "")
