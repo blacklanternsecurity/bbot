@@ -1,4 +1,3 @@
-from pathlib import Path
 from contextlib import suppress
 
 from bbot.core.helpers.logger import log_to_stderr
@@ -14,20 +13,8 @@ class Human(BaseOutputModule):
     vuln_severity_map = {"LOW": "HUGEWARNING", "MEDIUM": "HUGEWARNING", "HIGH": "CRITICAL", "CRITICAL": "CRITICAL"}
 
     def setup(self):
-        self.output_file = self.config.get("output_file", "")
-        if self.output_file:
-            self.output_file = Path(self.output_file)
-        else:
-            self.output_file = self.scan.home / "output.txt"
-        self.helpers.mkdir(self.output_file.parent)
-        self._file = None
+        self._prep_output_dir("output.txt")
         return True
-
-    @property
-    def file(self):
-        if self._file is None:
-            self._file = open(self.output_file, mode="a")
-        return self._file
 
     def handle_event(self, event):
         event_type = f"[{event.type}]"

@@ -329,17 +329,24 @@ class BaseEvent:
         return self.data
 
     @property
-    def data_graph(self):
+    def pretty_string(self):
         """
         Graph representation of event.data
         """
-        return self._data_graph()
+        return self._pretty_string()
 
-    def _data_graph(self):
+    def _pretty_string(self):
         if isinstance(self.data, dict):
             with suppress(Exception):
                 return json.dumps(self.data, sort_keys=True)
         return smart_decode(self.data)
+
+    @property
+    def data_graph(self):
+        """
+        Representation of event.data for neo4j graph nodes
+        """
+        return self.pretty_string
 
     @property
     def data_json(self):
@@ -504,7 +511,11 @@ class CODE_REPOSITORY(DictHostEvent):
         url: str
         _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
 
-    def _data_graph(self):
+    def _host(self):
+        self.parsed = validators.validate_url_parsed(self.data["url"])
+        return make_ip_type(self.parsed.hostname)
+
+    def _pretty_string(self):
         return self.data["url"]
 
 
@@ -653,6 +664,10 @@ class URL(URL_UNVERIFIED):
     def resolved_hosts(self):
         return [i.split("-")[1] for i in self.tags if i.startswith("ip-")]
 
+    @property
+    def pretty_string(self):
+        return self.data
+
 
 class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
     class _data_validator(BaseModel):
@@ -707,6 +722,9 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def _words(self):
         return set()
 
+    def _pretty_string(self):
+        return f'{self.data["hash"]["header_mmh3"]}:{self.data["hash"]["body_mmh3"]}'
+
 
 class VULNERABILITY(DictHostEvent):
     def sanitize_data(self, data):
@@ -721,7 +739,7 @@ class VULNERABILITY(DictHostEvent):
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
         _validate_severity = validator("severity", allow_reuse=True)(validators.validate_severity)
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return f'[{self.data["severity"]}] {self.data["description"]}'
 
 
@@ -732,7 +750,7 @@ class FINDING(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return self.data["description"]
 
 
@@ -747,7 +765,7 @@ class TECHNOLOGY(DictHostEvent):
         tech = self.data.get("technology", "")
         return f"{self.host}:{self.port}:{tech}"
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return self.data["technology"]
 
 
@@ -758,7 +776,7 @@ class VHOST(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return self.data["vhost"]
 
 
@@ -780,7 +798,7 @@ class PROTOCOL(DictHostEvent):
     def port(self):
         return self.data.get("port", None)
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return self.data["protocol"]
 
 
