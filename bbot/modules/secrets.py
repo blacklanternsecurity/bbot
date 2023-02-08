@@ -25,9 +25,6 @@ class secrets(BaseModule):
 
     def setup(self):
         templates_dir = self.helpers.tools_dir / "secrets-patterns-db"
-        template_files = list(templates_dir.glob("**/*.yml"))
-        for t in template_files:
-            self.hugesuccess(t)
         template_file = (templates_dir / "db" / "rules-stable.yml").resolve()
         assert template_file.is_file(), f"Could not find template at {template_file}"
         with open(template_file) as f:
