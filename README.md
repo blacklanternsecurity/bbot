@@ -246,7 +246,7 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 |                     |          | Key     |                                          |                                         |                                          |
 +=====================+==========+=========+==========================================+=========================================+==========================================+
 | badsecrets          | scan     |         | Library for detecting known or weak      | active,safe,web-basic                   | FINDING,VULNERABILITY                    |
-|                     |          |         | secrets on across many platforms         |                                         |                                          |
+|                     |          |         | secrets across many web frameworks       |                                         |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | bucket_aws          | scan     |         | Check for S3 buckets related to target   | active,cloud-enum,safe                  | FINDING,STORAGE_BUCKET                   |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+

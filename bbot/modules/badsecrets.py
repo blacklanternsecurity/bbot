@@ -7,7 +7,7 @@ class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "web-basic"]
-    meta = {"description": "Library for detecting known or weak secrets on across many platforms"}
+    meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
     max_event_handlers = 2
     deps_pip = ["badsecrets"]
 
@@ -23,7 +23,8 @@ class badsecrets(BaseModule):
                 resp_cookies_list = [resp_cookies_raw]
                 for c in resp_cookies_list:
                     c2 = c.lstrip(";").strip().split(";")[0].split("=")
-                    resp_cookies[c2[0]] = c2[1]
+                    if len(c2) == 2:
+                        resp_cookies[c2[0]] = c2[1]
         if resp_body or resp_cookies:
             r_list = carve_all_modules(body=resp_body, cookies=resp_cookies)
             if r_list:
