@@ -6,10 +6,10 @@ from badsecrets.base import carve_all_modules
 class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["active", "safe"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
     max_event_handlers = 2
-    deps_pip = ["badsecrets"]
+    deps_pip = ["badsecrets>=0.1.220"]
 
     def handle_event(self, event):
         resp_body = event.data.get("body", None)
