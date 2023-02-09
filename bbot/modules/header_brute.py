@@ -51,7 +51,7 @@ class header_brute(BaseModule):
         self.debug(f"Resolved batch_size at {str(batch_size)}")
 
         if compare_helper.canary_check(url, mode=self.compare_mode) == False:
-            self.warning(f'Aborting "{url}" due to failed canary check')
+            self.verbose(f'Aborting "{url}" due to failed canary check')
             return
 
         fl = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
