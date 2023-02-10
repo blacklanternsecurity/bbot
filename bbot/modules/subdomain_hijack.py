@@ -40,11 +40,8 @@ class subdomain_hijack(BaseModule):
         self.debug(f"Successfully processed {len(self.fingerprints):,} fingerprints")
         return True
 
-    def filter_event(self, event):
-        return "subdomain" in event.tags
-
     def handle_event(self, event):
-        hijackable, reason = self.check_subdomain(event.data)
+        hijackable, reason = self.check_subdomain(event)
         if hijackable:
             source_hosts = []
             e = event
@@ -58,7 +55,7 @@ class subdomain_hijack(BaseModule):
                     break
 
             url = f"https://{event.host}"
-            description = f"Hijackable Subdomain"
+            description = f'Hijackable Subdomain "{event.data}": {reason}'
             if source_hosts:
                 source_hosts_str = " -> ".join([str(s) for s in source_hosts[::-1]])
                 description += f" ({source_hosts_str})"
@@ -66,20 +63,45 @@ class subdomain_hijack(BaseModule):
         else:
             self.debug(reason)
 
-    def check_subdomain(self, subdomain):
+    def check_subdomain(self, event):
         for f in self.fingerprints:
             for domain in f.domains:
-                if self.helpers.host_in_host(subdomain, domain):
-                    url = f"https://{subdomain}"
-                    try:
-                        r = self.helpers.request(url, raise_error=True)
-                        text = getattr(r, "text", "")
-                        if not f.nxdomain and f.fingerprint_regex.findall(text):
-                            return True, subdomain
-                    except requests.exceptions.RequestException as e:
-                        if f.nxdomain and "Name or service not known" in str(e):
-                            return True, f"{subdomain} --> NXDOMAIN"
-        return False, f'Subdomain "{subdomain}" not hijackable'
+                self_matches = self.helpers.host_in_host(event.data, domain)
+                child_matches = any(self.helpers.host_in_host(domain, h) for h in event.resolved_hosts)
+                if self_matches or child_matches:
+                    for scheme in ("https", "http"):
+                        # first, try base request
+                        url = f"{scheme}://{event.data}"
+                        match, reason = self._verify_fingerprint(f, url)
+                        if match:
+                            return match, reason
+                        # next, try {random_domain} -[DNS]-> domain
+                        url = f"{scheme}://{domain}"
+                        headers = {"Host": event.data}
+                        match, reason = self._verify_fingerprint(f, url, headers=headers)
+                        if match:
+                            return match, reason
+        return False, f'Subdomain "{event.data}" not hijackable'
+
+    def _verify_fingerprint(self, fingerprint, *args, **kwargs):
+        kwargs["raise_error"] = True
+        if fingerprint.http_status is not None:
+            kwargs["allow_redirects"] = False
+        try:
+            r = self.helpers.request(*args, **kwargs)
+            if fingerprint.http_status is not None and r.status_code == fingerprint.http_status:
+                return True, f"HTTP status == {fingerprint.http_status}"
+            text = getattr(r, "text", "")
+            if (
+                not fingerprint.nxdomain
+                and not fingerprint.http_status
+                and fingerprint.fingerprint_regex.findall(text)
+            ):
+                return True, "Fingerprint match"
+        except requests.exceptions.RequestException as e:
+            if fingerprint.nxdomain and "Name or service not known" in str(e):
+                return True, f"NXDOMAIN"
+        return False, "No match"
 
 
 class Fingerprint:
@@ -88,6 +110,7 @@ class Fingerprint:
         self.engine = fingerprint.get("service")
         self.cnames = fingerprint.get("cname", [])
         self.domains = list(set([tldextract(c).registered_domain for c in self.cnames]))
+        self.http_status = fingerprint.get("http_status", None)
         self.nxdomain = fingerprint.get("nxdomain", False)
         self.vulnerable = fingerprint.get("vulnerable", False)
         self.fingerprint = fingerprint.get("fingerprint", "")

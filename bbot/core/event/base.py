@@ -31,6 +31,8 @@ log = logging.getLogger("bbot.core.event")
 
 
 class BaseEvent:
+    # Whether to always consider this event type to be in-scope
+    always_in_scope = False
     # Exclude from output modules
     _omit = False
     # Disables certain data validations
@@ -709,6 +711,8 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 
 class VULNERABILITY(DictHostEvent):
+    always_in_scope = True
+
     def sanitize_data(self, data):
         self.tags.add(data["severity"].lower())
         return data
@@ -726,6 +730,8 @@ class VULNERABILITY(DictHostEvent):
 
 
 class FINDING(DictHostEvent):
+    always_in_scope = True
+
     class _data_validator(BaseModel):
         host: str
         description: str

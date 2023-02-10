@@ -173,6 +173,10 @@ class ScanManager:
                 set_scope_distance = event.scope_distance
                 if event_whitelisted:
                     set_scope_distance = 0
+                if event.always_in_scope:
+                    source_trail = event.make_in_scope()
+                    for s in source_trail:
+                        self.emit_event(s, _block=False, _force_submit=True)
                 if event.host:
                     if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
                         if set_scope_distance == 0:

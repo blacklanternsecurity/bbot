@@ -12,9 +12,9 @@ from contextlib import suppress
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
-from bbot.modules import module_loader
-from ..misc import can_sudo_without_password
 from bbot.core import configurator
+from bbot.modules import module_loader
+from ..misc import can_sudo_without_password, os_platform
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -169,15 +169,17 @@ class DepsInstaller:
         """
         packages_str = ",".join(packages)
         log.info(f"Installing the following OS packages: {packages_str}")
+        kwargs = {}
+        # don't sudo brew
+        if os_platform() != "darwin":
+            kwargs = {
+                "ansible_args": {
+                    "ansible_become": True,
+                    "ansible_become_method": "sudo",
+                }
+            }
         args = {"name": packages_str, "state": "present"}  # , "update_cache": True, "cache_valid_time": 86400}
-        success, err = self.ansible_run(
-            module="package",
-            args=args,
-            ansible_args={
-                "ansible_become": True,
-                "ansible_become_method": "sudo",
-            },
-        )
+        success, err = self.ansible_run(module="package", args=args, **kwargs)
         if success:
             log.info(f'Successfully installed OS packages "{packages_str}"')
         else:
