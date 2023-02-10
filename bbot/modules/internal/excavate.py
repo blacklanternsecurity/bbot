@@ -181,6 +181,19 @@ class SerializationExtractor(BaseExtractor):
         )
 
 
+class FunctionalityExtractor(BaseExtractor):
+    regexes = {
+        "File Upload Functionality": r"(<input[^>]+type=[\"']?file[\"']?[^>]+>)",
+        "Web Service WSDL": r"(?i)((?:http|https)://[^\s]*?.(?:wsdl))",
+    }
+
+    def report(self, result, name, event, **kwargs):
+        description = f"{name} found"
+        self.excavate.emit_event(
+            {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
+        )
+
+
 class JavascriptExtractor(BaseExtractor):
     # based on on https://github.com/m4ll0k/SecretFinder/blob/master/SecretFinder.py
 
@@ -251,6 +264,7 @@ class excavate(BaseInternalModule):
         self.jwt = JWTExtractor(self)
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
+        self.functionality = FunctionalityExtractor(self)
         self.max_redirects = self.scan.config.get("http_max_redirects", 5)
 
         return True
@@ -296,6 +310,7 @@ class excavate(BaseInternalModule):
                     self.jwt,
                     self.javascript,
                     self.serialization,
+                    self.functionality,
                 ],
                 event,
                 spider_danger=True,
