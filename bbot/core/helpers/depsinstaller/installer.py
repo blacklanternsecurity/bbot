@@ -169,6 +169,7 @@ class DepsInstaller:
         """
         packages_str = ",".join(packages)
         log.info(f"Installing the following OS packages: {packages_str}")
+        args = {"name": packages_str, "state": "present"}  # , "update_cache": True, "cache_valid_time": 86400}
         kwargs = {}
         # don't sudo brew
         if os_platform() != "darwin":
@@ -178,7 +179,6 @@ class DepsInstaller:
                     "ansible_become_method": "sudo",
                 }
             }
-        args = {"name": packages_str, "state": "present"}  # , "update_cache": True, "cache_valid_time": 86400}
         success, err = self.ansible_run(module="package", args=args, **kwargs)
         if success:
             log.info(f'Successfully installed OS packages "{packages_str}"')
@@ -231,6 +231,14 @@ class DepsInstaller:
         log.debug(f"ansible_run(module={module}, args={args}, ansible_args={ansible_args})")
         playbook = None
         if tasks:
+            for task in tasks:
+                if "package" in task:
+                    # special case for macos
+                    if os_platform() == "darwin":
+                        # don't sudo brew
+                        task["become"] = False
+                        # brew doesn't support update_cache
+                        task["package"].pop("update_cache", "")
             playbook = {"hosts": "all", "tasks": tasks}
             log.debug(json.dumps(playbook, indent=2))
         if self._sudo_password is not None:
