@@ -58,6 +58,7 @@ adjectives = [
     "dramatic",
     "drunk",
     "effeminate",
+    "elden",
     "eldritch",
     "embarrassed",
     "enigmatic",

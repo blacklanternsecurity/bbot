@@ -3,20 +3,22 @@ from .base import BaseCloudProvider
 
 class Azure(BaseCloudProvider):
     domains = [
-        "windows.net",
-        "azure.com",
         "azmk8s.io",
         "azure-api.net",
         "azure-mobile.net",
+        "azure.com",
+        "azure.net",
         "azurecontainer.io",
         "azurecr.io",
+        "azuredatalakestore.net",
         "azureedge.net",
         "azurefd.net",
+        "azurehdinsight.net",
         "azurewebsites.net",
         "cloudapp.net",
+        "windows.net",
         "onmicrosoft.com",
         "trafficmanager.net",
-        "vault.azure.net",
         "visualstudio.com",
         "vo.msecnd.net",
     ]
