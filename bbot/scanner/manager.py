@@ -396,7 +396,8 @@ class ScanManager:
                                 self.event_emitted.wait(timeout=0.1)
                 except queue.Empty:
                     # if we're on the last module
-                    finished = self.modules_status().get("finished", False)
+                    modules_status = self.modules_status()
+                    finished = modules_status.get("finished", False)
                     # And if the scan is finished
                     if finished:
                         # And if new events were generated since last time we were here

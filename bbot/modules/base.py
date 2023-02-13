@@ -491,6 +491,9 @@ class BaseModule:
         for pool, count in module_status["tasks"].items():
             if count > 0:
                 return True
+        for direction, qsize in module_status["events"].items():
+            if qsize > 0:
+                return True
         return False
 
     @property
