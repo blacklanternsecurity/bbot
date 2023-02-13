@@ -542,7 +542,7 @@ class DNSHelper:
         """
         Use this method to check whether a *host* is a wildcard entry
 
-        This can reliably tell the difference between a valid DNS record and a wildcard entry in a wildcard domain.
+        This can reliably tell the difference between a valid DNS record and a wildcard inside a wildcard domain.
 
         If you want to know whether a domain is using wildcard DNS, use is_wildcard_domain() instead.
 
