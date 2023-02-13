@@ -1,7 +1,10 @@
 import re
 import json
+import logging
 
 from .helpers import *
+
+log = logging.getLogger(f"bbot.test")
 
 
 class Httpx(HttpxMockHelper):
@@ -40,6 +43,65 @@ class Gowitness(HttpxMockHelper):
         if screenshots:
             return True
         return False
+
+
+class Excavate(HttpxMockHelper):
+    additional_modules = ["httpx"]
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
+
+    def mock_args(self):
+        response_data = """
+        ftp://ftp.test.notreal
+        \\nhttps://www1.test.notreal
+        \\x3dhttps://www2.test.notreal
+        %a2https://www3.test.notreal
+        \\uac20https://www4.test.notreal
+        \nwww5.test.notreal
+        \\x3dwww6.test.notreal
+        %a2www7.test.notreal
+        \\uac20www8.test.notreal
+        <a src="http://www9.test.notreal">
+        """
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": response_data}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        event_data = [e.data for e in events]
+        assert "https://www1.test.notreal/" in event_data
+        assert "https://www2.test.notreal/" in event_data
+        assert "https://www3.test.notreal/" in event_data
+        assert "https://www4.test.notreal/" in event_data
+        assert "www1.test.notreal" in event_data
+        assert "www2.test.notreal" in event_data
+        assert "www3.test.notreal" in event_data
+        assert "www4.test.notreal" in event_data
+        assert "www5.test.notreal" in event_data
+        assert "www6.test.notreal" in event_data
+        assert "www7.test.notreal" in event_data
+        assert "www8.test.notreal" in event_data
+        assert "http://www9.test.notreal/" in event_data
+
+        assert "nhttps://www1.test.notreal/" not in event_data
+        assert "x3dhttps://www2.test.notreal/" not in event_data
+        assert "a2https://www3.test.notreal/" not in event_data
+        assert "uac20https://www4.test.notreal/" not in event_data
+        assert "nwww5.test.notreal" not in event_data
+        assert "x3dwww6.test.notreal" not in event_data
+        assert "a2www7.test.notreal" not in event_data
+        assert "uac20www8.test.notreal" not in event_data
+
+        assert any(
+            e.type == "FINDING" and e.data.get("description", "") == "Non-HTTP URI: ftp://ftp.test.notreal"
+            for e in events
+        )
+        assert any(
+            e.type == "PROTOCOL"
+            and e.data.get("protocol", "") == "FTP"
+            and e.data.get("host", "") == "ftp.test.notreal"
+            for e in events
+        )
+        return True
 
 
 class Subdomain_Hijack(HttpxMockHelper):
