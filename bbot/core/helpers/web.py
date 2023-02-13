@@ -3,6 +3,7 @@ import requests
 from time import sleep
 from pathlib import Path
 from requests_cache import CachedSession
+from requests.adapters import HTTPAdapter
 from requests_cache.backends import SQLiteCache
 from requests.exceptions import RequestException
 
@@ -87,6 +88,11 @@ def request(self, *args, **kwargs):
         raise_error (bool): Whether to raise exceptions (default: False)
     """
 
+    # we handle our own retries
+    retries = kwargs.get("retries", self.config.get("http_retries", 1))
+    if getattr(self, "retry_adapter", None) is None:
+        self.retry_adapter = HTTPAdapter(max_retries=0)
+
     raise_error = kwargs.pop("raise_error", False)
 
     cache_for = kwargs.pop("cache_for", None)
@@ -99,9 +105,15 @@ def request(self, *args, **kwargs):
             backend = SQLiteCache(db_path=db_path)
             session = CachedSession(expire_after=cache_for, backend=backend)
             self.cache_sessions[cache_for] = session
-
-    if kwargs.pop("session", None) or not cache_for:
+    elif kwargs.get("session", None) is not None:
         session = kwargs.pop("session", None)
+    else:
+        if getattr(self, "base_session", None) is None:
+            self.base_session = requests.Session()
+        session = self.base_session
+
+    session.mount("http://", self.retry_adapter)
+    session.mount("https://", self.retry_adapter)
 
     http_timeout = self.config.get("http_timeout", 20)
     user_agent = self.config.get("user_agent", "BBOT")
@@ -112,7 +124,6 @@ def request(self, *args, **kwargs):
         args = []
 
     url = kwargs.get("url", "")
-    retries = kwargs.pop("retries", 0)
 
     if not args and "method" not in kwargs:
         kwargs["method"] = "GET"

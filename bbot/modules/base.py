@@ -215,6 +215,11 @@ class BaseModule:
         for o in ("on_success_callback", "abort_if", "quick"):
             event_kwargs.pop(o, None)
         event = self.make_event(*args, **event_kwargs)
+        # nerf event's priority if it's likely not to be in scope
+        if event.scope_distance > 0:
+            event_in_scope = self.scan.whitelisted(event) and not self.scan.blacklisted(event)
+            if not event_in_scope:
+                event.module_priority += event.scope_distance
         if event:
             # Wait for parent event to resolve (in case its scope distance changes)
             while 1:
@@ -436,8 +441,9 @@ class BaseModule:
     def queue_event(self, event):
         if self.incoming_event_queue is not None and not self.errored:
             acceptable, reason = self._filter_event(event)
-            if not acceptable and reason:
-                self.debug(f"Not accepting {event} because {reason}")
+            if not acceptable:
+                if reason and reason != "its type is not in watched_events":
+                    self.debug(f"Not accepting {event} because {reason}")
                 return
             self.scan.stats.event_consumed(event, self)
             self.incoming_event_queue.put(event)

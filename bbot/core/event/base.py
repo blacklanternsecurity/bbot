@@ -60,6 +60,7 @@ class BaseEvent:
         self._port = None
         self.__words = None
         self._priority = None
+        self._module_priority = None
         self._resolved_hosts = set()
 
         self._made_internal = False
@@ -421,8 +422,14 @@ class BaseEvent:
 
     @property
     def module_priority(self):
-        module = getattr(self, "module", None)
-        return int(max(1, min(5, getattr(module, "priority", 3))))
+        if self._module_priority is None:
+            module = getattr(self, "module", None)
+            self._module_priority = int(max(1, min(5, getattr(module, "priority", 3))))
+        return self._module_priority
+
+    @module_priority.setter
+    def module_priority(self, priority):
+        self._module_priority = int(max(1, min(5, priority)))
 
     @property
     def priority(self):

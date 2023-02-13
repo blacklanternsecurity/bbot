@@ -71,4 +71,20 @@ def test_scan(
     assert not scan3.in_scope("127.0.0.3")
     scan3.prep()
     monkeypatch.setattr(scan3.modules["websocket"], "ws", websocketapp())
-    scan3.start()
+    events = list(scan3.start())
+
+    # make sure DNS resolution works
+    dns_config = OmegaConf.create({"dns_resolution": True})
+    dns_config = OmegaConf.merge(bbot_config, dns_config)
+    scan4 = bbot_scanner("8.8.8.8", config=dns_config)
+    events = list(scan4.start())
+    event_data = [e.data for e in events]
+    assert "dns.google" in event_data
+
+    # make sure it doesn't work when you turn it off
+    no_dns_config = OmegaConf.create({"dns_resolution": False})
+    no_dns_config = OmegaConf.merge(bbot_config, no_dns_config)
+    scan5 = bbot_scanner("8.8.8.8", config=no_dns_config)
+    events = list(scan5.start())
+    event_data = [e.data for e in events]
+    assert "dns.google" not in event_data

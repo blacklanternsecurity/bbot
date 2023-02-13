@@ -41,6 +41,8 @@ httpx_timeout: 5
 # These are attached to all in-scope HTTP requests
 # Note that some modules (e.g. github) may end up sending these to out-of-scope resources
 http_headers: {}
+# HTTP retries (for Python requests; API calls, etc.)
+http_retries: 1
 # HTTP retries (for httpx)
 httpx_retries: 1
 # Enable/disable debug messages for web requests/responses
