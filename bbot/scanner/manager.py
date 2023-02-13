@@ -137,7 +137,7 @@ class ScanManager:
                 dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
                 if dns_resolve_distance >= self.scan.helpers.dns.max_dns_resolve_distance:
                     log.debug(
-                        f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.dns_resolve_distance})"
+                        f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.max_dns_resolve_distance})"
                     )
                     dns_children = []
 
