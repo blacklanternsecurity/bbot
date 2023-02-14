@@ -160,10 +160,6 @@ class ScanManager:
             if event_blacklisted:
                 event.tags.add("blacklisted")
 
-            # Cloud tagging
-            for provider in self.scan.helpers.cloud.providers.values():
-                provider.tag_event(event)
-
             # Blacklist purging
             if "blacklisted" in event.tags:
                 reason = "event host"
@@ -171,6 +167,10 @@ class ScanManager:
                     reason = "DNS associations"
                 log.debug(f"Omitting due to blacklisted {reason}: {event}")
                 distribute_event = False
+
+            # Cloud tagging
+            for provider in self.scan.helpers.cloud.providers.values():
+                provider.tag_event(event)
 
             # Scope shepherding
             event_is_duplicate = self.is_duplicate_event(event)
@@ -498,9 +498,12 @@ class ScanManager:
             event_type_summary = sorted(
                 self.scan.stats.events_emitted_by_type.items(), key=lambda x: x[-1], reverse=True
             )
-            self.scan.info(
-                f'{self.scan.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
-            )
+            if event_type_summary:
+                self.scan.info(
+                    f'{self.scan.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
+                )
+            else:
+                self.scan.info(f"{self.scan.name}: No events produced yet")
 
             total_tasks = status["scan"]["queued_tasks"]["total"]
             dns_tasks = status["scan"]["queued_tasks"]["dns"]
@@ -525,6 +528,17 @@ class ScanManager:
                 )
             else:
                 self.scan.info(f"{self.scan.name}: No events in queue")
+
+            if self.scan.log_level <= logging.DEBUG:
+                threadpool_names = [
+                    "_internal_thread_pool",
+                    "_event_thread_pool",
+                    "_thread_pool",
+                ]
+                for threadpool_name in threadpool_names:
+                    threadpool = getattr(self.scan, threadpool_name)
+                    for thread_status in threadpool.threads_status:
+                        self.scan.debug(f"scan.{threadpool_name}: {thread_status}")
 
             # Uncomment these lines to enable debugging of event queues
 

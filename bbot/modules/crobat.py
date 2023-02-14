@@ -20,6 +20,7 @@ class crobat(BaseModule):
 
     def setup(self):
         self.processed = set()
+        self.http_timeout = self.scan.config.get("http_timeout", 10)
         return True
 
     def filter_event(self, event):
@@ -55,7 +56,11 @@ class crobat(BaseModule):
 
     def abort_if(self, event):
         # this helps weed out unwanted results when scanning IP_RANGES and wildcard domains
-        return "in-scope" not in event.tags or "wildcard" in event.tags
+        if "in-scope" not in event.tags:
+            return True
+        if any(t in event.tags for t in ("wildcard", "wildcard-domain")):
+            return True
+        return False
 
     def handle_event(self, event):
         query = self.make_query(event)

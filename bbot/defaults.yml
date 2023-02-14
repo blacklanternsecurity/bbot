@@ -33,7 +33,7 @@ aggregate: True
 # HTTP proxy
 http_proxy: 
 # HTTP timeout (for Python requests; API calls, etc.)
-http_timeout: 30
+http_timeout: 10
 # HTTP timeout (for httpx)
 httpx_timeout: 5
 # Custom HTTP headers (e.g. cookies, etc.)

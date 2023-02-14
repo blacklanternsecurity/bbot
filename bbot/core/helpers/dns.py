@@ -241,17 +241,25 @@ class DNSHelper:
 
         resolved_hosts = set()
 
-        # wildcard check first
-        if _wildcard_rdtypes is None:
-            wildcard_rdtypes = self.is_wildcard(event_host)
-        else:
-            wildcard_rdtypes = _wildcard_rdtypes
-        for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
-            wildcard_tag = "error"
-            if is_wildcard == True:
-                event_tags.add("wildcard")
-                wildcard_tag = "wildcard"
-            event_tags.add(f"{rdtype.lower()}-{wildcard_tag}")
+        # wildcard checks
+        if not is_ip(event.host):
+            # check if this domain is using wildcard dns
+            for hostname, wildcard_domain_rdtypes in self.is_wildcard_domain(event_host).items():
+                if wildcard_domain_rdtypes:
+                    event_tags.add("wildcard-domain")
+                    for rdtype, ips in wildcard_domain_rdtypes.items():
+                        event_tags.add(f"{rdtype.lower()}-wildcard-domain")
+            # check if the dns name itself is a wildcard entry
+            if _wildcard_rdtypes is None:
+                wildcard_rdtypes = self.is_wildcard(event_host)
+            else:
+                wildcard_rdtypes = _wildcard_rdtypes
+            for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
+                wildcard_tag = "error"
+                if is_wildcard == True:
+                    event_tags.add("wildcard")
+                    wildcard_tag = "wildcard"
+                event_tags.add(f"{rdtype.lower()}-{wildcard_tag}")
 
         # lock to ensure resolution of the same host doesn't start while we're working here
         with self._event_cache_locks.get_lock(event_host):
@@ -267,36 +275,43 @@ class DNSHelper:
                 types = "any"
             else:
                 types = ("A", "AAAA")
-            resolved_raw, errors = self.resolve_raw(event_host, type=types, cache_result=True)
-            for rdtype, e in errors:
-                event_tags.add(f"{rdtype.lower()}-error")
-            for rdtype, records in resolved_raw:
-                event_tags.add("resolved")
-                rdtype = str(rdtype).upper()
-                event_tags.add(f"{rdtype.lower()}-record")
 
-                # whitelisting and blacklisting of IPs
-                for r in records:
-                    for _, t in self.extract_targets(r):
-                        if t:
-                            if rdtype in ("A", "AAAA", "CNAME"):
-                                ip = self.parent_helper.make_ip_type(t)
+            futures = {}
+            for t in types:
+                future = self._thread_pool.submit_task(self.resolve_raw, event_host, type=t, cache_result=True)
+                futures[future] = t
 
-                                with suppress(ValidationError):
-                                    if self.parent_helper.scan.whitelisted(ip):
-                                        event_whitelisted = True
-                                with suppress(ValidationError):
-                                    if self.parent_helper.scan.blacklisted(ip):
-                                        event_blacklisted = True
-                                resolved_hosts.add(ip)
+            for future in self.parent_helper.as_completed(futures):
+                resolved_raw, errors = future.result()
+                for rdtype, e in errors:
+                    event_tags.add(f"{rdtype.lower()}-error")
+                for rdtype, records in resolved_raw:
+                    event_tags.add("resolved")
+                    rdtype = str(rdtype).upper()
+                    event_tags.add(f"{rdtype.lower()}-record")
 
-                            if self.filter_bad_ptrs and rdtype in ("PTR") and self.bad_ptr_regex.search(t):
-                                self.debug(f"Filtering out bad PTR: {t}")
-                                continue
-                            children.append((rdtype, t))
+                    # whitelisting and blacklisting of IPs
+                    for r in records:
+                        for _, t in self.extract_targets(r):
+                            if t:
+                                if rdtype in ("A", "AAAA", "CNAME"):
+                                    ip = self.parent_helper.make_ip_type(t)
 
-            # if the host resolves and we haven't checked wildcards yet
-            if children and _wildcard_rdtypes is None:
+                                    with suppress(ValidationError):
+                                        if self.parent_helper.scan.whitelisted(ip):
+                                            event_whitelisted = True
+                                    with suppress(ValidationError):
+                                        if self.parent_helper.scan.blacklisted(ip):
+                                            event_blacklisted = True
+                                    resolved_hosts.add(ip)
+
+                                if self.filter_bad_ptrs and rdtype in ("PTR") and self.bad_ptr_regex.search(t):
+                                    self.debug(f"Filtering out bad PTR: {t}")
+                                    continue
+                                children.append((rdtype, t))
+
+            # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
+            if not is_ip(event.host) and children and _wildcard_rdtypes is None:
                 # these are the rdtypes that successfully resolve
                 resolved_rdtypes = set([c[0].upper() for c in children])
                 # these are the rdtypes that have wildcards
@@ -455,6 +470,9 @@ class DNSHelper:
             timeout (int): timeout for dns query
         """
         log.info(f"Verifying {len(nameservers):,} public nameservers. Please be patient, this may take a while.")
+        log.info(
+            f'Note: this will only happen once. If you\'re in a hurry, you can disable massdns with "-em massdns"'
+        )
         futures = []
         for nameserver in nameservers:
             # don't use the system nameservers

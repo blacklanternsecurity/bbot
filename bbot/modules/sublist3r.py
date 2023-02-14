@@ -12,7 +12,7 @@ class sublist3r(crobat):
     base_url = "https://api.sublist3r.com/search.php"
 
     def request_url(self, query):
-        return self.helpers.request(f"{self.base_url}?domain={query}")
+        return self.helpers.request(f"{self.base_url}?domain={query}", timeout=self.http_timeout + 10)
 
     def parse_results(self, r, query):
         json = r.json()

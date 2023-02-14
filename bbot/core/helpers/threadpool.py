@@ -1,11 +1,49 @@
 import logging
 import threading
-from queue import Full
+from datetime import datetime
+from queue import SimpleQueue, Full
+from concurrent.futures import ThreadPoolExecutor
 
 log = logging.getLogger("bbot.core.helpers.threadpool")
 
 from .cache import CacheDict
 from ...core.errors import ScanCancelledError
+
+
+class ThreadPoolSimpleQueue(SimpleQueue):
+    def __init__(self, *args, **kwargs):
+        self._executor = kwargs.pop("_executor", None)
+
+    def get(self, *args, **kwargs):
+        work_item = super().get(*args, **kwargs)
+        thread_id = threading.get_ident()
+        self._executor._current_work_items[thread_id] = (work_item, datetime.now())
+        return work_item
+
+
+class BBOTThreadPoolExecutor(ThreadPoolExecutor):
+    """
+    Allows inspection of thread pool to determine which functions are currently executing
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._current_work_items = {}
+        self._work_queue = ThreadPoolSimpleQueue(_executor=self)
+
+    @property
+    def threads_status(self):
+        work_items = []
+        for thread_id, (work_item, start_time) in sorted(self._current_work_items.items()):
+            func_chain = []
+            if work_item and not work_item.future.done():
+                for f in [work_item.fn] + list(work_item.args):
+                    if not callable(f):
+                        break
+                    func_chain.append(f"{f.__qualname__}()")
+                running_for = datetime.now() - start_time
+                work_items.append(f"{func_chain[-1]} running for {int(running_for.total_seconds()):,} seconds")
+        return work_items
 
 
 class ThreadPoolWrapper:
@@ -87,6 +125,10 @@ class ThreadPoolWrapper:
 
     def shutdown(self, *args, **kwargs):
         self.executor.shutdown(*args, **kwargs)
+
+    @property
+    def threads_status(self):
+        return self.executor.threads_status
 
 
 import time

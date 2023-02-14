@@ -29,7 +29,7 @@ class wayback(crobat):
 
     def query(self, query):
         waybackurl = f"{self.base_url}/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
-        r = self.helpers.request(waybackurl)
+        r = self.helpers.request(waybackurl, timeout=self.http_timeout + 10)
         if not r:
             self.warning(f'Error connecting to archive.org for query "{query}"')
             return
