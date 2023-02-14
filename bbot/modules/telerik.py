@@ -104,7 +104,7 @@ class telerik(BaseModule):
         "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx",
         "cms/portlets/telerik.web.ui.dialoghandler.aspx",
         "common/admin/Calendar/Telerik.Web.UI.DialogHandler.aspx",
-        "common/admin/Jobs2/Telerik.Web.UI.DialogHandler.aspx,"
+        "common/admin/Jobs2/Telerik.Web.UI.DialogHandler.aspx",
         "common/admin/PhotoGallery2/Telerik.Web.UI.DialogHandler.aspx",
         "dashboard/UserControl/CMS/Page/Telerik.Web.UI.DialogHandler.aspx",
         "DesktopModule/UIQuestionControls/UIAskQuestion/Telerik.Web.UI.DialogHandler.aspx",

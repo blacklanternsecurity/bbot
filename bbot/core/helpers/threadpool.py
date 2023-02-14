@@ -88,20 +88,22 @@ class ThreadPoolWrapper:
                 try:
                     # submit the job
                     future = self.executor.submit(self.callback_wrapper, callback, *args, **kwargs)
+                    future.add_done_callback(self.done_callback)
                     success = True
+                    return future
                 except RuntimeError as e:
                     raise ScanCancelledError(e)
             finally:
                 if not success:
                     self.num_tasks -= 1
 
-            return future
+    def done_callback(self, future):
+        self.num_tasks -= 1
 
     def callback_wrapper(self, callback, *args, **kwargs):
         try:
             return callback(*args, **kwargs)
         finally:
-            self.num_tasks -= 1
             for wrapper in self.executor._thread_pool_wrappers:
                 try:
                     with wrapper.not_full:
