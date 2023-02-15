@@ -446,11 +446,15 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
+    wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
     children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts = scan.helpers.resolve_event(
         wildcard_event1
     )
     children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts = scan.helpers.resolve_event(
         wildcard_event2
+    )
+    children, event_tags3, event_whitelisted3, event_blacklisted3, resolved_hosts = scan.helpers.resolve_event(
+        wildcard_event3
     )
     assert "wildcard" in event_tags1
     assert "a-wildcard" in event_tags1
@@ -463,6 +467,9 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert event_tags1 == event_tags2
     assert event_whitelisted1 == event_whitelisted2
     assert event_blacklisted1 == event_blacklisted2
+    assert "wildcard-domain" in event_tags3
+    assert "a-wildcard-domain" in event_tags3
+    assert "srv-wildcard-domain" not in event_tags3
 
     # Ensure events with hosts have resolved_hosts attribute populated
 
