@@ -15,7 +15,9 @@ class wafw00f(BaseModule):
     deps_pip = ["wafw00f"]
 
     options = {"generic_detect": True}
-    options_desc = {"generic_detect": "When no specifics WAF detections are made, try to peform a generic detect"}
+    options_desc = {"generic_detect": "When no specific WAF detections are made, try to peform a generic detect"}
+
+    in_scope_only = True
 
     def setup(self):
         self.scanned_hosts = set()
