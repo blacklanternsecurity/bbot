@@ -61,9 +61,10 @@ class ThreadPoolWrapper:
             self.executor._thread_pool_wrappers.append(self)
         except AttributeError:
             self.executor._thread_pool_wrappers = [self]
-        self.num_tasks = 0
+        self._num_tasks = 0
 
         self._lock = threading.RLock()
+        self._task_count_lock = threading.Lock()
         self.not_full = threading.Condition(self._lock)
 
     def submit_task(self, callback, *args, **kwargs):
@@ -105,6 +106,15 @@ class ThreadPoolWrapper:
                     wrapper.not_full.notify()
             except RuntimeError:
                 continue
+
+    @property
+    def num_tasks(self):
+        return self._num_tasks
+
+    @num_tasks.setter
+    def num_tasks(self, num_tasks):
+        with self._task_count_lock:
+            self._num_tasks = num_tasks
 
     @property
     def is_full(self):

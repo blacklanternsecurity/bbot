@@ -278,7 +278,9 @@ class DNSHelper:
 
             futures = {}
             for t in types:
-                future = self._thread_pool.submit_task(self.resolve_raw, event_host, type=t, cache_result=True)
+                future = self._thread_pool.submit_task(
+                    self._catch_keyboardinterrupt, self.resolve_raw, event_host, type=t, cache_result=True
+                )
                 futures[future] = t
 
             for future in self.parent_helper.as_completed(futures):
@@ -597,7 +599,9 @@ class DNSHelper:
             # then resolve the query for all rdtypes
             for _rdtype in self.all_rdtypes:
                 # resolve the base query
-                future = self._thread_pool.submit_task(self.resolve_raw, query, type=_rdtype, cache_result=True)
+                future = self._thread_pool.submit_task(
+                    self._catch_keyboardinterrupt, self.resolve_raw, query, type=_rdtype, cache_result=True
+                )
                 futures.append(future)
 
             for future in self.parent_helper.as_completed(futures):
