@@ -117,9 +117,9 @@ class BaseModule:
         """
         return True
 
-    def _handle_event(self, *args, **kwargs):
+    def _if_not_errored(self, callback, *args, **kwargs):
         if not self.errored:
-            return self.handle_event(*args, **kwargs)
+            return callback(*args, **kwargs)
 
     def handle_event(self, event):
         """
@@ -350,9 +350,9 @@ class BaseModule:
                         self._internal_thread_pool.submit_task(self.catch, self.finish)
                     else:
                         if self._type == "output":
-                            self.catch(self._handle_event, e)
+                            self.catch(self._if_not_errored, self.handle_event, e)
                         else:
-                            self._internal_thread_pool.submit_task(self.catch, self._handle_event, e)
+                            self._internal_thread_pool.submit_task(self._if_not_errored, self.handle_event, e)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted")
