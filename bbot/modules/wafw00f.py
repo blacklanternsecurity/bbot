@@ -3,6 +3,10 @@ from wafw00f import main as wafw00f_main
 
 
 class wafw00f(BaseModule):
+    """
+    https://github.com/EnableSecurity/wafw00f
+    """
+
     watched_events = ["URL"]
     produced_events = ["WAF"]
     flags = ["active", "aggressive"]
