@@ -163,7 +163,7 @@ def request(self, *args, **kwargs):
             if retries != "infinite":
                 retries -= 1
             if retries == "infinite" or retries >= 0:
-                log.warning(f'Error requesting "{url}" ({e}), retrying...')
+                log.verbose(f'Error requesting "{url}" ({e}), retrying...')
                 sleep(1)
             else:
                 if raise_error:

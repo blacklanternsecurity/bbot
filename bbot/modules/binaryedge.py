@@ -21,13 +21,13 @@ class binaryedge(shodan_dns):
 
     def ping(self):
         url = f"{self.base_url}/user/subscription"
-        j = self.helpers.request(url, headers=self.headers).json()
+        j = self.request_with_fail_count(url, headers=self.headers).json()
         assert j.get("requests_left", 0) > 0
 
     def request_url(self, query):
         # todo: host query (certs + services)
         url = f"{self.base_url}/query/domains/subdomain/{self.helpers.quote(query)}"
-        return self.helpers.request(url, headers=self.headers)
+        return self.request_with_fail_count(url, headers=self.headers)
 
     def parse_results(self, r, query):
         j = r.json()

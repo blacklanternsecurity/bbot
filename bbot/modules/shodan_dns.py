@@ -30,13 +30,13 @@ class shodan_dns(crobat):
             return None, "No API key set"
 
     def ping(self):
-        r = self.helpers.request(f"{self.base_url}/api-info?key={self.api_key}")
+        r = self.request_with_fail_count(f"{self.base_url}/api-info?key={self.api_key}")
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
     def request_url(self, query):
         url = f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={self.api_key}"
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
         json = r.json()

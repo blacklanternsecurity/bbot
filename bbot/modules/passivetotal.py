@@ -19,7 +19,7 @@ class passivetotal(shodan_dns):
 
     def ping(self):
         url = f"{self.base_url}/account/quota"
-        j = self.helpers.request(url, auth=self.auth).json()
+        j = self.request_with_fail_count(url, auth=self.auth).json()
         limit = j["user"]["limits"]["search_api"]
         used = j["user"]["counts"]["search_api"]
         assert used < limit, "No quota remaining"
@@ -30,7 +30,7 @@ class passivetotal(shodan_dns):
 
     def request_url(self, query):
         url = f"{self.base_url}/enrichment/subdomains?query={self.helpers.quote(query)}"
-        return self.helpers.request(url, auth=self.auth)
+        return self.request_with_fail_count(url, auth=self.auth)
 
     def parse_results(self, r, query):
         for subdomain in r.json().get("subdomains", []):

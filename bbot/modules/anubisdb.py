@@ -12,7 +12,7 @@ class anubisdb(crobat):
 
     def request_url(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}"
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url)
 
     def abort_if_pre(self, hostname):
         """

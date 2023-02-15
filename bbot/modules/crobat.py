@@ -13,6 +13,8 @@ class crobat(BaseModule):
     meta = {"description": "Query Project Crobat for subdomains"}
 
     base_url = "https://sonar.omnisint.io"
+    # set module error state after this many failed requests in a row
+    abort_after_failures = 5
 
     # this helps combat rate limiting by ensuring that a query doesn't execute
     # until the queue is ready to receive its results
@@ -21,6 +23,7 @@ class crobat(BaseModule):
     def setup(self):
         self.processed = set()
         self.http_timeout = self.scan.config.get("http_timeout", 10)
+        self._failures = 0
         return True
 
     def filter_event(self, event):
@@ -40,9 +43,8 @@ class crobat(BaseModule):
                 return False, "Event is unresolved"
             if any(t.startswith("cloud-") for t in event.tags):
                 return False, "Event is a cloud resource and not a direct target"
-        for domain, wildcard_rdtypes in self.helpers.is_wildcard_domain(query).items():
-            if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
-                return False, "Event is a wildcard domain"
+        if any(t in event.tags for t in ("a-wildcard-domain", "aaaa-wildcard-domain", "cname-wildcard-domain")):
+            return False, "Event is a wildcard domain"
         if any(t in event.tags for t in ("a-error", "aaaa-error")):
             return False, "Event has a DNS resolution error"
         self.processed.add(hash(query))
@@ -72,7 +74,7 @@ class crobat(BaseModule):
 
     def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url)
 
     def make_query(self, event):
         if "target" in event.tags:

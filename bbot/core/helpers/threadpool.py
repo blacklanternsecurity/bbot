@@ -63,7 +63,7 @@ class ThreadPoolWrapper:
             self.executor._thread_pool_wrappers = [self]
         self.num_tasks = 0
 
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self.not_full = threading.Condition(self._lock)
 
     def submit_task(self, callback, *args, **kwargs):
@@ -87,7 +87,7 @@ class ThreadPoolWrapper:
 
                 try:
                     # submit the job
-                    future = self.executor.submit(self.callback_wrapper, callback, *args, **kwargs)
+                    future = self.executor.submit(callback, *args, **kwargs)
                     future.add_done_callback(self.done_callback)
                     success = True
                     return future
@@ -99,17 +99,12 @@ class ThreadPoolWrapper:
 
     def done_callback(self, future):
         self.num_tasks -= 1
-
-    def callback_wrapper(self, callback, *args, **kwargs):
-        try:
-            return callback(*args, **kwargs)
-        finally:
-            for wrapper in self.executor._thread_pool_wrappers:
-                try:
-                    with wrapper.not_full:
-                        wrapper.not_full.notify()
-                except RuntimeError:
-                    continue
+        for wrapper in self.executor._thread_pool_wrappers:
+            try:
+                with wrapper.not_full:
+                    wrapper.not_full.notify()
+            except RuntimeError:
+                continue
 
     @property
     def is_full(self):

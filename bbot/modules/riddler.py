@@ -11,7 +11,7 @@ class riddler(crobat):
 
     def request_url(self, query):
         url = f"{self.base_url}/search/exportcsv?q=pld:{self.helpers.quote(query)}"
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
         results = set()
