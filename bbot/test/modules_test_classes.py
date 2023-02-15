@@ -569,3 +569,19 @@ class Masscan(MockHelper):
             if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:53":
                 return True
         return False
+
+
+class Wafw00f(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "Proudly powered by litespeed web server"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "WAF":
+                if "LiteSpeed" in e.data["WAF"]:
+                    return True
+        return False
