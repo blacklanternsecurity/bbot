@@ -272,7 +272,7 @@ class DNSHelper:
 
             # then resolve
             if event.type == "DNS_NAME" and not minimal:
-                types = "any"
+                types = self.all_rdtypes
             else:
                 types = ("A", "AAAA")
 

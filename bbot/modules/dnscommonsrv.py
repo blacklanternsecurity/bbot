@@ -106,4 +106,4 @@ class dnscommonsrv(BaseModule):
         queries = [event.data] + [f"{srv}.{event.data}" for srv in common_srvs]
         for query, results in self.helpers.resolve_batch(queries, type="srv"):
             if results:
-                self.emit_event(query, "DNS_NAME", tags=["srv_record"], source=event)
+                self.emit_event(query, "DNS_NAME", tags=["srv-record"], source=event)
