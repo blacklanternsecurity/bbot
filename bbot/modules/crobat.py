@@ -68,7 +68,7 @@ class crobat(BaseModule):
         query = self.make_query(event)
         results = self.query(query)
         if results:
-            for hostname in results:
+            for hostname in set(results):
                 if hostname:
                     hostname = hostname.lower()
                     if hostname.endswith(f".{query}") and not hostname == event.data:

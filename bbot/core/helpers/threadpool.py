@@ -1,5 +1,6 @@
 import logging
 import threading
+import traceback
 from datetime import datetime
 from queue import SimpleQueue, Full
 from concurrent.futures import ThreadPoolExecutor
@@ -50,7 +51,7 @@ class BBOTThreadPoolExecutor(ThreadPoolExecutor):
                 wi_args = str(wi_args).strip("[]")
                 wi_kwargs = ",".join([f"{0}={1}".format(*_) for _ in work_item.kwargs.items()])
                 func_with_args = f"{func}({wi_args}" + (f",{wi_kwargs}" if wi_kwargs else "") + ")"
-                work_items.append(f"{func_with_args} running for {int(running_for.total_seconds()):,} seconds")
+                work_items.append(f"running for {int(running_for.total_seconds()):>3} seconds: {func_with_args}")
         return work_items
 
 
@@ -116,9 +117,8 @@ class ThreadPoolWrapper:
                 except RuntimeError:
                     continue
                 except Exception as e:
-                    import traceback
-
-                    log.hugewarning(traceback.format_exc())
+                    log.warning(f"Unknown error in done_callback(): {e}")
+                    log.trace(traceback.format_exc())
         finally:
             self.num_tasks_decrement()
 

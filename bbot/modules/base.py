@@ -116,10 +116,6 @@ class BaseModule:
         """
         return True
 
-    def _if_not_errored(self, callback, *args, **kwargs):
-        if not self.errored:
-            return callback(*args, **kwargs)
-
     def handle_event(self, event):
         """
         Override this method if batch_size == 1.
@@ -183,6 +179,14 @@ class BaseModule:
     def catch(self, *args, **kwargs):
         return self.scan.manager.catch(*args, **kwargs)
 
+    def _postcheck_and_run(self, callback, event):
+        acceptable, reason = self._event_postcheck(event)
+        if not acceptable:
+            if reason:
+                self.debug(f"Not accepting {event} because {reason}")
+            return
+        return callback(event)
+
     def _handle_batch(self, force=False):
         if self.batch_size <= 1:
             return
@@ -194,13 +198,21 @@ class BaseModule:
                 on_finish_callback = self.finish
             elif report:
                 on_finish_callback = self.report
-            if events:
+            checked_events = []
+            for e in events:
+                acceptable, reason = self._event_postcheck(e)
+                if not acceptable:
+                    if reason:
+                        self.debug(f"Not accepting {e} because {reason}")
+                    continue
+                checked_events.append(e)
+            if checked_events:
                 self.debug(f"Handling batch of {len(events):,} events")
                 if not self.errored:
                     self._internal_thread_pool.submit_task(
                         self.catch,
                         self.handle_batch,
-                        *events,
+                        *checked_events,
                         _on_finish_callback=on_finish_callback,
                     )
                 return True
@@ -349,10 +361,10 @@ class BaseModule:
                         self._internal_thread_pool.submit_task(self.catch, self.finish)
                     else:
                         if self._type == "output":
-                            self.catch(self._if_not_errored, self.handle_event, e)
+                            self.catch(self._postcheck_and_run, self.handle_event, e)
                         else:
                             self._internal_thread_pool.submit_task(
-                                self.catch, self._if_not_errored, self.handle_event, e
+                                self.catch, self._postcheck_and_run, self.handle_event, e
                             )
 
         except KeyboardInterrupt:
@@ -364,12 +376,6 @@ class BaseModule:
             self.set_error_state(f"Exception ({e.__class__.__name__}) in module {self.name}:\n{e}")
             self.trace()
 
-    def _filter_event(self, event, precheck_only=False):
-        acceptable, reason = self._event_precheck(event)
-        if acceptable and not precheck_only:
-            acceptable, reason = self._event_postcheck(event)
-        return acceptable, reason
-
     @property
     def max_scope_distance(self):
         if self.in_scope_only or self.target_only:
@@ -379,11 +385,13 @@ class BaseModule:
     def _event_precheck(self, event):
         """
         Check if an event should be accepted by the module
-        These checks are safe to run before an event has been DNS-resolved
+        Used when putting an event INTO the modules' queue
         """
         # special signal event types
         if event.type in ("FINISHED",):
             return True, ""
+        if self.errored:
+            return False, f"module is in error state"
         # exclude non-watched types
         if not any(t in self.get_watched_events() for t in ("*", event.type)):
             return False, "its type is not in watched_events"
@@ -408,7 +416,7 @@ class BaseModule:
     def _event_postcheck(self, event):
         """
         Check if an event should be accepted by the module
-        These checks must be run after an event has been DNS-resolved
+        Used when taking an event FROM the module's queue (immediately before it's handled)
         """
         if event.type in ("FINISHED",):
             return True, ""
@@ -450,18 +458,21 @@ class BaseModule:
                     self.catch(callback, _force=True)
 
     def queue_event(self, event):
-        if self.incoming_event_queue is not None and not self.errored:
-            acceptable, reason = self._filter_event(event)
-            if not acceptable:
-                if reason and reason != "its type is not in watched_events":
-                    self.debug(f"Not accepting {event} because {reason}")
-                return
-            self.scan.stats.event_consumed(event, self)
-            self.incoming_event_queue.put(event)
-            with self.event_received:
-                self.event_received.notify()
-        else:
+        if self.incoming_event_queue in (None, False):
             self.debug(f"Not in an acceptable state to queue event")
+            return
+        acceptable, reason = self._event_precheck(event)
+        if not acceptable:
+            if reason and reason != "its type is not in watched_events":
+                self.debug(f"Not accepting {event} because {reason}")
+            return
+        self.scan.stats.event_consumed(event, self)
+        try:
+            self.incoming_event_queue.put(event)
+        except AttributeError:
+            self.debug(f"Not in an acceptable state to queue event")
+        with self.event_received:
+            self.event_received.notify()
 
     def set_error_state(self, message=None):
         if not self.errored:

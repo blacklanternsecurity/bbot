@@ -98,16 +98,6 @@ class ScanManager:
         if self.is_duplicate_event(event):
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
-
-        # this is disabled because it doesn't consider the potential for new dns children / speculate derivatives
-        # if event.type not in exclude:
-        #     any_acceptable = False
-        #     for mod in self.scan.modules.values():
-        #         acceptable, reason = mod._filter_event(event, precheck_only=True)
-        #         any_acceptable |= acceptable
-        #     if not any_acceptable:
-        #         log.debug(f"Skipping {event} because no modules would accept it")
-        #     return any_acceptable
         return True
 
     def _emit_event(self, event, *args, **kwargs):
