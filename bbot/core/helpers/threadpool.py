@@ -61,10 +61,11 @@ class ThreadPoolWrapper:
             self.executor._thread_pool_wrappers.append(self)
         except AttributeError:
             self.executor._thread_pool_wrappers = [self]
+
         self._num_tasks = 0
+        self._task_count_lock = threading.Lock()
 
         self._lock = threading.RLock()
-        self._task_count_lock = threading.Lock()
         self.not_full = threading.Condition(self._lock)
 
     def submit_task(self, callback, *args, **kwargs):
@@ -75,7 +76,7 @@ class ThreadPoolWrapper:
         force = kwargs.get("_force_submit", False)
         success = False
         with self.not_full:
-            self.num_tasks += 1
+            self.num_tasks_increment()
             try:
                 if not force:
                     if not block:
@@ -96,25 +97,29 @@ class ThreadPoolWrapper:
                     raise ScanCancelledError(e)
             finally:
                 if not success:
-                    self.num_tasks -= 1
+                    self.num_tasks_decrement()
 
     def done_callback(self, future):
-        self.num_tasks -= 1
         for wrapper in self.executor._thread_pool_wrappers:
             try:
                 with wrapper.not_full:
                     wrapper.not_full.notify()
             except RuntimeError:
                 continue
+        self.num_tasks_decrement()
 
     @property
     def num_tasks(self):
-        return self._num_tasks
-
-    @num_tasks.setter
-    def num_tasks(self, num_tasks):
         with self._task_count_lock:
-            self._num_tasks = num_tasks
+            return self._num_tasks
+
+    def num_tasks_increment(self):
+        with self._task_count_lock:
+            self._num_tasks += 1
+
+    def num_tasks_decrement(self):
+        with self._task_count_lock:
+            self._num_tasks -= 1
 
     @property
     def is_full(self):
