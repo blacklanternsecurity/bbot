@@ -35,7 +35,6 @@ class BBOTThreadPoolExecutor(ThreadPoolExecutor):
     def threads_status(self):
         work_items = []
         for thread_id, (work_item, start_time) in sorted(self._current_work_items.items()):
-            func_chain = []
             func = work_item.fn.__qualname__
             func_index = 0
             if work_item and not work_item.future.done():
@@ -109,13 +108,19 @@ class ThreadPoolWrapper:
                     self.num_tasks_decrement()
 
     def done_callback(self, future):
-        for wrapper in self.executor._thread_pool_wrappers:
-            try:
-                with wrapper.not_full:
-                    wrapper.not_full.notify()
-            except RuntimeError:
-                continue
-        self.num_tasks_decrement()
+        try:
+            for wrapper in self.executor._thread_pool_wrappers:
+                try:
+                    with wrapper.not_full:
+                        wrapper.not_full.notify()
+                except RuntimeError:
+                    continue
+                except Exception as e:
+                    import traceback
+
+                    log.hugewarning(traceback.format_exc())
+        finally:
+            self.num_tasks_decrement()
 
     @property
     def num_tasks(self):
