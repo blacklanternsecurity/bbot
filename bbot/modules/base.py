@@ -88,9 +88,8 @@ class BaseModule:
         # seconds since we've submitted a batch
         self._last_submitted_batch = None
         # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
-        self.thread_pool = ThreadPoolWrapper(
-            self.scan._thread_pool.executor, max_workers=self.config.get("max_threads", self.max_threads)
-        )
+        max_workers = self.config.get("max_threads", self.max_threads)
+        self.thread_pool = ThreadPoolWrapper(self.scan._thread_pool.executor, max_workers=max_workers)
         self._internal_thread_pool = ThreadPoolWrapper(
             self.scan._internal_thread_pool.executor, max_workers=self.max_event_handlers
         )
@@ -352,7 +351,9 @@ class BaseModule:
                         if self._type == "output":
                             self.catch(self._if_not_errored, self.handle_event, e)
                         else:
-                            self._internal_thread_pool.submit_task(self._if_not_errored, self.handle_event, e)
+                            self._internal_thread_pool.submit_task(
+                                self.catch, self._if_not_errored, self.handle_event, e
+                            )
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted")

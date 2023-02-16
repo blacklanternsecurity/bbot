@@ -20,7 +20,8 @@ class sslcert(BaseModule):
     options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
     deps_apt = ["openssl"]
     deps_pip = ["pyOpenSSL"]
-    max_event_handlers = 50
+    max_threads = 50
+    max_event_handlers = 25
     scope_distance_modifier = 0
     _priority = 2
 
@@ -52,8 +53,14 @@ class sslcert(BaseModule):
         else:
             hosts = list(self.helpers.resolve(_host))
 
+        futures = {}
         for host in hosts:
-            for event_type, event_data in self.visit_host(host, port):
+            future = self.submit_task(self.visit_host, host, port)
+            futures[future] = host
+
+        for future in self.helpers.as_completed(futures):
+            host = futures[future]
+            for event_type, event_data in future.result():
                 if event_data is not None and event_data != event:
                     self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
                     try:
@@ -67,11 +74,12 @@ class sslcert(BaseModule):
     def visit_host(self, host, port):
         host = self.helpers.make_ip_type(host)
         host_hash = hash((host, port))
+        results = []
         with self.ip_lock.get_lock(host_hash):
             with self.hosts_visited_lock:
                 if host_hash in self.hosts_visited:
                     self.debug(f"Already processed {host} on port {port}, skipping")
-                    return None, None
+                    return results
                 else:
                     self.hosts_visited.add(host_hash)
 
@@ -88,7 +96,7 @@ class sslcert(BaseModule):
                 sock.connect((host, port))
             except Exception as e:
                 self.debug(f"Error connecting to {host} on port {port}: {e}")
-                return None, None
+                return results
             connection = SSL.Connection(context, sock)
             connection.set_tlsext_host_name(self.helpers.smart_encode(host))
             connection.set_connect_state()
@@ -104,20 +112,21 @@ class sslcert(BaseModule):
                     break
             except Exception as e:
                 self.debug(f"Error with SSL handshake on {host} port {port}: {e}")
-                return None, None
+                return results
             cert = connection.get_peer_certificate()
             sock.close()
             issuer = cert.get_issuer()
             if issuer.emailAddress and self.helpers.regexes.email_regex.match(issuer.emailAddress):
-                yield "EMAIL_ADDRESS", issuer.emailAddress
+                results.append(("EMAIL_ADDRESS", issuer.emailAddress))
             subject = cert.get_subject()
             if subject.emailAddress and self.helpers.regexes.email_regex.match(subject.emailAddress):
-                yield "EMAIL_ADDRESS", subject.emailAddress
+                results.append(("EMAIL_ADDRESS", subject.emailAddress))
             common_name = subject.commonName
             cert_results = self.get_cert_sans(cert)
             cert_results.append(str(common_name).lstrip("*.").lower())
             for c in set(cert_results):
-                yield "DNS_NAME", c
+                results.append(("DNS_NAME", c))
+        return results
 
     @staticmethod
     def get_cert_sans(cert):
