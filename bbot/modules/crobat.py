@@ -69,9 +69,10 @@ class crobat(BaseModule):
         results = self.query(query)
         if results:
             for hostname in results:
-                hostname = hostname.lower()
-                if hostname.endswith(f".{query}") and not hostname == event.data:
-                    self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
+                if hostname:
+                    hostname = hostname.lower()
+                    if hostname.endswith(f".{query}") and not hostname == event.data:
+                        self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
 
     def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
