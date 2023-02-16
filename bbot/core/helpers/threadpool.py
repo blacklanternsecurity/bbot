@@ -101,8 +101,8 @@ class ThreadPoolWrapper:
 
                 try:
                     # submit the job
-                    future = self.executor.submit(callback, *args, **kwargs)
-                    future.add_done_callback(self.done_callback)
+                    future = self.executor.submit(self._execute_callback, callback, *args, **kwargs)
+                    future.add_done_callback(self._on_future_done)
                     success = True
                     return future
                 except RuntimeError as e:
@@ -111,18 +111,14 @@ class ThreadPoolWrapper:
                 if not success:
                     self.num_tasks_decrement()
 
-    def done_callback(self, future):
+    def _execute_callback(self, callback, *args, **kwargs):
         try:
-            for wrapper in self.executor._thread_pool_wrappers:
-                try:
-                    with wrapper.not_full:
-                        wrapper.not_full.notify()
-                except RuntimeError:
-                    continue
-                except Exception as e:
-                    log.warning(f"Unknown error in done_callback(): {e}")
-                    log.trace(traceback.format_exc())
+            return callback(*args, **kwargs)
         finally:
+            self.num_tasks_decrement()
+
+    def _on_future_done(self, future):
+        if future.cancelled():
             self.num_tasks_decrement()
 
     @property
@@ -136,7 +132,16 @@ class ThreadPoolWrapper:
 
     def num_tasks_decrement(self):
         with self._task_count_lock:
-            self._num_tasks -= 1
+            self._num_tasks = max(0, self._num_tasks - 1)
+        for wrapper in self.executor._thread_pool_wrappers:
+            try:
+                with wrapper.not_full:
+                    wrapper.not_full.notify()
+            except RuntimeError:
+                continue
+            except Exception as e:
+                log.warning(f"Unknown error in num_tasks_decrement(): {e}")
+                log.trace(traceback.format_exc())
 
     @property
     def is_full(self):
