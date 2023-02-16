@@ -49,10 +49,13 @@ class BBOTThreadPoolExecutor(ThreadPoolExecutor):
                 wi_args = list(work_item.args)[func_index:]
                 wi_args = [(a.__qualname__ if callable(a) else a) for a in wi_args]
                 wi_args = str(wi_args).strip("[]")
-                wi_kwargs = ",".join([f"{0}={1}".format(*_) for _ in work_item.kwargs.items()])
-                func_with_args = f"{func}({wi_args}" + (f",{wi_kwargs}" if wi_kwargs else "") + ")"
-                work_items.append(f"running for {int(running_for.total_seconds()):>3} seconds: {func_with_args}")
-        return work_items
+                wi_kwargs = ", ".join([f"{0}={1}".format(*_) for _ in work_item.kwargs.items()])
+                func_with_args = f"{func}({wi_args}" + (f", {wi_kwargs}" if wi_kwargs else "") + ")"
+                work_items.append(
+                    (running_for, f"running for {int(running_for.total_seconds()):>3} seconds: {func_with_args}")
+                )
+        work_items.sort(key=lambda x: x[0])
+        return [x[-1] for x in work_items]
 
 
 class ThreadPoolWrapper:
