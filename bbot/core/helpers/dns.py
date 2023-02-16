@@ -2,6 +2,7 @@ import re
 import json
 import logging
 import ipaddress
+import traceback
 import cloudcheck
 import dns.resolver
 import dns.exception
@@ -146,16 +147,16 @@ class DNSHelper:
         parent_hash = hash(f"{parent}:{rdtype}")
         dns_cache_hash = hash(f"{query}:{rdtype}")
         while tries_left > 0:
-            error_count = self._errors.get(parent_hash, 0)
-            if error_count >= self.abort_threshold:
-                log.verbose(
-                    f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
-                )
-                return results, errors
             try:
                 try:
                     results = self._dns_cache[dns_cache_hash]
                 except KeyError:
+                    error_count = self._errors.get(parent_hash, 0)
+                    if error_count >= self.abort_threshold:
+                        log.verbose(
+                            f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                        )
+                        return results, errors
                     results = list(self._catch(self.resolver.resolve, query, **kwargs))
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = results
@@ -169,10 +170,10 @@ class DNSHelper:
                         self._errors[parent_hash] += 1
                     except KeyError:
                         self._errors[parent_hash] = 1
-                    log.verbose(
-                        f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far): {e}'
-                    )
-                    errors.append(e)
+                log.verbose(
+                    f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far): {e}'
+                )
+                errors.append(e)
                 # don't retry if we get a SERVFAIL
                 if isinstance(e, dns.resolver.NoNameservers):
                     break
@@ -704,7 +705,7 @@ class DNSHelper:
                 self._wildcard_cache.update({host_hash: wildcard_results})
                 wildcard_domain_results.update({host: wildcard_results})
                 if is_wildcard:
-                    wildcard_rdtypes_str = ",".join([t.upper() for t, r in wildcard_results.items() if r])
+                    wildcard_rdtypes_str = ",".join(sorted([t.upper() for t, r in wildcard_results.items() if r]))
                     log.info(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
 
         return wildcard_domain_results
@@ -713,8 +714,6 @@ class DNSHelper:
         try:
             return callback(*args, **kwargs)
         except Exception as e:
-            import traceback
-
             log.error(f"Error in {callback.__qualname__}(): {e}")
             log.trace(traceback.format_exc())
         except KeyboardInterrupt:

@@ -23,7 +23,8 @@ class azure_tenant(viewdns):
         if domains:
             self.success(f'Found {len(domains):,} domains under tenant for "{query}"')
         for domain in domains:
-            self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
+            if domain != query:
+                self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
         # todo: tenants?
 
     def query(self, domain):
