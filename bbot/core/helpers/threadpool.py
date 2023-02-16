@@ -36,14 +36,18 @@ class BBOTThreadPoolExecutor(ThreadPoolExecutor):
         work_items = []
         for thread_id, (work_item, start_time) in sorted(self._current_work_items.items()):
             func_chain = []
+            func = work_item.fn.__qualname__
+            func_index = 0
             if work_item and not work_item.future.done():
-                for f in [work_item.fn] + list(work_item.args):
-                    if not callable(f):
+                for i, f in enumerate(list(work_item.args)):
+                    if callable(f):
+                        func = f.__qualname__
+                        func_index = i + 1
+                    else:
                         break
-                    func_chain.append(f"{f.__qualname__}")
                 running_for = datetime.now() - start_time
-                func = func_chain[-1]
-                wi_args = [(a if not hasattr(a, "__qualname__") else a.__qualname__) for a in work_item.args]
+                wi_args = list(work_item.args)[func_index:]
+                wi_args = [(a.__qualname__ if callable(a) else a) for a in wi_args]
                 wi_args = str(wi_args).strip("[]")
                 wi_kwargs = ",".join([f"{0}={1}".format(*_) for _ in work_item.kwargs.items()])
                 func_with_args = f"{func}({wi_args}" + (f",{wi_kwargs}" if wi_kwargs else "") + ")"
