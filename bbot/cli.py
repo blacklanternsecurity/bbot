@@ -93,8 +93,20 @@ def main():
                                     log.verbose(f'Enabling {m} because it has flag "{f}"')
                                     modules.add(m)
 
+                default_output_modules = ["human", "json", "csv"]
+
+                # Make a list of the modules which can be output to the console
+                consoleable_output_modules = [
+                    k for k, v in module_loader.preloaded(type="output").items() if "console" in v["config"]
+                ]
+
+                # If no options are specified, use the default set
                 if not options.output_modules:
-                    options.output_modules = ["human", "json", "csv"]
+                    options.output_modules = default_output_modules
+
+                # if none of the output modules provided on the command line are consoleable, don't turn off the defaults. Instead, just add the one specified to the defaults.
+                elif not any(o in consoleable_output_modules for o in options.output_modules):
+                    options.output_modules += default_output_modules
 
                 scanner = Scanner(
                     *options.targets,

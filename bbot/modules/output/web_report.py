@@ -67,6 +67,8 @@ class web_report(BaseOutputModule):
                     break
             if parsed:
                 host = f"{parsed.scheme}://{parsed.netloc}/"
+                if host not in self.web_assets.keys():
+                    self.web_assets[host] = {"URL": []}
                 if event.type not in self.web_assets[host].keys():
                     self.web_assets[host][event.type] = [html.escape(event.pretty_string)]
                 else:
