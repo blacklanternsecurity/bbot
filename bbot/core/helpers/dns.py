@@ -10,8 +10,8 @@ from threading import Lock
 from contextlib import suppress
 from concurrent.futures import ThreadPoolExecutor
 
+from .threadpool import NamedLock
 from .regexes import dns_name_regex
-from .threadpool import ThreadPoolWrapper, NamedLock
 from bbot.core.errors import ValidationError, DNSError
 from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
 

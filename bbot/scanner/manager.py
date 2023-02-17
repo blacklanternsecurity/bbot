@@ -302,7 +302,6 @@ class ScanManager:
         ret = None
         on_finish_callback = kwargs.pop("_on_finish_callback", None)
         force = kwargs.pop("_force", False)
-        start_time = datetime.now()
         fn = callback
         for arg in args:
             if callable(arg):
