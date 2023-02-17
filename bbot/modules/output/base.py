@@ -17,7 +17,7 @@ class BaseOutputModule(BaseModule):
             return True, "_force_output is True"
         if event._internal:
             return False, "_internal is True"
-        return super._event_precheck(event)
+        return super()._event_precheck(event)
 
     def _prep_output_dir(self, filename):
         self.output_file = self.config.get("output_file", "")
