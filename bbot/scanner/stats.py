@@ -17,12 +17,6 @@ class ScanStats:
         self.events_emitted_by_type = {}
         self.perf_stats = []
 
-    def function_called(self, qualname, runtime):
-        # uncomment the line below to track durations for function calls
-        # this is helpful for debugging elusive performance issues
-        # self.perf_stats.append((qualname, runtime))
-        pass
-
     def event_distributed(self, event):
         _increment(self.events_emitted_by_type, event.type)
         module_stat = self.get(event.module)

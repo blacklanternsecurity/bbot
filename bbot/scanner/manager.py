@@ -50,6 +50,12 @@ class ScanManager:
             mod._handle_batch(force=True)
 
     def emit_event(self, event, *args, **kwargs):
+        """
+        TODO: Register + kill duplicate events immediately?
+        bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
+        bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
+        bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
+        """
         # skip event if it fails precheck
         if not self._event_precheck(event):
             event._resolved.set()
@@ -223,6 +229,7 @@ class ScanManager:
                 and not str(event.module) == "speculate"
             ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
+                source_module._priority = 4
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
@@ -233,6 +240,7 @@ class ScanManager:
                 if dns_children:
                     for rdtype, record in dns_children:
                         module = self.scan.helpers.dns._get_dummy_module(rdtype)
+                        module._priority = 4
                         try:
                             child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)
                             dns_child_events.append(child_event)
@@ -295,29 +303,31 @@ class ScanManager:
         on_finish_callback = kwargs.pop("_on_finish_callback", None)
         force = kwargs.pop("_force", False)
         start_time = datetime.now()
-        callback_name = f"{callback.__qualname__}({args}, {kwargs})"
+        fn = callback
+        for arg in args:
+            if callable(arg):
+                fn = arg
+            else:
+                break
         try:
             if not self.scan.stopping or force:
                 ret = callback(*args, **kwargs)
         except ScanCancelledError as e:
-            log.debug(f"ScanCancelledError in {callback.__qualname__}(): {e}")
+            log.debug(f"ScanCancelledError in {fn.__qualname__}(): {e}")
         except BrokenPipeError as e:
-            log.debug(f"BrokenPipeError in {callback.__qualname__}(): {e}")
+            log.debug(f"BrokenPipeError in {fn.__qualname__}(): {e}")
         except Exception as e:
-            log.error(f"Error in {callback.__qualname__}(): {e}")
+            log.error(f"Error in {fn.__qualname__}(): {e}")
             log.trace(traceback.format_exc())
         except KeyboardInterrupt:
             log.debug(f"Interrupted")
             self.scan.stop()
-        finally:
-            run_time = datetime.now() - start_time
-            self.scan.stats.function_called(callback_name, run_time)
         if callable(on_finish_callback):
             try:
                 on_finish_callback()
             except Exception as e:
                 log.error(
-                    f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {callback.__qualname__}(): {e}"
+                    f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {fn.__qualname__}(): {e}"
                 )
                 log.trace(traceback.format_exc())
         return ret
