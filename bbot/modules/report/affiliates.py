@@ -1,7 +1,7 @@
-from bbot.modules.report.base import ReportModule
+from bbot.modules.report.base import BaseReportModule
 
 
-class affiliates(ReportModule):
+class affiliates(BaseReportModule):
     watched_events = ["*"]
     produced_events = []
     flags = ["passive", "safe"]
