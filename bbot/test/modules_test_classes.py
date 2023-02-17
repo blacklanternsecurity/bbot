@@ -807,4 +807,19 @@ class ASN(RequestMockHelper):
                 email = True
         if asn and email:
             return True
+
+
+class Wafw00f(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "Proudly powered by litespeed web server"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "WAF":
+                if "LiteSpeed" in e.data["WAF"]:
+                    return True
         return False

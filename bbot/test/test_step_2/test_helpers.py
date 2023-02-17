@@ -624,3 +624,8 @@ def test_queues(scan, helpers):
 
     # make sure there are more of the higher-priority ones
     assert stats[event1.id] > stats[event2.id] > stats[event3.id] > stats[event4.id] > stats[event5.id]
+
+
+def test_names(helpers):
+    assert helpers.names == sorted(helpers.names)
+    assert helpers.adjectives == sorted(helpers.adjectives)

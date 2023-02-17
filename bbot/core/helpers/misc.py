@@ -27,7 +27,7 @@ from .url import *  # noqa F401
 from . import regexes
 from .. import errors
 from .punycode import *  # noqa F401
-from .names_generator import random_name  # noqa F401
+from .names_generator import random_name, names, adjectives  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
 
