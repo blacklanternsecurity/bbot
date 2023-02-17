@@ -13,7 +13,7 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
         for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
             m.request(http_method, re.compile(r".*"), text='{"test": "test"}')
 
-        # base module _filter_event()
+        # base module event filters()
         from bbot.modules.base import BaseModule
 
         base_module = BaseModule(scan)
@@ -22,45 +22,46 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
         # base cases
         base_module._watched_events = None
         base_module.watched_events = ["*"]
-        assert base_module._filter_event(events.emoji)[0] == True
+        assert base_module._event_precheck(events.emoji)[0] == True
         base_module._watched_events = None
         base_module.watched_events = ["IP_ADDRESS"]
-        assert base_module._filter_event(events.ipv4)[0] == True
-        assert base_module._filter_event(events.domain)[0] == False
-        assert base_module._filter_event(events.localhost)[0] == True
-        assert base_module._filter_event(localhost2)[0] == True
+        assert base_module._event_precheck(events.ipv4)[0] == True
+        assert base_module._event_precheck(events.domain)[0] == False
+        assert base_module._event_precheck(events.localhost)[0] == True
+        assert base_module._event_precheck(localhost2)[0] == True
         # target only
         base_module.target_only = True
-        assert base_module._filter_event(localhost2)[0] == False
+        assert base_module._event_precheck(localhost2)[0] == False
         localhost2.tags.add("target")
-        assert base_module._filter_event(localhost2)[0] == True
+        assert base_module._event_precheck(localhost2)[0] == True
         base_module.target_only = False
-        # in scope only
-        localhost3 = scan.make_event("127.0.0.2", source=events.subdomain)
-        base_module.in_scope_only = True
-        assert base_module._filter_event(events.localhost)[0] == True
-        assert base_module._filter_event(localhost3)[0] == False
-        base_module.in_scope_only = False
-        # scope distance
-        base_module.scope_distance_modifier = 0
-        localhost2._scope_distance = 0
-        assert base_module._filter_event(localhost2)[0] == True
-        localhost2._scope_distance = 1
-        assert base_module._filter_event(localhost2)[0] == True
-        localhost2._scope_distance = 2
-        assert base_module._filter_event(localhost2)[0] == False
-        localhost2._scope_distance = -1
-        assert base_module._filter_event(localhost2)[0] == False
-        base_module.scope_distance_modifier = -1
         # special case for IPs and ranges
         base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
         ip_range = scan.make_event("127.0.0.0/24", dummy=True)
         localhost4 = scan.make_event("127.0.0.1", source=ip_range)
         localhost4.make_in_scope()
         localhost4.module = "plumbus"
-        assert base_module._filter_event(localhost4)[0] == True
+        assert base_module._event_precheck(localhost4)[0] == True
         localhost4.module = "speculate"
-        assert base_module._filter_event(localhost4)[0] == False
+        assert base_module._event_precheck(localhost4)[0] == False
+
+        # in scope only
+        localhost3 = scan.make_event("127.0.0.2", source=events.subdomain)
+        base_module.in_scope_only = True
+        assert base_module._event_postcheck(events.localhost)[0] == True
+        assert base_module._event_postcheck(localhost3)[0] == False
+        base_module.in_scope_only = False
+        # scope distance
+        base_module.scope_distance_modifier = 0
+        localhost2._scope_distance = 0
+        assert base_module._event_postcheck(localhost2)[0] == True
+        localhost2._scope_distance = 1
+        assert base_module._event_postcheck(localhost2)[0] == True
+        localhost2._scope_distance = 2
+        assert base_module._event_postcheck(localhost2)[0] == False
+        localhost2._scope_distance = -1
+        assert base_module._event_postcheck(localhost2)[0] == False
+        base_module.scope_distance_modifier = -1
 
         scan2 = bbot_scanner(
             modules=list(set(available_modules + available_internal_modules)),
@@ -135,7 +136,7 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
         futures = {}
         for module_name, module in scan2.modules.items():
             log.info(f"Testing {module_name}.setup()")
-            future = scan2._thread_pool.submit_task(module.setup)
+            future = scan2._thread_pool.submit(module.setup)
             futures[future] = module
         for future in helpers.as_completed(futures):
             module = futures[future]
@@ -170,12 +171,12 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
             events_to_submit = [e for e in events.all if e.type in module.watched_events]
             if module.batch_size > 1:
                 log.info(f"Testing {module_name}.handle_batch()")
-                future = scan2._thread_pool.submit_task(module.handle_batch, *events_to_submit)
+                future = scan2._thread_pool.submit(module.handle_batch, *events_to_submit)
                 futures[future] = module
             else:
                 for e in events_to_submit:
                     log.info(f"Testing {module_name}.handle_event()")
-                    future = scan2._thread_pool.submit_task(module.handle_event, e)
+                    future = scan2._thread_pool.submit(module.handle_event, e)
                     futures[future] = module
         for future in helpers.as_completed(futures):
             try:
@@ -191,7 +192,7 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
         futures = {}
         for module_name, module in scan2.modules.items():
             log.info(f"Testing {module_name}.finish()")
-            future = scan2._thread_pool.submit_task(module.finish)
+            future = scan2._thread_pool.submit(module.finish)
             futures[future] = module
         for future in helpers.as_completed(futures):
             assert future.result() == None
@@ -201,7 +202,7 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
         futures = {}
         for module_name, module in scan2.modules.items():
             log.info(f"Testing {module_name}.cleanup()")
-            future = scan2._thread_pool.submit_task(module.cleanup)
+            future = scan2._thread_pool.submit(module.cleanup)
             futures[future] = module
         for future in helpers.as_completed(futures):
             assert future.result() == None
