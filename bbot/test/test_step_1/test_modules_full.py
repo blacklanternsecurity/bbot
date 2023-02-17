@@ -75,3 +75,8 @@ def test_badsecrets(bbot_config, bbot_scanner, bbot_httpserver):
 def test_robots(bbot_config, bbot_scanner, bbot_httpserver):
     x = Robots(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_asn(bbot_config, bbot_scanner, bbot_httpserver):
+    x = ASN(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
