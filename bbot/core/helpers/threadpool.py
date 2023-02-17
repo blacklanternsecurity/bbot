@@ -11,6 +11,12 @@ from .cache import CacheDict
 from ...core.errors import ScanCancelledError
 
 
+def pretty_fn(a):
+    if callable(a):
+        return a.__qualname__
+    return a
+
+
 class ThreadPoolSimpleQueue(SimpleQueue):
     def __init__(self, *args, **kwargs):
         self._executor = kwargs.pop("_executor", None)
@@ -47,9 +53,9 @@ class BBOTThreadPoolExecutor(ThreadPoolExecutor):
                         break
                 running_for = datetime.now() - start_time
                 wi_args = list(work_item.args)[func_index:]
-                wi_args = [(a.__qualname__ if callable(a) else a) for a in wi_args]
+                wi_args = [pretty_fn(a) for a in wi_args]
                 wi_args = str(wi_args).strip("[]")
-                wi_kwargs = ", ".join(["{0}={1}".format(*_) for _ in work_item.kwargs.items()])
+                wi_kwargs = ", ".join(["{0}={1}".format(k, pretty_fn(v)) for k, v in work_item.kwargs.items()])
                 func_with_args = f"{func}({wi_args}" + (f", {wi_kwargs}" if wi_kwargs else "") + ")"
                 work_items.append(
                     (running_for, f"running for {int(running_for.total_seconds()):>3} seconds: {func_with_args}")

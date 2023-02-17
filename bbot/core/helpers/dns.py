@@ -59,8 +59,7 @@ class DNSHelper:
 
         # we need our own threadpool because using the shared one can lead to deadlocks
         max_workers = self.parent_helper.config.get("max_dns_threads", 100)
-        executor = ThreadPoolExecutor(max_workers=max_workers)
-        self._thread_pool = ThreadPoolWrapper(executor)
+        self._thread_pool = ThreadPoolExecutor(max_workers=max_workers)
 
         self._debug = self.parent_helper.config.get("dns_debug", False)
 
@@ -279,7 +278,7 @@ class DNSHelper:
 
             futures = {}
             for t in types:
-                future = self._thread_pool.submit_task(
+                future = self._thread_pool.submit(
                     self._catch_keyboardinterrupt, self.resolve_raw, event_host, type=t, cache_result=True
                 )
                 futures[future] = t
@@ -374,7 +373,7 @@ class DNSHelper:
         """
         futures = dict()
         for query in queries:
-            future = self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.resolve, query, **kwargs)
+            future = self._thread_pool.submit(self._catch_keyboardinterrupt, self.resolve, query, **kwargs)
             futures[future] = query
         for future in self.parent_helper.as_completed(futures):
             query = futures[future]
@@ -481,9 +480,7 @@ class DNSHelper:
             # don't use the system nameservers
             if nameserver in self.system_resolvers:
                 continue
-            futures.append(
-                self._thread_pool.submit_task(self._catch_keyboardinterrupt, self.verify_nameserver, nameserver)
-            )
+            futures.append(self._thread_pool.submit(self._catch_keyboardinterrupt, self.verify_nameserver, nameserver))
 
         valid_nameservers = set()
         for future in self.parent_helper.as_completed(futures):
@@ -600,7 +597,7 @@ class DNSHelper:
             # then resolve the query for all rdtypes
             for _rdtype in self.all_rdtypes:
                 # resolve the base query
-                future = self._thread_pool.submit_task(
+                future = self._thread_pool.submit(
                     self._catch_keyboardinterrupt, self.resolve_raw, query, type=_rdtype, cache_result=True
                 )
                 futures.append(future)
@@ -680,7 +677,7 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        future = self._thread_pool.submit_task(
+                        future = self._thread_pool.submit(
                             self._catch_keyboardinterrupt,
                             self.resolve,
                             rand_query,

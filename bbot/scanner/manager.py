@@ -506,12 +506,10 @@ class ScanManager:
                 self.scan.info(f"{self.scan.name}: No events produced yet")
 
             total_tasks = status["scan"]["queued_tasks"]["total"]
-            dns_tasks = status["scan"]["queued_tasks"]["dns"]
             event_tasks = status["scan"]["queued_tasks"]["event"]
-            main_tasks = status["scan"]["queued_tasks"]["main"]
             internal_tasks = status["scan"]["queued_tasks"]["internal"]
             self.scan.verbose(
-                f"{self.scan.name}: Thread pool tasks: {total_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
+                f"{self.scan.name}: Thread pool tasks: {total_tasks:,} (Event: {event_tasks:,}, Internal: {internal_tasks:,})"
             )
 
             if modules_errored:
