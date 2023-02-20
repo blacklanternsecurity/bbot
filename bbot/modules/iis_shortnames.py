@@ -118,52 +118,54 @@ class iis_shortnames(BaseModule):
 
         technique_strings = []
 
-        for detection in detections:
-            method, affirmative_status_code, technique = detection
-            technique_strings.append(f"{method} ({technique})")
+        if detections:
 
-        description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable Method/Techniques: [{','.join(technique_strings)}]"
-        self.emit_event(
-            {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
-            "VULNERABILITY",
-            event,
-        )
-        if not self.config.get("detect_only"):
             for detection in detections:
                 method, affirmative_status_code, technique = detection
-                valid_method_confirmed = False
+                technique_strings.append(f"{method} ({technique})")
 
-                if valid_method_confirmed:
-                    break
+            description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable Method/Techniques: [{','.join(technique_strings)}]"
+            self.emit_event(
+                {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
+                "VULNERABILITY",
+                event,
+            )
+            if not self.config.get("detect_only"):
+                for detection in detections:
+                    method, affirmative_status_code, technique = detection
+                    valid_method_confirmed = False
 
-                file_name_hints = self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code)
-                if len(file_name_hints) == 0:
-                    continue
-                else:
-                    valid_method_confirmed = True
+                    if valid_method_confirmed:
+                        break
 
-                file_name_hints = [f"{x}~1" for x in file_name_hints]
-                url_hint_list = []
-
-                file_name_hints_dedupe = file_name_hints[:]
-
-                for x in file_name_hints_dedupe:
-                    duplicates = self.duplicate_check(normalized_url, method, x, affirmative_status_code)
-                    if duplicates:
-                        file_name_hints += duplicates
-
-                for y in file_name_hints:
-                    file_name_extension_hints = self.solve_shortname_recursive(
-                        method, normalized_url, f"{y}.", affirmative_status_code, extension_mode=True
-                    )
-                    for z in file_name_extension_hints:
-                        url_hint_list.append(z)
-
-                for url_hint in url_hint_list:
-                    if url_hint.endswith("."):
-                        url_hint = url_hint.rstrip(".")
-                    if "." in url_hint:
-                        hint_type = "shortname-file"
+                    file_name_hints = self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code)
+                    if len(file_name_hints) == 0:
+                        continue
                     else:
-                        hint_type = "shortname-directory"
-                    self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
+                        valid_method_confirmed = True
+
+                    file_name_hints = [f"{x}~1" for x in file_name_hints]
+                    url_hint_list = []
+
+                    file_name_hints_dedupe = file_name_hints[:]
+
+                    for x in file_name_hints_dedupe:
+                        duplicates = self.duplicate_check(normalized_url, method, x, affirmative_status_code)
+                        if duplicates:
+                            file_name_hints += duplicates
+
+                    for y in file_name_hints:
+                        file_name_extension_hints = self.solve_shortname_recursive(
+                            method, normalized_url, f"{y}.", affirmative_status_code, extension_mode=True
+                        )
+                        for z in file_name_extension_hints:
+                            url_hint_list.append(z)
+
+                    for url_hint in url_hint_list:
+                        if url_hint.endswith("."):
+                            url_hint = url_hint.rstrip(".")
+                        if "." in url_hint:
+                            hint_type = "shortname-file"
+                        else:
+                            hint_type = "shortname-directory"
+                        self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
