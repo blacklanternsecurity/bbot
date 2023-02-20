@@ -23,27 +23,27 @@ class iis_shortnames(BaseModule):
     def detect(self, target):
         technique = None
         headers = {}
-        detected = []
+        detections = []
         random_string = self.helpers.rand_string(8)
         control_url = f"{target}{random_string}*~1*/a.aspx"
         test_url = f"{target}*~1*/a.aspx"
 
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
-            control = self.helpers.request(method=method, headers=headers, url=control_url)
-            test = self.helpers.request(method=method, headers=headers, url=test_url)
+            control = self.helpers.request(method=method, headers=headers, url=control_url, allow_redirects=False)
+            test = self.helpers.request(method=method, headers=headers, url=test_url, allow_redirects=False)
             if (control != None) and (test != None):
-                if (control.status_code != 404) and (test.status_code == 404):
-                    detected.append(method)
-                    technique = "400/404 HTTP Code"
+                if control.status_code != test.status_code:
+                    technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
+                    detections.append((method, test.status_code, technique))
 
                 elif ("Error Code</th><td>0x80070002" in control.text) and (
                     "Error Code</th><td>0x00000000" in test.text
                 ):
-                    detected.append(method)
+                    detections.append((method, 0, technique))
                     technique = "HTTP Body Error Message"
-        return detected, technique
+        return detections
 
-    def duplicate_check(self, target, method, url_hint):
+    def duplicate_check(self, target, method, url_hint, affirmative_status_code):
         duplicates = []
         headers = {}
         count = 2
@@ -54,8 +54,10 @@ class iis_shortnames(BaseModule):
             payload = encode_all(f"{base_hint}~{str(count)}*")
             url = f"{target}{payload}{suffix}"
 
-            duplicate_check_results = self.helpers.request(method=method, headers=headers, url=url)
-            if duplicate_check_results.status_code != 404:
+            duplicate_check_results = self.helpers.request(
+                method=method, headers=headers, url=url, allow_redirects=False
+            )
+            if duplicate_check_results.status_code != affirmative_status_code:
                 break
             else:
                 duplicates.append(f"{base_hint}~{str(count)}")
@@ -67,15 +69,17 @@ class iis_shortnames(BaseModule):
 
         return duplicates
 
-    def threaded_request(self, method, url):
-        r = self.helpers.request(method=method, url=url)
+    def threaded_request(self, method, url, affirmative_status_code):
+        headers = {}
+        r = self.helpers.request(method=method, url=url, headers=headers, allow_redirects=False)
         if r is not None:
-            if r.status_code == 404:
+            if r.status_code == affirmative_status_code:
                 return True
 
-    def solve_shortname_recursive(self, method, target, prefix, extension_mode=False):
+    def solve_shortname_recursive(self, method, target, prefix, affirmative_status_code, extension_mode=False):
         url_hint_list = []
         found_results = False
+        headers = {}
 
         futures = {}
         for c in valid_chars:
@@ -83,7 +87,7 @@ class iis_shortnames(BaseModule):
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
-            future = self.submit_task(self.threaded_request, method, url)
+            future = self.submit_task(self.threaded_request, method, url, affirmative_status_code)
             futures[future] = c
 
         for future in self.helpers.as_completed(futures):
@@ -96,60 +100,70 @@ class iis_shortnames(BaseModule):
                 wildcard = "~1*"
                 payload = encode_all(f"{prefix}{c}{wildcard}")
                 url = f"{target}{payload}{suffix}"
-                r = self.helpers.request(method=method, url=url)
+                r = self.helpers.request(method=method, url=url, headers=headers, allow_redirects=False)
                 if r is not None:
-                    if r.status_code == 404:
+                    if r.status_code == affirmative_status_code:
                         url_hint_list.append(f"{prefix}{c}")
 
-                url_hint_list += self.solve_shortname_recursive(method, target, f"{prefix}{c}", extension_mode)
+                url_hint_list += self.solve_shortname_recursive(
+                    method, target, f"{prefix}{c}", affirmative_status_code, extension_mode
+                )
         if len(prefix) > 0 and found_results == False:
             url_hint_list.append(f"{prefix}")
         return url_hint_list
 
     def handle_event(self, event):
         normalized_url = event.data.rstrip("/") + "/"
-        vulnerable_methods, technique = self.detect(normalized_url)
-        if vulnerable_methods:
-            description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable methods: [{','.join(vulnerable_methods)}] Technique: [{technique}]"
-            self.emit_event(
-                {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
-                "VULNERABILITY",
-                event,
-            )
-            if not self.config.get("detect_only"):
+        detections = self.detect(normalized_url)
+
+        technique_strings = []
+
+        for detection in detections:
+            method, affirmative_status_code, technique = detection
+            technique_strings.append(f"{method} ({technique})")
+
+        description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable Method/Techniques: [{','.join(technique_strings)}]"
+        self.emit_event(
+            {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
+            "VULNERABILITY",
+            event,
+        )
+        if not self.config.get("detect_only"):
+            for detection in detections:
+                method, affirmative_status_code, technique = detection
                 valid_method_confirmed = False
-                for m in vulnerable_methods:
-                    if valid_method_confirmed:
-                        break
 
-                    file_name_hints = self.solve_shortname_recursive(m, normalized_url, "")
-                    if len(file_name_hints) == 0:
-                        continue
+                if valid_method_confirmed:
+                    break
+
+                file_name_hints = self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code)
+                if len(file_name_hints) == 0:
+                    continue
+                else:
+                    valid_method_confirmed = True
+
+                file_name_hints = [f"{x}~1" for x in file_name_hints]
+                url_hint_list = []
+
+                file_name_hints_dedupe = file_name_hints[:]
+
+                for x in file_name_hints_dedupe:
+                    duplicates = self.duplicate_check(normalized_url, method, x, affirmative_status_code)
+                    if duplicates:
+                        file_name_hints += duplicates
+
+                for y in file_name_hints:
+                    file_name_extension_hints = self.solve_shortname_recursive(
+                        method, normalized_url, f"{y}.", affirmative_status_code, extension_mode=True
+                    )
+                    for z in file_name_extension_hints:
+                        url_hint_list.append(z)
+
+                for url_hint in url_hint_list:
+                    if url_hint.endswith("."):
+                        url_hint = url_hint.rstrip(".")
+                    if "." in url_hint:
+                        hint_type = "shortname-file"
                     else:
-                        valid_method_confirmed = True
-
-                    file_name_hints = [f"{x}~1" for x in file_name_hints]
-                    url_hint_list = []
-
-                    file_name_hints_dedupe = file_name_hints[:]
-
-                    for x in file_name_hints_dedupe:
-                        duplicates = self.duplicate_check(normalized_url, m, x)
-                        if duplicates:
-                            file_name_hints += duplicates
-
-                    for y in file_name_hints:
-                        file_name_extension_hints = self.solve_shortname_recursive(
-                            m, normalized_url, f"{y}.", extension_mode=True
-                        )
-                        for z in file_name_extension_hints:
-                            url_hint_list.append(z)
-
-                    for url_hint in url_hint_list:
-                        if url_hint.endswith("."):
-                            url_hint = url_hint.rstrip(".")
-                        if "." in url_hint:
-                            hint_type = "shortname-file"
-                        else:
-                            hint_type = "shortname-directory"
-                        self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
+                        hint_type = "shortname-directory"
+                    self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
