@@ -184,12 +184,12 @@ class iis_shortnames(BaseModule):
                             method, normalized_url, f"{y}.", affirmative_status_code, extension_mode=True
                         )
                         for z in file_name_extension_hints:
+                            if z.endswith("."):
+                                z = z.rstrip(".")
                             self.verbose(f"Found new file URL_HINT: {z} from node {normalized_url}")
                             url_hint_list.append(z)
 
                     for url_hint in url_hint_list:
-                        if url_hint.endswith("."):
-                            url_hint = url_hint.rstrip(".")
                         if "." in url_hint:
                             hint_type = "shortname-file"
                         else:
