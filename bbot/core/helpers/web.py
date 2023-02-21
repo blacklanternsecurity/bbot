@@ -89,7 +89,7 @@ def request(self, *args, **kwargs):
     """
 
     # we handle our own retries
-    retries = kwargs.get("retries", self.config.get("http_retries", 1))
+    retries = kwargs.pop("retries", self.config.get("http_retries", 1))
     if getattr(self, "retry_adapter", None) is None:
         self.retry_adapter = HTTPAdapter(max_retries=0)
 
