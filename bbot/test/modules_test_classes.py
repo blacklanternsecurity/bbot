@@ -769,6 +769,18 @@ class ASN(RequestMockHelper):
         },
         "@meta": {"time_zone": "UTC", "api_version": 1, "execution_time": "56.55 ms"},
     }
+    config_overrides = {"scope_report_distance": 2}
+
+    def __init__(self, config, bbot_scanner, *args):
+        super().__init__(config, bbot_scanner, *args)
+        self.scan2 = bbot_scanner(
+            *self.targets,
+            modules=[self.name] + self.additional_modules,
+            name=f"{self.name}_test_2",
+            config=self.config,
+        )
+        self.scan2.prep()
+        self.module2 = self.scan2.modules[self.name]
 
     def mock_args(self):
         pass
@@ -788,14 +800,10 @@ class ASN(RequestMockHelper):
             self.register_uri("https://api.bgpview.io/asn/15169", text=json.dumps(self.response_get_emails_bgpview))
             self.module.sources = ["bgpview", "ripe"]
             events = list(e for e in self.scan.start() if e.module == self.module)
-            for x in events:
-                print(x)
             assert self.check_events(events)
-            self.module.sources = ["ripe", "bgpview"]
-            events += list(e for e in self.scan.start() if e.module == self.module)
-            for x in events:
-                print(x)
-            assert self.check_events(events)
+            self.module2.sources = ["ripe", "bgpview"]
+            events2 = list(e for e in self.scan2.start() if e.module == self.module2)
+            assert self.check_events(events2)
 
     def check_events(self, events):
         asn = False
@@ -805,8 +813,7 @@ class ASN(RequestMockHelper):
                 asn = True
             elif e.type == "EMAIL_ADDRESS":
                 email = True
-        if asn and email:
-            return True
+        return asn and email
 
 
 class Wafw00f(HttpxMockHelper):
