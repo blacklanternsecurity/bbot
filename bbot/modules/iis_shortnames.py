@@ -22,15 +22,14 @@ class iis_shortnames(BaseModule):
 
     def detect(self, target):
         technique = None
-        headers = {}
         detections = []
         random_string = self.helpers.rand_string(8)
         control_url = f"{target}{random_string}*~1*/a.aspx"
         test_url = f"{target}*~1*/a.aspx"
 
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
-            control = self.helpers.request(method=method, headers=headers, url=control_url, allow_redirects=False)
-            test = self.helpers.request(method=method, headers=headers, url=test_url, allow_redirects=False)
+            control = self.helpers.request(method=method, url=control_url, allow_redirects=False)
+            test = self.helpers.request(method=method, url=test_url, allow_redirects=False)
             if (control != None) and (test != None):
                 if control.status_code != test.status_code:
                     technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
@@ -45,7 +44,6 @@ class iis_shortnames(BaseModule):
 
     def duplicate_check(self, target, method, url_hint, affirmative_status_code):
         duplicates = []
-        headers = {}
         count = 2
         base_hint = re.sub(r"~\d", "", url_hint)
         suffix = "\\a.aspx"
@@ -54,9 +52,7 @@ class iis_shortnames(BaseModule):
             payload = encode_all(f"{base_hint}~{str(count)}*")
             url = f"{target}{payload}{suffix}"
 
-            duplicate_check_results = self.helpers.request(
-                method=method, headers=headers, url=url, allow_redirects=False
-            )
+            duplicate_check_results = self.helpers.request(method=method, url=url, allow_redirects=False)
             if duplicate_check_results.status_code != affirmative_status_code:
                 break
             else:
@@ -70,8 +66,7 @@ class iis_shortnames(BaseModule):
         return duplicates
 
     def threaded_request(self, method, url, affirmative_status_code):
-        headers = {}
-        r = self.helpers.request(method=method, url=url, headers=headers, allow_redirects=False)
+        r = self.helpers.request(method=method, url=url, allow_redirects=False)
         if r is not None:
             if r.status_code == affirmative_status_code:
                 return True
@@ -79,7 +74,6 @@ class iis_shortnames(BaseModule):
     def solve_shortname_recursive(self, method, target, prefix, affirmative_status_code, extension_mode=False):
         url_hint_list = []
         found_results = False
-        headers = {}
 
         futures = {}
         for c in valid_chars:
@@ -100,7 +94,7 @@ class iis_shortnames(BaseModule):
                 wildcard = "~1*"
                 payload = encode_all(f"{prefix}{c}{wildcard}")
                 url = f"{target}{payload}{suffix}"
-                r = self.helpers.request(method=method, url=url, headers=headers, allow_redirects=False)
+                r = self.helpers.request(method=method, url=url, allow_redirects=False)
                 if r is not None:
                     if r.status_code == affirmative_status_code:
                         url_hint_list.append(f"{prefix}{c}")
@@ -119,7 +113,6 @@ class iis_shortnames(BaseModule):
         technique_strings = []
 
         if detections:
-
             for detection in detections:
                 method, affirmative_status_code, technique = detection
                 technique_strings.append(f"{method} ({technique})")
@@ -138,7 +131,9 @@ class iis_shortnames(BaseModule):
                     if valid_method_confirmed:
                         break
 
-                    file_name_hints = self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code)
+                    file_name_hints = self.solve_shortname_recursive(
+                        method, normalized_url, "", affirmative_status_code
+                    )
                     if len(file_name_hints) == 0:
                         continue
                     else:
