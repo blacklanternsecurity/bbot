@@ -18,7 +18,7 @@ class ffuf_shortnames(ffuf):
         "max_depth": 1,
         "version": "1.5.0",
         "extensions": "",
-        "ignore_redirects": False,
+        "ignore_redirects": True,
     }
 
     options_desc = {

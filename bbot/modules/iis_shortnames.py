@@ -164,3 +164,7 @@ class iis_shortnames(BaseModule):
                         else:
                             hint_type = "shortname-directory"
                         self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
+
+        def filter_event(self, event):
+            if "dir" in event.tags:
+                return True
