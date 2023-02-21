@@ -120,7 +120,7 @@ class massdns(crobat):
         canary_subdomains = [self.helpers.rand_string(10) for i in range(canary_checks)]
         self.verbose(f"Testing {canary_checks:,} canaries against {domain}")
         canary_results = list(self._massdns(domain, canary_subdomains))
-        if canary_results:
+        if len(canary_results) > 10:
             self.info(
                 f"Aborting massdns run on {domain} due to {len(canary_results):,}/{canary_checks:,} false positives"
             )
