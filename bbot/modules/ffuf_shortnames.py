@@ -28,7 +28,7 @@ class ffuf_shortnames(ffuf):
         "max_depth": "the maxium directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "ignore_redirects": "Explicitly ignore redirects. Enable if getting a excessive false positives.",
+        "ignore_redirects": "Explicitly ignore redirects (301,302)",
     }
 
     in_scope_only = True

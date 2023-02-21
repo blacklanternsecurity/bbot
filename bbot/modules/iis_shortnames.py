@@ -42,6 +42,16 @@ class iis_shortnames(BaseModule):
                     technique = "HTTP Body Error Message"
         return detections
 
+    def directory_confirm(self, target, method, url_hint, affirmative_status_code):
+        payload = encode_all(f"{url_hint}")
+        url = f"{target}{payload}"
+        directory_confirm_result = self.helpers.request(method=method, url=url, allow_redirects=False)
+
+        if directory_confirm_result.status_code == affirmative_status_code:
+            return True
+        else:
+            return False
+
     def duplicate_check(self, target, method, url_hint, affirmative_status_code):
         duplicates = []
         count = 2
@@ -71,7 +81,9 @@ class iis_shortnames(BaseModule):
             if r.status_code == affirmative_status_code:
                 return True
 
-    def solve_shortname_recursive(self, method, target, prefix, affirmative_status_code, extension_mode=False):
+    def solve_shortname_recursive(
+        self, method, target, prefix, affirmative_status_code, extension_mode=False, node_count=0
+    ):
         url_hint_list = []
         found_results = False
 
@@ -88,6 +100,8 @@ class iis_shortnames(BaseModule):
             c = futures[future]
             result = future.result()
             if result:
+                node_count += 1
+                self.verbose(f"node_count: {str(node_count)}")
                 found_results = True
 
                 # check to make sure the file isn't shorter than 6 characters
@@ -100,10 +114,11 @@ class iis_shortnames(BaseModule):
                         url_hint_list.append(f"{prefix}{c}")
 
                 url_hint_list += self.solve_shortname_recursive(
-                    method, target, f"{prefix}{c}", affirmative_status_code, extension_mode
+                    method, target, f"{prefix}{c}", affirmative_status_code, extension_mode, node_count=node_count
                 )
         if len(prefix) > 0 and found_results == False:
             url_hint_list.append(f"{prefix}")
+            self.verbose(f"Found new URL_HINT: {prefix} from node {target}")
         return url_hint_list
 
     def handle_event(self, event):
@@ -131,8 +146,8 @@ class iis_shortnames(BaseModule):
                     if valid_method_confirmed:
                         break
 
-                    file_name_hints = self.solve_shortname_recursive(
-                        method, normalized_url, "", affirmative_status_code
+                    file_name_hints = list(
+                        set(self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code))
                     )
                     if len(file_name_hints) == 0:
                         continue
@@ -148,6 +163,12 @@ class iis_shortnames(BaseModule):
                         duplicates = self.duplicate_check(normalized_url, method, x, affirmative_status_code)
                         if duplicates:
                             file_name_hints += duplicates
+
+                    # check for the case of a folder and file with the same filename
+
+                    for d in file_name_hints:
+                        if self.directory_confirm(normalized_url, method, d, affirmative_status_code):
+                            url_hint_list.append(d)
 
                     for y in file_name_hints:
                         file_name_extension_hints = self.solve_shortname_recursive(
