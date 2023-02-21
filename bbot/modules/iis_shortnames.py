@@ -14,8 +14,11 @@ class iis_shortnames(BaseModule):
     produced_events = ["URL_HINT"]
     flags = ["active", "safe", "web-basic", "iis-shortnames"]
     meta = {"description": "Check for IIS shortname vulnerability"}
-    options = {"detect_only": True}
-    options_desc = {"detect_only": "Only detect the vulnerability and do not run the shortname scanner"}
+    options = {"detect_only": True, "max_node_count": 35}
+    options_desc = {
+        "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
+        "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
+    }
     in_scope_only = True
 
     max_event_handlers = 8
@@ -28,8 +31,8 @@ class iis_shortnames(BaseModule):
         test_url = f"{target}*~1*/a.aspx"
 
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
-            control = self.helpers.request(method=method, url=control_url, allow_redirects=False)
-            test = self.helpers.request(method=method, url=test_url, allow_redirects=False)
+            control = self.helpers.request(method=method, url=control_url, allow_redirects=False, retries=2)
+            test = self.helpers.request(method=method, url=test_url, allow_redirects=False, retries=2)
             if (control != None) and (test != None):
                 if control.status_code != test.status_code:
                     technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
@@ -45,7 +48,7 @@ class iis_shortnames(BaseModule):
     def directory_confirm(self, target, method, url_hint, affirmative_status_code):
         payload = encode_all(f"{url_hint}")
         url = f"{target}{payload}"
-        directory_confirm_result = self.helpers.request(method=method, url=url, allow_redirects=False)
+        directory_confirm_result = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2)
 
         if directory_confirm_result.status_code == affirmative_status_code:
             return True
@@ -62,7 +65,7 @@ class iis_shortnames(BaseModule):
             payload = encode_all(f"{base_hint}~{str(count)}*")
             url = f"{target}{payload}{suffix}"
 
-            duplicate_check_results = self.helpers.request(method=method, url=url, allow_redirects=False)
+            duplicate_check_results = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2)
             if duplicate_check_results.status_code != affirmative_status_code:
                 break
             else:
@@ -76,7 +79,7 @@ class iis_shortnames(BaseModule):
         return duplicates
 
     def threaded_request(self, method, url, affirmative_status_code):
-        r = self.helpers.request(method=method, url=url, allow_redirects=False)
+        r = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2)
         if r is not None:
             if r.status_code == affirmative_status_code:
                 return True
@@ -100,15 +103,20 @@ class iis_shortnames(BaseModule):
             c = futures[future]
             result = future.result()
             if result:
-                node_count += 1
-                self.verbose(f"node_count: {str(node_count)}")
                 found_results = True
+                node_count += 1
+                self.verbose(f"node_count: {str(node_count)} for node: {target}")
+                if node_count > self.config.get("max_node_count"):
+                    self.warning(
+                        f"iis_shortnames: max_node_count ({str(self.config.get('max_node_count'))}) exceeded for node: {target}. Affected branch will be terminated."
+                    )
+                    return url_hint_list
 
                 # check to make sure the file isn't shorter than 6 characters
                 wildcard = "~1*"
                 payload = encode_all(f"{prefix}{c}{wildcard}")
                 url = f"{target}{payload}{suffix}"
-                r = self.helpers.request(method=method, url=url, allow_redirects=False)
+                r = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2)
                 if r is not None:
                     if r.status_code == affirmative_status_code:
                         url_hint_list.append(f"{prefix}{c}")
@@ -118,7 +126,7 @@ class iis_shortnames(BaseModule):
                 )
         if len(prefix) > 0 and found_results == False:
             url_hint_list.append(f"{prefix}")
-            self.verbose(f"Found new URL_HINT: {prefix} from node {target}")
+            self.verbose(f"Found new (possibly partial) URL_HINT: {prefix} from node {target}")
         return url_hint_list
 
     def handle_event(self, event):
@@ -168,6 +176,7 @@ class iis_shortnames(BaseModule):
 
                     for d in file_name_hints:
                         if self.directory_confirm(normalized_url, method, d, affirmative_status_code):
+                            self.verbose(f"Confirmed Directory URL_HINT: {d} from node {normalized_url}")
                             url_hint_list.append(d)
 
                     for y in file_name_hints:
@@ -175,6 +184,7 @@ class iis_shortnames(BaseModule):
                             method, normalized_url, f"{y}.", affirmative_status_code, extension_mode=True
                         )
                         for z in file_name_extension_hints:
+                            self.verbose(f"Found new file URL_HINT: {z} from node {normalized_url}")
                             url_hint_list.append(z)
 
                     for url_hint in url_hint_list:
