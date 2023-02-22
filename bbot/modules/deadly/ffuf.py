@@ -50,7 +50,6 @@ class ffuf(BaseModule):
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist_url)
-        self.tempfile, tempfile_len = self.generate_templist(self.wordlist)
         self.extensions = self.config.get("extensions")
         self.ignore_redirects = self.config.get("ignore_redirects")
         return True
@@ -68,18 +67,18 @@ class ffuf(BaseModule):
             # if we think its a directory, normalize it.
             fixed_url = event.data.rstrip("/") + "/"
 
-        for r in self.execute_ffuf(self.tempfile, event, fixed_url):
+        for r in self.execute_ffuf(self.wordlist, fixed_url):
             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
-    def execute_ffuf(self, tempfile, event, url, suffix=""):
-        ffuf_exts = [""]
+    def execute_ffuf(self, tempfile, url, prefix="", suffix=""):
+        ffuf_exts = ["", "/"]
 
         if self.extensions:
             for ext in self.extensions.split(","):
                 ffuf_exts.append(f".{ext}")
 
         for x in ffuf_exts:
-            fuzz_url = f"{url}FUZZ{suffix}"
+            fuzz_url = f"{url}{prefix}FUZZ{suffix}"
             command = [
                 "ffuf",
                 "-H",
@@ -118,14 +117,12 @@ class ffuf(BaseModule):
                 except json.decoder.JSONDecodeError:
                     self.debug("Received invalid JSON from FFUF")
 
-    def generate_templist(self, wordlist, prefix=None):
+    def generate_templist(self, prefix=None):
         line_count = 0
-        f = open(wordlist, "r")
-        fl = f.readlines()
-        f.close()
+
         virtual_file = []
         virtual_file.append(self.sanity_canary)
-        for idx, val in enumerate(fl):
+        for idx, val in enumerate(self.wordlist_lines):
             if idx > self.config.get("lines"):
                 break
             if len(val) > 0:
