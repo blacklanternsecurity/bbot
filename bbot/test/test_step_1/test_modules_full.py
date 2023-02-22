@@ -77,6 +77,11 @@ def test_robots(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_asn(bbot_config, bbot_scanner, bbot_httpserver):
+    x = ASN(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
 def test_wafw00f(bbot_config, bbot_scanner, bbot_httpserver):
     x = Wafw00f(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
