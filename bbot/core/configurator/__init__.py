@@ -37,7 +37,9 @@ config = environ.prepare_environment(config)
 if not files.config_filename.exists():
     log_to_stderr(f"Creating BBOT config at {files.config_filename}")
     no_secrets_config = OmegaConf.to_object(config)
-    no_secrets_config = clean_dict(no_secrets_config, "api_key", "username", "password", "token", fuzzy=True)
+    no_secrets_config = clean_dict(
+        no_secrets_config, "api_key", "username", "password", "token", "secret", "_id", fuzzy=True
+    )
     yaml = OmegaConf.to_yaml(no_secrets_config)
     yaml = "\n".join(f"# {line}" for line in yaml.splitlines())
     with open(str(files.config_filename), "w") as f:
