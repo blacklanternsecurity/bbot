@@ -50,6 +50,11 @@ class ffuf(BaseModule):
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist_url)
+        f = open(self.wordlist, "r")
+        self.wordlist_lines = f.readlines()
+        f.close()
+        self.tempfile, tempfile_len = self.generate_templist()
+        self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         self.extensions = self.config.get("extensions")
         self.ignore_redirects = self.config.get("ignore_redirects")
         return True
@@ -67,7 +72,7 @@ class ffuf(BaseModule):
             # if we think its a directory, normalize it.
             fixed_url = event.data.rstrip("/") + "/"
 
-        for r in self.execute_ffuf(self.wordlist, fixed_url):
+        for r in self.execute_ffuf(self.tempfile, fixed_url):
             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
     def execute_ffuf(self, tempfile, url, prefix="", suffix=""):
