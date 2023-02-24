@@ -8,6 +8,7 @@ class crt(crobat):
     meta = {"description": "Query crt.sh (certificate transparency) for subdomains"}
 
     base_url = "https://crt.sh"
+    reject_wildcards = False
 
     def setup(self):
         self.cert_ids = set()

@@ -7,15 +7,17 @@ class crobat(BaseModule):
     Inherited by several other modules including sublist3r, dnsdumpster, etc.
     """
 
-    flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
+    # tag "subdomain-enum" removed 2023-02-24 because API is offline
+    flags = ["passive", "safe"]
     meta = {"description": "Query Project Crobat for subdomains"}
 
     base_url = "https://sonar.omnisint.io"
     # set module error state after this many failed requests in a row
     abort_after_failures = 5
-
+    # whether to reject wildcard DNS_NAMEs
+    reject_wildcards = True
     # this helps combat rate limiting by ensuring that a query doesn't execute
     # until the queue is ready to receive its results
     _qsize = 1
@@ -43,10 +45,11 @@ class crobat(BaseModule):
                 return False, "Event is unresolved"
             if any(t.startswith("cloud-") for t in event.tags):
                 return False, "Event is a cloud resource and not a direct target"
-        if any(t in event.tags for t in ("a-wildcard-domain", "aaaa-wildcard-domain", "cname-wildcard-domain")):
-            return False, "Event is a wildcard domain"
-        if any(t in event.tags for t in ("a-error", "aaaa-error")):
-            return False, "Event has a DNS resolution error"
+        if self.reject_wildcards:
+            if any(t in event.tags for t in ("a-wildcard-domain", "aaaa-wildcard-domain", "cname-wildcard-domain")):
+                return False, "Event is a wildcard domain"
+            if any(t in event.tags for t in ("a-error", "aaaa-error")):
+                return False, "Event has a DNS resolution error"
         self.processed.add(hash(query))
         return True
 

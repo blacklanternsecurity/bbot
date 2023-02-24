@@ -4,7 +4,8 @@ from .crobat import crobat
 class sublist3r(crobat):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["subdomain-enum", "passive", "safe"]
+    # tag "subdomain-enum" removed 2023-02-24 because API is offline
+    flags = ["passive", "safe"]
     meta = {
         "description": "Query sublist3r's API for subdomains",
     }
