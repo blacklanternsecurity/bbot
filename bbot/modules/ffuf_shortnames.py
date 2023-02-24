@@ -15,7 +15,6 @@ def find_common_prefixes(strings, minimum_set_length=4):
     for prefix in prefix_list:
         prefix_frequency = frequency_dict[prefix]
         is_substring = False
-        has_substrings = False
 
         for k, v in frequency_dict.items():
             if prefix != k:
