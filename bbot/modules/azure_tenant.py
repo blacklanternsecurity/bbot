@@ -23,7 +23,8 @@ class azure_tenant(viewdns):
         if domains:
             self.success(f'Found {len(domains):,} domains under tenant for "{query}"')
         for domain in domains:
-            self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
+            if domain != query:
+                self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
         # todo: tenants?
 
     def query(self, domain):
@@ -55,7 +56,7 @@ class azure_tenant(viewdns):
 
         self.debug(f"Retrieving tenant domains at {url}")
 
-        r = self.helpers.request(url, method="POST", headers=headers, data=data)
+        r = self.request_with_fail_count(url, method="POST", headers=headers, data=data)
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200, 421):
             self.warning(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')

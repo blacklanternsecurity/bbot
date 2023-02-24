@@ -10,7 +10,7 @@ class hackertarget(crobat):
     base_url = "https://api.hackertarget.com"
 
     def request_url(self, query):
-        return self.helpers.request(f"{self.base_url}/hostsearch/?q={self.helpers.quote(query)}")
+        return self.request_with_fail_count(f"{self.base_url}/hostsearch/?q={self.helpers.quote(query)}")
 
     def parse_results(self, r, query):
         for line in r.text.splitlines():

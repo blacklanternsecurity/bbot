@@ -8,6 +8,7 @@ class crt(crobat):
     meta = {"description": "Query crt.sh (certificate transparency) for subdomains"}
 
     base_url = "https://crt.sh"
+    reject_wildcards = False
 
     def setup(self):
         self.cert_ids = set()
@@ -16,7 +17,7 @@ class crt(crobat):
     def request_url(self, query):
         params = {"q": query, "output": "json"}
         url = self.helpers.add_get_params(self.base_url, params).geturl()
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url, timeout=self.http_timeout + 10)
 
     def parse_results(self, r, query):
         j = r.json()

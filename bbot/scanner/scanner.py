@@ -17,12 +17,12 @@ from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.modules import module_loader
 from bbot.core.event import make_event
-from bbot.core.logger import init_logging
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.helper import ConfigAwareHelper
+from bbot.core.logger import init_logging, get_log_level
 from bbot.core.helpers.names_generator import random_name
-from bbot.core.helpers.threadpool import ThreadPoolWrapper
 from bbot.core.configurator.environ import prepare_environment
+from bbot.core.helpers.threadpool import ThreadPoolWrapper, BBOTThreadPoolExecutor
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
@@ -86,13 +86,13 @@ class Scanner:
         # Set up thread pools
         max_workers = max(1, self.config.get("max_threads", 25))
         # Shared thread pool, for module use
-        self._thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
+        self._thread_pool = BBOTThreadPoolExecutor(max_workers=max_workers)
         # Event thread pool, for event emission
         self._event_thread_pool = ThreadPoolWrapper(
-            concurrent.futures.ThreadPoolExecutor(max_workers=max_workers * 2), qsize=max_workers
+            BBOTThreadPoolExecutor(max_workers=max_workers * 2), qsize=max_workers
         )
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
-        self._internal_thread_pool = ThreadPoolWrapper(concurrent.futures.ThreadPoolExecutor(max_workers=max_workers))
+        self._internal_thread_pool = ThreadPoolWrapper(BBOTThreadPoolExecutor(max_workers=max_workers))
         self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
 
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
@@ -381,16 +381,12 @@ class Scanner:
 
     @property
     def status_detailed(self):
-        main_tasks = self._thread_pool.num_tasks
-        dns_tasks = self.helpers.dns._thread_pool.num_tasks
         event_threadpool_tasks = self._event_thread_pool.num_tasks
         internal_tasks = self._internal_thread_pool.num_tasks
         process_tasks = self.process_pool.num_tasks
-        total_tasks = main_tasks + dns_tasks + event_threadpool_tasks + internal_tasks + process_tasks
+        total_tasks = event_threadpool_tasks + internal_tasks + process_tasks
         status = {
             "queued_tasks": {
-                "main": main_tasks,
-                "dns": dns_tasks,
                 "internal": internal_tasks,
                 "process": process_tasks,
                 "event": event_threadpool_tasks,
@@ -555,6 +551,10 @@ class Scanner:
             self.error(msg)
         else:
             raise ScanError(msg)
+
+    @property
+    def log_level(self):
+        return get_log_level()
 
     def _load_modules(self, modules):
         modules = [str(m) for m in modules]

@@ -116,6 +116,18 @@ class massdns(crobat):
         return False
 
     def massdns(self, domain, subdomains):
+        canary_checks = 50
+        canary_subdomains = [self.helpers.rand_string(10) for i in range(canary_checks)]
+        self.verbose(f"Testing {canary_checks:,} canaries against {domain}")
+        canary_results = list(self._massdns(domain, canary_subdomains))
+        if len(canary_results) > 10:
+            self.info(
+                f"Aborting massdns run on {domain} due to {len(canary_results):,}/{canary_checks:,} false positives"
+            )
+        else:
+            yield from self._massdns(domain, subdomains)
+
+    def _massdns(self, domain, subdomains):
         """
         {
           "name": "www.blacklanternsecurity.com.",

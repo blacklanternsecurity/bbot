@@ -18,13 +18,13 @@ class fullhunt(shodan_dns):
 
     def ping(self):
         url = f"{self.base_url}/auth/status"
-        j = self.helpers.request(url, headers=self.headers).json()
+        j = self.request_with_fail_count(url, headers=self.headers).json()
         remaining = j["user_credits"]["remaining_credits"]
         assert remaining > 0, "No credits remaining"
 
     def request_url(self, query):
         url = f"{self.base_url}/domain/{self.helpers.quote(query)}/subdomains"
-        return self.helpers.request(url, headers=self.headers)
+        return self.request_with_fail_count(url, headers=self.headers)
 
     def parse_results(self, r, query):
         return r.json().get("hosts", [])

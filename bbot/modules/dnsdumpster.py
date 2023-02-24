@@ -17,7 +17,7 @@ class dnsdumpster(crobat):
     def query(self, domain):
         ret = []
         # first, get the CSRF tokens
-        res1 = self.helpers.request(self.base_url)
+        res1 = self.request_with_fail_count(self.base_url)
         status_code = getattr(res1, "status_code", 0)
         if status_code in [429]:
             self.verbose(f'Too many requests "{status_code}"')
@@ -56,7 +56,7 @@ class dnsdumpster(crobat):
 
         # Otherwise, do the needful
         subdomains = set()
-        res2 = self.helpers.request(
+        res2 = self.request_with_fail_count(
             f"{self.base_url}/",
             method="POST",
             cookies={"csrftoken": csrftoken},

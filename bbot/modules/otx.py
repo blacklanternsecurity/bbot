@@ -11,7 +11,7 @@ class otx(crobat):
 
     def request_url(self, query):
         url = f"{self.base_url}/api/v1/indicators/domain/{self.helpers.quote(query)}/passive_dns"
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
         j = r.json()

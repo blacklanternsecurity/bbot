@@ -50,6 +50,12 @@ class ScanManager:
             mod._handle_batch(force=True)
 
     def emit_event(self, event, *args, **kwargs):
+        """
+        TODO: Register + kill duplicate events immediately?
+        bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
+        bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
+        bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
+        """
         # skip event if it fails precheck
         if not self._event_precheck(event):
             event._resolved.set()
@@ -98,16 +104,6 @@ class ScanManager:
         if self.is_duplicate_event(event):
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
-
-        # this is disabled because it doesn't consider the potential for new dns children / speculate derivatives
-        # if event.type not in exclude:
-        #     any_acceptable = False
-        #     for mod in self.scan.modules.values():
-        #         acceptable, reason = mod._filter_event(event, precheck_only=True)
-        #         any_acceptable |= acceptable
-        #     if not any_acceptable:
-        #         log.debug(f"Skipping {event} because no modules would accept it")
-        #     return any_acceptable
         return True
 
     def _emit_event(self, event, *args, **kwargs):
@@ -122,7 +118,11 @@ class ScanManager:
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
             if skip_dns_resolution:
                 event._resolved.set()
-                event.tags.add("resolved")
+                dns_children = []
+                dns_tags = {"resolved"}
+                event_whitelisted_dns = True
+                event_blacklisted_dns = False
+                resolved_hosts = []
             else:
                 # DNS resolution
                 (
@@ -133,68 +133,69 @@ class ScanManager:
                     resolved_hosts,
                 ) = self.scan.helpers.dns.resolve_event(event, minimal=not self.dns_resolution)
 
-                # kill runaway DNS chains
-                dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
-                if dns_resolve_distance >= self.scan.helpers.dns.max_dns_resolve_distance:
-                    log.debug(
-                        f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.max_dns_resolve_distance})"
-                    )
-                    dns_children = []
+            # kill runaway DNS chains
+            dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
+            if dns_resolve_distance >= self.scan.helpers.dns.max_dns_resolve_distance:
+                log.debug(
+                    f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.max_dns_resolve_distance})"
+                )
+                dns_children = []
 
-                # We do this again in case event.data changed during resolve_event()
-                if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
-                    log.debug(f"Omitting due to failed precheck: {event}")
-                    distribute_event = False
+            # We do this again in case event.data changed during resolve_event()
+            if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
+                log.debug(f"Omitting due to failed precheck: {event}")
+                distribute_event = False
 
-                event._resolved_hosts = resolved_hosts
+            if event.type in ("DNS_NAME", "IP_ADDRESS"):
+                event.tags.update(dns_tags)
 
-                event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
-                event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
-                if event.type in ("DNS_NAME", "IP_ADDRESS"):
-                    event.tags.update(dns_tags)
-                if event_blacklisted:
-                    event.tags.add("blacklisted")
+            event._resolved_hosts = resolved_hosts
 
-                # Cloud tagging
-                for provider in self.scan.helpers.cloud.providers.values():
-                    provider.tag_event(event)
+            event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
+            event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
+            if event_blacklisted:
+                event.tags.add("blacklisted")
 
-                # Blacklist purging
-                if "blacklisted" in event.tags:
-                    reason = "event host"
-                    if event_blacklisted_dns:
-                        reason = "DNS associations"
-                    log.debug(f"Omitting due to blacklisted {reason}: {event}")
-                    distribute_event = False
+            # Blacklist purging
+            if "blacklisted" in event.tags:
+                reason = "event host"
+                if event_blacklisted_dns:
+                    reason = "DNS associations"
+                log.debug(f"Omitting due to blacklisted {reason}: {event}")
+                distribute_event = False
 
-                # Scope shepherding
-                event_is_duplicate = self.is_duplicate_event(event)
-                event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
-                set_scope_distance = event.scope_distance
-                if event_whitelisted:
-                    set_scope_distance = 0
-                if event.always_in_scope:
-                    source_trail = event.make_in_scope()
+            # Cloud tagging
+            for provider in self.scan.helpers.cloud.providers.values():
+                provider.tag_event(event)
+
+            # Scope shepherding
+            event_is_duplicate = self.is_duplicate_event(event)
+            event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
+            set_scope_distance = event.scope_distance
+            if event_whitelisted:
+                set_scope_distance = 0
+            if event.always_in_scope:
+                source_trail = event.make_in_scope()
+                for s in source_trail:
+                    self.emit_event(s, _block=False, _force_submit=True)
+            if event.host:
+                if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
+                    if set_scope_distance == 0:
+                        log.debug(f"Making {event} in-scope")
+                    source_trail = event.make_in_scope(set_scope_distance)
                     for s in source_trail:
                         self.emit_event(s, _block=False, _force_submit=True)
-                if event.host:
-                    if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
-                        if set_scope_distance == 0:
-                            log.debug(f"Making {event} in-scope")
-                        source_trail = event.make_in_scope(set_scope_distance)
-                        for s in source_trail:
-                            self.emit_event(s, _block=False, _force_submit=True)
-                    else:
-                        if event.scope_distance > self.scan.scope_report_distance:
-                            log.debug(
-                                f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                            )
-                            event.make_internal()
                 else:
-                    log.debug(f"Making {event} in-scope because it does not have identifying scope information")
-                    source_trail = event.make_in_scope(0)
-                    for s in source_trail:
-                        self.emit_event(s, _block=False, _force_submit=True)
+                    if event.scope_distance > self.scan.scope_report_distance:
+                        log.debug(
+                            f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                        )
+                        event.make_internal()
+            else:
+                log.debug(f"Making {event} in-scope because it does not have identifying scope information")
+                source_trail = event.make_in_scope(0)
+                for s in source_trail:
+                    self.emit_event(s, _block=False, _force_submit=True)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if):
@@ -228,6 +229,7 @@ class ScanManager:
                 and not str(event.module) == "speculate"
             ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
+                source_module._priority = 4
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
@@ -238,6 +240,7 @@ class ScanManager:
                 if dns_children:
                     for rdtype, record in dns_children:
                         module = self.scan.helpers.dns._get_dummy_module(rdtype)
+                        module._priority = 4
                         try:
                             child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)
                             dns_child_events.append(child_event)
@@ -299,30 +302,31 @@ class ScanManager:
         ret = None
         on_finish_callback = kwargs.pop("_on_finish_callback", None)
         force = kwargs.pop("_force", False)
-        start_time = datetime.now()
-        callback_name = f"{callback.__qualname__}({args}, {kwargs})"
+        fn = callback
+        for arg in args:
+            if callable(arg):
+                fn = arg
+            else:
+                break
         try:
             if not self.scan.stopping or force:
                 ret = callback(*args, **kwargs)
         except ScanCancelledError as e:
-            log.debug(f"ScanCancelledError in {callback.__qualname__}(): {e}")
+            log.debug(f"ScanCancelledError in {fn.__qualname__}(): {e}")
         except BrokenPipeError as e:
-            log.debug(f"BrokenPipeError in {callback.__qualname__}(): {e}")
+            log.debug(f"BrokenPipeError in {fn.__qualname__}(): {e}")
         except Exception as e:
-            log.error(f"Error in {callback.__qualname__}(): {e}")
+            log.error(f"Error in {fn.__qualname__}(): {e}")
             log.trace(traceback.format_exc())
         except KeyboardInterrupt:
             log.debug(f"Interrupted")
             self.scan.stop()
-        finally:
-            run_time = datetime.now() - start_time
-            self.scan.stats.function_called(callback_name, run_time)
         if callable(on_finish_callback):
             try:
                 on_finish_callback()
             except Exception as e:
                 log.error(
-                    f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {callback.__qualname__}(): {e}"
+                    f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {fn.__qualname__}(): {e}"
                 )
                 log.trace(traceback.format_exc())
         return ret
@@ -493,17 +497,18 @@ class ScanManager:
             event_type_summary = sorted(
                 self.scan.stats.events_emitted_by_type.items(), key=lambda x: x[-1], reverse=True
             )
-            self.scan.info(
-                f'{self.scan.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
-            )
+            if event_type_summary:
+                self.scan.info(
+                    f'{self.scan.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
+                )
+            else:
+                self.scan.info(f"{self.scan.name}: No events produced yet")
 
             total_tasks = status["scan"]["queued_tasks"]["total"]
-            dns_tasks = status["scan"]["queued_tasks"]["dns"]
             event_tasks = status["scan"]["queued_tasks"]["event"]
-            main_tasks = status["scan"]["queued_tasks"]["main"]
             internal_tasks = status["scan"]["queued_tasks"]["internal"]
             self.scan.verbose(
-                f"{self.scan.name}: Thread pool tasks: {total_tasks:,} (Main: {main_tasks:,}, Event: {event_tasks:,}, DNS: {dns_tasks:,}, Internal: {internal_tasks:,})"
+                f"{self.scan.name}: Thread pool tasks: {total_tasks:,} (Event: {event_tasks:,}, Internal: {internal_tasks:,})"
             )
 
             if modules_errored:
@@ -520,6 +525,17 @@ class ScanManager:
                 )
             else:
                 self.scan.info(f"{self.scan.name}: No events in queue")
+
+            if self.scan.log_level <= logging.DEBUG:
+                threadpool_names = [
+                    "_internal_thread_pool",
+                    "_event_thread_pool",
+                    "_thread_pool",
+                ]
+                for threadpool_name in threadpool_names:
+                    threadpool = getattr(self.scan, threadpool_name)
+                    for thread_status in threadpool.threads_status:
+                        self.scan.debug(f"scan.{threadpool_name}: {thread_status}")
 
             # Uncomment these lines to enable debugging of event queues
 

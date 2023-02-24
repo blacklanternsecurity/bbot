@@ -23,7 +23,7 @@ class JSON(BaseOutputModule):
             self.stdout(event_str)
 
     def cleanup(self):
-        if self._file is not None:
+        if getattr(self, "_file", None) is not None:
             with suppress(Exception):
                 self.file.close()
 

@@ -10,17 +10,14 @@ class BaseOutputModule(BaseModule):
     scope_distance_modifier = None
     _stats_exclude = True
 
-    def _filter_event(self, event, precheck_only=False):
-        if event.type in ("FINISHED",):
-            return True, ""
+    def _event_precheck(self, event):
         if event._omit:
             return False, "_omit is True"
-        if not precheck_only:
-            if event._force_output:
-                return True, "_force_output is True"
-            if event._internal:
-                return False, "_internal is True"
-        return True, ""
+        if event._force_output:
+            return True, "_force_output is True"
+        if event._internal:
+            return False, "_internal is True"
+        return super()._event_precheck(event)
 
     def _prep_output_dir(self, filename):
         self.output_file = self.config.get("output_file", "")

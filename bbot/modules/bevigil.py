@@ -39,11 +39,11 @@ class bevigil(shodan_dns):
 
     def request_subdomains(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}/subdomains/"
-        return self.helpers.request(url, headers=self.headers)
+        return self.request_with_fail_count(url, headers=self.headers)
 
     def request_urls(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}/urls/"
-        return self.helpers.request(url, headers=self.headers)
+        return self.request_with_fail_count(url, headers=self.headers)
 
     def parse_subdomains(self, r, query=None):
         results = set()

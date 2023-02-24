@@ -1,11 +1,67 @@
 import logging
 import threading
-from queue import Full
+import traceback
+from datetime import datetime
+from queue import SimpleQueue, Full
+from concurrent.futures import ThreadPoolExecutor
 
 log = logging.getLogger("bbot.core.helpers.threadpool")
 
 from .cache import CacheDict
 from ...core.errors import ScanCancelledError
+
+
+def pretty_fn(a):
+    if callable(a):
+        return a.__qualname__
+    return a
+
+
+class ThreadPoolSimpleQueue(SimpleQueue):
+    def __init__(self, *args, **kwargs):
+        self._executor = kwargs.pop("_executor", None)
+
+    def get(self, *args, **kwargs):
+        work_item = super().get(*args, **kwargs)
+        thread_id = threading.get_ident()
+        self._executor._current_work_items[thread_id] = (work_item, datetime.now())
+        return work_item
+
+
+class BBOTThreadPoolExecutor(ThreadPoolExecutor):
+    """
+    Allows inspection of thread pool to determine which functions are currently executing
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._current_work_items = {}
+        self._work_queue = ThreadPoolSimpleQueue(_executor=self)
+
+    @property
+    def threads_status(self):
+        work_items = []
+        for thread_id, (work_item, start_time) in sorted(self._current_work_items.items()):
+            func = work_item.fn.__qualname__
+            func_index = 0
+            if work_item and not work_item.future.done():
+                for i, f in enumerate(list(work_item.args)):
+                    if callable(f):
+                        func = f.__qualname__
+                        func_index = i + 1
+                    else:
+                        break
+                running_for = datetime.now() - start_time
+                wi_args = list(work_item.args)[func_index:]
+                wi_args = [pretty_fn(a) for a in wi_args]
+                wi_args = str(wi_args).strip("[]")
+                wi_kwargs = ", ".join(["{0}={1}".format(k, pretty_fn(v)) for k, v in work_item.kwargs.items()])
+                func_with_args = f"{func}({wi_args}" + (f", {wi_kwargs}" if wi_kwargs else "") + ")"
+                work_items.append(
+                    (running_for, f"running for {int(running_for.total_seconds()):>3} seconds: {func_with_args}")
+                )
+        work_items.sort(key=lambda x: x[0])
+        return [x[-1] for x in work_items]
 
 
 class ThreadPoolWrapper:
@@ -23,9 +79,11 @@ class ThreadPoolWrapper:
             self.executor._thread_pool_wrappers.append(self)
         except AttributeError:
             self.executor._thread_pool_wrappers = [self]
-        self.num_tasks = 0
 
-        self._lock = threading.Lock()
+        self._num_tasks = 0
+        self._task_count_lock = threading.Lock()
+
+        self._lock = threading.RLock()
         self.not_full = threading.Condition(self._lock)
 
     def submit_task(self, callback, *args, **kwargs):
@@ -36,7 +94,7 @@ class ThreadPoolWrapper:
         force = kwargs.get("_force_submit", False)
         success = False
         with self.not_full:
-            self.num_tasks += 1
+            self.num_tasks_increment()
             try:
                 if not force:
                     if not block:
@@ -49,27 +107,47 @@ class ThreadPoolWrapper:
 
                 try:
                     # submit the job
-                    future = self.executor.submit(self.callback_wrapper, callback, *args, **kwargs)
+                    future = self.executor.submit(self._execute_callback, callback, *args, **kwargs)
+                    future.add_done_callback(self._on_future_done)
                     success = True
+                    return future
                 except RuntimeError as e:
                     raise ScanCancelledError(e)
             finally:
                 if not success:
-                    self.num_tasks -= 1
+                    self.num_tasks_decrement()
 
-            return future
-
-    def callback_wrapper(self, callback, *args, **kwargs):
+    def _execute_callback(self, callback, *args, **kwargs):
         try:
             return callback(*args, **kwargs)
         finally:
-            self.num_tasks -= 1
-            for wrapper in self.executor._thread_pool_wrappers:
-                try:
-                    with wrapper.not_full:
-                        wrapper.not_full.notify()
-                except RuntimeError:
-                    continue
+            self.num_tasks_decrement()
+
+    def _on_future_done(self, future):
+        if future.cancelled():
+            self.num_tasks_decrement()
+
+    @property
+    def num_tasks(self):
+        with self._task_count_lock:
+            return self._num_tasks
+
+    def num_tasks_increment(self):
+        with self._task_count_lock:
+            self._num_tasks += 1
+
+    def num_tasks_decrement(self):
+        with self._task_count_lock:
+            self._num_tasks = max(0, self._num_tasks - 1)
+        for wrapper in self.executor._thread_pool_wrappers:
+            try:
+                with wrapper.not_full:
+                    wrapper.not_full.notify()
+            except RuntimeError:
+                continue
+            except Exception as e:
+                log.warning(f"Unknown error in num_tasks_decrement(): {e}")
+                log.trace(traceback.format_exc())
 
     @property
     def is_full(self):
@@ -87,6 +165,10 @@ class ThreadPoolWrapper:
 
     def shutdown(self, *args, **kwargs):
         self.executor.shutdown(*args, **kwargs)
+
+    @property
+    def threads_status(self):
+        return self.executor.threads_status
 
 
 import time

@@ -6,6 +6,11 @@ from ..modules_test_classes import *
 log = logging.getLogger(f"bbot.test")
 
 
+def test_gowitness(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Gowitness(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
 def test_httpx(bbot_config, bbot_scanner, bbot_httpserver):
     x = Httpx(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
@@ -13,11 +18,6 @@ def test_httpx(bbot_config, bbot_scanner, bbot_httpserver):
 
 def test_excavate(bbot_config, bbot_scanner, bbot_httpserver):
     x = Excavate(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
-
-
-def test_gowitness(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Gowitness(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
 
 

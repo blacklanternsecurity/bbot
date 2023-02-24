@@ -20,14 +20,14 @@ class Ipstack(shodan_dns):
     base_url = "http://api.ipstack.com/"
 
     def ping(self):
-        r = self.helpers.request(f"{self.base_url}/check?access_key={self.api_key}")
+        r = self.request_with_fail_count(f"{self.base_url}/check?access_key={self.api_key}")
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
     def handle_event(self, event):
         try:
             url = f"{self.base_url}/{event.data}?access_key={self.api_key}"
-            result = self.helpers.request(url)
+            result = self.request_with_fail_count(url)
             if result:
                 j = result.json()
                 if not j:

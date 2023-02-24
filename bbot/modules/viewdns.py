@@ -5,6 +5,10 @@ from bbot.modules.base import BaseModule
 
 
 class viewdns(BaseModule):
+    """
+    Used as a base for modules that only act on root domains and not individual hostnames
+    """
+
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "passive", "safe"]
