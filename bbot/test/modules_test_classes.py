@@ -507,3 +507,15 @@ class Masscan(MockHelper):
             if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:53":
                 return True
         return False
+
+
+class Secrets_DB(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "-----BEGIN PGP PRIVATE KEY BLOCK-----"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        return any(e.type == "FINDING" for e in events)
