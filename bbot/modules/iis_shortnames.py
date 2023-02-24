@@ -213,3 +213,5 @@ class iis_shortnames(BaseModule):
             with self.scanned_tracker_lock:
                 if self.normalize_url(event.data) not in self.scanned_tracker:
                     return True
+                return False
+        return False
