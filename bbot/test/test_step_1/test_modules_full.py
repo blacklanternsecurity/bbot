@@ -80,3 +80,8 @@ def test_robots(bbot_config, bbot_scanner, bbot_httpserver):
 def test_wafw00f(bbot_config, bbot_scanner, bbot_httpserver):
     x = Wafw00f(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_ffuf(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Ffuf(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
