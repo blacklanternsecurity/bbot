@@ -5,7 +5,7 @@ import string
 from bbot.modules.deadly.ffuf import ffuf
 
 
-def find_common_prefixes(strings, minimum_set_length=3):
+def find_common_prefixes(strings, minimum_set_length=4):
     prefix_candidates = [s[:i] for s in strings if len(s) == 6 for i in range(3, 6)]
     frequency_dict = {item: prefix_candidates.count(item) for item in prefix_candidates}
     frequency_dict = {k: v for k, v in frequency_dict.items() if v >= minimum_set_length}

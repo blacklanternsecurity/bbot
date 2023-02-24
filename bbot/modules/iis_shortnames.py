@@ -15,7 +15,7 @@ class iis_shortnames(BaseModule):
     produced_events = ["URL_HINT"]
     flags = ["active", "safe", "web-basic", "iis-shortnames"]
     meta = {"description": "Check for IIS shortname vulnerability"}
-    options = {"detect_only": True, "max_node_count": 35}
+    options = {"detect_only": True, "max_node_count": 30}
     options_desc = {
         "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
         "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
