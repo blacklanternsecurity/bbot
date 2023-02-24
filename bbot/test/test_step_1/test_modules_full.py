@@ -85,3 +85,8 @@ def test_asn(bbot_config, bbot_scanner, bbot_httpserver):
 def test_wafw00f(bbot_config, bbot_scanner, bbot_httpserver):
     x = Wafw00f(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_asset_inventory(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Asset_Inventory(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()

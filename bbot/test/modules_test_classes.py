@@ -830,3 +830,39 @@ class Wafw00f(HttpxMockHelper):
                 if "LiteSpeed" in e.data["WAF"]:
                     return True
         return False
+
+
+class Asset_Inventory(MockHelper):
+    config_overrides = {"output_modules": {"asset_inventory": {"use_previous": True}}}
+
+    def __init__(self, config, bbot_scanner, *args):
+        super().__init__(config, bbot_scanner, *args)
+        self.scan1 = bbot_scanner(
+            "127.0.0.1:8080",
+            modules=[self.name] + self.additional_modules,
+            name=f"{self.name}_test",
+            config=config,
+        )
+        self.scan2 = bbot_scanner(
+            modules=[self.name] + self.additional_modules,
+            name=f"{self.name}_test",
+            config=self.config,
+        )
+        self.scan1.prep()
+        self.scan2.prep()
+
+    def run(self):
+        events1 = list(self.scan1.start())
+        assert self.check_events(events1)
+        events2 = list(self.scan2.start())
+        assert self.check_events(events2)
+
+    def check_events(self, events):
+        ip = False
+        open_port = False
+        for e in events:
+            if e.type == "IP_ADDRESS":
+                ip = True
+            if e.type == "OPEN_TCP_PORT":
+                open_port = True
+        return ip and open_port
