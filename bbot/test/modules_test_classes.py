@@ -597,8 +597,6 @@ class Ffuf(HttpxMockHelper):
 
     def check_events(self, events):
         for e in events:
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print(e)
             if e.type == "URL_UNVERIFIED":
                 if "admin" in e.data:
                     return True
