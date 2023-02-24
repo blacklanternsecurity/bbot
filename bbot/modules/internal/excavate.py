@@ -3,8 +3,8 @@ import html
 import base64
 import jwt as j
 
-from bbot.core.helpers.regexes import _email_regex
 from bbot.modules.internal.base import BaseInternalModule
+from bbot.core.helpers.regexes import _email_regex, junk_remover
 
 
 class BaseExtractor:
@@ -39,16 +39,18 @@ class HostnameExtractor(BaseExtractor):
         for i, t in enumerate(dns_targets):
             if not any(x in dns_targets_set for x in excavate.helpers.domain_parents(t, include_self=True)):
                 dns_targets_set.add(t)
-                self.regexes[f"dns_name_{i+1}"] = r"(%[a-fA-F0-9]{2})?((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
+                self.regexes[f"dns_name_{i+1}"] = junk_remover + r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
-        self.excavate.emit_event(result[1], "DNS_NAME", source=event)
+        self.excavate.emit_event(result, "DNS_NAME", source=event)
 
 
 class URLExtractor(BaseExtractor):
     regexes = {
-        "fullurl": r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
+        "fullurl": r"(?i)"
+        + junk_remover
+        + r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
@@ -181,6 +183,19 @@ class SerializationExtractor(BaseExtractor):
         )
 
 
+class FunctionalityExtractor(BaseExtractor):
+    regexes = {
+        "File Upload Functionality": r"(<input[^>]+type=[\"']?file[\"']?[^>]+>)",
+        "Web Service WSDL": r"(?i)((?:http|https)://[^\s]*?.(?:wsdl))",
+    }
+
+    def report(self, result, name, event, **kwargs):
+        description = f"{name} found"
+        self.excavate.emit_event(
+            {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
+        )
+
+
 class JavascriptExtractor(BaseExtractor):
     # based on on https://github.com/m4ll0k/SecretFinder/blob/master/SecretFinder.py
 
@@ -251,6 +266,7 @@ class excavate(BaseInternalModule):
         self.jwt = JWTExtractor(self)
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
+        self.functionality = FunctionalityExtractor(self)
         self.max_redirects = self.scan.config.get("http_max_redirects", 5)
 
         return True
@@ -296,6 +312,7 @@ class excavate(BaseInternalModule):
                     self.jwt,
                     self.javascript,
                     self.serialization,
+                    self.functionality,
                 ],
                 event,
                 spider_danger=True,

@@ -18,7 +18,7 @@ class massdns(crobat):
     deps_ansible = [
         {
             "name": "install dev tools",
-            "package": {"name": ["gcc", "git", "make"], "state": "present", "update_cache": True},
+            "package": {"name": ["gcc", "git", "make"], "state": "present"},
             "become": True,
             "ignore_errors": True,
         },

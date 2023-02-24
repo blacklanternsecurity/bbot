@@ -12,9 +12,9 @@ from contextlib import suppress
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
-from bbot.modules import module_loader
-from ..misc import can_sudo_without_password
 from bbot.core import configurator
+from bbot.modules import module_loader
+from ..misc import can_sudo_without_password, os_platform
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -170,14 +170,16 @@ class DepsInstaller:
         packages_str = ",".join(packages)
         log.info(f"Installing the following OS packages: {packages_str}")
         args = {"name": packages_str, "state": "present"}  # , "update_cache": True, "cache_valid_time": 86400}
-        success, err = self.ansible_run(
-            module="package",
-            args=args,
-            ansible_args={
-                "ansible_become": True,
-                "ansible_become_method": "sudo",
-            },
-        )
+        kwargs = {}
+        # don't sudo brew
+        if os_platform() != "darwin":
+            kwargs = {
+                "ansible_args": {
+                    "ansible_become": True,
+                    "ansible_become_method": "sudo",
+                }
+            }
+        success, err = self.ansible_run(module="package", args=args, **kwargs)
         if success:
             log.info(f'Successfully installed OS packages "{packages_str}"')
         else:
@@ -229,6 +231,14 @@ class DepsInstaller:
         log.debug(f"ansible_run(module={module}, args={args}, ansible_args={ansible_args})")
         playbook = None
         if tasks:
+            for task in tasks:
+                if "package" in task:
+                    # special case for macos
+                    if os_platform() == "darwin":
+                        # don't sudo brew
+                        task["become"] = False
+                        # brew doesn't support update_cache
+                        task["package"].pop("update_cache", "")
             playbook = {"hosts": "all", "tasks": tasks}
             log.debug(json.dumps(playbook, indent=2))
         if self._sudo_password is not None:
@@ -302,7 +312,10 @@ class DepsInstaller:
         self.parent_helper.tldextract("evilcorp.co.uk")
         # install python3-apt
         if os.environ.get("BBOT_OS_PLATFORM", "") == "linux" and self.parent_helper.which("apt"):
-            to_install.add("python3-apt")
+            try:
+                import apt  # noqa F401
+            except ModuleNotFoundError:
+                to_install.add("python3-apt")
         # command: package_name
         core_deps = {"unzip": "unzip", "curl": "curl"}
         for command, package_name in core_deps.items():

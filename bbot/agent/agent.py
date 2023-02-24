@@ -176,7 +176,7 @@ class Agent:
 
     def _start_scan(self, scan):
         try:
-            scan.start()
+            scan.start_without_generator()
         except bbot.core.errors.ScanError as e:
             log.error(f"Scan error: {e}")
             log.trace(traceback.format_exc())

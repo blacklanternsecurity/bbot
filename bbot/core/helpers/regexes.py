@@ -16,6 +16,12 @@ word_regexes = [
     ]
 ]
 
+# Designed to remove junk such as these from the beginning of a search string:
+# \nhttps://www.google.com
+# \x3dhttps://www.google.com
+# %a2https://www.google.com
+# \uac20https://www.google.com
+junk_remover = r"(?:\\x[a-f0-9]{2}|%[a-f0-9]{2}|\\u[a-f0-9]{4}|\\[a-z])?"
 
 word_regex = re.compile(r"[^\d\W_]+")
 word_num_regex = re.compile(r"[^\W_]+")

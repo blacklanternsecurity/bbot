@@ -25,14 +25,14 @@ class naabu(BaseModule):
     deps_ansible = [
         {
             "name": "install libpcap (Debian)",
-            "package": {"name": "libpcap0.8", "state": "present", "update_cache": True},
+            "package": {"name": "libpcap0.8", "state": "present"},
             "become": True,
             "when": """ansible_facts['os_family'] == 'Debian'""",
             "ignore_errors": True,
         },
         {
             "name": "install libpcap (others)",
-            "package": {"name": "libpcap", "state": "present", "update_cache": True},
+            "package": {"name": "libpcap", "state": "present"},
             "become": True,
             "when": """ansible_facts['os_family'] != 'Debian'""",
             "ignore_errors": True,

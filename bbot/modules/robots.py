@@ -14,6 +14,8 @@ class robots(BaseModule):
         "include_disallow": "Include 'Disallow' Entries",
     }
 
+    in_scope_only = True
+
     def setup(self):
         self.scanned_hosts = set()
         return True

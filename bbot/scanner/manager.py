@@ -137,7 +137,7 @@ class ScanManager:
                 dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
                 if dns_resolve_distance >= self.scan.helpers.dns.max_dns_resolve_distance:
                     log.debug(
-                        f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.dns_resolve_distance})"
+                        f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.max_dns_resolve_distance})"
                     )
                     dns_children = []
 
@@ -173,6 +173,10 @@ class ScanManager:
                 set_scope_distance = event.scope_distance
                 if event_whitelisted:
                     set_scope_distance = 0
+                if event.always_in_scope:
+                    source_trail = event.make_in_scope()
+                    for s in source_trail:
+                        self.emit_event(s, _block=False, _force_submit=True)
                 if event.host:
                     if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
                         if set_scope_distance == 0:
@@ -392,7 +396,8 @@ class ScanManager:
                                 self.event_emitted.wait(timeout=0.1)
                 except queue.Empty:
                     # if we're on the last module
-                    finished = self.modules_status().get("finished", False)
+                    modules_status = self.modules_status()
+                    finished = modules_status.get("finished", False)
                     # And if the scan is finished
                     if finished:
                         # And if new events were generated since last time we were here

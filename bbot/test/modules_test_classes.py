@@ -1,7 +1,10 @@
 import re
 import json
+import logging
 
 from .helpers import *
+
+log = logging.getLogger(f"bbot.test")
 
 
 class Httpx(HttpxMockHelper):
@@ -40,6 +43,65 @@ class Gowitness(HttpxMockHelper):
         if screenshots:
             return True
         return False
+
+
+class Excavate(HttpxMockHelper):
+    additional_modules = ["httpx"]
+    targets = ["http://127.0.0.1:8888/", "test.notreal"]
+
+    def mock_args(self):
+        response_data = """
+        ftp://ftp.test.notreal
+        \\nhttps://www1.test.notreal
+        \\x3dhttps://www2.test.notreal
+        %a2https://www3.test.notreal
+        \\uac20https://www4.test.notreal
+        \nwww5.test.notreal
+        \\x3dwww6.test.notreal
+        %a2www7.test.notreal
+        \\uac20www8.test.notreal
+        <a src="http://www9.test.notreal">
+        """
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": response_data}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        event_data = [e.data for e in events]
+        assert "https://www1.test.notreal/" in event_data
+        assert "https://www2.test.notreal/" in event_data
+        assert "https://www3.test.notreal/" in event_data
+        assert "https://www4.test.notreal/" in event_data
+        assert "www1.test.notreal" in event_data
+        assert "www2.test.notreal" in event_data
+        assert "www3.test.notreal" in event_data
+        assert "www4.test.notreal" in event_data
+        assert "www5.test.notreal" in event_data
+        assert "www6.test.notreal" in event_data
+        assert "www7.test.notreal" in event_data
+        assert "www8.test.notreal" in event_data
+        assert "http://www9.test.notreal/" in event_data
+
+        assert "nhttps://www1.test.notreal/" not in event_data
+        assert "x3dhttps://www2.test.notreal/" not in event_data
+        assert "a2https://www3.test.notreal/" not in event_data
+        assert "uac20https://www4.test.notreal/" not in event_data
+        assert "nwww5.test.notreal" not in event_data
+        assert "x3dwww6.test.notreal" not in event_data
+        assert "a2www7.test.notreal" not in event_data
+        assert "uac20www8.test.notreal" not in event_data
+
+        assert any(
+            e.type == "FINDING" and e.data.get("description", "") == "Non-HTTP URI: ftp://ftp.test.notreal"
+            for e in events
+        )
+        assert any(
+            e.type == "PROTOCOL"
+            and e.data.get("protocol", "") == "FTP"
+            and e.data.get("host", "") == "ftp.test.notreal"
+            for e in events
+        )
+        return True
 
 
 class Subdomain_Hijack(HttpxMockHelper):
@@ -518,4 +580,265 @@ class Masscan(MockHelper):
         for e in events:
             if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:53":
                 return True
+        return False
+
+
+class ASN(RequestMockHelper):
+    targets = ["8.8.8.8"]
+    response_get_asn_ripe = {
+        "messages": [],
+        "see_also": [],
+        "version": "1.1",
+        "data_call_name": "network-info",
+        "data_call_status": "supported",
+        "cached": False,
+        "data": {"asns": ["15169"], "prefix": "8.8.8.0/24"},
+        "query_id": "20230217212133-f278ff23-d940-4634-8115-a64dee06997b",
+        "process_time": 5,
+        "server_id": "app139",
+        "build_version": "live.2023.2.1.142",
+        "status": "ok",
+        "status_code": 200,
+        "time": "2023-02-17T21:21:33.428469",
+    }
+    response_get_asn_metadata_ripe = {
+        "messages": [],
+        "see_also": [],
+        "version": "4.1",
+        "data_call_name": "whois",
+        "data_call_status": "supported - connecting to ursa",
+        "cached": False,
+        "data": {
+            "records": [
+                [
+                    {"key": "ASNumber", "value": "15169", "details_link": None},
+                    {"key": "ASName", "value": "GOOGLE", "details_link": None},
+                    {"key": "ASHandle", "value": "15169", "details_link": "https://stat.ripe.net/AS15169"},
+                    {"key": "RegDate", "value": "2000-03-30", "details_link": None},
+                    {
+                        "key": "Ref",
+                        "value": "https://rdap.arin.net/registry/autnum/15169",
+                        "details_link": "https://rdap.arin.net/registry/autnum/15169",
+                    },
+                    {"key": "source", "value": "ARIN", "details_link": None},
+                ],
+                [
+                    {"key": "OrgAbuseHandle", "value": "ABUSE5250-ARIN", "details_link": None},
+                    {"key": "OrgAbuseName", "value": "Abuse", "details_link": None},
+                    {"key": "OrgAbusePhone", "value": "+1-650-253-0000", "details_link": None},
+                    {
+                        "key": "OrgAbuseEmail",
+                        "value": "network-abuse@google.com",
+                        "details_link": "mailto:network-abuse@google.com",
+                    },
+                    {
+                        "key": "OrgAbuseRef",
+                        "value": "https://rdap.arin.net/registry/entity/ABUSE5250-ARIN",
+                        "details_link": "https://rdap.arin.net/registry/entity/ABUSE5250-ARIN",
+                    },
+                    {"key": "source", "value": "ARIN", "details_link": None},
+                ],
+                [
+                    {"key": "OrgName", "value": "Google LLC", "details_link": None},
+                    {"key": "OrgId", "value": "GOGL", "details_link": None},
+                    {"key": "Address", "value": "1600 Amphitheatre Parkway", "details_link": None},
+                    {"key": "City", "value": "Mountain View", "details_link": None},
+                    {"key": "StateProv", "value": "CA", "details_link": None},
+                    {"key": "PostalCode", "value": "94043", "details_link": None},
+                    {"key": "Country", "value": "US", "details_link": None},
+                    {"key": "RegDate", "value": "2000-03-30", "details_link": None},
+                    {
+                        "key": "Comment",
+                        "value": "Please note that the recommended way to file abuse complaints are located in the following links.",
+                        "details_link": None,
+                    },
+                    {
+                        "key": "Comment",
+                        "value": "To report abuse and illegal activity: https://www.google.com/contact/",
+                        "details_link": None,
+                    },
+                    {
+                        "key": "Comment",
+                        "value": "For legal requests: http://support.google.com/legal",
+                        "details_link": None,
+                    },
+                    {"key": "Comment", "value": "Regards,", "details_link": None},
+                    {"key": "Comment", "value": "The Google Team", "details_link": None},
+                    {
+                        "key": "Ref",
+                        "value": "https://rdap.arin.net/registry/entity/GOGL",
+                        "details_link": "https://rdap.arin.net/registry/entity/GOGL",
+                    },
+                    {"key": "source", "value": "ARIN", "details_link": None},
+                ],
+                [
+                    {"key": "OrgTechHandle", "value": "ZG39-ARIN", "details_link": None},
+                    {"key": "OrgTechName", "value": "Google LLC", "details_link": None},
+                    {"key": "OrgTechPhone", "value": "+1-650-253-0000", "details_link": None},
+                    {
+                        "key": "OrgTechEmail",
+                        "value": "arin-contact@google.com",
+                        "details_link": "mailto:arin-contact@google.com",
+                    },
+                    {
+                        "key": "OrgTechRef",
+                        "value": "https://rdap.arin.net/registry/entity/ZG39-ARIN",
+                        "details_link": "https://rdap.arin.net/registry/entity/ZG39-ARIN",
+                    },
+                    {"key": "source", "value": "ARIN", "details_link": None},
+                ],
+                [
+                    {"key": "RTechHandle", "value": "ZG39-ARIN", "details_link": None},
+                    {"key": "RTechName", "value": "Google LLC", "details_link": None},
+                    {"key": "RTechPhone", "value": "+1-650-253-0000", "details_link": None},
+                    {"key": "RTechEmail", "value": "arin-contact@google.com", "details_link": None},
+                    {
+                        "key": "RTechRef",
+                        "value": "https://rdap.arin.net/registry/entity/ZG39-ARIN",
+                        "details_link": None,
+                    },
+                    {"key": "source", "value": "ARIN", "details_link": None},
+                ],
+            ],
+            "irr_records": [],
+            "authorities": ["arin"],
+            "resource": "15169",
+            "query_time": "2023-02-17T21:25:00",
+        },
+        "query_id": "20230217212529-75f57efd-59f4-473f-8bdd-803062e94290",
+        "process_time": 268,
+        "server_id": "app143",
+        "build_version": "live.2023.2.1.142",
+        "status": "ok",
+        "status_code": 200,
+        "time": "2023-02-17T21:25:29.417812",
+    }
+    response_get_asn_bgpview = {
+        "status": "ok",
+        "status_message": "Query was successful",
+        "data": {
+            "ip": "8.8.8.8",
+            "ptr_record": "dns.google",
+            "prefixes": [
+                {
+                    "prefix": "8.8.8.0/24",
+                    "ip": "8.8.8.0",
+                    "cidr": 24,
+                    "asn": {"asn": 15169, "name": "GOOGLE", "description": "Google LLC", "country_code": "US"},
+                    "name": "LVLT-GOGL-8-8-8",
+                    "description": "Google LLC",
+                    "country_code": "US",
+                }
+            ],
+            "rir_allocation": {
+                "rir_name": "ARIN",
+                "country_code": None,
+                "ip": "8.0.0.0",
+                "cidr": 9,
+                "prefix": "8.0.0.0/9",
+                "date_allocated": "1992-12-01 00:00:00",
+                "allocation_status": "allocated",
+            },
+            "iana_assignment": {
+                "assignment_status": "legacy",
+                "description": "Administered by ARIN",
+                "whois_server": "whois.arin.net",
+                "date_assigned": None,
+            },
+            "maxmind": {"country_code": None, "city": None},
+        },
+        "@meta": {"time_zone": "UTC", "api_version": 1, "execution_time": "567.18 ms"},
+    }
+    response_get_emails_bgpview = {
+        "status": "ok",
+        "status_message": "Query was successful",
+        "data": {
+            "asn": 15169,
+            "name": "GOOGLE",
+            "description_short": "Google LLC",
+            "description_full": ["Google LLC"],
+            "country_code": "US",
+            "website": "https://about.google/intl/en/",
+            "email_contacts": ["network-abuse@google.com", "arin-contact@google.com"],
+            "abuse_contacts": ["network-abuse@google.com"],
+            "looking_glass": None,
+            "traffic_estimation": None,
+            "traffic_ratio": "Mostly Outbound",
+            "owner_address": ["1600 Amphitheatre Parkway", "Mountain View", "CA", "94043", "US"],
+            "rir_allocation": {
+                "rir_name": "ARIN",
+                "country_code": "US",
+                "date_allocated": "2000-03-30 00:00:00",
+                "allocation_status": "assigned",
+            },
+            "iana_assignment": {
+                "assignment_status": None,
+                "description": None,
+                "whois_server": None,
+                "date_assigned": None,
+            },
+            "date_updated": "2023-02-07 06:39:11",
+        },
+        "@meta": {"time_zone": "UTC", "api_version": 1, "execution_time": "56.55 ms"},
+    }
+    config_overrides = {"scope_report_distance": 2}
+
+    def __init__(self, config, bbot_scanner, *args):
+        super().__init__(config, bbot_scanner, *args)
+        self.scan2 = bbot_scanner(
+            *self.targets,
+            modules=[self.name] + self.additional_modules,
+            name=f"{self.name}_test_2",
+            config=self.config,
+        )
+        self.scan2.prep()
+        self.module2 = self.scan2.modules[self.name]
+
+    def mock_args(self):
+        pass
+
+    def run(self):
+        with requests_mock.Mocker() as m:
+            self.m = m
+            self.register_uri(
+                "https://stat.ripe.net/data/network-info/data.json?resource=8.8.8.8",
+                text=json.dumps(self.response_get_asn_ripe),
+            )
+            self.register_uri(
+                "https://stat.ripe.net/data/whois/data.json?resource=15169",
+                text=json.dumps(self.response_get_asn_metadata_ripe),
+            )
+            self.register_uri("https://api.bgpview.io/ip/8.8.8.8", text=json.dumps(self.response_get_asn_bgpview))
+            self.register_uri("https://api.bgpview.io/asn/15169", text=json.dumps(self.response_get_emails_bgpview))
+            self.module.sources = ["bgpview", "ripe"]
+            events = list(e for e in self.scan.start() if e.module == self.module)
+            assert self.check_events(events)
+            self.module2.sources = ["ripe", "bgpview"]
+            events2 = list(e for e in self.scan2.start() if e.module == self.module2)
+            assert self.check_events(events2)
+
+    def check_events(self, events):
+        asn = False
+        email = False
+        for e in events:
+            if e.type == "ASN":
+                asn = True
+            elif e.type == "EMAIL_ADDRESS":
+                email = True
+        return asn and email
+
+
+class Wafw00f(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "Proudly powered by litespeed web server"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "WAF":
+                if "LiteSpeed" in e.data["WAF"]:
+                    return True
         return False

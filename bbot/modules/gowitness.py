@@ -30,7 +30,7 @@ class gowitness(BaseModule):
     deps_ansible = [
         {
             "name": "Install Chromium (Non-Debian)",
-            "package": {"name": "chromium", "state": "present", "update_cache": True},
+            "package": {"name": "chromium", "state": "present"},
             "become": True,
             "when": "ansible_facts['os_family'] != 'Debian'",
             "ignore_errors": True,
@@ -40,7 +40,6 @@ class gowitness(BaseModule):
             "package": {
                 "name": "libasound2,libatk-bridge2.0-0,libatk1.0-0,libcairo2,libcups2,libdrm2,libgbm1,libnss3,libpango-1.0-0,libxcomposite1,libxdamage1,libxfixes3,libxkbcommon0,libxrandr2",
                 "state": "present",
-                "update_cache": True,
             },
             "become": True,
             "when": "ansible_facts['os_family'] == 'Debian'",

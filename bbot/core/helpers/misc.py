@@ -27,7 +27,7 @@ from .url import *  # noqa F401
 from . import regexes
 from .. import errors
 from .punycode import *  # noqa F401
-from .names_generator import random_name  # noqa F401
+from .names_generator import random_name, names, adjectives  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
 
@@ -475,32 +475,42 @@ def search_format_dict(d, **kwargs):
     return d
 
 
-def filter_dict(d, *key_names, fuzzy=False, invert=False):
+def filter_dict(d, *key_names, fuzzy=False, invert=False, exclude_keys=None, prev_key=None):
     """
     Recursively filter a dictionary based on key names
-    filter_dict({"key1": "test", "key2": "asdf"}, key_name=key2)
+    filter_dict({"key1": "test", "key2": "asdf"}, "key2")
         --> {"key2": "asdf"}
     """
+    if exclude_keys is None:
+        exclude_keys = []
+    if isinstance(exclude_keys, str):
+        exclude_keys = [exclude_keys]
     ret = {}
     if isinstance(d, dict):
         for key in d:
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                ret[key] = copy.deepcopy(d[key])
+                if not prev_key in exclude_keys:
+                    ret[key] = copy.deepcopy(d[key])
             elif isinstance(d[key], list) or isinstance(d[key], dict):
-                child = filter_dict(d[key], *key_names, fuzzy=fuzzy)
+                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, prev_key=key, exclude_keys=exclude_keys)
                 if child:
                     ret[key] = child
     return ret
 
 
-def clean_dict(d, *key_names, fuzzy=False):
+def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, prev_key=None):
+    if exclude_keys is None:
+        exclude_keys = []
+    if isinstance(exclude_keys, str):
+        exclude_keys = [exclude_keys]
     d = copy.deepcopy(d)
     if isinstance(d, dict):
         for key, val in list(d.items()):
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                d.pop(key)
+                if prev_key not in exclude_keys:
+                    d.pop(key)
             else:
-                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy)
+                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, prev_key=key, exclude_keys=exclude_keys)
     return d
 
 

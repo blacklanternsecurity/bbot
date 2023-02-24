@@ -278,10 +278,10 @@ def test_events(events, scan, helpers, bbot_config):
     http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
     assert http_response.source_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com:80"
-    json_event = http_response.json()
-    assert isinstance(json_event["data"], dict)
     json_event = http_response.json(mode="graph")
     assert isinstance(json_event["data"], str)
+    json_event = http_response.json()
+    assert isinstance(json_event["data"], dict)
     assert json_event["type"] == "HTTP_RESPONSE"
     assert json_event["source"] == scan.root_event.id
     reconstituted_event = event_from_json(json_event)
