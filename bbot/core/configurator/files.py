@@ -10,6 +10,7 @@ defaults_filename = (Path(__file__).parent.parent.parent / "defaults.yml").resol
 mkdir(config_dir)
 config_filename = (config_dir / "bbot.yml").resolve()
 secrets_filename = (config_dir / "secrets.yml").resolve()
+default_config = None
 
 
 def _get_config(filename, name="config", notify=True):
@@ -26,8 +27,10 @@ def _get_config(filename, name="config", notify=True):
 
 
 def get_config():
+    global default_config
+    default_config = _get_config(defaults_filename, name="defaults")
     return OmegaConf.merge(
-        _get_config(defaults_filename, name="defaults"),
+        default_config,
         _get_config(config_filename, name="config"),
         _get_config(secrets_filename, name="secrets"),
     )

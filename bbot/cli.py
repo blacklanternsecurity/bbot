@@ -21,6 +21,7 @@ from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
 from bbot.core.helpers.logger import log_to_stderr
+from bbot.core.configurator import ensure_config_files
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
@@ -35,6 +36,8 @@ from . import config
 def main():
     err = False
     scan_name = ""
+
+    ensure_config_files()
 
     try:
         if len(sys.argv) == 1:
