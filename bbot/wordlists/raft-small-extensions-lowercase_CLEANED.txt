@@ -280,7 +280,6 @@
 .cocomore.txt
 .code
 .com
-.com,
 .com-redirect
 .com.crt
 .com.html
@@ -304,9 +303,6 @@
 .csproj
 .csproj.user
 .css
-.css.aspx
-.css.php
-.csshandler.ashx
 .csv
 .cur
 .custom
@@ -468,12 +464,7 @@
 .jpe
 .jpeg
 .jpg
-.jpg.html
 .js
-.js.asp
-.js.aspx
-.js.gz
-.js.php
 .js2
 .jsf
 .json
