@@ -65,8 +65,12 @@ class massdns(crobat):
             nameservers_url,
             cache_hrs=24 * 7,
         )
-        ret = super().setup()
-        return ret
+        with open(self.resolver_file) as f:
+            num_resolvers = len(f.readlines())
+            self.verbose(f"Loaded {num_resolvers:,} public nameservers from {nameservers_url}")
+            if len(num_resolvers) < 100:
+                return None, f"Not enough nameservers to perform DNS brute-forcing"
+        return super().setup()
 
     def filter_event(self, event):
         query = self.make_query(event)
