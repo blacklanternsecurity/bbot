@@ -199,6 +199,12 @@ class BaseEvent:
     def tags(self):
         return self._tags
 
+    @tags.setter
+    def tags(self, tags):
+        if isinstance(tags, str):
+            tags = (tags,)
+        self._tags = set(tagify(s) for s in tags)
+
     def add_tag(self, tag):
         self._tags.add(tagify(tag))
 
