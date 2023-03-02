@@ -141,6 +141,10 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert "http-web-title" not in tagged_event.tags
     tagged_event.add_tag("Another tag  ")
     assert "another-tag" in tagged_event.tags
+    tagged_event.tags = ["Some other tag  "]
+    assert isinstance(tagged_event._tags, set)
+    assert "another-tag" not in tagged_event.tags
+    assert "some-other-tag" in tagged_event.tags
 
     assert list(helpers.search_dict_by_key("asdf", {"asdf": "fdsa", 4: [{"asdf": 5}]})) == ["fdsa", 5]
     assert list(helpers.search_dict_by_key("asdf", {"wat": {"asdf": "fdsa"}})) == ["fdsa"]
