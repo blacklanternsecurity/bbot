@@ -55,6 +55,7 @@ class ffuf_shortnames(ffuf):
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
         "ignore_redirects": "Explicitly ignore redirects (301,302)",
         "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional ffuf runs against them",
+        "find_delimeters": "Attempt to detect common delimeters and make additional ffuf runs against them",
     }
 
     in_scope_only = True
