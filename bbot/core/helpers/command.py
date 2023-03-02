@@ -121,7 +121,7 @@ def catch(callback, *args, **kwargs):
 
 def tempfile(self, content, pipe=True):
     """
-    tempfile("temp\nfile\ncontent") --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
+    tempfile(["temp", "file", "content"]) --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
 
     if "pipe" is True (the default), a named pipe is used instead of
     a true file, which allows python data to be piped directly into the

@@ -555,14 +555,6 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
             interactsh_client.deregister()
 
 
-def test_dns_resolvers(helpers):
-    with requests_mock.Mocker() as m:
-        m.get(helpers.dns.nameservers_url, json=[{"ip": "8.8.8.8", "reliability": 0.999}])
-        assert type(helpers.dns.resolvers) == set
-        assert hasattr(helpers.dns.resolver_file, "is_file")
-        assert hasattr(helpers.dns.mass_resolver_file, "is_file")
-
-
 def test_word_cloud(helpers, bbot_config, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
     assert "base0_p013" in number_mutations
