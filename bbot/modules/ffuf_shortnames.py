@@ -151,7 +151,6 @@ class ffuf_shortnames(ffuf):
                         self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
             if self.config.get("find_delimeters"):
-                self.critical("!!!")
                 if "shortname-directory" in event.tags:
                     delimeter_r = self.find_delimeter(filename_hint)
                     if delimeter_r:
