@@ -504,16 +504,16 @@ class LeakIX(RequestMockHelper):
 
 class Massdns(MockHelper):
     subdomain_wordlist = tempwordlist(["www", "asdf"])
-    nameserver_wordlist = tempwordlist(["8.8.8.8", "8.8.4.4", "1.1.1.1"])
     config_overrides = {"modules": {"massdns": {"wordlist": str(subdomain_wordlist)}}}
 
     def __init__(self, *args, **kwargs):
         with requests_mock.Mocker() as m:
-            m.register_uri("GET", "https://public-dns.info/nameserver/nameservers.json", status_code=404)
+            m.register_uri(
+                "GET",
+                "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt",
+                text="8.8.8.8\n8.8.4.4\n1.1.1.1",
+            )
             super().__init__(*args, **kwargs)
-
-    def patch_scan(self, scan):
-        scan.helpers.dns.fallback_nameservers_file = self.nameserver_wordlist
 
     def check_events(self, events):
         for e in events:
@@ -560,7 +560,7 @@ class Robots(HttpxMockHelper):
 
 
 class Masscan(MockHelper):
-    # massdns can't scan localhost
+    # masscan can't scan localhost
     targets = ["8.8.8.8/32"]
     config_overrides = {"force_deps": True, "modules": {"masscan": {"ports": "53", "wait": 1}}}
 
