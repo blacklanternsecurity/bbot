@@ -49,7 +49,7 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
             # target only
             base_module.target_only = True
             assert base_module._event_precheck(localhost2)[0] == False
-            localhost2.tags.add("target")
+            localhost2.add_tag("target")
             assert base_module._event_precheck(localhost2)[0] == True
             base_module.target_only = False
             # special case for IPs and ranges

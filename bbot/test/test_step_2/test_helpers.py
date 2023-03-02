@@ -134,6 +134,14 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert helpers.get_file_extension("/etc/conf/test.tar.gz") == "gz"
     assert helpers.get_file_extension("/etc/passwd") == ""
 
+    assert helpers.tagify("HttP  -_Web  Title--  ") == "http-web-title"
+    tagged_event = scan.make_event("127.0.0.1", source=scan.root_event, tags=["HttP  web -__- title  "])
+    assert "http-web-title" in tagged_event.tags
+    tagged_event.remove_tag("http-web-title")
+    assert "http-web-title" not in tagged_event.tags
+    tagged_event.add_tag("Another tag  ")
+    assert "another-tag" in tagged_event.tags
+
     assert list(helpers.search_dict_by_key("asdf", {"asdf": "fdsa", 4: [{"asdf": 5}]})) == ["fdsa", 5]
     assert list(helpers.search_dict_by_key("asdf", {"wat": {"asdf": "fdsa"}})) == ["fdsa"]
     assert list(helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"asdf": "fdsa"}]}])) == ["fdsa"]

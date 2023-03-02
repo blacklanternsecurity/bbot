@@ -24,6 +24,7 @@ from bbot.core.helpers import (
     get_file_extension,
     validators,
     smart_decode_punycode,
+    tagify,
 )
 
 
@@ -69,12 +70,12 @@ class BaseEvent:
 
         self.timestamp = datetime.utcnow()
 
-        if tags is None:
-            tags = set()
+        self._tags = set()
+        if tags is not None:
+            self._tags = set(tagify(s) for s in tags)
 
         self._data = None
         self.type = event_type
-        self.tags = set(tags)
         self.confidence = int(confidence)
 
         # for creating one-off events without enforcing source requirement
@@ -195,6 +196,16 @@ class BaseEvent:
         return set()
 
     @property
+    def tags(self):
+        return self._tags
+
+    def add_tag(self, tag):
+        self._tags.add(tagify(tag))
+
+    def remove_tag(self, tag):
+        self._tags.remove(tagify(tag))
+
+    @property
     def id(self):
         if self._id is None:
             self._id = make_event_id(self.data_id, self.type)
@@ -217,8 +228,8 @@ class BaseEvent:
                 self._scope_distance = new_scope_distance
                 for t in list(self.tags):
                     if t.startswith("distance-"):
-                        self.tags.remove(t)
-                self.tags.add(f"distance-{new_scope_distance}")
+                        self.remove_tag(t)
+                self.add_tag(f"distance-{new_scope_distance}")
 
     @property
     def source(self):
@@ -255,7 +266,7 @@ class BaseEvent:
     def make_internal(self):
         if not self._made_internal:
             self._internal = True
-            self.tags.add("internal")
+            self.add_tag("internal")
             self._made_internal = True
 
     def unmake_internal(self, set_scope_distance=None, force_output=False):
@@ -264,7 +275,7 @@ class BaseEvent:
             if set_scope_distance is not None:
                 self.scope_distance = set_scope_distance
             self._internal = False
-            self.tags.remove("internal")
+            self.remove_tag("internal")
             if force_output:
                 self._force_output = True
             self._made_internal = False
@@ -287,7 +298,7 @@ class BaseEvent:
             source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output=True)
         self.scope_distance = set_scope_distance
         if set_scope_distance == 0:
-            self.tags.add("in-scope")
+            self.add_tag("in-scope")
         return source_trail
 
     def _host(self):
@@ -532,9 +543,9 @@ class IP_ADDRESS(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         ip = ipaddress.ip_address(self.data)
-        self.tags.add(f"ipv{ip.version}")
+        self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
-            self.tags.add("private")
+            self.add_tag("private")
         self.dns_resolve_distance = getattr(self.source, "dns_resolve_distance", 0)
 
     def sanitize_data(self, data):
@@ -558,14 +569,14 @@ class DnsEvent(BaseEvent):
             self.dns_resolve_distance = getattr(source, "dns_resolve_distance", 0)
             if source_module_type == "DNS":
                 self.dns_resolve_distance += 1
-        # self.tags.add(f"resolve-distance-{self.dns_resolve_distance}")
+        # self.add_tag(f"resolve-distance-{self.dns_resolve_distance}")
 
 
 class IP_RANGE(DnsEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         net = ipaddress.ip_network(self.data, strict=False)
-        self.tags.add(f"ipv{net.version}")
+        self.add_tag(f"ipv{net.version}")
 
     def sanitize_data(self, data):
         return str(ipaddress.ip_network(str(data), strict=False))
@@ -578,9 +589,9 @@ class DNS_NAME(DnsEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if is_subdomain(self.data):
-            self.tags.add("subdomain")
+            self.add_tag("subdomain")
         elif is_domain(self.data):
-            self.tags.add("domain")
+            self.add_tag("domain")
 
     def sanitize_data(self, data):
         return validators.validate_host(data)
@@ -622,9 +633,9 @@ class URL_UNVERIFIED(BaseEvent):
 
         # tag as dir or endpoint
         if str(self.parsed.path).endswith("/"):
-            self.tags.add("dir")
+            self.add_tag("dir")
         else:
-            self.tags.add("endpoint")
+            self.add_tag("endpoint")
 
         parsed_path_lower = str(self.parsed.path).lower()
 
@@ -637,11 +648,11 @@ class URL_UNVERIFIED(BaseEvent):
 
         extension = get_file_extension(parsed_path_lower)
         if extension:
-            self.tags.add(f"extension-{extension}")
+            self.add_tag(f"extension-{extension}")
             if extension in url_extension_blacklist:
-                self.tags.add("blacklisted")
+                self.add_tag("blacklisted")
             if extension in url_extension_httpx_only:
-                self.tags.add("httpx-only")
+                self.add_tag("httpx-only")
                 self._omit = True
 
         data = self.parsed.geturl()
@@ -739,7 +750,7 @@ class VULNERABILITY(DictHostEvent):
     always_in_scope = True
 
     def sanitize_data(self, data):
-        self.tags.add(data["severity"].lower())
+        self.add_tag(data["severity"].lower())
         return data
 
     class _data_validator(BaseModel):
