@@ -57,10 +57,15 @@ class massdns(crobat):
         self.mutations_tried = set()
         self.source_events = dict()
         self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
-        ret = super().setup()
-        if not len(self.helpers.resolvers) >= 100 and not self.helpers.in_tests:
-            return None, "Not enough nameservers available for DNS brute-forcing"
-        return ret
+        self.max_resolvers = self.config.get("max_resolvers", 500)
+        nameservers_url = (
+            "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt"
+        )
+        self.resolver_file = self.helpers.wordlist(
+            nameservers_url,
+            cache_hrs=24 * 7,
+        )
+        return super().setup()
 
     def filter_event(self, event):
         query = self.make_query(event)
@@ -167,9 +172,9 @@ class massdns(crobat):
         command = (
             "massdns",
             "-r",
-            self.helpers.dns.mass_resolver_file,
+            self.resolver_file,
             "-s",
-            self.config.get("max_resolvers", 1000),
+            self.max_resolvers,
             "-t",
             "A",
             "-t",
