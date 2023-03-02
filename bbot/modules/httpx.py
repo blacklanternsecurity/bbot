@@ -127,7 +127,11 @@ class httpx(BaseModule):
 
             # main URL
             httpx_ip = j.get("host", "unknown")
-            url_event = self.make_event(url, "URL", source_event, tags=[f"status-{status_code}", f"ip-{httpx_ip}"])
+            tags = [f"status-{status_code}", f"ip-{httpx_ip}"]
+            title = j.get("title", "")
+            if title:
+                tags.append(f"http-title-{title}")
+            url_event = self.make_event(url, "URL", source_event, tags=tags)
             if url_event and not "httpx-only" in url_event.tags:
                 if url_event != source_event:
                     self.emit_event(url_event)
