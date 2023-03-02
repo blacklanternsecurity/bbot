@@ -48,16 +48,19 @@ class subdomain_hijack(BaseModule):
             while 1:
                 host = getattr(e, "host", "")
                 if host:
-                    if host not in source_hosts:
-                        source_hosts.append(host)
+                    if e not in source_hosts:
+                        source_hosts.append(e)
                     e = e.source
                 else:
                     break
 
             url = f"https://{event.host}"
             description = f'Hijackable Subdomain "{event.data}": {reason}'
+            source_hosts = source_hosts[::-1]
             if source_hosts:
-                source_hosts_str = " -> ".join([str(s) for s in source_hosts[::-1]])
+                source_hosts_str = str(source_hosts[0].host)
+                for e in source_hosts[1:]:
+                    source_hosts_str += f" -[{e.module.name}]-> {e.host}"
                 description += f" ({source_hosts_str})"
             self.emit_event({"host": event.host, "url": url, "description": description}, "FINDING", source=event)
         else:
