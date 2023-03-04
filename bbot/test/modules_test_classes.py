@@ -613,7 +613,7 @@ class Ffuf(HttpxMockHelper):
 
 
 class Ffuf_shortnames(HttpxMockHelper):
-    test_wordlist = ["11111111", "administrator", "portal", "console", "junkword1", "zzzjunkword2"]
+    test_wordlist = ["11111111", "administrator", "portal", "console", "junkword1", "zzzjunkword2", "directory"]
     config_overrides = {
         "modules": {
             "ffuf_shortnames": {
@@ -685,6 +685,15 @@ class Ffuf_shortnames(HttpxMockHelper):
                 tags=["shortname-file"],
             )
         )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/DIRECT~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
         self.scan.target._events["http://127.0.0.1:8888"] = seed_events
 
     def mock_args(self):
@@ -700,8 +709,13 @@ class Ffuf_shortnames(HttpxMockHelper):
         respond_args = {"response_data": "alive"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"method": "GET", "uri": "/directory/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
     def check_events(self, events):
         basic_detection = False
+        directory_detection = False
         prefix_detection = False
         delimeter_detection = False
 
@@ -709,11 +723,13 @@ class Ffuf_shortnames(HttpxMockHelper):
             if e.type == "URL_UNVERIFIED":
                 if e.data == "http://127.0.0.1:8888/administrator.aspx":
                     basic_detection = True
+                if e.data == "http://127.0.0.1:8888/directory/":
+                    directory_detection = True
                 if e.data == "http://127.0.0.1:8888/adm_portal.aspx":
                     prefix_detection = True
                 if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
                     delimeter_detection = True
 
-        if basic_detection and prefix_detection and delimeter_detection:
+        if basic_detection and directory_detection and prefix_detection and delimeter_detection:
             return True
         return False
