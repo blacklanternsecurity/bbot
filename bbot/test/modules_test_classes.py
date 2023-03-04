@@ -588,6 +588,17 @@ class Wafw00f(HttpxMockHelper):
 
 
 class Ffuf(HttpxMockHelper):
+    test_wordlist = ["11111111", "admin", "junkword1", "zzzjunkword2"]
+    config_overrides = {
+        "modules": {
+            "ffuf": {
+                "wordlist": tempwordlist(test_wordlist),
+            }
+        }
+    }
+
+    additional_modules = ["httpx"]
+
     def mock_args(self):
         expect_args = {"method": "GET", "uri": "/admin"}
         respond_args = {"response_data": "alive"}

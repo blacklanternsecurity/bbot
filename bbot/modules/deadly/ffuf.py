@@ -49,6 +49,7 @@ class ffuf(BaseModule):
     def setup(self):
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
+        self.debug(f"Using wordlist [{wordlist_url}]")
         self.wordlist = self.helpers.wordlist(wordlist_url)
         f = open(self.wordlist, "r")
         self.wordlist_lines = f.readlines()
