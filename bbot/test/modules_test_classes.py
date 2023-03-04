@@ -703,6 +703,42 @@ class Ffuf_shortnames(HttpxMockHelper):
                 tags=["shortname-directory"],
             )
         )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/XYZDIR~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/XYZAAA~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/XYZBBB~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/XYZCCC~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
         self.scan.target._events["http://127.0.0.1:8888"] = seed_events
 
     def mock_args(self):
@@ -726,12 +762,17 @@ class Ffuf_shortnames(HttpxMockHelper):
         respond_args = {"response_data": "alive"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"method": "GET", "uri": "/xyzdirectory/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
     def check_events(self, events):
         basic_detection = False
         directory_detection = False
         prefix_detection = False
         delimeter_detection = False
         directory_delimeter_detection = False
+        prefix_delimeter_detection = False
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
@@ -745,6 +786,8 @@ class Ffuf_shortnames(HttpxMockHelper):
                     delimeter_detection = True
                 if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
                     directory_delimeter_detection = True
+                if e.data == "http://127.0.0.1:8888/xyzdirectory/":
+                    prefix_delimeter_detection = True
 
         if (
             basic_detection
@@ -752,6 +795,7 @@ class Ffuf_shortnames(HttpxMockHelper):
             and prefix_detection
             and delimeter_detection
             and directory_delimeter_detection
+            and prefix_delimeter_detection
         ):
             return True
         return False
