@@ -85,3 +85,8 @@ def test_asn(bbot_config, bbot_scanner, bbot_httpserver):
 def test_wafw00f(bbot_config, bbot_scanner, bbot_httpserver):
     x = Wafw00f(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_iis_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Iis_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
