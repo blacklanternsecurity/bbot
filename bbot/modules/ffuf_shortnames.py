@@ -77,6 +77,7 @@ class ffuf_shortnames(ffuf):
         wordlist = self.config.get("wordlist", "")
         if not wordlist:
             wordlist = f"{self.helpers.wordlist_dir}/ffuf_shortname_candidates.txt"
+        self.debug(f"Using [{wordlist}] for shortname candidate list")
         self.wordlist = self.helpers.wordlist(wordlist)
         f = open(self.wordlist, "r")
         self.wordlist_lines = f.readlines()
@@ -85,6 +86,7 @@ class ffuf_shortnames(ffuf):
         wordlist_extensions = self.config.get("wordlist_extensions", "")
         if not wordlist_extensions:
             wordlist_extensions = f"{self.helpers.wordlist_dir}/raft-small-extensions-lowercase_CLEANED.txt"
+        self.debug(f"Using [{wordlist_extensions}] for shortname candidate extension list")
         self.wordlist_extensions = self.helpers.wordlist(wordlist_extensions)
         self.extensions = self.config.get("extensions")
         self.ignore_redirects = self.config.get("ignore_redirects")
