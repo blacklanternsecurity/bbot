@@ -247,7 +247,7 @@ def events(scan):
         ipv6_url = scan.make_event(
             "https://[2001:4860:4860::8888]:443/hellofriend", "URL", tags=["status-200"], source=scan.root_event
         )
-        url_hint = scan.make_event("https://api.publicAPIs.org:443/hello.ash", "URL_HINT", source=scan.root_event)
+        url_hint = scan.make_event("https://api.publicAPIs.org:443/hello.ash", "URL_HINT", source=url)
         vulnerability = scan.make_event(
             {"host": "evilcorp.com", "severity": "INFO", "description": "asdf"},
             "VULNERABILITY",

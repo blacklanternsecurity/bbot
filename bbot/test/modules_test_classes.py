@@ -832,6 +832,220 @@ class Wafw00f(HttpxMockHelper):
         return False
 
 
+class Ffuf(HttpxMockHelper):
+    test_wordlist = ["11111111", "admin", "junkword1", "zzzjunkword2"]
+    config_overrides = {
+        "modules": {
+            "ffuf": {
+                "wordlist": tempwordlist(test_wordlist),
+            }
+        }
+    }
+
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/admin"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if "admin" in e.data:
+                    return True
+        return False
+
+
+class Ffuf_shortnames(HttpxMockHelper):
+    test_wordlist = ["11111111", "administrator", "portal", "console", "junkword1", "zzzjunkword2", "directory"]
+    config_overrides = {
+        "modules": {
+            "ffuf_shortnames": {
+                "find_common_prefixes": True,
+                "find_common_prefixes": True,
+                "wordlist": tempwordlist(test_wordlist),
+            }
+        }
+    }
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 404
+
+        seed_events = []
+        parent_event = self.scan.make_event(
+            "http://127.0.0.1:8888/", "URL", self.scan.root_event, module="httpx", tags=["status-200", "distance-0"]
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/ADMINI~1.ASP",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-file"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/ADM_PO~1.ASP",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-file"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/ABCZZZ~1.ASP",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-file"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/ABCXXX~1.ASP",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-file"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/ABCYYY~1.ASP",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-file"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/ABCCON~1.ASP",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-file"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/DIRECT~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/ADM_DI~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/XYZDIR~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/XYZAAA~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/XYZBBB~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/XYZCCC~1",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-directory"],
+            )
+        )
+        self.scan.target._events["http://127.0.0.1:8888"] = seed_events
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/administrator.aspx"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/adm_portal.aspx"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/abcconsole.aspx"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/directory/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/adm_directory/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/xyzdirectory/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        basic_detection = False
+        directory_detection = False
+        prefix_detection = False
+        delimeter_detection = False
+        directory_delimeter_detection = False
+        prefix_delimeter_detection = False
+
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if e.data == "http://127.0.0.1:8888/administrator.aspx":
+                    basic_detection = True
+                if e.data == "http://127.0.0.1:8888/directory/":
+                    directory_detection = True
+                if e.data == "http://127.0.0.1:8888/adm_portal.aspx":
+                    prefix_detection = True
+                if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
+                    delimeter_detection = True
+                if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
+                    directory_delimeter_detection = True
+                if e.data == "http://127.0.0.1:8888/xyzdirectory/":
+                    prefix_delimeter_detection = True
+
+        if (
+            basic_detection
+            and directory_detection
+            and prefix_detection
+            and delimeter_detection
+            and directory_delimeter_detection
+            and prefix_delimeter_detection
+        ):
+            return True
+        return False
+
+
 class Iis_shortnames(HttpxMockHelper):
     additional_modules = ["httpx"]
 
