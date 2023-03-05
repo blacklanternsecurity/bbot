@@ -1,4 +1,5 @@
 import re
+from threading import Lock
 
 from bbot.modules.base import BaseModule
 
@@ -14,7 +15,7 @@ class iis_shortnames(BaseModule):
     produced_events = ["URL_HINT"]
     flags = ["active", "safe", "web-basic", "iis-shortnames"]
     meta = {"description": "Check for IIS shortname vulnerability"}
-    options = {"detect_only": True, "max_node_count": 35}
+    options = {"detect_only": True, "max_node_count": 30}
     options_desc = {
         "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
         "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
@@ -44,6 +45,15 @@ class iis_shortnames(BaseModule):
                     detections.append((method, 0, technique))
                     technique = "HTTP Body Error Message"
         return detections
+
+    def setup(self):
+        self.scanned_tracker_lock = Lock()
+        self.scanned_tracker = set()
+        return True
+
+    @staticmethod
+    def normalize_url(url):
+        return str(url.rstrip("/") + "/").lower()
 
     def directory_confirm(self, target, method, url_hint, affirmative_status_code):
         payload = encode_all(f"{url_hint}")
@@ -130,11 +140,13 @@ class iis_shortnames(BaseModule):
         return url_hint_list
 
     def handle_event(self, event):
-        normalized_url = event.data.rstrip("/") + "/"
+        normalized_url = self.normalize_url(event.data)
+        with self.scanned_tracker_lock:
+            self.scanned_tracker.add(normalized_url)
+
         detections = self.detect(normalized_url)
 
         technique_strings = []
-
         if detections:
             for detection in detections:
                 method, affirmative_status_code, technique = detection
@@ -196,6 +208,10 @@ class iis_shortnames(BaseModule):
                             hint_type = "shortname-directory"
                         self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
 
-        def filter_event(self, event):
-            if "dir" in event.tags:
-                return True
+    def filter_event(self, event):
+        if "dir" in event.tags:
+            with self.scanned_tracker_lock:
+                if self.normalize_url(event.data) not in self.scanned_tracker:
+                    return True
+                return False
+        return False
