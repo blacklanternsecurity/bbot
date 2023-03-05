@@ -1044,3 +1044,58 @@ class Ffuf_shortnames(HttpxMockHelper):
         ):
             return True
         return False
+
+
+class Iis_shortnames(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    config_overrides = {"modules": {"iis_shortnames": {"detect_only": False}}}
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 404
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive", "status": 200}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/*~1*/a.aspx"}
+        respond_args = {"response_data": "", "status": 400}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": re.compile(r"\/B\*~1\*.*$")}
+        respond_args = {"response_data": "", "status": 400}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": re.compile(r"\/BL\*~1\*.*$")}
+        respond_args = {"response_data": "", "status": 400}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": re.compile(r"\/BLS\*~1\*.*$")}
+        respond_args = {"response_data": "", "status": 400}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": re.compile(r"\/BLSH\*~1\*.*$")}
+        respond_args = {"response_data": "", "status": 400}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": re.compile(r"\/BLSHA\*~1\*.*$")}
+        respond_args = {"response_data": "", "status": 400}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": re.compile(r"\/BLSHAX\*~1\*.*$")}
+        respond_args = {"response_data": "", "status": 400}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        vulnerabilityEmitted = False
+        url_hintEmitted = False
+        for e in events:
+            if e.type == "VULNERABILITY":
+                vulnerabilityEmitted = True
+            if e.type == "URL_HINT" and e.data == "http://127.0.0.1:8888/BLSHAX~1":
+                url_hintEmitted = True
+
+        if vulnerabilityEmitted and url_hintEmitted:
+            return True
+        return False
