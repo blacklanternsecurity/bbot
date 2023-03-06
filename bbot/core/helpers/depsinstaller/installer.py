@@ -310,12 +310,6 @@ class DepsInstaller:
         askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)
         # ensure tldextract data is cached
         self.parent_helper.tldextract("evilcorp.co.uk")
-        # install python3-apt
-        if os.environ.get("BBOT_OS_PLATFORM", "") == "linux" and self.parent_helper.which("apt"):
-            try:
-                import apt  # noqa F401
-            except ModuleNotFoundError:
-                to_install.add("python3-apt")
         # command: package_name
         core_deps = {"unzip": "unzip", "curl": "curl"}
         for command, package_name in core_deps.items():
