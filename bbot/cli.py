@@ -177,20 +177,23 @@ def main():
                         log.verbose(
                             f"Removing {m} because it does not have the required flags: {'+'.join(options.require_flags)}"
                         )
-                        modules.remove(m)
+                        with suppress(KeyError):
+                            modules.remove(m)
 
                 # excluded flags
                 for m in scanner._scan_modules:
                     flags = module_loader._preloaded.get(m, {}).get("flags", [])
                     if any(f in flags for f in options.exclude_flags):
                         log.verbose(f"Removing {m} because of excluded flag: {','.join(options.exclude_flags)}")
-                        modules.remove(m)
+                        with suppress(KeyError):
+                            modules.remove(m)
 
                 # excluded modules
                 for m in options.exclude_modules:
                     if m in modules:
                         log.verbose(f"Removing {m} because it is excluded")
-                        modules.remove(m)
+                        with suppress(KeyError):
+                            modules.remove(m)
                 scanner._scan_modules = list(modules)
 
                 log_fn = log.info

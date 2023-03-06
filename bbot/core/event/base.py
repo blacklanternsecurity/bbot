@@ -209,7 +209,8 @@ class BaseEvent:
         self._tags.add(tagify(tag))
 
     def remove_tag(self, tag):
-        self._tags.remove(tagify(tag))
+        with suppress(KeyError):
+            self._tags.remove(tagify(tag))
 
     @property
     def id(self):
