@@ -3,7 +3,6 @@ import logging
 import threading
 import traceback
 from sys import exc_info
-from datetime import datetime
 from contextlib import suppress
 
 from ..core.helpers.threadpool import ThreadPoolWrapper
