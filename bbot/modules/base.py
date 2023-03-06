@@ -191,7 +191,6 @@ class BaseModule:
         if self.batch_size <= 1:
             return
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
-            self.batch_idle(reset=True)
             on_finish_callback = None
             events, finish, report = self.events_waiting
             if finish:
@@ -313,13 +312,6 @@ class BaseModule:
         """
         # if we're below our maximum threading potential
         return self._internal_thread_pool.num_tasks < self.max_event_handlers
-
-    def batch_idle(self, reset=False):
-        now = datetime.now()
-        if self._last_submitted_batch is None or reset:
-            self._last_submitted_batch = now
-        delta = now - self._last_submitted_batch
-        return delta.total_seconds()
 
     def _worker(self):
         try:
