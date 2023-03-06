@@ -134,6 +134,12 @@ class DNSHelper:
 
             return (results, errors)
 
+    def submit_task(self, *args, **kwargs):
+        try:
+            return self._thread_pool.submit(*args, **kwargs)
+        except RuntimeError as e:
+            log.debug(f"Error submitting DNS thread task: {e}")
+
     def _resolve_hostname(self, query, **kwargs):
         self.debug(f"Resolving {query} with kwargs={kwargs}")
         results = []
@@ -278,9 +284,11 @@ class DNSHelper:
 
             futures = {}
             for t in types:
-                future = self._thread_pool.submit(
+                future = self.submit_task(
                     self._catch_keyboardinterrupt, self.resolve_raw, event_host, type=t, cache_result=True
                 )
+                if future is None:
+                    break
                 futures[future] = t
 
             for future in self.parent_helper.as_completed(futures):
@@ -373,7 +381,9 @@ class DNSHelper:
         """
         futures = dict()
         for query in queries:
-            future = self._thread_pool.submit(self._catch_keyboardinterrupt, self.resolve, query, **kwargs)
+            future = self.submit_task(self._catch_keyboardinterrupt, self.resolve, query, **kwargs)
+            if future is None:
+                break
             futures[future] = query
         for future in self.parent_helper.as_completed(futures):
             query = futures[future]
@@ -496,9 +506,11 @@ class DNSHelper:
             # then resolve the query for all rdtypes
             for _rdtype in self.all_rdtypes:
                 # resolve the base query
-                future = self._thread_pool.submit(
+                future = self.submit_task(
                     self._catch_keyboardinterrupt, self.resolve_raw, query, type=_rdtype, cache_result=True
                 )
+                if future is None:
+                    break
                 futures.append(future)
 
             for future in self.parent_helper.as_completed(futures):
@@ -576,13 +588,15 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        future = self._thread_pool.submit(
+                        future = self.submit_task(
                             self._catch_keyboardinterrupt,
                             self.resolve,
                             rand_query,
                             type=rdtype,
                             cache_result=False,
                         )
+                        if future is None:
+                            break
                         wildcard_futures[future] = rdtype
 
                 # combine the random results
