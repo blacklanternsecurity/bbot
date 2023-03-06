@@ -236,6 +236,8 @@ class BaseModule:
         for o in ("on_success_callback", "abort_if", "quick"):
             event_kwargs.pop(o, None)
         event = self.make_event(*args, **event_kwargs)
+        if event is None:
+            return
         # nerf event's priority if it's likely not to be in scope
         if event.scope_distance > 0:
             event_in_scope = self.scan.whitelisted(event) and not self.scan.blacklisted(event)
