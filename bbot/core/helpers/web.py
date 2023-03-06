@@ -112,11 +112,9 @@ def request(self, *args, **kwargs):
         session.mount("http://", self.retry_adapter)
         session.mount("https://", self.retry_adapter)
     else:
-        if getattr(self, "base_session", None) is None:
-            self.base_session = requests.Session()
-            self.base_session.mount("http://", self.retry_adapter)
-            self.base_session.mount("https://", self.retry_adapter)
-        session = self.base_session
+        session = requests.Session()
+        session.mount("http://", self.retry_adapter)
+        session.mount("https://", self.retry_adapter)
 
     http_timeout = self.config.get("http_timeout", 20)
     user_agent = self.config.get("user_agent", "BBOT")
