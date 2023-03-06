@@ -30,6 +30,12 @@ class sslcert(BaseModule):
         self.skip_non_ssl = self.config.get("skip_non_ssl", True)
         self.non_ssl_ports = (22, 53, 80)
 
+        # sometimes we run into a server with A LOT of SANs
+        # these are usually stupid and useless, so we abort based on a different threshold
+        # depending on whether the source event is in scope
+        self.in_scope_abort_threshold = 50
+        self.out_of_scope_abort_threshold = 10
+
         self.hosts_visited = set()
         self.hosts_visited_lock = threading.Lock()
         self.ip_lock = NamedLock()
@@ -58,28 +64,41 @@ class sslcert(BaseModule):
             future = self.submit_task(self.visit_host, host, port)
             futures[future] = host
 
+        if event.scope_distance == 0:
+            abort_threshold = self.in_scope_abort_threshold
+        else:
+            abort_threshold = self.out_of_scope_abort_threshold
         for future in self.helpers.as_completed(futures):
             host = futures[future]
-            for event_type, event_data in future.result():
-                if event_data is not None and event_data != event:
-                    self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
-                    try:
-                        ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
-                        if ssl_event:
-                            self.emit_event(ssl_event)
-                    except ValidationError as e:
-                        self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
-                        self.debug(f"Invalid data at {host}:{port}: {e}")
+            dns_names, emails = future.result()
+            if len(dns_names) > abort_threshold:
+                netloc = self.helpers.make_netloc(host, port)
+                self.info(
+                    f"Skipping SSL enumeration on {netloc} because number of hostnames ({len(dns_names):,}) exceeds threshold of {abort_threshold}"
+                )
+                return
+            for event_type, results in (("DNS_NAME", dns_names), ("EMAIL_ADDRESS", emails)):
+                for event_data in results:
+                    if event_data is not None and event_data != event:
+                        self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
+                        try:
+                            ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
+                            if ssl_event:
+                                self.emit_event(ssl_event)
+                        except ValidationError as e:
+                            self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
+                            self.debug(f"Invalid data at {host}:{port}: {e}")
 
     def visit_host(self, host, port):
         host = self.helpers.make_ip_type(host)
         host_hash = hash((host, port))
-        results = []
+        dns_names = set()
+        emails = set()
         with self.ip_lock.get_lock(host_hash):
             with self.hosts_visited_lock:
                 if host_hash in self.hosts_visited:
                     self.debug(f"Already processed {host} on port {port}, skipping")
-                    return results
+                    return dns_names, emails
                 else:
                     self.hosts_visited.add(host_hash)
 
@@ -96,7 +115,7 @@ class sslcert(BaseModule):
                 sock.connect((host, port))
             except Exception as e:
                 self.debug(f"Error connecting to {host} on port {port}: {e}")
-                return results
+                return dns_names, emails
             connection = SSL.Connection(context, sock)
             connection.set_tlsext_host_name(self.helpers.smart_encode(host))
             connection.set_connect_state()
@@ -112,21 +131,19 @@ class sslcert(BaseModule):
                     break
             except Exception as e:
                 self.debug(f"Error with SSL handshake on {host} port {port}: {e}")
-                return results
+                return dns_names, emails
             cert = connection.get_peer_certificate()
             sock.close()
             issuer = cert.get_issuer()
             if issuer.emailAddress and self.helpers.regexes.email_regex.match(issuer.emailAddress):
-                results.append(("EMAIL_ADDRESS", issuer.emailAddress))
+                emails.add(issuer.emailAddress)
             subject = cert.get_subject()
             if subject.emailAddress and self.helpers.regexes.email_regex.match(subject.emailAddress):
-                results.append(("EMAIL_ADDRESS", subject.emailAddress))
+                emails.add(subject.emailAddress)
             common_name = subject.commonName
-            cert_results = self.get_cert_sans(cert)
-            cert_results.append(str(common_name).lstrip("*.").lower())
-            for c in set(cert_results):
-                results.append(("DNS_NAME", c))
-        return results
+            dns_names = set(self.get_cert_sans(cert))
+            dns_names.add(str(common_name).lstrip("*.").lower())
+        return dns_names, emails
 
     @staticmethod
     def get_cert_sans(cert):

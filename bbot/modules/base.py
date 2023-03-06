@@ -311,17 +311,8 @@ class BaseModule:
         """
         Determine whether a batch should be forcefully submitted
         """
-        # if we've been idle long enough
-        if self.batch_idle() >= self.batch_wait:
-            return True
-        # if scan is finishing
-        if self.scan.status == "FINISHING":
-            return True
-        # if there's a batch stalemate
-        batch_modules = [m for m in self.scan.modules.values() if m.batch_size > 1]
-        if all([(not m.running) for m in batch_modules]):
-            return True
-        return False
+        # if we're below our maximum threading potential
+        return self._internal_thread_pool.num_tasks < self.max_event_handlers
 
     def batch_idle(self, reset=False):
         now = datetime.now()
@@ -340,8 +331,7 @@ class BaseModule:
                     continue
 
                 if self.batch_size > 1:
-                    force = self._force_batch
-                    submitted = self._handle_batch(force=force)
+                    submitted = self._handle_batch(force=self._force_batch)
                     if not submitted:
                         with self.event_received:
                             self.event_received.wait(timeout=0.1)
