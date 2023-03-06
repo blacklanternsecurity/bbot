@@ -104,16 +104,17 @@ def request(self, *args, **kwargs):
             db_path = str(self.cache_dir / "requests-cache.sqlite")
             backend = SQLiteCache(db_path=db_path)
             session = CachedSession(expire_after=cache_for, backend=backend)
+            session.mount("http://", self.retry_adapter)
+            session.mount("https://", self.retry_adapter)
             self.cache_sessions[cache_for] = session
     elif kwargs.get("session", None) is not None:
         session = kwargs.pop("session", None)
+        session.mount("http://", self.retry_adapter)
+        session.mount("https://", self.retry_adapter)
     else:
-        if getattr(self, "base_session", None) is None:
-            self.base_session = requests.Session()
-        session = self.base_session
-
-    session.mount("http://", self.retry_adapter)
-    session.mount("https://", self.retry_adapter)
+        session = requests.Session()
+        session.mount("http://", self.retry_adapter)
+        session.mount("https://", self.retry_adapter)
 
     http_timeout = self.config.get("http_timeout", 20)
     user_agent = self.config.get("user_agent", "BBOT")
