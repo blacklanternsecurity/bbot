@@ -154,7 +154,7 @@ class ScanManager:
             event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
             event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
             if event_blacklisted:
-                event.tags.add("blacklisted")
+                event.add_tag("blacklisted")
 
             # Blacklist purging
             if "blacklisted" in event.tags:
@@ -233,7 +233,7 @@ class ScanManager:
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
-                    source_event.tags.add("target")
+                    source_event.add_tag("target")
                 self.emit_event(source_event, _block=False, _force_submit=True)
             if self.dns_resolution and emit_children:
                 dns_child_events = []
