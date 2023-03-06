@@ -3,6 +3,7 @@ import socket
 import threading
 from OpenSSL import SSL
 from ssl import PROTOCOL_TLSv1
+from contextlib import suppress
 
 from bbot.modules.base import BaseModule
 from bbot.core.errors import ValidationError
@@ -74,9 +75,9 @@ class sslcert(BaseModule):
             if len(dns_names) > abort_threshold:
                 netloc = self.helpers.make_netloc(host, port)
                 self.info(
-                    f"Skipping SSL enumeration on {netloc} because number of hostnames ({len(dns_names):,}) exceeds threshold of {abort_threshold}"
+                    f"Skipping Subject Alternate Names (SANs) on {netloc} because number of hostnames ({len(dns_names):,}) exceeds threshold ({abort_threshold})"
                 )
-                return
+                dns_names = dns_names[:1]
             for event_type, results in (("DNS_NAME", dns_names), ("EMAIL_ADDRESS", emails)):
                 for event_data in results:
                     if event_data is not None and event_data != event:
@@ -92,13 +93,13 @@ class sslcert(BaseModule):
     def visit_host(self, host, port):
         host = self.helpers.make_ip_type(host)
         host_hash = hash((host, port))
-        dns_names = set()
+        dns_names = []
         emails = set()
         with self.ip_lock.get_lock(host_hash):
             with self.hosts_visited_lock:
                 if host_hash in self.hosts_visited:
                     self.debug(f"Already processed {host} on port {port}, skipping")
-                    return dns_names, emails
+                    return [], []
                 else:
                     self.hosts_visited.add(host_hash)
 
@@ -115,7 +116,7 @@ class sslcert(BaseModule):
                 sock.connect((host, port))
             except Exception as e:
                 self.debug(f"Error connecting to {host} on port {port}: {e}")
-                return dns_names, emails
+                return [], []
             connection = SSL.Connection(context, sock)
             connection.set_tlsext_host_name(self.helpers.smart_encode(host))
             connection.set_connect_state()
@@ -131,7 +132,7 @@ class sslcert(BaseModule):
                     break
             except Exception as e:
                 self.debug(f"Error with SSL handshake on {host} port {port}: {e}")
-                return dns_names, emails
+                return [], []
             cert = connection.get_peer_certificate()
             sock.close()
             issuer = cert.get_issuer()
@@ -140,10 +141,12 @@ class sslcert(BaseModule):
             subject = cert.get_subject()
             if subject.emailAddress and self.helpers.regexes.email_regex.match(subject.emailAddress):
                 emails.add(subject.emailAddress)
-            common_name = subject.commonName
+            common_name = str(subject.commonName).lstrip("*.").lower()
             dns_names = set(self.get_cert_sans(cert))
-            dns_names.add(str(common_name).lstrip("*.").lower())
-        return dns_names, emails
+            with suppress(KeyError):
+                dns_names.remove(common_name)
+            dns_names = [common_name] + list(dns_names)
+        return dns_names, list(emails)
 
     @staticmethod
     def get_cert_sans(cert):
