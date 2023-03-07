@@ -165,6 +165,35 @@ class BaseModule:
         """
         return
 
+    def require_api_key(self):
+        """
+        Use in setup() to ensure the module is configured with an API key
+        """
+        self.api_key = self.config.get("api_key", "")
+        if self.auth_secret:
+            try:
+                self.ping()
+                self.hugesuccess(f"API is ready")
+                return True
+            except Exception as e:
+                return None, f"Error with API ({str(e).strip()})"
+        else:
+            return None, "No API key set"
+
+    def ping(self):
+        """
+        Used in conjuction with require_api_key to ensure an API is up and responding
+
+        Requires the use of an assert statement.
+
+        E.g. if your API has a "/ping" endpoint, you can use it like this:
+            def ping(self):
+                r = self.request_with_fail_count(f"{self.base_url}/ping")
+                resp_content = getattr(r, "text", "")
+                assert getattr(r, "status_code", 0) == 200, resp_content
+        """
+        return
+
     def get_watched_events(self):
         """
         Override if you need your watched_events to be dynamic
