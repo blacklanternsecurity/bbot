@@ -194,6 +194,13 @@ class BaseModule:
         """
         return
 
+    @property
+    def auth_secret(self):
+        """
+        Use this to indicate whether the module has everything it needs for authentication
+        """
+        return getattr(self, "api_key", "")
+
     def get_watched_events(self):
         """
         Override if you need your watched_events to be dynamic

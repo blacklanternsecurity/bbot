@@ -18,7 +18,7 @@ class shodan_dns(crobat):
 
     def setup(self):
         super().setup()
-        self.require_api_key()
+        return self.require_api_key()
 
     def ping(self):
         r = self.request_with_fail_count(f"{self.base_url}/api-info?key={self.api_key}")
@@ -34,7 +34,3 @@ class shodan_dns(crobat):
         if json:
             for hostname in json.get("subdomains"):
                 yield f"{hostname}.{query}"
-
-    @property
-    def auth_secret(self):
-        return self.api_key
