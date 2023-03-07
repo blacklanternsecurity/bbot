@@ -3,7 +3,6 @@ import logging
 import threading
 import traceback
 from sys import exc_info
-from datetime import datetime
 from contextlib import suppress
 
 from ..core.helpers.threadpool import ThreadPoolWrapper
@@ -191,7 +190,6 @@ class BaseModule:
         if self.batch_size <= 1:
             return
         if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
-            self.batch_idle(reset=True)
             on_finish_callback = None
             events, finish, report = self.events_waiting
             if finish:
@@ -313,24 +311,8 @@ class BaseModule:
         """
         Determine whether a batch should be forcefully submitted
         """
-        # if we've been idle long enough
-        if self.batch_idle() >= self.batch_wait:
-            return True
-        # if scan is finishing
-        if self.scan.status == "FINISHING":
-            return True
-        # if there's a batch stalemate
-        batch_modules = [m for m in self.scan.modules.values() if m.batch_size > 1]
-        if all([(not m.running) for m in batch_modules]):
-            return True
-        return False
-
-    def batch_idle(self, reset=False):
-        now = datetime.now()
-        if self._last_submitted_batch is None or reset:
-            self._last_submitted_batch = now
-        delta = now - self._last_submitted_batch
-        return delta.total_seconds()
+        # if we're below our maximum threading potential
+        return self._internal_thread_pool.num_tasks < self.max_event_handlers
 
     def _worker(self):
         try:
@@ -342,8 +324,7 @@ class BaseModule:
                     continue
 
                 if self.batch_size > 1:
-                    force = self._force_batch
-                    submitted = self._handle_batch(force=force)
+                    submitted = self._handle_batch(force=self._force_batch)
                     if not submitted:
                         with self.event_received:
                             self.event_received.wait(timeout=0.1)
