@@ -12,7 +12,7 @@ class nuclei(BaseModule):
 
     batch_size = 100
     options = {
-        "version": "2.7.9",
+        "version": "2.8.9",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -114,8 +114,6 @@ class nuclei(BaseModule):
                 f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
             )
 
-        self.stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
-
         return True
 
     def handle_batch(self, *events):
@@ -191,35 +189,39 @@ class nuclei(BaseModule):
             command.append("-t")
             command.append(self.budget_templates_file)
 
-        with open(self.stats_file, "w") as stats_file:
-            for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_file):
-                try:
-                    j = json.loads(line)
-                except json.decoder.JSONDecodeError:
-                    self.debug(f"Failed to decode line: {line}")
-                    continue
+        stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
+        try:
+            with open(stats_file, "w") as stats_file:
+                for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_file):
+                    try:
+                        j = json.loads(line)
+                    except json.decoder.JSONDecodeError:
+                        self.debug(f"Failed to decode line: {line}")
+                        continue
 
-                template = j.get("template-id", "")
+                    template = j.get("template-id", "")
 
-                # try to get the specific matcher name
-                name = j.get("matcher-name", "")
+                    # try to get the specific matcher name
+                    name = j.get("matcher-name", "")
 
-                # fall back to regular name
-                if not name:
-                    self.debug(
-                        f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
-                    )
-                    name = j.get("info", {}).get("name", "")
+                    # fall back to regular name
+                    if not name:
+                        self.debug(
+                            f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
+                        )
+                        name = j.get("info", {}).get("name", "")
 
-                severity = j.get("info", {}).get("severity", "").upper()
-                host = j.get("host", "")
+                    severity = j.get("info", {}).get("severity", "").upper()
+                    host = j.get("host", "")
 
-                extracted_results = j.get("extracted-results", [])
+                    extracted_results = j.get("extracted-results", [])
 
-                if template and name and severity and host:
-                    yield (severity, template, host, name, extracted_results)
-                else:
-                    self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
+                    if template and name and severity and host:
+                        yield (severity, template, host, name, extracted_results)
+                    else:
+                        self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
+        finally:
+            stats_file.unlink()
 
     def log_nuclei_status(self, line):
         try:
