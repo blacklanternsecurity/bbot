@@ -191,8 +191,8 @@ class nuclei(BaseModule):
 
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
-            with open(stats_file, "w") as stats_file:
-                for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_file):
+            with open(stats_file, "w") as stats_fh:
+                for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_fh):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
