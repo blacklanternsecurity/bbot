@@ -84,9 +84,6 @@ class speculate(BaseInternalModule):
                     self.emit_event(
                         self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True
                     )
-                    self.emit_event(
-                        self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True
-                    )
 
     def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self
