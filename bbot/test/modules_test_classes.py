@@ -1121,10 +1121,12 @@ class Nuclei_manual(HttpxMockHelper):
 """
     config_overrides = {
         "web_spider_distance": 1,
+        "web_spider_depth": 1,
         "modules": {
             "nuclei": {
                 "mode": "manual",
                 "concurrency": 2,
+                "ratelimit": 10,
                 "templates": "/tmp/.bbot_test/tools/nuclei-templates/miscellaneous/",
                 "interactsh_disable": True,
             }
@@ -1185,7 +1187,10 @@ class Nuclei_severe(HttpxMockHelper):
 class Nuclei_technology(HttpxMockHelper):
     additional_modules = ["httpx"]
 
-    config_overrides = {"modules": {"nuclei": {"mode": "technology"}}, "interactsh_disable": True, "concurrency": 1}
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"nuclei": {"mode": "technology", "concurrency": 2, "tags": "apache"}},
+    }
 
     def __init__(self, config, bbot_scanner, bbot_httpserver, caplog, *args, **kwargs):
         self.caplog = caplog
