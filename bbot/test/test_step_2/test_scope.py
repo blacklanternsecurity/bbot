@@ -1,5 +1,5 @@
 from ..bbot_fixtures import *  # noqa: F401
-from ..modules_test_classes import *
+from ..modules_test_classes import HttpxMockHelper
 
 
 class Scope_test_blacklist(HttpxMockHelper):
