@@ -1121,7 +1121,6 @@ class Nuclei_manual(HttpxMockHelper):
 """
     config_overrides = {
         "web_spider_distance": 1,
-        "web_spider_distance": 1,
         "modules": {
             "nuclei": {
                 "mode": "manual",
