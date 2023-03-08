@@ -1099,3 +1099,141 @@ class Iis_shortnames(HttpxMockHelper):
         if vulnerabilityEmitted and url_hintEmitted:
             return True
         return False
+
+
+class Nuclei_manual(HttpxMockHelper):
+    additional_modules = ["httpx", "excavate"]
+
+    test_html = """
+    html>
+ <head>
+  <title>Index of /test</title>
+ </head>
+ <body>
+<h1>Index of /test</h1>
+  <table>
+   <tr><th><a href="?C=N;O=D">Name</a></th><th><a href="?C=M;O=A">Last modified</a></th><th><a href="?C=S;O=A">Size</a></th></tr>
+   <tr><th colspan="3"><hr></th></tr>
+<tr><td><a href="/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td></tr>
+</table>
+<address>Apache/2.4.38 (Debian) Server at http://127.0.0.1:8888/testmultipleruns.html</address>
+</body></html>
+"""
+    config_overrides = {
+        "web_spider_distance": 1,
+        "web_spider_distance": 1,
+        "modules": {
+            "nuclei": {
+                "mode": "manual",
+                "concurrency": 2,
+                "templates": "/tmp/.bbot_test/tools/nuclei-templates/miscellaneous/",
+                "interactsh_disable": True,
+            }
+        },
+    }
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": self.test_html}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/testmultipleruns.html"}
+        respond_args = {"response_data": "<html>Copyright 1984</html>"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        first_run_detect = False
+        second_run_detect = False
+        for e in events:
+            print(e.type)
+            if e.type == "FINDING":
+                if "Directory listing enabled" in e.data["description"]:
+                    first_run_detect = True
+                elif "Copyright" in e.data["description"]:
+                    second_run_detect = True
+        if first_run_detect and second_run_detect:
+            return True
+        return False
+
+
+class Nuclei_severe(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    config_overrides = {
+        "modules": {
+            "nuclei": {
+                "mode": "severe",
+                "concurrency": 1,
+                "templates": "/tmp/.bbot_test/tools/nuclei-templates/vulnerabilities/generic/generic-linux-lfi.yaml",
+            }
+        },
+        "interactsh_disable": True,
+    }
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/etc/passwd"}
+        respond_args = {"response_data": "<html>root:.*:0:0:</html>"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "VULNERABILITY":
+                if "Generic Linux - Local File Inclusion" in e.data["description"]:
+                    return True
+        return False
+
+
+class Nuclei_technology(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    config_overrides = {"modules": {"nuclei": {"mode": "technology"}}, "interactsh_disable": True, "concurrency": 1}
+
+    def __init__(self, config, bbot_scanner, bbot_httpserver, caplog, *args, **kwargs):
+        self.caplog = caplog
+        super().__init__(config, bbot_scanner, bbot_httpserver, *args, **kwargs)
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {
+            "response_data": "<html><Directory></Directory></html>",
+            "headers": {"Server": "Apache/2.4.52 (Ubuntu)"},
+        }
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        if "Using Interactsh Server" in self.caplog.text:
+            return False
+
+        for e in events:
+            if e.type == "FINDING":
+                if "apache" in e.data["description"]:
+                    return True
+        return False
+
+
+class Nuclei_budget(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    config_overrides = {
+        "modules": {
+            "nuclei": {
+                "mode": "budget",
+                "concurrency": 1,
+                "tags": "spiderfoot",
+                "templates": "/tmp/.bbot_test/tools/nuclei-templates/exposed-panels/spiderfoot.yaml",
+                "interactsh_disable": True,
+            }
+        }
+    }
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "<html><title>SpiderFoot</title><p>support@spiderfoot.net</p></html>"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING":
+                if "SpiderFoot" in e.data["description"]:
+                    return True
+        return False
