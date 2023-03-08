@@ -6,7 +6,6 @@ from bbot.modules.base import BaseModule
 class BaseOutputModule(BaseModule):
     accept_dupes = True
     _type = "output"
-    emit_graph_trail = True
     scope_distance_modifier = None
     _stats_exclude = True
 

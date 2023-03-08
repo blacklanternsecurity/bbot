@@ -9,7 +9,6 @@ class CSV(BaseOutputModule):
     meta = {"description": "Output to CSV"}
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to CSV file"}
-    emit_graph_trail = False
 
     header_row = ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
     filename = "output.csv"

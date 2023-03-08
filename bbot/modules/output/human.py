@@ -9,7 +9,6 @@ class Human(BaseOutputModule):
     meta = {"description": "Output to text"}
     options = {"output_file": "", "console": True}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
-    emit_graph_trail = False
     vuln_severity_map = {"LOW": "HUGEWARNING", "MEDIUM": "HUGEWARNING", "HIGH": "CRITICAL", "CRITICAL": "CRITICAL"}
 
     def setup(self):

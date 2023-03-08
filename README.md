@@ -11,18 +11,16 @@ pip install bbot
 
 ![bbot-demo](https://user-images.githubusercontent.com/20261699/217346759-d5bf56c3-3936-43f7-ad14-4d73d2cd1417.gif)
 
-### **BBOT** is a **recursive**, **modular** OSINT framework inspired by Spiderfoot and written in Python.
+### **BBOT** is a **recursive**, **modular** OSINT framework inspired by Spiderfoot.
 
-BBOT is capable of executing the entire OSINT process in a single command. It does subdomain enumeration, port scanning, web screenshots (with its `gowitness` module), vulnerability scanning (with `nuclei`), and much more.
+BBOT can execute the entire OSINT process in a single command: subdomain enumeration, port scans, web screenshots (with `gowitness`), vulnerability scanning (with `nuclei`), and much more. BBOT has over **80 modules** and counting.
 
-BBOT has over **80 modules** and counting.
-
-### [Subdomain Enumeration Face-off](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off)
+Read our [blog post](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off) to find out why BBOT is the most comprehensive subdomain enumeration tool available.
 
 ![graphs-small](https://user-images.githubusercontent.com/20261699/199602154-14c71a93-57aa-4ac0-ad81-87ce64fbffc7.png)
 
-## Installation (pip)
-Note: installing in a virtualenv is recommended
+## Installation ([pip](https://pypi.org/project/bbot/))
+Note: installing in a virtualenv (e.g. via `pipx`) is recommended
 ~~~bash
 # stable version
 pip install bbot
@@ -33,10 +31,10 @@ pip install --pre bbot
 bbot --help
 ~~~
 Prerequisites:
-- Linux (Windows including WSL is not supported)
+- Linux (Windows, including WSL is not supported)
 - Python 3.9 or newer
 
-## [Installation (Docker)](https://hub.docker.com/r/blacklanternsecurity/bbot)
+## Installation ([Docker](https://hub.docker.com/r/blacklanternsecurity/bbot))
 ~~~bash
 # bleeding edge (dev)
 docker run -it blacklanternsecurity/bbot --help
@@ -68,7 +66,7 @@ bbot --flags subdomain-enum --modules httpx --targets evilcorp.com
 bbot --flags passive --targets evilcorp.com
 
 # web screenshots with gowitness
-bbot -m naabu httpx gowitness --name my_scan --output-dir . -t subdomains.txt
+bbot -m naabu httpx gowitness --name my_scan --output-dir . -t hosts.txt
 
 # web scan
 bbot -f web-basic -t www.evilcorp.com
@@ -105,7 +103,7 @@ for event in scan.start():
 ~~~
 
 # Output
-BBOT can output to TXT, JSON, CSV, Neo4j, and more with `--output-module`. You can output to multiple formats simultaneously.
+By default, BBOT saves its output in TXT, JSON, and CSV formats. To enable more output modules, you can use `--output-module`.
 ~~~bash
 # tee to a file
 bbot -f subdomain-enum -t evilcorp.com | tee evilcorp.txt
@@ -113,10 +111,10 @@ bbot -f subdomain-enum -t evilcorp.com | tee evilcorp.txt
 # output to JSON
 bbot --output-module json -f subdomain-enum -t evilcorp.com | jq
 
-# output to CSV, TXT, and JSON, in current directory
-bbot -o . --output-module human csv json -f subdomain-enum -t evilcorp.com
+# output asset inventory in current directory
+bbot -o . --output-module asset_inventory -f subdomain-enum -t evilcorp.com
 ~~~
-For every scan, BBOT generates a unique and mildly-entertaining name like `fuzzy_gandalf`. Output for that scan, including the word cloud and any gowitness screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
+For every scan, BBOT generates a unique and mildly-entertaining name like `demonic_jimmy`. Output for that scan, including the word cloud and any gowitness screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
 
 If you reuse a scan name, it will append to its original output files and leverage the previous word cloud.
 
@@ -131,7 +129,7 @@ docker run -p 7687:7687 -p 7474:7474 -v "$(pwd)/data/:/data/" --env NEO4J_AUTH=n
 ~~~
 - After that, run bbot with `--output-modules neo4j`
 ~~~bash
-bbot -f subdomain-enum -t evilcorp.com --output-modules human neo4j
+bbot -f subdomain-enum -t evilcorp.com --output-modules neo4j
 ~~~
 - Browse data at http://localhost:7474
 
@@ -245,7 +243,7 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 |                     |          | API     |                                          |                                         |                                          |
 |                     |          | Key     |                                          |                                         |                                          |
 +=====================+==========+=========+==========================================+=========================================+==========================================+
-| badsecrets          | scan     |         | Library for detecting known or weak      | active,safe,web-basic                   | FINDING,VULNERABILITY                    |
+| badsecrets          | scan     |         | Library for detecting known or weak      | active,safe                             | FINDING,VULNERABILITY                    |
 |                     |          |         | secrets across many web frameworks       |                                         |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | bucket_aws          | scan     |         | Check for S3 buckets related to target   | active,cloud-enum,safe                  | FINDING,STORAGE_BUCKET                   |
@@ -326,6 +324,9 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 | vhost               | scan     |         | Fuzz for virtual hosts                   | active,aggressive,brute-                | DNS_NAME,VHOST                           |
 |                     |          |         |                                          | force,deadly,slow,web-advanced          |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| wafw00f             | scan     |         | Web Application Firewall Fingerprinting  | active,aggressive                       | WAF                                      |
+|                     |          |         | Tool                                     |                                         |                                          |
++---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | wappalyzer          | scan     |         | Extract technologies from web responses  | active,safe,web-basic                   | TECHNOLOGY                               |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | affiliates          | scan     |         | Summarize affiliate domains at the end   | passive,report,safe                     |                                          |
@@ -351,7 +352,7 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | certspotter         | scan     |         | Query Certspotter's API for subdomains   | passive,safe,subdomain-enum             | DNS_NAME                                 |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| crobat              | scan     |         | Query Project Crobat for subdomains      | passive,safe,subdomain-enum             | DNS_NAME                                 |
+| crobat              | scan     |         | Query Project Crobat for subdomains      | passive,safe                            | DNS_NAME                                 |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | crt                 | scan     |         | Query crt.sh (certificate transparency)  | passive,safe,subdomain-enum             | DNS_NAME                                 |
 |                     |          |         | for subdomains                           |                                         |                                          |
@@ -402,7 +403,7 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | skymem              | scan     |         | Query skymem.info for email addresses    | email-enum,passive,safe                 | EMAIL_ADDRESS                            |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
-| sublist3r           | scan     |         | Query sublist3r's API for subdomains     | passive,safe,subdomain-enum             | DNS_NAME                                 |
+| sublist3r           | scan     |         | Query sublist3r's API for subdomains     | passive,safe                            | DNS_NAME                                 |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | threatminer         | scan     |         | Query threatminer's API for subdomains   | passive,safe,subdomain-enum             | DNS_NAME                                 |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
@@ -432,6 +433,8 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 | neo4j               | output   |         | Output to Neo4j                          |                                         |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | python              | output   |         | Output via Python API                    |                                         |                                          |
++---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
+| web_report          | output   |         | Create a markdown report with web assets |                                         |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+
 | websocket           | output   |         | Output to websockets                     |                                         |                                          |
 +---------------------+----------+---------+------------------------------------------+-----------------------------------------+------------------------------------------+

@@ -50,7 +50,7 @@ class subdomain_hijack(BaseModule):
                 if host:
                     if e not in source_hosts:
                         source_hosts.append(e)
-                    e = e.source
+                    e = e.get_source()
                 else:
                     break
 
