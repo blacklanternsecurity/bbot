@@ -100,3 +100,23 @@ def test_ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
 def test_iis_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
     x = Iis_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_nuclei_technology(bbot_config, bbot_scanner, bbot_httpserver, caplog):
+    x = Nuclei_technology(bbot_config, bbot_scanner, bbot_httpserver, caplog, module_name="nuclei")
+    x.run()
+
+
+def test_nuclei_manual(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Nuclei_manual(bbot_config, bbot_scanner, bbot_httpserver, module_name="nuclei")
+    x.run()
+
+
+def test_nuclei_severe(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Nuclei_severe(bbot_config, bbot_scanner, bbot_httpserver, module_name="nuclei")
+    x.run()
+
+
+def test_nuclei_budget(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Nuclei_budget(bbot_config, bbot_scanner, bbot_httpserver, module_name="nuclei")
+    x.run()

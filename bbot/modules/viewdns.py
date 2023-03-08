@@ -15,7 +15,7 @@ class viewdns(BaseModule):
     meta = {
         "description": "Query viewdns.info's reverse whois for related domains",
     }
-    deps_pip = ["beautifulsoup4", "lxml"]
+    deps_pip = ["bs4", "lxml"]
     base_url = "https://viewdns.info"
     in_scope_only = True
     _qsize = 1

@@ -8,8 +8,8 @@ class MockHelper:
     config_overrides = {}
     additional_modules = []
 
-    def __init__(self, config, bbot_scanner, *args):
-        self.name = self.__class__.__name__.lower()
+    def __init__(self, config, bbot_scanner, *args, **kwargs):
+        self.name = kwargs.get("module_name", self.__class__.__name__.lower())
         self.config = OmegaConf.merge(config, OmegaConf.create(self.config_overrides))
         self.scan = bbot_scanner(
             *self.targets, modules=[self.name] + self.additional_modules, name=f"{self.name}_test", config=self.config
@@ -58,9 +58,9 @@ class RequestMockHelper(MockHelper):
 class HttpxMockHelper(MockHelper):
     targets = ["http://127.0.0.1:8888/"]
 
-    def __init__(self, config, bbot_scanner, bbot_httpserver):
+    def __init__(self, config, bbot_scanner, bbot_httpserver, *args, **kwargs):
         self.bbot_httpserver = bbot_httpserver
-        super().__init__(config, bbot_scanner)
+        super().__init__(config, bbot_scanner, *args, **kwargs)
         self.mock_args()
 
     @abstractmethod
