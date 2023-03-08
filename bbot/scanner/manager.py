@@ -174,10 +174,6 @@ class ScanManager:
             set_scope_distance = event.scope_distance
             if event_whitelisted:
                 set_scope_distance = 0
-            if event.always_in_scope:
-                source_trail = event.make_in_scope()
-                for s in source_trail:
-                    self.emit_event(s, _block=False, _force_submit=True)
             if event.host:
                 if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
                     if set_scope_distance == 0:
@@ -191,9 +187,11 @@ class ScanManager:
                             f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
                         )
                         event.make_internal()
-            else:
-                log.debug(f"Making {event} in-scope because it does not have identifying scope information")
-                source_trail = event.make_in_scope(0)
+            if not event.host or (event.always_emit and not event_is_duplicate):
+                log.debug(
+                    f"Force-emitting {event} because it does not have identifying scope information or because always_emit was True"
+                )
+                source_trail = event.unmake_internal(force_output=True)
                 for s in source_trail:
                     self.emit_event(s, _block=False, _force_submit=True)
 
@@ -352,7 +350,7 @@ class ScanManager:
                 event_within_scope_distance = -1 < event.scope_distance <= self.scan.scope_search_distance
                 event_within_report_distance = -1 < event.scope_distance <= self.scan.scope_report_distance
                 if mod._type == "output":
-                    if event_within_report_distance or (event._force_output and mod.emit_graph_trail):
+                    if event_within_report_distance or event._force_output:
                         mod.queue_event(event)
                         if not stats_recorded:
                             stats_recorded = True

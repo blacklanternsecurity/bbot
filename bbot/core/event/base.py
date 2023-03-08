@@ -32,8 +32,10 @@ log = logging.getLogger("bbot.core.event")
 
 
 class BaseEvent:
-    # Whether to always consider this event type to be in-scope
-    always_in_scope = False
+    # Always emit this event type even if it's not in scope
+    _always_emit = False
+    # Always emit events with these tags even if they're not in scope
+    _always_emit_tags = ["affiliate"]
     # Exclude from output modules
     _omit = False
     # Disables certain data validations
@@ -211,6 +213,10 @@ class BaseEvent:
     def remove_tag(self, tag):
         with suppress(KeyError):
             self._tags.remove(tagify(tag))
+
+    @property
+    def always_emit(self):
+        return self._always_emit or any(t in self.tags for t in self._always_emit_tags)
 
     @property
     def id(self):
@@ -697,6 +703,8 @@ class URL(URL_UNVERIFIED):
 
 
 class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
+    _always_emit = True
+
     class _data_validator(BaseModel):
         name: str
         url: str
@@ -754,7 +762,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 
 class VULNERABILITY(DictHostEvent):
-    always_in_scope = True
+    _always_emit = True
 
     def sanitize_data(self, data):
         self.add_tag(data["severity"].lower())
@@ -773,7 +781,7 @@ class VULNERABILITY(DictHostEvent):
 
 
 class FINDING(DictHostEvent):
-    always_in_scope = True
+    _always_emit = True
 
     class _data_validator(BaseModel):
         host: str
