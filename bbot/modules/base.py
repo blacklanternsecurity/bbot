@@ -440,6 +440,9 @@ class BaseModule:
         if event.type in ("FINISHED",):
             return True, ""
 
+        if "active" in self.flags and "target" in event.tags and event not in self.scan.whitelist:
+            return False, "it is not in whitelist and module has active flag"
+
         if self.in_scope_only:
             if event.scope_distance > 0:
                 return False, "it did not meet in_scope_only filter criteria"
