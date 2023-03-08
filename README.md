@@ -450,10 +450,10 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 
 # Credit
 
-BBOT is written by @TheTechromancer. Web hacking in BBOT is made possible by @liquidsec, who wrote most of the web-oriented modules and helpers.
+BBOT is written by @TheTechromancer. Web hacking in BBOT is made possible by @liquidsec, who wrote most of the web modules and helpers.
 
 Very special thanks to the following people who made BBOT possible:
 
 - @kerrymilan for his Neo4j and Ansible expertise
-- Steve Micallef (@smicallef) for creating Spiderfoot, by which BBOT is heavily inspired
+- Steve Micallef (@smicallef) for creating Spiderfoot
 - Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
