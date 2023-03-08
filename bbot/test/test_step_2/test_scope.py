@@ -1,5 +1,3 @@
-import logging
-
 from ..bbot_fixtures import *  # noqa: F401
 from ..modules_test_classes import *
 
