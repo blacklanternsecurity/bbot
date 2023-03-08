@@ -52,7 +52,7 @@ class nuclei(BaseModule):
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
         self.info("Updating Nuclei templates")
         update_results = self.helpers.run(
-            ["nuclei", "-update-directory", self.nuclei_templates_dir, "-update-templates"]
+            ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"]
         )
         if update_results.stderr:
             if "Successfully downloaded nuclei-templates" in update_results.stderr:
@@ -159,7 +159,7 @@ class nuclei(BaseModule):
         command = [
             "nuclei",
             "-json",
-            "-update-directory",
+            "-update-template-dir",
             self.nuclei_templates_dir,
             "-rate-limit",
             self.ratelimit,
