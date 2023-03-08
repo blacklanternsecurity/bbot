@@ -10,7 +10,7 @@ class dnsdumpster(crobat):
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Query dnsdumpster for subdomains"}
 
-    deps_pip = ["beautifulsoup4", "lxml"]
+    deps_pip = ["bs4", "lxml"]
 
     base_url = "https://dnsdumpster.com"
 
