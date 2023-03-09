@@ -120,3 +120,8 @@ def test_nuclei_severe(bbot_config, bbot_scanner, bbot_httpserver):
 def test_nuclei_budget(bbot_config, bbot_scanner, bbot_httpserver):
     x = Nuclei_budget(bbot_config, bbot_scanner, bbot_httpserver, module_name="nuclei")
     x.run()
+
+
+def test_url_manipulation(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Url_manipulation(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
