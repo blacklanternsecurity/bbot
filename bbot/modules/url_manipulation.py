@@ -48,7 +48,7 @@ class url_manipulation(BaseModule):
             return
 
         if compare_helper.canary_check(event.data, mode="getparam") == False:
-            self.verboe(f'Aborting "{event.data}" due to failed canary check')
+            self.verbose(f'Aborting "{event.data}" due to failed canary check')
             return
 
         for sig in self.signatures:
