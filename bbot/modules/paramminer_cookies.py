@@ -1,15 +1,15 @@
-from .header_brute import header_brute
 from bbot.core.errors import ScanCancelledError
+from .paramminer_headers import paramminer_headers
 
 
-class cookie_brute(header_brute):
+class paramminer_cookies(paramminer_headers):
     """
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["brute-force", "active", "aggressive", "slow", "web-paramminer"]
+    flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {
         "description": "Check for common HTTP cookie parameters",
     }

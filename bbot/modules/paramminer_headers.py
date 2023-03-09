@@ -2,15 +2,15 @@ from bbot.modules.base import BaseModule
 from bbot.core.errors import HttpCompareError, ScanCancelledError
 
 
-class header_brute(BaseModule):
+class paramminer_headers(BaseModule):
     """
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["brute-force", "active", "aggressive", "slow", "web-paramminer"]
-    meta = {"description": "Check for common HTTP header parameters"}
+    flags = ["active", "aggressive", "slow", "web-paramminer"]
+    meta = {"description": "Use smart brute-force to check for common HTTP header parameters"}
     options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
     options_desc = {"wordlist": "Define the wordlist to be used to derive headers"}
     scanned_hosts = []

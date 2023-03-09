@@ -1,11 +1,9 @@
-from bbot.modules.base import BaseModule
+from bbot.modules.report.base import BaseReportModule
 
 
-class aggregate(BaseModule):
-    watched_events = ["SUMMARY"]
-    produced_events = ["SUMMARY"]
+class aggregate(BaseReportModule):
     flags = ["passive", "safe"]
-    meta = {"description": "Report on scan statistics"}
+    meta = {"description": "Summarize statistics at the end of a scan"}
 
     def report(self):
         for table_row in str(self.scan.stats).splitlines():

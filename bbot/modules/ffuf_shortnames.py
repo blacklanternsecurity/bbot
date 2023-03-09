@@ -31,7 +31,7 @@ def find_common_prefixes(strings, minimum_set_length=4):
 class ffuf_shortnames(ffuf):
     watched_events = ["URL_HINT"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["brute-force", "aggressive", "active", "iis-shortnames"]
+    flags = ["aggressive", "active", "iis-shortnames"]
     meta = {"description": "Use ffuf in combination IIS shortnames"}
 
     options = {

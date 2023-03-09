@@ -354,7 +354,7 @@ class Telerik(HttpxMockHelper):
         return False
 
 
-class Getparam_brute(HttpxMockHelper):
+class Paramminer_getparams(HttpxMockHelper):
     getparam_body = """
     <html>
     <title>the title</title>

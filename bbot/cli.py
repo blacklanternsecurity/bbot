@@ -251,17 +251,17 @@ def main():
                         if active_modules:
                             if active_aggressive_modules:
                                 log.hugewarning(
-                                    "This is an (aggressive) active scan! Intrusive connections will be made to target."
+                                    "This is an (aggressive) active scan! Intrusive connections will be made to target"
                                 )
                             else:
                                 log.warning(
-                                    "This is a (safe) active scan. Non-intrusive connections will be made to target."
+                                    "This is a (safe) active scan. Non-intrusive connections will be made to target"
                                 )
                     else:
-                        log.hugeinfo("This is a passive scan. No connections will be made to target.")
+                        log.hugeinfo("This is a passive scan. No connections will be made to target")
                     if slow_modules:
                         log.hugewarning(
-                            f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan make take longer than usual."
+                            f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take longer than usual"
                         )
 
                 scanner.helpers.word_cloud.load(options.load_wordcloud)

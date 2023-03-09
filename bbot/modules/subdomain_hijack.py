@@ -12,7 +12,7 @@ class subdomain_hijack(BaseModule):
     produced_events = ["FINDING"]
     meta = {"description": "Detect hijackable subdomains"}
     options = {
-        "fingerprints": "https://raw.githubusercontent.com/blacklanternsecurity/can-i-take-over-xyz/master/fingerprints.json"
+        "fingerprints": "https://raw.githubusercontent.com/EdOverflow/can-i-take-over-xyz/master/fingerprints.json"
     }
     options_desc = {"fingerprints": "URL or path to fingerprints.json"}
     scope_distance_modifier = 2
