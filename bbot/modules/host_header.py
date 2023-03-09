@@ -5,7 +5,7 @@ from bbot.core.errors import InteractshError
 class host_header(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-advanced"]
+    flags = ["active", "aggressive"]
     meta = {"description": "Try common HTTP Host header spoofing techniques"}
 
     in_scope_only = True

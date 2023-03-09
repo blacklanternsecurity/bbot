@@ -151,7 +151,7 @@ class Generic_XXE(BaseSubmodule):
 class generic_ssrf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
-    flags = ["active", "aggressive", "web-advanced"]
+    flags = ["active", "aggressive"]
     meta = {"description": "Check for generic SSRFs"}
     in_scope_only = True
 

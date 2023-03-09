@@ -54,26 +54,27 @@ See also: [Release History](https://github.com/blacklanternsecurity/bbot/wiki/Re
 
 ### Examples
 ~~~bash
-# list modules
-bbot -l
+# subdomains
+bbot -t evilcorp.com -f subdomain-enum
 
-# subdomain enumeration
-bbot --flags subdomain-enum --modules httpx --targets evilcorp.com
+# subdomains (passive only)
+bbot -t evilcorp.com -f subdomain-enum -rf passive
 
-# passive modules only
-bbot --flags passive --targets evilcorp.com
+# subdomains + port scan + web screenshots
+bbot -t evilcorp.com -f subdomain-enum -m naabu gowitness -n my_scan -o .
 
-# web screenshots with gowitness
-bbot -m naabu httpx gowitness --name my_scan --output-dir . -t hosts.txt
+# subdomains + basic web scan (wappalyzer, robots.txt, iis shortnames, etc.)
+bbot -t evilcorp.com -f subdomain-enum web-basic
 
-# web scan
-bbot -f web-basic -t www.evilcorp.com
-
-# web spider (search for emails, etc.)
-bbot -m httpx -c web_spider_distance=2 web_spider_depth=2 -t www.evilcorp.com
+# subdomains + web spider (search for emails, etc.)
+bbot -t evilcorp.com -f subdomain-enum -c web_spider_distance=2 web_spider_depth=2
 
 # everything at once because yes
-bbot -f subdomain-enum email-enum cloud-enum web-basic -m naabu gowitness nuclei --allow-deadly -t evilcorp.com
+# subdomains + emails + cloud + port scan + non-intrusive web + web screenshots + nuclei
+bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m naabu gowitness nuclei --allow-deadly
+
+# list modules
+bbot -l
 ~~~
 
 ### Targets

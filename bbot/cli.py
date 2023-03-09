@@ -227,15 +227,42 @@ def main():
                     return
 
                 module_list = module_loader.filter_modules(modules=modules)
-                deadly_modules = [
-                    m[0] for m in module_list if "deadly" in m[-1]["flags"] and m[0] in scanner._scan_modules
-                ]
-                if scanner._scan_modules and deadly_modules:
-                    if not options.allow_deadly:
+                deadly_modules = []
+                active_modules = []
+                active_aggressive_modules = []
+                slow_modules = []
+                for m in module_list:
+                    if m[0] in scanner._scan_modules:
+                        if "deadly" in m[-1]["flags"]:
+                            deadly_modules.append(m[0])
+                        if "active" in m[-1]["flags"]:
+                            active_modules.append(m[0])
+                            if "aggressive" in m[-1]["flags"]:
+                                active_aggressive_modules.append(m[0])
+                        if "slow" in m[-1]["flags"]:
+                            slow_modules.append(m[0])
+                if scanner._scan_modules:
+                    if deadly_modules and not options.allow_deadly:
                         log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
                         log.hugewarning(f"Deadly modules are highly intrusive")
                         log.hugewarning(f"Please specify --allow-deadly to continue")
                         return
+                    if active_modules:
+                        if active_modules:
+                            if active_aggressive_modules:
+                                log.hugewarning(
+                                    "This is an (aggressive) active scan! Intrusive connections will be made to target."
+                                )
+                            else:
+                                log.warning(
+                                    "This is a (safe) active scan. Non-intrusive connections will be made to target."
+                                )
+                    else:
+                        log.hugeinfo("This is a passive scan. No connections will be made to target.")
+                    if slow_modules:
+                        log.hugewarning(
+                            f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan make take longer than usual."
+                        )
 
                 scanner.helpers.word_cloud.load(options.load_wordcloud)
 

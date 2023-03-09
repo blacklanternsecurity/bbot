@@ -98,15 +98,11 @@ def request(self, *args, **kwargs):
     cache_for = kwargs.pop("cache_for", None)
     if cache_for is not None:
         log.debug(f"Caching HTTP session with expire_after={cache_for}")
-        try:
-            session = self.cache_sessions[cache_for]
-        except KeyError:
-            db_path = str(self.cache_dir / "requests-cache.sqlite")
-            backend = SQLiteCache(db_path=db_path)
-            session = CachedSession(expire_after=cache_for, backend=backend)
-            session.mount("http://", self.retry_adapter)
-            session.mount("https://", self.retry_adapter)
-            self.cache_sessions[cache_for] = session
+        db_path = str(self.cache_dir / "requests-cache.sqlite")
+        backend = SQLiteCache(db_path=db_path)
+        session = CachedSession(expire_after=cache_for, backend=backend)
+        session.mount("http://", self.retry_adapter)
+        session.mount("https://", self.retry_adapter)
     elif kwargs.get("session", None) is not None:
         session = kwargs.pop("session", None)
         session.mount("http://", self.retry_adapter)
