@@ -1273,13 +1273,10 @@ class Url_manipulation(HttpxMockHelper):
 
     def check_events(self, events):
         for e in events:
-            print(e)
-            print(e.data["description"])
             if (
                 e.type == "FINDING"
                 and e.data["description"]
                 == f"Url Manipulation: [body] Sig: [Modified URL: http://127.0.0.1:8888/?{self.module.rand_string}=.xml]"
             ):
-                print("!!!!!!!!!!!!!!!!!!!!!")
                 return True
         return False
