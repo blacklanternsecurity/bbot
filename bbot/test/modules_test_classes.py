@@ -374,7 +374,7 @@ class Paramminer_getparams(HttpxMockHelper):
     """
     additional_modules = ["httpx"]
 
-    config_overrides = {"modules": {"getparam_brute": {"wordlist": tempwordlist(["canary", "id"])}}}
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "id"])}}}
 
     def setup(self):
         from bbot.core.helpers import helper
