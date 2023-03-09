@@ -1241,3 +1241,42 @@ class Nuclei_budget(HttpxMockHelper):
                 if "SpiderFoot" in e.data["description"]:
                     return True
         return False
+
+
+class Url_manipulation(HttpxMockHelper):
+    body = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello null!</p>';
+    </body>
+    </html>
+    """
+
+    body_match = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello AAAAAAAAAAAAAA!</p>';
+    </body>
+    </html>
+    """
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"query_string": f"{self.module.rand_string}=.xml".encode()}
+        respond_args = {"response_data": self.body_match}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        respond_args = {"response_data": self.body}
+        self.set_expect_requests(respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if (
+                e.type == "FINDING"
+                and e.data["description"]
+                == f"Url Manipulation: [body] Sig: [Modified URL: http://127.0.0.1:8888/?{self.module.rand_string}=.xml]"
+            ):
+                return True
+        return False

@@ -40,9 +40,15 @@ class url_manipulation(BaseModule):
 
     def handle_event(self, event):
         try:
-            compare_helper = self.helpers.http_compare(event.data, allow_redirects=self.allow_redirects)
+            compare_helper = self.helpers.http_compare(
+                event.data, allow_redirects=self.allow_redirects, include_cache_buster=False
+            )
         except HttpCompareError as e:
             self.debug(e)
+            return
+
+        if compare_helper.canary_check(event.data, mode="getparam") == False:
+            self.verbose(f'Aborting "{event.data}" due to failed canary check')
             return
 
         for sig in self.signatures:
