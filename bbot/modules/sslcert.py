@@ -13,7 +13,7 @@ from bbot.core.helpers.threadpool import NamedLock
 class sslcert(BaseModule):
     watched_events = ["OPEN_TCP_PORT"]
     produced_events = ["DNS_NAME", "EMAIL_ADDRESS"]
-    flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic"]
+    flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic", "web-thorough"]
     meta = {
         "description": "Visit open ports and retrieve SSL certificates",
     }

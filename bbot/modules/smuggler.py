@@ -11,7 +11,7 @@ wrapper for https://github.com/defparam/smuggler.git
 class smuggler(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "slow"]
+    flags = ["active", "aggressive", "slow", "web-thorough"]
     meta = {"description": "Check for HTTP smuggling"}
 
     in_scope_only = True

@@ -8,7 +8,7 @@ class bucket_gcp(bucket_aws):
 
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic"]
+    flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]
     meta = {"description": "Check for Google object storage related to target"}
     options = {"max_threads": 10, "permutations": False}
     options_desc = {

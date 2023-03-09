@@ -7,7 +7,7 @@ from bbot.core.helpers.misc import tldextract
 
 
 class subdomain_hijack(BaseModule):
-    flags = ["subdomain-hijack", "subdomain-enum", "cloud-enum", "safe", "active", "web-basic"]
+    flags = ["subdomain-hijack", "subdomain-enum", "cloud-enum", "safe", "active", "web-basic", "web-thorough"]
     watched_events = ["DNS_NAME"]
     produced_events = ["FINDING"]
     meta = {"description": "Detect hijackable subdomains"}

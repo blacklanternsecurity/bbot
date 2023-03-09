@@ -5,7 +5,7 @@ from bbot.core.errors import HttpCompareError
 class url_manipulation(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive"]
+    flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Attempt to identify URL parsing/routing based vulnerabilities"}
     in_scope_only = True
 

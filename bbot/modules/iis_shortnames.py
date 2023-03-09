@@ -13,7 +13,7 @@ def encode_all(string):
 class iis_shortnames(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
-    flags = ["active", "safe", "web-basic", "iis-shortnames"]
+    flags = ["active", "safe", "web-basic", "web-thorough", "iis-shortnames"]
     meta = {"description": "Check for IIS shortname vulnerability"}
     options = {"detect_only": True, "max_node_count": 30}
     options_desc = {
