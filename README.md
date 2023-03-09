@@ -52,8 +52,6 @@ See also: [Release History](https://github.com/blacklanternsecurity/bbot/wiki/Re
 
 ## Scanning with BBOT
 
-Note: the `httpx` module is recommended in most scans because it is [used by BBOT to visit webpages](https://github.com/blacklanternsecurity/bbot/wiki#note-on-the-httpx-module).
-
 ### Examples
 ~~~bash
 # list modules
