@@ -5,6 +5,8 @@ from omegaconf import OmegaConf
 
 class MockHelper:
     targets = ["blacklanternsecurity.com"]
+    blacklist = None
+    whitelist = None
     config_overrides = {}
     additional_modules = []
 
@@ -12,7 +14,12 @@ class MockHelper:
         self.name = kwargs.get("module_name", self.__class__.__name__.lower())
         self.config = OmegaConf.merge(config, OmegaConf.create(self.config_overrides))
         self.scan = bbot_scanner(
-            *self.targets, modules=[self.name] + self.additional_modules, name=f"{self.name}_test", config=self.config
+            *self.targets,
+            modules=[self.name] + self.additional_modules,
+            name=f"{self.name}_test",
+            config=self.config,
+            whitelist=self.whitelist,
+            blacklist=self.blacklist,
         )
         self.patch_scan(self.scan)
         self.scan.prep()
