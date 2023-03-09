@@ -2,7 +2,7 @@ from bbot.core.errors import ScanCancelledError
 from .paramminer_headers import paramminer_headers
 
 
-class getparam_brute(paramminer_headers):
+class paramminer_getparams(paramminer_headers):
     """
     Inspired by https://github.com/PortSwigger/param-miner
     """
