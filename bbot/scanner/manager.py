@@ -147,7 +147,8 @@ class ScanManager:
                 distribute_event = False
 
             if event.type in ("DNS_NAME", "IP_ADDRESS"):
-                event.tags.update(dns_tags)
+                for tag in dns_tags:
+                    event.add_tag(tag)
 
             event._resolved_hosts = resolved_hosts
 

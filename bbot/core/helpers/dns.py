@@ -348,9 +348,9 @@ class DNSHelper:
                     if rdtype in ("A", "AAAA"):
                         ips.add(target)
                 for ip in ips:
-                    provider, subnet = cloudcheck.check(ip)
+                    provider, provider_type, subnet = cloudcheck.check(ip)
                     if provider:
-                        event_tags.add(f"cloud-{provider.lower()}")
+                        event_tags.add(f"{provider_type}-{provider}")
 
             if "resolved" not in event_tags:
                 event_tags.add("unresolved")
