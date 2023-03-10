@@ -103,7 +103,7 @@ BBOT's whitelist determines what's considered to be in-scope. By default, the wh
 bbot -t evilcorp.com evilcorp.co.uk --whitelist 1.2.3.0/24 --blacklist test.evilcorp.com 1.2.3.4 blacklist.txt
 ~~~
 
-Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurity/bbot/wiki#tips-and-tricks), including details on how BBOT handles scope, and how to tweak it if you need to.
+Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurity/bbot/wiki#tips-and-tricks).
 
 ## Using BBOT as a Python library
 ~~~python
