@@ -15,7 +15,7 @@ pip install bbot
 
 BBOT can execute the entire OSINT process in a single command: subdomain enumeration, port scans, web screenshots (with `gowitness`), vulnerability scanning (with `nuclei`), and much more. BBOT has over **80 modules** and counting.
 
-Read our [blog post](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off) to find out why BBOT is the most comprehensive subdomain enumeration tool available.
+Read our [blog post](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off) to find out why BBOT is the most thorough subdomain enumeration tool available.
 
 ![graphs-small](https://user-images.githubusercontent.com/20261699/199602154-14c71a93-57aa-4ac0-ad81-87ce64fbffc7.png)
 
