@@ -126,7 +126,8 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
 
             assert type(watched_events) == list
             assert type(produced_events) == list
-            assert watched_events, f"{module_name}.watched_events must not be empty"
+            if not preloaded.get("type", "") in ("internal",):
+                assert watched_events, f"{module_name}.watched_events must not be empty"
             assert type(watched_events) == list, f"{module_name}.watched_events must be of type list"
             assert type(produced_events) == list, f"{module_name}.produced_events must be of type list"
             assert all(
