@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import threading
 import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
@@ -11,7 +12,7 @@ from contextlib import suppress
 sys.stdout.reconfigure(line_buffering=True)
 
 # logging
-from bbot.core.logger import init_logging, get_log_level
+from bbot.core.logger import init_logging, get_log_level, toggle_log_level
 
 logging_queue, logging_handlers = init_logging()
 
@@ -20,6 +21,7 @@ from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
 from bbot.core.helpers.logger import log_to_stderr
+from bbot.core.configurator import ensure_config_files
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
@@ -32,12 +34,12 @@ from . import config
 
 
 def main():
-
     err = False
     scan_name = ""
 
-    try:
+    ensure_config_files()
 
+    try:
         if len(sys.argv) == 1:
             parser.print_help()
             sys.exit(1)
@@ -94,8 +96,20 @@ def main():
                                     log.verbose(f'Enabling {m} because it has flag "{f}"')
                                     modules.add(m)
 
+                default_output_modules = ["human", "json", "csv"]
+
+                # Make a list of the modules which can be output to the console
+                consoleable_output_modules = [
+                    k for k, v in module_loader.preloaded(type="output").items() if "console" in v["config"]
+                ]
+
+                # If no options are specified, use the default set
                 if not options.output_modules:
-                    options.output_modules = ["human"]
+                    options.output_modules = default_output_modules
+
+                # if none of the output modules provided on the command line are consoleable, don't turn off the defaults. Instead, just add the one specified to the defaults.
+                elif not any(o in consoleable_output_modules for o in options.output_modules):
+                    options.output_modules += default_output_modules
 
                 scanner = Scanner(
                     *options.targets,
@@ -166,20 +180,23 @@ def main():
                         log.verbose(
                             f"Removing {m} because it does not have the required flags: {'+'.join(options.require_flags)}"
                         )
-                        modules.remove(m)
+                        with suppress(KeyError):
+                            modules.remove(m)
 
                 # excluded flags
                 for m in scanner._scan_modules:
                     flags = module_loader._preloaded.get(m, {}).get("flags", [])
                     if any(f in flags for f in options.exclude_flags):
                         log.verbose(f"Removing {m} because of excluded flag: {','.join(options.exclude_flags)}")
-                        modules.remove(m)
+                        with suppress(KeyError):
+                            modules.remove(m)
 
                 # excluded modules
                 for m in options.exclude_modules:
                     if m in modules:
                         log.verbose(f"Removing {m} because it is excluded")
-                        modules.remove(m)
+                        with suppress(KeyError):
+                            modules.remove(m)
                 scanner._scan_modules = list(modules)
 
                 log_fn = log.info
@@ -210,15 +227,42 @@ def main():
                     return
 
                 module_list = module_loader.filter_modules(modules=modules)
-                deadly_modules = [
-                    m[0] for m in module_list if "deadly" in m[-1]["flags"] and m[0] in scanner._scan_modules
-                ]
-                if scanner._scan_modules and deadly_modules:
-                    if not options.allow_deadly:
+                deadly_modules = []
+                active_modules = []
+                active_aggressive_modules = []
+                slow_modules = []
+                for m in module_list:
+                    if m[0] in scanner._scan_modules:
+                        if "deadly" in m[-1]["flags"]:
+                            deadly_modules.append(m[0])
+                        if "active" in m[-1]["flags"]:
+                            active_modules.append(m[0])
+                            if "aggressive" in m[-1]["flags"]:
+                                active_aggressive_modules.append(m[0])
+                        if "slow" in m[-1]["flags"]:
+                            slow_modules.append(m[0])
+                if scanner._scan_modules:
+                    if deadly_modules and not options.allow_deadly:
                         log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
                         log.hugewarning(f"Deadly modules are highly intrusive")
                         log.hugewarning(f"Please specify --allow-deadly to continue")
                         return
+                    if active_modules:
+                        if active_modules:
+                            if active_aggressive_modules:
+                                log.hugewarning(
+                                    "This is an (aggressive) active scan! Intrusive connections will be made to target"
+                                )
+                            else:
+                                log.warning(
+                                    "This is a (safe) active scan. Non-intrusive connections will be made to target"
+                                )
+                    else:
+                        log.hugeinfo("This is a passive scan. No connections will be made to target")
+                    if slow_modules:
+                        log.hugewarning(
+                            f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take longer than usual"
+                        )
 
                 scanner.helpers.word_cloud.load(options.load_wordcloud)
 
@@ -228,6 +272,15 @@ def main():
                     if not options.agent_mode and not options.yes and sys.stdin.isatty():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
+
+                    def keyboard_listen():
+                        while 1:
+                            keyboard_input = input()
+                            if not keyboard_input:
+                                toggle_log_level(logger=log)
+
+                    keyboard_listen_thread = threading.Thread(target=keyboard_listen, daemon=True)
+                    keyboard_listen_thread.start()
 
                     scanner.start_without_generator()
 
@@ -258,12 +311,12 @@ def main():
 
     finally:
         # save word cloud
-        with suppress(Exception):
+        with suppress(BaseException):
             save_success, filename = scanner.helpers.word_cloud.save(options.save_wordcloud)
             if save_success:
                 log_to_stderr(f"Saved word cloud ({len(scanner.helpers.word_cloud):,} words) to {filename}")
         # remove output directory if empty
-        with suppress(Exception):
+        with suppress(BaseException):
             scanner.home.rmdir()
         if err:
             os._exit(1)

@@ -4,10 +4,9 @@ from sys import executable
 
 
 class telerik(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
-    flags = ["active", "aggressive", "slow", "web-basic"]
+    flags = ["active", "aggressive", "slow", "web-thorough"]
     meta = {"description": "Scan for critical Telerik vulnerabilities"}
 
     telerikVersions = [
@@ -105,7 +104,7 @@ class telerik(BaseModule):
         "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx",
         "cms/portlets/telerik.web.ui.dialoghandler.aspx",
         "common/admin/Calendar/Telerik.Web.UI.DialogHandler.aspx",
-        "common/admin/Jobs2/Telerik.Web.UI.DialogHandler.aspx,"
+        "common/admin/Jobs2/Telerik.Web.UI.DialogHandler.aspx",
         "common/admin/PhotoGallery2/Telerik.Web.UI.DialogHandler.aspx",
         "dashboard/UserControl/CMS/Page/Telerik.Web.UI.DialogHandler.aspx",
         "DesktopModule/UIQuestionControls/UIAskQuestion/Telerik.Web.UI.DialogHandler.aspx",
@@ -159,10 +158,10 @@ class telerik(BaseModule):
 
     def setup(self):
         self.scanned_hosts = set()
+        self.timeout = self.scan.config.get("httpx_timeout", 5)
         return True
 
     def handle_event(self, event):
-
         host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
         host_hash = hash(host)
         if host_hash in self.scanned_hosts:
@@ -224,6 +223,11 @@ class telerik(BaseModule):
         for future in self.helpers.as_completed(futures):
             dh = futures[future]
             result = future.result()
+            # cancel if we run into timeouts etc.
+            if result is None:
+                self.debug(f"Cancelling run against {event.data} due to failed request")
+                for future in futures:
+                    future.cancel()
             if result:
                 if "Cannot deserialize dialog parameters" in result.text:
                     for future in futures:
@@ -237,7 +241,6 @@ class telerik(BaseModule):
                         event,
                     )
                 # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
-
                 break
 
         spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
@@ -264,17 +267,15 @@ class telerik(BaseModule):
             pass
 
     def test_detector(self, baseurl, detector):
-
         result = None
         if "/" != baseurl[-1]:
             url = f"{baseurl}/{detector}"
         else:
             url = f"{baseurl}{detector}"
-        result = self.helpers.request(url)
+        result = self.helpers.request(url, timeout=self.timeout)
         return result
 
     def filter_event(self, event):
-
         if "endpoint" in event.tags:
             return False
         else:

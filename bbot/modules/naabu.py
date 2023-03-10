@@ -4,10 +4,9 @@ from bbot.modules.base import BaseModule
 
 
 class naabu(BaseModule):
-
     watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
-    flags = ["active", "portscan", "aggressive"]
+    flags = ["active", "portscan", "aggressive", "web-thorough"]
     meta = {"description": "Execute port scans with naabu"}
     options = {
         "ports": "",
@@ -21,6 +20,7 @@ class naabu(BaseModule):
     }
     max_event_handlers = 2
     batch_size = 100
+    _priority = 2
 
     deps_ansible = [
         {
@@ -28,23 +28,25 @@ class naabu(BaseModule):
             "package": {"name": "libpcap0.8", "state": "present"},
             "become": True,
             "when": """ansible_facts['os_family'] == 'Debian'""",
+            "ignore_errors": True,
         },
         {
             "name": "install libpcap (others)",
             "package": {"name": "libpcap", "state": "present"},
             "become": True,
             "when": """ansible_facts['os_family'] != 'Debian'""",
+            "ignore_errors": True,
         },
         {
             "name": "symlink libpcap",
             "file": {"src": "/usr/lib/libpcap.so", "dest": "#{BBOT_LIB}/libpcap.so.0.8", "state": "link"},
-            "ignore_errors": "yes",
             "when": """ansible_facts['os_family'] != 'Debian'""",
+            "ignore_errors": True,
         },
         {
             "name": "Download naabu",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/naabu/releases/download/v#{BBOT_MODULES_NAABU_VERSION}/naabu_#{BBOT_MODULES_NAABU_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/naabu/releases/download/v#{BBOT_MODULES_NAABU_VERSION}/naabu_#{BBOT_MODULES_NAABU_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
                 "include": "naabu",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -52,11 +54,14 @@ class naabu(BaseModule):
         },
     ]
 
-    def handle_batch(self, *events):
+    def setup(self):
+        self.helpers.depsinstaller.ensure_root(message="Naabu requires root privileges")
+        return True
 
+    def handle_batch(self, *events):
         _input = [str(e.data) for e in events]
         command = self.construct_command()
-        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL):
+        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL, sudo=True):
             try:
                 j = json.loads(line)
             except Exception as e:

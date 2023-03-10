@@ -2,7 +2,6 @@ from .base import BaseCloudProvider
 
 
 class AWS(BaseCloudProvider):
-
     domains = [
         "amazon-dss.com",
         "amazonaws.com",

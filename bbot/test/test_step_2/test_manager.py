@@ -114,7 +114,7 @@ def test_manager(bbot_config, bbot_scanner):
     assert test_event2 not in output_queue
     assert test_event2._internal == True
     assert test_event2._force_output == False
-    assert scan1.modules["json"]._filter_event(test_event2)[0] == False
+    assert scan1.modules["json"]._event_precheck(test_event2)[0] == False
     module_queue.clear()
     output_queue.clear()
     manager.events_distributed.clear()

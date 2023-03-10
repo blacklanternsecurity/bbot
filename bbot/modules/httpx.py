@@ -4,10 +4,9 @@ from bbot.modules.base import BaseModule
 
 
 class httpx(BaseModule):
-
     watched_events = ["OPEN_TCP_PORT", "URL_UNVERIFIED", "URL"]
     produced_events = ["URL", "HTTP_RESPONSE"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["active", "safe", "web-basic", "web-thorough", "subdomain-enum"]
     meta = {"description": "Visit webpages. Many other modules rely on httpx"}
 
     batch_size = 500
@@ -21,7 +20,7 @@ class httpx(BaseModule):
         {
             "name": "Download httpx",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/httpx/releases/download/v#{BBOT_MODULES_HTTPX_VERSION}/httpx_#{BBOT_MODULES_HTTPX_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/httpx/releases/download/v#{BBOT_MODULES_HTTPX_VERSION}/httpx_#{BBOT_MODULES_HTTPX_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
                 "include": "httpx",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -30,6 +29,7 @@ class httpx(BaseModule):
     ]
 
     scope_distance_modifier = 0
+    _priority = 2
 
     def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
@@ -39,7 +39,6 @@ class httpx(BaseModule):
         return True
 
     def filter_event(self, event):
-
         if "_wildcard" in str(event.host).split("."):
             return False
 
@@ -60,7 +59,6 @@ class httpx(BaseModule):
         return True
 
     def handle_batch(self, *events):
-
         stdin = {}
         for e in events:
             url_hash = None
@@ -98,6 +96,8 @@ class httpx(BaseModule):
             # "-r",
             # self.helpers.resolver_file,
         ]
+        for hk, hv in self.scan.config.get("http_headers", {}).items():
+            command += ["-header", f"{hk}: {hv}"]
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:
             command += ["-http-proxy", proxy]
@@ -127,10 +127,16 @@ class httpx(BaseModule):
 
             # main URL
             httpx_ip = j.get("host", "unknown")
-            url_event = self.make_event(url, "URL", source_event, tags=[f"status-{status_code}", f"ip-{httpx_ip}"])
+            tags = [f"status-{status_code}", f"ip-{httpx_ip}"]
+            title = self.helpers.tagify(j.get("title", ""))
+            if title:
+                tags.append(f"http-title-{title}")
+            url_event = self.make_event(url, "URL", source_event, tags=tags)
             if url_event and not "httpx-only" in url_event.tags:
                 if url_event != source_event:
                     self.emit_event(url_event)
+                else:
+                    url_event._resolved.set()
                 # HTTP response
                 self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)
 

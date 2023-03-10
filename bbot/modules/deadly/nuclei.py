@@ -5,15 +5,14 @@ from bbot.modules.base import BaseModule
 
 
 class nuclei(BaseModule):
-
-    watched_events = ["URL", "TECHNOLOGY"]
+    watched_events = ["URL"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "aggressive", "web-advanced"]
+    flags = ["active", "aggressive"]
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
     batch_size = 100
     options = {
-        "version": "2.7.9",
+        "version": "2.8.9",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -38,7 +37,7 @@ class nuclei(BaseModule):
         {
             "name": "Download nuclei",
             "unarchive": {
-                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v#{BBOT_MODULES_NUCLEI_VERSION}/nuclei_#{BBOT_MODULES_NUCLEI_VERSION}_linux_amd64.zip",
+                "src": "https://github.com/projectdiscovery/nuclei/releases/download/v#{BBOT_MODULES_NUCLEI_VERSION}/nuclei_#{BBOT_MODULES_NUCLEI_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.zip",
                 "include": "nuclei",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -49,12 +48,11 @@ class nuclei(BaseModule):
     in_scope_only = True
 
     def setup(self):
-
         # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
         self.info("Updating Nuclei templates")
         update_results = self.helpers.run(
-            ["nuclei", "-update-directory", self.nuclei_templates_dir, "-update-templates"]
+            ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"]
         )
         if update_results.stderr:
             if "Successfully downloaded nuclei-templates" in update_results.stderr:
@@ -116,12 +114,9 @@ class nuclei(BaseModule):
                 f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
             )
 
-        self.stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
-
         return True
 
     def handle_batch(self, *events):
-
         nuclei_input = [str(e.data) for e in events]
         for severity, template, host, name, extracted_results in self.execute_nuclei(nuclei_input):
             source_event = self.correlate_event(events, host)
@@ -161,11 +156,10 @@ class nuclei(BaseModule):
         self.warning("Failed to correlate nuclei result with event")
 
     def execute_nuclei(self, nuclei_input):
-
         command = [
             "nuclei",
             "-json",
-            "-update-directory",
+            "-update-template-dir",
             self.nuclei_templates_dir,
             "-rate-limit",
             self.ratelimit,
@@ -195,35 +189,39 @@ class nuclei(BaseModule):
             command.append("-t")
             command.append(self.budget_templates_file)
 
-        with open(self.stats_file, "w") as stats_file:
-            for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_file):
-                try:
-                    j = json.loads(line)
-                except json.decoder.JSONDecodeError:
-                    self.debug(f"Failed to decode line: {line}")
-                    continue
+        stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
+        try:
+            with open(stats_file, "w") as stats_fh:
+                for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_fh):
+                    try:
+                        j = json.loads(line)
+                    except json.decoder.JSONDecodeError:
+                        self.debug(f"Failed to decode line: {line}")
+                        continue
 
-                template = j.get("template-id", "")
+                    template = j.get("template-id", "")
 
-                # try to get the specific matcher name
-                name = j.get("matcher-name", "")
+                    # try to get the specific matcher name
+                    name = j.get("matcher-name", "")
 
-                # fall back to regular name
-                if not name:
-                    self.debug(
-                        f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
-                    )
-                    name = j.get("info", {}).get("name", "")
+                    # fall back to regular name
+                    if not name:
+                        self.debug(
+                            f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
+                        )
+                        name = j.get("info", {}).get("name", "")
 
-                severity = j.get("info", {}).get("severity", "").upper()
-                host = j.get("host", "")
+                    severity = j.get("info", {}).get("severity", "").upper()
+                    host = j.get("host", "")
 
-                extracted_results = j.get("extracted-results", [])
+                    extracted_results = j.get("extracted-results", [])
 
-                if template and name and severity and host:
-                    yield (severity, template, host, name, extracted_results)
-                else:
-                    self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
+                    if template and name and severity and host:
+                        yield (severity, template, host, name, extracted_results)
+                    else:
+                        self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
+        finally:
+            stats_file.unlink()
 
     def log_nuclei_status(self, line):
         try:
@@ -297,7 +295,6 @@ class NucleiBudget:
             if yf:
                 for paths in self.get_yaml_request_attr(yf, "path"):
                     if set(paths).issubset(self.budget_paths):
-
                         headers = self.get_yaml_request_attr(yf, "headers")
                         for header in headers:
                             if header:

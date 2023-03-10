@@ -1,29 +1,37 @@
 import logging
-
+from pathlib import Path
 from bbot.modules.base import BaseModule
 
 
 class BaseOutputModule(BaseModule):
     accept_dupes = True
     _type = "output"
-    emit_graph_trail = True
     scope_distance_modifier = None
     _stats_exclude = True
 
-    def _filter_event(self, event, precheck_only=False):
-        if type(event) == str:
-            if event in ("FINISHED", "REPORT"):
-                return True, ""
-            else:
-                return False, f'string value "{event}" is invalid'
+    def _event_precheck(self, event):
         if event._omit:
             return False, "_omit is True"
-        if not precheck_only:
-            if event._force_output:
-                return True, "_force_output is True"
-            if event._internal:
-                return False, "_internal is True"
-        return True, ""
+        if event._force_output:
+            return True, "_force_output is True"
+        if event._internal:
+            return False, "_internal is True"
+        return super()._event_precheck(event)
+
+    def _prep_output_dir(self, filename):
+        self.output_file = self.config.get("output_file", "")
+        if self.output_file:
+            self.output_file = Path(self.output_file)
+        else:
+            self.output_file = self.scan.home / str(filename)
+        self.helpers.mkdir(self.output_file.parent)
+        self._file = None
+
+    @property
+    def file(self):
+        if self._file is None:
+            self._file = open(self.output_file, mode="a")
+        return self._file
 
     @property
     def config(self):

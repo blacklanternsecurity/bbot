@@ -1,16 +1,16 @@
-from .header_brute import header_brute
 from bbot.core.errors import ScanCancelledError
+from .paramminer_headers import paramminer_headers
 
 
-class getparam_brute(header_brute):
+class paramminer_getparams(paramminer_headers):
     """
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["brute-force", "active", "aggressive", "slow", "web-paramminer"]
-    meta = {"description": "Check for common HTTP GET parameters"}
+    flags = ["active", "aggressive", "slow", "web-paramminer"]
+    meta = {"description": "Use smart brute-force to check for common HTTP GET parameters"}
 
     options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params"}
     options_desc = {"wordlist": "Define the wordlist to be used to derive GET params"}
@@ -27,7 +27,6 @@ class getparam_brute(header_brute):
         return compare_helper.compare(self.helpers.add_get_params(url, test_getparams).geturl())
 
     def gen_count_args(self, url):
-
         getparam_count = 40
         while 1:
             if getparam_count < 0:

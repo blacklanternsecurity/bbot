@@ -70,15 +70,13 @@ for hp_key in header_payloads.keys():
 
 
 class bypass403(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-advanced"]
+    flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Check 403 pages for common bypasses"}
     in_scope_only = True
 
     def handle_event(self, event):
-
         try:
             compare_helper = self.helpers.http_compare(event.data, allow_redirects=True)
         except HttpCompareError as e:
@@ -86,7 +84,6 @@ class bypass403(BaseModule):
             return
 
         for sig in signatures:
-
             sig = self.format_signature(sig, event)
             if sig[2] != None:
                 headers = dict(sig[2])
@@ -98,7 +95,6 @@ class bypass403(BaseModule):
 
             if match == False:
                 if str(subject_response.status_code)[0] != "4":
-
                     if sig[2]:
                         added_header_tuple = next(iter(sig[2].items()))
                         reported_signature = f"Added Header: {added_header_tuple[0]}: {added_header_tuple[1]}"

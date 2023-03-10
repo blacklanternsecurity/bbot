@@ -5,7 +5,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table
+from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
 
 
 class ModuleLoader:
@@ -137,6 +137,12 @@ class ModuleLoader:
                         # ansible playbook
                         elif any([target.id == "deps_ansible" for target in class_attr.targets]):
                             ansible_tasks = ast.literal_eval(class_attr.value)
+        for task in ansible_tasks:
+            if not "become" in task:
+                task["become"] = False
+            # don't sudo brew
+            elif os_platform() == "darwin" and ("package" in task and task.get("become", False) == True):
+                task["become"] = False
         preloaded_data = {
             "watched_events": watched_events,
             "produced_events": produced_events,
@@ -217,6 +223,8 @@ class ModuleLoader:
             missing_deps = {e: not self.check_dependency(e, modname, produced) for e in watched_events}
             if all(missing_deps.values()):
                 for event_type in watched_events:
+                    if event_type == "SCAN":
+                        continue
                     choices = produced_all.get(event_type, [])
                     choices = set(choices)
                     with suppress(KeyError):

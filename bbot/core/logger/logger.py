@@ -13,6 +13,9 @@ from ..helpers.misc import mkdir, error_and_exit
 from ..helpers.logger import colorize, loglevel_mapping
 
 
+_log_level_override = None
+
+
 class ColoredFormatter(logging.Formatter):
     """
     Pretty colors for terminal
@@ -81,12 +84,16 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
 
 # custom logging levels
 addLoggingLevel("STDOUT", 100)
+addLoggingLevel("TRACE", 49)
 addLoggingLevel("HUGEWARNING", 31)
 addLoggingLevel("HUGESUCCESS", 26)
 addLoggingLevel("SUCCESS", 25)
 addLoggingLevel("HUGEINFO", 21)
 addLoggingLevel("HUGEVERBOSE", 16)
 addLoggingLevel("VERBOSE", 15)
+
+
+verbosity_levels_toggle = [logging.INFO, logging.VERBOSE, logging.DEBUG]
 
 
 def stop_listener(listener):
@@ -109,7 +116,6 @@ def log_worker_setup(logging_queue):
 
 
 def log_listener_setup(logging_queue):
-
     log_dir = Path(config["home"]) / "logs"
     if not mkdir(log_dir, raise_error=False):
         error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
@@ -130,13 +136,13 @@ def log_listener_setup(logging_queue):
         f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
     )
 
-    log_level = get_log_level()
-
-    config_debug = config.get("debug", False)
-    config_silent = config.get("silent", False)
-
     def stderr_filter(record):
-        if record.levelno == logging.STDOUT:
+        config_silent = config.get("silent", False)
+        log_level = get_log_level()
+        excluded_levels = [logging.STDOUT]
+        if log_level > logging.DEBUG:
+            excluded_levels.append(logging.TRACE)
+        if record.levelno in excluded_levels:
             return False
         if record.levelno >= logging.ERROR:
             return True
@@ -149,7 +155,7 @@ def log_listener_setup(logging_queue):
     stderr_handler.addFilter(stderr_filter)
     stdout_handler.addFilter(lambda x: x.levelno == logging.STDOUT)
     debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
-    main_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.VERBOSE)
+    main_handler.addFilter(lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE)
 
     # Set log format
     debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
@@ -158,9 +164,7 @@ def log_listener_setup(logging_queue):
     stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
     stdout_handler.setFormatter(logging.Formatter("%(message)s"))
 
-    handlers = [stdout_handler, stderr_handler, main_handler]
-    if config_debug:
-        handlers.append(debug_handler)
+    handlers = [stdout_handler, stderr_handler, main_handler, debug_handler]
 
     log_listener = QueueListener(logging_queue, *handlers)
     log_listener.start()
@@ -192,6 +196,9 @@ def init_logging():
 
 
 def get_log_level():
+    if _log_level_override is not None:
+        return _log_level_override
+
     from bbot.core.configurator.args import cli_options
 
     if config.get("debug", False) or os.environ.get("BBOT_DEBUG", "").lower() in ("true", "yes"):
@@ -204,3 +211,23 @@ def get_log_level():
         if cli_options.debug:
             loglevel = logging.DEBUG
     return loglevel
+
+
+def set_log_level(level, logger=None):
+    global _log_level_override
+    if logger is not None:
+        logger.hugeinfo(f"Setting log level to {logging.getLevelName(level)}")
+    config["silent"] = False
+    _log_level_override = level
+    log = logging.getLogger("bbot")
+    log.setLevel(level)
+
+
+def toggle_log_level(logger=None):
+    log_level = get_log_level()
+    if log_level in verbosity_levels_toggle:
+        for i, level in enumerate(verbosity_levels_toggle):
+            if log_level == level:
+                set_log_level(verbosity_levels_toggle[(i + 1) % len(verbosity_levels_toggle)], logger=logger)
+    else:
+        set_log_level(verbosity_levels_toggle[0], logger=logger)

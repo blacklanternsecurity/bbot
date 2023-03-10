@@ -5,7 +5,6 @@ log = logging.getLogger("bbot.helpers.cloud.provider")
 
 
 class BaseCloudProvider:
-
     domains = []
     regexes = {}
 
@@ -59,8 +58,19 @@ class BaseCloudProvider:
         return self.bucket_name_regex.match(bucket_name)
 
     def tag_event(self, event):
-        if event.host and isinstance(event.host, str):
-            for r in self.domain_regexes:
-                if r.match(event.host):
+        # tag the event if
+        if event.host:
+            # its host directly matches this cloud provider's domains
+            if isinstance(event.host, str) and self.domain_match(event.host):
+                event.tags.update(self.base_tags)
+                return
+            # or it has a CNAME that matches this cloud provider's domains
+            for rh in event.resolved_hosts:
+                if not self.parent_helper.is_ip(rh) and self.domain_match(rh):
                     event.tags.update(self.base_tags)
-                    break
+
+    def domain_match(self, s):
+        for r in self.domain_regexes:
+            if r.match(s):
+                return True
+        return False

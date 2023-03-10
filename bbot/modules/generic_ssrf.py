@@ -35,7 +35,6 @@ ssrf_params = [
 
 
 class BaseSubmodule:
-
     technique_description = "base technique description"
     severity = "INFO"
     paths = None
@@ -80,7 +79,6 @@ class BaseSubmodule:
 
 
 class Generic_SSRF(BaseSubmodule):
-
     technique_description = "Generic SSRF (GET)"
     severity = "HIGH"
 
@@ -88,7 +86,6 @@ class Generic_SSRF(BaseSubmodule):
         return event.data
 
     def create_paths(self):
-
         query_string = ""
         for param in ssrf_params:
             query_string += f"{param}=http://SSRF_CANARY&"
@@ -101,7 +98,6 @@ class Generic_SSRF(BaseSubmodule):
 
 
 class Generic_SSRF_POST(BaseSubmodule):
-
     technique_description = "Generic SSRF (POST)"
     severity = "HIGH"
 
@@ -109,7 +105,6 @@ class Generic_SSRF_POST(BaseSubmodule):
         return event.data
 
     def test(self, event):
-
         test_url = f"{event.data}"
 
         subdomain_tag = self.parent_module.helpers.rand_string(4, digits=False)
@@ -131,13 +126,11 @@ class Generic_SSRF_POST(BaseSubmodule):
 
 
 class Generic_XXE(BaseSubmodule):
-
     technique_description = "Generic XXE"
     severity = "HIGH"
     paths = None
 
     def test(self, event):
-
         rand_entity = self.parent_module.helpers.rand_string(4, digits=False)
         subdomain_tag = self.parent_module.helpers.rand_string(4, digits=False)
 
@@ -156,17 +149,15 @@ class Generic_XXE(BaseSubmodule):
 
 
 class generic_ssrf(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
-    flags = ["active", "aggressive", "web-advanced"]
+    flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Check for generic SSRFs"}
     in_scope_only = True
 
     deps_apt = ["curl"]
 
     def setup(self):
-
         self.submodules = {}
         self.interactsh_subdomain_tags = {}
         self.severity = None

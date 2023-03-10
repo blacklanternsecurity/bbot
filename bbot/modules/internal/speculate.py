@@ -1,3 +1,4 @@
+import random
 import ipaddress
 
 from bbot.modules.internal.base import BaseInternalModule
@@ -14,32 +15,46 @@ class speculate(BaseInternalModule):
     flags = ["passive"]
     meta = {"description": "Derive certain event types from others by common sense"}
 
-    options = {"max_hosts": 65536}
-    options_desc = {"max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events"}
+    options = {"max_hosts": 65536, "ports": [80, 443]}
+    options_desc = {
+        "max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events",
+        "ports": "The set of ports to speculate on",
+    }
     max_event_handlers = 5
     scope_distance_modifier = 0
     _scope_shepherding = False
+    _priority = 4
 
     def setup(self):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
         self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
         self.range_to_ip = True
+
+        self.ports = self.config.get("ports", [80, 443])
+        if isinstance(self.ports, int):
+            self.ports = [self.ports]
+        if not self.portscanner_enabled:
+            self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")
+
         target_len = len(self.scan.target)
         if target_len > self.config.get("max_hosts", 65536):
             if not self.portscanner_enabled:
                 self.hugewarning(
                     f"Selected target ({target_len:,} hosts) is too large, skipping IP_RANGE --> IP_ADDRESS speculation"
                 )
-                self.hugewarning(f"Enabling a port scanner module is highly recommended")
+                self.hugewarning(f"Enabling a port scanner (naabu or masscan) module is highly recommended")
             self.range_to_ip = False
+
         return True
 
     def handle_event(self, event):
         # generate individual IP addresses from IP range
         if event.type == "IP_RANGE" and self.range_to_ip:
             net = ipaddress.ip_network(event.data)
-            for x in net:
-                self.emit_event(x, "IP_ADDRESS", source=event, internal=True)
+            ips = list(net)
+            random.shuffle(ips)
+            for ip in ips:
+                self.emit_event(ip, "IP_ADDRESS", source=event, internal=True)
 
         # parent domains
         if event.type == "DNS_NAME":
@@ -51,7 +66,7 @@ class speculate(BaseInternalModule):
         emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         # from URLs
         if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
-            if event.host and event.port not in (80, 443):
+            if event.host and event.port not in self.ports:
                 self.emit_event(
                     self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
                 )
@@ -61,15 +76,14 @@ class speculate(BaseInternalModule):
 
             usable_dns = False
             if event.type == "DNS_NAME":
-
                 if "a-record" in event.tags or "aaaa-record" in event.tags:
                     usable_dns = True
 
             if event.type == "IP_ADDRESS" or usable_dns:
-                self.emit_event(self.helpers.make_netloc(event.data, 80), "OPEN_TCP_PORT", source=event, internal=True)
-                self.emit_event(
-                    self.helpers.make_netloc(event.data, 443), "OPEN_TCP_PORT", source=event, internal=True
-                )
+                for port in self.ports:
+                    self.emit_event(
+                        self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True
+                    )
 
     def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self

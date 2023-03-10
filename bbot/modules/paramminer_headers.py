@@ -2,15 +2,15 @@ from bbot.modules.base import BaseModule
 from bbot.core.errors import HttpCompareError, ScanCancelledError
 
 
-class header_brute(BaseModule):
+class paramminer_headers(BaseModule):
     """
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["brute-force", "active", "aggressive", "slow", "web-paramminer"]
-    meta = {"description": "Check for common HTTP header parameters"}
+    flags = ["active", "aggressive", "slow", "web-paramminer"]
+    meta = {"description": "Use smart brute-force to check for common HTTP header parameters"}
     options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
     options_desc = {"wordlist": "Define the wordlist to be used to derive headers"}
     scanned_hosts = []
@@ -30,17 +30,14 @@ class header_brute(BaseModule):
     compare_mode = "header"
 
     def setup(self):
-
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = self.helpers.wordlist(wordlist_url)
         return True
 
     def rand_string(self, *args, **kwargs):
-
         return self.helpers.rand_string(*args, **kwargs)
 
     def handle_event(self, event):
-
         url = event.data
         try:
             compare_helper = self.helpers.http_compare(url)
@@ -54,7 +51,7 @@ class header_brute(BaseModule):
         self.debug(f"Resolved batch_size at {str(batch_size)}")
 
         if compare_helper.canary_check(url, mode=self.compare_mode) == False:
-            self.warning(f'Aborting "{url}" due to failed canary check')
+            self.verbose(f'Aborting "{url}" due to failed canary check')
             return
 
         fl = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
@@ -79,11 +76,10 @@ class header_brute(BaseModule):
             pass
 
         for result, reasons, reflection in results:
-
             tags = []
             if reflection:
                 tags = ["http_reflection"]
-            description = f"[{self.compare_mode.upper()}_BRUTE] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}]"
+            description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}]"
             self.emit_event(
                 {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
@@ -92,7 +88,6 @@ class header_brute(BaseModule):
             )
 
     def count_test(self, url):
-
         baseline = self.helpers.request(url)
         if baseline is None:
             return
@@ -124,7 +119,8 @@ class header_brute(BaseModule):
             reasons = []
         self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
         if len(group) == 1:
-            yield group[0], reasons, reflection
+            if reasons:
+                yield group[0], reasons, reflection
         elif len(group) > 1:
             for group_slice in self.helpers.split_list(group):
                 match, reasons, reflection, subject_response = self.check_batch(compare_helper, url, group_slice)
@@ -134,7 +130,6 @@ class header_brute(BaseModule):
             self.warning(f"Submitted group of size 0 to binary_search()")
 
     def check_batch(self, compare_helper, url, header_list):
-
         if self.scan.stopping:
             raise ScanCancelledError()
         rand = self.rand_string()

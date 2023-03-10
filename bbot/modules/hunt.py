@@ -124,13 +124,12 @@ class hunt(BaseModule):
 
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-advanced"]
+    flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Watch for commonly-exploitable HTTP parameters"}
     # accept all events regardless of scope distance
     scope_distance_modifier = None
 
     def extract_params(self, body):
-
         # check for input tags
         input_tag = self.input_tag_regex.findall(body)
 

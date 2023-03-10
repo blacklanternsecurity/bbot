@@ -29,7 +29,6 @@ class Interactsh:
         self._thread = None
 
     def register(self, callback=None):
-
         rsa = RSA.generate(1024)
 
         self.public_key = rsa.publickey().exportKey()
@@ -84,7 +83,6 @@ class Interactsh:
         return self.domain
 
     def deregister(self):
-
         if not self.server or not self.correlation_id or not self.secret:
             raise InteractshError(f"Missing required information to deregister")
 
@@ -99,7 +97,6 @@ class Interactsh:
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")
 
     def poll(self):
-
         if not self.server or not self.correlation_id or not self.secret:
             raise InteractshError(f"Missing required information to poll")
 
@@ -116,7 +113,6 @@ class Interactsh:
             aes_key = r.json()["aes_key"]
 
             for data in data_list:
-
                 decrypted_data = self.decrypt(aes_key, data)
                 yield decrypted_data
 
@@ -133,7 +129,7 @@ class Interactsh:
                 data_list = list(self.poll())
             except InteractshError as e:
                 log.warning(e)
-                log.debug(traceback.format_exc())
+                log.trace(traceback.format_exc())
             if not data_list:
                 sleep(10)
                 continue

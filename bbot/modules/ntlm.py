@@ -61,10 +61,9 @@ NTLM_test_header = {"Authorization": "NTLM TlRMTVNTUAABAAAAl4II4gAAAAAAAAAAAAAAA
 
 
 class ntlm(BaseModule):
-
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING", "DNS_NAME"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Watch for HTTP endpoints that support NTLM authentication"}
     options = {"max_threads": 10, "try_all": False}
     options_desc = {"max_threads": "Maximum concurrent requests", "try_all": "Try every NTLM endpoint"}
@@ -137,7 +136,6 @@ class ntlm(BaseModule):
         return None, None
 
     def check_ntlm(self, test_url):
-
         url_hash = hash(test_url)
 
         with self.processed_lock:

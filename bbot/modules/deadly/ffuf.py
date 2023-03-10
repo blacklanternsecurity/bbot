@@ -7,10 +7,9 @@ from bbot.modules.base import BaseModule
 
 
 class ffuf(BaseModule):
-
     watched_events = ["URL"]
-    produced_events = ["URL"]
-    flags = ["brute-force", "aggressive", "active", "web-advanced"]
+    produced_events = ["URL_UNVERIFIED"]
+    flags = ["aggressive", "active"]
     meta = {"description": "A fast web fuzzer written in Go"}
 
     options = {
@@ -19,6 +18,7 @@ class ffuf(BaseModule):
         "max_depth": 0,
         "version": "1.5.0",
         "extensions": "",
+        "ignore_redirects": True,
     }
 
     options_desc = {
@@ -27,6 +27,7 @@ class ffuf(BaseModule):
         "max_depth": "the maxium directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
+        "ignore_redirects": "Explicitly ignore redirects (301,302)",
     }
 
     blacklist = ["images", "css", "image"]
@@ -35,7 +36,7 @@ class ffuf(BaseModule):
         {
             "name": "Download ffuf",
             "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_linux_amd64.tar.gz",
+                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
                 "include": "ffuf",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,
@@ -46,12 +47,17 @@ class ffuf(BaseModule):
     in_scope_only = True
 
     def setup(self):
-
         self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
+        self.debug(f"Using wordlist [{wordlist_url}]")
         self.wordlist = self.helpers.wordlist(wordlist_url)
-        self.tempfile = self.generate_templist(self.wordlist)
+        f = open(self.wordlist, "r")
+        self.wordlist_lines = f.readlines()
+        f.close()
+        self.tempfile, tempfile_len = self.generate_templist()
+        self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         self.extensions = self.config.get("extensions")
+        self.ignore_redirects = self.config.get("ignore_redirects")
         return True
 
     def handle_event(self, event):
@@ -67,19 +73,18 @@ class ffuf(BaseModule):
             # if we think its a directory, normalize it.
             fixed_url = event.data.rstrip("/") + "/"
 
-        for r in self.execute_ffuf(self.tempfile, event, fixed_url):
-            self.emit_event(r["url"], "URL", source=event, tags=[f"status-{r['status']}"])
+        for r in self.execute_ffuf(self.tempfile, fixed_url):
+            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
-    def execute_ffuf(self, tempfile, event, url, suffix=""):
-
-        ffuf_exts = [""]
+    def execute_ffuf(self, tempfile, url, prefix="", suffix=""):
+        ffuf_exts = ["", "/"]
 
         if self.extensions:
             for ext in self.extensions.split(","):
                 ffuf_exts.append(f".{ext}")
 
         for x in ffuf_exts:
-            fuzz_url = f"{url}FUZZ{suffix}"
+            fuzz_url = f"{url}{prefix}FUZZ{suffix}"
             command = [
                 "ffuf",
                 "-H",
@@ -92,6 +97,10 @@ class ffuf(BaseModule):
                 "-u",
                 f"{fuzz_url}{x}",
             ]
+
+            if self.ignore_redirects:
+                command.append("-fc")
+                command.append("301,302")
 
             for found in self.helpers.run_live(command):
                 try:
@@ -114,22 +123,19 @@ class ffuf(BaseModule):
                 except json.decoder.JSONDecodeError:
                     self.debug("Received invalid JSON from FFUF")
 
-    def generate_templist(self, wordlist, prefix=None):
-
-        f = open(wordlist, "r")
-        fl = f.readlines()
-        f.close()
+    def generate_templist(self, prefix=None):
+        line_count = 0
 
         virtual_file = []
         virtual_file.append(self.sanity_canary)
-        for idx, val in enumerate(fl):
+        for idx, val in enumerate(self.wordlist_lines):
             if idx > self.config.get("lines"):
                 break
             if len(val) > 0:
-
                 if val.strip().lower() in self.blacklist:
                     self.debug(f"Skipping adding [{val.strip()}] to wordlist because it was in the blacklist")
                 else:
-                    if not prefix or val.startswith(prefix):
-                        virtual_file.append(f"{val.strip()}")
-        return self.helpers.tempfile(virtual_file, pipe=False)
+                    if not prefix or val.strip().lower().startswith(prefix.strip().lower()):
+                        line_count += 1
+                        virtual_file.append(f"{val.strip().lower()}")
+        return self.helpers.tempfile(virtual_file, pipe=False), line_count

@@ -7,8 +7,7 @@ from time import sleep
 from ..bbot_fixtures import *
 
 
-def test_helpers(helpers, scan, bbot_scanner, bbot_config):
-
+def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     ### URL ###
     bad_urls = (
         "http://e.co/index.html",
@@ -135,6 +134,18 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
     assert helpers.get_file_extension("/etc/conf/test.tar.gz") == "gz"
     assert helpers.get_file_extension("/etc/passwd") == ""
 
+    assert helpers.tagify("HttP  -_Web  Title--  ") == "http-web-title"
+    tagged_event = scan.make_event("127.0.0.1", source=scan.root_event, tags=["HttP  web -__- title  "])
+    assert "http-web-title" in tagged_event.tags
+    tagged_event.remove_tag("http-web-title")
+    assert "http-web-title" not in tagged_event.tags
+    tagged_event.add_tag("Another tag  ")
+    assert "another-tag" in tagged_event.tags
+    tagged_event.tags = ["Some other tag  "]
+    assert isinstance(tagged_event._tags, set)
+    assert "another-tag" not in tagged_event.tags
+    assert "some-other-tag" in tagged_event.tags
+
     assert list(helpers.search_dict_by_key("asdf", {"asdf": "fdsa", 4: [{"asdf": 5}]})) == ["fdsa", 5]
     assert list(helpers.search_dict_by_key("asdf", {"wat": {"asdf": "fdsa"}})) == ["fdsa"]
     assert list(helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"asdf": "fdsa"}]}])) == ["fdsa"]
@@ -164,6 +175,17 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
     assert "filterme" not in filtered_dict3["modules"]["c99"]
     assert "ipneighbor" not in filtered_dict3["modules"]
 
+    filtered_dict4 = helpers.filter_dict(
+        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
+        "secret",
+        fuzzy=True,
+        exclude_keys="modules",
+    )
+    assert not "secrets_db" in filtered_dict4["modules"]
+    assert "ipneighbor" in filtered_dict4["modules"]
+    assert "secret" in filtered_dict4["modules"]["ipneighbor"]
+    assert "asdf" not in filtered_dict4["modules"]["ipneighbor"]
+
     cleaned_dict = helpers.clean_dict(
         {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
     )
@@ -185,6 +207,17 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
     assert "api_key" not in cleaned_dict3["modules"]["c99"]
     assert "filterme" in cleaned_dict3["modules"]["c99"]
     assert "ipneighbor" in cleaned_dict3["modules"]
+
+    cleaned_dict4 = helpers.clean_dict(
+        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
+        "secret",
+        fuzzy=True,
+        exclude_keys="modules",
+    )
+    assert "secrets_db" in cleaned_dict4["modules"]
+    assert "ipneighbor" in cleaned_dict4["modules"]
+    assert "secret" not in cleaned_dict4["modules"]["ipneighbor"]
+    assert "asdf" in cleaned_dict4["modules"]["ipneighbor"]
 
     replaced = helpers.search_format_dict(
         {"asdf": [{"wat": {"here": "#{replaceme}!"}}, {500: True}]}, replaceme="asdf"
@@ -281,6 +314,18 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
 
     assert type(helpers.make_date()) == str
 
+    # punycode
+    assert helpers.smart_encode_punycode("ドメイン.テスト") == "xn--eckwd4c7c.xn--zckzah"
+    assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah") == "ドメイン.テスト"
+    assert helpers.smart_encode_punycode("evilcorp.com") == "evilcorp.com"
+    assert helpers.smart_decode_punycode("evilcorp.com") == "evilcorp.com"
+    assert helpers.smart_encode_punycode("bob@ドメイン.テスト") == "bob@xn--eckwd4c7c.xn--zckzah"
+    assert helpers.smart_decode_punycode("bob@xn--eckwd4c7c.xn--zckzah") == "bob@ドメイン.テスト"
+    with pytest.raises(ValueError):
+        helpers.smart_decode_punycode(b"asdf")
+    with pytest.raises(ValueError):
+        helpers.smart_encode_punycode(b"asdf")
+
     def raise_filenotfound():
         raise FileNotFoundError("asdf")
 
@@ -365,6 +410,12 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
         m.get("http://blacklanternsecurity.com/wordlist", text="wordlist")
         assert helpers.wordlist("http://blacklanternsecurity.com/wordlist").is_file()
 
+    # custom headers
+    bbot_httpserver.expect_request("/test-custom-http-headers-requests", headers={"test": "header"}).respond_with_data(
+        "OK"
+    )
+    assert scan.helpers.request(bbot_httpserver.url_for("/test-custom-http-headers-requests")).status_code == 200
+
     test_file = Path(scan.config["home"]) / "testfile.asdf"
     with open(test_file, "w") as f:
         for i in range(100):
@@ -409,10 +460,11 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
     assert hash(f"scanme.nmap.org:A") in helpers.dns._dns_cache
     assert hash(f"scanme.nmap.org:AAAA") in helpers.dns._dns_cache
     # wildcards
-    wildcard_rdtypes = helpers.is_wildcard_domain("github.io")
-    assert "A" in wildcard_rdtypes
-    assert "SRV" not in wildcard_rdtypes
-    assert wildcard_rdtypes["A"] and all(helpers.is_ip(r) for r in wildcard_rdtypes["A"])
+    wildcard_domains = helpers.is_wildcard_domain("asdf.github.io")
+    assert "github.io" in wildcard_domains
+    assert "A" in wildcard_domains["github.io"]
+    assert "SRV" not in wildcard_domains["github.io"]
+    assert wildcard_domains["github.io"]["A"] and all(helpers.is_ip(r) for r in wildcard_domains["github.io"]["A"])
     wildcard_rdtypes = helpers.is_wildcard("blacklanternsecurity.github.io")
     assert "A" in wildcard_rdtypes
     assert "SRV" not in wildcard_rdtypes
@@ -428,11 +480,15 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
     assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
+    wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
     children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts = scan.helpers.resolve_event(
         wildcard_event1
     )
     children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts = scan.helpers.resolve_event(
         wildcard_event2
+    )
+    children, event_tags3, event_whitelisted3, event_blacklisted3, resolved_hosts = scan.helpers.resolve_event(
+        wildcard_event3
     )
     assert "wildcard" in event_tags1
     assert "a-wildcard" in event_tags1
@@ -445,6 +501,9 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
     assert event_tags1 == event_tags2
     assert event_whitelisted1 == event_whitelisted2
     assert event_blacklisted1 == event_blacklisted2
+    assert "wildcard-domain" in event_tags3
+    assert "a-wildcard-domain" in event_tags3
+    assert "srv-wildcard-domain" not in event_tags3
 
     # Ensure events with hosts have resolved_hosts attribute populated
 
@@ -508,14 +567,6 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config):
             interactsh_client.deregister()
 
 
-def test_dns_resolvers(helpers):
-    with requests_mock.Mocker() as m:
-        m.get(helpers.dns.nameservers_url, json=[{"ip": "8.8.8.8", "reliability": 0.999}])
-        assert type(helpers.dns.resolvers) == set
-        assert hasattr(helpers.dns.resolver_file, "is_file")
-        assert hasattr(helpers.dns.mass_resolver_file, "is_file")
-
-
 def test_word_cloud(helpers, bbot_config, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
     assert "base0_p013" in number_mutations
@@ -557,21 +608,57 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert word_cloud["rumbus"] == 1
 
 
-def test_curl(helpers, bbot_httpserver):
-    url = "http://127.0.0.1:8888/curl"
-    bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
-    bbot_httpserver.expect_request(uri="/index.html").respond_with_data("curl_yep_index")
-    helpers.curl(url=url)
-    helpers.curl(url=url, ignore_bbot_global_settings=True)
-    helpers.curl(url=url, head_mode=True)
-    helpers.curl(url=url, raw_body=True)
-    helpers.curl(
-        url=url,
-        raw_path=True,
-        headers={"test": "test", "test2": ["test2"]},
-        ignore_bbot_global_settings=False,
-        post_data={"test": "test"},
-        method="POST",
-        cookies={"test": "test"},
-        path_override="/index.html",
-    )
+def test_queues(scan, helpers):
+    from bbot.core.helpers.queueing import EventQueue
+
+    module_priority_1 = helpers._make_dummy_module("one")
+    module_priority_2 = helpers._make_dummy_module("two")
+    module_priority_3 = helpers._make_dummy_module("three")
+    module_priority_4 = helpers._make_dummy_module("four")
+    module_priority_5 = helpers._make_dummy_module("five")
+    module_priority_1._priority = 1
+    module_priority_2._priority = 2
+    module_priority_3._priority = 3
+    module_priority_4._priority = 4
+    module_priority_5._priority = 5
+    event1 = module_priority_1.make_event("1.1.1.1", source=scan.root_event)
+    event2 = module_priority_2.make_event("2.2.2.2", source=scan.root_event)
+    event3 = module_priority_3.make_event("3.3.3.3", source=scan.root_event)
+    event4 = module_priority_4.make_event("4.4.4.4", source=scan.root_event)
+    event5 = module_priority_5.make_event("5.5.5.5", source=scan.root_event)
+
+    event_queue = EventQueue()
+    for e in [event1, event2, event3, event4, event5]:
+        event_queue.put(e)
+
+    assert event1 == event_queue._queues[1].get().event
+    assert event2 == event_queue._queues[2].get().event
+    assert event3 == event_queue._queues[3].get().event
+    assert event4 == event_queue._queues[4].get().event
+    assert event5 == event_queue._queues[5].get().event
+
+    # insert each event 10000 times
+    for i in range(10000):
+        for e in [event1, event2, event3, event4, event5]:
+            event_queue.put(e)
+
+    # get 5000 events from queue and count how many of each there are
+    stats = dict()
+    for i in range(5000):
+        e = event_queue.get()
+        try:
+            stats[e.id] += 1
+        except KeyError:
+            stats[e.id] = 1
+
+    # make sure there's at least one of each event
+    for e in [event1, event2, event3, event4, event5]:
+        assert e.id in stats
+
+    # make sure there are more of the higher-priority ones
+    assert stats[event1.id] > stats[event2.id] > stats[event3.id] > stats[event4.id] > stats[event5.id]
+
+
+def test_names(helpers):
+    assert helpers.names == sorted(helpers.names)
+    assert helpers.adjectives == sorted(helpers.adjectives)

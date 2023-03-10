@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
@@ -12,20 +11,8 @@ class JSON(BaseOutputModule):
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
 
     def setup(self):
-        self.output_file = self.config.get("output_file", "")
-        if self.output_file:
-            self.output_file = Path(self.output_file)
-        else:
-            self.output_file = self.scan.home / "output.json"
-        self.helpers.mkdir(self.output_file.parent)
-        self._file = None
+        self._prep_output_dir("output.json")
         return True
-
-    @property
-    def file(self):
-        if self._file is None:
-            self._file = open(self.output_file, mode="a")
-        return self._file
 
     def handle_event(self, event):
         event_str = json.dumps(dict(event))
@@ -36,7 +23,7 @@ class JSON(BaseOutputModule):
             self.stdout(event_str)
 
     def cleanup(self):
-        if self._file is not None:
+        if getattr(self, "_file", None) is not None:
             with suppress(Exception):
                 self.file.close()
 

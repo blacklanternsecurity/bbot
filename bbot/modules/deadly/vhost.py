@@ -2,10 +2,9 @@ from bbot.modules.base import BaseModule
 
 
 class vhost(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["VHOST", "DNS_NAME"]
-    flags = ["active", "brute-force", "aggressive", "slow", "web-advanced"]
+    flags = ["active", "aggressive", "slow"]
     meta = {"description": "Fuzz for virtual hosts"}
 
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
@@ -21,7 +20,7 @@ class vhost(BaseModule):
         {
             "name": "Download ffuf",
             "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_linux_amd64.tar.gz",
+                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
                 "include": "ffuf",
                 "dest": "#{BBOT_TOOLS}",
                 "remote_src": True,

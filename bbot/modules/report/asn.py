@@ -1,8 +1,8 @@
 from bbot.core.errors import ScanCancelledError
-from bbot.modules.report.base import ReportModule
+from bbot.modules.report.base import BaseReportModule
 
 
-class asn(ReportModule):
+class asn(BaseReportModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["ASN"]
     flags = ["passive", "subdomain-enum", "safe"]
@@ -123,7 +123,6 @@ class asn(ReportModule):
         return asns
 
     def get_asn_metadata_ripe(self, asn_number):
-
         metadata_keys = {
             "name": ["ASName", "OrgId"],
             "description": ["OrgName", "OrgTechName", "RTechName"],

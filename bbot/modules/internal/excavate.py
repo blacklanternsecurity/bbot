@@ -3,8 +3,8 @@ import html
 import base64
 import jwt as j
 
-from bbot.core.helpers.regexes import _email_regex
 from bbot.modules.internal.base import BaseInternalModule
+from bbot.core.helpers.regexes import _email_regex, junk_remover
 
 
 class BaseExtractor:
@@ -39,16 +39,18 @@ class HostnameExtractor(BaseExtractor):
         for i, t in enumerate(dns_targets):
             if not any(x in dns_targets_set for x in excavate.helpers.domain_parents(t, include_self=True)):
                 dns_targets_set.add(t)
-                self.regexes[f"dns_name_{i+1}"] = r"(%[a-fA-F0-9]{2})?((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
+                self.regexes[f"dns_name_{i+1}"] = junk_remover + r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
-        self.excavate.emit_event(result[1], "DNS_NAME", source=event)
+        self.excavate.emit_event(result, "DNS_NAME", source=event)
 
 
 class URLExtractor(BaseExtractor):
     regexes = {
-        "fullurl": r"https?://(?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?",
+        "fullurl": r"(?i)"
+        + junk_remover
+        + r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
@@ -56,15 +58,18 @@ class URLExtractor(BaseExtractor):
     prefix_blacklist = ["javascript:", "mailto:", "tel:"]
 
     def report(self, result, name, event, **kwargs):
-
         spider_danger = kwargs.get("spider_danger", True)
 
         tags = []
         parsed = getattr(event, "parsed", None)
 
-        if (name == "a-tag" or name == "script-tag") and parsed:
+        if name == "fullurl":
+            protocol, other = result
+            result = f"{protocol}://{other}"
+
+        elif name in ("a-tag", "script-tag") and parsed:
             path = html.unescape(result[1]).lstrip("/")
-            if not path.startswith("http://") and not path.startswith("https://"):
+            if not self.compiled_regexes["fullurl"].match(path):
                 result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
             else:
                 result = path
@@ -73,6 +78,26 @@ class URLExtractor(BaseExtractor):
                 if path.startswith(p):
                     self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
                     return
+
+        parsed_uri = self.excavate.helpers.urlparse(result)
+        host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
+        # Handle non-HTTP URIs (ftp, s3, etc.)
+        if parsed_uri.scheme.lower() not in ("http", "https"):
+            event_data = {"host": str(host), "description": f"Non-HTTP URI: {result}"}
+            parsed_url = getattr(event, "parsed", None)
+            if parsed_url:
+                event_data["url"] = parsed_url.geturl()
+            self.excavate.emit_event(
+                event_data,
+                "FINDING",
+                source=event,
+            )
+            self.excavate.emit_event(
+                {"protocol": parsed_uri.scheme, "host": str(host)},
+                "PROTOCOL",
+                source=event,
+            )
+            return
 
         url_depth = self.excavate.helpers.url_depth(result)
         web_spider_depth = self.excavate.scan.config.get("web_spider_depth", 1)
@@ -86,7 +111,6 @@ class URLExtractor(BaseExtractor):
 
 
 class EmailExtractor(BaseExtractor):
-
     regexes = {"email": _email_regex}
     tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
 
@@ -99,7 +123,6 @@ class EmailExtractor(BaseExtractor):
 
 
 class ErrorExtractor(BaseExtractor):
-
     regexes = {
         "PHP:1": r"\.php on line [0-9]+",
         "PHP:2": r"\.php</b> on line <b>[0-9]+",
@@ -128,7 +151,6 @@ class ErrorExtractor(BaseExtractor):
 
 
 class JWTExtractor(BaseExtractor):
-
     regexes = {"JWT": r"eyJ(?:[\w-]*\.)(?:[\w-]*\.)[\w-]*"}
 
     def report(self, result, name, event, **kwargs):
@@ -156,6 +178,19 @@ class SerializationExtractor(BaseExtractor):
 
     def report(self, result, name, event, **kwargs):
         description = f"{name} serialized object found"
+        self.excavate.emit_event(
+            {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
+        )
+
+
+class FunctionalityExtractor(BaseExtractor):
+    regexes = {
+        "File Upload Functionality": r"(<input[^>]+type=[\"']?file[\"']?[^>]+>)",
+        "Web Service WSDL": r"(?i)((?:http|https)://[^\s]*?.(?:wsdl))",
+    }
+
+    def report(self, result, name, event, **kwargs):
+        description = f"{name} found"
         self.excavate.emit_event(
             {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
         )
@@ -197,7 +232,6 @@ class JavascriptExtractor(BaseExtractor):
     }
 
     def report(self, result, name, event, **kwargs):
-
         # ensure that basic auth matches aren't false positives
         if name == "authorization_basic":
             try:
@@ -215,7 +249,6 @@ class JavascriptExtractor(BaseExtractor):
 
 
 class excavate(BaseInternalModule):
-
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive"]
@@ -226,7 +259,6 @@ class excavate(BaseInternalModule):
     deps_pip = ["pyjwt"]
 
     def setup(self):
-
         self.hostname = HostnameExtractor(self)
         self.url = URLExtractor(self)
         self.email = EmailExtractor(self)
@@ -234,6 +266,7 @@ class excavate(BaseInternalModule):
         self.jwt = JWTExtractor(self)
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
+        self.functionality = FunctionalityExtractor(self)
         self.max_redirects = self.scan.config.get("http_max_redirects", 5)
 
         return True
@@ -243,12 +276,10 @@ class excavate(BaseInternalModule):
             e.search(source, event, **kwargs)
 
     def handle_event(self, event):
-
         data = event.data
 
         # HTTP_RESPONSE is a special case
         if event.type == "HTTP_RESPONSE":
-
             # handle redirects
             num_redirects = getattr(event, "num_redirects", 0)
             location = event.data.get("location", "")
@@ -281,6 +312,7 @@ class excavate(BaseInternalModule):
                     self.jwt,
                     self.javascript,
                     self.serialization,
+                    self.functionality,
                 ],
                 event,
                 spider_danger=True,
@@ -295,7 +327,6 @@ class excavate(BaseInternalModule):
             )
 
         else:
-
             self.search(
                 str(data),
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],

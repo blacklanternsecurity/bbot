@@ -1,6 +1,7 @@
 import json
 import logging
 import ipaddress
+import traceback
 from typing import Optional
 from datetime import datetime
 from contextlib import suppress
@@ -22,6 +23,8 @@ from bbot.core.helpers import (
     smart_decode,
     get_file_extension,
     validators,
+    smart_decode_punycode,
+    tagify,
 )
 
 
@@ -29,11 +32,12 @@ log = logging.getLogger("bbot.core.event")
 
 
 class BaseEvent:
-
+    # Always emit this event type even if it's not in scope
+    _always_emit = False
+    # Always emit events with these tags even if they're not in scope
+    _always_emit_tags = ["affiliate"]
     # Exclude from output modules
     _omit = False
-    # Priority, 1-5, lower numbers == higher priority
-    _priority = 3
     # Disables certain data validations
     _dummy = False
     # Data validation, if data is a dictionary
@@ -53,12 +57,13 @@ class BaseEvent:
         _dummy=False,
         _internal=None,
     ):
-
         self._id = None
         self._hash = None
         self.__host = None
         self._port = None
         self.__words = None
+        self._priority = None
+        self._module_priority = None
         self._resolved_hosts = set()
 
         self._made_internal = False
@@ -67,12 +72,12 @@ class BaseEvent:
 
         self.timestamp = datetime.utcnow()
 
-        if tags is None:
-            tags = set()
+        self._tags = set()
+        if tags is not None:
+            self._tags = set(tagify(s) for s in tags)
 
         self._data = None
         self.type = event_type
-        self.tags = set(tags)
         self.confidence = int(confidence)
 
         # for creating one-off events without enforcing source requirement
@@ -102,9 +107,7 @@ class BaseEvent:
         try:
             self.data = self._sanitize_data(data)
         except Exception as e:
-            import traceback
-
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
             raise ValidationError(f'Error sanitizing event data "{data}" for type "{self.type}": {e}')
 
         if not self.data:
@@ -165,6 +168,13 @@ class BaseEvent:
     @property
     def port(self):
         self.host
+        if getattr(self, "parsed", None):
+            if self.parsed.port is not None:
+                return self.parsed.port
+            elif self.parsed.scheme == "https":
+                return 443
+            elif self.parsed.scheme == "http":
+                return 80
         return self._port
 
     @property
@@ -186,6 +196,27 @@ class BaseEvent:
 
     def _words(self):
         return set()
+
+    @property
+    def tags(self):
+        return self._tags
+
+    @tags.setter
+    def tags(self, tags):
+        if isinstance(tags, str):
+            tags = (tags,)
+        self._tags = set(tagify(s) for s in tags)
+
+    def add_tag(self, tag):
+        self._tags.add(tagify(tag))
+
+    def remove_tag(self, tag):
+        with suppress(KeyError):
+            self._tags.remove(tagify(tag))
+
+    @property
+    def always_emit(self):
+        return self._always_emit or any(t in self.tags for t in self._always_emit_tags)
 
     @property
     def id(self):
@@ -210,8 +241,8 @@ class BaseEvent:
                 self._scope_distance = new_scope_distance
                 for t in list(self.tags):
                     if t.startswith("distance-"):
-                        self.tags.remove(t)
-                self.tags.add(f"distance-{new_scope_distance}")
+                        self.remove_tag(t)
+                self.add_tag(f"distance-{new_scope_distance}")
 
     @property
     def source(self):
@@ -248,7 +279,7 @@ class BaseEvent:
     def make_internal(self):
         if not self._made_internal:
             self._internal = True
-            self.tags.add("internal")
+            self.add_tag("internal")
             self._made_internal = True
 
     def unmake_internal(self, set_scope_distance=None, force_output=False):
@@ -257,7 +288,7 @@ class BaseEvent:
             if set_scope_distance is not None:
                 self.scope_distance = set_scope_distance
             self._internal = False
-            self.tags.remove("internal")
+            self.remove_tag("internal")
             if force_output:
                 self._force_output = True
             self._made_internal = False
@@ -280,7 +311,7 @@ class BaseEvent:
             source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output=True)
         self.scope_distance = set_scope_distance
         if set_scope_distance == 0:
-            self.tags.add("in-scope")
+            self.add_tag("in-scope")
         return source_trail
 
     def _host(self):
@@ -292,6 +323,7 @@ class BaseEvent:
             if not isinstance(data, dict):
                 raise ValidationError(f"data is not of type dict: {data}")
             data = self._data_validator(**data).dict()
+            data = {k: v for k, v in data.items() if v is not None}
         return self.sanitize_data(data)
 
     def sanitize_data(self, data):
@@ -324,17 +356,24 @@ class BaseEvent:
         return self.data
 
     @property
-    def data_graph(self):
+    def pretty_string(self):
         """
         Graph representation of event.data
         """
-        return self._data_graph()
+        return self._pretty_string()
 
-    def _data_graph(self):
+    def _pretty_string(self):
         if isinstance(self.data, dict):
             with suppress(Exception):
                 return json.dumps(self.data, sort_keys=True)
         return smart_decode(self.data)
+
+    @property
+    def data_graph(self):
+        """
+        Representation of event.data for neo4j graph nodes
+        """
+        return self.pretty_string
 
     @property
     def data_json(self):
@@ -406,11 +445,25 @@ class BaseEvent:
         return event_from_json(j)
 
     @property
+    def module_priority(self):
+        if self._module_priority is None:
+            module = getattr(self, "module", None)
+            self._module_priority = int(max(1, min(5, getattr(module, "priority", 3))))
+        return self._module_priority
+
+    @module_priority.setter
+    def module_priority(self, priority):
+        self._module_priority = int(max(1, min(5, priority)))
+
+    @property
     def priority(self):
-        self_priority = int(max(1, min(5, self._priority)))
-        mod_priority = int(max(1, min(5, getattr(self.module, "priority", 1))))
-        timestamp = self.timestamp.timestamp()
-        return self_priority + mod_priority + (1 / timestamp)
+        if self._priority is None:
+            timestamp = self.timestamp.timestamp()
+            if self.source.timestamp == self.timestamp:
+                self._priority = (timestamp,)
+            else:
+                self._priority = getattr(self.source, "priority", ()) + (timestamp,)
+        return self._priority
 
     def __iter__(self):
         """
@@ -422,13 +475,13 @@ class BaseEvent:
         """
         For queue sorting
         """
-        return self.priority < int(getattr(other, "priority", 5))
+        return self.priority < getattr(other, "priority", (0,))
 
     def __gt__(self, other):
         """
         For queue sorting
         """
-        return self.priority > int(getattr(other, "priority", 5))
+        return self.priority > getattr(other, "priority", (0,))
 
     def __eq__(self, other):
         try:
@@ -450,12 +503,28 @@ class BaseEvent:
         return str(self)
 
 
+class FINISHED(BaseEvent):
+    """
+    Special signal event to indicate end of scan
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._priority = (999999999999999999999,)
+
+
 class DefaultEvent(BaseEvent):
     def sanitize_data(self, data):
         return data
 
 
 class DictEvent(BaseEvent):
+    def sanitize_data(self, data):
+        url = data.get("url", "")
+        if url:
+            self.parsed = validators.validate_url_parsed(url)
+        return data
+
     def _data_human(self):
         return json.dumps(self.data, sort_keys=True)
 
@@ -479,7 +548,7 @@ class CODE_REPOSITORY(DictHostEvent):
         self.parsed = validators.validate_url_parsed(self.data["url"])
         return make_ip_type(self.parsed.hostname)
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return self.data["url"]
 
 
@@ -487,9 +556,9 @@ class IP_ADDRESS(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         ip = ipaddress.ip_address(self.data)
-        self.tags.add(f"ipv{ip.version}")
+        self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
-            self.tags.add("private")
+            self.add_tag("private")
         self.dns_resolve_distance = getattr(self.source, "dns_resolve_distance", 0)
 
     def sanitize_data(self, data):
@@ -513,14 +582,14 @@ class DnsEvent(BaseEvent):
             self.dns_resolve_distance = getattr(source, "dns_resolve_distance", 0)
             if source_module_type == "DNS":
                 self.dns_resolve_distance += 1
-        # self.tags.add(f"resolve-distance-{self.dns_resolve_distance}")
+        # self.add_tag(f"resolve-distance-{self.dns_resolve_distance}")
 
 
 class IP_RANGE(DnsEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         net = ipaddress.ip_network(self.data, strict=False)
-        self.tags.add(f"ipv{net.version}")
+        self.add_tag(f"ipv{net.version}")
 
     def sanitize_data(self, data):
         return str(ipaddress.ip_network(str(data), strict=False))
@@ -530,14 +599,12 @@ class IP_RANGE(DnsEvent):
 
 
 class DNS_NAME(DnsEvent):
-    _priority = 2
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if is_subdomain(self.data):
-            self.tags.add("subdomain")
+            self.add_tag("subdomain")
         elif is_domain(self.data):
-            self.tags.add("domain")
+            self.add_tag("domain")
 
     def sanitize_data(self, data):
         return validators.validate_host(data)
@@ -579,9 +646,9 @@ class URL_UNVERIFIED(BaseEvent):
 
         # tag as dir or endpoint
         if str(self.parsed.path).endswith("/"):
-            self.tags.add("dir")
+            self.add_tag("dir")
         else:
-            self.tags.add("endpoint")
+            self.add_tag("endpoint")
 
         parsed_path_lower = str(self.parsed.path).lower()
 
@@ -594,11 +661,11 @@ class URL_UNVERIFIED(BaseEvent):
 
         extension = get_file_extension(parsed_path_lower)
         if extension:
-            self.tags.add(f"extension-{extension}")
+            self.add_tag(f"extension-{extension}")
             if extension in url_extension_blacklist:
-                self.tags.add("blacklisted")
+                self.add_tag("blacklisted")
             if extension in url_extension_httpx_only:
-                self.tags.add("httpx-only")
+                self.add_tag("httpx-only")
                 self._omit = True
 
         data = self.parsed.geturl()
@@ -617,15 +684,6 @@ class URL_UNVERIFIED(BaseEvent):
     def _host(self):
         return make_ip_type(self.parsed.hostname)
 
-    @property
-    def port(self):
-        if self.parsed.port is not None:
-            return self.parsed.port
-        elif self.parsed.scheme == "https":
-            return 443
-        elif self.parsed.scheme == "http":
-            return 80
-
 
 class URL(URL_UNVERIFIED):
     def sanitize_data(self, data):
@@ -639,11 +697,13 @@ class URL(URL_UNVERIFIED):
     def resolved_hosts(self):
         return [i.split("-")[1] for i in self.tags if i.startswith("ip-")]
 
+    @property
+    def pretty_string(self):
+        return self.data
 
-class STORAGE_BUCKET(URL_UNVERIFIED, DictEvent):
-    def sanitize_data(self, data):
-        self.parsed = validators.validate_url_parsed(data["url"])
-        return data
+
+class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
+    _always_emit = True
 
     class _data_validator(BaseModel):
         name: str
@@ -671,8 +731,6 @@ class EMAIL_ADDRESS(BaseEvent):
 
 
 class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
-    _priority = 2
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
@@ -699,13 +757,15 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def _words(self):
         return set()
 
+    def _pretty_string(self):
+        return f'{self.data["hash"]["header_mmh3"]}:{self.data["hash"]["body_mmh3"]}'
+
 
 class VULNERABILITY(DictHostEvent):
-    _priority = 1
+    _always_emit = True
 
-    def _sanitize_data(self, data):
-        data = super()._sanitize_data(data)
-        self.tags.add(data["severity"].lower())
+    def sanitize_data(self, data):
+        self.add_tag(data["severity"].lower())
         return data
 
     class _data_validator(BaseModel):
@@ -716,12 +776,12 @@ class VULNERABILITY(DictHostEvent):
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
         _validate_severity = validator("severity", allow_reuse=True)(validators.validate_severity)
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return f'[{self.data["severity"]}] {self.data["description"]}'
 
 
 class FINDING(DictHostEvent):
-    _priority = 1
+    _always_emit = True
 
     class _data_validator(BaseModel):
         host: str
@@ -729,20 +789,22 @@ class FINDING(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return self.data["description"]
 
 
 class TECHNOLOGY(DictHostEvent):
-    _priority = 2
-
     class _data_validator(BaseModel):
         host: str
         technology: str
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
-    def _data_graph(self):
+    def _data_id(self):
+        tech = self.data.get("technology", "")
+        return f"{self.host}:{self.port}:{tech}"
+
+    def _pretty_string(self):
         return self.data["technology"]
 
 
@@ -753,7 +815,7 @@ class VHOST(DictHostEvent):
         url: Optional[str]
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
-    def _data_graph(self):
+    def _pretty_string(self):
         return self.data["vhost"]
 
 
@@ -761,13 +823,21 @@ class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_open_port)
+        port: Optional[int]
+        banner: Optional[str]
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        _validate_port = validator("port", allow_reuse=True)(validators.validate_port)
 
-    def _host(self):
-        host, self._port = split_host_port(self.data["host"])
-        return host
+    def sanitize_data(self, data):
+        new_data = dict(data)
+        new_data["protocol"] = data.get("protocol", "").upper()
+        return new_data
 
-    def _data_graph(self):
+    @property
+    def port(self):
+        return self.data.get("port", None)
+
+    def _pretty_string(self):
         return self.data["protocol"]
 
 
@@ -802,11 +872,11 @@ def make_event(
         return data
     else:
         if event_type is None:
+            if isinstance(data, str):
+                data = smart_decode_punycode(data)
             event_type = get_event_type(data)
             if not dummy:
                 log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
-        if event_type is None:
-            raise ValidationError(f'Unable to autodetect event type from "{data}"')
 
         event_type = str(event_type).strip().upper()
 
@@ -820,6 +890,7 @@ def make_event(
                 try:
                     data = validators.validate_host(data)
                 except Exception as e:
+                    log.trace(traceback.format_exc())
                     raise ValidationError(f'Error sanitizing event data "{data}" for type "{event_type}": {e}')
                 data_is_ip = is_ip(data)
                 if event_type == "DNS_NAME" and data_is_ip:

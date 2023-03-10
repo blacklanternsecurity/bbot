@@ -5,6 +5,9 @@ from bbot.modules.base import BaseModule
 
 
 class viewdns(BaseModule):
+    """
+    Used as a base for modules that only act on root domains and not individual hostnames
+    """
 
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
@@ -12,7 +15,7 @@ class viewdns(BaseModule):
     meta = {
         "description": "Query viewdns.info's reverse whois for related domains",
     }
-    deps_pip = ["beautifulsoup4", "lxml"]
+    deps_pip = ["bs4", "lxml"]
     base_url = "https://viewdns.info"
     in_scope_only = True
     _qsize = 1

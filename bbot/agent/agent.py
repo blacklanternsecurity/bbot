@@ -60,7 +60,7 @@ class Agent:
                 break
             except Exception as e:
                 log.warning(f"Error sending message: {e}, retrying")
-                log.debug(traceback.format_exc())
+                log.trace(traceback.format_exc())
                 sleep(1)
                 continue
 
@@ -143,7 +143,7 @@ class Agent:
                 return {"success": msg, "scan_id": scan_id}
         except Exception as e:
             log.warning(f"Error while stopping scan: {e}")
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
         finally:
             self.scan = None
             self.thread = None
@@ -171,15 +171,15 @@ class Agent:
         except Exception as e:
             msg = f"Error in {callback.__qualname__}(): {e}"
             log.error(msg)
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
             return {"error": msg}
 
     def _start_scan(self, scan):
         try:
-            scan.start()
+            scan.start_without_generator()
         except bbot.core.errors.ScanError as e:
             log.error(f"Scan error: {e}")
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
         except Exception:
             log.critical(f"Encountered error: {traceback.format_exc()}")
             self.on_scan_status("FAILED", scan.id)

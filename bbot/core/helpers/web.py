@@ -3,10 +3,11 @@ import requests
 from time import sleep
 from pathlib import Path
 from requests_cache import CachedSession
+from requests.adapters import HTTPAdapter
 from requests_cache.backends import SQLiteCache
 from requests.exceptions import RequestException
 
-from bbot.core.errors import WordlistError
+from bbot.core.errors import WordlistError, CurlError
 
 log = logging.getLogger("bbot.core.helpers.web")
 
@@ -87,21 +88,29 @@ def request(self, *args, **kwargs):
         raise_error (bool): Whether to raise exceptions (default: False)
     """
 
+    # we handle our own retries
+    retries = kwargs.pop("retries", self.config.get("http_retries", 1))
+    if getattr(self, "retry_adapter", None) is None:
+        self.retry_adapter = HTTPAdapter(max_retries=0)
+
     raise_error = kwargs.pop("raise_error", False)
 
     cache_for = kwargs.pop("cache_for", None)
     if cache_for is not None:
         log.debug(f"Caching HTTP session with expire_after={cache_for}")
-        try:
-            session = self.cache_sessions[cache_for]
-        except KeyError:
-            db_path = str(self.cache_dir / "requests-cache.sqlite")
-            backend = SQLiteCache(db_path=db_path)
-            session = CachedSession(expire_after=cache_for, backend=backend)
-            self.cache_sessions[cache_for] = session
-
-    if kwargs.pop("session", None) or not cache_for:
+        db_path = str(self.cache_dir / "requests-cache.sqlite")
+        backend = SQLiteCache(db_path=db_path)
+        session = CachedSession(expire_after=cache_for, backend=backend)
+        session.mount("http://", self.retry_adapter)
+        session.mount("https://", self.retry_adapter)
+    elif kwargs.get("session", None) is not None:
         session = kwargs.pop("session", None)
+        session.mount("http://", self.retry_adapter)
+        session.mount("https://", self.retry_adapter)
+    else:
+        session = requests.Session()
+        session.mount("http://", self.retry_adapter)
+        session.mount("https://", self.retry_adapter)
 
     http_timeout = self.config.get("http_timeout", 20)
     user_agent = self.config.get("user_agent", "BBOT")
@@ -112,7 +121,6 @@ def request(self, *args, **kwargs):
         args = []
 
     url = kwargs.get("url", "")
-    retries = kwargs.pop("retries", 0)
 
     if not args and "method" not in kwargs:
         kwargs["method"] = "GET"
@@ -126,6 +134,12 @@ def request(self, *args, **kwargs):
         headers = {}
     if "User-Agent" not in headers:
         headers.update({"User-Agent": user_agent})
+    # only add custom headers if the URL is in-scope
+    if self.scan.in_scope(url):
+        for hk, hv in self.scan.config.get("http_headers", {}).items():
+            # don't clobber headers
+            if hk not in headers:
+                headers[hk] = hv
     kwargs["headers"] = headers
 
     http_debug = self.config.get("http_debug", False)
@@ -146,7 +160,7 @@ def request(self, *args, **kwargs):
             if retries != "infinite":
                 retries -= 1
             if retries == "infinite" or retries >= 0:
-                log.warning(f'Error requesting "{url}" ({e}), retrying...')
+                log.verbose(f'Error requesting "{url}" ({e}), retrying...')
                 sleep(1)
             else:
                 if raise_error:
@@ -167,7 +181,7 @@ def api_page_iter(self, url, page_size=100, json=True, **requests_kwargs):
             import traceback
 
             log.warning(f'Error in api_page_iter() for url: "{new_url}"')
-            log.debug(traceback.format_exc())
+            log.trace(traceback.format_exc())
             break
         finally:
             offset += page_size
@@ -175,12 +189,10 @@ def api_page_iter(self, url, page_size=100, json=True, **requests_kwargs):
 
 
 def curl(self, *args, **kwargs):
-
     url = kwargs.get("url", "")
 
     if not url:
-        log.debug("No URL supplied to CURL helper")
-        return
+        raise CurlError("No URL supplied to CURL helper")
 
     curl_command = ["curl", url, "-s"]
 
@@ -206,6 +218,11 @@ def curl(self, *args, **kwargs):
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
 
+        # only add custom headers if the URL is in-scope
+        if self.scan.in_scope(url):
+            for hk, hv in self.scan.config.get("http_headers", {}).items():
+                headers[hk] = hv
+
         # add the timeout
         if not "timeout" in kwargs:
             timeout = http_timeout
@@ -214,7 +231,7 @@ def curl(self, *args, **kwargs):
         curl_command.append(str(timeout))
 
     for k, v in headers.items():
-        if type(v) == list:
+        if isinstance(v, list):
             for x in v:
                 curl_command.append("-H")
                 curl_command.append(f"{k}: {x}")
@@ -238,7 +255,6 @@ def curl(self, *args, **kwargs):
 
     cookies = kwargs.get("cookies", "")
     if cookies:
-
         curl_command.append("-b")
         cookies_str = ""
         for k, v in cookies.items():

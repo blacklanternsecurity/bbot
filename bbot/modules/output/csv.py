@@ -1,5 +1,4 @@
 import csv
-from pathlib import Path
 from contextlib import suppress
 
 from bbot.modules.output.base import BaseOutputModule
@@ -10,20 +9,13 @@ class CSV(BaseOutputModule):
     meta = {"description": "Output to CSV"}
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to CSV file"}
-    emit_graph_trail = False
 
     header_row = ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
     filename = "output.csv"
 
     def setup(self):
-        self.output_file = self.config.get("output_file", "")
-        if self.output_file:
-            self.output_file = Path(self.output_file)
-        else:
-            self.output_file = self.scan.home / self.filename
-        self.helpers.mkdir(self.output_file.parent)
-        self._file = None
         self._writer = None
+        self._prep_output_dir(self.filename)
         return True
 
     @property
@@ -48,7 +40,7 @@ class CSV(BaseOutputModule):
             [
                 getattr(event, "type", ""),
                 getattr(event, "data", ""),
-                ",".join(str(x) for x in getattr(event, "resolved_hosts", set())),
+                ",".join(str(x) for x in getattr(event, "resolved_hosts", set()) if self.helpers.is_ip(x)),
                 str(getattr(event, "module", "")),
                 str(getattr(event, "scope_distance", "")),
                 ",".join(sorted(list(getattr(event, "tags", [])))),
@@ -56,7 +48,7 @@ class CSV(BaseOutputModule):
         )
 
     def cleanup(self):
-        if self._file is not None:
+        if getattr(self, "_file", None) is not None:
             with suppress(Exception):
                 self.file.close()
 

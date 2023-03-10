@@ -3,10 +3,9 @@ from bbot.core.errors import InteractshError
 
 
 class host_header(BaseModule):
-
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-advanced"]
+    flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Try common HTTP Host header spoofing techniques"}
 
     in_scope_only = True
@@ -14,7 +13,6 @@ class host_header(BaseModule):
     deps_apt = ["curl"]
 
     def setup(self):
-
         self.interactsh_subdomain_tags = {}
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
@@ -65,15 +63,12 @@ class host_header(BaseModule):
             self.warning(f"Interactsh failure: {e}")
 
     def handle_event(self, event):
-
         # get any set-cookie responses from the response and add them to the request
 
         added_cookies = {}
 
         for k, v in event.data["header-dict"].items():
-
             if k.lower() == "set-cookie":
-
                 cookie_string = v
                 cookie_split = cookie_string.split("=")
                 added_cookies = {cookie_split[0]: cookie_split[1]}
@@ -164,7 +159,6 @@ class host_header(BaseModule):
 
         # emit all the domain reflections we found
         for dr in domain_reflections:
-
             self.emit_event(
                 {
                     "host": str(event.host),

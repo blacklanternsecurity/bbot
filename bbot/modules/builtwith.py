@@ -14,7 +14,6 @@ from .shodan_dns import shodan_dns
 
 
 class builtwith(shodan_dns):
-
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "passive", "safe"]
@@ -45,11 +44,11 @@ class builtwith(shodan_dns):
 
     def request_domains(self, query):
         url = f"{self.base_url}/v20/api.json?KEY={self.api_key}&LOOKUP={query}&NOMETA=yes&NOATTR=yes&HIDETEXT=yes&HIDEDL=yes"
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url)
 
     def request_redirects(self, query):
         url = f"{self.base_url}/redirect1/api.json?KEY={self.api_key}&LOOKUP={query}"
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url)
 
     def parse_domains(self, r, query):
         """

@@ -22,7 +22,7 @@ class virustotal(shodan_dns):
 
     def request_url(self, query):
         url = f"{self.base_url}/domains/{self.helpers.quote(query)}/subdomains"
-        return self.helpers.request(url, headers=self.headers)
+        return self.request_with_fail_count(url, headers=self.headers)
 
     def parse_results(self, r, query):
         results = set()

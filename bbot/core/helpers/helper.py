@@ -41,8 +41,6 @@ class ConfigAwareHelper:
         self.mkdir(self.temp_dir)
         self.mkdir(self.tools_dir)
         self.mkdir(self.lib_dir)
-        # holds requests CachedSession() objects for duration of scan
-        self.cache_sessions = dict()
         self._futures = set()
         self._future_lock = Lock()
 
@@ -57,9 +55,8 @@ class ConfigAwareHelper:
     def interactsh(self):
         return Interactsh(self)
 
-    def http_compare(self, url, allow_redirects=False):
-
-        return HttpCompare(url, self, allow_redirects=allow_redirects)
+    def http_compare(self, url, allow_redirects=False, include_cache_buster=True):
+        return HttpCompare(url, self, allow_redirects=allow_redirects, include_cache_buster=include_cache_buster)
 
     def temp_filename(self):
         """
@@ -81,13 +78,13 @@ class ConfigAwareHelper:
 
     @property
     def in_tests(self):
-        return os.environ["BBOT_TESTING"] == "True"
+        return os.environ.get("BBOT_TESTING", "") == "True"
 
     @staticmethod
     def as_completed(*args, **kwargs):
         return as_completed(*args, **kwargs)
 
-    def _make_dummy_module(self, name, _type):
+    def _make_dummy_module(self, name, _type="scan"):
         """
         Construct a dummy module, for attachment to events
         """
@@ -119,6 +116,8 @@ class ConfigAwareHelper:
 
 
 class DummyModule(BaseModule):
+    _priority = 4
+
     def __init__(self, *args, **kwargs):
         self._name = kwargs.pop("name")
         self._type = kwargs.pop("_type")

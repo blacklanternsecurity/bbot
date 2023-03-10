@@ -59,29 +59,26 @@ class DummyArgumentParser(BBOTArgumentParser):
 
 epilog = """EXAMPLES
 
-    list modules:
-        bbot -l
+    Subdomains:
+        bbot -t evilcorp.com -f subdomain-enum
 
-    subdomain enumeration:
-        bbot -t evilcorp.com -f subdomain-enum -m httpx
+    Subdomains (passive only):
+        bbot -t evilcorp.com -f subdomain-enum -rf passive
 
-    passive modules only:
-        bbot -t evilcorp.com -f passive
+    Subdomains + port scan + web screenshots:
+        bbot -t evilcorp.com -f subdomain-enum -m naabu gowitness -n my_scan -o .
 
-    subdomains + web screenshots:
-        bbot -t targets.txt -f subdomain-enum -m httpx gowitness --name my_scan --output-dir .
-
-    subdomains + basic web scanning:
+    Subdomains + basic web scan (wappalyzer, robots.txt, iis shortnames, etc.):
         bbot -t evilcorp.com -f subdomain-enum web-basic
 
-    single module:
-        bbot -t evilcorp.com -m github -c modules.github.api_key=deadbeef
+    Subdomains + web spider (search for emails, etc.):
+        bbot -t evilcorp.com -f subdomain-enum -c web_spider_distance=2 web_spider_depth=2
 
-    web spider + advanced web scan:
-        bbot -t www.evilcorp.com -m httpx -f web-basic web-advanced -c web_spider_distance=2 web_spider_depth=2
-
-    subdomains + emails + cloud buckets + portscan + screenshots + nuclei:
+    Subdomains + emails + cloud + port scan + non-intrusive web + web screenshots + nuclei:
         bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m naabu gowitness nuclei --allow-deadly
+
+    List modules:
+        bbot -l
 
 """
 
@@ -148,7 +145,7 @@ for p in (parser, dummy_parser):
         "-om",
         "--output-modules",
         nargs="+",
-        default=["human"],
+        default=["human", "json", "csv"],
         help=f'Output module(s). Choices: {",".join(output_module_choices)}',
         metavar="MODULE",
     )

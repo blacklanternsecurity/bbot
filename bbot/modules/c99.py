@@ -13,12 +13,12 @@ class c99(shodan_dns):
 
     def ping(self):
         url = f"{self.base_url}/randomnumber?key={self.api_key}&between=1,100&json"
-        response = self.helpers.request(url)
+        response = self.request_with_fail_count(url)
         assert response.json()["success"] == True
 
     def request_url(self, query):
         url = f"{self.base_url}/subdomainfinder?key={self.api_key}&domain={self.helpers.quote(query)}&json"
-        return self.helpers.request(url)
+        return self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
         j = r.json()

@@ -16,7 +16,7 @@ class emailformat(viewdns):
     def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
         url = f"{self.base_url}/d/{self.helpers.quote(query)}/"
-        r = self.helpers.request(url)
+        r = self.request_with_fail_count(url)
         if not r:
             return
         for email in self.extract_emails(r.text):

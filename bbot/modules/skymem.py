@@ -15,7 +15,7 @@ class skymem(emailformat):
         _, query = self.helpers.split_domain(event.data)
         # get first page
         url = f"{self.base_url}/srch?q={self.helpers.quote(query)}"
-        r = self.helpers.request(url)
+        r = self.request_with_fail_count(url)
         if not r:
             return
         for email in self.extract_emails(r.text):
@@ -27,7 +27,7 @@ class skymem(emailformat):
             return
         domain_id = domain_ids[0]
         for page in range(2, 22):
-            r2 = self.helpers.request(f"{self.base_url}/domain/{domain_id}?p={page}")
+            r2 = self.request_with_fail_count(f"{self.base_url}/domain/{domain_id}?p={page}")
             if not r2:
                 continue
             for email in self.extract_emails(r2.text):

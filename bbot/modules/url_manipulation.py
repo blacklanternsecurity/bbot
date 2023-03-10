@@ -3,10 +3,9 @@ from bbot.core.errors import HttpCompareError
 
 
 class url_manipulation(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-advanced"]
+    flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Attempt to identify URL parsing/routing based vulnerabilities"}
     in_scope_only = True
 
@@ -40,15 +39,19 @@ class url_manipulation(BaseModule):
         return True
 
     def handle_event(self, event):
-
         try:
-            compare_helper = self.helpers.http_compare(event.data, allow_redirects=self.allow_redirects)
+            compare_helper = self.helpers.http_compare(
+                event.data, allow_redirects=self.allow_redirects, include_cache_buster=False
+            )
         except HttpCompareError as e:
             self.debug(e)
             return
 
-        for sig in self.signatures:
+        if compare_helper.canary_check(event.data, mode="getparam") == False:
+            self.verbose(f'Aborting "{event.data}" due to failed canary check')
+            return
 
+        for sig in self.signatures:
             sig = self.format_signature(sig, event)
             match, reasons, reflection, subject_response = compare_helper.compare(
                 sig[1], method=sig[0], allow_redirects=self.allow_redirects
@@ -62,7 +65,6 @@ class url_manipulation(BaseModule):
                 if self.rand_string not in subject_content:
                     if match == False:
                         if str(subject_response.status_code).startswith("2"):
-
                             if "body" in reasons:
                                 reported_signature = f"Modified URL: {sig[1]}"
                                 description = f"Url Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
@@ -77,7 +79,6 @@ class url_manipulation(BaseModule):
                     self.debug("Ignoring positive result due to presence of parameter name in result")
 
     def filter_event(self, event):
-
         accepted_status_codes = ["200", "301", "302"]
 
         for c in accepted_status_codes:

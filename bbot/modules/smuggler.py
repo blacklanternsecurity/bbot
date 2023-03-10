@@ -9,10 +9,9 @@ wrapper for https://github.com/defparam/smuggler.git
 
 
 class smuggler(BaseModule):
-
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-advanced", "slow", "brute-force"]
+    flags = ["active", "aggressive", "slow", "web-thorough"]
     meta = {"description": "Check for HTTP smuggling"}
 
     in_scope_only = True
@@ -29,7 +28,6 @@ class smuggler(BaseModule):
         return True
 
     def handle_event(self, event):
-
         host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
         host_hash = hash(host)
         if host_hash in self.scanned_hosts:

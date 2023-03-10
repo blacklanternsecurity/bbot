@@ -34,12 +34,20 @@ def run_live(self, command, *args, **kwargs):
     if not "stderr" in kwargs:
         kwargs["stderr"] = subprocess.PIPE
     _input = kwargs.pop("input", "")
+    sudo = kwargs.pop("sudo", False)
     input_msg = ""
     if _input:
         kwargs["stdin"] = subprocess.PIPE
         input_msg = " (with stdin)"
 
     command = [str(s) for s in command]
+    env = kwargs.get("env", os.environ)
+    if sudo:
+        self.depsinstaller.ensure_root()
+        env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
+        env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
+        kwargs["env"] = env
+        command = ["sudo", "-A"] + command
     log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}")
     try:
         with catch(subprocess.Popen, command, *args, **kwargs) as process:
@@ -77,8 +85,16 @@ def run(self, command, *args, **kwargs):
         kwargs["stderr"] = subprocess.PIPE
     if not "text" in kwargs:
         kwargs["text"] = True
+    sudo = kwargs.pop("sudo", False)
 
     command = [str(s) for s in command]
+    env = kwargs.get("env", os.environ)
+    if sudo:
+        self.depsinstaller.ensure_root()
+        env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
+        env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
+        kwargs["env"] = env
+        command = ["sudo", "-A"] + command
     log.hugeverbose(f"run: {' '.join(command)}")
     result = catch(subprocess.run, command, *args, **kwargs)
 
@@ -97,15 +113,15 @@ def catch(callback, *args, **kwargs):
         return callback(*args, **kwargs)
     except FileNotFoundError as e:
         log.warning(f"{e} - missing executable?")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
     except BrokenPipeError as e:
         log.warning(f"Error in subprocess: {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
 
 
 def tempfile(self, content, pipe=True):
     """
-    tempfile("temp\nfile\ncontent") --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
+    tempfile(["temp", "file", "content"]) --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
 
     if "pipe" is True (the default), a named pipe is used instead of
     a true file, which allows python data to be piped directly into the
@@ -126,7 +142,7 @@ def tempfile(self, content, pipe=True):
                     f.write(line)
     except Exception as e:
         log.error(f"Error creating temp file: {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
 
     return filename
 
@@ -159,7 +175,7 @@ def _feed_pipe(self, pipe, content, text=True):
         self.scan.stop()
     except Exception as e:
         log.error(f"Error in _feed_pipe(): {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
 
 
 def feed_pipe(self, pipe, content, text=True):
@@ -179,7 +195,7 @@ def tempfile_tail(self, callback):
         t.start()
     except Exception as e:
         log.error(f"Error setting up tail for file {filename}: {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())
         return
     return filename
 
@@ -192,4 +208,4 @@ def tail(filename, callback):
                 callback(line)
     except Exception as e:
         log.error(f"Error tailing file {filename}: {e}")
-        log.debug(traceback.format_exc())
+        log.trace(traceback.format_exc())

@@ -3,19 +3,22 @@ import logging
 log = logging.getLogger("bbot.scanner.stats")
 
 
+def _increment(d, k):
+    try:
+        d[k] += 1
+    except KeyError:
+        d[k] = 1
+
+
 class ScanStats:
     def __init__(self, scan):
         self.scan = scan
         self.module_stats = {}
+        self.events_emitted_by_type = {}
         self.perf_stats = []
 
-    def function_called(self, qualname, runtime):
-        # uncomment the line below to track durations for function calls
-        # this is helpful for debugging elusive performance issues
-        # self.perf_stats.append((qualname, runtime))
-        pass
-
     def event_distributed(self, event):
+        _increment(self.events_emitted_by_type, event.type)
         module_stat = self.get(event.module)
         if module_stat is not None:
             module_stat.increment_emitted(event)
@@ -56,7 +59,7 @@ class ScanStats:
             consumed_str = f"{mstat.consumed_total:,}"
             consumed = sorted(mstat.consumed.items(), key=lambda x: x[0])
             if consumed:
-                consumed_str = " (" + ", ".join(f"{c:,} {t}" for t, c in consumed) + ")"
+                consumed_str += " (" + ", ".join(f"{c:,} {t}" for t, c in consumed) + ")"
             table_row.append(consumed_str)
             table.append(table_row)
         table.sort(key=lambda x: self.module_stats[x[0]].produced_total, reverse=True)
@@ -85,19 +88,13 @@ class ModuleStat:
 
     def increment_emitted(self, event):
         self.emitted_total += 1
-        self._increment(self.emitted, event.type)
+        _increment(self.emitted, event.type)
 
     def increment_produced(self, event):
         self.produced_total += 1
-        self._increment(self.produced, event.type)
+        _increment(self.produced, event.type)
 
     def increment_consumed(self, event):
-        self.consumed_total += 1
-        self._increment(self.consumed, event.type)
-
-    @staticmethod
-    def _increment(d, k):
-        try:
-            d[k] += 1
-        except KeyError:
-            d[k] = 1
+        if event.type not in ("FINISHED",):
+            self.consumed_total += 1
+            _increment(self.consumed, event.type)

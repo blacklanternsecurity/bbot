@@ -10,18 +10,23 @@ log = logging.getLogger("bbot.core.helpers.diff")
 
 
 class HttpCompare:
-    def __init__(self, baseline_url, parent_helper, method="GET", allow_redirects=False):
-
+    def __init__(self, baseline_url, parent_helper, method="GET", allow_redirects=False, include_cache_buster=True):
         self.parent_helper = parent_helper
         self.baseline_url = baseline_url
+        self.include_cache_buster = include_cache_buster
 
         # vanilla URL
-        url_1 = self.parent_helper.add_get_params(self.baseline_url, self.gen_cache_buster()).geturl()
+        if self.include_cache_buster:
+            url_1 = self.parent_helper.add_get_params(self.baseline_url, self.gen_cache_buster()).geturl()
+        else:
+            url_1 = self.baseline_url
         baseline_1 = self.parent_helper.request(url_1, allow_redirects=allow_redirects, method=method)
         sleep(1)
         # put random parameters in URL, headers, and cookies
-        get_params = self.gen_cache_buster()
-        get_params.update({self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)})
+        get_params = {self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)}
+
+        if self.include_cache_buster:
+            get_params.update(self.gen_cache_buster())
         url_2 = self.parent_helper.add_get_params(self.baseline_url, get_params).geturl()
         baseline_2 = self.parent_helper.request(
             url_2,
@@ -70,14 +75,13 @@ class HttpCompare:
         ]
         dynamic_headers = self.compare_headers(baseline_1.headers, baseline_2.headers)
 
-        self.baseline_ignore_headers += dynamic_headers
+        self.baseline_ignore_headers += [x.lower() for x in dynamic_headers]
         self.baseline_body_distance = self.compare_body(baseline_1_json, baseline_2_json)
 
     def gen_cache_buster(self):
         return {self.parent_helper.rand_string(6): "1"}
 
     def compare_headers(self, headers_1, headers_2):
-
         differing_headers = []
 
         for i, headers in enumerate((headers_1, headers_2)):
@@ -99,7 +103,6 @@ class HttpCompare:
         return differing_headers
 
     def compare_body(self, content_1, content_2):
-
         if content_1 == content_2:
             return True
 
@@ -124,8 +127,11 @@ class HttpCompare:
         """
 
         reflection = False
-        cache_key, cache_value = list(self.gen_cache_buster().items())[0]
-        url = self.parent_helper.add_get_params(subject, {cache_key: cache_value}).geturl()
+        if self.include_cache_buster:
+            cache_key, cache_value = list(self.gen_cache_buster().items())[0]
+            url = self.parent_helper.add_get_params(subject, {cache_key: cache_value}).geturl()
+        else:
+            url = subject
         subject_response = self.parent_helper.request(
             url, headers=headers, cookies=cookies, allow_redirects=allow_redirects, method=method
         )

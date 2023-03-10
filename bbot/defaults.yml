@@ -3,13 +3,19 @@
 # BBOT working directory
 home: ~/.bbot
 # Don't output events that are further than this from the main scope
-scope_report_distance: 1
+# 1 == 1 hope away from main scope
+# 0 == in scope only
+scope_report_distance: 0
 # Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
 dns_resolution: true
 # Limit the number of BBOT threads
 max_threads: 25
-# Limit the number of DNS threads
+# Limit the number of DNS threads (this should be approximately 4x max_threads)
 max_dns_threads: 100
+# HTTP proxy
+http_proxy: 
+# Web user-agent
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36
 
 
 ### ADVANCED OPTIONS ###
@@ -28,12 +34,17 @@ excavate: True
 # Summarize activity at the end of a scan
 aggregate: True
 
-# HTTP proxy
-http_proxy: 
 # HTTP timeout (for Python requests; API calls, etc.)
-http_timeout: 30
+http_timeout: 10
 # HTTP timeout (for httpx)
 httpx_timeout: 5
+# Custom HTTP headers (e.g. cookies, etc.)
+# in the format { "Header-Key": "header_value" }
+# These are attached to all in-scope HTTP requests
+# Note that some modules (e.g. github) may end up sending these to out-of-scope resources
+http_headers: {}
+# HTTP retries (for Python requests; API calls, etc.)
+http_retries: 1
 # HTTP retries (for httpx)
 httpx_retries: 1
 # Enable/disable debug messages for web requests/responses
@@ -64,8 +75,6 @@ dns_debug: false
 ssl_verify: false
 # How many scan results to keep before cleaning up the older ones
 keep_scans: 20
-# Web user-agent
-user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36
 # Completely ignore URLs with these extensions
 url_extension_blacklist:
     # images

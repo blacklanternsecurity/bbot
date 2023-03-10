@@ -33,6 +33,7 @@ class gowitness(BaseModule):
             "package": {"name": "chromium", "state": "present"},
             "become": True,
             "when": "ansible_facts['os_family'] != 'Debian'",
+            "ignore_errors": True,
         },
         {
             "name": "Install Chromium dependencies (Debian)",
@@ -42,6 +43,7 @@ class gowitness(BaseModule):
             },
             "become": True,
             "when": "ansible_facts['os_family'] == 'Debian'",
+            "ignore_errors": True,
         },
         {
             "name": "Get latest Chromium version (Debian)",
@@ -51,6 +53,7 @@ class gowitness(BaseModule):
             },
             "register": "chromium_version",
             "when": "ansible_facts['os_family'] == 'Debian'",
+            "ignore_errors": True,
         },
         {
             "name": "Download Chromium (Debian)",
@@ -61,11 +64,12 @@ class gowitness(BaseModule):
                 "creates": "#{BBOT_TOOLS}/chrome-linux",
             },
             "when": "ansible_facts['os_family'] == 'Debian'",
+            "ignore_errors": True,
         },
         {
             "name": "Download gowitness",
             "get_url": {
-                "url": "https://github.com/sensepost/gowitness/releases/download/#{BBOT_MODULES_GOWITNESS_VERSION}/gowitness-#{BBOT_MODULES_GOWITNESS_VERSION}-linux-amd64",
+                "url": "https://github.com/sensepost/gowitness/releases/download/#{BBOT_MODULES_GOWITNESS_VERSION}/gowitness-#{BBOT_MODULES_GOWITNESS_VERSION}-#{BBOT_OS_PLATFORM}-#{BBOT_CPU_ARCH}",
                 "dest": "#{BBOT_TOOLS}/gowitness",
                 "mode": "755",
             },

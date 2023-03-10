@@ -12,7 +12,7 @@ class leakix(crobat):
     def handle_event(self, event):
         query = self.make_query(event)
         headers = {"Accept": "application/json"}
-        r = self.helpers.request(f"{self.base_url}/domain/{self.helpers.quote(query)}", headers=headers)
+        r = self.request_with_fail_count(f"{self.base_url}/domain/{self.helpers.quote(query)}", headers=headers)
         if not r:
             return
         try:

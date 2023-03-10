@@ -1,18 +1,20 @@
 import os
 import sys
+import stat
 import json
 import shutil
 import getpass
 import logging
 from time import sleep
+from pathlib import Path
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
-from bbot.modules import module_loader
-from ..misc import can_sudo_without_password
 from bbot.core import configurator
+from bbot.modules import module_loader
+from ..misc import can_sudo_without_password, os_platform
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
 
@@ -25,6 +27,7 @@ class DepsInstaller:
         http_timeout = self.parent_helper.config.get("http_timeout", 30)
         os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
 
+        self.askpass_filename = "sudo_askpass.py"
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         if self._sudo_password is None:
             if configurator.bbot_sudo_pass is not None:
@@ -167,14 +170,16 @@ class DepsInstaller:
         packages_str = ",".join(packages)
         log.info(f"Installing the following OS packages: {packages_str}")
         args = {"name": packages_str, "state": "present"}  # , "update_cache": True, "cache_valid_time": 86400}
-        success, err = self.ansible_run(
-            module="package",
-            args=args,
-            ansible_args={
-                "ansible_become": True,
-                "ansible_become_method": "sudo",
-            },
-        )
+        kwargs = {}
+        # don't sudo brew
+        if os_platform() != "darwin":
+            kwargs = {
+                "ansible_args": {
+                    "ansible_become": True,
+                    "ansible_become_method": "sudo",
+                }
+            }
+        success, err = self.ansible_run(module="package", args=args, **kwargs)
         if success:
             log.info(f'Successfully installed OS packages "{packages_str}"')
         else:
@@ -226,6 +231,14 @@ class DepsInstaller:
         log.debug(f"ansible_run(module={module}, args={args}, ansible_args={ansible_args})")
         playbook = None
         if tasks:
+            for task in tasks:
+                if "package" in task:
+                    # special case for macos
+                    if os_platform() == "darwin":
+                        # don't sudo brew
+                        task["become"] = False
+                        # brew doesn't support update_cache
+                        task["package"].pop("update_cache", "")
             playbook = {"hosts": "all", "tasks": tasks}
             log.debug(json.dumps(playbook, indent=2))
         if self._sudo_password is not None:
@@ -289,11 +302,16 @@ class DepsInstaller:
                     log.warning("Incorrect password")
 
     def install_core_deps(self):
+        to_install = set()
+        # install custom askpass script
+        askpass_src = Path(__file__).resolve().parent / self.askpass_filename
+        askpass_dst = self.parent_helper.tools_dir / self.askpass_filename
+        shutil.copy(askpass_src, askpass_dst)
+        askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)
         # ensure tldextract data is cached
         self.parent_helper.tldextract("evilcorp.co.uk")
         # command: package_name
         core_deps = {"unzip": "unzip", "curl": "curl"}
-        to_install = set()
         for command, package_name in core_deps.items():
             if not self.parent_helper.which(command):
                 to_install.add(package_name)
