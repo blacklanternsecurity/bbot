@@ -79,14 +79,28 @@ bbot -l
 
 ### Targets
 
-In BBOT, targets are used to seed a scan. You can specify any number of targets, and if you require more granular control over scope, you can also use whitelists and blacklists.
+Targets seed a scan with initial data. You can specify an unlimited number of targets, either directly on the command line or in files (or both!). Targets can be any of the following:
+
+- DNS_NAME (`evilcorp.com`)
+- IP_ADDRESS (`1.2.3.4`)
+- IP_RANGE (`1.2.3.0/24`)
+- URL (`https://www.evilcorp.com`)
+- EMAIL_ADDRESS (`bob@evilcorp.com`)
+
+For example, the following scan is totally valid:
 
 ~~~bash
 # multiple targets
-bbot -t evilcorp.com evilcorp.co.uk 1.2.3.0/24 targets.txt
+bbot -t evilcorp.com evilcorp.co.uk http://www.evilcorp.cn 1.2.3.0/24 other_targets.txt
+~~~
 
+#### Whitelists / Blacklists
+
+BBOT's whitelist determines what's considered to be in-scope. By default, the whitelist is simply your target. But if you want more granular scope control, you can override it with `--whitelist` (or add a `--blacklist`).
+
+~~~bash
 # seed a scan with two domains, but only consider assets to be in scope if they are inside 1.2.3.0/24
-bbot -t evilcorp.com evilcorp.co.uk --whitelist 1.2.3.0/24 --blacklist test.evilcorp.com 1.2.3.4
+bbot -t evilcorp.com evilcorp.co.uk --whitelist 1.2.3.0/24 --blacklist test.evilcorp.com 1.2.3.4 blacklist.txt
 ~~~
 
 Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurity/bbot/wiki#tips-and-tricks), including details on how BBOT handles scope, and how to tweak it if you need to.
