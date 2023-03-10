@@ -25,10 +25,10 @@ deepdiff = "^6.2.3"
 xmltojson = "^2.0.2"
 pycryptodome = "^3.17"
 tabulate = "^0.9.0"
-cloudcheck = "^1.0.0.18"
 idna = "^3.4"
 ansible = "^7.3.0"
 websocket-client = "^1.5.1"
+cloudcheck = "^2.0.0.23"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
