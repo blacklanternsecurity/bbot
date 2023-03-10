@@ -292,25 +292,33 @@ class Scanner:
             self.helpers.kill_children()
 
     def shutdown_threadpools(self, wait=True):
-        pools = [
-            self.process_pool,
-            self._internal_thread_pool,
-            self.helpers.dns._thread_pool,
-            self._event_thread_pool,
-            self._thread_pool,
-        ]
+        pools = {
+            "process_pool": self.process_pool,
+            "internal_thread_pool": self._internal_thread_pool,
+            "dns_thread_pool": self.helpers.dns._thread_pool,
+            "event_thread_pool": self._event_thread_pool,
+            "main_thread_pool": self._thread_pool,
+        }
+
+        def shutdown_pool(pool, pool_name, **kwargs):
+            self.debug(f"Shutting down {pool_name} with kwargs={kwargs}")
+            pool.shutdown(**kwargs)
+            self.debug(f"Finished shutting down {pool_name} with kwargs={kwargs}")
+
         self.debug(f"Shutting down thread pools with wait={wait}")
         threads = []
-        for pool in pools:
-            t = threading.Thread(target=pool.shutdown, kwargs={"wait": False, "cancel_futures": True}, daemon=True)
+        for pool_name, pool in pools.items():
+            t = threading.Thread(
+                target=shutdown_pool,
+                args=(pool, pool_name),
+                kwargs={"wait": wait, "cancel_futures": True},
+                daemon=True,
+            )
             t.start()
             threads.append(t)
         if wait:
             for t in threads:
                 t.join()
-        if wait:
-            for pool in pools:
-                pool.shutdown(wait=True)
         self.debug("Finished shutting down thread pools")
 
     def cleanup(self):
