@@ -79,7 +79,7 @@ class paramminer_headers(BaseModule):
             tags = []
             if reflection:
                 tags = ["http_reflection"]
-            description = f"[{self.compare_mode.upper()}_BRUTE] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}]"
+            description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}]"
             self.emit_event(
                 {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
@@ -119,7 +119,8 @@ class paramminer_headers(BaseModule):
             reasons = []
         self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
         if len(group) == 1:
-            yield group[0], reasons, reflection
+            if reasons:
+                yield group[0], reasons, reflection
         elif len(group) > 1:
             for group_slice in self.helpers.split_list(group):
                 match, reasons, reflection, subject_response = self.check_batch(compare_helper, url, group_slice)

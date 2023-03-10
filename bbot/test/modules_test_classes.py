@@ -327,7 +327,6 @@ class Telerik(HttpxMockHelper):
         telerik_dialoghandler_detection = False
 
         for e in events:
-            print(e)
             if e.type == "FINDING" and "Telerik RAU AXD Handler detected" in e.data["description"]:
                 telerik_axd_detection = True
                 continue
@@ -392,7 +391,93 @@ class Paramminer_getparams(HttpxMockHelper):
 
     def check_events(self, events):
         for e in events:
-            if e.type == "FINDING" and e.data["description"] == "[GETPARAM_BRUTE] Getparam: [id] Reasons: [body]":
+            if e.type == "FINDING" and e.data["description"] == "[Paramminer] Getparam: [id] Reasons: [body]":
+                return True
+        return False
+
+
+class Paramminer_headers(HttpxMockHelper):
+    headers_body = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello null!</p>';
+    </body>
+    </html>
+    """
+
+    headers_body_match = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello AAAAAAAAAAAAAA!</p>';
+    </body>
+    </html>
+    """
+    additional_modules = ["httpx"]
+
+    config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"])}}}
+
+    def setup(self):
+        from bbot.core.helpers import helper
+
+        self.module.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        helper.HttpCompare.gen_cache_buster = lambda *args, **kwargs: {"AAAAAA": "1"}
+
+    def mock_args(self):
+        expect_args = dict(headers={"tracestate": "AAAAAAAAAAAAAA"})
+        respond_args = {"response_data": self.headers_body_match}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        respond_args = {"response_data": self.headers_body}
+        self.set_expect_requests(respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING" and e.data["description"] == "[Paramminer] Header: [tracestate] Reasons: [body]":
+                return True
+        return False
+
+
+class Paramminer_cookies(HttpxMockHelper):
+    cookies_body = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello null!</p>';
+    </body>
+    </html>
+    """
+
+    cookies_body_match = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello AAAAAAAAAAAAAA!</p>';
+    </body>
+    </html>
+    """
+    additional_modules = ["httpx"]
+
+    config_overrides = {"modules": {"paramminer_cookies": {"wordlist": tempwordlist(["junkcookie", "admincookie"])}}}
+
+    def setup(self):
+        from bbot.core.helpers import helper
+
+        self.module.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        helper.HttpCompare.gen_cache_buster = lambda *args, **kwargs: {"AAAAAA": "1"}
+
+    def mock_args(self):
+        expect_args = dict(headers={"Cookie": "admincookie=AAAAAAAAAAAAAA"})
+        respond_args = {"response_data": self.cookies_body_match}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        respond_args = {"response_data": self.cookies_body}
+        self.set_expect_requests(respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING" and e.data["description"] == "[Paramminer] Cookie: [admincookie] Reasons: [body]":
                 return True
         return False
 
