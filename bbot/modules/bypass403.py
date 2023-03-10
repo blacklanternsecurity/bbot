@@ -72,7 +72,7 @@ for hp_key in header_payloads.keys():
 class bypass403(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "aggressive", "web-advanced"]
+    flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Check 403 pages for common bypasses"}
     in_scope_only = True
 

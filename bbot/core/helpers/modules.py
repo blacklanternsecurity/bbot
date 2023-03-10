@@ -223,6 +223,8 @@ class ModuleLoader:
             missing_deps = {e: not self.check_dependency(e, modname, produced) for e in watched_events}
             if all(missing_deps.values()):
                 for event_type in watched_events:
+                    if event_type == "SCAN":
+                        continue
                     choices = produced_all.get(event_type, [])
                     choices = set(choices)
                     with suppress(KeyError):

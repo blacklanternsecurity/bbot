@@ -41,8 +41,18 @@ def test_anubisdb(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
-def test_getparam_brute(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Getparam_brute(bbot_config, bbot_scanner, bbot_httpserver)
+def test_paramminer_getparams(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Paramminer_getparams(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
+def test_paramminer_headers(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Paramminer_headers(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
+def test_paramminer_cookies(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Paramminer_cookies(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
 
 

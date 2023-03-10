@@ -9,7 +9,7 @@ from bbot.modules.base import BaseModule
 class ffuf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["brute-force", "aggressive", "active", "web-advanced"]
+    flags = ["aggressive", "active"]
     meta = {"description": "A fast web fuzzer written in Go"}
 
     options = {

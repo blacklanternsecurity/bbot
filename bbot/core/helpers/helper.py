@@ -41,8 +41,6 @@ class ConfigAwareHelper:
         self.mkdir(self.temp_dir)
         self.mkdir(self.tools_dir)
         self.mkdir(self.lib_dir)
-        # holds requests CachedSession() objects for duration of scan
-        self.cache_sessions = dict()
         self._futures = set()
         self._future_lock = Lock()
 

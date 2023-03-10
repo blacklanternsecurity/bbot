@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class robots(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Look for and parse robots.txt"}
 
     options = {"include_sitemap": False, "include_allow": True, "include_disallow": True}

@@ -7,12 +7,12 @@ from bbot.core.helpers.misc import tldextract
 
 
 class subdomain_hijack(BaseModule):
-    flags = ["subdomain-hijack", "subdomain-enum", "cloud-enum", "safe", "active"]
+    flags = ["subdomain-hijack", "subdomain-enum", "cloud-enum", "safe", "active", "web-basic", "web-thorough"]
     watched_events = ["DNS_NAME"]
     produced_events = ["FINDING"]
     meta = {"description": "Detect hijackable subdomains"}
     options = {
-        "fingerprints": "https://raw.githubusercontent.com/blacklanternsecurity/can-i-take-over-xyz/master/fingerprints.json"
+        "fingerprints": "https://raw.githubusercontent.com/EdOverflow/can-i-take-over-xyz/master/fingerprints.json"
     }
     options_desc = {"fingerprints": "URL or path to fingerprints.json"}
     scope_distance_modifier = 2
