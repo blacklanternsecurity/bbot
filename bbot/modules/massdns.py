@@ -78,10 +78,11 @@ class massdns(crobat):
         for domain, wildcard_rdtypes in self.helpers.is_wildcard_domain(query).items():
             if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
                 is_wildcard = True
-        if not "target" in event.tags:
-            if "unresolved" in event.tags:
+        if "unresolved" in event.tags:
+            if not "target" in event.tags:
                 return False, "Event is unresolved"
-            if is_cloud:
+        if is_cloud:
+            if event not in self.scan.target:
                 return False, "Event is a cloud resource and not a direct target"
         if is_wildcard and is_cloud:
             return False, "Event is both a cloud resource and a wildcard domain"
