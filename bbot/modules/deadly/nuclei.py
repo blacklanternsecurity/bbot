@@ -127,7 +127,7 @@ class nuclei(BaseModule):
             if len(extracted_results) > 0:
                 description_string += f" Extracted Data: [{','.join(extracted_results)}]"
 
-            if severity == "INFO":
+            if severity in ["INFO", "UNKNOWN"]:
                 self.emit_event(
                     {
                         "host": str(source_event.host),
