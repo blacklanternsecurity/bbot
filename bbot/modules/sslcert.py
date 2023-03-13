@@ -117,7 +117,7 @@ class sslcert(BaseModule):
                 context = SSL.Context(PROTOCOL_TLSv1)
             except AttributeError as e:
                 # AttributeError: module 'lib' has no attribute 'SSL_CTX_set_ecdh_auto'
-                self.warning(f"Error setting SSL context: {e}")
+                self.warning(f"Error creating SSL context: {e}")
                 self.trace()
                 return [], []
             self.debug(f"Connecting to {host} on port {port}")
