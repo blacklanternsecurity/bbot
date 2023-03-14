@@ -71,7 +71,10 @@ class sslcert(BaseModule):
             abort_threshold = self.out_of_scope_abort_threshold
         for future in self.helpers.as_completed(futures):
             host = futures[future]
-            dns_names, emails = future.result()
+            result = future.result()
+            if not isinstance(result, tuple) or not len(result) == 2:
+                continue
+            dns_names, emails = result
             if len(dns_names) > abort_threshold:
                 netloc = self.helpers.make_netloc(host, port)
                 self.info(
@@ -110,7 +113,13 @@ class sslcert(BaseModule):
             host = str(host)
             sock = socket.socket(socket_type, socket.SOCK_STREAM)
             sock.settimeout(self.timeout)
-            context = SSL.Context(PROTOCOL_TLSv1)
+            try:
+                context = SSL.Context(PROTOCOL_TLSv1)
+            except AttributeError as e:
+                # AttributeError: module 'lib' has no attribute 'SSL_CTX_set_ecdh_auto'
+                self.warning(f"Error creating SSL context: {e}")
+                self.trace()
+                return [], []
             self.debug(f"Connecting to {host} on port {port}")
             try:
                 sock.connect((host, port))

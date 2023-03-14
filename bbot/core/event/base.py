@@ -539,6 +539,10 @@ class DictHostEvent(DictEvent):
         return make_ip_type(self.data["host"])
 
 
+class ASN(DictEvent):
+    _always_emit = True
+
+
 class CODE_REPOSITORY(DictHostEvent):
     class _data_validator(BaseModel):
         url: str
