@@ -11,7 +11,7 @@ class paramminer_cookies(paramminer_headers):
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {
-        "description": "Check for common HTTP cookie parameters",
+        "description": "Smart brute-force to check for common HTTP cookie parameters",
     }
     options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params"}
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
