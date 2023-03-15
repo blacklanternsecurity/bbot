@@ -254,13 +254,13 @@ def main():
                                     "This is an (aggressive) active scan! Intrusive connections will be made to target"
                                 )
                             else:
-                                log.warning(
+                                log.hugewarning(
                                     "This is a (safe) active scan. Non-intrusive connections will be made to target"
                                 )
                     else:
                         log.hugeinfo("This is a passive scan. No connections will be made to target")
                     if slow_modules:
-                        log.hugewarning(
+                        log.warning(
                             f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take longer than usual"
                         )
 
