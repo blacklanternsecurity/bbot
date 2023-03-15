@@ -69,6 +69,8 @@ class nuclei(BaseModule):
         self.concurrency = int(self.config.get("concurrency", 25))
         self.budget = int(self.config.get("budget", 1))
         self.templates = self.config.get("templates")
+        if self.templates:
+            self.info(f"Using custom template(s) at: [{self.templates}]")
         self.tags = self.config.get("tags")
         if self.tags:
             self.info(f"Setting the following nuclei tags: [{','.join([self.tags])}]")
