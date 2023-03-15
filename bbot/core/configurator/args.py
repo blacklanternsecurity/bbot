@@ -130,7 +130,7 @@ for p in (parser, dummy_parser):
         "--require-flags",
         nargs="+",
         default=[],
-        help=f"Disable modules that don't have these flags (e.g. --require-flags passive)",
+        help=f"Disable modules that don't have these flags (e.g. -rf passive)",
         metavar="FLAG",
     )
     p.add_argument(
@@ -138,7 +138,7 @@ for p in (parser, dummy_parser):
         "--exclude-flags",
         nargs="+",
         default=[],
-        help=f"Disable modules with these flags. (e.g. --exclude-flags brute-force)",
+        help=f"Disable modules with these flags. (e.g. -ef aggressive)",
         metavar="FLAG",
     )
     p.add_argument(

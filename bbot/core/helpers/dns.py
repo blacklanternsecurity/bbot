@@ -250,7 +250,10 @@ class DNSHelper:
         # wildcard checks
         if not is_ip(event.host):
             # check if this domain is using wildcard dns
-            for hostname, wildcard_domain_rdtypes in self.is_wildcard_domain(event_host).items():
+            event_in_scope = event.scope_distance == 0
+            for hostname, wildcard_domain_rdtypes in self.is_wildcard_domain(
+                event_host, log_info=event_in_scope
+            ).items():
                 if wildcard_domain_rdtypes:
                     event_tags.add("wildcard-domain")
                     for rdtype, ips in wildcard_domain_rdtypes.items():
@@ -308,8 +311,9 @@ class DNSHelper:
                                     ip = self.parent_helper.make_ip_type(t)
 
                                     with suppress(ValidationError):
-                                        if self.parent_helper.scan.whitelisted(ip):
-                                            event_whitelisted = True
+                                        if self.parent_helper.is_ip(ip):
+                                            if self.parent_helper.scan.whitelisted(ip):
+                                                event_whitelisted = True
                                     with suppress(ValidationError):
                                         if self.parent_helper.scan.blacklisted(ip):
                                             event_blacklisted = True
@@ -557,7 +561,7 @@ class DNSHelper:
 
         return result
 
-    def is_wildcard_domain(self, domain):
+    def is_wildcard_domain(self, domain, log_info=False):
         """
         Check whether a domain is using wildcard DNS
 
@@ -616,7 +620,10 @@ class DNSHelper:
                 wildcard_domain_results.update({host: wildcard_results})
                 if is_wildcard:
                     wildcard_rdtypes_str = ",".join(sorted([t.upper() for t, r in wildcard_results.items() if r]))
-                    log.info(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
+                    log_fn = log.verbose
+                    if log_info:
+                        log_fn = log.info
+                    log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
 
         return wildcard_domain_results
 

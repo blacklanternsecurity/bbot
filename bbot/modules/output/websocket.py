@@ -15,8 +15,7 @@ class Websocket(BaseOutputModule):
     def setup(self):
         self.url = self.config.get("url", "")
         if not self.url:
-            self.warning("Must set URL")
-            return False
+            return False, "Must set URL"
         kwargs = {}
         self.token = self.config.get("token", "")
         if self.token:
