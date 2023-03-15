@@ -18,8 +18,8 @@ class nuclei(BaseModule):
         "severity": "",
         "ratelimit": 150,
         "concurrency": 25,
-        "mode": "severe",
-        "etags": "intrusive",
+        "mode": "manual",
+        "etags": "",
         "budget": 1,
     }
     options_desc = {
@@ -29,7 +29,7 @@ class nuclei(BaseModule):
         "severity": "Filter based on severity field available in the template.",
         "ratelimit": "maximum number of requests to send per second (default 150)",
         "concurrency": "maximum number of templates to be executed in parallel (default 25)",
-        "mode": "technology | severe | manual | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Severe (DEFAULT): Only critical and high severity templates without intrusive. Manual: Fully manual settings. Budget: Limit Nuclei to a specified number of HTTP requests",
+        "mode": "manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests",
         "etags": "tags to exclude from the scan",
         "budget": "Used in budget mode to set the number of requests which will be alloted to the nuclei scan",
     }
