@@ -135,3 +135,8 @@ def test_nuclei_budget(bbot_config, bbot_scanner, bbot_httpserver):
 def test_url_manipulation(bbot_config, bbot_scanner, bbot_httpserver):
     x = Url_manipulation(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_naabu(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Naabu(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
