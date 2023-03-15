@@ -73,13 +73,13 @@ class nuclei(BaseModule):
             self.info(f"Using custom template(s) at: [{self.templates}]")
         self.tags = self.config.get("tags")
         if self.tags:
-            self.info(f"Setting the following nuclei tags: [{','.join([self.tags])}]")
+            self.info(f"Setting the following nuclei tags: [{self.tags}]")
         self.etags = self.config.get("etags")
         if self.etags:
-            self.info(f"Excluding the following nuclei tags: [{','.join([self.etags])}]")
+            self.info(f"Excluding the following nuclei tags: [{self.etags}]")
         self.severity = self.config.get("severity")
         if self.mode != "severe" and self.severity != "":
-            self.info(f"Limiting nuclei templates to the following severites: [{','.join([self.severity])}]")
+            self.info(f"Limiting nuclei templates to the following severites: [{self.severity}]")
         self.iserver = self.scan.config.get("interactsh_server", None)
         self.itoken = self.scan.config.get("interactsh_token", None)
 
