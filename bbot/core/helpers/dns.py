@@ -311,8 +311,9 @@ class DNSHelper:
                                     ip = self.parent_helper.make_ip_type(t)
 
                                     with suppress(ValidationError):
-                                        if self.parent_helper.scan.whitelisted(ip):
-                                            event_whitelisted = True
+                                        if self.parent_helper.is_ip(ip):
+                                            if self.parent_helper.scan.whitelisted(ip):
+                                                event_whitelisted = True
                                     with suppress(ValidationError):
                                         if self.parent_helper.scan.blacklisted(ip):
                                             event_blacklisted = True
