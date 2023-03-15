@@ -27,6 +27,8 @@ class bucket_aws(BaseModule):
 
     def filter_event(self, event):
         if event.type == "STORAGE_BUCKET":
+            if f"cloud-{self.cloud_helper_name}" not in event.tags:
+                return False, "Bucket belongs to a different cloud provider"
             return True
         dns_name_scope_distance = max(0, self.max_scope_distance - 2)
         if event.scope_distance <= dns_name_scope_distance:
