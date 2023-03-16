@@ -13,6 +13,9 @@ class host_header(BaseModule):
     deps_apt = ["curl"]
 
     def setup(self):
+
+        self.scanned_hosts = set()
+
         self.interactsh_subdomain_tags = {}
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
@@ -63,15 +66,26 @@ class host_header(BaseModule):
             self.warning(f"Interactsh failure: {e}")
 
     def handle_event(self, event):
+
+        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        host_hash = hash(host)
+        if host_hash in self.scanned_hosts:
+            self.debug(f"Host {host} was already scanned, exiting")
+            return
+        else:
+            self.scanned_hosts.add(host_hash)
+
         # get any set-cookie responses from the response and add them to the request
 
         added_cookies = {}
 
-        for k, v in event.data["header-dict"].items():
-            if k.lower() == "set-cookie":
-                cookie_string = v
-                cookie_split = cookie_string.split("=")
-                added_cookies = {cookie_split[0]: cookie_split[1]}
+        for header, header_value in event.data["header-dict"].items():
+            if header_value.lower() == "set-cookie":
+                header_split = header_value.split("=")
+                try:
+                    added_cookies = {header_split[0]: header_split[1]}
+                except IndexError:
+                    self.debug(f"failed to parse cookie from string {header_value}")
 
         domain_reflections = []
 
