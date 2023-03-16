@@ -13,21 +13,29 @@ class host_header(BaseModule):
     deps_apt = ["curl"]
 
     def setup(self):
-        self.interactsh_subdomain_tags = {}
+        self.scanned_hosts = set()
+
+        self.subdomain_tags = {}
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
-                self.interactsh_domain = self.interactsh_instance.register(callback=self.interactsh_callback)
+                self.domain = self.interactsh_instance.register(callback=self.interactsh_callback)
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
                 return False
+        else:
+            self.warning("Interactsh is disabled globally. Interaction based detections will be disabled.")
+            self.domain = f"{self.rand_string(12, digits=False)}.com"
         return True
+
+    def rand_string(self, *args, **kwargs):
+        return self.helpers.rand_string(*args, **kwargs)
 
     def interactsh_callback(self, r):
         full_id = r.get("full-id", None)
         if full_id:
             if "." in full_id:
-                match = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
+                match = self.subdomain_tags.get(full_id.split(".")[0])
                 if match is None:
                     return
                 matched_event = match[0]
@@ -47,62 +55,73 @@ class host_header(BaseModule):
                 self.debug("skipping results because subdomain tag was missing")
 
     def finish(self):
-        try:
-            for r in self.interactsh_instance.poll():
-                self.interactsh_callback(r)
-        except InteractshError as e:
-            self.debug(f"Error in interact.sh: {e}")
+        if self.scan.config.get("interactsh_disable", False) == False:
+            try:
+                for r in self.interactsh_instance.poll():
+                    self.interactsh_callback(r)
+            except InteractshError as e:
+                self.debug(f"Error in interact.sh: {e}")
 
     def cleanup(self):
-        try:
-            self.interactsh_instance.deregister()
-            self.debug(
-                f"successfully deregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
-            )
-        except InteractshError as e:
-            self.warning(f"Interactsh failure: {e}")
+        if self.scan.config.get("interactsh_disable", False) == False:
+            try:
+                self.interactsh_instance.deregister()
+                self.debug(
+                    f"successfully deregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
+                )
+            except InteractshError as e:
+                self.warning(f"Interactsh failure: {e}")
 
     def handle_event(self, event):
+        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        host_hash = hash(host)
+        if host_hash in self.scanned_hosts:
+            self.debug(f"Host {host} was already scanned, exiting")
+            return
+        else:
+            self.scanned_hosts.add(host_hash)
+
         # get any set-cookie responses from the response and add them to the request
 
         added_cookies = {}
 
-        for k, v in event.data["header-dict"].items():
-            if k.lower() == "set-cookie":
-                cookie_string = v
-                cookie_split = cookie_string.split("=")
-                added_cookies = {cookie_split[0]: cookie_split[1]}
+        for header, header_value in event.data["header-dict"].items():
+            if header_value.lower() == "set-cookie":
+                header_split = header_value.split("=")
+                try:
+                    added_cookies = {header_split[0]: header_split[1]}
+                except IndexError:
+                    self.debug(f"failed to parse cookie from string {header_value}")
 
         domain_reflections = []
 
         # host header replacement
         technique_description = "standard"
         self.debug(f"Performing {technique_description} case")
-        subdomain_tag = self.helpers.rand_string(4, digits=False)
-        self.interactsh_subdomain_tags[subdomain_tag] = (event, technique_description)
+        subdomain_tag = self.rand_string(4, digits=False)
+        self.subdomain_tags[subdomain_tag] = (event, technique_description)
         output = self.helpers.curl(
             url=event.data["url"],
-            headers={"Host": f"{subdomain_tag}.{self.interactsh_domain}"},
+            headers={"Host": f"{subdomain_tag}.{self.domain}"},
             ignore_bbot_global_settings=True,
             cookies=added_cookies,
         )
-
-        if self.interactsh_domain in output:
+        if self.domain in output:
             domain_reflections.append(technique_description)
 
         # absolute URL / Host header transposition
         technique_description = "absolute URL transposition"
         self.debug(f"Performing {technique_description} case")
-        subdomain_tag = self.helpers.rand_string(4, digits=False)
-        self.interactsh_subdomain_tags[subdomain_tag] = (event, technique_description)
+        subdomain_tag = self.rand_string(4, digits=False)
+        self.subdomain_tags[subdomain_tag] = (event, technique_description)
         output = self.helpers.curl(
             url=event.data["url"],
-            headers={"Host": f"{subdomain_tag}.{self.interactsh_domain}"},
+            headers={"Host": f"{subdomain_tag}.{self.domain}"},
             path_override=event.data["url"],
             cookies=added_cookies,
         )
 
-        if self.interactsh_domain in output:
+        if self.domain in output:
             domain_reflections.append(technique_description)
 
         # duplicate host header tolerance
@@ -128,12 +147,11 @@ class host_header(BaseModule):
                 event,
             )
 
-        # Host Header Overrides
-
+        # host header overrides
         technique_description = "host override headers"
-        self.debug(f"Performing {technique_description} case")
-        subdomain_tag = self.helpers.rand_string(4, digits=False)
-        self.interactsh_subdomain_tags[subdomain_tag] = (event, technique_description)
+        self.verbose(f"Performing {technique_description} case")
+        subdomain_tag = self.rand_string(4, digits=False)
+        self.subdomain_tags[subdomain_tag] = (event, technique_description)
 
         override_headers_list = [
             "X-Host",
@@ -147,14 +165,14 @@ class host_header(BaseModule):
         ]
         override_headers = {}
         for oh in override_headers_list:
-            override_headers[oh] = f"{subdomain_tag}.{self.interactsh_domain}"
+            override_headers[oh] = f"{subdomain_tag}.{self.domain}"
 
         output = self.helpers.curl(
             url=event.data["url"],
             headers=override_headers,
             cookies=added_cookies,
         )
-        if self.interactsh_domain in output:
+        if self.domain in output:
             domain_reflections.append(technique_description)
 
         # emit all the domain reflections we found
