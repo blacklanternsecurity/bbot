@@ -1,5 +1,4 @@
 import json
-import threading
 import websocket
 from time import sleep
 
