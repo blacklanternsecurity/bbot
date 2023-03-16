@@ -220,14 +220,22 @@ class telerik(BaseModule):
             future = self.submit_task(self.test_detector, event.data, f"{dh}?dp=1")
             futures[future] = dh
 
+        fail_count = 0
         for future in self.helpers.as_completed(futures):
             dh = futures[future]
             result = future.result()
+
             # cancel if we run into timeouts etc.
             if result is None:
+                fail_count += 1
+
+                # tolerate some random errors
+                if fail_count < 2:
+                    continue
                 self.debug(f"Cancelling run against {event.data} due to failed request")
                 for future in futures:
                     future.cancel()
+                break
             if result:
                 if "Cannot deserialize dialog parameters" in result.text:
                     for future in futures:
