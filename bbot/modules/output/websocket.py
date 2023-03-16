@@ -20,7 +20,7 @@ class Websocket(BaseOutputModule):
         self.token = self.config.get("token", "")
         if self.token:
             kwargs.update({"header": {"Authorization": f"Bearer {self.token}"}})
-       self.ws = websocket.WebSocket()
+        self.ws = websocket.WebSocket()
         self.ws.connect(self.url, **kwargs)
         self.started = False
         return True
