@@ -20,26 +20,12 @@ class Websocket(BaseOutputModule):
         self.token = self.config.get("token", "")
         if self.token:
             kwargs.update({"header": {"Authorization": f"Bearer {self.token}"}})
-        self.ws = websocket.WebSocketApp(self.url, **kwargs)
+       self.ws = websocket.WebSocket()
+        self.ws.connect(self.url, **kwargs)
         self.started = False
         return True
 
-    def start_websocket(self):
-        if not self.started:
-            self.thread = threading.Thread(target=self._start_websocket, daemon=True)
-            self.thread.start()
-            self.started = True
-
-    def _start_websocket(self):
-        not_keyboardinterrupt = False
-        while not self.scan.stopping:
-            not_keyboardinterrupt = self.ws.run_forever()
-            if not not_keyboardinterrupt:
-                break
-            sleep(1)
-
     def handle_event(self, event):
-        self.start_websocket()
         event_json = event.json()
         self.send(event_json)
 
