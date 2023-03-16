@@ -1365,3 +1365,16 @@ class Url_manipulation(HttpxMockHelper):
             ):
                 return True
         return False
+
+
+class Naabu(HttpxMockHelper):
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "OPEN_TCP_PORT":
+                return True
+        return False
