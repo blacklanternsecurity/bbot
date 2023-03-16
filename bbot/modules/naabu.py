@@ -61,7 +61,7 @@ class naabu(BaseModule):
     def handle_batch(self, *events):
         _input = [str(e.data) for e in events]
         command = self.construct_command()
-        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL, sudo=True):
+        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL, sudo=False):
             try:
                 j = json.loads(line)
             except Exception as e:
