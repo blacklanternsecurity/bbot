@@ -13,7 +13,6 @@ class host_header(BaseModule):
     deps_apt = ["curl"]
 
     def setup(self):
-
         self.scanned_hosts = set()
 
         self.interactsh_subdomain_tags = {}
@@ -66,7 +65,6 @@ class host_header(BaseModule):
             self.warning(f"Interactsh failure: {e}")
 
     def handle_event(self, event):
-
         host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
         host_hash = hash(host)
         if host_hash in self.scanned_hosts:
