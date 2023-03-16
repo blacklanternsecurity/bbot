@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 class social(BaseModule):
     watched_events = ["URL_UNVERIFIED"]
     produced_events = ["SOCIAL"]
-    description = "Look for social media links in webpages"
+    meta = {"description": "Look for social media links in webpages"}
     flags = ["active", "social-enum"]
 
     social_media_regex = {
