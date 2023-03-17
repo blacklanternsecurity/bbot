@@ -559,7 +559,7 @@ class Robots(HttpxMockHelper):
         return False
 
 
-class Secrets_DB(HttpxMockHelper):
+class SecretsDB(HttpxMockHelper):
     additional_modules = ["httpx"]
 
     def mock_args(self):

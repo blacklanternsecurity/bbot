@@ -4,10 +4,10 @@ import yaml
 from .base import BaseModule
 
 
-class secrets_db(BaseModule):
+class secretsdb(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Detect common secrets with secrets-patterns-db"}
     options = {
         "min_confidence": 99,
