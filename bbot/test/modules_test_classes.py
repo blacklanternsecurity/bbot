@@ -194,6 +194,19 @@ class Anubisdb(RequestMockHelper):
         return False
 
 
+class SecretsDB(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "-----BEGIN PGP PRIVATE KEY BLOCK-----"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        return any(e.type == "FINDING" for e in events)
+
+
+
 class Badsecrets(HttpxMockHelper):
     targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/test.aspx", "http://127.0.0.1:8888/cookie.aspx"]
 
