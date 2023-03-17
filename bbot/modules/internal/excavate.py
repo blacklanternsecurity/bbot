@@ -72,8 +72,7 @@ class URLExtractor(BaseExtractor):
             path = html.unescape(result[1]).lstrip("/")
 
             if not self.compiled_regexes["fullurl"].match(path):
-                working_dir = "/".join(event.parsed.path.split("/")[0:-1])
-                path = f"{working_dir}/{path}"
+                path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
                 full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
                 result = urljoin(full_url, urlparse(full_url).path)
 
