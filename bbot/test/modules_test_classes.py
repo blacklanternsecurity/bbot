@@ -206,7 +206,6 @@ class SecretsDB(HttpxMockHelper):
         return any(e.type == "FINDING" for e in events)
 
 
-
 class Badsecrets(HttpxMockHelper):
     targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/test.aspx", "http://127.0.0.1:8888/cookie.aspx"]
 
