@@ -1412,3 +1412,21 @@ class Naabu(HttpxMockHelper):
             if e.type == "OPEN_TCP_PORT":
                 return True
         return False
+
+
+class Hunt(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": '<html><a href="/hackme.php?cipher=xor">ping</a></html>'}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if (
+                e.type == "FINDING"
+                and e.data["description"] == "Found potential INSECURE CRYPTOGRAPHY parameter [cipher]"
+            ):
+                return True
+        return False
