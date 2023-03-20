@@ -8,11 +8,10 @@ import dns.resolver
 import dns.exception
 from threading import Lock
 from contextlib import suppress
-from concurrent.futures import ThreadPoolExecutor
 
-from .threadpool import NamedLock
 from .regexes import dns_name_regex
 from bbot.core.errors import ValidationError, DNSError
+from .threadpool import NamedLock, PatchedThreadPoolExecutor
 from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
 
 log = logging.getLogger("bbot.core.helpers.dns")
@@ -59,7 +58,7 @@ class DNSHelper:
 
         # we need our own threadpool because using the shared one can lead to deadlocks
         max_workers = self.parent_helper.config.get("max_dns_threads", 100)
-        self._thread_pool = ThreadPoolExecutor(max_workers=max_workers)
+        self._thread_pool = PatchedThreadPoolExecutor(max_workers=max_workers)
 
         self._debug = self.parent_helper.config.get("dns_debug", False)
 
@@ -148,7 +147,7 @@ class DNSHelper:
         parent_hash = hash(f"{parent}:{rdtype}")
         dns_cache_hash = hash(f"{query}:{rdtype}")
         while tries_left > 0:
-            if self.scan_stopping:
+            if self.parent_helper.scan_stopping:
                 break
             try:
                 try:
@@ -197,7 +196,7 @@ class DNSHelper:
         errors = []
         dns_cache_hash = hash(f"{query}:PTR")
         while tries_left > 0:
-            if self.scan_stopping:
+            if self.parent_helper.scan_stopping:
                 break
             try:
                 if dns_cache_hash in self._dns_cache:
@@ -637,10 +636,6 @@ class DNSHelper:
         except KeyboardInterrupt:
             if self.parent_helper.scan:
                 self.parent_helper.scan.stop()
-
-    @property
-    def scan_stopping(self):
-        return getattr(self.parent_helper.scan, "stopping", False)
 
     def debug(self, *args, **kwargs):
         if self._debug:

@@ -77,6 +77,10 @@ class ConfigAwareHelper:
         return self._scan
 
     @property
+    def scan_stopping(self):
+        return getattr(self.scan, "stopping", False)
+
+    @property
     def in_tests(self):
         return os.environ.get("BBOT_TESTING", "") == "True"
 
