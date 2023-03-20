@@ -101,8 +101,6 @@ class DNSHelper:
         # DNS over TCP is more reliable
         # But setting this breaks DNS resolution on Ubuntu because systemd-resolve doesn't support TCP
         # kwargs["tcp"] = True
-        if self.parent_helper.scan.stopping:
-            return [], []
         query = str(query).strip()
         if is_ip(query):
             kwargs.pop("type", None)
@@ -124,8 +122,6 @@ class DNSHelper:
                 elif any([isinstance(t, x) for x in (list, tuple)]):
                     types = [str(_).strip().upper() for _ in t]
             for t in types:
-                if getattr(self.parent_helper.scan, "stopping", False) == True:
-                    break
                 r, e = self._resolve_hostname(query, rdtype=t, **kwargs)
                 if r:
                     results.append((t, r))
@@ -152,6 +148,8 @@ class DNSHelper:
         parent_hash = hash(f"{parent}:{rdtype}")
         dns_cache_hash = hash(f"{query}:{rdtype}")
         while tries_left > 0:
+            if self.scan_stopping:
+                break
             try:
                 try:
                     results = self._dns_cache[dns_cache_hash]
@@ -199,6 +197,8 @@ class DNSHelper:
         errors = []
         dns_cache_hash = hash(f"{query}:PTR")
         while tries_left > 0:
+            if self.scan_stopping:
+                break
             try:
                 if dns_cache_hash in self._dns_cache:
                     result = self._dns_cache[dns_cache_hash]
@@ -222,6 +222,7 @@ class DNSHelper:
         return results, errors
 
     def resolve_event(self, event, minimal=False):
+        log.debug(f"Resolving {event}")
         result = self._resolve_event(event, minimal=minimal)
         # if it's a wildcard, go again with _wildcard.{domain}
         if len(result) == 2:
@@ -636,6 +637,10 @@ class DNSHelper:
         except KeyboardInterrupt:
             if self.parent_helper.scan:
                 self.parent_helper.scan.stop()
+
+    @property
+    def scan_stopping(self):
+        return getattr(self.parent_helper.scan, "stopping", False)
 
     def debug(self, *args, **kwargs):
         if self._debug:
