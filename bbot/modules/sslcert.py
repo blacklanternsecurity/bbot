@@ -111,14 +111,18 @@ class sslcert(BaseModule):
                 if host.version == 6:
                     socket_type = socket.AF_INET6
             host = str(host)
-            sock = socket.socket(socket_type, socket.SOCK_STREAM)
+            try:
+                sock = socket.socket(socket_type, socket.SOCK_STREAM)
+            except Exception as e:
+                netloc = self.helpers.make_netloc(host, port)
+                self.warning(f"Error creating socket for {netloc}: {e}. Do you have IPv6 disabled?")
+                return [], []
             sock.settimeout(self.timeout)
             try:
                 context = SSL.Context(PROTOCOL_TLSv1)
             except AttributeError as e:
                 # AttributeError: module 'lib' has no attribute 'SSL_CTX_set_ecdh_auto'
                 self.warning(f"Error creating SSL context: {e}")
-                self.trace()
                 return [], []
             self.debug(f"Connecting to {host} on port {port}")
             try:
