@@ -690,6 +690,39 @@ class Masscan(MockHelper):
         return False
 
 
+class Buckets(HttpxMockHelper):
+    additional_modules = ["excavate", "speculate", "httpx"]
+
+    from bbot.core.helpers.misc import rand_string
+
+    random_bucket_name = rand_string(15, digits=False)
+    providers = ("aws", "gcp", "azure", "digitalocean")
+    config_overrides = {"excavate": True, "speculate": True}
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        body = f"""
+        <a href="https://{self.random_bucket_name}.s3.amazonaws.com"/>
+        <a href="https://{self.random_bucket_name}.nyc3.digitaloceanspaces.com"/>
+        <a href="https://{self.random_bucket_name}.storage.googleapis.com"/>
+        <a href="https://{self.random_bucket_name}.blob.core.windows.net"/>
+        """
+        self.set_expect_requests(expect_args=expect_args, respond_args={"response_data": body})
+
+    def run(self):
+        events = list(self.scan.start())
+        for e in events:
+            print(e)
+        self.check_events(events)
+
+    def check_events(self, events):
+        # make sure storage buckets exist
+        for provider in self.providers:
+            assert any(
+                e.type == "STORAGE_BUCKET" and str(e.module) == f"{provider}_cloud" for e in events
+            ), f'bucket not found for provider "{provider}" ({events})'
+
+
 class ASN(RequestMockHelper):
     targets = ["8.8.8.8"]
     response_get_asn_ripe = {

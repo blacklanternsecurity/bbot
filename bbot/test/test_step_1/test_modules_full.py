@@ -92,6 +92,11 @@ def test_robots(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_buckets(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Buckets(bbot_config, bbot_scanner, bbot_httpserver, module_name="excavate")
+    x.run()
+
+
 def test_asn(bbot_config, bbot_scanner, bbot_httpserver):
     x = ASN(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
