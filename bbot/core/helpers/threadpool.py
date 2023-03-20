@@ -1,3 +1,4 @@
+import queue
 import logging
 import threading
 import traceback
@@ -29,7 +30,37 @@ class ThreadPoolSimpleQueue(SimpleQueue):
         return work_item
 
 
-class BBOTThreadPoolExecutor(ThreadPoolExecutor):
+class PatchedThreadPoolExecutor(ThreadPoolExecutor):
+    """
+    This class exists only because of a bug in cpython where
+    futures are not properly marked CANCELLED_AND_NOTIFIED:
+        https://github.com/python/cpython/issues/87893
+    """
+
+    def shutdown(self, wait=True, *, cancel_futures=False):
+        with self._shutdown_lock:
+            self._shutdown = True
+            if cancel_futures:
+                # Drain all work items from the queue, and then cancel their
+                # associated futures.
+                while True:
+                    try:
+                        work_item = self._work_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                    if work_item is not None:
+                        if work_item.future.cancel():
+                            work_item.future.set_running_or_notify_cancel()
+
+            # Send a wake-up to prevent threads calling
+            # _work_queue.get(block=True) from permanently blocking.
+            self._work_queue.put(None)
+        if wait:
+            for t in self._threads:
+                t.join()
+
+
+class BBOTThreadPoolExecutor(PatchedThreadPoolExecutor):
     """
     Allows inspection of thread pool to determine which functions are currently executing
     """
@@ -172,24 +203,14 @@ class ThreadPoolWrapper:
         return self.executor.threads_status
 
 
-from time import sleep
-from concurrent.futures._base import FINISHED, CANCELLED, CANCELLED_AND_NOTIFIED
+from concurrent.futures._base import FINISHED
+from concurrent.futures._base import as_completed as as_completed_orig
 
 
-def as_completed(fs, timeout=None):
-    fs = set(fs)
-    while 1:
-        futures = set(fs)
-        finished = set(f for f in futures if f._state in (FINISHED, CANCELLED, CANCELLED_AND_NOTIFIED))
-        pending = futures - finished
-        for f in finished:
-            fs.remove(f)
-            if f._state == FINISHED:
-                yield f
-        if not pending:
-            break
-        else:
-            sleep(0.01)
+def as_completed(*args, **kwargs):
+    for f in as_completed_orig(*args, **kwargs):
+        if f._state == FINISHED:
+            yield f
 
 
 class _Lock:
