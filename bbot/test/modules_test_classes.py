@@ -696,7 +696,7 @@ class Buckets(HttpxMockHelper):
     from bbot.core.helpers.misc import rand_string
 
     random_bucket_name = rand_string(15, digits=False)
-    providers = ("aws", "gcp", "azure", "digitalocean")
+    providers = ("aws", "gcp", "azure", "digitalocean", "firebase")
     config_overrides = {"excavate": True, "speculate": True}
 
     def mock_args(self):
@@ -706,6 +706,7 @@ class Buckets(HttpxMockHelper):
         <a href="https://{self.random_bucket_name}.nyc3.digitaloceanspaces.com"/>
         <a href="https://{self.random_bucket_name}.storage.googleapis.com"/>
         <a href="https://{self.random_bucket_name}.blob.core.windows.net"/>
+        <a href="https://{self.random_bucket_name}.firebaseio.com"/>
         """
         self.set_expect_requests(expect_args=expect_args, respond_args={"response_data": body})
 
