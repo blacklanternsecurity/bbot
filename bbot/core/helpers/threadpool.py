@@ -23,8 +23,9 @@ class ThreadPoolSimpleQueue(SimpleQueue):
 
     def get(self, *args, **kwargs):
         work_item = super().get(*args, **kwargs)
-        thread_id = threading.get_ident()
-        self._executor._current_work_items[thread_id] = (work_item, datetime.now())
+        if work_item is not None:
+            thread_id = threading.get_ident()
+            self._executor._current_work_items[thread_id] = (work_item, datetime.now())
         return work_item
 
 
@@ -171,58 +172,24 @@ class ThreadPoolWrapper:
         return self.executor.threads_status
 
 
-import time
-from concurrent.futures._base import (
-    FINISHED,
-    _AS_COMPLETED,
-    _AcquireFutures,
-    _create_and_install_waiters,
-    _yield_finished_futures,
-)
+from time import sleep
+from concurrent.futures._base import FINISHED, CANCELLED, CANCELLED_AND_NOTIFIED
 
 
 def as_completed(fs, timeout=None):
-    """
-    Copied from https://github.com/python/cpython/blob/main/Lib/concurrent/futures/_base.py
-    Modified to only yield FINISHED futures (not CANCELLED_AND_NOTIFIED)
-    """
-    if timeout is not None:
-        end_time = timeout + time.monotonic()
-
     fs = set(fs)
-    total_futures = len(fs)
-    with _AcquireFutures(fs):
-        finished = set(f for f in fs if f._state == FINISHED)
-        pending = fs - finished
-        waiter = _create_and_install_waiters(fs, _AS_COMPLETED)
-    finished = list(finished)
-    try:
-        yield from _yield_finished_futures(finished, waiter, ref_collect=(fs,))
-
-        while pending:
-            if timeout is None:
-                wait_timeout = None
-            else:
-                wait_timeout = end_time - time.monotonic()
-                if wait_timeout < 0:
-                    raise TimeoutError("%d (of %d) futures unfinished" % (len(pending), total_futures))
-
-            waiter.event.wait(wait_timeout)
-
-            with waiter.lock:
-                finished = waiter.finished_futures
-                waiter.finished_futures = []
-                waiter.event.clear()
-
-            # reverse to keep finishing order
-            finished.reverse()
-            yield from _yield_finished_futures(finished, waiter, ref_collect=(fs, pending))
-
-    finally:
-        # Remove waiter from unfinished futures
-        for f in fs:
-            with f._condition:
-                f._waiters.remove(waiter)
+    while 1:
+        futures = set(fs)
+        finished = set(f for f in futures if f._state in (FINISHED, CANCELLED, CANCELLED_AND_NOTIFIED))
+        pending = futures - finished
+        for f in finished:
+            fs.remove(f)
+            if f._state == FINISHED:
+                yield f
+        if not pending:
+            break
+        else:
+            sleep(0.01)
 
 
 class _Lock:
