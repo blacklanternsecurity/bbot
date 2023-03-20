@@ -96,7 +96,9 @@ def run(self, command, *args, **kwargs):
         env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
         env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
         kwargs["env"] = env
-        command = ["sudo", "-A"] + command
+
+        LD_LIBRARY_PATH = os.environ.get("LD_LIBRARY_PATH", "")
+        command = ["sudo", "-E", "-A", f"LD_LIBRARY_PATH={LD_LIBRARY_PATH}"] + command
     log.hugeverbose(f"run: {' '.join(command)}")
     result = catch(subprocess.run, command, *args, **kwargs)
 
