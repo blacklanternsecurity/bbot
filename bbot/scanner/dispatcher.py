@@ -16,4 +16,4 @@ class Dispatcher:
         """
         Execute an event when the scan's status is updated
         """
-        return
+        self.scan.debug(f"Setting scan status to {status}")

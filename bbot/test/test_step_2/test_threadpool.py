@@ -1,8 +1,7 @@
 def test_threadpool():
-    from concurrent.futures import ThreadPoolExecutor
-    from bbot.core.helpers.threadpool import ThreadPoolWrapper, NamedLock, as_completed
+    from bbot.core.helpers.threadpool import BBOTThreadPoolExecutor, ThreadPoolWrapper, NamedLock, as_completed
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with BBOTThreadPoolExecutor(max_workers=3) as executor:
         pool = ThreadPoolWrapper(executor)
         add_one = lambda x: x + 1
         futures = [pool.submit_task(add_one, y) for y in [0, 1, 2, 3, 4]]

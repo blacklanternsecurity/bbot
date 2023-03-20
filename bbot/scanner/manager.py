@@ -64,6 +64,7 @@ class ScanManager:
         # "quick" queues the event immediately
         quick = kwargs.pop("quick", False)
         if quick:
+            log.debug(f'Module "{event.module}" raised {event}')
             event._resolved.set()
             for kwarg in ["abort_if", "on_success_callback", "_block"]:
                 kwargs.pop(kwargs, None)
@@ -79,6 +80,7 @@ class ScanManager:
             # don't raise an exception if the thread pool has been shutdown
             try:
                 self.scan._event_thread_pool.submit_task(self.catch, self._emit_event, event, *args, **kwargs)
+                log.debug(f'Module "{event.module}" raised {event}')
                 return True
             except ScanCancelledError:
                 return False
@@ -107,12 +109,12 @@ class ScanManager:
         return True
 
     def _emit_event(self, event, *args, **kwargs):
+        log.debug(f"Emitting {event}")
         distribute_event = True
         event_distributed = False
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
-            log.debug(f'Module "{event.module}" raised {event}')
 
             # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
