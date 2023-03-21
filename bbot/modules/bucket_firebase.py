@@ -17,11 +17,11 @@ class bucket_firebase(bucket_aws):
     base_domains = ["firebaseio.com"]
 
     def check_bucket_exists(self, bucket_name, url):
-        url = f"{url}/.json"
+        url = url.strip("/") + "/.json"
         return super().check_bucket_exists(bucket_name, url)
 
     def check_bucket_open(self, bucket_name, url):
-        url = f"{url}/.json"
+        url = url.strip("/") + "/.json"
         response = self.helpers.request(url)
         tags = self.gen_tags_exists(response)
         status_code = getattr(response, "status_code", 404)

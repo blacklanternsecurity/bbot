@@ -56,10 +56,7 @@ class RequestMockHelper(MockHelper):
         with requests_mock.Mocker() as m:
             self.m = m
             self.mock_args()
-            events = list(e for e in self.scan.start() if e.module == self.module)
-            for x in events:
-                print(x)
-            assert self.check_events(events)
+            return super().run()
 
 
 class HttpxMockHelper(MockHelper):
