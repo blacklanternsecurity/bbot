@@ -845,6 +845,10 @@ class PROTOCOL(DictHostEvent):
         return self.data["protocol"]
 
 
+class Geolocation(BaseEvent):
+    _always_emit = True
+
+
 def make_event(
     data,
     event_type=None,
