@@ -31,8 +31,7 @@ class bucket_aws(BaseModule):
         if event.type == "STORAGE_BUCKET":
             if f"cloud-{self.cloud_helper_name}" not in event.tags:
                 return False, "bucket belongs to a different cloud provider"
-            return True
-        return False
+        return True
 
     def handle_event(self, event):
         if event.type == "DNS_NAME":
@@ -58,7 +57,7 @@ class bucket_aws(BaseModule):
             description, tags = self.check_bucket_open(bucket_name, url)
             if description:
                 event_data = {"host": event.host, "url": url, "description": description}
-            self.emit_event(event_data, "FINDING", source=event, tags=tags)
+                self.emit_event(event_data, "FINDING", source=event, tags=tags)
 
         for bucket_name, url, tags in self.brute_buckets(
             [bucket_name], permutations=self.permutations, omit_base=True
