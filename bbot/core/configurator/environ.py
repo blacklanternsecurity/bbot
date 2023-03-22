@@ -22,6 +22,18 @@ def flatten_config(config, base="bbot"):
                 yield (new_base.upper(), str(v))
 
 
+def add_to_path(v, k="PATH"):
+    var_list = os.environ.get(k, "").split(":")
+    deduped_var_list = []
+    for _ in var_list:
+        if not _ in deduped_var_list:
+            deduped_var_list.append(_)
+    if not v in deduped_var_list:
+        deduped_var_list = [v] + deduped_var_list
+    new_var_str = ":".join(deduped_var_list)
+    os.environ[k] = new_var_str
+
+
 def prepare_environment(bbot_config):
     """
     Sync config to OS environment variables
@@ -35,8 +47,11 @@ def prepare_environment(bbot_config):
     # if we're running in a virtual environment, make sure to include its /bin in PATH
     if sys.prefix != sys.base_prefix:
         bin_dir = str(Path(sys.prefix) / "bin")
-        if bin_dir not in os.environ.get("PATH", "").split(":"):
-            os.environ["PATH"] = f'{bin_dir}:{os.environ.get("PATH", "").strip(":")}'
+        add_to_path(bin_dir)
+
+    # add ~/.local/bin to PATH
+    local_bin_dir = str(Path.home() / ".local" / "bin")
+    add_to_path(local_bin_dir)
 
     # ensure bbot_tools
     bbot_tools = home / "tools"
@@ -52,6 +67,8 @@ def prepare_environment(bbot_config):
     # ensure bbot_lib
     bbot_lib = home / "lib"
     os.environ["BBOT_LIB"] = str(bbot_lib)
+    # export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/.bbot/lib/
+    add_to_path(str(bbot_lib), k="LD_LIBRARY_PATH")
 
     # platform variables
     os.environ["BBOT_OS_PLATFORM"] = os_platform()
@@ -80,11 +97,6 @@ def prepare_environment(bbot_config):
     if http_proxy:
         os.environ["HTTP_PROXY"] = http_proxy
         os.environ["HTTPS_PROXY"] = http_proxy
-
-    # export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/.bbot/lib/
-    os.environ["LD_LIBRARY_PATH"] = ":".join(os.environ.get("LD_LIBRARY_PATH", "").split(":") + [str(bbot_lib)]).strip(
-        ":"
-    )
 
     # replace environment variables in preloaded modules
     module_loader.find_and_replace(**os.environ)
