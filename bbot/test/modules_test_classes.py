@@ -47,7 +47,12 @@ class Gowitness(HttpxMockHelper):
 
 class Excavate(HttpxMockHelper):
     additional_modules = ["httpx"]
-    targets = ["http://127.0.0.1:8888/", "test.notreal"]
+    targets = ["http://127.0.0.1:8888/", "test.notreal", "http://127.0.0.1:8888/subdir/links.html"]
+
+    config_overrides = {"web_spider_distance": 1, "web_spider_depth": 1}
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 404
 
     def mock_args(self):
         response_data = """
@@ -64,6 +69,16 @@ class Excavate(HttpxMockHelper):
         """
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": response_data}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # verify relatives path a-tag parsing is working correctly
+
+        expect_args = {"method": "GET", "uri": "/subdir/links.html"}
+        respond_args = {"response_data": "<a href='../relative.html'>relative</a>"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/relative.html"}
+        respond_args = {"response_data": "alive"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
@@ -99,6 +114,13 @@ class Excavate(HttpxMockHelper):
             e.type == "PROTOCOL"
             and e.data.get("protocol", "") == "FTP"
             and e.data.get("host", "") == "ftp.test.notreal"
+            for e in events
+        )
+
+        assert any(
+            e.type == "URL_UNVERIFIED"
+            and e.data == "http://127.0.0.1:8888/relative.html"
+            and "spider-danger" not in e.tags
             for e in events
         )
         return True
@@ -192,6 +214,18 @@ class Anubisdb(RequestMockHelper):
             if e == "asdf.blacklanternsecurity.com":
                 return True
         return False
+
+
+class SecretsDB(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "-----BEGIN PGP PRIVATE KEY BLOCK-----"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        return any(e.type == "FINDING" for e in events)
 
 
 class Badsecrets(HttpxMockHelper):
@@ -654,6 +688,138 @@ class Masscan(MockHelper):
             if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:53":
                 return True
         return False
+
+
+class Buckets(HttpxMockHelper, RequestMockHelper):
+    providers = ["aws", "gcp", "azure", "digitalocean", "firebase"]
+    # providers = ["aws"]
+    additional_modules = ["excavate", "speculate", "httpx"] + [f"bucket_{p}" for p in providers]
+    config_overrides = {
+        "modules": {
+            "bucket_aws": {"permutations": True},
+            "bucket_gcp": {"permutations": True},
+            "bucket_azure": {"permutations": True},
+            "bucket_digitalocean": {"permutations": True},
+            "bucket_firebase": {"permutations": True},
+        },
+        "excavate": True,
+        "speculate": True,
+    }
+
+    from bbot.core.helpers.misc import rand_string
+
+    random_bucket_name_1 = rand_string(15, digits=False)
+    random_bucket_name_2 = rand_string(15, digits=False)
+
+    open_aws_bucket = """<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>vpn-static</Name><Prefix></Prefix><Marker></Marker><MaxKeys>1000</MaxKeys><IsTruncated>false</IsTruncated><Contents><Key>style.css</Key><LastModified>2017-03-18T06:41:59.000Z</LastModified><ETag>&quot;bf9e72bdab09b785f05ff0395023cc35&quot;</ETag><Size>429</Size><StorageClass>STANDARD</StorageClass></Contents></ListBucketResult>"""
+    open_digitalocean_bucket = """<?xml version="1.0" encoding="UTF-8"?><ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>cloud01</Name><Prefix></Prefix><MaxKeys>1000</MaxKeys><IsTruncated>false</IsTruncated><Contents><Key>test.doc</Key><LastModified>2020-10-14T15:23:37.545Z</LastModified><ETag>&quot;4d25c8699f7347acc9f41e57148c62c0&quot;</ETag><Size>13362425</Size><StorageClass>STANDARD</StorageClass><Owner><ID>1957883</ID><DisplayName>1957883</DisplayName></Owner><Type>Normal</Type></Contents><Marker></Marker></ListBucketResult>"""
+    open_gcp_bucket = """{
+  "kind": "storage#testIamPermissionsResponse",
+  "permissions": [
+    "storage.objects.create",
+    "storage.objects.list"
+  ]
+}"""
+
+    def patch_scan(self, scan):
+        scan.helpers.word_cloud.mutations = lambda b, cloud=False: [
+            (b, "dev"),
+        ]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        body = f"""
+        <a href="https://{self.random_bucket_name_1}.s3.amazonaws.com"/>
+        <a href="https://{self.random_bucket_name_1}.nyc3.digitaloceanspaces.com"/>
+        <a href="https://{self.random_bucket_name_1}.storage.googleapis.com"/>
+        <a href="https://{self.random_bucket_name_1}.blob.core.windows.net"/>
+        <a href="https://{self.random_bucket_name_1}.firebaseio.com"/>
+
+        <a href="https://{self.random_bucket_name_2}.s3-ap-southeast-2.amazonaws.com"/>
+        <a href="https://{self.random_bucket_name_2}.fra1.digitaloceanspaces.com"/>
+        <a href="https://{self.random_bucket_name_2}.storage.googleapis.com"/>
+        <a href="https://{self.random_bucket_name_2}.blob.core.windows.net"/>
+        <a href="https://{self.random_bucket_name_2}.firebaseio.com"/>
+        """
+        self.set_expect_requests(expect_args=expect_args, respond_args={"response_data": body})
+
+    def mock_args_requests(self):
+        self.m.register_uri("GET", requests_mock.ANY, text="", status_code=404)
+        self.register_uri(
+            f"https://{self.random_bucket_name_2}.s3-ap-southeast-2.amazonaws.com/",
+            text=self.open_aws_bucket,
+        )
+        self.register_uri(
+            f"https://{self.random_bucket_name_2}.fra1.digitaloceanspaces.com/",
+            text=self.open_digitalocean_bucket,
+        )
+        self.register_uri(
+            f"https://{self.random_bucket_name_2}.blob.core.windows.net/{self.random_bucket_name_2}?restype=container",
+            text="",
+        )
+        self.register_uri(
+            f"https://www.googleapis.com/storage/v1/b/{self.random_bucket_name_2}/iam/testPermissions?permissions=storage.buckets.setIamPolicy&permissions=storage.objects.list&permissions=storage.objects.get&permissions=storage.objects.create",
+            text=self.open_gcp_bucket,
+        )
+        self.register_uri(
+            f"https://{self.random_bucket_name_2}.firebaseio.com/.json",
+            text="",
+        )
+
+        self.register_uri(
+            f"https://{self.random_bucket_name_2}-dev.s3.amazonaws.com/",
+            text="",
+        )
+        self.register_uri(
+            f"https://{self.random_bucket_name_2}-dev.fra1.digitaloceanspaces.com/",
+            text="",
+        )
+        self.register_uri(
+            f"https://{self.random_bucket_name_2}-dev.blob.core.windows.net/{self.random_bucket_name_2}-dev?restype=container",
+            text="",
+        )
+        self.register_uri(
+            f"https://www.googleapis.com/storage/v1/b/{self.random_bucket_name_2}-dev",
+            text="",
+        )
+        self.register_uri(
+            f"https://{self.random_bucket_name_2}-dev.firebaseio.com/.json",
+            text="",
+        )
+
+    def run(self):
+        with requests_mock.Mocker() as m:
+            self.m = m
+            self.mock_args_requests()
+            events = list(self.scan.start())
+            for e in events:
+                print(e)
+            self.check_events(events)
+
+    def check_events(self, events):
+        for provider in self.providers:
+            # make sure buckets were excavated
+            assert any(
+                e.type == "STORAGE_BUCKET" and str(e.module) == f"{provider}_cloud" for e in events
+            ), f'bucket not found for provider "{provider}"'
+            # make sure open buckets were found
+            if not provider == "azure":
+                assert any(
+                    e.type == "FINDING" and str(e.module) == f"bucket_{provider}" for e in events
+                ), f'open bucket not found for provider "{provider}"'
+                for e in events:
+                    if e.type == "FINDING" and str(e.module) == f"bucket_{provider}":
+                        url = e.data.get("url", "")
+                        assert self.random_bucket_name_2 in url
+                        assert not self.random_bucket_name_1 in url
+            # make sure bucket mutations were found
+            assert any(
+                e.type == "STORAGE_BUCKET"
+                and str(e.module) == f"bucket_{provider}"
+                and f"{self.random_bucket_name_2}-dev" in e.data["url"]
+                for e in events
+            ), f'bucket (dev mutation) not found for provider "{provider}"'
 
 
 class ASN(RequestMockHelper):
@@ -1376,5 +1542,23 @@ class Naabu(HttpxMockHelper):
     def check_events(self, events):
         for e in events:
             if e.type == "OPEN_TCP_PORT":
+                return True
+        return False
+
+
+class Hunt(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": '<html><a href="/hackme.php?cipher=xor">ping</a></html>'}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if (
+                e.type == "FINDING"
+                and e.data["description"] == "Found potential INSECURE CRYPTOGRAPHY parameter [cipher]"
+            ):
                 return True
         return False

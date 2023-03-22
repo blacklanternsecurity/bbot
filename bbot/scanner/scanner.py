@@ -94,8 +94,14 @@ class Scanner:
         # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
         self._internal_thread_pool = ThreadPoolWrapper(BBOTThreadPoolExecutor(max_workers=max_workers))
         self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
-
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
+        self.pools = {
+            "process_pool": self.process_pool,
+            "internal_thread_pool": self._internal_thread_pool,
+            "dns_thread_pool": self.helpers.dns._thread_pool,
+            "event_thread_pool": self._event_thread_pool,
+            "main_thread_pool": self._thread_pool,
+        }
         output_dir = self.config.get("output_dir", "")
         if output_dir:
             self.home = Path(output_dir).resolve() / self.name
@@ -142,6 +148,8 @@ class Scanner:
             )
 
         self._prepped = False
+        self._thread_pools_shutdown = False
+        self._thread_pools_shutdown_threads = []
         self._cleanedup = False
 
     def prep(self):
@@ -225,7 +233,20 @@ class Scanner:
 
         finally:
             self.cleanup()
-            self.shutdown_threadpools(wait=True)
+            self.shutdown_threadpools()
+            while 1:
+                for t in self._thread_pools_shutdown_threads:
+                    t.join(timeout=1)
+                    if t.is_alive():
+                        try:
+                            pool = t._args[0]
+                            for s in pool.threads_status:
+                                self.debug(s)
+                        except AttributeError:
+                            continue
+                if not any(t.is_alive() for t in self._thread_pools_shutdown_threads):
+                    self.debug("Finished shutting down thread pools")
+                    break
 
             log_fn = self.hugesuccess
             if self.status == "ABORTING":
@@ -288,30 +309,28 @@ class Scanner:
             self.status = "ABORTING"
             self.hugewarning(f"Aborting scan")
             self.helpers.kill_children()
-            self.shutdown_threadpools(wait=False)
+            self.shutdown_threadpools()
             self.helpers.kill_children()
 
-    def shutdown_threadpools(self, wait=True):
-        pools = [
-            self.process_pool,
-            self._internal_thread_pool,
-            self.helpers.dns._thread_pool,
-            self._event_thread_pool,
-            self._thread_pool,
-        ]
-        self.debug(f"Shutting down thread pools with wait={wait}")
-        threads = []
-        for pool in pools:
-            t = threading.Thread(target=pool.shutdown, kwargs={"wait": False, "cancel_futures": True}, daemon=True)
-            t.start()
-            threads.append(t)
-        if wait:
-            for t in threads:
-                t.join()
-        if wait:
-            for pool in pools:
-                pool.shutdown(wait=True)
-        self.debug("Finished shutting down thread pools")
+    def shutdown_threadpools(self):
+        if not self._thread_pools_shutdown:
+            self._thread_pools_shutdown = True
+
+            def shutdown_pool(pool, pool_name, **kwargs):
+                self.debug(f"Shutting down {pool_name} with kwargs={kwargs}")
+                pool.shutdown(**kwargs)
+                self.debug(f"Finished shutting down {pool_name} with kwargs={kwargs}")
+
+            self.debug(f"Shutting down thread pools")
+            for pool_name, pool in self.pools.items():
+                t = threading.Thread(
+                    target=shutdown_pool,
+                    args=(pool, pool_name),
+                    kwargs={"wait": True, "cancel_futures": True},
+                    daemon=True,
+                )
+                t.start()
+                self._thread_pools_shutdown_threads.append(t)
 
     def cleanup(self):
         # clean up modules

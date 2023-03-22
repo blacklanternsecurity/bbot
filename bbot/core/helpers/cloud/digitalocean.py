@@ -7,4 +7,6 @@ class DigitalOcean(BaseCloudProvider):
     ]
 
     bucket_name_regex = r"[a-z0-9][a-z0-9-]{2,62}"
-    regexes = {"STORAGE_BUCKET": [r"(%[a-f0-9]{2})?(" + bucket_name_regex + r")\.(digitaloceanspaces\.com)"]}
+    regexes = {
+        "STORAGE_BUCKET": [r"(%[a-f0-9]{2})?(" + bucket_name_regex + r")\.([a-z]{3}[\d]{1}\.digitaloceanspaces\.com)"]
+    }

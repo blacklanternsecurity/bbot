@@ -11,7 +11,7 @@ class bucket_aws(BaseModule):
         "max_threads": "Maximum number of threads for HTTP requests",
         "permutations": "Whether to try permutations",
     }
-    scope_distance_modifier = 1
+    scope_distance_modifier = 2
 
     cloud_helper_name = "aws"
     delimiters = ("", ".", "-")
@@ -26,19 +26,17 @@ class bucket_aws(BaseModule):
         return True
 
     def filter_event(self, event):
+        if event.type == "DNS_NAME" and event.scope_distance > 0:
+            return False, "only accepts in-scope DNS_NAMEs"
         if event.type == "STORAGE_BUCKET":
             if f"cloud-{self.cloud_helper_name}" not in event.tags:
-                return False, "Bucket belongs to a different cloud provider"
-            return True
-        dns_name_scope_distance = max(0, self.max_scope_distance - 2)
-        if event.scope_distance <= dns_name_scope_distance:
-            return True
-        return False
+                return False, "bucket belongs to a different cloud provider"
+        return True
 
     def handle_event(self, event):
         if event.type == "DNS_NAME":
             self.handle_dns_name(event)
-        elif event.type == "STORAGE_BUCKET" and self.supports_open_check:
+        elif event.type == "STORAGE_BUCKET":
             self.handle_storage_bucket(event)
 
     def handle_dns_name(self, event):
@@ -48,22 +46,39 @@ class bucket_aws(BaseModule):
         for b in [base, stem]:
             split = b.split(".")
             for d in self.delimiters:
-                bucket_name = d.join(split)
-                if self.valid_bucket_name(bucket_name):
-                    buckets.add(bucket_name)
+                buckets.add(d.join(split))
+        for bucket_name, url, tags in self.brute_buckets(buckets, permutations=self.permutations):
+            self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", source=event, tags=tags)
 
-        if self.permutations:
-            for b in [base, stem]:
-                for mutation in self.helpers.word_cloud.mutations(b):
+    def handle_storage_bucket(self, event):
+        url = event.data["url"]
+        bucket_name = event.data["name"]
+        if self.supports_open_check:
+            description, tags = self.check_bucket_open(bucket_name, url)
+            if description:
+                event_data = {"host": event.host, "url": url, "description": description}
+                self.emit_event(event_data, "FINDING", source=event, tags=tags)
+
+        for bucket_name, url, tags in self.brute_buckets(
+            [bucket_name], permutations=self.permutations, omit_base=True
+        ):
+            self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", source=event, tags=tags)
+
+    def brute_buckets(self, buckets, permutations=False, omit_base=False):
+        buckets = set(buckets)
+        new_buckets = set(buckets)
+        if permutations:
+            for b in buckets:
+                for mutation in self.helpers.word_cloud.mutations(b, cloud=False):
                     for d in self.delimiters:
-                        bucket_name = d.join(mutation)
-                        if self.valid_bucket_name(bucket_name):
-                            buckets.add(bucket_name)
-
+                        new_buckets.add(d.join(mutation))
+        if omit_base:
+            new_buckets = new_buckets - buckets
+        new_buckets = [b for b in new_buckets if self.valid_bucket_name(b)]
         futures = {}
         for base_domain in self.base_domains:
             for region in self.regions:
-                for bucket_name in buckets:
+                for bucket_name in new_buckets:
                     url = self.build_url(bucket_name, base_domain, region)
                     future = self.submit_task(self.check_bucket_exists, bucket_name, url)
                     futures[future] = (bucket_name, url)
@@ -71,16 +86,7 @@ class bucket_aws(BaseModule):
             bucket_name, url = futures[future]
             existent_bucket, tags = future.result()
             if existent_bucket:
-                self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", source=event, tags=tags)
-
-    def handle_storage_bucket(self, event):
-        url = event.data["url"]
-        bucket_name = event.data["name"]
-        description, tags = self.check_bucket_open(bucket_name, url)
-        if description:
-            self.emit_event(
-                {"host": event.host, "url": url, "description": description}, "FINDING", source=event, tags=tags
-            )
+                yield bucket_name, url, tags
 
     def check_bucket_exists(self, bucket_name, url):
         response = self.helpers.request(url)

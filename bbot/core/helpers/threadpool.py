@@ -1,3 +1,4 @@
+import queue
 import logging
 import threading
 import traceback
@@ -20,15 +21,47 @@ def pretty_fn(a):
 class ThreadPoolSimpleQueue(SimpleQueue):
     def __init__(self, *args, **kwargs):
         self._executor = kwargs.pop("_executor", None)
+        assert self._executor is not None, "Must specify _executor"
 
     def get(self, *args, **kwargs):
         work_item = super().get(*args, **kwargs)
-        thread_id = threading.get_ident()
-        self._executor._current_work_items[thread_id] = (work_item, datetime.now())
+        if work_item is not None:
+            thread_id = threading.get_ident()
+            self._executor._current_work_items[thread_id] = (work_item, datetime.now())
         return work_item
 
 
-class BBOTThreadPoolExecutor(ThreadPoolExecutor):
+class PatchedThreadPoolExecutor(ThreadPoolExecutor):
+    """
+    This class exists only because of a bug in cpython where
+    futures are not properly marked CANCELLED_AND_NOTIFIED:
+        https://github.com/python/cpython/issues/87893
+    """
+
+    def shutdown(self, wait=True, *, cancel_futures=False):
+        with self._shutdown_lock:
+            self._shutdown = True
+            if cancel_futures:
+                # Drain all work items from the queue, and then cancel their
+                # associated futures.
+                while 1:
+                    try:
+                        work_item = self._work_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                    if work_item is not None:
+                        if work_item.future.cancel():
+                            work_item.future.set_running_or_notify_cancel()
+
+            # Send a wake-up to prevent threads calling
+            # _work_queue.get(block=True) from permanently blocking.
+            self._work_queue.put(None)
+        if wait:
+            for t in self._threads:
+                t.join()
+
+
+class BBOTThreadPoolExecutor(PatchedThreadPoolExecutor):
     """
     Allows inspection of thread pool to determine which functions are currently executing
     """
@@ -90,8 +123,8 @@ class ThreadPoolWrapper:
         """
         A wrapper around threadpool.submit()
         """
-        block = kwargs.get("_block", True)
-        force = kwargs.get("_force_submit", False)
+        block = kwargs.pop("_block", True)
+        force = kwargs.pop("_force_submit", False)
         success = False
         with self.not_full:
             self.num_tasks_increment()
@@ -171,58 +204,14 @@ class ThreadPoolWrapper:
         return self.executor.threads_status
 
 
-import time
-from concurrent.futures._base import (
-    FINISHED,
-    _AS_COMPLETED,
-    _AcquireFutures,
-    _create_and_install_waiters,
-    _yield_finished_futures,
-)
+from concurrent.futures._base import FINISHED
+from concurrent.futures._base import as_completed as as_completed_orig
 
 
-def as_completed(fs, timeout=None):
-    """
-    Copied from https://github.com/python/cpython/blob/main/Lib/concurrent/futures/_base.py
-    Modified to only yield FINISHED futures (not CANCELLED_AND_NOTIFIED)
-    """
-    if timeout is not None:
-        end_time = timeout + time.monotonic()
-
-    fs = set(fs)
-    total_futures = len(fs)
-    with _AcquireFutures(fs):
-        finished = set(f for f in fs if f._state == FINISHED)
-        pending = fs - finished
-        waiter = _create_and_install_waiters(fs, _AS_COMPLETED)
-    finished = list(finished)
-    try:
-        yield from _yield_finished_futures(finished, waiter, ref_collect=(fs,))
-
-        while pending:
-            if timeout is None:
-                wait_timeout = None
-            else:
-                wait_timeout = end_time - time.monotonic()
-                if wait_timeout < 0:
-                    raise TimeoutError("%d (of %d) futures unfinished" % (len(pending), total_futures))
-
-            waiter.event.wait(wait_timeout)
-
-            with waiter.lock:
-                finished = waiter.finished_futures
-                waiter.finished_futures = []
-                waiter.event.clear()
-
-            # reverse to keep finishing order
-            finished.reverse()
-            yield from _yield_finished_futures(finished, waiter, ref_collect=(fs, pending))
-
-    finally:
-        # Remove waiter from unfinished futures
-        for f in fs:
-            with f._condition:
-                f._waiters.remove(waiter)
+def as_completed(*args, **kwargs):
+    for f in as_completed_orig(*args, **kwargs):
+        if f._state == FINISHED:
+            yield f
 
 
 class _Lock:

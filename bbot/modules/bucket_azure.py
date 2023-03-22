@@ -19,18 +19,8 @@ class bucket_azure(bucket_aws):
     supports_open_check = False
 
     def check_bucket_exists(self, bucket_name, url):
-        response = self.helpers.request(url)
+        url = url.strip("/") + f"/{bucket_name}?restype=container"
+        response = self.helpers.request(url, retries=0)
         status_code = getattr(response, "status_code", 0)
         existent_bucket = status_code != 0
         return (existent_bucket, set())
-
-    def check_bucket_open(self, bucket_name, url):
-        response = self.helpers.request(url)
-        tags = self.gen_tags_exists(response)
-        status_code = getattr(response, "status_code", 404)
-        content = getattr(response, "text", "")
-        open_bucket = status_code == 200 and "Contents" in content
-        msg = ""
-        if open_bucket:
-            msg = "Open storage bucket"
-        return (msg, tags)

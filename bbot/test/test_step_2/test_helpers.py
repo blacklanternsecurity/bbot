@@ -363,6 +363,35 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     sleep(0.1)
     assert "asdf" in results
 
+    # test sudo + existence of environment variables
+    scan1.load_modules()
+    path_parts = os.environ.get("PATH", "").split(":")
+    assert "/tmp/.bbot_test/tools" in path_parts
+    run_lines = scan1.helpers.run(["env"]).stdout.splitlines()
+    assert f"BBOT_PLUMBUS=asdf" in run_lines
+    for line in run_lines:
+        if line.startswith("PATH="):
+            path_parts = line.split("=", 1)[-1].split(":")
+            assert "/tmp/.bbot_test/tools" in path_parts
+    run_lines_sudo = scan1.helpers.run(["env"], sudo=True).stdout.splitlines()
+    assert f"BBOT_PLUMBUS=asdf" in run_lines_sudo
+    for line in run_lines_sudo:
+        if line.startswith("PATH="):
+            path_parts = line.split("=", 1)[-1].split(":")
+            assert "/tmp/.bbot_test/tools" in path_parts
+    run_live_lines = list(scan1.helpers.run_live(["env"]))
+    assert f"BBOT_PLUMBUS=asdf\n" in run_live_lines
+    for line in run_live_lines:
+        if line.startswith("PATH="):
+            path_parts = line.strip().split("=", 1)[-1].split(":")
+            assert "/tmp/.bbot_test/tools" in path_parts
+    run_live_lines_sudo = list(scan1.helpers.run_live(["env"], sudo=True))
+    assert f"BBOT_PLUMBUS=asdf\n" in run_live_lines_sudo
+    for line in run_live_lines_sudo:
+        if line.startswith("PATH="):
+            path_parts = line.strip().split("=", 1)[-1].split(":")
+            assert "/tmp/.bbot_test/tools" in path_parts
+
     ### CACHE ###
     helpers.cache_put("string", "wat")
     helpers.cache_put("binary", b"wat")

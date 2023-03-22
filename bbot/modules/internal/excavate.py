@@ -2,6 +2,7 @@ import re
 import html
 import base64
 import jwt as j
+from urllib.parse import urlparse, urljoin
 
 from bbot.modules.internal.base import BaseInternalModule
 from bbot.core.helpers.regexes import _email_regex, junk_remover
@@ -69,8 +70,12 @@ class URLExtractor(BaseExtractor):
 
         elif name in ("a-tag", "script-tag") and parsed:
             path = html.unescape(result[1]).lstrip("/")
+
             if not self.compiled_regexes["fullurl"].match(path):
-                result = f"{event.parsed.scheme}://{event.parsed.netloc}/{path}"
+                path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
+                full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
+                result = urljoin(full_url, urlparse(full_url).path)
+
             else:
                 result = path
 
