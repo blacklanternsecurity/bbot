@@ -20,7 +20,7 @@ class bucket_azure(bucket_aws):
 
     def check_bucket_exists(self, bucket_name, url):
         url = url.strip("/") + f"/{bucket_name}?restype=container"
-        response = self.helpers.request(url)
+        response = self.helpers.request(url, retries=0)
         status_code = getattr(response, "status_code", 0)
         existent_bucket = status_code != 0
         return (existent_bucket, set())

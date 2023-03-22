@@ -134,7 +134,7 @@ class sslcert(BaseModule):
             connection.set_tlsext_host_name(self.helpers.smart_encode(host))
             connection.set_connect_state()
             try:
-                while True:
+                while 1:
                     try:
                         connection.do_handshake()
                     except SSL.WantReadError:

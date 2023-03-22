@@ -21,6 +21,7 @@ def pretty_fn(a):
 class ThreadPoolSimpleQueue(SimpleQueue):
     def __init__(self, *args, **kwargs):
         self._executor = kwargs.pop("_executor", None)
+        assert self._executor is not None, "Must specify _executor"
 
     def get(self, *args, **kwargs):
         work_item = super().get(*args, **kwargs)
@@ -43,7 +44,7 @@ class PatchedThreadPoolExecutor(ThreadPoolExecutor):
             if cancel_futures:
                 # Drain all work items from the queue, and then cancel their
                 # associated futures.
-                while True:
+                while 1:
                     try:
                         work_item = self._work_queue.get_nowait()
                     except queue.Empty:
@@ -122,8 +123,8 @@ class ThreadPoolWrapper:
         """
         A wrapper around threadpool.submit()
         """
-        block = kwargs.get("_block", True)
-        force = kwargs.get("_force_submit", False)
+        block = kwargs.pop("_block", True)
+        force = kwargs.pop("_force_submit", False)
         success = False
         with self.not_full:
             self.num_tasks_increment()
