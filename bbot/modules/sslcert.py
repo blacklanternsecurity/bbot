@@ -88,10 +88,15 @@ class sslcert(BaseModule):
                         try:
                             ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
                             if ssl_event:
-                                self.emit_event(ssl_event)
+                                self.emit_event(ssl_event, on_success_callback=self.on_success_callback)
                         except ValidationError as e:
                             self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")
+
+    def on_success_callback(self, event):
+        source_scope_distance = event.get_source().scope_distance
+        if source_scope_distance == 0 and event.scope_distance > 0:
+            event.add_tag("affiliate")
 
     def visit_host(self, host, port):
         host = self.helpers.make_ip_type(host)

@@ -190,13 +190,6 @@ class ScanManager:
                             f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
                         )
                         event.make_internal()
-            if not event.host or (event.always_emit and not event_is_duplicate):
-                log.debug(
-                    f"Force-emitting {event} because it does not have identifying scope information or because always_emit was True"
-                )
-                source_trail = event.unmake_internal(force_output=True)
-                for s in source_trail:
-                    self.emit_event(s, _block=False, _force_submit=True)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if):
@@ -212,13 +205,22 @@ class ScanManager:
             if not self.accept_event(event):
                 return
 
-            # queue the event before emitting its DNS children
+            # run success callback before distributing event (so it can add tags, etc.)
+            if distribute_event:
+                if callable(on_success_callback):
+                    self.catch(on_success_callback, event)
+
+            if not event.host or (event.always_emit and not event_is_duplicate):
+                log.debug(
+                    f"Force-emitting {event} because it does not have identifying scope information or because always_emit was True"
+                )
+                source_trail = event.unmake_internal(force_output=True)
+                for s in source_trail:
+                    self.emit_event(s, _block=False, _force_submit=True)
+
             if distribute_event:
                 self.distribute_event(event)
                 event_distributed = True
-
-                if callable(on_success_callback):
-                    self.catch(on_success_callback, event)
 
             ### Emit DNS children ###
             emit_children = -1 < event.scope_distance < self.scan.dns_search_distance

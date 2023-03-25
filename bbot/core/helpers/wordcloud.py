@@ -170,7 +170,7 @@ class WordCloud(dict):
             wordcloud_path = self.default_filename
         else:
             wordcloud_path = Path(filename).resolve()
-        log.verbose(f"Loading word cloud from {filename}")
+        log.verbose(f"Loading word cloud from {wordcloud_path}")
         try:
             with open(str(wordcloud_path), newline="") as f:
                 c = csv.reader(f, delimiter="\t")
