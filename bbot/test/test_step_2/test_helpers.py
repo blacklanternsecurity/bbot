@@ -510,9 +510,15 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
-    children1, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts1 = scan.helpers.resolve_event(wildcard_event1)
-    children2, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts2 = scan.helpers.resolve_event(wildcard_event2)
-    children3, event_tags3, event_whitelisted3, event_blacklisted3, resolved_hosts3 = scan.helpers.resolve_event(wildcard_event3)
+    children1, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts1 = scan.helpers.resolve_event(
+        wildcard_event1
+    )
+    children2, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts2 = scan.helpers.resolve_event(
+        wildcard_event2
+    )
+    children3, event_tags3, event_whitelisted3, event_blacklisted3, resolved_hosts3 = scan.helpers.resolve_event(
+        wildcard_event3
+    )
     helpers.handle_wildcard_event(wildcard_event1, children1)
     helpers.handle_wildcard_event(wildcard_event2, children2)
     helpers.handle_wildcard_event(wildcard_event3, children3)
