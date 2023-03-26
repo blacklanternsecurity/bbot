@@ -73,6 +73,8 @@ class subdomain_hijack(BaseModule):
                 child_matches = any(self.helpers.host_in_host(domain, h) for h in event.resolved_hosts)
                 if self_matches or child_matches:
                     for scheme in ("https", "http"):
+                        if self.scan.stopping:
+                            return False, "Scan cancelled"
                         # first, try base request
                         url = f"{scheme}://{event.data}"
                         match, reason = self._verify_fingerprint(f, url)
