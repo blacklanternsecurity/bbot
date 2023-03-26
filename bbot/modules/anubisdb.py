@@ -26,7 +26,9 @@ class anubisdb(crobat):
 
     def abort_if(self, event):
         # abort if dns name is unresolved
-        return (not "resolved" in event.tags) or super().abort_if(event)
+        if not "resolved" in event.tags:
+            return True, "DNS name is unresolved"
+        return super().abort_if(event)
 
     def parse_results(self, r, query):
         results = set()

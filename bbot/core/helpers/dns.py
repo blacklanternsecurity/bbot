@@ -231,7 +231,50 @@ class DNSHelper:
         else:
             return result
 
-    def _resolve_event(self, event, minimal=False, _wildcard_rdtypes=None):
+    def handle_wildcard_event(self, event, children):
+        event_host = str(event.host)
+        # wildcard checks
+        if not is_ip(event.host):
+            # check if this domain is using wildcard dns
+            event_target = "target" in event.tags
+            for hostname, wildcard_domain_rdtypes in self.is_wildcard_domain(
+                event_host, log_info=event_target
+            ).items():
+                if wildcard_domain_rdtypes:
+                    event.add_tag("wildcard-domain")
+                    for rdtype, ips in wildcard_domain_rdtypes.items():
+                        event.add_tag(f"{rdtype.lower()}-wildcard-domain")
+            # check if the dns name itself is a wildcard entry
+            wildcard_rdtypes = self.is_wildcard(event_host)
+            for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
+                wildcard_tag = "error"
+                if is_wildcard == True:
+                    event.add_tag("wildcard")
+                    wildcard_tag = "wildcard"
+                event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
+
+        # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
+        if not is_ip(event.host) and children and wildcard_rdtypes:
+            # these are the rdtypes that successfully resolve
+            resolved_rdtypes = set([c[0].upper() for c in children])
+            # these are the rdtypes that have wildcards
+            wildcard_rdtypes_set = set(wildcard_rdtypes)
+            # consider the event a full wildcard if all its records are wildcards
+            event_is_wildcard = False
+            if resolved_rdtypes:
+                event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
+            if event_is_wildcard and event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
+                wildcard_parent = self.parent_helper.parent_domain(event_host)
+                for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
+                    if _is_wildcard:
+                        wildcard_parent = _parent_domain
+                        break
+                wildcard_data = f"_wildcard.{wildcard_parent}"
+                if wildcard_data != event.data:
+                    log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
+                    event.data = wildcard_data
+
+    def _resolve_event(self, event, minimal=False):
         """
         Tag event with appropriate dns record types
         Optionally create child events from dns resolutions
@@ -246,29 +289,6 @@ class DNSHelper:
         event_blacklisted = False
 
         resolved_hosts = set()
-
-        # wildcard checks
-        if not is_ip(event.host):
-            # check if this domain is using wildcard dns
-            event_in_scope = event.scope_distance == 0
-            for hostname, wildcard_domain_rdtypes in self.is_wildcard_domain(
-                event_host, log_info=event_in_scope
-            ).items():
-                if wildcard_domain_rdtypes:
-                    event_tags.add("wildcard-domain")
-                    for rdtype, ips in wildcard_domain_rdtypes.items():
-                        event_tags.add(f"{rdtype.lower()}-wildcard-domain")
-            # check if the dns name itself is a wildcard entry
-            if _wildcard_rdtypes is None:
-                wildcard_rdtypes = self.is_wildcard(event_host)
-            else:
-                wildcard_rdtypes = _wildcard_rdtypes
-            for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
-                wildcard_tag = "error"
-                if is_wildcard == True:
-                    event_tags.add("wildcard")
-                    wildcard_tag = "wildcard"
-                event_tags.add(f"{rdtype.lower()}-{wildcard_tag}")
 
         # lock to ensure resolution of the same host doesn't start while we're working here
         with self._event_cache_locks.get_lock(event_host):
@@ -323,26 +343,6 @@ class DNSHelper:
                                     self.debug(f"Filtering out bad PTR: {t}")
                                     continue
                                 children.append((rdtype, t))
-
-            # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-            if not is_ip(event.host) and children and _wildcard_rdtypes is None:
-                # these are the rdtypes that successfully resolve
-                resolved_rdtypes = set([c[0].upper() for c in children])
-                # these are the rdtypes that have wildcards
-                wildcard_rdtypes_set = set(wildcard_rdtypes)
-                # consider the event a full wildcard if all its records are wildcards
-                event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
-                if event_is_wildcard and event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
-                    wildcard_parent = self.parent_helper.parent_domain(event_host)
-                    for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
-                        if _is_wildcard:
-                            wildcard_parent = _parent_domain
-                            break
-                    wildcard_data = f"_wildcard.{wildcard_parent}"
-                    if wildcard_data != event.data:
-                        log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
-                        event.data = wildcard_data
-                    return (event, wildcard_rdtypes)
 
             if not self.parent_helper.in_tests:
                 ips = set()

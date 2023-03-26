@@ -1,4 +1,5 @@
 import json
+import random
 import subprocess
 
 from .crobat import crobat
@@ -65,6 +66,7 @@ class massdns(crobat):
             nameservers_url,
             cache_hrs=24 * 7,
         )
+        self.devops_mutations = list(self.helpers.word_cloud.devops_mutations)
         return super().setup()
 
     def filter_event(self, event):
@@ -122,16 +124,25 @@ class massdns(crobat):
         return False
 
     def massdns(self, domain, subdomains):
-        canary_checks = 50
-        canary_subdomains = [self.helpers.rand_string(10) for i in range(canary_checks)]
-        self.verbose(f"Testing {canary_checks:,} canaries against {domain}")
-        canary_results = list(self._massdns(domain, canary_subdomains))
-        if len(canary_results) > 10:
-            self.info(
-                f"Aborting massdns run on {domain} due to {len(canary_results):,}/{canary_checks:,} false positives"
-            )
-        else:
-            yield from self._massdns(domain, subdomains)
+        abort_msg = f"Aborting massdns on {domain} due to false positives"
+        if self._canary_check(domain):
+            self.info(abort_msg)
+            return []
+        results = list(self._massdns(domain, subdomains))
+        if len(results) > 50:
+            if self._canary_check(domain):
+                self.info(abort_msg)
+                return []
+        return results
+
+    def _canary_check(self, domain, num_checks=50):
+        random_subdomains = list(self.gen_random_subdomains(num_checks))
+        self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
+        canary_results = list(self._massdns(domain, random_subdomains))
+        for result in canary_results:
+            if self.helpers.resolve(result):
+                return True
+        return False
 
     def _massdns(self, domain, subdomains):
         """
@@ -267,6 +278,16 @@ class massdns(crobat):
         for p in prefixes:
             d = f"{p}.{domain}"
             yield d
+
+    def gen_random_subdomains(self, n=50):
+        delimeters = (".", "-")
+        lengths = list(range(10, 20))
+        for i in range(0, n):
+            d = delimeters[i % len(delimeters)]
+            l = lengths[i % len(lengths)]
+            segments = list(random.choice(self.devops_mutations) for _ in range(l))
+            subdomains = d.join(segments)
+            yield subdomains
 
     def get_source_event(self, hostname):
         for p in self.helpers.domain_parents(hostname):
