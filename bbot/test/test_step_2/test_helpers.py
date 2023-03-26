@@ -510,29 +510,24 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
-    children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts = scan.helpers.resolve_event(
-        wildcard_event1
-    )
-    children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts = scan.helpers.resolve_event(
-        wildcard_event2
-    )
-    children, event_tags3, event_whitelisted3, event_blacklisted3, resolved_hosts = scan.helpers.resolve_event(
-        wildcard_event3
-    )
-    assert "wildcard" in event_tags1
-    assert "a-wildcard" in event_tags1
-    assert "srv-wildcard" not in event_tags1
-    assert "wildcard" in event_tags2
-    assert "a-wildcard" in event_tags2
-    assert "srv-wildcard" not in event_tags2
+    children1, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts1 = scan.helpers.resolve_event(wildcard_event1)
+    children2, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts2 = scan.helpers.resolve_event(wildcard_event2)
+    children3, event_tags3, event_whitelisted3, event_blacklisted3, resolved_hosts3 = scan.helpers.resolve_event(wildcard_event3)
+    helpers.handle_wildcard_event(wildcard_event1, children1)
+    helpers.handle_wildcard_event(wildcard_event2, children2)
+    helpers.handle_wildcard_event(wildcard_event3, children3)
+    assert "wildcard" in wildcard_event1.tags
+    assert "a-wildcard" in wildcard_event1.tags
+    assert "srv-wildcard" not in wildcard_event1.tags
+    assert "wildcard" in wildcard_event2.tags
+    assert "a-wildcard" in wildcard_event2.tags
+    assert "srv-wildcard" not in wildcard_event2.tags
     assert wildcard_event1.data == "_wildcard.github.io"
     assert wildcard_event2.data == "_wildcard.github.io"
-    assert event_tags1 == event_tags2
-    assert event_whitelisted1 == event_whitelisted2
-    assert event_blacklisted1 == event_blacklisted2
-    assert "wildcard-domain" in event_tags3
-    assert "a-wildcard-domain" in event_tags3
-    assert "srv-wildcard-domain" not in event_tags3
+    assert wildcard_event1.tags == wildcard_event2.tags
+    assert "wildcard-domain" in wildcard_event3.tags
+    assert "a-wildcard-domain" in wildcard_event3.tags
+    assert "srv-wildcard-domain" not in wildcard_event3.tags
 
     # Ensure events with hosts have resolved_hosts attribute populated
 
