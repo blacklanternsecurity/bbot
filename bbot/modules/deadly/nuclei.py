@@ -21,7 +21,7 @@ class nuclei(BaseModule):
         "mode": "manual",
         "etags": "",
         "budget": 1,
-        "directory_only": False,
+        "directory_only": True,
     }
     options_desc = {
         "version": "nuclei version",
@@ -128,6 +128,7 @@ class nuclei(BaseModule):
 
     def handle_batch(self, *events):
         nuclei_input = [str(e.data) for e in events]
+
         for severity, template, host, name, extracted_results in self.execute_nuclei(nuclei_input):
             source_event = self.correlate_event(events, host)
             if source_event == None:
