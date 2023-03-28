@@ -664,8 +664,12 @@ class URL_UNVERIFIED(BaseEvent):
         url_extension_httpx_only = []
         scan = getattr(self, "scan", None)
         if scan is not None:
-            url_extension_blacklist = [e.lower() for e in scan.config.get("url_extension_blacklist", [])]
-            url_extension_httpx_only = [e.lower() for e in scan.config.get("url_extension_httpx_only", [])]
+            _url_extension_blacklist = scan.config.get("url_extension_blacklist", [])
+            _url_extension_httpx_only = scan.config.get("url_extension_httpx_only", [])
+            if _url_extension_blacklist:
+                url_extension_blacklist = [e.lower() for e in _url_extension_blacklist]
+            if _url_extension_httpx_only:
+                url_extension_httpx_only = [e.lower() for e in _url_extension_httpx_only]
 
         extension = get_file_extension(parsed_path_lower)
         if extension:
@@ -809,6 +813,7 @@ class TECHNOLOGY(DictHostEvent):
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
     def _data_id(self):
+        # dedupe by host+port+tech
         tech = self.data.get("technology", "")
         return f"{self.host}:{self.port}:{tech}"
 
@@ -854,6 +859,10 @@ class GEOLOCATION(BaseEvent):
 
 
 class SOCIAL(DictEvent):
+    _always_emit = True
+
+
+class WEBSCREENSHOT(BaseEvent):
     _always_emit = True
 
 
