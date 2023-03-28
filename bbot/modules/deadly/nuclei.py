@@ -21,6 +21,7 @@ class nuclei(BaseModule):
         "mode": "manual",
         "etags": "",
         "budget": 1,
+        "directory_only": True,
     }
     options_desc = {
         "version": "nuclei version",
@@ -32,6 +33,7 @@ class nuclei(BaseModule):
         "mode": "manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests",
         "etags": "tags to exclude from the scan",
         "budget": "Used in budget mode to set the number of requests which will be alloted to the nuclei scan",
+        "directory_only": "Filter out 'file' URL event (default True)",
     }
     deps_ansible = [
         {
@@ -126,6 +128,7 @@ class nuclei(BaseModule):
 
     def handle_batch(self, *events):
         nuclei_input = [str(e.data) for e in events]
+
         for severity, template, host, name, extracted_results in self.execute_nuclei(nuclei_input):
             source_event = self.correlate_event(events, host)
             if source_event == None:
@@ -252,6 +255,13 @@ class nuclei(BaseModule):
     def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)
+
+    def filter_event(self, event):
+        if self.config.get("directory_only", True):
+            if "endpoint" in event.tags:
+                self.debug(f"rejecting URL [{event.data}] because directory_only is true and event has endpoint tag")
+                return False
+        return True
 
 
 class NucleiBudget:

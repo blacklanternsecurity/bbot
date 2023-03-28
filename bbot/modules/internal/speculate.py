@@ -70,6 +70,13 @@ class speculate(BaseInternalModule):
                 self.emit_event(
                     self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
                 )
+
+        # generate sub-directory URLS from URLS
+        if event.type == "URL":
+            url_parents = self.helpers.url_parents(event.data)
+            for up in url_parents:
+                self.emit_event(f"{up}/", "URL_UNVERIFIED", source=event)
+
         # from hosts
         if emit_open_ports:
             # don't act on unresolved DNS_NAMEs

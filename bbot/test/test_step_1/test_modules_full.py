@@ -157,6 +157,11 @@ def test_hunt(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_speculate_subdirectories(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Speculate_subdirectories(bbot_config, bbot_scanner, bbot_httpserver, module_name="speculate")
+    x.run()
+
+
 def test_social(bbot_config, bbot_scanner, bbot_httpserver):
     x = Social(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()

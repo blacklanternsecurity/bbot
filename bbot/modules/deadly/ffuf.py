@@ -76,6 +76,12 @@ class ffuf(BaseModule):
         for r in self.execute_ffuf(self.tempfile, fixed_url):
             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
+    def filter_event(self, event):
+        if "endpoint" in event.tags:
+            self.debug(f"rejecting URL [{event.data}] because we don't FFUF endpoints")
+            return False
+        return True
+
     def execute_ffuf(self, tempfile, url, prefix="", suffix=""):
         ffuf_exts = ["", "/"]
 

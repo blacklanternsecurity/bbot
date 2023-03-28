@@ -20,7 +20,7 @@ from datetime import datetime
 from tabulate import tabulate
 from contextlib import suppress
 import tldextract as _tldextract
-from urllib.parse import urlparse, quote  # noqa F401
+from urllib.parse import urlparse, quote, urlunparse  # noqa F401
 from hashlib import sha1 as hashlib_sha1
 
 from .url import *  # noqa F401
@@ -130,6 +130,30 @@ def domain_parents(d, include_self=False):
         elif is_domain(parent):
             yield parent
         break
+
+
+def parent_url(u):
+    parsed = urlparse(u)
+    path = Path(parsed.path)
+    if path.parent == path:
+        return None
+    else:
+        return urlunparse(parsed._replace(path=str(path.parent)))
+
+
+def url_parents(u):
+    """
+    "http://www.evilcorp.co.uk/admin/tools/cmd.php" --> ["http://www.evilcorp.co.uk/admin/tools/","http://www.evilcorp.co.uk/admin/", "http://www.evilcorp.co.uk/"]
+    """
+
+    parent_list = set()
+    while 1:
+        parent = parent_url(u)
+        if parent == None:
+            return list(parent_list)
+        else:
+            parent_list.add(parent)
+            u = parent
 
 
 def tldextract(data):

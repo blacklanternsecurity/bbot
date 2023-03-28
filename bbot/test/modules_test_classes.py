@@ -1380,6 +1380,7 @@ class Nuclei_manual(HttpxMockHelper):
                 "ratelimit": 10,
                 "templates": "/tmp/.bbot_test/tools/nuclei-templates/miscellaneous/",
                 "interactsh_disable": True,
+                "directory_only": False,
             }
         },
     }
@@ -1577,4 +1578,29 @@ class Hunt(HttpxMockHelper):
                 and e.data["description"] == "Found potential INSECURE CRYPTOGRAPHY parameter [cipher]"
             ):
                 return True
+        return False
+
+
+class Speculate_subdirectories(HttpxMockHelper):
+    additional_modules = ["httpx"]
+    targets = ["http://127.0.0.1:8888/subdir1/subdir2/"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/subdir1/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/subdir1/subdir2/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if e.data == "http://127.0.0.1:8888/subdir1/":
+                    return True
         return False
