@@ -443,17 +443,18 @@ class BaseModule:
         if "active" in self.flags and "target" in event.tags and event not in self.scan.whitelist:
             return False, "it is not in whitelist and module has active flag"
 
-        if self.in_scope_only:
-            if event.scope_distance > 0:
-                return False, "it did not meet in_scope_only filter criteria"
-        if self.scope_distance_modifier is not None:
-            if event.scope_distance < 0:
-                return False, f"its scope_distance ({event.scope_distance}) is invalid."
-            elif event.scope_distance > self.max_scope_distance:
-                return (
-                    False,
-                    f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
-                )
+        if self._type != "output":
+            if self.in_scope_only:
+                if event.scope_distance > 0:
+                    return False, "it did not meet in_scope_only filter criteria"
+            if self.scope_distance_modifier is not None:
+                if event.scope_distance < 0:
+                    return False, f"its scope_distance ({event.scope_distance}) is invalid."
+                elif event.scope_distance > self.max_scope_distance:
+                    return (
+                        False,
+                        f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
+                    )
 
         # custom filtering
         try:
@@ -469,6 +470,10 @@ class BaseModule:
         except Exception as e:
             self.error(f"Error in filter_event({event}): {e}")
             self.trace()
+
+        if self._type == "output" and not event._stats_recorded:
+            event._stats_recorded = True
+            self.scan.stats.event_produced(event)
 
         return True, ""
 

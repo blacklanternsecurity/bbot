@@ -69,6 +69,8 @@ class BaseEvent:
         self._made_internal = False
         # whether to force-send to output modules
         self._force_output = False
+        # keep track of whether this event has been recorded by the scan
+        self._stats_recorded = False
 
         self.timestamp = datetime.utcnow()
 
@@ -289,9 +291,11 @@ class BaseEvent:
                 self.scope_distance = set_scope_distance
             self._internal = False
             self.remove_tag("internal")
-            if force_output:
-                self._force_output = True
             self._made_internal = False
+        if force_output is True:
+            self._force_output = True
+        if force_output == "trail_only":
+            force_output = True
 
         if getattr(self.source, "_internal", False):
             source_scope_distance = None
@@ -308,7 +312,7 @@ class BaseEvent:
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
         if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output=True)
+            source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output="trail_only")
         self.scope_distance = set_scope_distance
         if set_scope_distance == 0:
             self.add_tag("in-scope")
@@ -845,7 +849,11 @@ class PROTOCOL(DictHostEvent):
         return self.data["protocol"]
 
 
-class Geolocation(BaseEvent):
+class GEOLOCATION(BaseEvent):
+    _always_emit = True
+
+
+class SOCIAL(DictEvent):
     _always_emit = True
 
 
@@ -864,6 +872,10 @@ def make_event(
     """
     If data is already an event, simply return it
     """
+
+    # allow tags to be either a string or an array
+    if isinstance(tags, str):
+        tags = [tags]
 
     if is_event(data):
         if scan is not None and not data.scan:
