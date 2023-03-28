@@ -21,7 +21,7 @@ class speculate(BaseInternalModule):
         "ports": "The set of ports to speculate on",
     }
     max_event_handlers = 5
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     _scope_shepherding = False
     _priority = 4
 

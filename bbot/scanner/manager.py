@@ -192,7 +192,7 @@ class ScanManager:
                         event.make_internal()
 
             # check for wildcards
-            if event.scope_distance < self.scan.scope_search_distance:
+            if event.scope_distance <= self.scan.scope_search_distance:
                 if not "unresolved" in event.tags:
                     self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
 

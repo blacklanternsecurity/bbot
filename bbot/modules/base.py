@@ -37,12 +37,10 @@ class BaseModule:
     # None == accept all events
     # 2 == accept events up to and including the scan's configured search distance plus two
     # 1 == accept events up to and including the scan's configured search distance plus one
-    # 0 == accept events up to and including the scan's configured search distance
+    # 0 == (DEFAULT) accept events up to and including the scan's configured search distance
     # -1 == accept events up to and including the scan's configured search distance minus one
-    #       (this is the default setting because when the scan's configured search distance == 1
-    #       [the default], then this is equivalent to in_scope_only)
     # -2 == accept events up to and including the scan's configured search distance minus two
-    scope_distance_modifier = -1
+    scope_distance_modifier = 0
     # Only accept the initial target event(s)
     target_only = False
     # Only accept explicitly in-scope events (scope distance == 0)

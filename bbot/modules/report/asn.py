@@ -7,7 +7,7 @@ class asn(BaseReportModule):
     produced_events = ["ASN"]
     flags = ["passive", "subdomain-enum", "safe"]
     meta = {"description": "Query ripe and bgpview.io for ASNs"}
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     # we accept dupes to avoid missing data
     # because sometimes IP addresses are re-emitted with lower scope distances
     accept_dupes = True

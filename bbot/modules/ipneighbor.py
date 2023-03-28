@@ -10,7 +10,7 @@ class ipneighbor(BaseModule):
     meta = {"description": "Look beside IPs in their surrounding subnet"}
     options = {"num_bits": 4}
     options_desc = {"num_bits": "Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)"}
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     _scope_shepherding = False
 
     def setup(self):

@@ -11,7 +11,7 @@ class bucket_aws(BaseModule):
         "max_threads": "Maximum number of threads for HTTP requests",
         "permutations": "Whether to try permutations",
     }
-    scope_distance_modifier = 2
+    scope_distance_modifier = 3
 
     cloud_helper_name = "aws"
     delimiters = ("", ".", "-")

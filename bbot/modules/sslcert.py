@@ -23,7 +23,7 @@ class sslcert(BaseModule):
     deps_pip = ["pyOpenSSL"]
     max_threads = 50
     max_event_handlers = 25
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     _priority = 2
 
     def setup(self):
