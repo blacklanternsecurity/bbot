@@ -443,15 +443,7 @@ class BaseModule:
         if "active" in self.flags and "target" in event.tags and event not in self.scan.whitelist:
             return False, "it is not in whitelist and module has active flag"
 
-        if self._type == "output":
-            event_within_report_distance = -1 < event.scope_distance <= self.scan.scope_report_distance
-            if not event_within_report_distance:
-                if not event._force_output:
-                    return (
-                        False,
-                        f"its scope distance ({event.scope_distance}) exceeds the scan's report distance ({self.scan.scope_report_distance})",
-                    )
-        else:
+        if self._type != "output":
             if self.in_scope_only:
                 if event.scope_distance > 0:
                     return False, "it did not meet in_scope_only filter criteria"
