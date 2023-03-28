@@ -148,9 +148,8 @@ class gowitness(BaseModule):
             _id = row["url_id"]
             source_url = self.screenshots_taken[_id]
             source_event = events[source_url]
-            # we don't emit URLs because this clobbers 
-            # self.emit_event(url, "URL", source=source_event, tags=tags)
-            self.emit_event(url, "URL_UNVERIFIED", source=source_event)
+            if url and url.startswith("http"):
+                self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
 
         # emit technologies
         for _, row in self.new_technologies.items():
@@ -229,6 +228,7 @@ class gowitness(BaseModule):
                     _id = row["id"]
                     if _id not in self.technologies_found:
                         self.technologies_found.add(_id)
+                        row = dict(row)
                         technologies[_id] = row
         return technologies
 
