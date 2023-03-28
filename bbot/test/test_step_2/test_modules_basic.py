@@ -76,17 +76,6 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
             localhost4 = scan.make_event("127.0.0.1", source=events.subdomain)
             valid, reason = base_module._event_postcheck(events.localhost)
             assert valid
-            # scope distance
-            base_module.scope_distance_modifier = 0
-            localhost2._scope_distance = 0
-            assert base_module._event_postcheck(localhost2)[0] == True
-            localhost2._scope_distance = 1
-            assert base_module._event_postcheck(localhost2)[0] == True
-            localhost2._scope_distance = 2
-            assert base_module._event_postcheck(localhost2)[0] == False
-            localhost2._scope_distance = -1
-            assert base_module._event_postcheck(localhost2)[0] == False
-            base_module.scope_distance_modifier = -1
 
         base_output_module = BaseOutputModule(scan)
         base_output_module.watched_events = ["IP_ADDRESS"]

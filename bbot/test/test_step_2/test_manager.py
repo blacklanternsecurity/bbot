@@ -157,3 +157,13 @@ def test_scope_distance(bbot_scanner, bbot_config):
     valid, reason = module._event_postcheck(test_event4)
     assert not valid
     assert reason.startswith("its scope_distance (2) exceeds the maximum allowed by the scan")
+
+    # test _always_emit == True
+    geoevent = scan1.make_event("USA", "GEOLOCATION", source=test_event3)
+    assert geoevent.scope_distance == 3
+    assert geoevent.always_emit == True
+    assert geoevent._force_output == False
+    manager._emit_event(geoevent)
+    assert geoevent._force_output == True
+    assert geoevent in output_queue
+    assert geoevent not in module_queue
