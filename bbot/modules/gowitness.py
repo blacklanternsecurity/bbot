@@ -191,7 +191,7 @@ class gowitness(BaseModule):
             with sqlite3.connect(str(self.db_path)) as con:
                 con.row_factory = sqlite3.Row
                 cur = con.cursor()
-                res = cur.execute("SELECT * FROM urls")
+                res = self.cur_execute(cur, "SELECT * FROM urls")
                 for row in res:
                     row = dict(row)
                     _id = row["id"]
@@ -207,7 +207,7 @@ class gowitness(BaseModule):
             with sqlite3.connect(str(self.db_path)) as con:
                 con.row_factory = sqlite3.Row
                 cur = con.cursor()
-                res = cur.execute("SELECT * FROM network_logs")
+                res = self.cur_execute(cur, "SELECT * FROM network_logs")
                 for row in res:
                     row = dict(row)
                     url = row["final_url"]
@@ -223,7 +223,7 @@ class gowitness(BaseModule):
             with sqlite3.connect(str(self.db_path)) as con:
                 con.row_factory = sqlite3.Row
                 cur = con.cursor()
-                res = cur.execute("SELECT * FROM technologies")
+                res = self.cur_execute(cur, "SELECT * FROM technologies")
                 for row in res:
                     _id = row["id"]
                     if _id not in self.technologies_found:
@@ -231,6 +231,14 @@ class gowitness(BaseModule):
                         row = dict(row)
                         technologies[_id] = row
         return technologies
+
+    def cur_execute(self, cur, query):
+        try:
+            return cur.execute(query)
+        except sqlite3.OperationalError as e:
+            self.warning(f"Error executing query: {query}: {e}")
+            self.trace()
+            return []
 
     def report(self):
         if self.screenshots_taken:
