@@ -1380,7 +1380,7 @@ class Nuclei_manual(HttpxMockHelper):
                 "ratelimit": 10,
                 "templates": "/tmp/.bbot_test/tools/nuclei-templates/miscellaneous/",
                 "interactsh_disable": True,
-                "directory_only" : False,
+                "directory_only": False,
             }
         },
     }
