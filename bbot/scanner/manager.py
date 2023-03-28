@@ -354,20 +354,9 @@ class ScanManager:
         # absorb event into the word cloud if it's in scope
         if not dup and -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
-        stats_recorded = False
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:
-                event_within_scope_distance = -1 < event.scope_distance <= self.scan.scope_search_distance
-                event_within_report_distance = -1 < event.scope_distance <= self.scan.scope_report_distance
-                if mod._type == "output":
-                    if event_within_report_distance or event._force_output:
-                        mod.queue_event(event)
-                        if not stats_recorded:
-                            stats_recorded = True
-                            self.scan.stats.event_produced(event)
-                else:
-                    if event_within_scope_distance:
-                        mod.queue_event(event)
+                mod.queue_event(event)
 
     def loop_until_finished(self):
         modules = list(self.scan.modules.values())
