@@ -551,6 +551,15 @@ class BaseModule:
             self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
         return r
 
+    def is_spider_danger(self, event, url):
+        url_depth = self.helpers.url_depth(url)
+        web_spider_depth = self.scan.config.get("web_spider_depth", 1)
+        spider_distance = getattr(event, "web_spider_distance", 0)
+        web_spider_distance = self.scan.config.get("web_spider_distance", 0)
+        if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
+            return True
+        return False
+
     @staticmethod
     def _is_running(module_status):
         for pool, count in module_status["tasks"].items():
