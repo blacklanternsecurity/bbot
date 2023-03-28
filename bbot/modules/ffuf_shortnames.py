@@ -114,6 +114,9 @@ class ffuf_shortnames(ffuf):
                     return d, hint.split(d)[0], hint.split(d)[1]
         return None
 
+    def filter_event(self, event):
+        return True
+
     def handle_event(self, event):
         if event.source.type == "URL":
             filename_hint = re.sub(r"~\d", "", event.parsed.path.rsplit(".", 1)[0].split("/")[-1]).lower()
@@ -151,7 +154,8 @@ class ffuf_shortnames(ffuf):
 
                 elif "shortname-directory" in event.tags:
                     for r in self.execute_ffuf(tempfile, root_url):
-                        self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                        r_url = f"{r['url'].rstrip('/')}/"
+                        self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
             if self.config.get("find_delimeters"):
                 if "shortname-directory" in event.tags:
