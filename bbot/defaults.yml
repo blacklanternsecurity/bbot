@@ -110,7 +110,6 @@ url_extension_httpx_only:
 omit_event_types:
     - HTTP_RESPONSE
     - URL_UNVERIFIED
-    - WEBSCREENSHOT_FULL
 # URL of BBOT server
 agent_url: ''
 # Agent Bearer authentication token
