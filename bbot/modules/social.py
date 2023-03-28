@@ -6,7 +6,7 @@ class social(BaseModule):
     watched_events = ["URL_UNVERIFIED"]
     produced_events = ["SOCIAL"]
     meta = {"description": "Look for social media links in webpages"}
-    flags = ["active", "social-enum"]
+    flags = ["active", "safe", "social-enum"]
 
     social_media_regex = {
         "linkedin": r"(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|company)\/[a-zA-Z0-9-]+\/?",
