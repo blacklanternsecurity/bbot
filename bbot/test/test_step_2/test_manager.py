@@ -167,3 +167,19 @@ def test_scope_distance(bbot_scanner, bbot_config):
     assert geoevent._force_output == True
     assert geoevent in output_queue
     assert geoevent not in module_queue
+
+    # test always_emit tag
+    affiliate_event = scan1.make_event("5.6.7.8", source=test_event3, tags="affiliate")
+    assert "affiliate" in affiliate_event.tags
+    assert "affiliate" in affiliate_event._always_emit_tags
+    assert affiliate_event.scope_distance == 3
+    assert affiliate_event._always_emit == False
+    assert affiliate_event.always_emit == True
+    assert affiliate_event._force_output == False
+    manager._emit_event(affiliate_event)
+    assert affiliate_event._force_output == True
+    assert affiliate_event in output_queue
+    assert affiliate_event in module_queue
+    valid, reason = module._event_postcheck(affiliate_event)
+    assert not valid
+    assert reason.startswith("its scope_distance (3) exceeds the maximum allowed by the scan")

@@ -873,6 +873,10 @@ def make_event(
     If data is already an event, simply return it
     """
 
+    # allow tags to be either a string or an array
+    if isinstance(tags, str):
+        tags = [tags]
+
     if is_event(data):
         if scan is not None and not data.scan:
             data.scan = scan
