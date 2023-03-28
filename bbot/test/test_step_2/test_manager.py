@@ -89,7 +89,6 @@ def test_manager(bbot_config, bbot_scanner):
 
 
 def test_scope_distance(bbot_scanner, bbot_config):
-
     # event filtering based on scope_distance
     scan1 = bbot_scanner(
         "127.0.0.1", "evilcorp.com", modules=["ipneighbor"], output_modules=["json"], config=bbot_config
