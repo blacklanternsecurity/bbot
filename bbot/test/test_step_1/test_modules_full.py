@@ -155,3 +155,8 @@ def test_naabu(bbot_config, bbot_scanner, bbot_httpserver):
 def test_hunt(bbot_config, bbot_scanner, bbot_httpserver):
     x = Hunt(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
+
+
+def test_social(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Social(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()

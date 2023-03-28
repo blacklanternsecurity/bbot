@@ -289,9 +289,9 @@ class BaseEvent:
                 self.scope_distance = set_scope_distance
             self._internal = False
             self.remove_tag("internal")
-            if force_output:
-                self._force_output = True
             self._made_internal = False
+        if force_output:
+            self._force_output = True
 
         if getattr(self.source, "_internal", False):
             source_scope_distance = None
@@ -845,7 +845,11 @@ class PROTOCOL(DictHostEvent):
         return self.data["protocol"]
 
 
-class Geolocation(BaseEvent):
+class GEOLOCATION(BaseEvent):
+    _always_emit = True
+
+
+class SOCIAL(DictEvent):
     _always_emit = True
 
 

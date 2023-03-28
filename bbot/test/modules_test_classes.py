@@ -1546,6 +1546,22 @@ class Naabu(HttpxMockHelper):
         return False
 
 
+class Social(HttpxMockHelper):
+    additional_modules = ["httpx", "excavate"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": '<html><a href="https://discord.gg/asdf"/></html>'}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "SOCIAL":
+                if e.data["platform"] == "discord":
+                    return True
+        return False
+
+
 class Hunt(HttpxMockHelper):
     additional_modules = ["httpx"]
 

@@ -365,6 +365,8 @@ class ScanManager:
                         if not stats_recorded:
                             stats_recorded = True
                             self.scan.stats.event_produced(event)
+                    else:
+                        log.debug(f"{mod} not outputting {event} because it's outside report distance")
                 else:
                     if event_within_scope_distance:
                         mod.queue_event(event)
