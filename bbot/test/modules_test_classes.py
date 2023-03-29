@@ -1598,6 +1598,46 @@ class Hunt(HttpxMockHelper):
         return False
 
 
+class Bypass403(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    targets = ["http://127.0.0.1:8888/test"]
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 403
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/test..;/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING":
+                return True
+        return False
+
+
+class Bypass403_waf(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    targets = ["http://127.0.0.1:8888/test"]
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 403
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/test..;/"}
+        respond_args = {"response_data": "The requested URL was rejected"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING":
+                return False
+        return True
+
+
 class Speculate_subdirectories(HttpxMockHelper):
     additional_modules = ["httpx"]
     targets = ["http://127.0.0.1:8888/subdir1/subdir2/"]
