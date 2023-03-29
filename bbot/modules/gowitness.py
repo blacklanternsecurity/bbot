@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 from contextlib import suppress
 from shutil import copyfile, copymode
@@ -7,7 +8,7 @@ from bbot.modules.base import BaseModule
 
 class gowitness(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["SCREENSHOT"]
+    produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["active", "safe", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages"}
     batch_size = 100
@@ -98,6 +99,9 @@ class gowitness(BaseModule):
         self.screenshot_path = self.base_path / "screenshots"
         self.command = self.construct_command()
         self.prepped = False
+        self.screenshots_taken = dict()
+        self.connections_logged = set()
+        self.technologies_found = set()
         return True
 
     def prep(self):
@@ -112,14 +116,51 @@ class gowitness(BaseModule):
     def filter_event(self, event):
         # Ignore URLs that are redirects
         if any(t.startswith("status-30") for t in event.tags):
-            return False
+            return False, "URL is a redirect"
+        # ignore events from self
+        if event.type == "URL" and event.module == self:
+            return False, "event is from self"
         return True
 
     def handle_batch(self, *events):
         self.prep()
         stdin = "\n".join([str(e.data) for e in events])
+        events = {e.data: e for e in events}
+
         for line in self.helpers.run_live(self.command, input=stdin):
             self.debug(line)
+
+        # emit web screenshots
+        for filename, screenshot in self.new_screenshots.items():
+            url = screenshot["url"]
+            final_url = screenshot["final_url"]
+            filename = screenshot["filename"]
+            webscreenshot_data = {"filename": filename, "url": final_url}
+            source_event = events[url]
+            self.emit_event(webscreenshot_data, "WEBSCREENSHOT", source=source_event)
+
+        # emit URLs
+        for url, row in self.new_network_logs.items():
+            ip = row["ip"]
+            status_code = row["status_code"]
+            tags = [f"status-{status_code}", f"ip-{ip}"]
+
+            _id = row["url_id"]
+            source_url = self.screenshots_taken[_id]
+            source_event = events[source_url]
+            # if self.excavate.is_spider_danger(source_event, url):
+            #     tags.append("spider-danger")
+            if url and url.startswith("http"):
+                self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
+
+        # emit technologies
+        for _, row in self.new_technologies.items():
+            source_id = row["url_id"]
+            source_url = self.screenshots_taken[source_id]
+            source_event = events[source_url]
+            technology = row["value"]
+            tech_data = {"technology": technology, "url": source_url, "host": str(source_event.host)}
+            self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
 
     def construct_command(self):
         # base executable
@@ -144,3 +185,68 @@ class gowitness(BaseModule):
         # threads
         command += ["--threads", str(self.threads)]
         return command
+
+    @property
+    def new_screenshots(self):
+        screenshots = {}
+        if self.db_path.is_file():
+            with sqlite3.connect(str(self.db_path)) as con:
+                con.row_factory = sqlite3.Row
+                cur = con.cursor()
+                res = self.cur_execute(cur, "SELECT * FROM urls")
+                for row in res:
+                    row = dict(row)
+                    _id = row["id"]
+                    if _id not in self.screenshots_taken:
+                        self.screenshots_taken[_id] = row["url"]
+                        screenshots[_id] = row
+        return screenshots
+
+    @property
+    def new_network_logs(self):
+        network_logs = dict()
+        if self.db_path.is_file():
+            with sqlite3.connect(str(self.db_path)) as con:
+                con.row_factory = sqlite3.Row
+                cur = con.cursor()
+                res = self.cur_execute(cur, "SELECT * FROM network_logs")
+                for row in res:
+                    row = dict(row)
+                    url = row["final_url"]
+                    if url not in self.connections_logged:
+                        self.connections_logged.add(url)
+                        network_logs[url] = row
+        return network_logs
+
+    @property
+    def new_technologies(self):
+        technologies = dict()
+        if self.db_path.is_file():
+            with sqlite3.connect(str(self.db_path)) as con:
+                con.row_factory = sqlite3.Row
+                cur = con.cursor()
+                res = self.cur_execute(cur, "SELECT * FROM technologies")
+                for row in res:
+                    _id = row["id"]
+                    if _id not in self.technologies_found:
+                        self.technologies_found.add(_id)
+                        row = dict(row)
+                        technologies[_id] = row
+        return technologies
+
+    def cur_execute(self, cur, query):
+        try:
+            return cur.execute(query)
+        except sqlite3.OperationalError as e:
+            self.warning(f"Error executing query: {query}: {e}")
+            self.trace()
+            return []
+
+    def report(self):
+        if self.screenshots_taken:
+            self.success(f"{len(self.screenshots_taken):,} web screenshots captured. To view:")
+            self.success(f"    - Start gowitness")
+            self.success(f"        - cd {self.base_path} && ./gowitness server")
+            self.success(f"    - Browse to http://localhost:7171")
+        else:
+            self.info(f"No web screenshots captured")

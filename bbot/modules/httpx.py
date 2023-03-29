@@ -40,20 +40,20 @@ class httpx(BaseModule):
 
     def filter_event(self, event):
         if "_wildcard" in str(event.host).split("."):
-            return False
+            return False, "event is wildcard"
 
         if "unresolved" in event.tags:
-            return False
+            return False, "event is unresolved"
 
-        if str(event.module) == "httpx":
-            return False
+        if event.module == self:
+            return False, "event is from self"
 
         # scope filtering
 
         in_scope_only = self.config.get("in_scope_only", True)
         safe_to_visit = "httpx-safe" in event.tags
         if not safe_to_visit and (in_scope_only and not self.scan.in_scope(event)):
-            return False
+            return False, "event is not in scope"
         # reject base URLs to avoid visiting a resource twice
         # note: speculate makes open ports from
         return True
