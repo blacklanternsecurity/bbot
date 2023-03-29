@@ -96,10 +96,11 @@ class bypass403(BaseModule):
             )
 
             # In some cases WAFs will respond with a 200 code which causes a false positive
-            for ws in waf_strings:
-                if ws in subject_response.text:
-                    self.debug("Rejecting result based on presence of WAF string")
-                    return
+            if subject_response != None:
+                for ws in waf_strings:
+                    if ws in subject_response.text:
+                        self.debug("Rejecting result based on presence of WAF string")
+                        return
 
             if match == False:
                 if str(subject_response.status_code)[0] != "4":
