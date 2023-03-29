@@ -637,6 +637,29 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert word_cloud["plumbus"] == 1
     assert word_cloud["rumbus"] == 1
 
+    # mutators
+    from bbot.core.helpers.wordcloud import DNSMutator
+
+    m = DNSMutator()
+    m.add_word("blacklantern-security")
+    mutations = sorted(m.mutations("whitebasket"))
+    assert mutations == sorted(
+        [
+            "basket-security",
+            "basketlantern-security",
+            "blackbasket-security",
+            "blacklantern-basket",
+            "blacklantern-white",
+            "blacklantern-whitebasket",
+            "blackwhite-security",
+            "blackwhitebasket-security",
+            "white-security",
+            "whitebasket-security",
+            "whitebasketlantern-security",
+            "whitelantern-security",
+        ]
+    )
+
 
 def test_queues(scan, helpers):
     from bbot.core.helpers.queueing import EventQueue

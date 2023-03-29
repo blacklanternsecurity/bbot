@@ -1,9 +1,13 @@
+import re
 import csv
 import string
 import logging
+import wordninja
 from pathlib import Path
 from contextlib import suppress
 from collections import OrderedDict
+
+from .misc import tldextract, extract_words
 
 log = logging.getLogger("bbot.core.helpers.wordcloud")
 
@@ -15,6 +19,8 @@ class WordCloud(dict):
 
         devops_filename = self.parent_helper.wordlist_dir / "devops_mutations.txt"
         self.devops_mutations = set(self.parent_helper.read_file(devops_filename))
+
+        self.dns_mutator = DNSMutator()
 
         super().__init__(*args, **kwargs)
 
@@ -64,6 +70,11 @@ class WordCloud(dict):
     def absorb_event(self, event):
         for word in event.words:
             self.add_word(word)
+        if event.scope_distance == 0 and event.type == "DNS_NAME":
+            subdomain = tldextract(event.data).subdomain
+            if subdomain:
+                for s in subdomain.split("."):
+                    self.dns_mutator.add_word(s)
 
     def absorb_word(self, word, ninja=True):
         """
@@ -193,3 +204,75 @@ class WordCloud(dict):
             log_fn(f"Failed to load word cloud from {wordcloud_path}: {e}")
             if filename is not None:
                 log.trace(traceback.format_exc())
+
+
+class Mutator(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._mutations = {}
+
+    def mutations(self, words):
+        ret = set()
+        if isinstance(words, str):
+            words = [words]
+        for word in words:
+            for m in self.mutate(word):
+                ret.add("".join(m))
+        return ret
+
+    def mutate(self, word, max_mutations=None):
+        if max_mutations is not None:
+            mutations = sorted(self._mutations.items(), key=lambda x: x[-1], reverse=True)
+        else:
+            mutations = list(self._mutations.items())
+        for mutation, count in mutations:
+            ret = []
+            for s in mutation:
+                if s is not None:
+                    ret.append(s)
+                else:
+                    ret.append(word)
+            yield ret
+
+    def _add_mutation(self, mutation):
+        if not None in mutation:
+            return
+        mutation = tuple([m for m in mutation if m != ""])
+        if not any(mutation):
+            return
+        try:
+            self._mutations[mutation] += 1
+        except KeyError:
+            self._mutations[mutation] = 1
+
+    def add_word(self, word):
+        pass
+
+
+class DNSMutator(Mutator):
+    word_regex = re.compile(r"[^_\W]+")
+
+    def mutations(self, words):
+        if isinstance(words, str):
+            words = [words]
+        new_words = set()
+        for word in words:
+            for e in extract_words(word, acronyms=False):
+                new_words.add(e)
+        return super().mutations(new_words)
+
+    def add_word(self, word):
+        for match in self.word_regex.finditer(word):
+            start, end = match.span()
+            match_str = word[start:end]
+            before = word[:start]
+            after = word[end:]
+            basic_mutation = [before, None, after]
+            self._add_mutation(basic_mutation)
+            match_str_split = wordninja.split(match_str)
+            if len(match_str_split) > 1:
+                for i, s in enumerate(match_str_split):
+                    split_before = "".join(match_str_split[:i])
+                    split_after = "".join(match_str_split[i + 1 :])
+                    wordninja_mutation = [before + split_before, None, split_after + after]
+                    self._add_mutation(wordninja_mutation)

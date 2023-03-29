@@ -236,27 +236,26 @@ class massdns(crobat):
         found = list(self.found.items())
 
         base_mutations = set()
-        for domain, subdomains in found:
-            domain_hash = hash(domain)
-            for s in subdomains:
-                h = hash((domain_hash, (s,)))
-                if not h in self.mutations_tried:
-                    self.mutations_tried.add(h)
-                    base_mutations.add(s)
-
         for i, (domain, subdomains) in enumerate(found):
             query = domain
             domain_hash = hash(domain)
             if self.scan.stopping:
                 return
             mutations = set(base_mutations)
-            for mutation in self.helpers.word_cloud.mutations(subdomains):
-                h = hash((domain_hash, mutation))
+            # word cloud
+            for mutation in self.helpers.word_cloud.mutations(subdomains, cloud=False, numbers=3, number_padding=1):
+                for delimiter in ("", ".", "-"):
+                    m = delimiter.join(mutation).lower()
+                    h = hash((domain_hash, m))
+                    if h not in self.mutations_tried:
+                        self.mutations_tried.add(h)
+                        mutations.add(m)
+            # special dns mutator
+            for subdomain in self.helpers.word_cloud.dns_mutator.mutations(subdomains):
+                h = hash((domain_hash, subdomain))
                 if h not in self.mutations_tried:
                     self.mutations_tried.add(h)
-                    for delimiter in ("", ".", "-"):
-                        m = delimiter.join(mutation).lower()
-                        mutations.add(m)
+                    mutations.add(subdomain)
             if mutations:
                 self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
                 for hostname in self.massdns(query, mutations):
