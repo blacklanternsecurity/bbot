@@ -59,7 +59,7 @@ jobs:
           echo "::set-output name=BBOT_VERSION::$(poetry version | cut -d' ' -f2 | tr -d v)"
       - name: Publish to Docker Hub (dev)
         if: github.ref == 'refs/heads/dev'
-        uses: elgohr/Publish-Docker-Github-Action@v4
+        uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: blacklanternsecurity/bbot
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -67,7 +67,7 @@ jobs:
           tags: "latest,dev,${{ steps.version.outputs.BBOT_VERSION }}"
       - name: Publish to Docker Hub (stable)
         if: github.ref == 'refs/heads/stable'
-        uses: elgohr/Publish-Docker-Github-Action@v4
+        uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: blacklanternsecurity/bbot
           username: ${{ secrets.DOCKER_USERNAME }}
