@@ -1604,8 +1604,6 @@ class Bypass403(HttpxMockHelper):
     targets = ["http://127.0.0.1:8888/test"]
 
     def setup(self):
-        from bbot.core.helpers import helper
-
         self.bbot_httpserver.no_handler_status_code = 403
 
     def mock_args(self):
@@ -1626,8 +1624,6 @@ class Bypass403_waf(HttpxMockHelper):
     targets = ["http://127.0.0.1:8888/test"]
 
     def setup(self):
-        from bbot.core.helpers import helper
-
         self.bbot_httpserver.no_handler_status_code = 403
 
     def mock_args(self):
