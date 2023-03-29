@@ -17,7 +17,7 @@ class crobat(BaseModule):
     # set module error state after this many failed requests in a row
     abort_after_failures = 5
     # whether to reject wildcard DNS_NAMEs
-    reject_wildcards = True
+    reject_wildcards = "strict"
     # this helps combat rate limiting by ensuring that a query doesn't execute
     # until the queue is ready to receive its results
     _qsize = 1
@@ -30,26 +30,34 @@ class crobat(BaseModule):
 
     def filter_event(self, event):
         """
-        Accept DNS_NAMEs that are either directly targets, or indirectly
-        in scope by resolving to in-scope IPs.
-
-        Kill wildcards with fire.
-
         This filter_event is used across many modules
         """
         query = self.make_query(event)
+        # reject if already processed
         if self.already_processed(query):
             return False, "Event was already processed"
-        if not "target" in event.tags:
-            if "unresolved" in event.tags:
-                return False, "Event is unresolved"
-            if any(t.startswith("cloud-") for t in event.tags):
-                return False, "Event is a cloud resource and not a direct target"
+        # check if wildcard
+        is_wildcard = False
+        for domain, wildcard_rdtypes in self.helpers.is_wildcard_domain(query).items():
+            if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
+                is_wildcard = True
+        # check if cloud
+        is_cloud = False
+        if any(t.startswith("cloud-") for t in event.tags):
+            is_cloud = True
+        # reject if it's a cloud resource and not in our target
+        if is_cloud and event not in self.scan.target:
+            return False, "Event is a cloud resource and not a direct target"
+        # optionally reject events with wildcards / errors
         if self.reject_wildcards:
-            if any(t in event.tags for t in ("a-wildcard-domain", "aaaa-wildcard-domain", "cname-wildcard-domain")):
-                return False, "Event is a wildcard domain"
             if any(t in event.tags for t in ("a-error", "aaaa-error")):
                 return False, "Event has a DNS resolution error"
+            if self.reject_wildcards == "strict":
+                if is_wildcard:
+                    return False, "Event is a wildcard domain"
+            elif self.reject_wildcards == "cloud_only":
+                if is_wildcard and is_cloud:
+                    return False, "Event is both a cloud resource and a wildcard domain"
         self.processed.add(hash(query))
         return True
 

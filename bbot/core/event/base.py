@@ -79,7 +79,7 @@ class BaseEvent:
             self._tags = set(tagify(s) for s in tags)
 
         self._data = None
-        self.type = event_type
+        self._type = event_type
         self.confidence = int(confidence)
 
         # for creating one-off events without enforcing source requirement
@@ -99,10 +99,7 @@ class BaseEvent:
             self.scans = list(set([self.scan.id] + self.scans))
 
         # check type blacklist
-        if self.scan is not None:
-            omit_event_types = self.scan.config.get("omit_event_types", [])
-            if omit_event_types and self.type in omit_event_types:
-                self._omit = True
+        self._check_omit()
 
         self._scope_distance = -1
 
@@ -468,6 +465,23 @@ class BaseEvent:
             else:
                 self._priority = getattr(self.source, "priority", ()) + (timestamp,)
         return self._priority
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, val):
+        self._type = val
+        self._hash = None
+        self._id = None
+        self._check_omit()
+
+    def _check_omit(self):
+        if self.scan is not None:
+            omit_event_types = self.scan.config.get("omit_event_types", [])
+            if omit_event_types and self.type in omit_event_types:
+                self._omit = True
 
     def __iter__(self):
         """

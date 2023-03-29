@@ -167,6 +167,10 @@ class ScanManager:
                 log.debug(f"Omitting due to blacklisted {reason}: {event}")
                 distribute_event = False
 
+            # DNS_NAME --> DNS_NAME_UNRESOLVED
+            if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
+                event.type = "DNS_NAME_UNRESOLVED"
+
             # Cloud tagging
             for provider in self.scan.helpers.cloud.providers.values():
                 provider.tag_event(event)
