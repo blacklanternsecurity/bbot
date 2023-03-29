@@ -20,7 +20,7 @@ class social(BaseModule):
         "discord": r"(?:https?:\/\/)?(?:www\.)?discord\.gg\/[a-zA-Z0-9_-]+\/?",
     }
 
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
 
     def setup(self):
         self.compiled_regexes = {k: re.compile(v) for k, v in self.social_media_regex.items()}
