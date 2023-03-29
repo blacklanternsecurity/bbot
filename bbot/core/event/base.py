@@ -635,10 +635,11 @@ class DNS_NAME(DnsEvent):
         return self.data
 
     def _words(self):
-        stem = self.host_stem
-        if "wildcard" in self.tags:
-            stem = "".join(stem.split(".")[1:])
-        if "resolved" in self.tags:
+        # only operate on resolved DNS_NAMEs
+        if self.type == "DNS_NAME":
+            stem = self.host_stem
+            if "wildcard" in self.tags:
+                stem = ".".join(stem.split(".")[1:])
             return extract_words(stem)
         return set()
 
