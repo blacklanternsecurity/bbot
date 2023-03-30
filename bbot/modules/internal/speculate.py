@@ -98,6 +98,6 @@ class speculate(BaseInternalModule):
             if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
                 return False
         # don't accept errored DNS_NAMEs
-        if any(t in event.tags for t in ("dns-error", "unresolved")):
+        if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
             return False
         return True
