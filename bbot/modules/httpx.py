@@ -76,7 +76,6 @@ class httpx(BaseModule):
 
             if url_hash not in self.visited:
                 stdin[url] = e
-                self.hugesuccess(f"{url}: {e}")
                 if url_hash is not None:
                     self.visited.add(url_hash)
 
