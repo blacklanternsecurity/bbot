@@ -67,7 +67,7 @@ class ScanManager:
             log.debug(f'Module "{event.module}" raised {event}')
             event._resolved.set()
             for kwarg in ["abort_if", "on_success_callback", "_block"]:
-                kwargs.pop(kwargs, None)
+                kwargs.pop(kwarg, None)
             try:
                 self.distribute_event(event, *args, **kwargs)
                 return True

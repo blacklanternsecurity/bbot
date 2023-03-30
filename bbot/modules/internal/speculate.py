@@ -68,7 +68,11 @@ class speculate(BaseInternalModule):
         if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
             if event.host and event.port not in self.ports:
                 self.emit_event(
-                    self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
+                    self.helpers.make_netloc(event.host, event.port),
+                    "OPEN_TCP_PORT",
+                    source=event,
+                    internal=True,
+                    quick=(event.type == "URL"),
                 )
 
         # generate sub-directory URLS from URLS
@@ -89,7 +93,11 @@ class speculate(BaseInternalModule):
             if event.type == "IP_ADDRESS" or usable_dns:
                 for port in self.ports:
                     self.emit_event(
-                        self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True
+                        self.helpers.make_netloc(event.data, port),
+                        "OPEN_TCP_PORT",
+                        source=event,
+                        internal=True,
+                        quick=True,
                     )
 
     def filter_event(self, event):
