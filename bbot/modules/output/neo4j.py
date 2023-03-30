@@ -5,7 +5,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class neo4j(BaseOutputModule):
     """
-    docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+    docker run -p 7687:7687 -p 7474:7474 -v "$(pwd)/data/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
     """
 
     watched_events = ["*"]
