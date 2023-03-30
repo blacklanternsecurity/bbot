@@ -153,11 +153,9 @@ class Subdomain_Hijack(HttpxMockHelper):
         rand_string = self.scan.helpers.rand_string(length=15, digits=False)
         self.rand_subdomain = f"{rand_string}.{next(iter(fingerprint.domains))}"
         respond_args = {"response_data": f'<a src="http://{self.rand_subdomain}"/>'}
-        log.critical(respond_args)
         self.set_expect_requests(respond_args=respond_args)
 
     def check_events(self, events):
-        log.critical(events)
         for event in events:
             if (
                 event.type == "FINDING"
