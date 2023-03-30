@@ -28,7 +28,7 @@ class httpx(BaseModule):
         }
     ]
 
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     _priority = 2
 
     def setup(self):

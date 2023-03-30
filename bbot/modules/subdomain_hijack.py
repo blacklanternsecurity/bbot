@@ -15,7 +15,7 @@ class subdomain_hijack(BaseModule):
         "fingerprints": "https://raw.githubusercontent.com/EdOverflow/can-i-take-over-xyz/master/fingerprints.json"
     }
     options_desc = {"fingerprints": "URL or path to fingerprints.json"}
-    scope_distance_modifier = 2
+    scope_distance_modifier = 3
     max_event_handlers = 5
 
     def setup(self):
