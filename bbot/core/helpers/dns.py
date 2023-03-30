@@ -300,73 +300,79 @@ class DNSHelper:
                 return children, event_tags, _event_whitelisted, _event_blacklisted, _resolved_hosts
 
             # then resolve
-            if event.type == "DNS_NAME" and not minimal:
-                types = self.all_rdtypes
+            types = ()
+            if self.parent_helper.is_ip(event.host):
+                if not minimal:
+                    types = ("PTR",)
             else:
-                types = ("A", "AAAA")
+                if event.type == "DNS_NAME" and not minimal:
+                    types = self.all_rdtypes
+                else:
+                    types = ("A", "AAAA")
 
-            futures = {}
-            for t in types:
-                future = self.submit_task(
-                    self._catch_keyboardinterrupt, self.resolve_raw, event_host, type=t, cache_result=True
-                )
-                if future is None:
-                    break
-                futures[future] = t
+            if types:
+                futures = {}
+                for t in types:
+                    future = self.submit_task(
+                        self._catch_keyboardinterrupt, self.resolve_raw, event_host, type=t, cache_result=True
+                    )
+                    if future is None:
+                        break
+                    futures[future] = t
 
-            for future in self.parent_helper.as_completed(futures):
-                resolved_raw, errors = future.result()
-                for rdtype, e in errors:
-                    event_tags.add(f"{rdtype.lower()}-error")
-                for rdtype, records in resolved_raw:
-                    event_tags.add("resolved")
-                    rdtype = str(rdtype).upper()
-                    event_tags.add(f"{rdtype.lower()}-record")
+                for future in self.parent_helper.as_completed(futures):
+                    resolved_raw, errors = future.result()
+                    for rdtype, e in errors:
+                        event_tags.add(f"{rdtype.lower()}-error")
+                    for rdtype, records in resolved_raw:
+                        event_tags.add("resolved")
+                        rdtype = str(rdtype).upper()
+                        event_tags.add(f"{rdtype.lower()}-record")
 
-                    # whitelisting and blacklisting of IPs
-                    for r in records:
-                        for _, t in self.extract_targets(r):
-                            if t:
-                                if rdtype in ("A", "AAAA", "CNAME"):
-                                    ip = self.parent_helper.make_ip_type(t)
+                        # whitelisting and blacklisting of IPs
+                        for r in records:
+                            for _, t in self.extract_targets(r):
+                                if t:
+                                    if rdtype in ("A", "AAAA", "CNAME"):
+                                        ip = self.parent_helper.make_ip_type(t)
 
-                                    with suppress(ValidationError):
-                                        if self.parent_helper.is_ip(ip):
-                                            if self.parent_helper.scan.whitelisted(ip):
-                                                event_whitelisted = True
-                                    with suppress(ValidationError):
-                                        if self.parent_helper.scan.blacklisted(ip):
-                                            event_blacklisted = True
-                                    resolved_hosts.add(ip)
+                                        with suppress(ValidationError):
+                                            if self.parent_helper.is_ip(ip):
+                                                if self.parent_helper.scan.whitelisted(ip):
+                                                    event_whitelisted = True
+                                        with suppress(ValidationError):
+                                            if self.parent_helper.scan.blacklisted(ip):
+                                                event_blacklisted = True
+                                        resolved_hosts.add(ip)
 
-                                if self.filter_bad_ptrs and rdtype in ("PTR") and self.bad_ptr_regex.search(t):
-                                    self.debug(f"Filtering out bad PTR: {t}")
-                                    continue
-                                children.append((rdtype, t))
+                                    if self.filter_bad_ptrs and rdtype in ("PTR") and self.bad_ptr_regex.search(t):
+                                        self.debug(f"Filtering out bad PTR: {t}")
+                                        continue
+                                    children.append((rdtype, t))
 
-            if not self.parent_helper.in_tests:
-                ips = set()
-                if event.type == "IP_ADDRESS":
-                    ips.add(event.data)
-                for rdtype, target in children:
-                    if rdtype in ("A", "AAAA"):
-                        ips.add(target)
-                for ip in ips:
-                    provider, provider_type, subnet = cloudcheck.check(ip)
-                    if provider:
-                        event_tags.add(f"{provider_type}-{provider}")
+                if not self.parent_helper.in_tests:
+                    ips = set()
+                    if event.type == "IP_ADDRESS":
+                        ips.add(event.data)
+                    for rdtype, target in children:
+                        if rdtype in ("A", "AAAA"):
+                            ips.add(target)
+                    for ip in ips:
+                        provider, provider_type, subnet = cloudcheck.check(ip)
+                        if provider:
+                            event_tags.add(f"{provider_type}-{provider}")
 
-            if "resolved" not in event_tags:
-                event_tags.add("unresolved")
-            for ip in resolved_hosts:
-                try:
-                    ip = ipaddress.ip_address(ip)
-                    if ip.is_private:
-                        event_tags.add("private-ip")
-                except ValueError:
-                    continue
+                if "resolved" not in event_tags:
+                    event_tags.add("unresolved")
+                for ip in resolved_hosts:
+                    try:
+                        ip = ipaddress.ip_address(ip)
+                        if ip.is_private:
+                            event_tags.add("private-ip")
+                    except ValueError:
+                        continue
 
-            self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, resolved_hosts)
+                self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, resolved_hosts)
 
         return children, event_tags, event_whitelisted, event_blacklisted, resolved_hosts
 

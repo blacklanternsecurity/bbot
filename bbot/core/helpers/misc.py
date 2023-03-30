@@ -650,6 +650,13 @@ def latest_mtime(d):
     return max(mtimes)
 
 
+def filesize(f):
+    f = Path(f)
+    if f.is_file():
+        return f.stat().st_size
+    return 0
+
+
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):
     """
     Given a directory "d", measure the number of subdirectories and files (matching "filter")

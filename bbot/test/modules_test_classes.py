@@ -696,15 +696,67 @@ class Robots(HttpxMockHelper):
 
 
 class Masscan(MockHelper):
-    # masscan can't scan localhost
     targets = ["8.8.8.8/32"]
-    config_overrides = {"force_deps": True, "modules": {"masscan": {"ports": "53", "wait": 1}}}
+    config_overrides = {"modules": {"masscan": {"ports": "443", "wait": 1}}}
+    config_overrides_2 = {"modules": {"masscan": {"ports": "443", "wait": 1, "use_cache": True}}}
+    masscan_output = """[
+{   "ip": "8.8.8.8",   "timestamp": "1680197558", "ports": [ {"port": 443, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }
+]"""
+    masscan_config = """seed = 17230484647655100360
+rate = 600       
+shard = 1/1
+
+
+# TARGET SELECTION (IP, PORTS, EXCLUDES)
+ports = 
+range = 9.8.7.6"""
+
+    def __init__(self, config, bbot_scanner, *args, **kwargs):
+        super().__init__(config, bbot_scanner, *args, **kwargs)
+        self.scan.modules["masscan"].masscan_config = self.masscan_config
+
+        def setup_scan_2():
+            config2 = OmegaConf.merge(config, OmegaConf.create(self.config_overrides_2))
+            self.scan2 = bbot_scanner(
+                *self.targets,
+                modules=[self.name] + self.additional_modules,
+                name=f"{self.name}_test",
+                config=config2,
+                whitelist=self.whitelist,
+                blacklist=self.blacklist,
+            )
+            self.patch_scan(self.scan2)
+            self.scan2.prep()
+            self.scan2.modules["masscan"].masscan_config = self.masscan_config
+
+        self.setup_scan_2 = setup_scan_2
+        self.masscan_run = False
+
+    def run_masscan(self, command, *args, **kwargs):
+        if "masscan" in command[0]:
+            json_output_file = command[-1]
+            with open(json_output_file, "w") as f:
+                f.write(self.masscan_output)
+            self.masscan_run = True
+        else:
+            return self.scan.helpers.run(command, *args, **kwargs)
+
+    def patch_scan(self, scan):
+        scan.helpers.run = self.run_masscan
+
+    def run(self):
+        super().run()
+        self.setup_scan_2()
+        assert self.masscan_run == True, "masscan didn't run when it was supposed to"
+        self.masscan_run = False
+        events = list(self.scan2.start())
+        self.check_events(events)
+        assert self.masscan_run == False, "masscan ran when it wasn't supposed to"
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:53":
-                return True
-        return False
+        assert any(e.type == "IP_ADDRESS" and e.data == "8.8.8.8" for e in events), "No IP_ADDRESS emitted"
+        assert any(e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:443" for e in events), "No OPEN_TCP_PORT emitted"
+        return True
 
 
 class Buckets(HttpxMockHelper, RequestMockHelper):
