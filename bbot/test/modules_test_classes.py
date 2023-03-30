@@ -210,7 +210,7 @@ class Otx(RequestMockHelper):
 
     def check_events(self, events):
         for e in events:
-            if e == "asdf.blacklanternsecurity.com":
+            if e.data == "asdf.blacklanternsecurity.com":
                 return True
         return False
 
@@ -228,7 +228,7 @@ class Anubisdb(RequestMockHelper):
 
     def check_events(self, events):
         for e in events:
-            if e == "asdf.blacklanternsecurity.com":
+            if e.data == "asdf.blacklanternsecurity.com":
                 return True
         return False
 
@@ -630,7 +630,7 @@ class LeakIX(RequestMockHelper):
         www = False
         asdf = False
         for e in events:
-            if e.type == "DNS_NAME":
+            if e.type in ("DNS_NAME", "DNS_NAME_UNRESOLVED"):
                 if e.data == "www.blacklanternsecurity.com":
                     www = True
                 elif e.data == "asdf.blacklanternsecurity.com":
@@ -653,7 +653,7 @@ class Massdns(MockHelper):
 
     def check_events(self, events):
         for e in events:
-            if e.type == "DNS_NAME" and e == "www.blacklanternsecurity.com":
+            if e.type in ("DNS_NAME", "DNS_NAME_UNRESOLVED") and e.data == "www.blacklanternsecurity.com":
                 return True
         return False
 

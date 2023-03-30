@@ -87,7 +87,7 @@ class masscan(BaseModule):
 
         # ping scan
         if self.ping_first:
-            self.verbose("Starting masscan (ping scan)")
+            self.info("Starting masscan (ping scan)")
 
             def append_alive_host(host, source):
                 host_event = self.make_event(host, "IP_ADDRESS", source=self.scan.whitelist.get(host))
@@ -101,7 +101,7 @@ class masscan(BaseModule):
                 return
 
         # TCP SYN scan
-        self.verbose("Starting masscan (TCP SYN scan)")
+        self.info("Starting masscan (TCP SYN scan)")
         self.masscan(targets, result_callback=self.emit_open_tcp_port, exclude=exclude, event=event)
         # save memory
         self.alive_hosts.clear()

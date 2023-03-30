@@ -27,7 +27,7 @@ class WordCloud(dict):
     def mutations(
         self, words, devops=True, cloud=True, letters=True, numbers=5, number_padding=2, substitute_numbers=True
     ):
-        if type(words) not in (set, list, tuple):
+        if isinstance(words, str):
             words = (words,)
         results = set()
         for word in words:
