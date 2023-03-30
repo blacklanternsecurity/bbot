@@ -310,7 +310,7 @@ def rand_string(length=10, digits=True):
     return "".join([random.choice(pool) for _ in range(int(length))])
 
 
-def extract_words(data, max_length=100):
+def extract_words(data, acronyms=True, max_length=100):
     """
     Intelligently extract words from given data
     Returns set() of extracted words
@@ -336,8 +336,9 @@ def extract_words(data, max_length=100):
         #        subword_slice = "".join(subwords[s:e])
         #        words.add(subword_slice)
         # blacklanternsecurity --> bls
-        if len(subwords) > 1:
-            words.add("".join([c[0] for c in subwords if len(c) > 0]))
+        if acronyms:
+            if len(subwords) > 1:
+                words.add("".join([c[0] for c in subwords if len(c) > 0]))
 
     return words
 
