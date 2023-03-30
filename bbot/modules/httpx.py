@@ -48,6 +48,9 @@ class httpx(BaseModule):
         if event.module == self:
             return False, "event is from self"
 
+        if "spider-danger" in event.tags:
+            return False, "event has spider danger"
+
         # scope filtering
 
         in_scope_only = self.config.get("in_scope_only", True)
@@ -62,20 +65,20 @@ class httpx(BaseModule):
         stdin = {}
         for e in events:
             url_hash = None
-            if "httpx-only" in e.tags or "spider-danger" not in e.tags:
-                if e.type.startswith("URL"):
-                    # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
-                    url = e.with_port().geturl()
-                    if e.parsed.path == "/":
-                        url_hash = hash((e.host, e.port))
-                else:
-                    url = str(e.data)
+            if e.type.startswith("URL"):
+                # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
+                url = e.with_port().geturl()
+                if e.parsed.path == "/":
                     url_hash = hash((e.host, e.port))
+            else:
+                url = str(e.data)
+                url_hash = hash((e.host, e.port))
 
-                if url_hash not in self.visited:
-                    stdin[url] = e
-                    if url_hash is not None:
-                        self.visited.add(url_hash)
+            if url_hash not in self.visited:
+                stdin[url] = e
+                self.hugesuccess(f"{url}: {e}")
+                if url_hash is not None:
+                    self.visited.add(url_hash)
 
         if not stdin:
             return
@@ -132,8 +135,8 @@ class httpx(BaseModule):
             if title:
                 tags.append(f"http-title-{title}")
             url_event = self.make_event(url, "URL", source_event, tags=tags)
-            if url_event and not "httpx-only" in url_event.tags:
-                if url_event != source_event:
+            if url_event:
+                if url_event.data != source_event.data:
                     self.emit_event(url_event)
                 else:
                     url_event._resolved.set()

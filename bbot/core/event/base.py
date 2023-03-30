@@ -894,7 +894,7 @@ def make_event(
         if module is not None:
             data.module = module
         if source is not None:
-            data.set_source(source)
+            data.source = source
         if internal == True and not data._made_internal:
             data.make_internal()
         event_type = data.type
