@@ -224,9 +224,13 @@ class wfuzz(BaseModule):
                         command.append(filters[ext])
 
             for jsonstring in self.helpers.run_live(command):
-                jsondata = json.loads(jsonstring)
+                try:
+                    jsondata = json.loads(jsonstring)
+                except JSONDecodeError:
+                    self.warning("Error parsing JSON from wfuzz")
+                    return
 
-                if any(self.canary in d.get("url", "") for d in jsondata):
+                if any(self.canary in d.get("payload", "") for d in jsondata):
                     self.verbose(f"Found 'abort' string in results for command: [{' '.join(str(x) for x in command)}]")
                     break
                 for i in jsondata:
