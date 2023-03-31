@@ -230,13 +230,9 @@ class wfuzz(BaseModule):
                     self.warning("Error parsing JSON from wfuzz")
                     return
 
-
-
                 if any(self.canary in d.get("payload", "") for d in jsondata):
                     self.verbose(f"Found 'abort' string in results for command: [{' '.join(str(x) for x in command)}]")
                     break
-
-
 
                 for i in jsondata:
                     yield i
