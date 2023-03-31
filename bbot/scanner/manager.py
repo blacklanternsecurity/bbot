@@ -198,7 +198,8 @@ class ScanManager:
             # check for wildcards
             if event.scope_distance <= self.scan.scope_search_distance:
                 if not "unresolved" in event.tags:
-                    self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
+                    if not self.scan.helpers.is_ip_type(event.host):
+                        self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if):
