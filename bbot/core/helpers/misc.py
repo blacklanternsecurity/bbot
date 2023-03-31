@@ -308,7 +308,8 @@ def recursive_decode(data, max_depth=5):
     # Decode URL encoding
     decoded_text = unquote(data, errors="ignore")
     # Decode Unicode escapes
-    decoded_text = codecs.decode(decoded_text, "unicode_escape", errors="ignore")
+    with suppress(UnicodeEncodeError):
+        decoded_text = codecs.decode(decoded_text, "unicode_escape", errors="ignore")
     # Decode newline and tab escapes
     decoded_text = decoded_text.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r")
     # Check if there's still URL-encoded or Unicode-escaped content
