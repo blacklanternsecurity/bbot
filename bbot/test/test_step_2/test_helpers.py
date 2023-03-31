@@ -596,6 +596,12 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
         with pytest.raises(InteractshError):
             interactsh_client.deregister()
 
+    test_filesize = Path("/tmp/test_filesize")
+    test_filesize.touch()
+    assert test_filesize.is_file()
+    assert helpers.filesize(test_filesize) == 0
+    assert helpers.filesize("/tmp/glkasjdlgksadlkfsdf") == 0
+
 
 def test_word_cloud(helpers, bbot_config, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
