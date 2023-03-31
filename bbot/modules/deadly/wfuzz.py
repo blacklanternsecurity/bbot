@@ -36,7 +36,7 @@ class wfuzz(BaseModule):
     deps_ansible = [
         {
             "name": "Install pycurl dependencies (Non-Debian)",
-            "package": {"name": "gcc,libcurl-devel,openssl-devel", "state": "present"},
+            "package": {"name": "gcc,libcurl-devel,openssl-devel,python3-devel", "state": "present"},
             "become": True,
             "when": "ansible_facts['os_family'] != 'Debian' and ansible_facts['os_family'] != 'Archlinux'",
             "ignore_errors": True,
