@@ -102,6 +102,7 @@ class sslcert(BaseModule):
 
     def visit_host(self, host, port):
         host = self.helpers.make_ip_type(host)
+        netloc = self.helpers.make_netloc(host, port)
         host_hash = hash((host, port))
         dns_names = []
         emails = set()
@@ -121,7 +122,6 @@ class sslcert(BaseModule):
             try:
                 sock = socket.socket(socket_type, socket.SOCK_STREAM)
             except Exception as e:
-                netloc = self.helpers.make_netloc(host, port)
                 self.warning(f"Error creating socket for {netloc}: {e}. Do you have IPv6 disabled?")
                 return [], []
             sock.settimeout(self.timeout)
@@ -175,7 +175,8 @@ class sslcert(BaseModule):
         ext_count = cert.get_extension_count()
         for i in range(0, ext_count):
             ext = cert.get_extension(i)
-            if "subjectAltName" in str(ext.get_short_name()):
+            short_name = str(ext.get_short_name())
+            if "subjectAltName" in short_name:
                 raw_sans = str(ext)
         if raw_sans is not None:
             for raw_san in raw_sans.split(","):

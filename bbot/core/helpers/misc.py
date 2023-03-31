@@ -12,12 +12,12 @@ import string
 import logging
 import platform
 import ipaddress
-import wordninja
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
 from datetime import datetime
 from tabulate import tabulate
+import wordninja as _wordninja
 from contextlib import suppress
 import tldextract as _tldextract
 from urllib.parse import urlparse, quote, urlunparse  # noqa F401
@@ -310,14 +310,13 @@ def rand_string(length=10, digits=True):
     return "".join([random.choice(pool) for _ in range(int(length))])
 
 
-def extract_words(data, acronyms=True, max_length=100):
+def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100):
     """
     Intelligently extract words from given data
     Returns set() of extracted words
     """
     words = set()
     data = smart_decode(data)
-
     for r in regexes.word_regexes:
         for word in set(r.findall(data)):
             # blacklanternsecurity
@@ -327,9 +326,12 @@ def extract_words(data, acronyms=True, max_length=100):
     # blacklanternsecurity --> ['black', 'lantern', 'security']
     # max_slice_length = 3
     for word in list(words):
-        subwords = wordninja.split(word)
-        for subword in subwords:
-            words.add(subword)
+        if wordninja:
+            if model is None:
+                model = _wordninja
+            subwords = model.split(word)
+            for subword in subwords:
+                words.add(subword)
         # blacklanternsecurity --> ['black', 'lantern', 'security', 'blacklantern', 'lanternsecurity']
         # for s, e in combinations(range(len(subwords) + 1), 2):
         #    if e - s <= max_slice_length:
