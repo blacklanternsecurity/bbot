@@ -4,6 +4,7 @@ import sys
 import copy
 import json
 import atexit
+import codecs
 import psutil
 import random
 import shutil
@@ -20,8 +21,8 @@ from datetime import datetime
 from tabulate import tabulate
 from contextlib import suppress
 import tldextract as _tldextract
-from urllib.parse import urlparse, quote, urlunparse  # noqa F401
 from hashlib import sha1 as hashlib_sha1
+from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
 from . import regexes
@@ -292,6 +293,30 @@ def smart_encode(data):
     if isinstance(data, bytes):
         return data
     return str(data).encode("utf-8", errors="ignore")
+
+
+encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\[nNtTrR]")
+
+
+def recursive_decode(data, max_depth=5):
+    """
+    Encode double or triple-encoded strings
+    """
+    data = smart_decode(data)
+    if max_depth == 0:
+        return data
+    # Decode URL encoding
+    decoded_text = unquote(data)
+    # Decode Unicode escapes
+    decoded_text = codecs.decode(decoded_text, "unicode_escape")
+    # Decode newline and tab escapes
+    decoded_text = decoded_text.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r")
+    # Check if there's still URL-encoded or Unicode-escaped content
+    if encoded_regex.search(decoded_text):
+        # If yes, continue decoding
+        return recursive_decode(decoded_text, max_depth=max_depth - 1)
+
+    return decoded_text
 
 
 rand_pool = string.ascii_lowercase
