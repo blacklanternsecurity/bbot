@@ -1,8 +1,6 @@
-from bbot.modules.base import BaseModule
 from bbot.modules.deadly.wfuzz import wfuzz
 
 from urllib.parse import urlparse
-import json
 import random
 import string
 
