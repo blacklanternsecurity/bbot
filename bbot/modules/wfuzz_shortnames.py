@@ -58,7 +58,7 @@ class wfuzz_shortnames(wfuzz):
 
     in_scope_only = True
 
-    #deps_pip = ["wfuzz"]
+    # deps_pip = ["wfuzz"]
 
     def setup(self):
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
@@ -137,7 +137,6 @@ class wfuzz_shortnames(wfuzz):
             if tempfile_len > 0:
                 if "shortname-file" in event.tags:
                     for ext in used_extensions:
-
                         for r in self.execute_wfuzz(tempfile, root_url, suffix=f".{ext}"):
                             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['code']}"])
 
@@ -166,9 +165,7 @@ class wfuzz_shortnames(wfuzz):
                             for r in self.execute_wfuzz(
                                 tempfile, root_url, prefix=f"{prefix}{delimeter}", suffix=f".{ext}"
                             ):
-                                self.emit_event(
-                                    r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['code']}"]
-                                )
+                                self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['code']}"])
 
     def finish(self):
         if self.config.get("find_common_prefixes"):

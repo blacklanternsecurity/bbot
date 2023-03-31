@@ -50,7 +50,6 @@ class vhost(wfuzz):
         else:
             return domain
 
-
     def handle_event(self, event):
         if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):
             host = f"{event.parsed.scheme}://{event.parsed.netloc}"
@@ -74,12 +73,20 @@ class vhost(wfuzz):
 
             # check existing host for mutations
             self.verbose("Checking for vhost mutations on main host")
-            for vhost in self.wfuzz_vhost(host, f".{basehost}", event, wordlist=self.mutations_check(event.parsed.netloc.split(".")[0])):
+            for vhost in self.wfuzz_vhost(
+                host, f".{basehost}", event, wordlist=self.mutations_check(event.parsed.netloc.split(".")[0])
+            ):
                 pass
 
             # special vhost list
             self.verbose("Checking special vhost list")
-            for vhost in self.wfuzz_vhost(host, "", event, wordlist=self.helpers.tempfile(self.special_vhost_list,pipe=False), skip_dns_host=True):
+            for vhost in self.wfuzz_vhost(
+                host,
+                "",
+                event,
+                wordlist=self.helpers.tempfile(self.special_vhost_list, pipe=False),
+                skip_dns_host=True,
+            ):
                 pass
 
     def wfuzz_vhost(self, host, basehost, event, wordlist=None, skip_dns_host=False):
@@ -103,7 +110,7 @@ class vhost(wfuzz):
         for mutation in self.helpers.word_cloud.mutations(vhost):
             for i in ["", ".", "-"]:
                 mutations_list.append(i.join(mutation))
-        mutations_list_file = self.helpers.tempfile(mutations_list,pipe=False)
+        mutations_list_file = self.helpers.tempfile(mutations_list, pipe=False)
         return mutations_list_file
 
     def finish(self):
@@ -112,12 +119,12 @@ class vhost(wfuzz):
 
         for host, event in self.scanned_hosts.items():
             event.parsed = urlparse(host)
-            
+
             self.verbose("Checking main host with wordcloud")
             if self.config.get("force_basehost"):
                 basehost = self.config.get("force_basehost")
             else:
                 basehost = self.get_parent_domain(event.parsed.netloc)
- 
+
             for vhost in self.wfuzz_vhost(host, f".{basehost}", event, wordlist=tempfile):
                 pass

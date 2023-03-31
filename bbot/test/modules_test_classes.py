@@ -1177,10 +1177,8 @@ class Wfuzz(HttpxMockHelper):
         return False
 
 
-
 class Vhost(HttpxMockHelper):
-
-    targets=['http://localhost:8888','secret.localhost']
+    targets = ["http://localhost:8888", "secret.localhost"]
 
     additional_modules = ["httpx"]
 
@@ -1197,24 +1195,23 @@ class Vhost(HttpxMockHelper):
         self.bbot_httpserver.no_handler_status_code = 404
 
     def mock_args(self):
-
-        expect_args = {"method": "GET", "uri": "/", "headers":{"Host": "admin.localhost:8888"}}
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "admin.localhost:8888"}}
         respond_args = {"response_data": "Alive vhost admin"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        expect_args = {"method": "GET", "uri": "/", "headers":{"Host": "cloud.localhost:8888"}}
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "cloud.localhost:8888"}}
         respond_args = {"response_data": "Alive vhost cloud"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        expect_args = {"method": "GET", "uri": "/", "headers":{"Host": "q-cloud.localhost:8888"}}
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "q-cloud.localhost:8888"}}
         respond_args = {"response_data": "Alive vhost q-cloud"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        expect_args = {"method": "GET", "uri": "/", "headers":{"Host": "secret.localhost:8888"}}
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "secret.localhost:8888"}}
         respond_args = {"response_data": "Alive vhost secret"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        expect_args = {"method": "GET", "uri": "/", "headers":{"Host": "host.docker.internal"}}
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "host.docker.internal"}}
         respond_args = {"response_data": "Alive vhost host.docker.internal"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -1223,7 +1220,6 @@ class Vhost(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-
         basic_detection = False
         mutaton_of_detected = False
         basehost_mutation = False
@@ -1233,15 +1229,15 @@ class Vhost(HttpxMockHelper):
         for e in events:
             print(e)
             if e.type == "VHOST":
-                if e.data['vhost'] == "admin":
+                if e.data["vhost"] == "admin":
                     basic_detection = True
-                if e.data['vhost'] == "cloud":
+                if e.data["vhost"] == "cloud":
                     mutaton_of_detected = True
-                if e.data['vhost'] == "q-cloud":
+                if e.data["vhost"] == "q-cloud":
                     basehost_mutation = True
-                if e.data['vhost'] == "host.docker.internal":
+                if e.data["vhost"] == "host.docker.internal":
                     special_vhost_list = True
-                if e.data['vhost'] == "secret":
+                if e.data["vhost"] == "secret":
                     wordcloud_detection = True
 
         if (
@@ -1253,6 +1249,7 @@ class Vhost(HttpxMockHelper):
         ):
             return True
         return False
+
 
 class Wfuzz_shortnames(HttpxMockHelper):
     test_wordlist = ["11111111", "administrator", "portal", "console", "junkword1", "zzzjunkword2", "directory"]

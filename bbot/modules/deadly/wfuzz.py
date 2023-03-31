@@ -80,33 +80,36 @@ class wfuzz(BaseModule):
         return True
 
     def baseline_wfuzz(self, url, exts=[""], prefix="", suffix="", mode="normal"):
-
         filters = {}
         for ext in exts:
-
             # For each "extension", we will attempt to build a baseline using 4 requests
 
             canary_string_4 = "".join(random.choice(string.ascii_lowercase) for i in range(4))
             canary_string_6 = "".join(random.choice(string.ascii_lowercase) for i in range(6))
             canary_string_8 = "".join(random.choice(string.ascii_lowercase) for i in range(8))
             canary_string_10 = "".join(random.choice(string.ascii_lowercase) for i in range(10))
-            canary_temp_file = self.helpers.tempfile([canary_string_4, canary_string_6, canary_string_8, canary_string_10], pipe=False)
+            canary_temp_file = self.helpers.tempfile(
+                [canary_string_4, canary_string_6, canary_string_8, canary_string_10], pipe=False
+            )
             canary_results = []
 
-            for canary_r in self.execute_wfuzz(canary_temp_file, url, prefix=prefix, suffix=suffix, mode=mode, baseline=True):
+            for canary_r in self.execute_wfuzz(
+                canary_temp_file, url, prefix=prefix, suffix=suffix, mode=mode, baseline=True
+            ):
                 canary_results.append(canary_r)
 
             # First, lets check to make sure we got all 4 requests. If we didn't, there are likely serious connectivity issues.
             # We should issue a warning in that case.
 
             if len(canary_results) != 4:
-                self.warning(f"Could not attain baseline for URL [{url}] ext [{ext}] because baseline results are missing. Possible connectivity issues.")
+                self.warning(
+                    f"Could not attain baseline for URL [{url}] ext [{ext}] because baseline results are missing. Possible connectivity issues."
+                )
                 filters[ext] = "ABORT"
                 continue
-            
+
             # if the codes are different, we should abort, this should also be a warning, as it is highly unusual behavior
             if len(set(d["code"] for d in canary_results)) != 1:
-
                 self.hugesuccess("Got different codes for each baseline. This could indicate load balancing")
                 filters[ext] = "ABORT"
                 continue
@@ -141,7 +144,6 @@ class wfuzz(BaseModule):
         return filters
 
     def execute_wfuzz(self, tempfile, url, prefix="", suffix="", exts=[""], filters={}, mode="normal", baseline=False):
-
         for ext in exts:
             if mode == "normal":
                 self.debug("in mode [normal]")
@@ -156,7 +158,7 @@ class wfuzz(BaseModule):
                     "-w",
                     tempfile,
                     "-u",
-                    f"{fuzz_url}{ext}"
+                    f"{fuzz_url}{ext}",
                 ]
 
             elif mode == "hostheader":
@@ -180,13 +182,11 @@ class wfuzz(BaseModule):
                 return
 
             if not baseline:
-
                 command.append("--hc")
                 command.append("404")
 
                 if ext in filters.keys():
                     if filters[ext] == "ABORT":
-
                         self.warning(
                             "Exiting from wfuzz run early, received an ABORT filter. This probably means the page was too dynamic for a baseline."
                         )
