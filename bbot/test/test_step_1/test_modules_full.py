@@ -106,8 +106,8 @@ def test_wafw00f(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
-def test_ffuf(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Ffuf(bbot_config, bbot_scanner, bbot_httpserver)
+def test_wfuzz(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Wfuzz(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
 
 
@@ -121,8 +121,8 @@ def test_bypass403_waf(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
-def test_ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
+def test_wfuzz_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Wfuzz_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
 
 
@@ -165,6 +165,9 @@ def test_hunt(bbot_config, bbot_scanner, bbot_httpserver):
     x = Hunt(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
 
+def test_vhost(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Vhost(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
 
 def test_speculate_subdirectories(bbot_config, bbot_scanner, bbot_httpserver):
     x = Speculate_subdirectories(bbot_config, bbot_scanner, bbot_httpserver, module_name="speculate")
