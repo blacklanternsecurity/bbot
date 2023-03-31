@@ -148,8 +148,8 @@ class gowitness(BaseModule):
             _id = row["url_id"]
             source_url = self.screenshots_taken[_id]
             source_event = events[source_url]
-            # if self.excavate.is_spider_danger(source_event, url):
-            #     tags.append("spider-danger")
+            if self.is_spider_danger(source_event, url):
+                tags.append("spider-danger")
             if url and url.startswith("http"):
                 self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
 
