@@ -252,12 +252,18 @@ class Mutator(dict):
 class DNSMutator(Mutator):
     word_regex = re.compile(r"[^_\W]+")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        wordlist_dir = Path(__file__).parent.parent.parent / "wordlists"
+        wordninja_dns_wordlist = wordlist_dir / "wordninja_dns.txt.gz"
+        self.model = wordninja.LanguageModel(wordninja_dns_wordlist)
+
     def mutations(self, words):
         if isinstance(words, str):
             words = [words]
         new_words = set()
         for word in words:
-            for e in extract_words(word, acronyms=False):
+            for e in extract_words(word, acronyms=False, model=self.model):
                 new_words.add(e)
         return super().mutations(new_words)
 
@@ -269,7 +275,7 @@ class DNSMutator(Mutator):
             after = word[end:]
             basic_mutation = [before, None, after]
             self._add_mutation(basic_mutation)
-            match_str_split = wordninja.split(match_str)
+            match_str_split = self.model.split(match_str)
             if len(match_str_split) > 1:
                 for i, s in enumerate(match_str_split):
                     split_before = "".join(match_str_split[:i])
