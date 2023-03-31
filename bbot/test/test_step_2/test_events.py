@@ -289,3 +289,12 @@ def test_events(events, scan, helpers, bbot_config):
     assert reconstituted_event.data["input"] == "http://example.com:80"
     assert reconstituted_event.type == "HTTP_RESPONSE"
     assert reconstituted_event.source_id == scan.root_event.id
+
+    event_1 = scan.make_event("127.0.0.1", source=scan.root_event)
+    event_2 = scan.make_event("127.0.0.2", source=event_1)
+    event_3 = scan.make_event("127.0.0.3", source=event_2)
+    event_3._omit = True
+    event_4 = scan.make_event("127.0.0.4", source=event_3)
+    event_5 = scan.make_event("127.0.0.5", source=event_4)
+    assert event_5.get_sources() == [event_4, event_3, event_2, event_1, scan.root_event]
+    assert event_5.get_sources(omit=True) == [event_4, event_2, event_1, scan.root_event]

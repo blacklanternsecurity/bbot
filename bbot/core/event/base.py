@@ -275,6 +275,20 @@ class BaseEvent:
             return self.source.get_source()
         return self.source
 
+    def get_sources(self, omit=False):
+        sources = []
+        e = self
+        while 1:
+            if omit:
+                source = e.get_source()
+            else:
+                source = e.source
+            if e == source:
+                break
+            sources.append(source)
+            e = source
+        return sources
+
     def make_internal(self):
         if not self._made_internal:
             self._internal = True

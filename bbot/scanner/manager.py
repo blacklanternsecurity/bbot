@@ -244,10 +244,12 @@ class ScanManager:
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_module._priority = 4
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
-                source_event.scope_distance = event.scope_distance
-                if "target" in event.tags:
-                    source_event.add_tag("target")
-                self.emit_event(source_event, _block=False, _force_submit=True)
+                # only emit the event if it's not already in the parent chain
+                if source_event is not None and source_event not in source_event.get_sources():
+                    source_event.scope_distance = event.scope_distance
+                    if "target" in event.tags:
+                        source_event.add_tag("target")
+                    self.emit_event(source_event, _block=False, _force_submit=True)
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:

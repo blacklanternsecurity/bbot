@@ -13,8 +13,13 @@ class massdns(crobat):
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "max_resolvers": 500,
+        "max_mutations": 500,
     }
-    options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
+    options_desc = {
+        "wordlist": "Subdomain wordlist URL",
+        "max_resolvers": "Number of concurrent massdns resolvers",
+        "max_mutations": "Max number of smart mutations per subdomain",
+    }
     subdomain_file = None
     deps_ansible = [
         {
@@ -60,6 +65,7 @@ class massdns(crobat):
         self.source_events = dict()
         self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
         self.max_resolvers = self.config.get("max_resolvers", 500)
+        self.max_mutations = self.config.get("max_mutations", 500)
         nameservers_url = (
             "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt"
         )
@@ -220,21 +226,33 @@ class massdns(crobat):
             domain_hash = hash(domain)
             if self.scan.stopping:
                 return
+
             mutations = set(base_mutations)
+
+            def add_mutation(_domain_hash, m):
+                h = hash((_domain_hash, m))
+                if h not in self.mutations_tried:
+                    self.mutations_tried.add(h)
+                    mutations.add(m)
+
+            # try every subdomain everywhere else
+            for _i, (_domain, _subdomains) in enumerate(found):
+                if _domain == domain:
+                    continue
+                for s in _subdomains:
+                    first_segment = s.split(".")[0]
+                    add_mutation(domain_hash, first_segment)
+
             # word cloud
             for mutation in self.helpers.word_cloud.mutations(subdomains, cloud=False, numbers=3, number_padding=1):
                 for delimiter in ("", ".", "-"):
                     m = delimiter.join(mutation).lower()
-                    h = hash((domain_hash, m))
-                    if h not in self.mutations_tried:
-                        self.mutations_tried.add(h)
-                        mutations.add(m)
+                    add_mutation(domain_hash, m)
             # special dns mutator
-            for subdomain in self.helpers.word_cloud.dns_mutator.mutations(subdomains):
-                h = hash((domain_hash, subdomain))
-                if h not in self.mutations_tried:
-                    self.mutations_tried.add(h)
-                    mutations.add(subdomain)
+            for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
+                subdomains, max_mutations=self.max_mutations
+            ):
+                add_mutation(domain_hash, subdomain)
             if mutations:
                 self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
                 for hostname in self.massdns(query, mutations):
