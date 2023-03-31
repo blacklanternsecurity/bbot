@@ -3,7 +3,6 @@ from bbot.modules.base import BaseModule
 import random
 import string
 import json
-import base64
 
 
 class wfuzz(BaseModule):
