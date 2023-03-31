@@ -757,13 +757,14 @@ def can_sudo_without_password():
     """
     Return True if the current user can sudo without a password
     """
-    env = dict(os.environ)
-    env["SUDO_ASKPASS"] = "/bin/false"
-    try:
-        sp.run(["sudo", "-K"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
-        sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
-    except sp.CalledProcessError:
-        return False
+    if os.geteuid() != 0:
+        env = dict(os.environ)
+        env["SUDO_ASKPASS"] = "/bin/false"
+        try:
+            sp.run(["sudo", "-K"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+            sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+        except sp.CalledProcessError:
+            return False
     return True
 
 

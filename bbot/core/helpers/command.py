@@ -42,7 +42,7 @@ def run_live(self, command, *args, **kwargs):
 
     command = [str(s) for s in command]
     env = kwargs.get("env", os.environ)
-    if sudo:
+    if sudo and os.geteuid() != 0:
         self.depsinstaller.ensure_root()
         env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
         env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
@@ -92,7 +92,7 @@ def run(self, command, *args, **kwargs):
 
     command = [str(s) for s in command]
     env = kwargs.get("env", os.environ)
-    if sudo:
+    if sudo and os.geteuid() != 0:
         self.depsinstaller.ensure_root()
         env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
         env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
