@@ -3,6 +3,7 @@ from bbot.scanner import Scanner
 
 
 def test_curl(bbot_httpserver, bbot_config):
+    assert False, "wat"
     scan = Scanner("127.0.0.1", config=bbot_config)
     helpers = scan.helpers
     url = bbot_httpserver.url_for("/curl")
