@@ -79,7 +79,7 @@ class BaseEvent:
             self._tags = set(tagify(s) for s in tags)
 
         self._data = None
-        self.type = event_type
+        self._type = event_type
         self.confidence = int(confidence)
 
         # for creating one-off events without enforcing source requirement
@@ -99,10 +99,7 @@ class BaseEvent:
             self.scans = list(set([self.scan.id] + self.scans))
 
         # check type blacklist
-        if self.scan is not None:
-            omit_event_types = self.scan.config.get("omit_event_types", [])
-            if omit_event_types and self.type in omit_event_types:
-                self._omit = True
+        self._check_omit()
 
         self._scope_distance = -1
 
@@ -469,6 +466,23 @@ class BaseEvent:
                 self._priority = getattr(self.source, "priority", ()) + (timestamp,)
         return self._priority
 
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, val):
+        self._type = val
+        self._hash = None
+        self._id = None
+        self._check_omit()
+
+    def _check_omit(self):
+        if self.scan is not None:
+            omit_event_types = self.scan.config.get("omit_event_types", [])
+            if omit_event_types and self.type in omit_event_types:
+                self._omit = True
+
     def __iter__(self):
         """
         For dict(event)
@@ -621,10 +635,11 @@ class DNS_NAME(DnsEvent):
         return self.data
 
     def _words(self):
-        stem = self.host_stem
-        if "wildcard" in self.tags:
-            stem = "".join(stem.split(".")[1:])
-        if "resolved" in self.tags:
+        # only operate on resolved DNS_NAMEs
+        if self.type == "DNS_NAME":
+            stem = self.host_stem
+            if "wildcard" in self.tags:
+                stem = ".".join(stem.split(".")[1:])
             return extract_words(stem)
         return set()
 
@@ -894,7 +909,7 @@ def make_event(
         if module is not None:
             data.module = module
         if source is not None:
-            data.set_source(source)
+            data.source = source
         if internal == True and not data._made_internal:
             data.make_internal()
         event_type = data.type

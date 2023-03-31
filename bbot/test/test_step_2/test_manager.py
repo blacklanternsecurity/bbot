@@ -102,9 +102,9 @@ def test_scope_distance(bbot_scanner, bbot_config):
     manager = scan1.manager
     test_event1 = scan1.make_event("127.0.0.1", source=scan1.root_event)
 
-    assert scan1.scope_search_distance == 1
+    assert scan1.scope_search_distance == 0
     assert scan1.scope_report_distance == 0
-    assert module.scope_distance_modifier == 0
+    assert module.scope_distance_modifier == 1
 
     # test _emit_event() with scope_distance == 0
     manager._emit_event(test_event1)

@@ -67,7 +67,7 @@ class ScanManager:
             log.debug(f'Module "{event.module}" raised {event}')
             event._resolved.set()
             for kwarg in ["abort_if", "on_success_callback", "_block"]:
-                kwargs.pop(kwargs, None)
+                kwargs.pop(kwarg, None)
             try:
                 self.distribute_event(event, *args, **kwargs)
                 return True
@@ -167,6 +167,10 @@ class ScanManager:
                 log.debug(f"Omitting due to blacklisted {reason}: {event}")
                 distribute_event = False
 
+            # DNS_NAME --> DNS_NAME_UNRESOLVED
+            if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
+                event.type = "DNS_NAME_UNRESOLVED"
+
             # Cloud tagging
             for provider in self.scan.helpers.cloud.providers.values():
                 provider.tag_event(event)
@@ -192,7 +196,7 @@ class ScanManager:
                         event.make_internal()
 
             # check for wildcards
-            if event.scope_distance < self.scan.scope_search_distance:
+            if event.scope_distance <= self.scan.scope_search_distance:
                 if not "unresolved" in event.tags:
                     self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
 

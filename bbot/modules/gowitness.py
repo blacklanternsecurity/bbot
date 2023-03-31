@@ -76,9 +76,9 @@ class gowitness(BaseModule):
             },
         },
     ]
-    # visit up to and including the scan's configured search distance
+    # visit up to and including the scan's configured search distance plus one
     # this is one hop further than the default
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
 
     def setup(self):
         self.timeout = self.config.get("timeout", 10)

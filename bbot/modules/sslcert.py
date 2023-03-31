@@ -23,7 +23,7 @@ class sslcert(BaseModule):
     deps_pip = ["pyOpenSSL"]
     max_threads = 50
     max_event_handlers = 25
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     _priority = 2
 
     def setup(self):
@@ -67,8 +67,10 @@ class sslcert(BaseModule):
 
         if event.scope_distance == 0:
             abort_threshold = self.in_scope_abort_threshold
+            log_fn = self.info
         else:
             abort_threshold = self.out_of_scope_abort_threshold
+            log_fn = self.verbose
         for future in self.helpers.as_completed(futures):
             host = futures[future]
             result = future.result()
@@ -77,7 +79,7 @@ class sslcert(BaseModule):
             dns_names, emails = result
             if len(dns_names) > abort_threshold:
                 netloc = self.helpers.make_netloc(host, port)
-                self.info(
+                log_fn(
                     f"Skipping Subject Alternate Names (SANs) on {netloc} because number of hostnames ({len(dns_names):,}) exceeds threshold ({abort_threshold})"
                 )
                 dns_names = dns_names[:1]
