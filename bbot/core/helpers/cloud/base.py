@@ -42,7 +42,7 @@ class BaseCloudProvider:
                             self.emit_event(**kwargs)
 
     def emit_bucket(self, match, **kwargs):
-        _, bucket_name, bucket_domain = match
+        bucket_name, bucket_domain = match
         kwargs["data"] = {"name": bucket_name, "url": f"https://{bucket_name}.{bucket_domain}"}
         self.emit_event(**kwargs)
 
