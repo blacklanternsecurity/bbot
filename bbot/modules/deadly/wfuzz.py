@@ -222,22 +222,21 @@ class wfuzz(BaseModule):
                     else:
                         command.append("--filter")
                         command.append(filters[ext])
-            self.hugewarning(command)
-            command = ["which", "wfuzz"]
+
             for jsonstring in self.helpers.run_live(command):
                 self.critical(jsonstring)
-                if len(jsonstring) > 0:
-                    jsondata = json.loads(jsonstring)
-                else:
-                    self.debug("Received no data from wfuzz")
-                    return
+                # if len(jsonstring) > 0:
+                #     jsondata = json.loads(jsonstring)
+                # else:
+                #     self.debug("Received no data from wfuzz")
+                #     return
 
-                if any(self.canary in d.get("payload", "") for d in jsondata):
-                    self.verbose(f"Found 'abort' string in results for command: [{' '.join(str(x) for x in command)}]")
-                    break
+                # if any(self.canary in d.get("payload", "") for d in jsondata):
+                #     self.verbose(f"Found 'abort' string in results for command: [{' '.join(str(x) for x in command)}]")
+                #     break
 
-                for i in jsondata:
-                    yield i
+                # for i in jsondata:
+                #     yield i
 
     def generate_templist(self, prefix=None):
         line_count = 0
