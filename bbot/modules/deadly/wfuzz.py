@@ -2,7 +2,7 @@ from bbot.modules.base import BaseModule
 
 import random
 import string
-import json
+#import json
 
 
 class wfuzz(BaseModule):
