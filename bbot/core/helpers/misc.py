@@ -295,29 +295,32 @@ def smart_encode(data):
     return str(data).encode("utf-8", errors="ignore")
 
 
-encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\[nNtTrR]")
+encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\[ntrbv]")
+backslash_regex = re.compile(r"(?P<slashes>\\+)(?P<char>[ntrvb])")
 
 
 def recursive_decode(data, max_depth=5):
     """
     Encode double or triple-encoded strings
     """
+    # Decode newline and tab escapes
+    data = backslash_regex.sub(
+        lambda match: {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "v": "\v"}.get(match.group("char")), data
+    )
     data = smart_decode(data)
     if max_depth == 0:
         return data
     # Decode URL encoding
-    decoded_text = unquote(data, errors="ignore")
+    data = unquote(data, errors="ignore")
     # Decode Unicode escapes
     with suppress(UnicodeEncodeError):
-        decoded_text = codecs.decode(decoded_text, "unicode_escape", errors="ignore")
-    # Decode newline and tab escapes
-    decoded_text = decoded_text.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r")
+        data = codecs.decode(data, "unicode_escape", errors="ignore")
     # Check if there's still URL-encoded or Unicode-escaped content
-    if encoded_regex.search(decoded_text):
+    if encoded_regex.search(data):
         # If yes, continue decoding
-        return recursive_decode(decoded_text, max_depth=max_depth - 1)
+        return recursive_decode(data, max_depth=max_depth - 1)
 
-    return decoded_text
+    return data
 
 
 rand_pool = string.ascii_lowercase

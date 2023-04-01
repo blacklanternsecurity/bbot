@@ -338,6 +338,9 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
         helpers.recursive_decode("%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021")
         == " Привет!"
     )
+    assert (
+        helpers.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText") == "Hello\nWorld\tGreetings\nMore\nText"
+    )
 
     def raise_filenotfound():
         raise FileNotFoundError("asdf")
