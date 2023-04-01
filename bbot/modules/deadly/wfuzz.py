@@ -224,10 +224,10 @@ class wfuzz(BaseModule):
                         command.append(filters[ext])
 
             for jsonstring in self.helpers.run_live(command):
-                try:
+                if len(jsonstring) > 0:
                     jsondata = json.loads(jsonstring)
-                except json.JSONDecodeError:
-                    self.warning("Error parsing JSON from wfuzz")
+                else:
+                    self.debug("Received no data from wfuzz")
                     return
 
                 if any(self.canary in d.get("payload", "") for d in jsondata):
