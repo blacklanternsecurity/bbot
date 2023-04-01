@@ -223,8 +223,9 @@ class wfuzz(BaseModule):
                         command.append("--filter")
                         command.append(filters[ext])
 
-            for jsonstring in self.helpers.run_live(command):
-                self.critical(jsonstring)
+            output = self.helpers.run(command)
+            self.critical(output.stdout)
+            self.critical(output.stderr)
                 # if len(jsonstring) > 0:
                 #     jsondata = json.loads(jsonstring)
                 # else:
