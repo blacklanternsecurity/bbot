@@ -30,6 +30,7 @@ class vhost(wfuzz):
     def setup(self):
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         self.scanned_hosts = {}
+        self.wordcloud_tried_hosts = set()
         self.wordlist = self.helpers.wordlist(self.config.get("wordlist"))
         f = open(self.wordlist, "r")
         self.wordlist_lines = f.readlines()
@@ -116,13 +117,16 @@ class vhost(wfuzz):
         tempfile = self.helpers.tempfile(list(self.helpers.word_cloud.keys()), pipe=False)
 
         for host, event in self.scanned_hosts.items():
-            event.parsed = urlparse(host)
+            if host not in self.wordcloud_tried_hosts:
+                event.parsed = urlparse(host)
 
-            self.verbose("Checking main host with wordcloud")
-            if self.config.get("force_basehost"):
-                basehost = self.config.get("force_basehost")
-            else:
-                basehost = self.get_parent_domain(event.parsed.netloc)
+                self.verbose("Checking main host with wordcloud")
+                if self.config.get("force_basehost"):
+                    basehost = self.config.get("force_basehost")
+                else:
+                    basehost = self.get_parent_domain(event.parsed.netloc)
 
-            for vhost in self.wfuzz_vhost(host, f".{basehost}", event, wordlist=tempfile):
-                pass
+                for vhost in self.wfuzz_vhost(host, f".{basehost}", event, wordlist=tempfile):
+                    pass
+
+                self.wordcloud_tried_hosts.add(host)
