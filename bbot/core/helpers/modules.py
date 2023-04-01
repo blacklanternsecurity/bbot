@@ -79,7 +79,7 @@ class ModuleLoader:
         flags = []
         meta = {}
         pip_deps = []
-        pip_contraints_deps = []
+        pip_deps_constraints = []
         shell_deps = []
         apt_deps = []
         ansible_tasks = []
@@ -130,7 +130,7 @@ class ModuleLoader:
                         if any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
                             for python_dep in class_attr.value.elts:
                                 if type(python_dep.value) == str:
-                                    pip_deps.append(python_dep.value)
+                                    pip_deps_constraints.append(python_dep.value)
 
                         # apt dependencies
                         elif any([target.id == "deps_apt" for target in class_attr.targets]):
@@ -160,7 +160,7 @@ class ModuleLoader:
             "hash": module_hash,
             "deps": {
                 "pip": pip_deps,
-                "pip_constraints": pip_contraints_deps,
+                "pip_constraints": pip_deps_constraints,
                 "shell": shell_deps,
                 "apt": apt_deps,
                 "ansible": ansible_tasks,
@@ -185,6 +185,7 @@ class ModuleLoader:
         namespace = self._preloaded[module_name]["namespace"]
         import_path = f"{namespace}.{module_name}"
         module_variables = importlib.import_module(import_path, "bbot")
+
         # for every top-level variable in the .py file
         for variable in module_variables.__dict__.keys():
             # get its value
