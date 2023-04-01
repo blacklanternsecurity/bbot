@@ -127,7 +127,7 @@ class ModuleLoader:
                                 if type(python_dep.value) == str:
                                     pip_deps.append(python_dep.value)
 
-                        if any([target.id == "deps_pip_constrains" for target in class_attr.targets]):
+                        if any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
                             for python_dep in class_attr.value.elts:
                                 if type(python_dep.value) == str:
                                     pip_deps.append(python_dep.value)
