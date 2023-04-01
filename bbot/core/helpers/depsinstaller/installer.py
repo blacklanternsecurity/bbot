@@ -133,15 +133,15 @@ class DepsInstaller:
         if deps_apt:
             self.apt_install(deps_apt)
 
-        # pip
-        deps_pip = preloaded["deps"]["pip"]
-        if deps_pip:
-            success &= self.pip_install(deps_pip)
-
         # shell
         deps_shell = preloaded["deps"]["shell"]
         if deps_shell:
             success &= self.shell(module, deps_shell)
+
+        # pip
+        deps_pip = preloaded["deps"]["pip"]
+        if deps_pip:
+            success &= self.pip_install(deps_pip)
 
         return success
 
