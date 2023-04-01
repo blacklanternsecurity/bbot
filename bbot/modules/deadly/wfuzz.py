@@ -43,7 +43,7 @@ class wfuzz(BaseModule):
         },
         {
             "name": "Install pycurl dependencies (Debian)",
-            "package": {"name": "build-essential,libcurl4-openssl-dev,libssl-dev", "state": "present"},
+            "package": {"name": "build-essential,libcurl4-openssl-dev,python3-dev,libssl-dev", "state": "present"},
             "become": True,
             "when": "ansible_facts['os_family'] == 'Debian'",
             "ignore_errors": True,
