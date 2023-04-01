@@ -140,16 +140,22 @@ class DepsInstaller:
 
         # pip
         deps_pip = preloaded["deps"]["pip"]
+        deps_pip_constraints = preloaded["deps"]["pip_constraints"]
         if deps_pip:
-            success &= self.pip_install(deps_pip)
+            success &= self.pip_install(deps_pip, deps_pip_constraints)
 
         return success
 
-    def pip_install(self, packages):
+    def pip_install(self, packages, constraints=None):
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
+
+        if constraints:
+            command += "--constraints"
+            command += ",".join(constraints)
+
         process = None
         try:
             process = self.parent_helper.run(command, check=True)
