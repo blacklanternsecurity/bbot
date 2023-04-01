@@ -33,31 +33,7 @@ class wfuzz(BaseModule):
 
     blacklist = ["images", "css", "image"]
 
-    deps_ansible = [
-        {
-            "name": "Install pycurl dependencies (Non-Debian)",
-            "package": {"name": "gcc,libcurl-devel,openssl-devel,python3-devel", "state": "present"},
-            "become": True,
-            "when": "ansible_facts['os_family'] != 'Debian' and ansible_facts['os_family'] != 'Archlinux'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Install pycurl dependencies (Debian)",
-            "package": {"name": "build-essential,libcurl4-openssl-dev,python3-dev,libssl-dev", "state": "present"},
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'Debian'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Install pycurl dependencies (Arch)",
-            "package": {"name": "gcc", "state": "present"},
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'Archlinux'",
-            "ignore_errors": True,
-        },
-    ]
-
-    deps_pip = ["wfuzz"]
+    deps_pip = ["pycurl==7.43.0.5", "wfuzz"]
 
     in_scope_only = True
 
@@ -195,7 +171,7 @@ class wfuzz(BaseModule):
                     "-H",
                     f"Host: FUZZ{suffix}",
                     "-o",
-                    #      "json",
+                    "json",
                     "-w",
                     tempfile,
                     "-u",
@@ -224,8 +200,6 @@ class wfuzz(BaseModule):
                         command.append(filters[ext])
 
             output = self.helpers.run(command)
-            self.critical(output.stdout)
-            self.critical(output.stderr)
             if len(output.stdout) > 0:
                 jsondata = json.loads(output.stdout)
             else:
