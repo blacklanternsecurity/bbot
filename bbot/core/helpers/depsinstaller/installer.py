@@ -142,7 +142,7 @@ class DepsInstaller:
         deps_pip = preloaded["deps"]["pip"]
         deps_pip_constraints = preloaded["deps"]["pip_constraints"]
         if deps_pip:
-            success &= self.pip_install(deps_pip, deps_pip_constraints)
+            success &= self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
         return success
 
@@ -153,8 +153,9 @@ class DepsInstaller:
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
 
         if constraints:
-            command += "--constraints"
-            command += ",".join(constraints)
+            contraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)
+            command.append("--constraint")
+            command.append(contraints_tempfile)
 
         process = None
         try:
