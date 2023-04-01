@@ -195,7 +195,7 @@ class wfuzz(BaseModule):
                     "-H",
                     f"Host: FUZZ{suffix}",
                     "-o",
-              #      "json",
+                    #      "json",
                     "-w",
                     tempfile,
                     "-u",
