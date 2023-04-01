@@ -33,7 +33,8 @@ class wfuzz(BaseModule):
 
     blacklist = ["images", "css", "image"]
 
-    deps_pip = ["pycurl==7.43.0.5", "wfuzz"]
+    deps_shell = ["pip install pycurl==7.43.0.5 --upgrade"]
+    deps_pip = ["wfuzz"]
 
     in_scope_only = True
 
