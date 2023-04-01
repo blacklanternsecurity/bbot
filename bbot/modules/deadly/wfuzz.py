@@ -223,6 +223,7 @@ class wfuzz(BaseModule):
                         command.append("--filter")
                         command.append(filters[ext])
             self.hugewarning(command)
+            command = ['which','wfuzz']
             for jsonstring in self.helpers.run_live(command):
                 self.critical(jsonstring)
                 if len(jsonstring) > 0:
