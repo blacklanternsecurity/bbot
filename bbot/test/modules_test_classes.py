@@ -76,12 +76,12 @@ class Excavate(HttpxMockHelper):
         ftp://ftp.test.notreal
         \\nhttps://www1.test.notreal
         \\x3dhttps://www2.test.notreal
-        %a2https://www3.test.notreal
-        \\uac20https://www4.test.notreal
+        %0ahttps://www3.test.notreal
+        \\u000ahttps://www4.test.notreal
         \nwww5.test.notreal
         \\x3dwww6.test.notreal
-        %a2www7.test.notreal
-        \\uac20www8.test.notreal
+        %0awww7.test.notreal
+        \\u000awww8.test.notreal
         <a src="http://www9.test.notreal">
         """
         expect_args = {"method": "GET", "uri": "/"}

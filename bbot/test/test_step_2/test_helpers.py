@@ -326,6 +326,22 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     with pytest.raises(ValueError):
         helpers.smart_encode_punycode(b"asdf")
 
+    assert helpers.recursive_decode("Hello%20world%21") == "Hello world!"
+    assert helpers.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"
+    assert helpers.recursive_decode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021") == " Привет!"
+    assert helpers.recursive_decode("Hello%2520world%2521") == "Hello world!"
+    assert (
+        helpers.recursive_decode("Hello%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442")
+        == "Hello Привет"
+    )
+    assert (
+        helpers.recursive_decode("%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021")
+        == " Привет!"
+    )
+    assert (
+        helpers.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText") == "Hello\nWorld\tGreetings\nMore\nText"
+    )
+
     def raise_filenotfound():
         raise FileNotFoundError("asdf")
 

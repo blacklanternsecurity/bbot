@@ -24,27 +24,25 @@ class BaseCloudProvider:
     def base_tags(self):
         return {f"cloud-{self.name}"}
 
-    def excavate(self, event):
+    def excavate(self, event, http_body):
         base_kwargs = dict(source=event, tags=self.base_tags)
 
         # check for buckets in HTTP responses
-        if event.type == "HTTP_RESPONSE":
-            body = event.data.get("body", "")
-            for event_type, sigs in self.signatures.items():
-                found = set()
-                for sig in sigs:
-                    for match in sig.findall(body):
-                        kwargs = dict(base_kwargs)
-                        kwargs["event_type"] = event_type
-                        if not match in found:
-                            found.add(match)
-                            if event_type == "STORAGE_BUCKET":
-                                self.emit_bucket(match, **kwargs)
-                            else:
-                                self.emit_event(**kwargs)
+        for event_type, sigs in self.signatures.items():
+            found = set()
+            for sig in sigs:
+                for match in sig.findall(http_body):
+                    kwargs = dict(base_kwargs)
+                    kwargs["event_type"] = event_type
+                    if not match in found:
+                        found.add(match)
+                        if event_type == "STORAGE_BUCKET":
+                            self.emit_bucket(match, **kwargs)
+                        else:
+                            self.emit_event(**kwargs)
 
     def emit_bucket(self, match, **kwargs):
-        _, bucket_name, bucket_domain = match
+        bucket_name, bucket_domain = match
         kwargs["data"] = {"name": bucket_name, "url": f"https://{bucket_name}.{bucket_domain}"}
         self.emit_event(**kwargs)
 

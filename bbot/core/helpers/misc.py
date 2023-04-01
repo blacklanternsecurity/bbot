@@ -4,6 +4,7 @@ import sys
 import copy
 import json
 import atexit
+import codecs
 import psutil
 import random
 import shutil
@@ -20,8 +21,8 @@ from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
 import tldextract as _tldextract
-from urllib.parse import urlparse, quote, urlunparse  # noqa F401
 from hashlib import sha1 as hashlib_sha1
+from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
 from . import regexes
@@ -292,6 +293,34 @@ def smart_encode(data):
     if isinstance(data, bytes):
         return data
     return str(data).encode("utf-8", errors="ignore")
+
+
+encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\[ntrbv]")
+backslash_regex = re.compile(r"(?P<slashes>\\+)(?P<char>[ntrvb])")
+
+
+def recursive_decode(data, max_depth=5):
+    """
+    Encode double or triple-encoded strings
+    """
+    # Decode newline and tab escapes
+    data = backslash_regex.sub(
+        lambda match: {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "v": "\v"}.get(match.group("char")), data
+    )
+    data = smart_decode(data)
+    if max_depth == 0:
+        return data
+    # Decode URL encoding
+    data = unquote(data, errors="ignore")
+    # Decode Unicode escapes
+    with suppress(UnicodeEncodeError):
+        data = codecs.decode(data, "unicode_escape", errors="ignore")
+    # Check if there's still URL-encoded or Unicode-escaped content
+    if encoded_regex.search(data):
+        # If yes, continue decoding
+        return recursive_decode(data, max_depth=max_depth - 1)
+
+    return data
 
 
 rand_pool = string.ascii_lowercase
@@ -740,13 +769,14 @@ def can_sudo_without_password():
     """
     Return True if the current user can sudo without a password
     """
-    env = dict(os.environ)
-    env["SUDO_ASKPASS"] = "/bin/false"
-    try:
-        sp.run(["sudo", "-K"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
-        sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
-    except sp.CalledProcessError:
-        return False
+    if os.geteuid() != 0:
+        env = dict(os.environ)
+        env["SUDO_ASKPASS"] = "/bin/false"
+        try:
+            sp.run(["sudo", "-K"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+            sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+        except sp.CalledProcessError:
+            return False
     return True
 
 
