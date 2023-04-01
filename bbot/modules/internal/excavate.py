@@ -4,8 +4,8 @@ import base64
 import jwt as j
 from urllib.parse import urlparse, urljoin
 
+from bbot.core.helpers.regexes import _email_regex
 from bbot.modules.internal.base import BaseInternalModule
-from bbot.core.helpers.regexes import _email_regex, junk_remover
 
 
 class BaseExtractor:
@@ -40,7 +40,7 @@ class HostnameExtractor(BaseExtractor):
         for i, t in enumerate(dns_targets):
             if not any(x in dns_targets_set for x in excavate.helpers.domain_parents(t, include_self=True)):
                 dns_targets_set.add(t)
-                self.regexes[f"dns_name_{i+1}"] = junk_remover + r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
+                self.regexes[f"dns_name_{i+1}"] = r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
@@ -49,9 +49,7 @@ class HostnameExtractor(BaseExtractor):
 
 class URLExtractor(BaseExtractor):
     regexes = {
-        "fullurl": r"(?i)"
-        + junk_remover
-        + r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
+        "fullurl": r"(?i)" + r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
@@ -302,7 +300,9 @@ class excavate(BaseInternalModule):
                     data = {"host": host, "description": f"Non-standard URI scheme: {scheme}://", "url": location}
                     self.emit_event(data, "FINDING", event)
 
-            body = event.data.get("body", "")
+            body = self.helpers.recursive_decode(event.data.get("body", ""))
+            # Cloud extractors
+            self.helpers.cloud.excavate(event, body)
             self.search(
                 body,
                 [
@@ -319,7 +319,7 @@ class excavate(BaseInternalModule):
                 spider_danger=True,
             )
 
-            headers = event.data.get("raw_header", "")
+            headers = self.helpers.recursive_decode(event.data.get("raw_header", ""))
             self.search(
                 headers,
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
@@ -333,6 +333,3 @@ class excavate(BaseInternalModule):
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,
             )
-
-        # Cloud extractors
-        self.helpers.cloud.excavate(event)

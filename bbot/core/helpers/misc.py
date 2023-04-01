@@ -4,6 +4,7 @@ import sys
 import copy
 import json
 import atexit
+import codecs
 import psutil
 import random
 import shutil
@@ -20,8 +21,8 @@ from datetime import datetime
 from tabulate import tabulate
 from contextlib import suppress
 import tldextract as _tldextract
-from urllib.parse import urlparse, quote, urlunparse  # noqa F401
 from hashlib import sha1 as hashlib_sha1
+from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
 from . import regexes
@@ -294,6 +295,31 @@ def smart_encode(data):
     return str(data).encode("utf-8", errors="ignore")
 
 
+encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\[nNtTrR]")
+
+
+def recursive_decode(data, max_depth=5):
+    """
+    Encode double or triple-encoded strings
+    """
+    data = smart_decode(data)
+    if max_depth == 0:
+        return data
+    # Decode URL encoding
+    decoded_text = unquote(data, errors="ignore")
+    # Decode Unicode escapes
+    with suppress(UnicodeEncodeError):
+        decoded_text = codecs.decode(decoded_text, "unicode_escape", errors="ignore")
+    # Decode newline and tab escapes
+    decoded_text = decoded_text.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r")
+    # Check if there's still URL-encoded or Unicode-escaped content
+    if encoded_regex.search(decoded_text):
+        # If yes, continue decoding
+        return recursive_decode(decoded_text, max_depth=max_depth - 1)
+
+    return decoded_text
+
+
 rand_pool = string.ascii_lowercase
 rand_pool_digits = rand_pool + string.digits
 
@@ -310,7 +336,7 @@ def rand_string(length=10, digits=True):
     return "".join([random.choice(pool) for _ in range(int(length))])
 
 
-def extract_words(data, max_length=100):
+def extract_words(data, acronyms=True, max_length=100):
     """
     Intelligently extract words from given data
     Returns set() of extracted words
@@ -336,8 +362,9 @@ def extract_words(data, max_length=100):
         #        subword_slice = "".join(subwords[s:e])
         #        words.add(subword_slice)
         # blacklanternsecurity --> bls
-        if len(subwords) > 1:
-            words.add("".join([c[0] for c in subwords if len(c) > 0]))
+        if acronyms:
+            if len(subwords) > 1:
+                words.add("".join([c[0] for c in subwords if len(c) > 0]))
 
     return words
 

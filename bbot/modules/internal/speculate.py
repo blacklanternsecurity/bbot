@@ -21,7 +21,7 @@ class speculate(BaseInternalModule):
         "ports": "The set of ports to speculate on",
     }
     max_event_handlers = 5
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     _scope_shepherding = False
     _priority = 4
 
@@ -68,7 +68,11 @@ class speculate(BaseInternalModule):
         if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
             if event.host and event.port not in self.ports:
                 self.emit_event(
-                    self.helpers.make_netloc(event.host, event.port), "OPEN_TCP_PORT", source=event, internal=True
+                    self.helpers.make_netloc(event.host, event.port),
+                    "OPEN_TCP_PORT",
+                    source=event,
+                    internal=True,
+                    quick=(event.type == "URL"),
                 )
 
         # generate sub-directory URLS from URLS
@@ -89,7 +93,11 @@ class speculate(BaseInternalModule):
             if event.type == "IP_ADDRESS" or usable_dns:
                 for port in self.ports:
                     self.emit_event(
-                        self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True
+                        self.helpers.make_netloc(event.data, port),
+                        "OPEN_TCP_PORT",
+                        source=event,
+                        internal=True,
+                        quick=True,
                     )
 
     def filter_event(self, event):
@@ -98,6 +106,6 @@ class speculate(BaseInternalModule):
             if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
                 return False
         # don't accept errored DNS_NAMEs
-        if any(t in event.tags for t in ("dns-error", "unresolved")):
+        if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
             return False
         return True

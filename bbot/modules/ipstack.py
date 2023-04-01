@@ -13,7 +13,7 @@ class Ipstack(shodan_dns):
     meta = {"description": "Query IPStack's API for GeoIP ", "auth_required": True}
     options = {"api_key": ""}
     options_desc = {"api_key": "IPStack GeoIP API Key"}
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     _priority = 2
     suppress_dupes = False
 

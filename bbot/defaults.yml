@@ -21,7 +21,7 @@ user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 ### ADVANCED OPTIONS ###
 
 # How far out from the main scope to search
-scope_search_distance: 1
+scope_search_distance: 0
 # How far out from the main scope to resolve DNS names / IPs
 scope_dns_search_distance: 2
 # Limit how many DNS records can be followed in a row (for malicious/misconfigured DNS records)
@@ -110,6 +110,8 @@ url_extension_httpx_only:
 omit_event_types:
     - HTTP_RESPONSE
     - URL_UNVERIFIED
+    # - DNS_NAME_UNRESOLVED
+    # - IP_ADDRESS
 # URL of BBOT server
 agent_url: ''
 # Agent Bearer authentication token
