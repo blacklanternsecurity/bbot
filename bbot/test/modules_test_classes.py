@@ -1112,8 +1112,15 @@ class Wfuzz(HttpxMockHelper):
 
     additional_modules = ["httpx"]
 
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 404
+
     def mock_args(self):
         expect_args = {"method": "GET", "uri": "/admin"}
+        respond_args = {"response_data": "alive admin page"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": "alive"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
