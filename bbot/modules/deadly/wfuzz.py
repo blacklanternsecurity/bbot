@@ -2,7 +2,7 @@ from bbot.modules.base import BaseModule
 
 import random
 import string
-#import json
+import json
 
 
 class wfuzz(BaseModule):
@@ -226,18 +226,18 @@ class wfuzz(BaseModule):
             output = self.helpers.run(command)
             self.critical(output.stdout)
             self.critical(output.stderr)
-                # if len(jsonstring) > 0:
-                #     jsondata = json.loads(jsonstring)
-                # else:
-                #     self.debug("Received no data from wfuzz")
-                #     return
+            if len(output.stdout) > 0:
+                jsondata = json.loads(output.stdout)
+            else:
+                self.debug("Received no data from wfuzz")
+                return
 
-                # if any(self.canary in d.get("payload", "") for d in jsondata):
-                #     self.verbose(f"Found 'abort' string in results for command: [{' '.join(str(x) for x in command)}]")
-                #     break
+            if any(self.canary in d.get("payload", "") for d in jsondata):
+                self.verbose(f"Found 'abort' string in results for command: [{' '.join(str(x) for x in command)}]")
+                break
 
-                # for i in jsondata:
-                #     yield i
+            for i in jsondata:
+                yield i
 
     def generate_templist(self, prefix=None):
         line_count = 0
