@@ -150,7 +150,7 @@ class DepsInstaller:
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
-        command = [sys.executable, "-m", "pip", "install", "--no-build-isolation", "--upgrade"] + packages
+        command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
 
         if constraints:
             contraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)
