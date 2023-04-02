@@ -127,7 +127,7 @@ def test_bypass403_waf(bbot_config, bbot_scanner, bbot_httpserver):
 
 
 def test_ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
-    x = ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
+    x = Ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
 
 

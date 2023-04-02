@@ -1264,12 +1264,6 @@ class Vhost(HttpxMockHelper):
                 if e.data["vhost"] == "secret":
                     wordcloud_detection = True
 
-        print(basic_detection)
-        print(mutaton_of_detected)
-        print(basehost_mutation)
-        print(special_vhost_list)
-        print(wordcloud_detection)
-
         if (
             basic_detection
             and mutaton_of_detected
@@ -1281,7 +1275,7 @@ class Vhost(HttpxMockHelper):
         return False
 
 
-class ffuf_shortnames(HttpxMockHelper):
+class Ffuf_shortnames(HttpxMockHelper):
     test_wordlist = ["11111111", "administrator", "portal", "console", "junkword1", "zzzjunkword2", "directory"]
     config_overrides = {
         "modules": {
