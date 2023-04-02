@@ -1,11 +1,12 @@
-from bbot.modules.deadly.wfuzz import wfuzz
+from bbot.modules.deadly.ffuf import ffuf
 
 from urllib.parse import urlparse
 import random
 import string
+import base64
 
 
-class vhost(wfuzz):
+class vhost(ffuf):
     watched_events = ["URL"]
     produced_events = ["VHOST", "DNS_NAME"]
     flags = ["active", "aggressive", "slow"]
@@ -23,7 +24,17 @@ class vhost(wfuzz):
         "lines": "take only the first N lines from the wordlist when finding directories",
     }
 
-    deps_pip = ["wfuzz"]
+    deps_ansible = [
+        {
+            "name": "Download ffuf",
+            "unarchive": {
+                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
+                "include": "ffuf",
+                "dest": "#{BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        }
+    ]
 
     in_scope_only = True
 
@@ -65,21 +76,21 @@ class vhost(wfuzz):
                 basehost = self.get_parent_domain(event.parsed.netloc)
 
             self.debug(f"Using basehost: {basehost}")
-            for vhost in self.wfuzz_vhost(host, f".{basehost}", event):
+            for vhost in self.ffuf_vhost(host, f".{basehost}", event):
                 self.verbose(f"Starting mutations check for {vhost}")
-                for vhost in self.wfuzz_vhost(host, f".{basehost}", event, wordlist=self.mutations_check(vhost)):
+                for vhost in self.ffuf_vhost(host, f".{basehost}", event, wordlist=self.mutations_check(vhost)):
                     pass
 
             # check existing host for mutations
             self.verbose("Checking for vhost mutations on main host")
-            for vhost in self.wfuzz_vhost(
+            for vhost in self.ffuf_vhost(
                 host, f".{basehost}", event, wordlist=self.mutations_check(event.parsed.netloc.split(".")[0])
             ):
                 pass
 
             # special vhost list
             self.verbose("Checking special vhost list")
-            for vhost in self.wfuzz_vhost(
+            for vhost in self.ffuf_vhost(
                 host,
                 "",
                 event,
@@ -88,15 +99,15 @@ class vhost(wfuzz):
             ):
                 pass
 
-    def wfuzz_vhost(self, host, basehost, event, wordlist=None, skip_dns_host=False):
-        filters = self.baseline_wfuzz(f"{host}/", exts=[""], prefix="", suffix=basehost, mode="hostheader")
+    def ffuf_vhost(self, host, basehost, event, wordlist=None, skip_dns_host=False):
+        filters = self.baseline_ffuf(f"{host}/", exts=[""], suffix=basehost, mode="hostheader")
         self.debug(f"Baseline completed and returned these filters:")
         self.debug(filters)
         if not wordlist:
             wordlist = self.tempfile
-        for r in self.execute_wfuzz(wordlist, host, exts=[""], suffix=basehost, filters=filters, mode="hostheader"):
-            found_vhost = r["payload"]
-            vhost_dict = {"host": str(event.host), "url": host, "vhost": found_vhost}
+        for r in self.execute_ffuf(wordlist, host, exts=[""], suffix=basehost, filters=filters, mode="hostheader"):
+            found_vhost_b64 = r["input"]["FUZZ"]
+            vhost_dict = {"host": str(event.host), "url": host, "vhost": base64.b64decode(found_vhost_b64).decode()}
             if f"{vhost_dict['vhost']}{basehost}" != event.parsed.netloc:
                 self.emit_event(vhost_dict, "VHOST", source=event)
                 if skip_dns_host == False:
@@ -126,7 +137,7 @@ class vhost(wfuzz):
                 else:
                     basehost = self.get_parent_domain(event.parsed.netloc)
 
-                for vhost in self.wfuzz_vhost(host, f".{basehost}", event, wordlist=tempfile):
+                for vhost in self.ffuf_vhost(host, f".{basehost}", event, wordlist=tempfile):
                     pass
 
                 self.wordcloud_tried_hosts.add(host)

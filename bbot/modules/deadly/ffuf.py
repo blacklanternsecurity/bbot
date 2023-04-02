@@ -3,9 +3,10 @@ from bbot.modules.base import BaseModule
 import random
 import string
 import json
+import base64
 
 
-class wfuzz(BaseModule):
+class ffuf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["aggressive", "active"]
@@ -29,12 +30,21 @@ class wfuzz(BaseModule):
         "ignore_redirects": "Explicitly ignore redirects (301,302)",
     }
 
+    deps_ansible = [
+        {
+            "name": "Download ffuf",
+            "unarchive": {
+                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
+                "include": "ffuf",
+                "dest": "#{BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        }
+    ]
+
     banned_characters = [" "]
 
     blacklist = ["images", "css", "image"]
-
-    deps_pip = ["wfuzz"]
-    deps_pip_constraints = ["pycurl==7.43.0.5"]
 
     in_scope_only = True
 
@@ -70,32 +80,39 @@ class wfuzz(BaseModule):
             for ext in self.extensions.split(","):
                 exts.append(f".{ext}")
 
-        filters = self.baseline_wfuzz(fixed_url, exts=exts)
-        for r in self.execute_wfuzz(self.tempfile, fixed_url, exts=exts, filters=filters):
-            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['code']}"])
+        filters = self.baseline_ffuf(fixed_url, exts=exts)
+        for r in self.execute_ffuf(self.tempfile, fixed_url, exts=exts, filters=filters):
+            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
     def filter_event(self, event):
         if "endpoint" in event.tags:
-            self.debug(f"rejecting URL [{event.data}] because we don't wfuzz endpoints")
+            self.debug(f"rejecting URL [{event.data}] because we don't ffuf endpoints")
             return False
         return True
 
-    def baseline_wfuzz(self, url, exts=[""], prefix="", suffix="", mode="normal"):
+    def baseline_ffuf(self, url, exts=[""], prefix="", suffix="", mode="normal"):
         filters = {}
         for ext in exts:
             # For each "extension", we will attempt to build a baseline using 4 requests
 
-            canary_string_4 = "".join(random.choice(string.ascii_lowercase) for i in range(4))
-            canary_string_6 = "".join(random.choice(string.ascii_lowercase) for i in range(6))
-            canary_string_8 = "".join(random.choice(string.ascii_lowercase) for i in range(8))
-            canary_string_10 = "".join(random.choice(string.ascii_lowercase) for i in range(10))
-            canary_temp_file = self.helpers.tempfile(
-                [canary_string_4, canary_string_6, canary_string_8, canary_string_10], pipe=False
-            )
             canary_results = []
 
-            for canary_r in self.execute_wfuzz(
-                canary_temp_file, url, prefix=prefix, suffix=suffix, mode=mode, baseline=True
+            canary_length = 4
+            canary_list = []
+            for i in range(0, 4):
+                canary_list.append("".join(random.choice(string.ascii_lowercase) for i in range(canary_length)))
+                canary_length += 2
+
+            canary_temp_file = self.helpers.tempfile(canary_list, pipe=False)
+            for canary_r in self.execute_ffuf(
+                canary_temp_file,
+                url,
+                prefix=prefix,
+                suffix=suffix,
+                mode=mode,
+                baseline=True,
+                apply_filters=False,
+                filters=filters,
             ):
                 canary_results.append(canary_r)
 
@@ -110,52 +127,85 @@ class wfuzz(BaseModule):
                 continue
 
             # if the codes are different, we should abort, this should also be a warning, as it is highly unusual behavior
-            if len(set(d["code"] for d in canary_results)) != 1:
-                self.hugesuccess("Got different codes for each baseline. This could indicate load balancing")
+            if len(set(d["status"] for d in canary_results)) != 1:
+                self.warning("Got different codes for each baseline. This could indicate load balancing")
                 filters[ext] = "ABORT"
                 continue
 
             # if the code we received was a 404, this is the one case where we can be safe not applying a filter (because 404 is already filtered out)
-            if canary_results[0]["code"] == 404:
-                self.debug("All baseline results were 404, we don't need any filters")
-                filters[ext] = None
+            if canary_results[0]["status"] == 404:
+                self.debug("All baseline results were 404, we can just look for anything not 404")
+                filters[ext] = ["-fc", "404"]
                 continue
 
             # we start by seeing if all of the baselines have the same character count
-            if len(set(d["chars"] for d in canary_results)) == 1:
+            if len(set(d["length"] for d in canary_results)) == 1:
                 self.debug("All baseline results had the same char count, we can make a filter on that")
-                filters[ext] = f"c!={str(canary_results[0]['code'])} or h!={str(canary_results[0]['chars'])}"
+                filters[ext] = [
+                    "-fc",
+                    str(canary_results[0]["status"]),
+                    "-fs",
+                    str(canary_results[0]["length"]),
+                    "-fmode",
+                    "and",
+                ]
                 continue
 
             # if that doesn't work we can try words
             if len(set(d["words"] for d in canary_results)) == 1:
                 self.debug("All baseline results had the same word count, we can make a filter on that")
-                filters[ext] = f"c!={str(canary_results[0]['code'])} or w!={str(canary_results[0]['words'])}"
+                filters[ext] = [
+                    "-fc",
+                    str(canary_results[0]["status"]),
+                    "-fw",
+                    str(canary_results[0]["words"]),
+                    "-fmode",
+                    "and",
+                ]
                 continue
 
             # as a last resort we will try lines
             if len(set(d["lines"] for d in canary_results)) == 1:
                 self.debug("All baseline results had the same word count, we can make a filter on that")
-                filters[ext] = f"c!={str(canary_results[0]['code'])} or l!={str(canary_results[0]['lines'])}"
+                filters[ext] = [
+                    "-fc",
+                    str(canary_results[0]["status"]),
+                    "-fl",
+                    str(canary_results[0]["lines"]),
+                    "-fmode",
+                    "and",
+                ]
                 continue
 
             # if even the line count isn't stable, we can only reliably count on the result if the code is different
-            filters[ext] = f"c!={str(canary_results[0]['code'])}"
+            filters[ext] = ["-fc", f"{str(canary_results[0]['status'])}"]
 
         return filters
 
-    def execute_wfuzz(self, tempfile, url, prefix="", suffix="", exts=[""], filters={}, mode="normal", baseline=False):
+    def execute_ffuf(
+        self,
+        tempfile,
+        url,
+        prefix="",
+        suffix="",
+        exts=[""],
+        filters={},
+        mode="normal",
+        apply_filters=True,
+        baseline=False,
+    ):
         for ext in exts:
             if mode == "normal":
                 self.debug("in mode [normal]")
 
                 fuzz_url = f"{url}{prefix}FUZZ{suffix}"
                 command = [
-                    "wfuzz",
+                    "ffuf",
+                    "-noninteractive",
+                    "-s",
                     "-H",
                     f"User-Agent: {self.scan.useragent}",
-                    "-o",
-                    "json",
+                    "-json",
                     "-w",
                     tempfile,
                     "-u",
@@ -166,13 +216,14 @@ class wfuzz(BaseModule):
                 self.debug("in mode [hostheader]")
 
                 command = [
-                    "wfuzz",
+                    "ffuf",
+                    "-noninteractive",
+                    "-s",
                     "-H",
                     f"User-Agent: {self.scan.useragent}",
                     "-H",
                     f"Host: FUZZ{suffix}",
-                    "-o",
-                    "json",
+                    "-json",
                     "-w",
                     tempfile,
                     "-u",
@@ -182,14 +233,11 @@ class wfuzz(BaseModule):
                 self.debug("invalid mode specified, aborting")
                 return
 
-            if not baseline:
-                command.append("--hc")
-                command.append("404")
-
+            if apply_filters:
                 if ext in filters.keys():
                     if filters[ext] == "ABORT":
                         self.warning(
-                            "Exiting from wfuzz run early, received an ABORT filter. This probably means the page was too dynamic for a baseline."
+                            "Exiting from ffuf run early, received an ABORT filter. This probably means the page was too dynamic for a baseline."
                         )
                         continue
 
@@ -197,22 +245,49 @@ class wfuzz(BaseModule):
                         pass
 
                     else:
-                        command.append("--filter")
-                        command.append(filters[ext])
+                        command += filters[ext]
 
-            output = self.helpers.run(command)
-            if len(output.stdout) > 0:
-                jsondata = json.loads(output.stdout)
-            else:
-                self.debug("Received no data from wfuzz")
-                return
+            for found in self.helpers.run_live(command):
+                try:
+                    found_json = json.loads(found)
+                    input_json = found_json.get("input", {})
+                    if type(input_json) != dict:
+                        self.debug("Error decoding JSON from ffuf")
+                        continue
+                    encoded_input = input_json.get("FUZZ", "")
+                    input_val = base64.b64decode(encoded_input).decode()
+                    if len(input_val.rstrip()) > 0:
+                        if self.scan.stopping:
+                            break
+                        if input_val.rstrip() == self.canary:
+                            self.debug("Found canary! aborting...")
+                            return
+                        else:
+                            if mode == "normal":
+                                # before emitting, we are going to send another baseline. This will immediately catch things like a WAF flipping blocking on us mid-scan
+                                if baseline == False:
+                                    pre_emit_temp_canary = list(
+                                        self.execute_ffuf(
+                                            self.helpers.tempfile(
+                                                ["".join(random.choice(string.ascii_lowercase) for i in range(4))],
+                                                pipe=False,
+                                            ),
+                                            url,
+                                            prefix=prefix,
+                                            suffix=suffix,
+                                            mode=mode,
+                                            exts=[ext],
+                                            baseline=True,
+                                            filters=filters,
+                                        )
+                                    )
+                                    if len(pre_emit_temp_canary) == 0:
+                                        yield found_json
 
-            if any(self.canary in d.get("payload", "") for d in jsondata):
-                self.verbose(f"Found 'abort' string in results for command: [{' '.join(str(x) for x in command)}]")
-                break
+                            yield found_json
 
-            for i in jsondata:
-                yield i
+                except json.decoder.JSONDecodeError:
+                    self.debug("Received invalid JSON from FFUF")
 
     def generate_templist(self, prefix=None):
         line_count = 0
