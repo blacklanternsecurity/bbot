@@ -46,7 +46,7 @@ class nuclei(BaseModule):
             },
         }
     ]
-    deps_pip = ["pyyaml"]
+    deps_pip = ["pyyaml~=6.0"]
     in_scope_only = True
 
     def setup(self):
