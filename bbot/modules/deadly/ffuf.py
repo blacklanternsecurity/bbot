@@ -121,13 +121,13 @@ class ffuf(BaseModule):
                 self.warning(
                     f"Could not attain baseline for URL [{url}] ext [{ext}] because baseline results are missing. Possible connectivity issues."
                 )
-                filters[ext] = "ABORT"
+                filters[ext] = ["ABORT","CONNECTIVITY_ISSUES"]
                 continue
 
             # if the codes are different, we should abort, this should also be a warning, as it is highly unusual behavior
             if len(set(d["status"] for d in canary_results)) != 1:
                 self.warning("Got different codes for each baseline. This could indicate load balancing")
-                filters[ext] = "ABORT"
+                filters[ext] = ["ABORT","BASELINE_CHANGED_CODES"]
                 continue
 
             # if the code we received was a 404, we are just going to look for cases where we get a different code
@@ -147,7 +147,8 @@ class ffuf(BaseModule):
                 self.warning(
                     f"Received code 429 (Too many requests) for URL [{url}]. A WAF or application is actively blocking requests, aborting."
                 )
-                return
+                filters[ext] = ["ABORT","RECEIVED_429"]
+                continue
 
             # we start by seeing if all of the baselines have the same character count
             if len(set(d["length"] for d in canary_results)) == 1:
@@ -247,9 +248,9 @@ class ffuf(BaseModule):
 
             if apply_filters:
                 if ext in filters.keys():
-                    if filters[ext] == "ABORT":
+                    if filters[ext][0] ==("ABORT"):
                         self.warning(
-                            "Exiting from ffuf run early, received an ABORT filter. This probably means the page was too dynamic for a baseline."
+                            f"Exiting from FFUF run early, received an ABORT filter: [{filters[ext][1]}]"
                         )
                         continue
 
