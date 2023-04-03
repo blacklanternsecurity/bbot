@@ -13,6 +13,7 @@ import string
 import logging
 import platform
 import ipaddress
+
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
@@ -20,6 +21,7 @@ from datetime import datetime
 from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
+from strsimpy.qgram import QGram
 import tldextract as _tldextract
 from hashlib import sha1 as hashlib_sha1
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
@@ -372,6 +374,18 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
                 words.add("".join([c[0] for c in subwords if len(c) > 0]))
 
     return words
+
+
+def best_match(s, choices, n=1):
+    """
+    Given a string and a list of choices, returns the best match
+    """
+    qgram = QGram(2)
+    matches = {_: qgram.distance(_, s) for _ in choices}
+    matches = sorted(matches.items(), key=lambda x: x[-1])
+    if n == 1:
+        return matches[0]
+    return matches[:n]
 
 
 def kill_children(parent_pid=None, sig=signal.SIGTERM):

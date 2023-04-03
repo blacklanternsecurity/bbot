@@ -6,8 +6,8 @@ from contextlib import suppress
 
 from ..errors import ArgumentError
 from ...modules import module_loader
-from ..helpers.misc import chain_lists
 from ..helpers.logger import log_to_stderr
+from ..helpers.misc import chain_lists, best_match
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
@@ -207,9 +207,9 @@ def get_config():
     with suppress(Exception):
         if cli_options.config:
             cli_config = cli_options.config
-    if len(cli_config) == 1:
+    if cli_config:
         filename = Path(cli_config[0]).resolve()
-        if filename.is_file():
+        if len(cli_config) == 1 and filename.is_file():
             try:
                 conf = OmegaConf.load(str(filename))
                 log_to_stderr(f"Loaded custom config from {filename}")
@@ -217,6 +217,18 @@ def get_config():
             except Exception as e:
                 log_to_stderr(f"Error parsing custom config at {filename}: {e}", level="ERROR")
                 sys.exit(2)
+        else:
+            modules_options = set()
+            for module_options in module_loader.modules_options().values():
+                modules_options.update(set(o[0] for o in module_options))
+            for c in cli_config:
+                c = c.split("=")[0].strip()
+                if not c in modules_options:
+                    closest, score = best_match(c, modules_options)
+                    log_to_stderr(
+                        f'Could not find module option "{c}". Did you mean "{closest}"?', level="HUGEWARNING"
+                    )
+                    sys.exit(2)
     try:
         return OmegaConf.from_cli(cli_config)
     except Exception as e:
