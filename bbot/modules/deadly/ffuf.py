@@ -302,7 +302,7 @@ class ffuf(BaseModule):
                                         self.warning(
                                             "Baseline changed mid-scan. This is probably due to a WAF turning on a block against you."
                                         )
-                                        self.warning(f"Aborting the current run against [{event.data}]")
+                                        self.warning(f"Aborting the current run against [{url}]")
                                         return
 
                             yield found_json
