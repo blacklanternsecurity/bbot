@@ -630,6 +630,16 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert helpers.filesize(test_filesize) == 0
     assert helpers.filesize("/tmp/glkasjdlgksadlkfsdf") == 0
 
+    # memory stuff
+    int(helpers.memory_status().available)
+    int(helpers.swap_status().total)
+
+    assert helpers.human_filesize(459823495234) == "459.82GB"
+
+    scan1 = bbot_scanner(modules="ipneighbor")
+    scan1.load_modules()
+    assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
+
 
 def test_word_cloud(helpers, bbot_config, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)

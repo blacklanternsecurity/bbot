@@ -62,6 +62,11 @@ class Scanner:
         if output_modules is None:
             output_modules = ["python"]
 
+        if isinstance(modules, str):
+            modules = [modules]
+        if isinstance(output_modules, str):
+            output_modules = [output_modules]
+
         if config is None:
             config = OmegaConf.create({})
         else:
