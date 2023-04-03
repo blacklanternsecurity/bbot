@@ -39,6 +39,7 @@ class ffuf_shortnames(ffuf):
         "wordlist_extensions": "",  # default is defined within setup function
         "lines": 1000000,
         "max_depth": 1,
+        "version": "2.0.0",
         "extensions": "",
         "ignore_redirects": True,
         "find_common_prefixes": False,
@@ -50,11 +51,24 @@ class ffuf_shortnames(ffuf):
         "wordlist_extensions": "Specify wordlist to use when making extension lists",
         "lines": "take only the first N lines from the wordlist when finding directories",
         "max_depth": "the maxium directory depth to attempt to solve",
+        "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
         "ignore_redirects": "Explicitly ignore redirects (301,302)",
         "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional ffuf runs against them",
         "find_delimeters": "Attempt to detect common delimeters and make additional ffuf runs against them",
     }
+
+    deps_ansible = [
+        {
+            "name": "Download ffuf",
+            "unarchive": {
+                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH}.tar.gz",
+                "include": "ffuf",
+                "dest": "#{BBOT_TOOLS}",
+                "remote_src": True,
+            },
+        }
+    ]
 
     in_scope_only = True
 
