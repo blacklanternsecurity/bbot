@@ -54,7 +54,7 @@ class URLExtractor(BaseExtractor):
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
 
-    prefix_blacklist = ["javascript:", "mailto:", "tel:"]
+    prefix_blacklist = ["javascript:", "mailto:", "tel:", "data:", "vbscript:", "about:", "file:"]
 
     def report(self, result, name, event, **kwargs):
         spider_danger = kwargs.get("spider_danger", True)
@@ -69,6 +69,11 @@ class URLExtractor(BaseExtractor):
         elif name in ("a-tag", "script-tag") and parsed:
             path = html.unescape(result[1]).lstrip("/")
 
+            for p in self.prefix_blacklist:
+                if path.lower().startswith(p.lower()):
+                    self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
+                    return
+
             if not self.compiled_regexes["fullurl"].match(path):
                 path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
                 full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
@@ -76,11 +81,6 @@ class URLExtractor(BaseExtractor):
 
             else:
                 result = path
-
-            for p in self.prefix_blacklist:
-                if path.startswith(p):
-                    self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
-                    return
 
         parsed_uri = self.excavate.helpers.urlparse(result)
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
