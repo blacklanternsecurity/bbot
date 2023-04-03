@@ -5,6 +5,7 @@ import traceback
 from sys import exc_info
 from contextlib import suppress
 
+from ..core.helpers.misc import get_size
 from ..core.helpers.threadpool import ThreadPoolWrapper
 from ..core.errors import ScanCancelledError, ValidationError, WordlistError
 
@@ -573,7 +574,7 @@ class BaseModule:
         """
         Indicates whether the module is currently processing data.
         """
-        return self._is_running(self.status)
+        return self.status["running"]
 
     @property
     def config(self):
@@ -605,6 +606,15 @@ class BaseModule:
         if getattr(self, "_log", None) is None:
             self._log = logging.getLogger(f"bbot.modules.{self.name}")
         return self._log
+
+    @property
+    def memory_usage(self):
+        """
+        Return how much memory the module is currently using in bytes
+        """
+        seen = set(self.scan.pools.values())
+        seen.update({self.scan, self.helpers, self.log})
+        return get_size(self, max_depth=3, seen=seen)
 
     def __str__(self):
         return self.name

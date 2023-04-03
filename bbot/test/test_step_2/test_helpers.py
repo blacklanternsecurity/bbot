@@ -562,6 +562,10 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert "wildcard-domain" in wildcard_event3.tags
     assert "a-wildcard-domain" in wildcard_event3.tags
     assert "srv-wildcard-domain" not in wildcard_event3.tags
+    # misc dns helpers
+    assert helpers.is_ptr("wsc-11-22-33-44-wat.evilcorp.com") == True
+    assert helpers.is_ptr("wsc-11-22-33-wat.evilcorp.com") == False
+    assert helpers.is_ptr("11wat.evilcorp.com") == False
 
     # Ensure events with hosts have resolved_hosts attribute populated
 

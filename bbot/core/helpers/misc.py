@@ -15,6 +15,7 @@ import logging
 import platform
 import ipaddress
 
+import traceback
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
@@ -57,6 +58,14 @@ def is_subdomain(d):
     if extracted.domain and extracted.subdomain:
         return True
     return False
+
+
+def is_ptr(d):
+    """
+    "wsc-11-22-33-44.evilcorp.com" --> True
+    "www2.evilcorp.com" --> False
+    """
+    return bool(regexes.ptr_regex.search(d))
 
 
 def is_url(u):
@@ -937,38 +946,42 @@ def swap_status():
     return psutil.swap_memory()
 
 
-def get_size(obj, seen=None):
+def get_size(obj, max_depth=5, seen=None):
     """
     Recursively get size of object in bytes
-
-    Example: get memory usage of BBOT module:
-        get_size(self.scan.modules["massdns"])
     """
-    size = sys.getsizeof(obj)
-    if seen is None:
-        seen = set()
-    obj_id = id(obj)
-    if obj_id in seen:
-        return 0
-    # Important mark as seen *before* entering recursion to gracefully handle
-    # self-referential objects
-    seen.add(obj_id)
-    if hasattr(obj, "__dict__"):
-        for _cls in obj.__class__.__mro__:
-            if "__dict__" in _cls.__dict__:
-                d = _cls.__dict__["__dict__"]
-                if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
-                    size += get_size(obj.__dict__, seen)
-                break
-    if isinstance(obj, dict):
-        size += sum((get_size(v, seen) for v in obj.values()))
-        size += sum((get_size(k, seen) for k in obj.keys()))
-    elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
-        try:
-            size += sum((get_size(i, seen) for i in obj))
-        except TypeError:
-            log.debug(f"Unable to get size of {obj}. This may lead to incorrect sizes.")
-    if hasattr(obj, "__slots__"):  # can have __slots__ with __dict__
-        size += sum(get_size(getattr(obj, s), seen) for s in obj.__slots__ if hasattr(obj, s))
+    size = 0
+    if max_depth <= 0:
+        return size
+    new_max_depth = max_depth - 1
+    try:
+        size = sys.getsizeof(obj)
+        if seen is None:
+            seen = set()
+        obj_id = id(obj)
+        if obj_id in seen:
+            return 0
+        # Important mark as seen *before* entering recursion to gracefully handle
+        # self-referential objects
+        seen.add(obj_id)
+        if hasattr(obj, "__dict__"):
+            for _cls in obj.__class__.__mro__:
+                if "__dict__" in _cls.__dict__:
+                    d = _cls.__dict__["__dict__"]
+                    if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
+                        size += get_size(obj.__dict__, max_depth=new_max_depth, seen=seen)
+                    break
+        if isinstance(obj, dict):
+            size += sum((get_size(v, max_depth=new_max_depth, seen=seen) for v in obj.values()))
+            size += sum((get_size(k, max_depth=new_max_depth, seen=seen) for k in obj.keys()))
+        # elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
+        #     size += sum((get_size(i, seen) for i in obj))
+        if hasattr(obj, "__slots__"):  # can have __slots__ with __dict__
+            size += sum(
+                get_size(getattr(obj, s), max_depth=new_max_depth, seen=seen) for s in obj.__slots__ if hasattr(obj, s)
+            )
+    except Exception as e:
+        log.debug(f"Error getting size of {obj}: {e}")
+        log.trace(traceback.format_exc())
 
     return size

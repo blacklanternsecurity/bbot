@@ -1,4 +1,3 @@
-import re
 import json
 import logging
 import ipaddress
@@ -75,7 +74,6 @@ class DNSHelper:
         self.system_resolvers = dns.resolver.Resolver().nameservers
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
-        self.bad_ptr_regex = re.compile(r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}")
         self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
 
     def resolve(self, query, **kwargs):
@@ -345,7 +343,7 @@ class DNSHelper:
                                                 event_blacklisted = True
                                         resolved_hosts.add(ip)
 
-                                    if self.filter_bad_ptrs and rdtype in ("PTR") and self.bad_ptr_regex.search(t):
+                                    if self.filter_bad_ptrs and rdtype in ("PTR") and self.parent_helper.is_ptr(t):
                                         self.debug(f"Filtering out bad PTR: {t}")
                                         continue
                                     children.append((rdtype, t))

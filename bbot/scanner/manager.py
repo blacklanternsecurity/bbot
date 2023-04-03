@@ -530,7 +530,10 @@ class ScanManager:
             else:
                 self.scan.info(f"{self.scan.name}: No events in queue")
 
+            # if debugging is enabled
+            self.scan.debug(f"THREAD POOL STATUS:")
             if self.scan.log_level <= logging.DEBUG:
+                # log thread pool statuses
                 threadpool_names = [
                     "_internal_thread_pool",
                     "_event_thread_pool",
@@ -539,7 +542,16 @@ class ScanManager:
                 for threadpool_name in threadpool_names:
                     threadpool = getattr(self.scan, threadpool_name)
                     for thread_status in threadpool.threads_status:
-                        self.scan.debug(f"scan.{threadpool_name}: {thread_status}")
+                        self.scan.debug(f"    - {threadpool_name}: {thread_status}")
+                # log module memory usage
+                module_memory_usage = []
+                for module in self.scan.modules.values():
+                    memory_usage = module.memory_usage
+                    module_memory_usage.append((module.name, memory_usage))
+                module_memory_usage.sort(key=lambda x: x[-1], reverse=True)
+                self.scan.debug(f"MODULE MEMORY USAGE:")
+                for module_name, usage in module_memory_usage:
+                    self.scan.debug(f"    - {module_name}: {self.scan.helpers.bytes_to_human(usage)}")
 
             # Uncomment these lines to enable debugging of event queues
 

@@ -25,6 +25,8 @@ _dns_name_regex = r"(?:(?:[\w-]+)\.)+(?:[^\W_0-9]{2,20})"
 _hostname_regex = re.compile(r"^[\w-]+$")
 _email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@(?:\w[\w\-\._]{,100})\.(?:[^\W_0-9]{2,8})"
 email_regex = re.compile(_email_regex, re.I)
+_ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"
+ptr_regex = re.compile(_ptr_regex)
 
 event_type_regexes = OrderedDict(
     [

@@ -222,6 +222,18 @@ class massdns(crobat):
 
         base_mutations = set()
         for i, (domain, subdomains) in enumerate(found):
+            max_mem_percent = 90
+            mem_status = self.helpers.memory_status()
+            # abort if we don't have the memory
+            mem_percent = mem_status.percent
+            if mem_percent > max_mem_percent:
+                free_memory = mem_status.available
+                free_memory_human = self.helpers.bytes_to_human(free_memory)
+                self.hugewarning(
+                    f"Cannot proceed with DNS mutations because system memory is at {mem_percent:.1f}% ({free_memory_human} remaining)"
+                )
+                break
+
             query = domain
             domain_hash = hash(domain)
             if self.scan.stopping:
@@ -265,10 +277,11 @@ class massdns(crobat):
     def add_found(self, event):
         if self.helpers.is_subdomain(event.data):
             subdomain, domain = event.data.split(".", 1)
-            try:
-                self.found[domain].add(subdomain)
-            except KeyError:
-                self.found[domain] = set((subdomain,))
+            if not self.helpers.is_ptr(subdomain):
+                try:
+                    self.found[domain].add(subdomain)
+                except KeyError:
+                    self.found[domain] = set((subdomain,))
 
     def gen_subdomains(self, prefixes, domain):
         for p in prefixes:

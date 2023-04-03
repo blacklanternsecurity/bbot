@@ -72,7 +72,7 @@ class WordCloud(dict):
             self.add_word(word)
         if event.scope_distance == 0 and event.type == "DNS_NAME":
             subdomain = tldextract(event.data).subdomain
-            if subdomain:
+            if subdomain and not self.parent_helper.is_ptr(subdomain):
                 for s in subdomain.split("."):
                     self.dns_mutator.add_word(s)
 
