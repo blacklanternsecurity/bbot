@@ -69,10 +69,6 @@ class Scanner:
         self.config = OmegaConf.merge(bbot_config, config)
         prepare_environment(self.config)
 
-        if name is None:
-            self.name = random_name()
-        else:
-            self.name = str(name)
         self.strict_scope = strict_scope
         self.force_start = force_start
 
@@ -103,6 +99,28 @@ class Scanner:
             "main_thread_pool": self._thread_pool,
         }
         output_dir = self.config.get("output_dir", "")
+
+        if name is None:
+            tries = 0
+
+            while 1:
+                if tries > 5:
+                    self.name = f"{self.helpers.rand_string(4)}_{self.helpers.rand_string(4)}"
+                    break
+
+                self.name = random_name()
+
+                if output_dir:
+                    home_path = Path(output_dir).resolve() / self.name
+                else:
+                    home_path = self.helpers.bbot_home / "scans" / self.name
+
+                if not home_path.exists():
+                    break
+                tries += 1
+        else:
+            self.name = str(name)
+
         if output_dir:
             self.home = Path(output_dir).resolve() / self.name
         else:
