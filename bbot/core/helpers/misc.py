@@ -819,24 +819,24 @@ def human_timedelta(d):
     return ", ".join(result)
 
 
-def human_filesize(s):
+def human_filesize(_bytes):
     """
-    Format bytes as human-readable size:
-
+    Converts bytes to human-readable filesize
+    e.g. 1024 --> 1KB
     """
-    sizes = ["", "K", "M", "G", "T", "P", "E"]
+    sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
     units = {}
-    for i, size in enumerate(sizes):
-        units[size] = pow(1000, i)
+    for count, size in enumerate(sizes):
+        units[size] = pow(1024, count)
     for size in sizes:
-        if abs(s) < 1000.0:
+        if abs(_bytes) < 1024.0:
             if size == sizes[0]:
-                s = str(int(s))
+                _bytes = str(int(_bytes))
             else:
-                s = f"{s:.2f}"
-            return f"{s}{size}B"
-        s /= 1000
-    raise ValueError(f'Failed to determine size from "{s}"')
+                _bytes = f"{_bytes:.2f}"
+            return f"{_bytes}{size}"
+        _bytes /= 1024
+    raise ValueError(f'Unable to convert "{_bytes}"" to human filesize')
 
 
 def cpu_architecture():
