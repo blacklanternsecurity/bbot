@@ -255,7 +255,7 @@ class excavate(BaseInternalModule):
 
     scope_distance_modifier = None
 
-    deps_pip = ["pyjwt"]
+    deps_pip = ["pyjwt~=2.6.0"]
 
     def setup(self):
         self.hostname = HostnameExtractor(self)
