@@ -18,7 +18,6 @@ class ffuf(BaseModule):
         "max_depth": 0,
         "version": "2.0.0",
         "extensions": "",
-        "ignore_redirects": True,
     }
 
     options_desc = {
@@ -27,7 +26,6 @@ class ffuf(BaseModule):
         "max_depth": "the maxium directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
-        "ignore_redirects": "Explicitly ignore redirects (301,302)",
     }
 
     deps_ansible = [
@@ -59,7 +57,6 @@ class ffuf(BaseModule):
         self.tempfile, tempfile_len = self.generate_templist()
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
         self.extensions = self.config.get("extensions")
-        self.ignore_redirects = self.config.get("ignore_redirects")
         return True
 
     def handle_event(self, event):
@@ -93,6 +90,7 @@ class ffuf(BaseModule):
     def baseline_ffuf(self, url, exts=[""], prefix="", suffix="", mode="normal"):
         filters = {}
         for ext in exts:
+            self.debug(f"running baseline for URL [{url}] with ext [{ext}]")
             # For each "extension", we will attempt to build a baseline using 4 requests
 
             canary_results = []
@@ -132,11 +130,24 @@ class ffuf(BaseModule):
                 filters[ext] = "ABORT"
                 continue
 
-            # if the code we received was a 404, this is the one case where we can be safe not applying a filter (because 404 is already filtered out)
+            # if the code we received was a 404, we are just going to look for cases where we get a different code
             if canary_results[0]["status"] == 404:
                 self.debug("All baseline results were 404, we can just look for anything not 404")
                 filters[ext] = ["-fc", "404"]
                 continue
+
+            # if we only got 403, we might already be blocked by a WAF. Issue a warning, but it's possible all 'not founds' are given 403
+            if canary_results[0]["status"] == 403:
+                self.warning(
+                    "All requests of the baseline recieved a 403 response. It is possible a WAF is actively blocking your traffic."
+                )
+
+            # if we only got 429, we are almost certainly getting blocked by a WAF or rate-limiting. Specifically with 429, we should respect them and abort the scan.
+            if canary_results[0]["status"] == 429:
+                self.warning(
+                    f"Received code 429 (Too many requests) for URL [{url}]. A WAF or application is actively blocking requests, aborting."
+                )
+                return
 
             # we start by seeing if all of the baselines have the same character count
             if len(set(d["length"] for d in canary_results)) == 1:
@@ -199,6 +210,7 @@ class ffuf(BaseModule):
                 self.debug("in mode [normal]")
 
                 fuzz_url = f"{url}{prefix}FUZZ{suffix}"
+
                 command = [
                     "ffuf",
                     "-noninteractive",
@@ -246,6 +258,9 @@ class ffuf(BaseModule):
 
                     else:
                         command += filters[ext]
+            else:
+                command.append("-mc")
+                command.append("all")
 
             for found in self.helpers.run_live(command):
                 try:
@@ -283,6 +298,12 @@ class ffuf(BaseModule):
                                     )
                                     if len(pre_emit_temp_canary) == 0:
                                         yield found_json
+                                    else:
+                                        self.warning(
+                                            "Baseline changed mid-scan. This is probably due to a WAF turning on a block against you."
+                                        )
+                                        self.warning(f"Aborting the current run against [{event.data}]")
+                                        return
 
                             yield found_json
 

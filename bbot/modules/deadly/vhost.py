@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import random
 import string
 import base64
+from time import sleep
 
 
 class vhost(ffuf):
