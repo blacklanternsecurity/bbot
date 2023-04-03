@@ -123,33 +123,40 @@ class DepsInstaller:
         success = True
         preloaded = self.all_modules_preloaded[module]
 
+        # ansible tasks
+        ansible_tasks = preloaded["deps"]["ansible"]
+        if ansible_tasks:
+            success &= self.tasks(module, ansible_tasks)
+
         # apt
         deps_apt = preloaded["deps"]["apt"]
         if deps_apt:
             self.apt_install(deps_apt)
-
-        # pip
-        deps_pip = preloaded["deps"]["pip"]
-        if deps_pip:
-            success &= self.pip_install(deps_pip)
 
         # shell
         deps_shell = preloaded["deps"]["shell"]
         if deps_shell:
             success &= self.shell(module, deps_shell)
 
-        # ansible tasks
-        ansible_tasks = preloaded["deps"]["ansible"]
-        if ansible_tasks:
-            success &= self.tasks(module, ansible_tasks)
+        # pip
+        deps_pip = preloaded["deps"]["pip"]
+        deps_pip_constraints = preloaded["deps"]["pip_constraints"]
+        if deps_pip:
+            success &= self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
         return success
 
-    def pip_install(self, packages):
+    def pip_install(self, packages, constraints=None):
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
+
+        if constraints:
+            contraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)
+            command.append("--constraint")
+            command.append(contraints_tempfile)
+
         process = None
         try:
             process = self.parent_helper.run(command, check=True)

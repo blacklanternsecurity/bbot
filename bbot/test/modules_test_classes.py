@@ -1166,6 +1166,10 @@ class Ffuf(HttpxMockHelper):
 
     def mock_args(self):
         expect_args = {"method": "GET", "uri": "/admin"}
+        respond_args = {"response_data": "alive admin page"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": "alive"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -1174,6 +1178,100 @@ class Ffuf(HttpxMockHelper):
             if e.type == "URL_UNVERIFIED":
                 if "admin" in e.data:
                     return True
+        return False
+
+
+class Ffuf_extensions(HttpxMockHelper):
+    test_wordlist = ["11111111", "console", "junkword1", "zzzjunkword2"]
+    config_overrides = {"modules": {"ffuf": {"wordlist": tempwordlist(test_wordlist), "extensions": "php"}}}
+
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/console.php"}
+        respond_args = {"response_data": "alive admin page"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if "console" in e.data:
+                    return True
+        return False
+
+
+class Vhost(HttpxMockHelper):
+    targets = ["http://localhost:8888", "secret.localhost"]
+
+    additional_modules = ["httpx"]
+
+    test_wordlist = ["11111111", "admin", "cloud", "junkword1", "zzzjunkword2"]
+    config_overrides = {
+        "modules": {
+            "vhost": {
+                "wordlist": tempwordlist(test_wordlist),
+            }
+        }
+    }
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "admin.localhost:8888"}}
+        respond_args = {"response_data": "Alive vhost admin"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "cloud.localhost:8888"}}
+        respond_args = {"response_data": "Alive vhost cloud"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "q-cloud.localhost:8888"}}
+        respond_args = {"response_data": "Alive vhost q-cloud"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "secret.localhost:8888"}}
+        respond_args = {"response_data": "Alive vhost secret"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "host.docker.internal"}}
+        respond_args = {"response_data": "Alive vhost host.docker.internal"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        basic_detection = False
+        mutaton_of_detected = False
+        basehost_mutation = False
+        special_vhost_list = False
+        wordcloud_detection = False
+
+        for e in events:
+            print(e)
+            if e.type == "VHOST":
+                if e.data["vhost"] == "admin":
+                    basic_detection = True
+                if e.data["vhost"] == "cloud":
+                    mutaton_of_detected = True
+                if e.data["vhost"] == "q-cloud":
+                    basehost_mutation = True
+                if e.data["vhost"] == "host.docker.internal":
+                    special_vhost_list = True
+                if e.data["vhost"] == "secret":
+                    wordcloud_detection = True
+
+        if (
+            basic_detection
+            and mutaton_of_detected
+            and basehost_mutation
+            and special_vhost_list
+            and wordcloud_detection
+        ):
+            return True
         return False
 
 

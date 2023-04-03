@@ -134,7 +134,10 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
                 [type(t) == str for t in produced_events]
             ), f"{module_name}.produced_events entries must be of type string"
 
-            assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pipe must be of type list"
+            assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pip must be of type list"
+            assert (
+                type(preloaded.get("deps_pip_constraints", [])) == list
+            ), f"{module_name}.deps_pip_constraints must be of type list"
             assert type(preloaded.get("deps_apt", [])) == list, f"{module_name}.deps_apt must be of type list"
             assert type(preloaded.get("deps_shell", [])) == list, f"{module_name}.deps_shell must be of type list"
             assert type(preloaded.get("config", None)) == dict, f"{module_name}.options must be of type list"

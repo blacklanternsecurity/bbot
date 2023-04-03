@@ -111,6 +111,11 @@ def test_ffuf(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_ffuf_extensions(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Ffuf_extensions(bbot_config, bbot_scanner, bbot_httpserver, module_name="ffuf")
+    x.run()
+
+
 def test_bypass403(bbot_config, bbot_scanner, bbot_httpserver):
     x = Bypass403(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
@@ -163,6 +168,11 @@ def test_naabu(bbot_config, bbot_scanner, bbot_httpserver):
 
 def test_hunt(bbot_config, bbot_scanner, bbot_httpserver):
     x = Hunt(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
+def test_vhost(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Vhost(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
 
 
