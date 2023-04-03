@@ -652,13 +652,14 @@ class DNS_NAME(DnsEvent):
         # only operate on resolved DNS_NAMEs
         if self.type == "DNS_NAME":
             stem = self.host_stem
-            split_stem = stem.split(".")
-            if split_stem:
-                leftmost_segment = split_stem[0]
-                if leftmost_segment == "_wildcard":
-                    stem = ".".join(split_stem[1:])
-            if stem:
-                return extract_words(stem)
+            if not is_ptr(stem):
+                split_stem = stem.split(".")
+                if split_stem:
+                    leftmost_segment = split_stem[0]
+                    if leftmost_segment == "_wildcard":
+                        stem = ".".join(split_stem[1:])
+                if stem:
+                    return extract_words(stem)
         return set()
 
 
