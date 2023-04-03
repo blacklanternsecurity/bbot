@@ -634,7 +634,8 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     int(helpers.memory_status().available)
     int(helpers.swap_status().total)
 
-    assert helpers.human_filesize(459823495234) == "459.82GB"
+    assert helpers.bytes_to_human(459819198709) == "428.24GB"
+    assert helpers.human_to_bytes("428.24GB") == 459819198709
 
     scan1 = bbot_scanner(modules="ipneighbor")
     scan1.load_modules()

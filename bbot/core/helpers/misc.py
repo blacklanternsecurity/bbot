@@ -819,10 +819,10 @@ def human_timedelta(d):
     return ", ".join(result)
 
 
-def human_filesize(_bytes):
+def bytes_to_human(_bytes):
     """
     Converts bytes to human-readable filesize
-    e.g. 1024 --> 1KB
+        bytes_to_human(1234129384) --> "1.15GB"
     """
     sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
     units = {}
@@ -836,7 +836,36 @@ def human_filesize(_bytes):
                 _bytes = f"{_bytes:.2f}"
             return f"{_bytes}{size}"
         _bytes /= 1024
-    raise ValueError(f'Unable to convert "{_bytes}"" to human filesize')
+    raise ValueError(f'Unable to convert "{_bytes}" to human filesize')
+
+
+filesize_regex = re.compile(r"(?P<num>[0-9\.]+)[\s]*(?P<char>[a-z])", re.I)
+
+
+def human_to_bytes(filesize):
+    """
+    Converts human-readable filesize to bytes
+        human_to_bytes("23.23gb") --> 24943022571
+    """
+    if isinstance(filesize, int):
+        return filesize
+    sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
+    units = {}
+    for count, size in enumerate(sizes):
+        size_increment = pow(1024, count)
+        units[size] = size_increment
+        if len(size) == 2:
+            units[size[0]] = size_increment
+    match = filesize_regex.match(filesize)
+    try:
+        if match:
+            num, size = match.groups()
+            size = size.upper()
+            size_increment = units[size]
+            return int(float(num) * size_increment)
+    except KeyError:
+        pass
+    raise ValueError(f'Unable to convert filesize "{filesize}" to bytes')
 
 
 def cpu_architecture():
