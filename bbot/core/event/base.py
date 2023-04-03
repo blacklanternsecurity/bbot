@@ -672,7 +672,7 @@ class OPEN_TCP_PORT(BaseEvent):
         return host
 
     def _words(self):
-        if not is_ip(self.host):
+        if not is_ip(self.host) and not is_ptr(self.host):
             return extract_words(self.host_stem)
         return set()
 

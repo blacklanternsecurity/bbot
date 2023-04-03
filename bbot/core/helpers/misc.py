@@ -65,7 +65,7 @@ def is_ptr(d):
     "wsc-11-22-33-44.evilcorp.com" --> True
     "www2.evilcorp.com" --> False
     """
-    return bool(regexes.ptr_regex.search(d))
+    return bool(regexes.ptr_regex.search(str(d)))
 
 
 def is_url(u):
