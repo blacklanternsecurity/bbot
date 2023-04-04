@@ -21,7 +21,7 @@ from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
 from bbot.core.helpers.logger import log_to_stderr
-from bbot.core.configurator import ensure_config_files
+from bbot.core.configurator import ensure_config_files, check_cli_args
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
@@ -44,14 +44,8 @@ def main():
             parser.print_help()
             sys.exit(1)
 
-        # note: command line arguments are in bbot/core/configurator/args.py
-        try:
-            options = parser.parse_args()
-        except bbot.core.errors.ArgumentError as e:
-            log.warning(e)
-            sys.exit(1)
-            # this is intentional since sys.exit() is monkeypatched in the tests
-            return
+        options = parser.parse_args()
+        check_cli_args()
 
         # --version
         if options.version:

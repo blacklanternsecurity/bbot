@@ -4,10 +4,9 @@ from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-from ..errors import ArgumentError
 from ...modules import module_loader
-from ..helpers.misc import chain_lists
 from ..helpers.logger import log_to_stderr
+from ..helpers.misc import chain_lists, match_and_exit
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
@@ -35,18 +34,17 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.require_flags = chain_lists(ret.require_flags)
         for m in ret.modules:
             if m not in module_choices and not self._dummy:
-                raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(module_choices)}')
+                match_and_exit(m, module_choices, msg="module")
         for m in ret.exclude_modules:
             if m not in module_choices and not self._dummy:
-                raise ArgumentError(f'Cannot exclude module "{m}". Choose from: {",".join(module_choices)}')
+                match_and_exit(m, module_choices, msg="module")
         for m in ret.output_modules:
             if m not in output_module_choices and not self._dummy:
-                raise ArgumentError(
-                    f'Output module "{m}" is not valid. Choose from: {",".join(output_module_choices)}'
-                )
+                match_and_exit(m, output_module_choices, msg="output module")
         for f in set(ret.flags + ret.require_flags):
             if f not in flag_choices and not self._dummy:
-                raise ArgumentError(f'Flag "{f}" is not valid. Choose from: {",".join(sorted(flag_choices))}')
+                if f not in flag_choices and not self._dummy:
+                    match_and_exit(f, flag_choices, msg="flag")
         return ret
 
 
@@ -202,14 +200,17 @@ with suppress(Exception):
     cli_options = dummy_parser.parse_args()
 
 
+cli_config = []
+
+
 def get_config():
-    cli_config = []
+    global cli_config
     with suppress(Exception):
         if cli_options.config:
             cli_config = cli_options.config
-    if len(cli_config) == 1:
+    if cli_config:
         filename = Path(cli_config[0]).resolve()
-        if filename.is_file():
+        if len(cli_config) == 1 and filename.is_file():
             try:
                 conf = OmegaConf.load(str(filename))
                 log_to_stderr(f"Loaded custom config from {filename}")

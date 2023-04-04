@@ -286,22 +286,31 @@ class ModuleLoader:
             )
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
-    def modules_options_table(self, modules=None, mod_type=None):
-        table = []
-        header = ["Option", "Type", "Default", "Description"]
+    def modules_options(self, modules=None, mod_type=None):
+        """
+        Return a list of module options
+        """
+        modules_options = {}
         for module_name, preloaded in self.filter_modules(modules, mod_type):
+            modules_options[module_name] = []
             module_type = preloaded["type"]
             module_options = preloaded["config"]
             module_options_desc = preloaded["options_desc"]
-            for k, v in module_options.items():
-                if module_type not in ("internal", "output"):
-                    module_key = "modules"
-                else:
+            for k, v in sorted(module_options.items(), key=lambda x: x[0]):
+                module_key = "modules"
+                if module_type in ("internal", "output"):
                     module_key = f"{module_type}_modules"
                 option_name = f"{module_key}.{module_name}.{k}"
                 option_type = type(v).__name__
                 option_description = module_options_desc[k]
-                table.append([option_name, option_type, str(v), option_description])
+                modules_options[module_name].append((option_name, option_type, str(v), option_description))
+        return modules_options
+
+    def modules_options_table(self, modules=None, mod_type=None):
+        table = []
+        header = ["Option", "Type", "Default", "Description"]
+        for module_name, module_options in self.modules_options(modules, mod_type).items():
+            table += module_options
         return make_table(table, header)
 
     def filter_modules(self, modules=None, mod_type=None):

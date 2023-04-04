@@ -13,6 +13,7 @@ import string
 import logging
 import platform
 import ipaddress
+
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
@@ -20,6 +21,7 @@ from datetime import datetime
 from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
+from strsimpy.qgram import QGram
 import tldextract as _tldextract
 from hashlib import sha1 as hashlib_sha1
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
@@ -28,6 +30,7 @@ from .url import *  # noqa F401
 from . import regexes
 from .. import errors
 from .punycode import *  # noqa F401
+from .logger import log_to_stderr
 from .names_generator import random_name, names, adjectives  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -374,6 +377,34 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
     return words
 
 
+def closest_match(s, choices, n=1):
+    """
+    Given a string and a list of choices, returns the best match
+
+    closest_match("asdf", ["asd", "fds"]) --> ('asd', 1)
+    closest_match("asdf", ["asd", "fds", "asdff"], n=3) --> [('asd', 1), ('asdff', 1), ('fds', 5)]
+    """
+    qgram = QGram(2)
+    matches = {_: qgram.distance(_, s) for _ in choices}
+    matches = sorted(matches.items(), key=lambda x: x[-1])
+    if n == 1:
+        return matches[0]
+    return matches[:n]
+
+
+def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
+    """
+    Return the closest match, warn, and exit
+    """
+    if msg is None:
+        msg = ""
+    else:
+        msg += " "
+    closest, score = closest_match(s, choices)
+    log_to_stderr(f'Could not find {msg}"{s}". Did you mean "{closest}"?', level="HUGEWARNING")
+    sys.exit(2)
+
+
 def kill_children(parent_pid=None, sig=signal.SIGTERM):
     """
     Forgive me father for I have sinned
@@ -715,54 +746,6 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
 def extract_emails(s):
     for email in regexes.email_regex.findall(smart_decode(s)):
         yield email.lower()
-
-
-loglevel_mapping = {
-    "DEBUG": "DBUG",
-    "VERBOSE": "VERB",
-    "HUGEVERBOSE": "VERB",
-    "INFO": "INFO",
-    "HUGEINFO": "INFO",
-    "SUCCESS": "SUCC",
-    "HUGESUCCESS": "SUCC",
-    "WARNING": "WARN",
-    "HUGEWARNING": "WARN",
-    "ERROR": "ERRR",
-    "CRITICAL": "CRIT",
-}
-color_mapping = {
-    "DEBUG": 242,  # grey
-    "VERBOSE": 242,  # grey
-    "INFO": 69,  # blue
-    "HUGEINFO": 69,  # blue
-    "SUCCESS": 118,  # green
-    "HUGESUCCESS": 118,  # green
-    "WARNING": 208,  # orange
-    "HUGEWARNING": 208,  # orange
-    "ERROR": 196,  # red
-    "CRITICAL": 196,  # red
-}
-color_prefix = "\033[1;38;5;"
-color_suffix = "\033[0m"
-
-
-def colorize(s, level="INFO"):
-    seq = color_mapping.get(level, 15)  # default white
-    colored = f"{color_prefix}{seq}m{s}{color_suffix}"
-    return colored
-
-
-def log_to_stderr(msg, level="INFO"):
-    """
-    Print to stderr with BBOT logger colors
-    """
-    levelname = level.upper()
-    if not any(x in sys.argv for x in ("-s", "--silent")):
-        levelshort = f"[{loglevel_mapping.get(level, 'INFO')}]"
-        levelshort = f"{colorize(levelshort, level=levelname)}"
-        if levelname == "CRITICAL" or levelname.startswith("HUGE"):
-            msg = colorize(msg)
-        print(f"{levelshort} bbot: {msg}", file=sys.stderr)
 
 
 def can_sudo_without_password():

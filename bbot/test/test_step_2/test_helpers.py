@@ -125,6 +125,18 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     # assert "lanternsecurity" in extracted_words
     # assert "blacklanternsecurity" in extracted_words
     assert "bls" in extracted_words
+
+    choices = ["asdf.fdsa", "asdf.1234", "4321.5678"]
+    best_match, score = helpers.closest_match("asdf.123a", choices)
+    assert best_match == "asdf.1234"
+    best_matches = helpers.closest_match("asdf.123a", choices, n=2)
+    assert len(best_matches) == 2
+    first_match = best_matches[0]
+    assert len(first_match) == 2
+    assert first_match[0] == "asdf.1234"
+    second_match = best_matches[1]
+    assert second_match[0] == "asdf.fdsa"
+
     ipv4_netloc = helpers.make_netloc("192.168.1.1", 80)
     assert ipv4_netloc == "192.168.1.1:80"
     ipv6_netloc = helpers.make_netloc("dead::beef", "443")

@@ -24,11 +24,12 @@ ansible-runner = "^2.3.2"
 deepdiff = "^6.2.3"
 xmltojson = "^2.0.2"
 pycryptodome = "^3.17"
-tabulate = "0.8.10"
 idna = "^3.4"
 ansible = "^7.3.0"
 websocket-client = "^1.5.1"
 cloudcheck = "^2.0.0.23"
+tabulate = "0.8.10"
+strsimpy = "^0.2.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
