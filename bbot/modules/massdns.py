@@ -269,11 +269,13 @@ class massdns(crobat):
                 for delimiter in ("", ".", "-"):
                     m = delimiter.join(mutation).lower()
                     add_mutation(domain_hash, m)
+
             # special dns mutator
             for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
                 subdomains, max_mutations=self.max_mutations
             ):
                 add_mutation(domain_hash, subdomain)
+
             if mutations:
                 self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
                 for hostname in self.massdns(query, mutations):
