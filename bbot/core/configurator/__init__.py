@@ -50,8 +50,10 @@ def check_cli_args():
             modules_options = set()
             for module_options in module_loader.modules_options().values():
                 modules_options.update(set(o[0] for o in module_options))
-            closest, score = closest_match(c, modules_options)
-            match_and_exit(c, modules_options, msg="module option")
+            global_options = set(default_config.keys()) - {"modules", "output_modules"}
+            all_options = global_options.union(modules_options)
+            closest, score = closest_match(c, all_options)
+            match_and_exit(c, all_options, msg="module option")
 
 
 def ensure_config_files():

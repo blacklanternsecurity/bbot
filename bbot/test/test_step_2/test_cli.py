@@ -66,6 +66,13 @@ def test_config_validation(monkeypatch, capsys, bbot_config):
     assert 'Could not find module option "modules.ipnegibhor.num_bits"' in captured.err
     assert 'Did you mean "modules.ipneighbor.num_bits"?' in captured.err
 
+    # incorrect global option
+    monkeypatch.setattr(args, "cli_config", ["bbot", "-c", "web_spier_distance=4"])
+    cli.main()
+    captured = capsys.readouterr()
+    assert 'Could not find module option "web_spier_distance"' in captured.err
+    assert 'Did you mean "web_spider_distance"?' in captured.err
+
     # unpatch cli_options
     monkeypatch.setattr(args, "cli_config", old_cli_config)
 
