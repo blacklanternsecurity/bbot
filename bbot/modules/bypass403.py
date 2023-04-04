@@ -18,6 +18,7 @@ signatures = [
     ("GET", "{scheme}://{netloc}/{path}.json", None, False),
     ("TRACE", "{scheme}://{netloc}/{path}", None, True),
     ("GET", "{scheme}://{netloc}/(S(X))/{path}", None, True),  # ASPNET COOKIELESS URLS
+    ("GET", "{scheme}://{netloc}/(S(X))/../(S(X))/{path}", None, True),  # ASPNET COOKIELESS URLS
 ]
 
 
