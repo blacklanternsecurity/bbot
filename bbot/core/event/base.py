@@ -17,6 +17,7 @@ from bbot.core.helpers import (
     is_domain,
     is_subdomain,
     is_ip,
+    is_ptr,
     domain_stem,
     make_netloc,
     make_ip_type,
