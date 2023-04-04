@@ -1768,6 +1768,26 @@ class Bypass403(HttpxMockHelper):
         return False
 
 
+class Bypass403_aspnetcookieless(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    targets = ["http://127.0.0.1:8888/admin.aspx"]
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 403
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": re.compile(r"\/\([sS]\(\w+\)\)\/.+\.aspx")}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING":
+                return True
+        return False
+
+
 class Bypass403_waf(HttpxMockHelper):
     additional_modules = ["httpx"]
 

@@ -126,6 +126,11 @@ def test_bypass403_waf(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_bypass403_aspnetcookieless(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Bypass403_aspnetcookieless(bbot_config, bbot_scanner, bbot_httpserver, module_name="bypass403")
+    x.run()
+
+
 def test_ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
     x = Ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()
