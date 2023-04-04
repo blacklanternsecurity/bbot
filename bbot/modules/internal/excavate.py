@@ -85,7 +85,7 @@ class URLExtractor(BaseExtractor):
         parsed_uri = self.excavate.helpers.urlparse(result)
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
         # Handle non-HTTP URIs (ftp, s3, etc.)
-        if parsed_uri.scheme.lower() not in ("http", "https"):
+        if not "http" in parsed_uri.scheme.lower():
             event_data = {"host": str(host), "description": f"Non-HTTP URI: {result}"}
             parsed_url = getattr(event, "parsed", None)
             if parsed_url:

@@ -10,10 +10,12 @@ import random
 import shutil
 import signal
 import string
+import inspect
 import logging
 import platform
 import ipaddress
 
+import traceback
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
@@ -56,6 +58,14 @@ def is_subdomain(d):
     if extracted.domain and extracted.subdomain:
         return True
     return False
+
+
+def is_ptr(d):
+    """
+    "wsc-11-22-33-44.evilcorp.com" --> True
+    "www2.evilcorp.com" --> False
+    """
+    return bool(regexes.ptr_regex.search(str(d)))
 
 
 def is_url(u):
@@ -818,6 +828,55 @@ def human_timedelta(d):
     return ", ".join(result)
 
 
+def bytes_to_human(_bytes):
+    """
+    Converts bytes to human-readable filesize
+        bytes_to_human(1234129384) --> "1.15GB"
+    """
+    sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
+    units = {}
+    for count, size in enumerate(sizes):
+        units[size] = pow(1024, count)
+    for size in sizes:
+        if abs(_bytes) < 1024.0:
+            if size == sizes[0]:
+                _bytes = str(int(_bytes))
+            else:
+                _bytes = f"{_bytes:.2f}"
+            return f"{_bytes}{size}"
+        _bytes /= 1024
+    raise ValueError(f'Unable to convert "{_bytes}" to human filesize')
+
+
+filesize_regex = re.compile(r"(?P<num>[0-9\.]+)[\s]*(?P<char>[a-z])", re.I)
+
+
+def human_to_bytes(filesize):
+    """
+    Converts human-readable filesize to bytes
+        human_to_bytes("23.23gb") --> 24943022571
+    """
+    if isinstance(filesize, int):
+        return filesize
+    sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
+    units = {}
+    for count, size in enumerate(sizes):
+        size_increment = pow(1024, count)
+        units[size] = size_increment
+        if len(size) == 2:
+            units[size[0]] = size_increment
+    match = filesize_regex.match(filesize)
+    try:
+        if match:
+            num, size = match.groups()
+            size = size.upper()
+            size_increment = units[size]
+            return int(float(num) * size_increment)
+    except KeyError:
+        pass
+    raise ValueError(f'Unable to convert filesize "{filesize}" to bytes')
+
+
 def cpu_architecture():
     """
     Returns the CPU architecture, e.g. "amd64, "armv7", "arm64", etc.
@@ -859,3 +918,70 @@ def tagify(s):
     """
     ret = str(s).lower()
     return tag_filter_regex.sub("-", ret).strip("-")
+
+
+def memory_status():
+    """
+    Return statistics on system memory consumption
+
+    Example: to get available memory (not including swap):
+        memory_status().available
+
+    Example: to get percent memory used:
+        memory_status().percent
+    """
+    return psutil.virtual_memory()
+
+
+def swap_status():
+    """
+    Return statistics on swap memory consumption
+
+    Example: to get total swap:
+        swap_status().total
+
+    Example: to get in-use swap:
+        swap_status().used
+    """
+    return psutil.swap_memory()
+
+
+def get_size(obj, max_depth=5, seen=None):
+    """
+    Recursively get size of object in bytes
+    """
+    size = 0
+    if max_depth <= 0:
+        return size
+    new_max_depth = max_depth - 1
+    try:
+        size = sys.getsizeof(obj)
+        if seen is None:
+            seen = set()
+        obj_id = id(obj)
+        if obj_id in seen:
+            return 0
+        # Important mark as seen *before* entering recursion to gracefully handle
+        # self-referential objects
+        seen.add(obj_id)
+        if hasattr(obj, "__dict__"):
+            for _cls in obj.__class__.__mro__:
+                if "__dict__" in _cls.__dict__:
+                    d = _cls.__dict__["__dict__"]
+                    if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
+                        size += get_size(obj.__dict__, max_depth=new_max_depth, seen=seen)
+                    break
+        if isinstance(obj, dict):
+            size += sum((get_size(v, max_depth=new_max_depth, seen=seen) for v in obj.values()))
+            size += sum((get_size(k, max_depth=new_max_depth, seen=seen) for k in obj.keys()))
+        # elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
+        #     size += sum((get_size(i, seen) for i in obj))
+        if hasattr(obj, "__slots__"):  # can have __slots__ with __dict__
+            size += sum(
+                get_size(getattr(obj, s), max_depth=new_max_depth, seen=seen) for s in obj.__slots__ if hasattr(obj, s)
+            )
+    except Exception as e:
+        log.debug(f"Error getting size of {obj}: {e}")
+        log.trace(traceback.format_exc())
+
+    return size

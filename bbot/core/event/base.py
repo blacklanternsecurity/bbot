@@ -17,6 +17,7 @@ from bbot.core.helpers import (
     is_domain,
     is_subdomain,
     is_ip,
+    is_ptr,
     domain_stem,
     make_netloc,
     make_ip_type,
@@ -274,6 +275,20 @@ class BaseEvent:
         if getattr(self.source, "_omit", False):
             return self.source.get_source()
         return self.source
+
+    def get_sources(self, omit=False):
+        sources = []
+        e = self
+        while 1:
+            if omit:
+                source = e.get_source()
+            else:
+                source = e.source
+            if e == source:
+                break
+            sources.append(source)
+            e = source
+        return sources
 
     def make_internal(self):
         if not self._made_internal:
@@ -638,13 +653,14 @@ class DNS_NAME(DnsEvent):
         # only operate on resolved DNS_NAMEs
         if self.type == "DNS_NAME":
             stem = self.host_stem
-            split_stem = stem.split(".")
-            if split_stem:
-                leftmost_segment = split_stem[0]
-                if leftmost_segment == "_wildcard":
-                    stem = ".".join(split_stem[1:])
-            if stem:
-                return extract_words(stem)
+            if not is_ptr(stem):
+                split_stem = stem.split(".")
+                if split_stem:
+                    leftmost_segment = split_stem[0]
+                    if leftmost_segment == "_wildcard":
+                        stem = ".".join(split_stem[1:])
+                if stem:
+                    return extract_words(stem)
         return set()
 
 
@@ -657,7 +673,7 @@ class OPEN_TCP_PORT(BaseEvent):
         return host
 
     def _words(self):
-        if not is_ip(self.host):
+        if not is_ip(self.host) and not is_ptr(self.host):
             return extract_words(self.host_stem)
         return set()
 

@@ -10,8 +10,9 @@ class httpx(BaseModule):
     meta = {"description": "Visit webpages. Many other modules rely on httpx"}
 
     batch_size = 500
-    options = {"in_scope_only": True, "version": "1.2.5", "max_response_size": 5242880}
+    options = {"threads": 50, "in_scope_only": True, "version": "1.2.5", "max_response_size": 5242880}
     options_desc = {
+        "threads": "Number of httpx threads to use",
         "in_scope_only": "Only visit web resources that are in scope.",
         "version": "httpx version",
         "max_response_size": "Max response size in bytes",
@@ -32,6 +33,7 @@ class httpx(BaseModule):
     _priority = 2
 
     def setup(self):
+        self.threads = self.config.get("threads", 50)
         self.timeout = self.scan.config.get("httpx_timeout", 5)
         self.retries = self.scan.config.get("httpx_retries", 1)
         self.max_response_size = self.config.get("max_response_size", 5242880)
@@ -87,6 +89,8 @@ class httpx(BaseModule):
             "-silent",
             "-json",
             "-include-response",
+            "-threads",
+            self.threads,
             "-timeout",
             self.timeout,
             "-retries",

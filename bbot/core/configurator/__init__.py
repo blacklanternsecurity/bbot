@@ -42,18 +42,19 @@ sentinel = object()
 
 def check_cli_args():
     for c in args.cli_config:
-        c = c.split("=")[0].strip()
-        v = OmegaConf.select(default_config, c, default=sentinel)
-        if v is sentinel:
-            from ...modules import module_loader
+        if not Path(c).is_file():
+            c = c.split("=")[0].strip()
+            v = OmegaConf.select(default_config, c, default=sentinel)
+            if v is sentinel:
+                from ...modules import module_loader
 
-            modules_options = set()
-            for module_options in module_loader.modules_options().values():
-                modules_options.update(set(o[0] for o in module_options))
-            global_options = set(default_config.keys()) - {"modules", "output_modules"}
-            all_options = global_options.union(modules_options)
-            closest, score = closest_match(c, all_options)
-            match_and_exit(c, all_options, msg="module option")
+                modules_options = set()
+                for module_options in module_loader.modules_options().values():
+                    modules_options.update(set(o[0] for o in module_options))
+                global_options = set(default_config.keys()) - {"modules", "output_modules"}
+                all_options = global_options.union(modules_options)
+                closest, score = closest_match(c, all_options)
+                match_and_exit(c, all_options, msg="module option")
 
 
 def ensure_config_files():

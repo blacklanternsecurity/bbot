@@ -72,7 +72,7 @@ class WordCloud(dict):
             self.add_word(word)
         if event.scope_distance == 0 and event.type == "DNS_NAME":
             subdomain = tldextract(event.data).subdomain
-            if subdomain:
+            if subdomain and not self.parent_helper.is_ptr(subdomain):
                 for s in subdomain.split("."):
                     self.dns_mutator.add_word(s)
 
@@ -207,25 +207,20 @@ class WordCloud(dict):
 
 
 class Mutator(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._mutations = {}
-
-    def mutations(self, words):
+    def mutations(self, words, max_mutations=None):
+        mutations = self.top_mutations(max_mutations)
         ret = set()
         if isinstance(words, str):
             words = [words]
         for word in words:
-            for m in self.mutate(word):
+            for m in self.mutate(word, mutations=mutations):
                 ret.add("".join(m))
         return ret
 
-    def mutate(self, word, max_mutations=None):
-        if max_mutations is not None:
-            mutations = sorted(self._mutations.items(), key=lambda x: x[-1], reverse=True)
-        else:
-            mutations = list(self._mutations.items())
-        for mutation, count in mutations:
+    def mutate(self, word, max_mutations=None, mutations=None):
+        if mutations is None:
+            mutations = self.top_mutations(max_mutations)
+        for mutation, count in mutations.items():
             ret = []
             for s in mutation:
                 if s is not None:
@@ -234,6 +229,12 @@ class Mutator(dict):
                     ret.append(word)
             yield ret
 
+    def top_mutations(self, n=None):
+        if n is not None:
+            return dict(sorted(self.items(), key=lambda x: x[-1], reverse=True)[:n])
+        else:
+            return dict(self)
+
     def _add_mutation(self, mutation):
         if not None in mutation:
             return
@@ -241,9 +242,9 @@ class Mutator(dict):
         if not any(mutation):
             return
         try:
-            self._mutations[mutation] += 1
+            self[mutation] += 1
         except KeyError:
-            self._mutations[mutation] = 1
+            self[mutation] = 1
 
     def add_word(self, word):
         pass
@@ -258,19 +259,22 @@ class DNSMutator(Mutator):
         wordninja_dns_wordlist = wordlist_dir / "wordninja_dns.txt.gz"
         self.model = wordninja.LanguageModel(wordninja_dns_wordlist)
 
-    def mutations(self, words):
+    def mutations(self, words, max_mutations=None):
         if isinstance(words, str):
             words = [words]
         new_words = set()
         for word in words:
             for e in extract_words(word, acronyms=False, model=self.model):
                 new_words.add(e)
-        return super().mutations(new_words)
+        return super().mutations(new_words, max_mutations=max_mutations)
 
     def add_word(self, word):
         for match in self.word_regex.finditer(word):
             start, end = match.span()
             match_str = word[start:end]
+            # skip digits
+            if match_str.isdigit():
+                continue
             before = word[:start]
             after = word[end:]
             basic_mutation = [before, None, after]

@@ -562,6 +562,10 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert "wildcard-domain" in wildcard_event3.tags
     assert "a-wildcard-domain" in wildcard_event3.tags
     assert "srv-wildcard-domain" not in wildcard_event3.tags
+    # misc dns helpers
+    assert helpers.is_ptr("wsc-11-22-33-44-wat.evilcorp.com") == True
+    assert helpers.is_ptr("wsc-11-22-33-wat.evilcorp.com") == False
+    assert helpers.is_ptr("11wat.evilcorp.com") == False
 
     # Ensure events with hosts have resolved_hosts attribute populated
 
@@ -629,6 +633,17 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert test_filesize.is_file()
     assert helpers.filesize(test_filesize) == 0
     assert helpers.filesize("/tmp/glkasjdlgksadlkfsdf") == 0
+
+    # memory stuff
+    int(helpers.memory_status().available)
+    int(helpers.swap_status().total)
+
+    assert helpers.bytes_to_human(459819198709) == "428.24GB"
+    assert helpers.human_to_bytes("428.24GB") == 459819198709
+
+    scan1 = bbot_scanner(modules="ipneighbor")
+    scan1.load_modules()
+    assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
 
 
 def test_word_cloud(helpers, bbot_config, bbot_scanner):

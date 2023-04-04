@@ -1,3 +1,4 @@
+import re
 import json
 import random
 import subprocess
@@ -13,8 +14,13 @@ class massdns(crobat):
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "max_resolvers": 500,
+        "max_mutations": 500,
     }
-    options_desc = {"wordlist": "Subdomain wordlist URL", "max_resolvers": "Number of concurrent massdns resolvers"}
+    options_desc = {
+        "wordlist": "Subdomain wordlist URL",
+        "max_resolvers": "Number of concurrent massdns resolvers",
+        "max_mutations": "Max number of smart mutations per subdomain",
+    }
     subdomain_file = None
     deps_ansible = [
         {
@@ -54,12 +60,15 @@ class massdns(crobat):
     reject_wildcards = "cloud_only"
     _qsize = 100
 
+    digit_regex = re.compile(r"\d+")
+
     def setup(self):
         self.found = dict()
         self.mutations_tried = set()
         self.source_events = dict()
         self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
         self.max_resolvers = self.config.get("max_resolvers", 500)
+        self.max_mutations = self.config.get("max_mutations", 500)
         nameservers_url = (
             "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt"
         )
@@ -212,29 +221,61 @@ class massdns(crobat):
                             yield hostname
 
     def finish(self):
-        found = list(self.found.items())
+        found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
 
         base_mutations = set()
         for i, (domain, subdomains) in enumerate(found):
+            max_mem_percent = 90
+            mem_status = self.helpers.memory_status()
+            # abort if we don't have the memory
+            mem_percent = mem_status.percent
+            if mem_percent > max_mem_percent:
+                free_memory = mem_status.available
+                free_memory_human = self.helpers.bytes_to_human(free_memory)
+                self.hugewarning(
+                    f"Cannot proceed with DNS mutations because system memory is at {mem_percent:.1f}% ({free_memory_human} remaining)"
+                )
+                break
+
             query = domain
             domain_hash = hash(domain)
             if self.scan.stopping:
                 return
+
             mutations = set(base_mutations)
+
+            def add_mutation(_domain_hash, m):
+                h = hash((_domain_hash, m))
+                if h not in self.mutations_tried:
+                    self.mutations_tried.add(h)
+                    mutations.add(m)
+
+            # try every subdomain everywhere else
+            for _i, (_domain, _subdomains) in enumerate(found):
+                if _domain == domain:
+                    continue
+                for s in _subdomains:
+                    first_segment = s.split(".")[0]
+                    # skip stuff with lots of numbers (e.g. PTRs)
+                    digits = self.digit_regex.findall(first_segment)
+                    excessive_digits = len(digits) > 1
+                    long_digits = any(len(d) > 3 for d in digits)
+                    if excessive_digits or long_digits:
+                        continue
+                    add_mutation(domain_hash, first_segment)
+
             # word cloud
             for mutation in self.helpers.word_cloud.mutations(subdomains, cloud=False, numbers=3, number_padding=1):
                 for delimiter in ("", ".", "-"):
                     m = delimiter.join(mutation).lower()
-                    h = hash((domain_hash, m))
-                    if h not in self.mutations_tried:
-                        self.mutations_tried.add(h)
-                        mutations.add(m)
+                    add_mutation(domain_hash, m)
+
             # special dns mutator
-            for subdomain in self.helpers.word_cloud.dns_mutator.mutations(subdomains):
-                h = hash((domain_hash, subdomain))
-                if h not in self.mutations_tried:
-                    self.mutations_tried.add(h)
-                    mutations.add(subdomain)
+            for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
+                subdomains, max_mutations=self.max_mutations
+            ):
+                add_mutation(domain_hash, subdomain)
+
             if mutations:
                 self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
                 for hostname in self.massdns(query, mutations):
@@ -247,10 +288,11 @@ class massdns(crobat):
     def add_found(self, event):
         if self.helpers.is_subdomain(event.data):
             subdomain, domain = event.data.split(".", 1)
-            try:
-                self.found[domain].add(subdomain)
-            except KeyError:
-                self.found[domain] = set((subdomain,))
+            if not self.helpers.is_ptr(subdomain):
+                try:
+                    self.found[domain].add(subdomain)
+                except KeyError:
+                    self.found[domain] = set((subdomain,))
 
     def gen_subdomains(self, prefixes, domain):
         for p in prefixes:

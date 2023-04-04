@@ -244,10 +244,12 @@ class ScanManager:
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_module._priority = 4
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
-                source_event.scope_distance = event.scope_distance
-                if "target" in event.tags:
-                    source_event.add_tag("target")
-                self.emit_event(source_event, _block=False, _force_submit=True)
+                # only emit the event if it's not already in the parent chain
+                if source_event is not None and source_event not in source_event.get_sources():
+                    source_event.scope_distance = event.scope_distance
+                    if "target" in event.tags:
+                        source_event.add_tag("target")
+                    self.emit_event(source_event, _block=False, _force_submit=True)
             if self.dns_resolution and emit_children:
                 dns_child_events = []
                 if dns_children:
@@ -528,7 +530,10 @@ class ScanManager:
             else:
                 self.scan.info(f"{self.scan.name}: No events in queue")
 
+            # if debugging is enabled
+            self.scan.debug(f"THREAD POOL STATUS:")
             if self.scan.log_level <= logging.DEBUG:
+                # log thread pool statuses
                 threadpool_names = [
                     "_internal_thread_pool",
                     "_event_thread_pool",
@@ -537,7 +542,16 @@ class ScanManager:
                 for threadpool_name in threadpool_names:
                     threadpool = getattr(self.scan, threadpool_name)
                     for thread_status in threadpool.threads_status:
-                        self.scan.debug(f"scan.{threadpool_name}: {thread_status}")
+                        self.scan.debug(f"    - {threadpool_name}: {thread_status}")
+                # log module memory usage
+                module_memory_usage = []
+                for module in self.scan.modules.values():
+                    memory_usage = module.memory_usage
+                    module_memory_usage.append((module.name, memory_usage))
+                module_memory_usage.sort(key=lambda x: x[-1], reverse=True)
+                self.scan.debug(f"MODULE MEMORY USAGE:")
+                for module_name, usage in module_memory_usage:
+                    self.scan.debug(f"    - {module_name}: {self.scan.helpers.bytes_to_human(usage)}")
 
             # Uncomment these lines to enable debugging of event queues
 
