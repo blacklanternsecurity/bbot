@@ -379,6 +379,9 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
 def best_match(s, choices, n=1):
     """
     Given a string and a list of choices, returns the best match
+
+    best_match("asdf", ["asd", "fds"]) --> ('asd', 1)
+    best_match("asdf", ["asd", "fds", "asdff"], n=3) --> [('asd', 1), ('asdff', 1), ('fds', 5)]
     """
     qgram = QGram(2)
     matches = {_: qgram.distance(_, s) for _ in choices}
