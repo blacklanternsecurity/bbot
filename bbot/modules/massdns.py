@@ -218,7 +218,7 @@ class massdns(crobat):
                             yield hostname
 
     def finish(self):
-        found = list(self.found.items())
+        found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
 
         base_mutations = set()
         for i, (domain, subdomains) in enumerate(found):
