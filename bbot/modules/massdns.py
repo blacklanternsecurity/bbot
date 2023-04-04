@@ -1,3 +1,4 @@
+import re
 import json
 import random
 import subprocess
@@ -58,6 +59,8 @@ class massdns(crobat):
     ]
     reject_wildcards = "cloud_only"
     _qsize = 100
+
+    digit_regex = re.compile(r"\d+")
 
     def setup(self):
         self.found = dict()
@@ -253,6 +256,12 @@ class massdns(crobat):
                     continue
                 for s in _subdomains:
                     first_segment = s.split(".")[0]
+                    # skip stuff with lots of numbers (e.g. PTRs)
+                    digits = self.digit_regex.findall(first_segment)
+                    excessive_digits = len(digits) > 1
+                    long_digits = any(len(d) > 3 for d in digits)
+                    if excessive_digits or long_digits:
+                        continue
                     add_mutation(domain_hash, first_segment)
 
             # word cloud

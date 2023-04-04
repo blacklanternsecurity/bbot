@@ -272,6 +272,9 @@ class DNSMutator(Mutator):
         for match in self.word_regex.finditer(word):
             start, end = match.span()
             match_str = word[start:end]
+            # skip digits
+            if match_str.isdigit():
+                continue
             before = word[:start]
             after = word[end:]
             basic_mutation = [before, None, after]
