@@ -57,20 +57,54 @@ def test_config_validation(monkeypatch, capsys, bbot_config):
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(cli, "config", bbot_config)
 
-    old_sys_argv = sys.argv
-    old_cli_options = args.cli_options
+    old_cli_config = args.cli_config
 
     # incorrect module option
-    monkeypatch.setattr("sys.argv", ["bbot", "-c", "modules.ipnegibhor.num_bits=4"])
-    monkeypatch.setattr(args, "cli_options", args.dummy_parser.parse_args())
-
-    args.get_config()
+    monkeypatch.setattr(args, "cli_config", ["bbot", "-c", "modules.ipnegibhor.num_bits=4"])
+    cli.main()
     captured = capsys.readouterr()
-
     assert 'Could not find module option "modules.ipnegibhor.num_bits"' in captured.err
     assert 'Did you mean "modules.ipneighbor.num_bits"?' in captured.err
 
+    # unpatch cli_options
+    monkeypatch.setattr(args, "cli_config", old_cli_config)
+
+
+def test_module_validation(monkeypatch, capsys, bbot_config):
+    from bbot.core.configurator import args
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+
+    old_sys_argv = sys.argv
+
+    # incorrect module
+    monkeypatch.setattr(sys, "argv", ["bbot", "-m", "massdnss"])
+    args.parser.parse_args()
+    captured = capsys.readouterr()
+    assert 'Could not find module "massdnss"' in captured.err
+    assert 'Did you mean "massdns"?' in captured.err
+
+    # incorrect excluded module
+    monkeypatch.setattr(sys, "argv", ["bbot", "-em", "massdnss"])
+    args.parser.parse_args()
+    captured = capsys.readouterr()
+    assert 'Could not find module "massdnss"' in captured.err
+    assert 'Did you mean "massdns"?' in captured.err
+
+    # incorrect output module
+    monkeypatch.setattr(sys, "argv", ["bbot", "-om", "neoo4j"])
+    args.parser.parse_args()
+    captured = capsys.readouterr()
+    assert 'Could not find output module "neoo4j"' in captured.err
+    assert 'Did you mean "neo4j"?' in captured.err
+
+    # incorrect flag
+    monkeypatch.setattr(sys, "argv", ["bbot", "-f", "subdomainenum"])
+    args.parser.parse_args()
+    captured = capsys.readouterr()
+    assert 'Could not find flag "subdomainenum"' in captured.err
+    assert 'Did you mean "subdomain-enum"?' in captured.err
+
     # unpatch sys.argv
     monkeypatch.setattr("sys.argv", old_sys_argv)
-    # unpatch cli_options
-    monkeypatch.setattr(args, "cli_options", old_cli_options)

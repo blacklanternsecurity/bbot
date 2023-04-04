@@ -4,10 +4,9 @@ from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-from ..errors import ArgumentError
 from ...modules import module_loader
 from ..helpers.logger import log_to_stderr
-from ..helpers.misc import chain_lists, best_match
+from ..helpers.misc import chain_lists, match_and_exit
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
@@ -35,18 +34,17 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.require_flags = chain_lists(ret.require_flags)
         for m in ret.modules:
             if m not in module_choices and not self._dummy:
-                raise ArgumentError(f'Module "{m}" is not valid. Choose from: {",".join(module_choices)}')
+                match_and_exit(m, module_choices, msg="module")
         for m in ret.exclude_modules:
             if m not in module_choices and not self._dummy:
-                raise ArgumentError(f'Cannot exclude module "{m}". Choose from: {",".join(module_choices)}')
+                match_and_exit(m, module_choices, msg="module")
         for m in ret.output_modules:
             if m not in output_module_choices and not self._dummy:
-                raise ArgumentError(
-                    f'Output module "{m}" is not valid. Choose from: {",".join(output_module_choices)}'
-                )
+                match_and_exit(m, output_module_choices, msg="output module")
         for f in set(ret.flags + ret.require_flags):
             if f not in flag_choices and not self._dummy:
-                raise ArgumentError(f'Flag "{f}" is not valid. Choose from: {",".join(sorted(flag_choices))}')
+                if f not in flag_choices and not self._dummy:
+                    match_and_exit(f, flag_choices, msg="flag")
         return ret
 
 
@@ -202,8 +200,11 @@ with suppress(Exception):
     cli_options = dummy_parser.parse_args()
 
 
+cli_config = []
+
+
 def get_config():
-    cli_config = []
+    global cli_config
     with suppress(Exception):
         if cli_options.config:
             cli_config = cli_options.config
@@ -217,18 +218,6 @@ def get_config():
             except Exception as e:
                 log_to_stderr(f"Error parsing custom config at {filename}: {e}", level="ERROR")
                 sys.exit(2)
-        else:
-            modules_options = set()
-            for module_options in module_loader.modules_options().values():
-                modules_options.update(set(o[0] for o in module_options))
-            for c in cli_config:
-                c = c.split("=")[0].strip()
-                if not c in modules_options:
-                    closest, score = best_match(c, modules_options)
-                    log_to_stderr(
-                        f'Could not find module option "{c}". Did you mean "{closest}"?', level="HUGEWARNING"
-                    )
-                    sys.exit(2)
     try:
         return OmegaConf.from_cli(cli_config)
     except Exception as e:

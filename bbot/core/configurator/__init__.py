@@ -6,7 +6,8 @@ from omegaconf import OmegaConf
 from . import files, args, environ
 from ..errors import ConfigLoadError
 from ...modules import module_loader
-from ..helpers.misc import mkdir, error_and_exit, filter_dict, clean_dict, log_to_stderr
+from ..helpers.logger import log_to_stderr
+from ..helpers.misc import mkdir, error_and_exit, filter_dict, clean_dict, closest_match, match_and_exit
 
 # cached sudo password
 bbot_sudo_pass = None
@@ -33,11 +34,27 @@ except ConfigLoadError as e:
 
 
 config = environ.prepare_environment(config)
+default_config = OmegaConf.merge(files.default_config, modules_config)
+
+
+sentinel = object()
+
+
+def check_cli_args():
+    for c in args.cli_config:
+        c = c.split("=")[0].strip()
+        v = OmegaConf.select(default_config, c, default=sentinel)
+        if v is sentinel:
+            from ...modules import module_loader
+
+            modules_options = set()
+            for module_options in module_loader.modules_options().values():
+                modules_options.update(set(o[0] for o in module_options))
+            closest, score = closest_match(c, modules_options)
+            match_and_exit(c, modules_options, msg="module option")
 
 
 def ensure_config_files():
-    default_config = OmegaConf.merge(files.default_config, modules_config)
-
     secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
     exclude_keys = ["modules", "output_modules", "internal_modules"]
 

@@ -13,10 +13,6 @@ class ScanCancelledError(BBOTError):
     pass
 
 
-class ArgumentError(BBOTError):
-    pass
-
-
 class ValidationError(BBOTError):
     pass
 

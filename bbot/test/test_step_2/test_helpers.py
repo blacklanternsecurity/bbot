@@ -127,9 +127,9 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert "bls" in extracted_words
 
     choices = ["asdf.fdsa", "asdf.1234", "4321.5678"]
-    best_match, score = helpers.best_match("asdf.123a", choices)
+    best_match, score = helpers.closest_match("asdf.123a", choices)
     assert best_match == "asdf.1234"
-    best_matches = helpers.best_match("asdf.123a", choices, n=2)
+    best_matches = helpers.closest_match("asdf.123a", choices, n=2)
     assert len(best_matches) == 2
     first_match = best_matches[0]
     assert len(first_match) == 2
