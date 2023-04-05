@@ -483,18 +483,19 @@ class ScanManager:
         if _log:
             modules_status = []
             for m, s in status["modules"].items():
+                running = s["running"]
                 incoming = s["events"]["incoming"]
                 outgoing = s["events"]["outgoing"]
                 tasks = s["tasks"]["total"]
                 total = sum([incoming, outgoing, tasks])
-                modules_status.append((m, incoming, outgoing, tasks, total))
+                if running or total > 0:
+                    modules_status.append((m, running, incoming, outgoing, tasks, total))
             modules_status.sort(key=lambda x: x[-1], reverse=True)
 
-            modules_status = [s for s in modules_status if s[-2] or s[-1] > 0][:5]
             if modules_status:
-                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, i, o, t, _ in modules_status])
-                running_modules_str = ", ".join([m[0] for m in modules_status])
-                self.scan.info(f"{self.scan.name}: Running modules: {running_modules_str}")
+                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, r, i, o, t, _ in modules_status])
+                running_modules_str = ", ".join([m[0] for m in modules_status if m[1]])
+                self.scan.info(f"{self.scan.name}: Modules running: {running_modules_str}")
                 self.scan.verbose(
                     f"{self.scan.name}: Modules status (incoming:processing:outgoing) {modules_status_str}"
                 )

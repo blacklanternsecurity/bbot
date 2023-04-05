@@ -110,7 +110,7 @@ Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurit
 from bbot.scanner import Scanner
 
 # any number of targets can be specified
-scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["httpx", "sslcert"])
+scan = Scanner("evilcorp.com", "evilcorp.co.uk", modules=["httpx", "sslcert"])
 for event in scan.start():
     print(event.json())
 ~~~

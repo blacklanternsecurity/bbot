@@ -97,6 +97,7 @@ class BaseModule:
         self._watched_events = None
 
         self._lock = threading.RLock()
+        self._running_semaphore = threading.Semaphore()
         self.event_received = threading.Condition(self._lock)
 
         # string constant
@@ -221,6 +222,10 @@ class BaseModule:
             return
         return callback(event)
 
+    def _register_running(self, callback, *args, **kwargs):
+        with self._running_semaphore:
+            return callback(*args, **kwargs)
+
     def _handle_batch(self, force=False):
         if self.batch_size <= 1:
             return
@@ -244,6 +249,7 @@ class BaseModule:
                 if not self.errored:
                     self._internal_thread_pool.submit_task(
                         self.catch,
+                        self._register_running,
                         self.handle_batch,
                         *checked_events,
                         _on_finish_callback=on_finish_callback,
@@ -379,10 +385,10 @@ class BaseModule:
                         self._internal_thread_pool.submit_task(self.catch, self.finish)
                     else:
                         if self._type == "output":
-                            self.catch(self._postcheck_and_run, self.handle_event, e)
+                            self.catch(self._register_running, self._postcheck_and_run, self.handle_event, e)
                         else:
                             self._internal_thread_pool.submit_task(
-                                self.catch, self._postcheck_and_run, self.handle_event, e
+                                self.catch, self._register_running, self._postcheck_and_run, self.handle_event, e
                             )
 
         except KeyboardInterrupt:
@@ -537,8 +543,15 @@ class BaseModule:
             "tasks": {"main_pool": main_pool, "internal_pool": internal_pool, "total": pool_total},
             "errored": self.errored,
         }
-        status["running"] = self._is_running(status)
+        status["running"] = self.running
         return status
+
+    @property
+    def running(self):
+        """
+        Indicates whether the module is currently processing data.
+        """
+        return self._running_semaphore._value < 1
 
     def request_with_fail_count(self, *args, **kwargs):
         r = self.helpers.request(*args, **kwargs)
@@ -558,23 +571,6 @@ class BaseModule:
         if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
             return True
         return False
-
-    @staticmethod
-    def _is_running(module_status):
-        for pool, count in module_status["tasks"].items():
-            if count > 0:
-                return True
-        for direction, qsize in module_status["events"].items():
-            if qsize > 0:
-                return True
-        return False
-
-    @property
-    def running(self):
-        """
-        Indicates whether the module is currently processing data.
-        """
-        return self.status["running"]
 
     @property
     def config(self):
