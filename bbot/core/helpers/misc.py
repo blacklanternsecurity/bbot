@@ -395,6 +395,8 @@ def closest_match(s, choices, n=1, cutoff=0.0):
     closest_match("asdf", ["asd", "fds", "asdff"], n=3) --> ["asd", "asdff", "fds"]
     """
     matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
+    if not choices or not matches:
+        return
     if n == 1:
         return matches[0]
     return matches
