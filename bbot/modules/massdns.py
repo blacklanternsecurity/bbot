@@ -282,8 +282,8 @@ class massdns(crobat):
                 for hostname in self.massdns(query, mutations):
                     source_event = self.get_source_event(hostname)
                     if source_event is None:
-                        self.debug(f"Could not correlate source event from: {hostname}")
-                        continue
+                        self.verbose(f"Could not correlate source event from: {hostname}")
+                        source_event = self.scan.root_event
                     self.emit_result(hostname, source_event, query)
 
     def add_found(self, event):

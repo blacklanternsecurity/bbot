@@ -382,7 +382,7 @@ class BaseModule:
                     self.debug(f"Got {e} from {getattr(e, 'module', e)}")
                     # if we receive the special "FINISHED" event
                     if e.type == "FINISHED":
-                        self._internal_thread_pool.submit_task(self.catch, self.finish)
+                        self._internal_thread_pool.submit_task(self.catch, self._register_running, self.finish)
                     else:
                         if self._type == "output":
                             self.catch(self._register_running, self._postcheck_and_run, self.handle_event, e)
@@ -544,7 +544,22 @@ class BaseModule:
             "errored": self.errored,
         }
         status["running"] = self.running
+        status["active"] = self._is_active(status)
         return status
+
+    @staticmethod
+    def _is_active(status):
+        if status["running"]:
+            return True
+        total = status["tasks"]["total"] + status["events"]["incoming"] + status["events"]["outgoing"]
+        return total > 0
+
+    @property
+    def active(self):
+        """
+        Indicates whether the module has data yet to be processed
+        """
+        return self._foo
 
     @property
     def running(self):

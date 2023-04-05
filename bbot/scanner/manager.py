@@ -238,7 +238,7 @@ class ScanManager:
             source_event = event
             if (
                 event.host
-                and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")
+                and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
                 and not str(event.module) == "speculate"
             ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
@@ -461,7 +461,7 @@ class ScanManager:
 
             for m in self.scan.modules.values():
                 mod_status = m.status
-                if mod_status["running"]:
+                if mod_status["active"]:
                     finished = False
                 status["modules"][m.name] = mod_status
 
