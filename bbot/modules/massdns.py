@@ -271,8 +271,9 @@ class massdns(crobat):
                     add_mutation(domain_hash, m)
 
             # special dns mutator
+            to_mutate = subdomains.union(self.helpers.word_cloud.devops_mutations)
             for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
-                subdomains, max_mutations=self.max_mutations
+                to_mutate, max_mutations=self.max_mutations
             ):
                 add_mutation(domain_hash, subdomain)
 

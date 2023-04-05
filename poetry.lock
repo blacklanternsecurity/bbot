@@ -1373,18 +1373,6 @@ files = [
 ]
 
 [[package]]
-name = "strsimpy"
-version = "0.2.1"
-description = "A library implementing different string similarity and distance measures"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "strsimpy-0.2.1-py3-none-any.whl", hash = "sha256:d676a440d5d3dbcf5ba92d01814a03a218776ce07bd7a8185da7019e04cf9ba7"},
-    {file = "strsimpy-0.2.1.tar.gz", hash = "sha256:0842eb57f7af86c882a59a1bc8721ec2580a267e563fd0503ced2972040372c9"},
-]
-
-[[package]]
 name = "tabulate"
 version = "0.8.10"
 description = "Pretty-print tabular data"
@@ -1561,4 +1549,4 @@ xmltodict = ">=0.12.0,<0.13.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "c432d81bb30862145f11477051f5e87a4d3ca7464f03078d1b217a8349af655a"
+content-hash = "96f4ab6d6307e69874e9eeb3300d60bef1c808e90d2681f83c90813ce8de3bea"

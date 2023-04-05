@@ -31,7 +31,7 @@ pip install --pre bbot
 bbot --help
 ~~~
 Prerequisites:
-- Linux (Windows, including WSL is not supported)
+- Linux (Windows and macOS are *not* supported)
 - Python 3.9 or newer
 
 ## Installation ([Docker](https://hub.docker.com/r/blacklanternsecurity/bbot))

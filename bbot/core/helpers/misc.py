@@ -10,6 +10,7 @@ import random
 import shutil
 import signal
 import string
+import difflib
 import inspect
 import logging
 import platform
@@ -23,7 +24,6 @@ from datetime import datetime
 from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
-from strsimpy.qgram import QGram
 import tldextract as _tldextract
 from hashlib import sha1 as hashlib_sha1
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
@@ -387,19 +387,17 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
     return words
 
 
-def closest_match(s, choices, n=1):
+def closest_match(s, choices, n=1, cutoff=0.0):
     """
     Given a string and a list of choices, returns the best match
 
-    closest_match("asdf", ["asd", "fds"]) --> ('asd', 1)
-    closest_match("asdf", ["asd", "fds", "asdff"], n=3) --> [('asd', 1), ('asdff', 1), ('fds', 5)]
+    closest_match("asdf", ["asd", "fds"]) --> "asd"
+    closest_match("asdf", ["asd", "fds", "asdff"], n=3) --> ["asd", "asdff", "fds"]
     """
-    qgram = QGram(2)
-    matches = {_: qgram.distance(_, s) for _ in choices}
-    matches = sorted(matches.items(), key=lambda x: x[-1])
+    matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
     if n == 1:
         return matches[0]
-    return matches[:n]
+    return matches
 
 
 def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
@@ -410,7 +408,7 @@ def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
         msg = ""
     else:
         msg += " "
-    closest, score = closest_match(s, choices)
+    closest = closest_match(s, choices)
     log_to_stderr(f'Could not find {msg}"{s}". Did you mean "{closest}"?', level="HUGEWARNING")
     sys.exit(2)
 

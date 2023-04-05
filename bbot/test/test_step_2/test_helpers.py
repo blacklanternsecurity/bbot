@@ -127,15 +127,12 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert "bls" in extracted_words
 
     choices = ["asdf.fdsa", "asdf.1234", "4321.5678"]
-    best_match, score = helpers.closest_match("asdf.123a", choices)
+    best_match = helpers.closest_match("asdf.123a", choices)
     assert best_match == "asdf.1234"
     best_matches = helpers.closest_match("asdf.123a", choices, n=2)
     assert len(best_matches) == 2
-    first_match = best_matches[0]
-    assert len(first_match) == 2
-    assert first_match[0] == "asdf.1234"
-    second_match = best_matches[1]
-    assert second_match[0] == "asdf.fdsa"
+    assert best_matches[0] == "asdf.1234"
+    assert best_matches[1] == "asdf.fdsa"
 
     ipv4_netloc = helpers.make_netloc("192.168.1.1", 80)
     assert ipv4_netloc == "192.168.1.1:80"
@@ -691,10 +688,15 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
 
     m = DNSMutator()
     m.add_word("blacklantern-security")
+    m.add_word("sec")
+    m.add_word("sec2")
+    m.add_word("black2")
     mutations = sorted(m.mutations("whitebasket"))
     assert mutations == sorted(
         [
+            "basket",
             "basket-security",
+            "basket2",
             "basketlantern-security",
             "blackbasket-security",
             "blacklantern-basket",
@@ -702,12 +704,18 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
             "blacklantern-whitebasket",
             "blackwhite-security",
             "blackwhitebasket-security",
+            "white",
             "white-security",
+            "white2",
+            "whitebasket",
             "whitebasket-security",
+            "whitebasket2",
             "whitebasketlantern-security",
             "whitelantern-security",
         ]
     )
+    top_mutations = sorted(m.top_mutations().items(), key=lambda x: x[-1], reverse=True)
+    assert top_mutations[:2] == [((None,), 3), ((None, "2"), 2)]
 
 
 def test_queues(scan, helpers):

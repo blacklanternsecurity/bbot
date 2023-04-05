@@ -12,9 +12,7 @@ from contextlib import suppress
 sys.stdout.reconfigure(line_buffering=True)
 
 # logging
-from bbot.core.logger import init_logging, get_log_level, toggle_log_level
-
-logging_queue, logging_handlers = init_logging()
+from bbot.core.logger import get_log_level, toggle_log_level
 
 import bbot.core.errors
 from bbot import __version__
