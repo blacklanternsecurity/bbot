@@ -246,7 +246,12 @@ class SecretsDB(HttpxMockHelper):
 
 
 class Badsecrets(HttpxMockHelper):
-    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/test.aspx", "http://127.0.0.1:8888/cookie.aspx", "http://127.0.0.1:8888/cookie2.aspx"]
+    targets = [
+        "http://127.0.0.1:8888/",
+        "http://127.0.0.1:8888/test.aspx",
+        "http://127.0.0.1:8888/cookie.aspx",
+        "http://127.0.0.1:8888/cookie2.aspx",
+    ]
 
     sample_viewstate = """
     <form method="post" action="./query.aspx" id="form1">
@@ -299,7 +304,6 @@ class Badsecrets(HttpxMockHelper):
         }
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-
         expect_args = {"uri": "/cookie2.aspx"}
         respond_args = {
             "response_data": "<html><body><p>Express Cookie Test</p></body></html>",
@@ -344,7 +348,6 @@ class Badsecrets(HttpxMockHelper):
             ):
                 print(e.data["description"])
                 CookieBasedDetection_2 = True
-
 
         if SecretFound and IdentifyOnly and CookieBasedDetection and CookieBasedDetection_2:
             return True
