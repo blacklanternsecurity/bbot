@@ -246,7 +246,12 @@ class SecretsDB(HttpxMockHelper):
 
 
 class Badsecrets(HttpxMockHelper):
-    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/test.aspx", "http://127.0.0.1:8888/cookie.aspx"]
+    targets = [
+        "http://127.0.0.1:8888/",
+        "http://127.0.0.1:8888/test.aspx",
+        "http://127.0.0.1:8888/cookie.aspx",
+        "http://127.0.0.1:8888/cookie2.aspx",
+    ]
 
     sample_viewstate = """
     <form method="post" action="./query.aspx" id="form1">
@@ -299,10 +304,21 @@ class Badsecrets(HttpxMockHelper):
         }
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"uri": "/cookie2.aspx"}
+        respond_args = {
+            "response_data": "<html><body><p>Express Cookie Test</p></body></html>",
+            "headers": {
+                "set-cookie": "connect.sid=s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc; Path=/; Expires=Wed, 05 Apr 2023 04:47:29 GMT; HttpOnly"
+            },
+        }
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
     def check_events(self, events):
         SecretFound = False
         IdentifyOnly = False
         CookieBasedDetection = False
+        CookieBasedDetection_2 = False
+
         for e in events:
             if (
                 e.type == "VULNERABILITY"
@@ -310,6 +326,7 @@ class Badsecrets(HttpxMockHelper):
                 == "Known Secret Found. Secret Type: [ASP.NET MachineKey] Secret: [validationKey: 0F97BAE23F6F36801ABDB5F145124E00A6F795A97093D778EE5CD24F35B78B6FC4C0D0D4420657689C4F321F8596B59E83F02E296E970C4DEAD2DFE226294979 validationAlgo: SHA1 encryptionKey: 8CCFBC5B7589DD37DC3B4A885376D7480A69645DAEEC74F418B4877BEC008156 encryptionAlgo: AES] Product Type: [ASP.NET Viewstate] Product: [rJdyYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESf4nBu] Detecting Module: [ASPNET_Viewstate]"
             ):
                 SecretFound = True
+
             if (
                 e.type == "FINDING"
                 and e.data["description"]
@@ -324,7 +341,15 @@ class Badsecrets(HttpxMockHelper):
             ):
                 CookieBasedDetection = True
 
-        if SecretFound and IdentifyOnly and CookieBasedDetection:
+            if (
+                e.type == "VULNERABILITY"
+                and e.data["description"]
+                == "Known Secret Found. Secret Type: [Express SESSION_SECRET] Secret: [keyboard cat] Product Type: [Express Signed Cookie] Product: [s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc] Detecting Module: [ExpressSignedCookies]"
+            ):
+                print(e.data["description"])
+                CookieBasedDetection_2 = True
+
+        if SecretFound and IdentifyOnly and CookieBasedDetection and CookieBasedDetection_2:
             return True
         return False
 
