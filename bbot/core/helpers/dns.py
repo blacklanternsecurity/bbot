@@ -267,15 +267,14 @@ class DNSHelper:
         Optionally create child events from dns resolutions
         """
         log.debug(f"Resolving {event}")
-        event_tags = set()
-        if not event.host or event.type in ("IP_RANGE",):
-            return [], set(), False, False, set()
         event_host = str(event.host)
-
+        event_tags = set()
+        dns_children = dict()
         event_whitelisted = False
         event_blacklisted = False
 
-        dns_children = dict()
+        if not event.host or event.type in ("IP_RANGE",):
+            return event_tags, event_whitelisted, event_blacklisted, dns_children
 
         # lock to ensure resolution of the same host doesn't start while we're working here
         with self._event_cache_locks.get_lock(event_host):

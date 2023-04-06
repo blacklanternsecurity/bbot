@@ -298,11 +298,11 @@ class BaseEvent:
 
     def unmake_internal(self, set_scope_distance=None, force_output=False):
         source_trail = []
+        self.remove_tag("internal")
         if self._made_internal:
             if set_scope_distance is not None:
                 self.scope_distance = set_scope_distance
             self._internal = False
-            self.remove_tag("internal")
             self._made_internal = False
         if force_output is True:
             self._force_output = True
