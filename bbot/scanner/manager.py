@@ -236,26 +236,34 @@ class ScanManager:
                 self.distribute_event(event)
                 event_distributed = True
 
+            # speculate DNS_NAMES and IP_ADDRESSes from other event types
+            source_event = event
+            if (
+                event.host
+                and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
+                and not str(event.module) == "speculate"
+            ):
+                source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
+                source_module._priority = 4
+                source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
+                # only emit the event if it's not already in the parent chain
+                if source_event is not None and source_event not in source_event.get_sources():
+                    source_event.scope_distance = event.scope_distance
+                    if "target" in event.tags:
+                        source_event.add_tag("target")
+                    self.emit_event(source_event, _block=False, _force_submit=True)
+
             ### Emit DNS children ###
-            if not event_is_duplicate:
+            if self.dns_resolution:
                 emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
-                # speculate DNS_NAMES and IP_ADDRESSes from other event types
-                source_event = event
-                if (
-                    event.host
-                    and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
-                    and not str(event.module) == "speculate"
-                ):
-                    source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
-                    source_module._priority = 4
-                    source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
-                    # only emit the event if it's not already in the parent chain
-                    if source_event is not None and source_event not in source_event.get_sources():
-                        source_event.scope_distance = event.scope_distance
-                        if "target" in event.tags:
-                            source_event.add_tag("target")
-                        self.emit_event(source_event, _block=False, _force_submit=True)
-                if self.dns_resolution and emit_children:
+                if emit_children:
+                    host_hash = hash(str(event.host))
+                    with self.events_accepted_lock:
+                        if host_hash in self.events_accepted:
+                            emit_children = False
+                        self.events_accepted.add(host_hash)
+
+                if emit_children:
                     dns_child_events = []
                     if dns_children:
                         for rdtype, records in dns_children.items():

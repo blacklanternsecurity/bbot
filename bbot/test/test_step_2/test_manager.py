@@ -84,9 +84,7 @@ def test_manager(bbot_config, bbot_scanner):
     source_event._resolved.set()
     googledns.source = source_event
     manager._emit_event(googledns)
-    # TODO: ideally this should not emit children
-    # but this is a side effect of being more permissive toward duplicate DNS events
-    assert len(event_children) > 0
+    assert len(event_children) == 0
     assert googledns in output
 
 
