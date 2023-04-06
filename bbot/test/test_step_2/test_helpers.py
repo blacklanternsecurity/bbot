@@ -535,15 +535,9 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
-    event_tags1, event_whitelisted1, event_blacklisted1, children1 = scan.helpers.resolve_event(
-        wildcard_event1
-    )
-    event_tags2, event_whitelisted2, event_blacklisted2, children2 = scan.helpers.resolve_event(
-        wildcard_event2
-    )
-    event_tags3, event_whitelisted3, event_blacklisted3, children3 = scan.helpers.resolve_event(
-        wildcard_event3
-    )
+    event_tags1, event_whitelisted1, event_blacklisted1, children1 = scan.helpers.resolve_event(wildcard_event1)
+    event_tags2, event_whitelisted2, event_blacklisted2, children2 = scan.helpers.resolve_event(wildcard_event2)
+    event_tags3, event_whitelisted3, event_blacklisted3, children3 = scan.helpers.resolve_event(wildcard_event3)
     helpers.handle_wildcard_event(wildcard_event1, children1)
     helpers.handle_wildcard_event(wildcard_event2, children2)
     helpers.handle_wildcard_event(wildcard_event3, children3)
@@ -568,12 +562,8 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
 
     resolved_hosts_event1 = scan.make_event("dns.google", "DNS_NAME", dummy=True)
     resolved_hosts_event2 = scan.make_event("http://dns.google/", "URL_UNVERIFIED", dummy=True)
-    event_tags1, event_whitelisted1, event_blacklisted1, children1 = scan.helpers.resolve_event(
-        resolved_hosts_event1
-    )
-    event_tags2, event_whitelisted2, event_blacklisted2, children2 = scan.helpers.resolve_event(
-        resolved_hosts_event2
-    )
+    event_tags1, event_whitelisted1, event_blacklisted1, children1 = scan.helpers.resolve_event(resolved_hosts_event1)
+    event_tags2, event_whitelisted2, event_blacklisted2, children2 = scan.helpers.resolve_event(resolved_hosts_event2)
 
     assert "8.8.8.8" in [str(x) for x in children1["A"]]
     assert "8.8.8.8" in [str(x) for x in children2["A"]]
