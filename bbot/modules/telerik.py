@@ -173,7 +173,6 @@ class telerik(BaseModule):
         webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
         result = self.test_detector(event.data, webresource)
         if result:
-            self.debug(result.text)
             if "RadAsyncUpload handler is registered succesfully" in result.text:
                 self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
                 description = f"Telerik RAU AXD Handler detected"
