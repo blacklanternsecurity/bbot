@@ -529,8 +529,9 @@ class BaseEvent:
         return self._hash
 
     def __str__(self):
+        max_event_len = 80
         d = str(self.data)
-        return f'{self.type}("{d[:50]}{("..." if len(d) > 50 else "")}", module={self.module}, tags={self.tags})'
+        return f'{self.type}("{d[:max_event_len]}{("..." if len(d) > max_event_len else "")}", module={self.module}, tags={self.tags})'
 
     def __repr__(self):
         return str(self)
@@ -800,6 +801,12 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
                 header_dict[k] = v
         data["header-dict"] = header_dict
         return data
+
+    def _data_human(self):
+        data = dict(self.data)
+        new_data = {"url": data.pop("url")}
+        new_data.update(data)
+        return new_data
 
     def _words(self):
         return set()
