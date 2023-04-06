@@ -67,9 +67,13 @@ class URLExtractor(BaseExtractor):
         self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
 
     def search(self, content, event, **kwargs):
-        results = set()
+        result_hashes = set()
+        results = []
         for result in self._search(content, event, **kwargs):
-            results.add(result)
+            result_hash = hash(result)
+            if result_hash not in result_hashes:
+                result_hashes.add(result_hash)
+                results.append(result)
         for i, (result, name) in enumerate(results):
             new_kwargs = dict(kwargs)
             if i > self.web_spider_links_per_page:

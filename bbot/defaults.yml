@@ -56,7 +56,7 @@ web_spider_distance: 0
 # Set the maximum directory depth for the web spider
 web_spider_depth: 1
 # Set the maximum number of links that can be followed per page
-web_spider_links_per_page: 20
+web_spider_links_per_page: 25
 # DNS query timeout
 dns_timeout: 5
 # How many times to retry DNS queries
