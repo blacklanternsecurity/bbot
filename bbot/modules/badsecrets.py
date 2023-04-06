@@ -9,7 +9,7 @@ class badsecrets(BaseModule):
     flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
     max_event_handlers = 2
-    deps_pip = ["badsecrets~=0.1.279"]
+    deps_pip = ["badsecrets~=0.1.287"]
 
     def handle_event(self, event):
         resp_body = event.data.get("body", None)

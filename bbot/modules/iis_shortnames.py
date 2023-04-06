@@ -58,7 +58,9 @@ class iis_shortnames(BaseModule):
     def directory_confirm(self, target, method, url_hint, affirmative_status_code):
         payload = encode_all(f"{url_hint}")
         url = f"{target}{payload}"
-        directory_confirm_result = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
+        directory_confirm_result = self.helpers.request(
+            method=method, url=url, allow_redirects=False, retries=2, timeout=10
+        )
 
         if directory_confirm_result.status_code == affirmative_status_code:
             return True
@@ -75,7 +77,9 @@ class iis_shortnames(BaseModule):
             payload = encode_all(f"{base_hint}~{str(count)}*")
             url = f"{target}{payload}{suffix}"
 
-            duplicate_check_results = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
+            duplicate_check_results = self.helpers.request(
+                method=method, url=url, allow_redirects=False, retries=2, timeout=10
+            )
             if duplicate_check_results.status_code != affirmative_status_code:
                 break
             else:
