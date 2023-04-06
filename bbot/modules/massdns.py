@@ -271,8 +271,9 @@ class massdns(crobat):
                     add_mutation(domain_hash, m)
 
             # special dns mutator
+            to_mutate = subdomains.union(self.helpers.word_cloud.devops_mutations)
             for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
-                subdomains, max_mutations=self.max_mutations
+                to_mutate, max_mutations=self.max_mutations
             ):
                 add_mutation(domain_hash, subdomain)
 
@@ -281,8 +282,8 @@ class massdns(crobat):
                 for hostname in self.massdns(query, mutations):
                     source_event = self.get_source_event(hostname)
                     if source_event is None:
-                        self.debug(f"Could not correlate source event from: {hostname}")
-                        continue
+                        self.verbose(f"Could not correlate source event from: {hostname}")
+                        source_event = self.scan.root_event
                     self.emit_result(hostname, source_event, query)
 
     def add_found(self, event):

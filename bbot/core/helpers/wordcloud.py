@@ -236,11 +236,9 @@ class Mutator(dict):
             return dict(self)
 
     def _add_mutation(self, mutation):
-        if not None in mutation:
+        if None not in mutation:
             return
         mutation = tuple([m for m in mutation if m != ""])
-        if not any(mutation):
-            return
         try:
             self[mutation] += 1
         except KeyError:
@@ -282,6 +280,8 @@ class DNSMutator(Mutator):
             match_str_split = self.model.split(match_str)
             if len(match_str_split) > 1:
                 for i, s in enumerate(match_str_split):
+                    if s.isdigit():
+                        continue
                     split_before = "".join(match_str_split[:i])
                     split_after = "".join(match_str_split[i + 1 :])
                     wordninja_mutation = [before + split_before, None, split_after + after]

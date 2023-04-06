@@ -238,7 +238,7 @@ class ScanManager:
             source_event = event
             if (
                 event.host
-                and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")
+                and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
                 and not str(event.module) == "speculate"
             ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
@@ -432,7 +432,7 @@ class ScanManager:
         finally:
             # Run .report() on every module
             for mod in self.scan.modules.values():
-                self.catch(mod.report, _force=True)
+                self.catch(mod._register_running, mod.report, _force=True)
 
     def log_status(self, frequency=10):
         # print status every 10 seconds
@@ -461,7 +461,7 @@ class ScanManager:
 
             for m in self.scan.modules.values():
                 mod_status = m.status
-                if mod_status["running"]:
+                if mod_status["active"]:
                     finished = False
                 status["modules"][m.name] = mod_status
 
@@ -483,18 +483,19 @@ class ScanManager:
         if _log:
             modules_status = []
             for m, s in status["modules"].items():
+                running = s["running"]
                 incoming = s["events"]["incoming"]
                 outgoing = s["events"]["outgoing"]
                 tasks = s["tasks"]["total"]
                 total = sum([incoming, outgoing, tasks])
-                modules_status.append((m, incoming, outgoing, tasks, total))
+                if running or total > 0:
+                    modules_status.append((m, running, incoming, outgoing, tasks, total))
             modules_status.sort(key=lambda x: x[-1], reverse=True)
 
-            modules_status = [s for s in modules_status if s[-2] or s[-1] > 0][:5]
             if modules_status:
-                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, i, o, t, _ in modules_status])
-                running_modules_str = ", ".join([m[0] for m in modules_status])
-                self.scan.info(f"{self.scan.name}: Running modules: {running_modules_str}")
+                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, r, i, o, t, _ in modules_status])
+                running_modules_str = ", ".join([m[0] for m in modules_status if m[1]])
+                self.scan.info(f"{self.scan.name}: Modules running: {running_modules_str}")
                 self.scan.verbose(
                     f"{self.scan.name}: Modules status (incoming:processing:outgoing) {modules_status_str}"
                 )

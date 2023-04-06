@@ -7,7 +7,7 @@ from . import files, args, environ
 from ..errors import ConfigLoadError
 from ...modules import module_loader
 from ..helpers.logger import log_to_stderr
-from ..helpers.misc import mkdir, error_and_exit, filter_dict, clean_dict, closest_match, match_and_exit
+from ..helpers.misc import error_and_exit, filter_dict, clean_dict, match_and_exit
 
 # cached sudo password
 bbot_sudo_pass = None
@@ -53,7 +53,6 @@ def check_cli_args():
                     modules_options.update(set(o[0] for o in module_options))
                 global_options = set(default_config.keys()) - {"modules", "output_modules"}
                 all_options = global_options.union(modules_options)
-                closest, score = closest_match(c, all_options)
                 match_and_exit(c, all_options, msg="module option")
 
 
