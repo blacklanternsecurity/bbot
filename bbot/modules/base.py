@@ -487,7 +487,7 @@ class BaseModule:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
                 if callable(callback):
-                    self.catch(callback, _force=True)
+                    self.catch(self._register_running, callback, _force=True)
 
     def queue_event(self, event):
         if self.incoming_event_queue in (None, False):

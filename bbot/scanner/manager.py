@@ -432,7 +432,7 @@ class ScanManager:
         finally:
             # Run .report() on every module
             for mod in self.scan.modules.values():
-                self.catch(mod.report, _force=True)
+                self.catch(mod._register_running, mod.report, _force=True)
 
     def log_status(self, frequency=10):
         # print status every 10 seconds
