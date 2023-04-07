@@ -55,8 +55,6 @@ class BaseModule:
     options_desc = {}
     # Maximum concurrent instances of handle_event() or handle_batch()
     max_event_handlers = 1
-    # Max number of concurrent calls to submit_task()
-    max_threads = 10
     # Batch size
     # If batch size > 1, override handle_batch() instead of handle_event()
     batch_size = 1
@@ -86,8 +84,7 @@ class BaseModule:
         # seconds since we've submitted a batch
         self._last_submitted_batch = None
         # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
-        max_workers = self.config.get("max_threads", self.max_threads)
-        self.thread_pool = ThreadPoolWrapper(self.scan._thread_pool, max_workers=max_workers)
+        self.thread_pool = ThreadPoolWrapper(self.scan._thread_pool)
         self._internal_thread_pool = ThreadPoolWrapper(
             self.scan._internal_thread_pool.executor, max_workers=self.max_event_handlers
         )
@@ -209,6 +206,7 @@ class BaseModule:
         return self._watched_events
 
     def submit_task(self, *args, **kwargs):
+        kwargs["_block"] = False
         return self.thread_pool.submit_task(self.catch, *args, **kwargs)
 
     def catch(self, *args, **kwargs):
