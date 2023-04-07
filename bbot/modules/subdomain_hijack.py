@@ -8,7 +8,7 @@ from bbot.core.helpers.misc import tldextract
 
 class subdomain_hijack(BaseModule):
     flags = ["subdomain-hijack", "subdomain-enum", "cloud-enum", "safe", "active", "web-basic", "web-thorough"]
-    watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
+    watched_events = ["DNS_NAME"]
     produced_events = ["FINDING"]
     meta = {"description": "Detect hijackable subdomains"}
     options = {
@@ -71,21 +71,25 @@ class subdomain_hijack(BaseModule):
             for domain in f.domains:
                 self_matches = self.helpers.host_in_host(event.data, domain)
                 child_matches = any(self.helpers.host_in_host(domain, h) for h in event.resolved_hosts)
-                if self_matches or child_matches:
-                    for scheme in ("https", "http"):
-                        if self.scan.stopping:
-                            return False, "Scan cancelled"
-                        # first, try base request
-                        url = f"{scheme}://{event.data}"
-                        match, reason = self._verify_fingerprint(f, url)
-                        if match:
-                            return match, reason
-                        # next, try {random_domain} -[DNS]-> domain
-                        url = f"{scheme}://{domain}"
-                        headers = {"Host": event.data}
-                        match, reason = self._verify_fingerprint(f, url, headers=headers)
-                        if match:
-                            return match, reason
+                if event.type == "DNS_NAME_UNRESOLVED":
+                    if self_matches and f.nxdomain:
+                        return True, "NXDOMAIN"
+                else:
+                    if self_matches or child_matches:
+                        for scheme in ("https", "http"):
+                            if self.scan.stopping:
+                                return False, "Scan cancelled"
+                            # first, try base request
+                            url = f"{scheme}://{event.data}"
+                            match, reason = self._verify_fingerprint(f, url)
+                            if match:
+                                return match, reason
+                            # next, try {random_domain} -[DNS]-> domain
+                            url = f"{scheme}://{domain}"
+                            headers = {"Host": event.data}
+                            match, reason = self._verify_fingerprint(f, url, headers=headers)
+                            if match:
+                                return match, reason
         return False, f'Subdomain "{event.data}" not hijackable'
 
     def _verify_fingerprint(self, fingerprint, *args, **kwargs):

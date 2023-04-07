@@ -60,20 +60,15 @@ class sslcert(BaseModule):
         else:
             hosts = list(self.helpers.resolve(_host))
 
-        futures = {}
-        for host in hosts:
-            future = self.submit_task(self.visit_host, host, port)
-            futures[future] = host
-
         if event.scope_distance == 0:
             abort_threshold = self.in_scope_abort_threshold
             log_fn = self.info
         else:
             abort_threshold = self.out_of_scope_abort_threshold
             log_fn = self.verbose
-        for future in self.helpers.as_completed(futures):
-            host = futures[future]
-            result = future.result()
+
+        for host in hosts:
+            result = self.visit_host(host, port)
             if not isinstance(result, tuple) or not len(result) == 2:
                 continue
             dns_names, emails = result
