@@ -51,6 +51,7 @@ class Interactsh:
         else:
             self.server_list = random.sample(server_list, k=len(server_list))
         for server in self.server_list:
+            log.info(f"Registering with interact.sh server: {server}")
             data = {
                 "public-key": encoded_public_key,
                 "secret-key": self.secret,
