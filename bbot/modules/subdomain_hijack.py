@@ -81,10 +81,10 @@ class subdomain_hijack(BaseModule):
                                 return False, "Scan cancelled"
                             # first, try base request
                             url = f"{scheme}://{event.data}"
-                            match, reason = self._verify_fingerprint(f, url)
+                            match, reason = self._verify_fingerprint(f, url, cache_for=60 * 60 * 24)
                             if match:
                                 return match, reason
-                            # next, try {random_domain} -[DNS]-> domain
+                            # next, try subdomain -[CNAME]-> other_domain
                             url = f"{scheme}://{domain}"
                             headers = {"Host": event.data}
                             match, reason = self._verify_fingerprint(f, url, headers=headers)
@@ -94,6 +94,8 @@ class subdomain_hijack(BaseModule):
 
     def _verify_fingerprint(self, fingerprint, *args, **kwargs):
         kwargs["raise_error"] = True
+        kwargs["timeout"] = 10
+        kwargs["retries"] = 0
         if fingerprint.http_status is not None:
             kwargs["allow_redirects"] = False
         try:
