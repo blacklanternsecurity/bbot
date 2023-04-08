@@ -741,7 +741,7 @@ class URL(URL_UNVERIFIED):
 
     @property
     def resolved_hosts(self):
-        return [i.split("-")[1] for i in self.tags if i.startswith("ip-")]
+        return [".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")]
 
     @property
     def pretty_string(self):
