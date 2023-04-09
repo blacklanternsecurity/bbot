@@ -260,7 +260,7 @@ class massdns(crobat):
                     first_segment = s.split(".")[0]
                     # skip stuff with lots of numbers (e.g. PTRs)
                     digits = self.digit_regex.findall(first_segment)
-                    excessive_digits = len(digits) > 1
+                    excessive_digits = len(digits) > 2
                     long_digits = any(len(d) > 3 for d in digits)
                     if excessive_digits or long_digits:
                         continue
