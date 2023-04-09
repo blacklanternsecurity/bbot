@@ -221,8 +221,11 @@ class BaseModule:
         return callback(event)
 
     def _register_running(self, callback, *args, **kwargs):
-        with self._running_semaphore:
+        try:
+            self._running_semaphore.acquire(blocking=False)
             return callback(*args, **kwargs)
+        finally:
+            self._running_semaphore.release()
 
     def _handle_batch(self, force=False):
         if self.batch_size <= 1:
