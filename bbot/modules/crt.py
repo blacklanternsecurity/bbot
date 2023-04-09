@@ -31,4 +31,4 @@ class crt(crobat):
                     domain = cert_info.get("name_value")
                     if domain:
                         for d in domain.splitlines():
-                            yield d.lower().strip("*.")
+                            yield d.lower().strip("*.").replace("*", "")

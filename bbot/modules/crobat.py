@@ -28,6 +28,12 @@ class crobat(BaseModule):
         self._failures = 0
         return True
 
+    def _is_wildcard(self, query):
+        for domain, wildcard_rdtypes in self.helpers.is_wildcard_domain(query).items():
+            if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
+                return True
+        return False
+
     def filter_event(self, event):
         """
         This filter_event is used across many modules
@@ -37,10 +43,7 @@ class crobat(BaseModule):
         if self.already_processed(query):
             return False, "Event was already processed"
         # check if wildcard
-        is_wildcard = False
-        for domain, wildcard_rdtypes in self.helpers.is_wildcard_domain(query).items():
-            if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
-                is_wildcard = True
+        is_wildcard = self._is_wildcard(query)
         # check if cloud
         is_cloud = False
         if any(t.startswith("cloud-") for t in event.tags):
@@ -71,7 +74,7 @@ class crobat(BaseModule):
         # this helps weed out unwanted results when scanning IP_RANGES and wildcard domains
         if "in-scope" not in event.tags:
             return True
-        if any(t in event.tags for t in ("wildcard", "wildcard-domain")):
+        if self._is_wildcard(event.data):
             return True
         return False
 
@@ -113,5 +116,5 @@ class crobat(BaseModule):
                 return results
             self.debug(f'No results for "{query}"')
         except Exception:
-            self.verbose(f"Error retrieving results for {query}")
+            self.info(f"Error retrieving results for {query}: {e}")
             self.trace()
