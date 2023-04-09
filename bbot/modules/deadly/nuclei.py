@@ -2,6 +2,7 @@ import json
 import yaml
 from itertools import islice
 from bbot.modules.base import BaseModule
+from bbot.scanner.target import ScanTarget
 
 
 class nuclei(BaseModule):
@@ -9,6 +10,8 @@ class nuclei(BaseModule):
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "aggressive"]
     meta = {"description": "Fast and customisable vulnerability scanner"}
+
+    batch_size = 25
 
     options = {
         "version": "2.8.9",
@@ -47,6 +50,8 @@ class nuclei(BaseModule):
     ]
     deps_pip = ["pyyaml~=6.0"]
     in_scope_only = True
+
+    max_event_handlers = 5
 
     def setup(self):
         # attempt to update nuclei templates
@@ -125,10 +130,15 @@ class nuclei(BaseModule):
 
         return True
 
-    def handle_event(self, event):
-        for severity, template, url, name, extracted_results in self.execute_nuclei(str(event.data)):
+    def handle_batch(self, *events):
+        temp_target = ScanTarget(self.scan, *events)
+        nuclei_input = [str(e.data) for e in events]
+        for severity, template, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
+            cleaned_host = temp_target.get(host)
+            source_event = self.correlate_event(events, cleaned_host)
+
             if url == "":
-                url = str(event.data)
+                url = str(source_event.data)
 
             description_string = f"template: [{template}], name: [{name}]"
             if len(extracted_results) > 0:
@@ -137,24 +147,30 @@ class nuclei(BaseModule):
             if severity in ["INFO", "UNKNOWN"]:
                 self.emit_event(
                     {
-                        "host": str(event.host),
+                        "host": str(source_event.host),
                         "url": url,
                         "description": description_string,
                     },
                     "FINDING",
-                    event,
+                    source_event,
                 )
             else:
                 self.emit_event(
                     {
                         "severity": severity,
-                        "host": str(event.host),
+                        "host": str(source_event.host),
                         "url": url,
                         "description": description_string,
                     },
                     "VULNERABILITY",
-                    event,
+                    source_event,
                 )
+
+    def correlate_event(self, events, host):
+        for event in events:
+            if host in event:
+                return event
+        self.warning("Failed to correlate nuclei result with event")
 
     def execute_nuclei(self, nuclei_input):
         command = [
@@ -211,9 +227,8 @@ class nuclei(BaseModule):
                             f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
                         )
                         name = j.get("info", {}).get("name", "")
-
                     severity = j.get("info", {}).get("severity", "").upper()
-
+                    host = j.get("host", "")
                     url = j.get("matched-at", "")
                     if not self.helpers.is_url(url):
                         url = ""
@@ -221,7 +236,7 @@ class nuclei(BaseModule):
                     extracted_results = j.get("extracted-results", [])
 
                     if template and name and severity:
-                        yield (severity, template, url, name, extracted_results)
+                        yield (severity, template, host, url, name, extracted_results)
                     else:
                         self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
         finally:
