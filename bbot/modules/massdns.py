@@ -227,69 +227,77 @@ class massdns(crobat):
 
         base_mutations = set()
         for i, (domain, subdomains) in enumerate(found):
-            max_mem_percent = 90
-            mem_status = self.helpers.memory_status()
-            # abort if we don't have the memory
-            mem_percent = mem_status.percent
-            if mem_percent > max_mem_percent:
-                free_memory = mem_status.available
-                free_memory_human = self.helpers.bytes_to_human(free_memory)
-                self.hugewarning(
-                    f"Cannot proceed with DNS mutations because system memory is at {mem_percent:.1f}% ({free_memory_human} remaining)"
-                )
-                break
+            # keep looping as long as we're finding things
+            while 1:
+                max_mem_percent = 90
+                mem_status = self.helpers.memory_status()
+                # abort if we don't have the memory
+                mem_percent = mem_status.percent
+                if mem_percent > max_mem_percent:
+                    free_memory = mem_status.available
+                    free_memory_human = self.helpers.bytes_to_human(free_memory)
+                    self.hugewarning(
+                        f"Cannot proceed with DNS mutations because system memory is at {mem_percent:.1f}% ({free_memory_human} remaining)"
+                    )
+                    break
 
-            query = domain
-            domain_hash = hash(domain)
-            if self.scan.stopping:
-                return
+                query = domain
+                domain_hash = hash(domain)
+                if self.scan.stopping:
+                    return
 
-            mutations = set(base_mutations)
+                mutations = set(base_mutations)
 
-            def add_mutation(_domain_hash, m):
-                h = hash((_domain_hash, m))
-                if h not in self.mutations_tried:
-                    self.mutations_tried.add(h)
-                    mutations.add(m)
+                def add_mutation(_domain_hash, m):
+                    h = hash((_domain_hash, m))
+                    if h not in self.mutations_tried:
+                        self.mutations_tried.add(h)
+                        mutations.add(m)
 
-            # try every subdomain everywhere else
-            for _domain, _subdomains in found:
-                if _domain == domain:
-                    continue
-                for s in _subdomains:
-                    first_segment = s.split(".")[0]
-                    # skip stuff with lots of numbers (e.g. PTRs)
-                    digits = self.digit_regex.findall(first_segment)
-                    excessive_digits = len(digits) > 2
-                    long_digits = any(len(d) > 3 for d in digits)
-                    if excessive_digits or long_digits:
+                # try every subdomain everywhere else
+                for _domain, _subdomains in found:
+                    if _domain == domain:
                         continue
-                    add_mutation(domain_hash, first_segment)
-                    for word in self.helpers.extract_words(
-                        first_segment, word_regexes=self.helpers.word_cloud.dns_mutator.extract_word_regexes
-                    ):
-                        add_mutation(domain_hash, word)
+                    for s in _subdomains:
+                        first_segment = s.split(".")[0]
+                        # skip stuff with lots of numbers (e.g. PTRs)
+                        digits = self.digit_regex.findall(first_segment)
+                        excessive_digits = len(digits) > 2
+                        long_digits = any(len(d) > 3 for d in digits)
+                        if excessive_digits or long_digits:
+                            continue
+                        add_mutation(domain_hash, first_segment)
+                        for word in self.helpers.extract_words(
+                            first_segment, word_regexes=self.helpers.word_cloud.dns_mutator.extract_word_regexes
+                        ):
+                            add_mutation(domain_hash, word)
 
-            # word cloud
-            for mutation in self.helpers.word_cloud.mutations(subdomains, cloud=False, numbers=3, number_padding=1):
-                for delimiter in ("", ".", "-"):
-                    m = delimiter.join(mutation).lower()
-                    add_mutation(domain_hash, m)
+                # word cloud
+                for mutation in self.helpers.word_cloud.mutations(
+                    subdomains, cloud=False, numbers=3, number_padding=1
+                ):
+                    for delimiter in ("", ".", "-"):
+                        m = delimiter.join(mutation).lower()
+                        add_mutation(domain_hash, m)
 
-            # special dns mutator
-            for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
-                subdomains, max_mutations=self.max_mutations
-            ):
-                add_mutation(domain_hash, subdomain)
+                # special dns mutator
+                for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
+                    subdomains, max_mutations=self.max_mutations
+                ):
+                    add_mutation(domain_hash, subdomain)
 
-            if mutations:
-                self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
-                for hostname in self.massdns(query, mutations):
-                    source_event = self.get_source_event(hostname)
-                    if source_event is None:
-                        self.verbose(f"Could not correlate source event from: {hostname}")
-                        source_event = self.scan.root_event
-                    self.emit_result(hostname, source_event, query)
+                if mutations:
+                    self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
+                    results = list(self.massdns(query, mutations))
+                    for hostname in results:
+                        source_event = self.get_source_event(hostname)
+                        if source_event is None:
+                            self.verbose(f"Could not correlate source event from: {hostname}")
+                            source_event = self.scan.root_event
+                        self.emit_result(hostname, source_event, query)
+                    if results:
+                        continue
+                break
 
     def add_found(self, event):
         if self.helpers.is_subdomain(event.data):
