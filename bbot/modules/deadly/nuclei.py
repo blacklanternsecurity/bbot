@@ -10,7 +10,6 @@ class nuclei(BaseModule):
     flags = ["active", "aggressive"]
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
-    batch_size = 100
     options = {
         "version": "2.8.9",
         "tags": "",
@@ -126,13 +125,10 @@ class nuclei(BaseModule):
 
         return True
 
-    def handle_batch(self, *events):
-        nuclei_input = [str(e.data) for e in events]
-
-        for severity, template, host, name, extracted_results in self.execute_nuclei(nuclei_input):
-            source_event = self.correlate_event(events, host)
-            if source_event == None:
-                continue
+    def handle_event(self, event):
+        for severity, template, url, name, extracted_results in self.execute_nuclei(str(event.data)):
+            if url == "":
+                url = str(event.data)
 
             description_string = f"template: [{template}], name: [{name}]"
             if len(extracted_results) > 0:
@@ -141,30 +137,24 @@ class nuclei(BaseModule):
             if severity in ["INFO", "UNKNOWN"]:
                 self.emit_event(
                     {
-                        "host": str(source_event.host),
-                        "url": host,
+                        "host": str(event.host),
+                        "url": url,
                         "description": description_string,
                     },
                     "FINDING",
-                    source_event,
+                    event,
                 )
             else:
                 self.emit_event(
                     {
                         "severity": severity,
-                        "host": str(source_event.host),
-                        "url": host,
+                        "host": str(event.host),
+                        "url": url,
                         "description": description_string,
                     },
                     "VULNERABILITY",
-                    source_event,
+                    event,
                 )
-
-    def correlate_event(self, events, host):
-        for event in events:
-            if host in event:
-                return event
-        self.warning("Failed to correlate nuclei result with event")
 
     def execute_nuclei(self, nuclei_input):
         command = [
@@ -223,12 +213,15 @@ class nuclei(BaseModule):
                         name = j.get("info", {}).get("name", "")
 
                     severity = j.get("info", {}).get("severity", "").upper()
-                    host = j.get("host", "")
+
+                    url = j.get("matched-at", "")
+                    if not self.helpers.is_url(url):
+                        url = ""
 
                     extracted_results = j.get("extracted-results", [])
 
-                    if template and name and severity and host:
-                        yield (severity, template, host, name, extracted_results)
+                    if template and name and severity:
+                        yield (severity, template, url, name, extracted_results)
                     else:
                         self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
         finally:
@@ -259,7 +252,9 @@ class nuclei(BaseModule):
     def filter_event(self, event):
         if self.config.get("directory_only", True):
             if "endpoint" in event.tags:
-                self.debug(f"rejecting URL [{event.data}] because directory_only is true and event has endpoint tag")
+                self.debug(
+                    f"rejecting URL [{str(event.data)}] because directory_only is true and event has endpoint tag"
+                )
                 return False
         return True
 
