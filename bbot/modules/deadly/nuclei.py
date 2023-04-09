@@ -51,8 +51,6 @@ class nuclei(BaseModule):
     deps_pip = ["pyyaml~=6.0"]
     in_scope_only = True
 
-    max_event_handlers = 5
-
     def setup(self):
         # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
