@@ -6,7 +6,7 @@ from sys import exc_info
 from contextlib import suppress
 
 from ..core.helpers.misc import get_size
-from ..core.helpers.threadpool import ThreadPoolWrapper
+from ..core.helpers.threadpool import ThreadPoolWrapper, TaskCounter
 from ..core.errors import ScanCancelledError, ValidationError, WordlistError
 
 
@@ -94,7 +94,7 @@ class BaseModule:
         self._watched_events = None
 
         self._lock = threading.RLock()
-        self._running_semaphore = threading.Semaphore()
+        self._running_counter = TaskCounter()
         self.event_received = threading.Condition(self._lock)
 
         # string constant
@@ -221,11 +221,8 @@ class BaseModule:
         return callback(event)
 
     def _register_running(self, callback, *args, **kwargs):
-        try:
-            self._running_semaphore.acquire(blocking=False)
+        with self._running_counter:
             return callback(*args, **kwargs)
-        finally:
-            self._running_semaphore.release()
 
     def _handle_batch(self, force=False):
         if self.batch_size <= 1:
@@ -567,7 +564,7 @@ class BaseModule:
         """
         Indicates whether the module is currently processing data.
         """
-        return self._running_semaphore._value < 1
+        return self._running_counter.value > 0
 
     def request_with_fail_count(self, *args, **kwargs):
         r = self.helpers.request(*args, **kwargs)

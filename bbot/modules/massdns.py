@@ -265,6 +265,10 @@ class massdns(crobat):
                     if excessive_digits or long_digits:
                         continue
                     add_mutation(domain_hash, first_segment)
+                    for word in self.helpers.extract_words(
+                        first_segment, word_regexes=self.helpers.word_cloud.dns_mutator.extract_word_regexes
+                    ):
+                        add_mutation(domain_hash, word)
 
             # word cloud
             for mutation in self.helpers.word_cloud.mutations(subdomains, cloud=False, numbers=3, number_padding=1):

@@ -244,3 +244,22 @@ class NamedLock:
             new_lock = _Lock(name)
             self._cache.put(name, new_lock)
             return new_lock
+
+
+class TaskCounter:
+    def __init__(self):
+        self._value = 0
+        self.lock = threading.Lock()
+
+    def __enter__(self):
+        with self.lock:
+            self._value += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        with self.lock:
+            self._value -= 1
+
+    @property
+    def value(self):
+        with self.lock:
+            return self._value
