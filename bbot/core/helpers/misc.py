@@ -352,14 +352,16 @@ def rand_string(length=10, digits=True):
     return "".join([random.choice(pool) for _ in range(int(length))])
 
 
-def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100):
+def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
     """
     Intelligently extract words from given data
     Returns set() of extracted words
     """
+    if word_regexes is None:
+        word_regexes = regexes.word_regexes
     words = set()
     data = smart_decode(data)
-    for r in regexes.word_regexes:
+    for r in word_regexes:
         for word in set(r.findall(data)):
             # blacklanternsecurity
             if len(word) <= max_length:

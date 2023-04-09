@@ -250,6 +250,16 @@ class Mutator(dict):
 
 class DNSMutator(Mutator):
     word_regex = re.compile(r"[^_\W]+")
+    extract_word_regexes = [
+        re.compile(r, re.I)
+        for r in [
+            r"[a-z]+",
+            r"[a-z0-9]+",
+            r"[a-z0-9-]+",
+            r"[a-z0-9_]+",
+            r"[a-z0-9_-]+",
+        ]
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -262,7 +272,7 @@ class DNSMutator(Mutator):
             words = [words]
         new_words = set()
         for word in words:
-            for e in extract_words(word, acronyms=False, model=self.model):
+            for e in extract_words(word, acronyms=False, model=self.model, word_regexes=self.extract_word_regexes):
                 new_words.add(e)
         return super().mutations(new_words, max_mutations=max_mutations)
 

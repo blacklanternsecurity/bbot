@@ -79,6 +79,10 @@ class massdns(crobat):
         self.devops_mutations = list(self.helpers.word_cloud.devops_mutations)
         return super().setup()
 
+    def filter_event(self, event):
+        self.add_found(event)
+        return super().filter_event(event)
+
     def handle_event(self, event):
         query = self.make_query(event)
         h = hash(query)
@@ -102,8 +106,6 @@ class massdns(crobat):
     def emit_result(self, result, source_event, query):
         if not result == source_event:
             kwargs = {"abort_if": self.abort_if}
-            if result.endswith(f".{query}"):
-                kwargs["on_success_callback"] = self.add_found
             self.emit_event(result, "DNS_NAME", source_event, **kwargs)
 
     def already_processed(self, hostname):
