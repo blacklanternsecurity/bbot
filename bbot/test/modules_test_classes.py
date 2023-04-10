@@ -344,7 +344,7 @@ class Badsecrets(HttpxMockHelper):
             if (
                 e.type == "VULNERABILITY"
                 and e.data["description"]
-                == "Known Secret Found. Secret Type: [Express SESSION_SECRET] Secret: [keyboard cat] Product Type: [Express.js Signed Cookie] Product: [s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc] Detecting Module: [ExpressSignedCookies]"
+                == "Known Secret Found. Secret Type: [Express.js SESSION_SECRET] Secret: [keyboard cat] Product Type: [Express.js Signed Cookie] Product: [s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc] Detecting Module: [ExpressSignedCookies]"
             ):
                 CookieBasedDetection_2 = True
 
