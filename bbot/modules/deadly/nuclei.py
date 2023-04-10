@@ -132,7 +132,6 @@ class nuclei(BaseModule):
         temp_target = ScanTarget(self.scan, *events)
         nuclei_input = [str(e.data) for e in events]
         for severity, template, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
-            
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
             cleaned_host = temp_target.get(host)
             source_event = self.correlate_event(events, cleaned_host)
