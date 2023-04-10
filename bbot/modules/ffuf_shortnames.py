@@ -98,13 +98,15 @@ class ffuf_shortnames(ffuf):
     def build_extension_list(self, event):
         used_extensions = []
         extension_hint = event.parsed.path.rsplit(".", 1)[1].lower().strip()
-        with open(self.wordlist_extensions) as f:
-            for l in f:
-                l = l.lower().lstrip(".")
-                if l.lower().startswith(extension_hint):
-                    used_extensions.append(l.strip())
-
-        return used_extensions
+        if len(extension_hint) == 3:
+            with open(self.wordlist_extensions) as f:
+                for l in f:
+                    l = l.lower().lstrip(".")
+                    if l.lower().startswith(extension_hint):
+                        used_extensions.append(l.strip())
+            return used_extensions
+        else:
+            return [extension_hint]
 
     def find_delimeter(self, hint):
         delimeters = ["_", "-"]
