@@ -108,16 +108,17 @@ class ThreadPoolWrapper:
         self.max_workers = max_workers
         self.max_qsize = qsize
         self.futures = set()
-        try:
-            self.executor._thread_pool_wrappers.append(self)
-        except AttributeError:
-            self.executor._thread_pool_wrappers = [self]
 
         self._num_tasks = 0
         self._task_count_lock = threading.Lock()
 
         self._lock = threading.RLock()
         self.not_full = threading.Condition(self._lock)
+
+        try:
+            self.executor._thread_pool_wrappers.append(self)
+        except AttributeError:
+            self.executor._thread_pool_wrappers = [self]
 
     def submit_task(self, callback, *args, **kwargs):
         """

@@ -96,12 +96,8 @@ class massdns(crobat):
     def abort_if(self, event):
         if not event.scope_distance == 0:
             return True, "event is not in scope"
-        if "unresolved" in event.tags:
-            return True, "event is unresolved"
         if "wildcard" in event.tags:
             return True, "event is a wildcard"
-        if not any(x in event.tags for x in ("a-record", "aaaa-record", "cname-record")):
-            return True, "event is not a valid record type"
 
     def emit_result(self, result, source_event, query):
         if not result == source_event:
@@ -123,7 +119,12 @@ class massdns(crobat):
             if self._canary_check(domain):
                 self.info(abort_msg)
                 return []
-        return results
+        self.verbose(f"Resolving batch of {len(results):,} results")
+        resolved = dict(self.helpers.resolve_batch(results, type=("A", "AAAA", "CNAME"), cache_result=True))
+        resolved = {k: v for k, v in resolved.items() if v}
+        for hostname in resolved:
+            self.add_found(hostname)
+        return list(resolved)
 
     def _canary_check(self, domain, num_checks=50):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
@@ -299,9 +300,11 @@ class massdns(crobat):
                         continue
                 break
 
-    def add_found(self, event):
-        if self.helpers.is_subdomain(event.data):
-            subdomain, domain = event.data.split(".", 1)
+    def add_found(self, host):
+        if not isinstance(host, str):
+            host = host.data
+        if self.helpers.is_subdomain(host):
+            subdomain, domain = host.split(".", 1)
             if not self.helpers.is_ptr(subdomain):
                 try:
                     self.found[domain].add(subdomain)
