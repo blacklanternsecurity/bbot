@@ -20,10 +20,10 @@ class sslcert(BaseModule):
     options = {"timeout": 5.0, "skip_non_ssl": True}
     options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
     deps_apt = ["openssl"]
-    deps_pip = ["pyOpenSSL"]
+    deps_pip = ["pyOpenSSL~=23.1.1"]
     max_threads = 50
     max_event_handlers = 25
-    scope_distance_modifier = 0
+    scope_distance_modifier = 1
     _priority = 2
 
     def setup(self):
@@ -67,8 +67,10 @@ class sslcert(BaseModule):
 
         if event.scope_distance == 0:
             abort_threshold = self.in_scope_abort_threshold
+            log_fn = self.info
         else:
             abort_threshold = self.out_of_scope_abort_threshold
+            log_fn = self.verbose
         for future in self.helpers.as_completed(futures):
             host = futures[future]
             result = future.result()
@@ -77,7 +79,7 @@ class sslcert(BaseModule):
             dns_names, emails = result
             if len(dns_names) > abort_threshold:
                 netloc = self.helpers.make_netloc(host, port)
-                self.info(
+                log_fn(
                     f"Skipping Subject Alternate Names (SANs) on {netloc} because number of hostnames ({len(dns_names):,}) exceeds threshold ({abort_threshold})"
                 )
                 dns_names = dns_names[:1]
@@ -88,13 +90,19 @@ class sslcert(BaseModule):
                         try:
                             ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
                             if ssl_event:
-                                self.emit_event(ssl_event)
+                                self.emit_event(ssl_event, on_success_callback=self.on_success_callback)
                         except ValidationError as e:
                             self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")
 
+    def on_success_callback(self, event):
+        source_scope_distance = event.get_source().scope_distance
+        if source_scope_distance == 0 and event.scope_distance > 0:
+            event.add_tag("affiliate")
+
     def visit_host(self, host, port):
         host = self.helpers.make_ip_type(host)
+        netloc = self.helpers.make_netloc(host, port)
         host_hash = hash((host, port))
         dns_names = []
         emails = set()
@@ -114,7 +122,6 @@ class sslcert(BaseModule):
             try:
                 sock = socket.socket(socket_type, socket.SOCK_STREAM)
             except Exception as e:
-                netloc = self.helpers.make_netloc(host, port)
                 self.warning(f"Error creating socket for {netloc}: {e}. Do you have IPv6 disabled?")
                 return [], []
             sock.settimeout(self.timeout)
@@ -168,7 +175,8 @@ class sslcert(BaseModule):
         ext_count = cert.get_extension_count()
         for i in range(0, ext_count):
             ext = cert.get_extension(i)
-            if "subjectAltName" in str(ext.get_short_name()):
+            short_name = str(ext.get_short_name())
+            if "subjectAltName" in short_name:
                 raw_sans = str(ext)
         if raw_sans is not None:
             for raw_san in raw_sans.split(","):

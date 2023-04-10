@@ -56,7 +56,9 @@ def validate_host(host):
             return str(ip)
         except Exception:
             # finally, try DNS_NAME
-            host = smart_decode_punycode(host.lstrip("*."))
+            host = smart_decode_punycode(host)
+            # clean asterisks and clinging dashes
+            host = host.strip("*.-").replace("*", "")
             for r in regexes.event_type_regexes["DNS_NAME"]:
                 if r.match(host):
                     return host

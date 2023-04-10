@@ -108,16 +108,17 @@ class ThreadPoolWrapper:
         self.max_workers = max_workers
         self.max_qsize = qsize
         self.futures = set()
-        try:
-            self.executor._thread_pool_wrappers.append(self)
-        except AttributeError:
-            self.executor._thread_pool_wrappers = [self]
 
         self._num_tasks = 0
         self._task_count_lock = threading.Lock()
 
         self._lock = threading.RLock()
         self.not_full = threading.Condition(self._lock)
+
+        try:
+            self.executor._thread_pool_wrappers.append(self)
+        except AttributeError:
+            self.executor._thread_pool_wrappers = [self]
 
     def submit_task(self, callback, *args, **kwargs):
         """
@@ -244,3 +245,22 @@ class NamedLock:
             new_lock = _Lock(name)
             self._cache.put(name, new_lock)
             return new_lock
+
+
+class TaskCounter:
+    def __init__(self):
+        self._value = 0
+        self.lock = threading.Lock()
+
+    def __enter__(self):
+        with self.lock:
+            self._value += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        with self.lock:
+            self._value -= 1
+
+    @property
+    def value(self):
+        with self.lock:
+            return self._value

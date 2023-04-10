@@ -11,7 +11,7 @@ class bucket_aws(BaseModule):
         "max_threads": "Maximum number of threads for HTTP requests",
         "permutations": "Whether to try permutations",
     }
-    scope_distance_modifier = 2
+    scope_distance_modifier = 3
 
     cloud_helper_name = "aws"
     delimiters = ("", ".", "-")
@@ -54,7 +54,7 @@ class bucket_aws(BaseModule):
         url = event.data["url"]
         bucket_name = event.data["name"]
         if self.supports_open_check:
-            description, tags = self.check_bucket_open(bucket_name, url)
+            description, tags = self._check_bucket_open(bucket_name, url)
             if description:
                 event_data = {"host": event.host, "url": url, "description": description}
                 self.emit_event(event_data, "FINDING", source=event, tags=tags)
@@ -80,7 +80,7 @@ class bucket_aws(BaseModule):
             for region in self.regions:
                 for bucket_name in new_buckets:
                     url = self.build_url(bucket_name, base_domain, region)
-                    future = self.submit_task(self.check_bucket_exists, bucket_name, url)
+                    future = self.submit_task(self._check_bucket_exists, bucket_name, url)
                     futures[future] = (bucket_name, url)
         for future in self.helpers.as_completed(futures):
             bucket_name, url = futures[future]
@@ -88,12 +88,20 @@ class bucket_aws(BaseModule):
             if existent_bucket:
                 yield bucket_name, url, tags
 
+    def _check_bucket_exists(self, bucket_name, url):
+        self.debug(f'Checking if bucket exists: "{bucket_name}"')
+        return self.check_bucket_exists(bucket_name, url)
+
     def check_bucket_exists(self, bucket_name, url):
         response = self.helpers.request(url)
         tags = self.gen_tags_exists(response)
         status_code = getattr(response, "status_code", 404)
         existent_bucket = status_code != 404
         return (existent_bucket, tags)
+
+    def _check_bucket_open(self, bucket_name, url):
+        self.debug(f'Checking if bucket is misconfigured: "{bucket_name}"')
+        return self.check_bucket_open(bucket_name, url)
 
     def check_bucket_open(self, bucket_name, url):
         response = self.helpers.request(url)

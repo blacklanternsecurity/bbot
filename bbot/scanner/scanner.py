@@ -62,6 +62,11 @@ class Scanner:
         if output_modules is None:
             output_modules = ["python"]
 
+        if isinstance(modules, str):
+            modules = [modules]
+        if isinstance(output_modules, str):
+            output_modules = [output_modules]
+
         if config is None:
             config = OmegaConf.create({})
         else:
@@ -69,10 +74,6 @@ class Scanner:
         self.config = OmegaConf.merge(bbot_config, config)
         prepare_environment(self.config)
 
-        if name is None:
-            self.name = random_name()
-        else:
-            self.name = str(name)
         self.strict_scope = strict_scope
         self.force_start = force_start
 
@@ -103,6 +104,28 @@ class Scanner:
             "main_thread_pool": self._thread_pool,
         }
         output_dir = self.config.get("output_dir", "")
+
+        if name is None:
+            tries = 0
+
+            while 1:
+                if tries > 5:
+                    self.name = f"{self.helpers.rand_string(4)}_{self.helpers.rand_string(4)}"
+                    break
+
+                self.name = random_name()
+
+                if output_dir:
+                    home_path = Path(output_dir).resolve() / self.name
+                else:
+                    home_path = self.helpers.bbot_home / "scans" / self.name
+
+                if not home_path.exists():
+                    break
+                tries += 1
+        else:
+            self.name = str(name)
+
         if output_dir:
             self.home = Path(output_dir).resolve() / self.name
         else:
@@ -134,9 +157,9 @@ class Scanner:
         self.stats = ScanStats(self)
 
         # scope distance
-        self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 1)))
+        self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 0)))
         self.dns_search_distance = max(
-            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 3))
+            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 2))
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
 

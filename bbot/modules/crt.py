@@ -15,7 +15,7 @@ class crt(crobat):
         return super().setup()
 
     def request_url(self, query):
-        params = {"q": query, "output": "json"}
+        params = {"q": f"%.{query}", "output": "json"}
         url = self.helpers.add_get_params(self.base_url, params).geturl()
         return self.request_with_fail_count(url, timeout=self.http_timeout + 10)
 
@@ -31,4 +31,4 @@ class crt(crobat):
                     domain = cert_info.get("name_value")
                     if domain:
                         for d in domain.splitlines():
-                            yield d.lower().strip("*.")
+                            yield d.lower()

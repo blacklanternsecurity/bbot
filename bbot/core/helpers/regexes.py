@@ -16,13 +16,6 @@ word_regexes = [
     ]
 ]
 
-# Designed to remove junk such as these from the beginning of a search string:
-# \nhttps://www.google.com
-# \x3dhttps://www.google.com
-# %a2https://www.google.com
-# \uac20https://www.google.com
-junk_remover = r"(?:\\x[a-fA-F0-9]{2}|%[a-fA-F0-9]{2}|\\u[a-fA-F0-9]{4}|\\[a-zA-Z])?"
-
 word_regex = re.compile(r"[^\d\W_]+")
 word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
@@ -32,6 +25,8 @@ _dns_name_regex = r"(?:(?:[\w-]+)\.)+(?:[^\W_0-9]{2,20})"
 _hostname_regex = re.compile(r"^[\w-]+$")
 _email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@(?:\w[\w\-\._]{,100})\.(?:[^\W_0-9]{2,8})"
 email_regex = re.compile(_email_regex, re.I)
+_ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"
+ptr_regex = re.compile(_ptr_regex)
 
 event_type_regexes = OrderedDict(
     [

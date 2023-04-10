@@ -17,7 +17,7 @@ class secretsdb(BaseModule):
         "min_confidence": "Only use signatures with this confidence score or higher",
         "signatures": "File path or URL to YAML signatures",
     }
-    deps_pip = ["pyyaml"]
+    deps_pip = ["pyyaml~=6.0"]
 
     def setup(self):
         self.rules = []

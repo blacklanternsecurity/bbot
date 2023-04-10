@@ -79,6 +79,7 @@ class ModuleLoader:
         flags = []
         meta = {}
         pip_deps = []
+        pip_deps_constraints = []
         shell_deps = []
         apt_deps = []
         ansible_tasks = []
@@ -125,6 +126,12 @@ class ModuleLoader:
                             for python_dep in class_attr.value.elts:
                                 if type(python_dep.value) == str:
                                     pip_deps.append(python_dep.value)
+
+                        if any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
+                            for python_dep in class_attr.value.elts:
+                                if type(python_dep.value) == str:
+                                    pip_deps_constraints.append(python_dep.value)
+
                         # apt dependencies
                         elif any([target.id == "deps_apt" for target in class_attr.targets]):
                             for apt_dep in class_attr.value.elts:
@@ -151,7 +158,13 @@ class ModuleLoader:
             "config": config,
             "options_desc": options_desc,
             "hash": module_hash,
-            "deps": {"pip": pip_deps, "shell": shell_deps, "apt": apt_deps, "ansible": ansible_tasks},
+            "deps": {
+                "pip": pip_deps,
+                "pip_constraints": pip_deps_constraints,
+                "shell": shell_deps,
+                "apt": apt_deps,
+                "ansible": ansible_tasks,
+            },
             "sudo": len(apt_deps) > 0,
         }
         if any(x == True for x in search_dict_by_key("become", ansible_tasks)) or any(
@@ -172,6 +185,7 @@ class ModuleLoader:
         namespace = self._preloaded[module_name]["namespace"]
         import_path = f"{namespace}.{module_name}"
         module_variables = importlib.import_module(import_path, "bbot")
+
         # for every top-level variable in the .py file
         for variable in module_variables.__dict__.keys():
             # get its value
@@ -272,22 +286,31 @@ class ModuleLoader:
             )
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
-    def modules_options_table(self, modules=None, mod_type=None):
-        table = []
-        header = ["Option", "Type", "Default", "Description"]
+    def modules_options(self, modules=None, mod_type=None):
+        """
+        Return a list of module options
+        """
+        modules_options = {}
         for module_name, preloaded in self.filter_modules(modules, mod_type):
+            modules_options[module_name] = []
             module_type = preloaded["type"]
             module_options = preloaded["config"]
             module_options_desc = preloaded["options_desc"]
-            for k, v in module_options.items():
-                if module_type not in ("internal", "output"):
-                    module_key = "modules"
-                else:
+            for k, v in sorted(module_options.items(), key=lambda x: x[0]):
+                module_key = "modules"
+                if module_type in ("internal", "output"):
                     module_key = f"{module_type}_modules"
                 option_name = f"{module_key}.{module_name}.{k}"
                 option_type = type(v).__name__
                 option_description = module_options_desc[k]
-                table.append([option_name, option_type, str(v), option_description])
+                modules_options[module_name].append((option_name, option_type, str(v), option_description))
+        return modules_options
+
+    def modules_options_table(self, modules=None, mod_type=None):
+        table = []
+        header = ["Option", "Type", "Default", "Description"]
+        for module_name, module_options in self.modules_options(modules, mod_type).items():
+            table += module_options
         return make_table(table, header)
 
     def filter_modules(self, modules=None, mod_type=None):

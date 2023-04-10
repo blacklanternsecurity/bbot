@@ -17,7 +17,10 @@ signatures = [
     ("GET", "{scheme}://{netloc}/{path}.php", None, False),
     ("GET", "{scheme}://{netloc}/{path}.json", None, False),
     ("TRACE", "{scheme}://{netloc}/{path}", None, True),
+    ("GET", "{scheme}://{netloc}/(S(X))/{path}", None, True),  # ASPNET COOKIELESS URLS
+    ("GET", "{scheme}://{netloc}/(S(X))/../(S(X))/{path}", None, True),  # ASPNET COOKIELESS URLS
 ]
+
 
 query_payloads = [
     "%09",
@@ -60,6 +63,8 @@ header_payloads = {
     "X-Host": "127.0.0.1",
 }
 
+waf_strings = ["The requested URL was rejected"]
+
 for qp in query_payloads:
     signatures.append(("GET", "{scheme}://{netloc}/{path}%s" % qp, None, True))
     if "?" not in qp:  # we only want to use "?" after the path
@@ -92,6 +97,13 @@ class bypass403(BaseModule):
             match, reasons, reflection, subject_response = compare_helper.compare(
                 sig[1], headers=headers, method=sig[0], allow_redirects=True
             )
+
+            # In some cases WAFs will respond with a 200 code which causes a false positive
+            if subject_response != None:
+                for ws in waf_strings:
+                    if ws in subject_response.text:
+                        self.debug("Rejecting result based on presence of WAF string")
+                        return
 
             if match == False:
                 if str(subject_response.status_code)[0] != "4":

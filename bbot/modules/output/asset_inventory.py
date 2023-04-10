@@ -21,7 +21,7 @@ class asset_inventory(CSV):
     options = {"output_file": ""}
     options_desc = {"output_file": "Set a custom output file"}
 
-    header_row = ["Host", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
+    header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
     filename = "asset-inventory.csv"
 
     def setup(self):
@@ -65,12 +65,18 @@ class asset_inventory(CSV):
             if event.type == "TECHNOLOGY":
                 self.assets[event.host].technologies.add(event.data["technology"])
 
+            for tag in event.tags:
+                if tag.startswith("cdn-") or tag.startswith("cloud-"):
+                    self.assets[event.host].provider = tag
+                    break
+
     def report(self):
         for asset in sorted(self.assets.values(), key=lambda a: str(a.host)):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             self.writerow(
                 [
                     getattr(asset, "host", ""),
+                    getattr(asset, "provider", ""),
                     ",".join(str(x) for x in getattr(asset, "ip_addresses", set())),
                     "Active" if (asset.ports) else ("Inactive" if self.open_port_producers else "N/A"),
                     ",".join(str(x) for x in getattr(asset, "ports", set())),
@@ -93,4 +99,5 @@ class Asset:
         self.vulnerabilities = set()
         self.status = "UNKNOWN"
         self.risk_rating = 0
+        self.provider = ""
         self.technologies = set()

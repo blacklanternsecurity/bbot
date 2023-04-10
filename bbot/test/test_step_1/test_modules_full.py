@@ -71,10 +71,9 @@ def test_massdns(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
-# This is disabled because github's EDR is configured to delete the masscan binary
-# def test_masscan(bbot_config, bbot_scanner, bbot_httpserver):
-#     x = Masscan(bbot_config, bbot_scanner, bbot_httpserver)
-#     x.run()
+def test_masscan(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Masscan(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
 
 
 def test_secretsdb(bbot_config, bbot_scanner, bbot_httpserver):
@@ -109,6 +108,26 @@ def test_wafw00f(bbot_config, bbot_scanner, bbot_httpserver):
 
 def test_ffuf(bbot_config, bbot_scanner, bbot_httpserver):
     x = Ffuf(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
+def test_ffuf_extensions(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Ffuf_extensions(bbot_config, bbot_scanner, bbot_httpserver, module_name="ffuf")
+    x.run()
+
+
+def test_bypass403(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Bypass403(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
+def test_bypass403_waf(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Bypass403_waf(bbot_config, bbot_scanner, bbot_httpserver, module_name="bypass403")
+    x.run()
+
+
+def test_bypass403_aspnetcookieless(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Bypass403_aspnetcookieless(bbot_config, bbot_scanner, bbot_httpserver, module_name="bypass403")
     x.run()
 
 
@@ -154,4 +173,19 @@ def test_naabu(bbot_config, bbot_scanner, bbot_httpserver):
 
 def test_hunt(bbot_config, bbot_scanner, bbot_httpserver):
     x = Hunt(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
+def test_vhost(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Vhost(bbot_config, bbot_scanner, bbot_httpserver)
+    x.run()
+
+
+def test_speculate_subdirectories(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Speculate_subdirectories(bbot_config, bbot_scanner, bbot_httpserver, module_name="speculate")
+    x.run()
+
+
+def test_social(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Social(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()

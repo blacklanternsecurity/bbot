@@ -32,8 +32,8 @@ class iis_shortnames(BaseModule):
         test_url = f"{target}*~1*/a.aspx"
 
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
-            control = self.helpers.request(method=method, url=control_url, allow_redirects=False, retries=2)
-            test = self.helpers.request(method=method, url=test_url, allow_redirects=False, retries=2)
+            control = self.helpers.request(method=method, url=control_url, allow_redirects=False, timeout=10)
+            test = self.helpers.request(method=method, url=test_url, allow_redirects=False, timeout=10)
             if (control != None) and (test != None):
                 if control.status_code != test.status_code:
                     technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
@@ -58,7 +58,9 @@ class iis_shortnames(BaseModule):
     def directory_confirm(self, target, method, url_hint, affirmative_status_code):
         payload = encode_all(f"{url_hint}")
         url = f"{target}{payload}"
-        directory_confirm_result = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2)
+        directory_confirm_result = self.helpers.request(
+            method=method, url=url, allow_redirects=False, retries=2, timeout=10
+        )
 
         if directory_confirm_result.status_code == affirmative_status_code:
             return True
@@ -75,7 +77,9 @@ class iis_shortnames(BaseModule):
             payload = encode_all(f"{base_hint}~{str(count)}*")
             url = f"{target}{payload}{suffix}"
 
-            duplicate_check_results = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2)
+            duplicate_check_results = self.helpers.request(
+                method=method, url=url, allow_redirects=False, retries=2, timeout=10
+            )
             if duplicate_check_results.status_code != affirmative_status_code:
                 break
             else:
@@ -89,7 +93,7 @@ class iis_shortnames(BaseModule):
         return duplicates
 
     def threaded_request(self, method, url, affirmative_status_code):
-        r = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2)
+        r = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
         if r is not None:
             if r.status_code == affirmative_status_code:
                 return True
@@ -126,7 +130,7 @@ class iis_shortnames(BaseModule):
                 wildcard = "~1*"
                 payload = encode_all(f"{prefix}{c}{wildcard}")
                 url = f"{target}{payload}{suffix}"
-                r = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2)
+                r = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
                 if r is not None:
                     if r.status_code == affirmative_status_code:
                         url_hint_list.append(f"{prefix}{c}")

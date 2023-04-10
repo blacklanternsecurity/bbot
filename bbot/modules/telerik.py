@@ -138,7 +138,7 @@ class telerik(BaseModule):
 
     in_scope_only = True
 
-    deps_pip = ["pycryptodome"]
+    deps_pip = ["pycryptodome~=3.17"]
 
     deps_ansible = [
         {"name": "Create telerik dir", "file": {"state": "directory", "path": "#{BBOT_TOOLS}/telerik/"}},
@@ -173,7 +173,6 @@ class telerik(BaseModule):
         webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
         result = self.test_detector(event.data, webresource)
         if result:
-            self.debug(result.text)
             if "RadAsyncUpload handler is registered succesfully" in result.text:
                 self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
                 description = f"Telerik RAU AXD Handler detected"

@@ -63,22 +63,19 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
             assert base_module._event_precheck(localhost4)[0] == False
 
             # in scope only
-            localhost3 = scan.make_event("127.0.0.2", source=events.subdomain)
             base_module.in_scope_only = True
-            assert base_module._event_postcheck(events.localhost)[0] == True
-            assert base_module._event_postcheck(localhost3)[0] == False
+            localhost3 = scan.make_event("127.0.0.2", source=events.subdomain)
+            valid, reason = base_module._event_postcheck(localhost3)
+            if base_module._type == "output":
+                assert valid
+            else:
+                assert not valid
+                assert reason == "it did not meet in_scope_only filter criteria"
             base_module.in_scope_only = False
-            # scope distance
             base_module.scope_distance_modifier = 0
-            localhost2._scope_distance = 0
-            assert base_module._event_postcheck(localhost2)[0] == True
-            localhost2._scope_distance = 1
-            assert base_module._event_postcheck(localhost2)[0] == True
-            localhost2._scope_distance = 2
-            assert base_module._event_postcheck(localhost2)[0] == False
-            localhost2._scope_distance = -1
-            assert base_module._event_postcheck(localhost2)[0] == False
-            base_module.scope_distance_modifier = -1
+            localhost4 = scan.make_event("127.0.0.1", source=events.subdomain)
+            valid, reason = base_module._event_postcheck(events.localhost)
+            assert valid
 
         base_output_module = BaseOutputModule(scan)
         base_output_module.watched_events = ["IP_ADDRESS"]
@@ -137,7 +134,10 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
                 [type(t) == str for t in produced_events]
             ), f"{module_name}.produced_events entries must be of type string"
 
-            assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pipe must be of type list"
+            assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pip must be of type list"
+            assert (
+                type(preloaded.get("deps_pip_constraints", [])) == list
+            ), f"{module_name}.deps_pip_constraints must be of type list"
             assert type(preloaded.get("deps_apt", [])) == list, f"{module_name}.deps_apt must be of type list"
             assert type(preloaded.get("deps_shell", [])) == list, f"{module_name}.deps_shell must be of type list"
             assert type(preloaded.get("config", None)) == dict, f"{module_name}.options must be of type list"

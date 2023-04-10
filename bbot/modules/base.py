@@ -5,7 +5,8 @@ import traceback
 from sys import exc_info
 from contextlib import suppress
 
-from ..core.helpers.threadpool import ThreadPoolWrapper
+from ..core.helpers.misc import get_size
+from ..core.helpers.threadpool import ThreadPoolWrapper, TaskCounter
 from ..core.errors import ScanCancelledError, ValidationError, WordlistError
 
 
@@ -37,12 +38,10 @@ class BaseModule:
     # None == accept all events
     # 2 == accept events up to and including the scan's configured search distance plus two
     # 1 == accept events up to and including the scan's configured search distance plus one
-    # 0 == accept events up to and including the scan's configured search distance
+    # 0 == (DEFAULT) accept events up to and including the scan's configured search distance
     # -1 == accept events up to and including the scan's configured search distance minus one
-    #       (this is the default setting because when the scan's configured search distance == 1
-    #       [the default], then this is equivalent to in_scope_only)
     # -2 == accept events up to and including the scan's configured search distance minus two
-    scope_distance_modifier = -1
+    scope_distance_modifier = 0
     # Only accept the initial target event(s)
     target_only = False
     # Only accept explicitly in-scope events (scope distance == 0)
@@ -56,8 +55,6 @@ class BaseModule:
     options_desc = {}
     # Maximum concurrent instances of handle_event() or handle_batch()
     max_event_handlers = 1
-    # Max number of concurrent calls to submit_task()
-    max_threads = 10
     # Batch size
     # If batch size > 1, override handle_batch() instead of handle_event()
     batch_size = 1
@@ -87,8 +84,7 @@ class BaseModule:
         # seconds since we've submitted a batch
         self._last_submitted_batch = None
         # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
-        max_workers = self.config.get("max_threads", self.max_threads)
-        self.thread_pool = ThreadPoolWrapper(self.scan._thread_pool, max_workers=max_workers)
+        self.thread_pool = ThreadPoolWrapper(self.scan._thread_pool)
         self._internal_thread_pool = ThreadPoolWrapper(
             self.scan._internal_thread_pool.executor, max_workers=self.max_event_handlers
         )
@@ -98,6 +94,7 @@ class BaseModule:
         self._watched_events = None
 
         self._lock = threading.RLock()
+        self._running_counter = TaskCounter()
         self.event_received = threading.Condition(self._lock)
 
         # string constant
@@ -209,6 +206,7 @@ class BaseModule:
         return self._watched_events
 
     def submit_task(self, *args, **kwargs):
+        kwargs["_block"] = False
         return self.thread_pool.submit_task(self.catch, *args, **kwargs)
 
     def catch(self, *args, **kwargs):
@@ -221,6 +219,10 @@ class BaseModule:
                 self.debug(f"Not accepting {event} because {reason}")
             return
         return callback(event)
+
+    def _register_running(self, callback, *args, **kwargs):
+        with self._running_counter:
+            return callback(*args, **kwargs)
 
     def _handle_batch(self, force=False):
         if self.batch_size <= 1:
@@ -245,6 +247,7 @@ class BaseModule:
                 if not self.errored:
                     self._internal_thread_pool.submit_task(
                         self.catch,
+                        self._register_running,
                         self.handle_batch,
                         *checked_events,
                         _on_finish_callback=on_finish_callback,
@@ -377,13 +380,13 @@ class BaseModule:
                     self.debug(f"Got {e} from {getattr(e, 'module', e)}")
                     # if we receive the special "FINISHED" event
                     if e.type == "FINISHED":
-                        self._internal_thread_pool.submit_task(self.catch, self.finish)
+                        self._internal_thread_pool.submit_task(self.catch, self._register_running, self.finish)
                     else:
                         if self._type == "output":
-                            self.catch(self._postcheck_and_run, self.handle_event, e)
+                            self.catch(self._register_running, self._postcheck_and_run, self.handle_event, e)
                         else:
                             self._internal_thread_pool.submit_task(
-                                self.catch, self._postcheck_and_run, self.handle_event, e
+                                self.catch, self._register_running, self._postcheck_and_run, self.handle_event, e
                             )
 
         except KeyboardInterrupt:
@@ -443,17 +446,18 @@ class BaseModule:
         if "active" in self.flags and "target" in event.tags and event not in self.scan.whitelist:
             return False, "it is not in whitelist and module has active flag"
 
-        if self.in_scope_only:
-            if event.scope_distance > 0:
-                return False, "it did not meet in_scope_only filter criteria"
-        if self.scope_distance_modifier is not None:
-            if event.scope_distance < 0:
-                return False, f"its scope_distance ({event.scope_distance}) is invalid."
-            elif event.scope_distance > self.max_scope_distance:
-                return (
-                    False,
-                    f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
-                )
+        if self._type != "output":
+            if self.in_scope_only:
+                if event.scope_distance > 0:
+                    return False, "it did not meet in_scope_only filter criteria"
+            if self.scope_distance_modifier is not None:
+                if event.scope_distance < 0:
+                    return False, f"its scope_distance ({event.scope_distance}) is invalid."
+                elif event.scope_distance > self.max_scope_distance:
+                    return (
+                        False,
+                        f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
+                    )
 
         # custom filtering
         try:
@@ -470,6 +474,10 @@ class BaseModule:
             self.error(f"Error in filter_event({event}): {e}")
             self.trace()
 
+        if self._type == "output" and not event._stats_recorded:
+            event._stats_recorded = True
+            self.scan.stats.event_produced(event)
+
         return True, ""
 
     def _cleanup(self):
@@ -477,7 +485,7 @@ class BaseModule:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
                 if callable(callback):
-                    self.catch(callback, _force=True)
+                    self.catch(self._register_running, callback, _force=True)
 
     def queue_event(self, event):
         if self.incoming_event_queue in (None, False):
@@ -533,8 +541,30 @@ class BaseModule:
             "tasks": {"main_pool": main_pool, "internal_pool": internal_pool, "total": pool_total},
             "errored": self.errored,
         }
-        status["running"] = self._is_running(status)
+        status["running"] = self.running
+        status["active"] = self._is_active(status)
         return status
+
+    @staticmethod
+    def _is_active(status):
+        if status["running"]:
+            return True
+        total = status["tasks"]["total"] + status["events"]["incoming"] + status["events"]["outgoing"]
+        return total > 0
+
+    @property
+    def active(self):
+        """
+        Indicates whether the module has data yet to be processed
+        """
+        return self._foo
+
+    @property
+    def running(self):
+        """
+        Indicates whether the module is currently processing data.
+        """
+        return self._running_counter.value > 0
 
     def request_with_fail_count(self, *args, **kwargs):
         r = self.helpers.request(*args, **kwargs)
@@ -546,22 +576,14 @@ class BaseModule:
             self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
         return r
 
-    @staticmethod
-    def _is_running(module_status):
-        for pool, count in module_status["tasks"].items():
-            if count > 0:
-                return True
-        for direction, qsize in module_status["events"].items():
-            if qsize > 0:
-                return True
+    def is_spider_danger(self, event, url):
+        url_depth = self.helpers.url_depth(url)
+        web_spider_depth = self.scan.config.get("web_spider_depth", 1)
+        spider_distance = getattr(event, "web_spider_distance", 0)
+        web_spider_distance = self.scan.config.get("web_spider_distance", 0)
+        if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
+            return True
         return False
-
-    @property
-    def running(self):
-        """
-        Indicates whether the module is currently processing data.
-        """
-        return self._is_running(self.status)
 
     @property
     def config(self):
@@ -593,6 +615,15 @@ class BaseModule:
         if getattr(self, "_log", None) is None:
             self._log = logging.getLogger(f"bbot.modules.{self.name}")
         return self._log
+
+    @property
+    def memory_usage(self):
+        """
+        Return how much memory the module is currently using in bytes
+        """
+        seen = set(self.scan.pools.values())
+        seen.update({self.scan, self.helpers, self.log})
+        return get_size(self, max_depth=3, seen=seen)
 
     def __str__(self):
         return self.name

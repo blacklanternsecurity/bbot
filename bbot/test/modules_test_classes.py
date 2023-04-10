@@ -33,16 +33,33 @@ class Gowitness(HttpxMockHelper):
 
     def mock_args(self):
         respond_args = {
-            "response_data": "<html><head><title>BBOT is life</title></head><body><big> Contents... </big></body></html>"
+            "response_data": """<html><head><title>BBOT is life</title></head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@700&family=Open+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+</body></html>""",
+            "headers": {"Server": "Apache/2.4.41 (Ubuntu)"},
         }
         self.set_expect_requests(respond_args=respond_args)
 
     def check_events(self, events):
         screenshots_path = self.home_dir / "scans" / "gowitness_test" / "gowitness" / "screenshots"
         screenshots = list(screenshots_path.glob("*.png"))
-        if screenshots:
-            return True
-        return False
+        assert screenshots, f"No .png files found at {screenshots_path}"
+        url = False
+        webscreenshot = False
+        technology = False
+        for event in events:
+            if event.type == "URL_UNVERIFIED":
+                url = True
+            elif event.type == "WEBSCREENSHOT":
+                webscreenshot = True
+            elif event.type == "TECHNOLOGY":
+                technology = True
+        assert url, "No URL emitted"
+        assert webscreenshot, "No WEBSCREENSHOT emitted"
+        assert technology, "No TECHNOLOGY emitted"
+        return True
 
 
 class Excavate(HttpxMockHelper):
@@ -59,12 +76,12 @@ class Excavate(HttpxMockHelper):
         ftp://ftp.test.notreal
         \\nhttps://www1.test.notreal
         \\x3dhttps://www2.test.notreal
-        %a2https://www3.test.notreal
-        \\uac20https://www4.test.notreal
+        %0ahttps://www3.test.notreal
+        \\u000ahttps://www4.test.notreal
         \nwww5.test.notreal
         \\x3dwww6.test.notreal
-        %a2www7.test.notreal
-        \\uac20www8.test.notreal
+        %0awww7.test.notreal
+        \\u000awww8.test.notreal
         <a src="http://www9.test.notreal">
         """
         expect_args = {"method": "GET", "uri": "/"}
@@ -147,7 +164,7 @@ class Subdomain_Hijack(HttpxMockHelper):
                 and event.data["host"] == self.rand_subdomain
             ):
                 return True
-        return False
+        return False, f"No hijackable subdomains in {events}"
 
 
 class Fingerprintx(HttpxMockHelper):
@@ -193,7 +210,7 @@ class Otx(RequestMockHelper):
 
     def check_events(self, events):
         for e in events:
-            if e == "asdf.blacklanternsecurity.com":
+            if e.data == "asdf.blacklanternsecurity.com":
                 return True
         return False
 
@@ -211,7 +228,7 @@ class Anubisdb(RequestMockHelper):
 
     def check_events(self, events):
         for e in events:
-            if e == "asdf.blacklanternsecurity.com":
+            if e.data == "asdf.blacklanternsecurity.com":
                 return True
         return False
 
@@ -229,7 +246,12 @@ class SecretsDB(HttpxMockHelper):
 
 
 class Badsecrets(HttpxMockHelper):
-    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/test.aspx", "http://127.0.0.1:8888/cookie.aspx"]
+    targets = [
+        "http://127.0.0.1:8888/",
+        "http://127.0.0.1:8888/test.aspx",
+        "http://127.0.0.1:8888/cookie.aspx",
+        "http://127.0.0.1:8888/cookie2.aspx",
+    ]
 
     sample_viewstate = """
     <form method="post" action="./query.aspx" id="form1">
@@ -282,10 +304,21 @@ class Badsecrets(HttpxMockHelper):
         }
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"uri": "/cookie2.aspx"}
+        respond_args = {
+            "response_data": "<html><body><p>Express Cookie Test</p></body></html>",
+            "headers": {
+                "set-cookie": "connect.sid=s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc; Path=/; Expires=Wed, 05 Apr 2023 04:47:29 GMT; HttpOnly"
+            },
+        }
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
     def check_events(self, events):
         SecretFound = False
         IdentifyOnly = False
         CookieBasedDetection = False
+        CookieBasedDetection_2 = False
+
         for e in events:
             if (
                 e.type == "VULNERABILITY"
@@ -293,6 +326,7 @@ class Badsecrets(HttpxMockHelper):
                 == "Known Secret Found. Secret Type: [ASP.NET MachineKey] Secret: [validationKey: 0F97BAE23F6F36801ABDB5F145124E00A6F795A97093D778EE5CD24F35B78B6FC4C0D0D4420657689C4F321F8596B59E83F02E296E970C4DEAD2DFE226294979 validationAlgo: SHA1 encryptionKey: 8CCFBC5B7589DD37DC3B4A885376D7480A69645DAEEC74F418B4877BEC008156 encryptionAlgo: AES] Product Type: [ASP.NET Viewstate] Product: [rJdyYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESf4nBu] Detecting Module: [ASPNET_Viewstate]"
             ):
                 SecretFound = True
+
             if (
                 e.type == "FINDING"
                 and e.data["description"]
@@ -307,7 +341,14 @@ class Badsecrets(HttpxMockHelper):
             ):
                 CookieBasedDetection = True
 
-        if SecretFound and IdentifyOnly and CookieBasedDetection:
+            if (
+                e.type == "VULNERABILITY"
+                and e.data["description"]
+                == "Known Secret Found. Secret Type: [Express.js SESSION_SECRET] Secret: [keyboard cat] Product Type: [Express.js Signed Cookie] Product: [s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc] Detecting Module: [ExpressSignedCookies]"
+            ):
+                CookieBasedDetection_2 = True
+
+        if SecretFound and IdentifyOnly and CookieBasedDetection and CookieBasedDetection_2:
             return True
         return False
 
@@ -519,101 +560,26 @@ class Paramminer_cookies(HttpxMockHelper):
 class LeakIX(RequestMockHelper):
     def mock_args(self):
         self.register_uri(
-            "https://leakix.net/domain/blacklanternsecurity.com",
-            json={
-                "Services": [
-                    {
-                        "event_type": "service",
-                        "event_source": "HttpPlugin",
-                        "event_pipeline": ["CertStream", "l9scan", "tcpid", "HttpPlugin"],
-                        "event_fingerprint": "6d1f2e7ca5e9923ae691bd5ccbc6a29f4c7590907dc63317c958aafc5523fd76",
-                        "ip": "2606:50c0:8000::153",
-                        "host": "www.blacklanternsecurity.com",
-                        "reverse": "",
-                        "port": "443",
-                        "mac": "",
-                        "vendor": "",
-                        "transport": ["tcp", "tls", "http"],
-                        "protocol": "https",
-                        "http": {
-                            "root": "",
-                            "url": "",
-                            "status": 0,
-                            "length": 0,
-                            "header": {"content-length": "7567", "server": "GitHub.com"},
-                            "title": "Welcome | Black Lantern Security",
-                            "favicon_hash": "",
-                        },
-                        "summary": 'Connection: close\r\nContent-Length: 7567\r\nServer: GitHub.com\r\nContent-Type: text/html; charset=utf-8\r\nLast-Modified: Wed, 02 Mar 2022 18:16:15 GMT\r\nAccess-Control-Allow-Origin: *\r\nETag: "621fb46f-1d8f"\r\nexpires: Sun, 23 Oct 2022 10:32:07 GMT\r\nCache-Control: max-age=600\r\nx-proxy-cache: MISS\r\nX-GitHub-Request-Id: 080E:5274:2CE0396:3F21533:635515CF\r\nAccept-Ranges: bytes\r\nDate: Sun, 23 Oct 2022 20:46:28 GMT\r\nVia: 1.1 varnish\r\nAge: 0\r\nX-Served-By: cache-yyz4564-YYZ\r\nX-Cache: HIT\r\nX-Cache-Hits: 1\r\nX-Timer: S1666557989.582624,VS0,VE1\r\nVary: Accept-Encoding\r\nX-Fastly-Request-ID: d777ccbfc2b548eeb00cef0689cca2401789fefb\r\n\nPage title: Welcome | Black Lantern Security',
-                        "time": "2022-10-23T20:46:28.514950447Z",
-                        "ssl": {
-                            "detected": False,
-                            "enabled": True,
-                            "jarm": "29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af",
-                            "cypher_suite": "TLS_AES_128_GCM_SHA256",
-                            "version": "TLSv1.3",
-                            "certificate": {
-                                "cn": "www.blacklanternsecurity.com",
-                                "domain": ["www.blacklanternsecurity.com", "asdf.blacklanternsecurity.com"],
-                                "fingerprint": "65a85fca54f3429f63aadf9aae68a2ce7c292fd7d140afe618c58bf866112fea",
-                                "key_algo": "RSA",
-                                "key_size": 2048,
-                                "issuer_name": "R3",
-                                "not_before": "2022-08-24T17:27:08Z",
-                                "not_after": "2022-11-22T17:27:07Z",
-                                "valid": True,
-                            },
-                        },
-                        "ssh": {"fingerprint": "", "version": 0, "banner": "", "motd": ""},
-                        "service": {
-                            "credentials": {"noauth": False, "username": "", "password": "", "key": "", "raw": None},
-                            "software": {
-                                "name": "GitHub.com",
-                                "version": "",
-                                "os": "",
-                                "modules": None,
-                                "fingerprint": "",
-                            },
-                        },
-                        "leak": {
-                            "stage": "",
-                            "type": "",
-                            "severity": "",
-                            "dataset": {
-                                "rows": 0,
-                                "files": 0,
-                                "size": 0,
-                                "collections": 0,
-                                "infected": False,
-                                "ransom_notes": None,
-                            },
-                        },
-                        "tags": [],
-                        "geoip": {
-                            "continent_name": "North America",
-                            "region_iso_code": "",
-                            "city_name": "",
-                            "country_iso_code": "US",
-                            "country_name": "United States",
-                            "region_name": "",
-                            "location": {"lat": 37.751, "lon": -97.822},
-                        },
-                        "network": {
-                            "organization_name": "FASTLY",
-                            "asn": 54113,
-                            "network": "2606:50c0:8000:0:0:0:0:0/46",
-                        },
-                    }
-                ],
-                "Leaks": None,
-            },
+            "https://leakix.net/api/subdomains/blacklanternsecurity.com",
+            json=[
+                {
+                    "subdomain": "www.blacklanternsecurity.com",
+                    "distinct_ips": 2,
+                    "last_seen": "2023-02-20T20:23:13.583Z",
+                },
+                {
+                    "subdomain": "asdf.blacklanternsecurity.com",
+                    "distinct_ips": 1,
+                    "last_seen": "2022-09-17T01:31:52.563Z",
+                },
+            ],
         )
 
     def check_events(self, events):
         www = False
         asdf = False
         for e in events:
-            if e.type == "DNS_NAME":
+            if e.type in ("DNS_NAME", "DNS_NAME_UNRESOLVED"):
                 if e.data == "www.blacklanternsecurity.com":
                     www = True
                 elif e.data == "asdf.blacklanternsecurity.com":
@@ -636,7 +602,7 @@ class Massdns(MockHelper):
 
     def check_events(self, events):
         for e in events:
-            if e.type == "DNS_NAME" and e == "www.blacklanternsecurity.com":
+            if e.type in ("DNS_NAME", "DNS_NAME_UNRESOLVED") and e.data == "www.blacklanternsecurity.com":
                 return True
         return False
 
@@ -679,15 +645,67 @@ class Robots(HttpxMockHelper):
 
 
 class Masscan(MockHelper):
-    # masscan can't scan localhost
     targets = ["8.8.8.8/32"]
-    config_overrides = {"force_deps": True, "modules": {"masscan": {"ports": "53", "wait": 1}}}
+    config_overrides = {"modules": {"masscan": {"ports": "443", "wait": 1}}}
+    config_overrides_2 = {"modules": {"masscan": {"ports": "443", "wait": 1, "use_cache": True}}}
+    masscan_output = """[
+{   "ip": "8.8.8.8",   "timestamp": "1680197558", "ports": [ {"port": 443, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }
+]"""
+    masscan_config = """seed = 17230484647655100360
+rate = 600       
+shard = 1/1
+
+
+# TARGET SELECTION (IP, PORTS, EXCLUDES)
+ports = 
+range = 9.8.7.6"""
+
+    def __init__(self, config, bbot_scanner, *args, **kwargs):
+        super().__init__(config, bbot_scanner, *args, **kwargs)
+        self.scan.modules["masscan"].masscan_config = self.masscan_config
+
+        def setup_scan_2():
+            config2 = OmegaConf.merge(config, OmegaConf.create(self.config_overrides_2))
+            self.scan2 = bbot_scanner(
+                *self.targets,
+                modules=[self.name] + self.additional_modules,
+                name=f"{self.name}_test",
+                config=config2,
+                whitelist=self.whitelist,
+                blacklist=self.blacklist,
+            )
+            self.patch_scan(self.scan2)
+            self.scan2.prep()
+            self.scan2.modules["masscan"].masscan_config = self.masscan_config
+
+        self.setup_scan_2 = setup_scan_2
+        self.masscan_run = False
+
+    def run_masscan(self, command, *args, **kwargs):
+        if "masscan" in command[0]:
+            json_output_file = command[-1]
+            with open(json_output_file, "w") as f:
+                f.write(self.masscan_output)
+            self.masscan_run = True
+        else:
+            return self.scan.helpers.run(command, *args, **kwargs)
+
+    def patch_scan(self, scan):
+        scan.helpers.run = self.run_masscan
+
+    def run(self):
+        super().run()
+        self.setup_scan_2()
+        assert self.masscan_run == True, "masscan didn't run when it was supposed to"
+        self.masscan_run = False
+        events = list(self.scan2.start())
+        self.check_events(events)
+        assert self.masscan_run == False, "masscan ran when it wasn't supposed to"
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:53":
-                return True
-        return False
+        assert any(e.type == "IP_ADDRESS" and e.data == "8.8.8.8" for e in events), "No IP_ADDRESS emitted"
+        assert any(e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:443" for e in events), "No OPEN_TCP_PORT emitted"
+        return True
 
 
 class Buckets(HttpxMockHelper, RequestMockHelper):
@@ -1097,6 +1115,10 @@ class Ffuf(HttpxMockHelper):
 
     def mock_args(self):
         expect_args = {"method": "GET", "uri": "/admin"}
+        respond_args = {"response_data": "alive admin page"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": "alive"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -1105,6 +1127,100 @@ class Ffuf(HttpxMockHelper):
             if e.type == "URL_UNVERIFIED":
                 if "admin" in e.data:
                     return True
+        return False
+
+
+class Ffuf_extensions(HttpxMockHelper):
+    test_wordlist = ["11111111", "console", "junkword1", "zzzjunkword2"]
+    config_overrides = {"modules": {"ffuf": {"wordlist": tempwordlist(test_wordlist), "extensions": "php"}}}
+
+    additional_modules = ["httpx"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/console.php"}
+        respond_args = {"response_data": "alive admin page"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if "console" in e.data:
+                    return True
+        return False
+
+
+class Vhost(HttpxMockHelper):
+    targets = ["http://localhost:8888", "secret.localhost"]
+
+    additional_modules = ["httpx"]
+
+    test_wordlist = ["11111111", "admin", "cloud", "junkword1", "zzzjunkword2"]
+    config_overrides = {
+        "modules": {
+            "vhost": {
+                "wordlist": tempwordlist(test_wordlist),
+            }
+        }
+    }
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "admin.localhost:8888"}}
+        respond_args = {"response_data": "Alive vhost admin"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "cloud.localhost:8888"}}
+        respond_args = {"response_data": "Alive vhost cloud"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "q-cloud.localhost:8888"}}
+        respond_args = {"response_data": "Alive vhost q-cloud"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "secret.localhost:8888"}}
+        respond_args = {"response_data": "Alive vhost secret"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "host.docker.internal"}}
+        respond_args = {"response_data": "Alive vhost host.docker.internal"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        basic_detection = False
+        mutaton_of_detected = False
+        basehost_mutation = False
+        special_vhost_list = False
+        wordcloud_detection = False
+
+        for e in events:
+            print(e)
+            if e.type == "VHOST":
+                if e.data["vhost"] == "admin":
+                    basic_detection = True
+                if e.data["vhost"] == "cloud":
+                    mutaton_of_detected = True
+                if e.data["vhost"] == "q-cloud":
+                    basehost_mutation = True
+                if e.data["vhost"] == "host.docker.internal":
+                    special_vhost_list = True
+                if e.data["vhost"] == "secret":
+                    wordcloud_detection = True
+
+        if (
+            basic_detection
+            and mutaton_of_detected
+            and basehost_mutation
+            and special_vhost_list
+            and wordcloud_detection
+        ):
+            return True
         return False
 
 
@@ -1235,6 +1351,15 @@ class Ffuf_shortnames(HttpxMockHelper):
                 tags=["shortname-directory"],
             )
         )
+        seed_events.append(
+            self.scan.make_event(
+                "http://127.0.0.1:8888/SHORT~1.PL",
+                "URL_HINT",
+                parent_event,
+                module="iis_shortnames",
+                tags=["shortname-file"],
+            )
+        )
         self.scan.target._events["http://127.0.0.1:8888"] = seed_events
 
     def mock_args(self):
@@ -1262,6 +1387,10 @@ class Ffuf_shortnames(HttpxMockHelper):
         respond_args = {"response_data": "alive"}
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+        expect_args = {"method": "GET", "uri": "/short.pl"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
     def check_events(self, events):
         basic_detection = False
         directory_detection = False
@@ -1269,6 +1398,7 @@ class Ffuf_shortnames(HttpxMockHelper):
         delimeter_detection = False
         directory_delimeter_detection = False
         prefix_delimeter_detection = False
+        short_extensions_detection = False
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
@@ -1284,6 +1414,8 @@ class Ffuf_shortnames(HttpxMockHelper):
                     directory_delimeter_detection = True
                 if e.data == "http://127.0.0.1:8888/xyzdirectory/":
                     prefix_delimeter_detection = True
+                if e.data == "http://127.0.0.1:8888/short.pl":
+                    short_extensions_detection = True
 
         if (
             basic_detection
@@ -1292,6 +1424,7 @@ class Ffuf_shortnames(HttpxMockHelper):
             and delimeter_detection
             and directory_delimeter_detection
             and prefix_delimeter_detection
+            and short_extensions_detection
         ):
             return True
         return False
@@ -1380,6 +1513,7 @@ class Nuclei_manual(HttpxMockHelper):
                 "ratelimit": 10,
                 "templates": "/tmp/.bbot_test/tools/nuclei-templates/miscellaneous/",
                 "interactsh_disable": True,
+                "directory_only": False,
             }
         },
     }
@@ -1546,6 +1680,22 @@ class Naabu(HttpxMockHelper):
         return False
 
 
+class Social(HttpxMockHelper):
+    additional_modules = ["httpx", "excavate"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": '<html><a href="https://discord.gg/asdf"/></html>'}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "SOCIAL":
+                if e.data["platform"] == "discord":
+                    return True
+        return False
+
+
 class Hunt(HttpxMockHelper):
     additional_modules = ["httpx"]
 
@@ -1561,4 +1711,89 @@ class Hunt(HttpxMockHelper):
                 and e.data["description"] == "Found potential INSECURE CRYPTOGRAPHY parameter [cipher]"
             ):
                 return True
+        return False
+
+
+class Bypass403(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    targets = ["http://127.0.0.1:8888/test"]
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 403
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/test..;/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING":
+                return True
+        return False
+
+
+class Bypass403_aspnetcookieless(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    targets = ["http://127.0.0.1:8888/admin.aspx"]
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 403
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": re.compile(r"\/\([sS]\(\w+\)\)\/.+\.aspx")}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING":
+                return True
+        return False
+
+
+class Bypass403_waf(HttpxMockHelper):
+    additional_modules = ["httpx"]
+
+    targets = ["http://127.0.0.1:8888/test"]
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 403
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/test..;/"}
+        respond_args = {"response_data": "The requested URL was rejected"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "FINDING":
+                return False
+        return True
+
+
+class Speculate_subdirectories(HttpxMockHelper):
+    additional_modules = ["httpx"]
+    targets = ["http://127.0.0.1:8888/subdir1/subdir2/"]
+
+    def mock_args(self):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/subdir1/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/subdir1/subdir2/"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                if e.data == "http://127.0.0.1:8888/subdir1/":
+                    return True
         return False

@@ -67,7 +67,7 @@ class ScanManager:
             log.debug(f'Module "{event.module}" raised {event}')
             event._resolved.set()
             for kwarg in ["abort_if", "on_success_callback", "_block"]:
-                kwargs.pop(kwargs, None)
+                kwargs.pop(kwarg, None)
             try:
                 self.distribute_event(event, *args, **kwargs)
                 return True
@@ -103,7 +103,7 @@ class ScanManager:
         if event == event.get_source():
             log.debug(f"Skipping event with self as source: {event}")
             return False
-        if self.is_duplicate_event(event):
+        if not event._force_output and self.is_duplicate_event(event):
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
         return True
@@ -120,7 +120,7 @@ class ScanManager:
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
             if skip_dns_resolution:
                 event._resolved.set()
-                dns_children = []
+                dns_children = {}
                 dns_tags = {"resolved"}
                 event_whitelisted_dns = True
                 event_blacklisted_dns = False
@@ -128,12 +128,16 @@ class ScanManager:
             else:
                 # DNS resolution
                 (
-                    dns_children,
                     dns_tags,
                     event_whitelisted_dns,
                     event_blacklisted_dns,
-                    resolved_hosts,
+                    dns_children,
                 ) = self.scan.helpers.dns.resolve_event(event, minimal=not self.dns_resolution)
+                resolved_hosts = set()
+                for rdtype, ips in dns_children.items():
+                    if rdtype in ("A", "AAAA", "CNAME"):
+                        for ip in ips:
+                            resolved_hosts.add(ip)
 
             # kill runaway DNS chains
             dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
@@ -141,7 +145,7 @@ class ScanManager:
                 log.debug(
                     f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.max_dns_resolve_distance})"
                 )
-                dns_children = []
+                dns_children = {}
 
             # We do this again in case event.data changed during resolve_event()
             if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
@@ -167,6 +171,10 @@ class ScanManager:
                 log.debug(f"Omitting due to blacklisted {reason}: {event}")
                 distribute_event = False
 
+            # DNS_NAME --> DNS_NAME_UNRESOLVED
+            if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
+                event.type = "DNS_NAME_UNRESOLVED"
+
             # Cloud tagging
             for provider in self.scan.helpers.cloud.providers.values():
                 provider.tag_event(event)
@@ -178,7 +186,7 @@ class ScanManager:
             if event_whitelisted:
                 set_scope_distance = 0
             if event.host:
-                if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
+                if (event_whitelisted or event_in_report_distance) and (event._force_output or not event_is_duplicate):
                     if set_scope_distance == 0:
                         log.debug(f"Making {event} in-scope")
                     source_trail = event.make_in_scope(set_scope_distance)
@@ -190,13 +198,12 @@ class ScanManager:
                             f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
                         )
                         event.make_internal()
-            if not event.host or (event.always_emit and not event_is_duplicate):
-                log.debug(
-                    f"Force-emitting {event} because it does not have identifying scope information or because always_emit was True"
-                )
-                source_trail = event.unmake_internal(force_output=True)
-                for s in source_trail:
-                    self.emit_event(s, _block=False, _force_submit=True)
+
+            # check for wildcards
+            if event.scope_distance <= self.scan.scope_search_distance:
+                if not "unresolved" in event.tags:
+                    if not self.scan.helpers.is_ip_type(event.host):
+                        self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if):
@@ -212,45 +219,68 @@ class ScanManager:
             if not self.accept_event(event):
                 return
 
-            # queue the event before emitting its DNS children
+            # run success callback before distributing event (so it can add tags, etc.)
+            if distribute_event:
+                if callable(on_success_callback):
+                    self.catch(on_success_callback, event)
+
+            if not event.host or (event.always_emit and not event_is_duplicate):
+                log.debug(
+                    f"Force-emitting {event} because it does not have identifying scope information or because always_emit was True"
+                )
+                source_trail = event.unmake_internal(force_output=True)
+                for s in source_trail:
+                    self.emit_event(s, _block=False, _force_submit=True)
+
             if distribute_event:
                 self.distribute_event(event)
                 event_distributed = True
 
-                if callable(on_success_callback):
-                    self.catch(on_success_callback, event)
-
-            ### Emit DNS children ###
-            emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
             if (
                 event.host
-                and event.type not in ("DNS_NAME", "IP_ADDRESS", "IP_RANGE")
+                and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
                 and not str(event.module) == "speculate"
             ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_module._priority = 4
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
-                source_event.scope_distance = event.scope_distance
-                if "target" in event.tags:
-                    source_event.add_tag("target")
-                self.emit_event(source_event, _block=False, _force_submit=True)
-            if self.dns_resolution and emit_children:
-                dns_child_events = []
-                if dns_children:
-                    for rdtype, record in dns_children:
-                        module = self.scan.helpers.dns._get_dummy_module(rdtype)
-                        module._priority = 4
-                        try:
-                            child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)
-                            dns_child_events.append(child_event)
-                        except ValidationError as e:
-                            log.warning(
-                                f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
-                            )
-                for child_event in dns_child_events:
-                    self.emit_event(child_event, _block=False, _force_submit=True)
+                # only emit the event if it's not already in the parent chain
+                if source_event is not None and source_event not in source_event.get_sources():
+                    source_event.scope_distance = event.scope_distance
+                    if "target" in event.tags:
+                        source_event.add_tag("target")
+                    self.emit_event(source_event, _block=False, _force_submit=True)
+
+            ### Emit DNS children ###
+            if self.dns_resolution:
+                emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
+                if emit_children:
+                    host_hash = hash(str(event.host))
+                    with self.events_accepted_lock:
+                        if host_hash in self.events_accepted:
+                            emit_children = False
+                        self.events_accepted.add(host_hash)
+
+                if emit_children:
+                    dns_child_events = []
+                    if dns_children:
+                        for rdtype, records in dns_children.items():
+                            module = self.scan.helpers.dns._get_dummy_module(rdtype)
+                            module._priority = 4
+                            for record in records:
+                                try:
+                                    child_event = self.scan.make_event(
+                                        record, "DNS_NAME", module=module, source=source_event
+                                    )
+                                    dns_child_events.append(child_event)
+                                except ValidationError as e:
+                                    log.warning(
+                                        f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
+                                    )
+                    for child_event in dns_child_events:
+                        self.emit_event(child_event, _block=False, _force_submit=True)
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
@@ -288,10 +318,11 @@ class ScanManager:
             duplicate_event = suppress_dupes and event_hash in self.events_accepted
             if add:
                 self.events_accepted.add(event_hash)
-        return duplicate_event and not event._force_output
+        return duplicate_event
 
     def accept_event(self, event):
-        if self.is_duplicate_event(event, add=True):
+        is_duplicate = self.is_duplicate_event(event, add=True)
+        if is_duplicate and not event._force_output:
             log.debug(f"{event.module}: not raising duplicate event {event}")
             return False
         return True
@@ -347,20 +378,9 @@ class ScanManager:
         # absorb event into the word cloud if it's in scope
         if not dup and -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
-        stats_recorded = False
         for mod in self.scan.modules.values():
             if not dup or mod.accept_dupes:
-                event_within_scope_distance = -1 < event.scope_distance <= self.scan.scope_search_distance
-                event_within_report_distance = -1 < event.scope_distance <= self.scan.scope_report_distance
-                if mod._type == "output":
-                    if event_within_report_distance or event._force_output:
-                        mod.queue_event(event)
-                        if not stats_recorded:
-                            stats_recorded = True
-                            self.scan.stats.event_produced(event)
-                else:
-                    if event_within_scope_distance:
-                        mod.queue_event(event)
+                mod.queue_event(event)
 
     def loop_until_finished(self):
         modules = list(self.scan.modules.values())
@@ -429,7 +449,7 @@ class ScanManager:
         finally:
             # Run .report() on every module
             for mod in self.scan.modules.values():
-                self.catch(mod.report, _force=True)
+                self.catch(mod._register_running, mod.report, _force=True)
 
     def log_status(self, frequency=10):
         # print status every 10 seconds
@@ -458,7 +478,7 @@ class ScanManager:
 
             for m in self.scan.modules.values():
                 mod_status = m.status
-                if mod_status["running"]:
+                if mod_status["active"]:
                     finished = False
                 status["modules"][m.name] = mod_status
 
@@ -480,18 +500,19 @@ class ScanManager:
         if _log:
             modules_status = []
             for m, s in status["modules"].items():
+                running = s["running"]
                 incoming = s["events"]["incoming"]
                 outgoing = s["events"]["outgoing"]
                 tasks = s["tasks"]["total"]
                 total = sum([incoming, outgoing, tasks])
-                modules_status.append((m, incoming, outgoing, tasks, total))
+                if running or total > 0:
+                    modules_status.append((m, running, incoming, outgoing, tasks, total))
             modules_status.sort(key=lambda x: x[-1], reverse=True)
 
-            modules_status = [s for s in modules_status if s[-2] or s[-1] > 0][:5]
             if modules_status:
-                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, i, o, t, _ in modules_status])
-                running_modules_str = ", ".join([m[0] for m in modules_status])
-                self.scan.info(f"{self.scan.name}: Running modules: {running_modules_str}")
+                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, r, i, o, t, _ in modules_status])
+                running_modules_str = ", ".join([m[0] for m in modules_status if m[1]])
+                self.scan.info(f"{self.scan.name}: Modules running: {running_modules_str}")
                 self.scan.verbose(
                     f"{self.scan.name}: Modules status (incoming:processing:outgoing) {modules_status_str}"
                 )
@@ -527,7 +548,10 @@ class ScanManager:
             else:
                 self.scan.info(f"{self.scan.name}: No events in queue")
 
+            # if debugging is enabled
+            self.scan.debug(f"THREAD POOL STATUS:")
             if self.scan.log_level <= logging.DEBUG:
+                # log thread pool statuses
                 threadpool_names = [
                     "_internal_thread_pool",
                     "_event_thread_pool",
@@ -536,7 +560,16 @@ class ScanManager:
                 for threadpool_name in threadpool_names:
                     threadpool = getattr(self.scan, threadpool_name)
                     for thread_status in threadpool.threads_status:
-                        self.scan.debug(f"scan.{threadpool_name}: {thread_status}")
+                        self.scan.debug(f"    - {threadpool_name}: {thread_status}")
+                # log module memory usage
+                module_memory_usage = []
+                for module in self.scan.modules.values():
+                    memory_usage = module.memory_usage
+                    module_memory_usage.append((module.name, memory_usage))
+                module_memory_usage.sort(key=lambda x: x[-1], reverse=True)
+                self.scan.debug(f"MODULE MEMORY USAGE:")
+                for module_name, usage in module_memory_usage:
+                    self.scan.debug(f"    - {module_name}: {self.scan.helpers.bytes_to_human(usage)}")
 
             # Uncomment these lines to enable debugging of event queues
 

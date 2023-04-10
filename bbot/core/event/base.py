@@ -17,6 +17,7 @@ from bbot.core.helpers import (
     is_domain,
     is_subdomain,
     is_ip,
+    is_ptr,
     domain_stem,
     make_netloc,
     make_ip_type,
@@ -69,6 +70,8 @@ class BaseEvent:
         self._made_internal = False
         # whether to force-send to output modules
         self._force_output = False
+        # keep track of whether this event has been recorded by the scan
+        self._stats_recorded = False
 
         self.timestamp = datetime.utcnow()
 
@@ -77,7 +80,7 @@ class BaseEvent:
             self._tags = set(tagify(s) for s in tags)
 
         self._data = None
-        self.type = event_type
+        self._type = event_type
         self.confidence = int(confidence)
 
         # for creating one-off events without enforcing source requirement
@@ -97,10 +100,7 @@ class BaseEvent:
             self.scans = list(set([self.scan.id] + self.scans))
 
         # check type blacklist
-        if self.scan is not None:
-            omit_event_types = self.scan.config.get("omit_event_types", [])
-            if omit_event_types and self.type in omit_event_types:
-                self._omit = True
+        self._check_omit()
 
         self._scope_distance = -1
 
@@ -276,6 +276,20 @@ class BaseEvent:
             return self.source.get_source()
         return self.source
 
+    def get_sources(self, omit=False):
+        sources = []
+        e = self
+        while 1:
+            if omit:
+                source = e.get_source()
+            else:
+                source = e.source
+            if e == source:
+                break
+            sources.append(source)
+            e = source
+        return sources
+
     def make_internal(self):
         if not self._made_internal:
             self._internal = True
@@ -284,14 +298,16 @@ class BaseEvent:
 
     def unmake_internal(self, set_scope_distance=None, force_output=False):
         source_trail = []
+        self.remove_tag("internal")
         if self._made_internal:
             if set_scope_distance is not None:
                 self.scope_distance = set_scope_distance
             self._internal = False
-            self.remove_tag("internal")
-            if force_output:
-                self._force_output = True
             self._made_internal = False
+        if force_output is True:
+            self._force_output = True
+        if force_output == "trail_only":
+            force_output = True
 
         if getattr(self.source, "_internal", False):
             source_scope_distance = None
@@ -308,7 +324,7 @@ class BaseEvent:
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
         if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output=True)
+            source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output="trail_only")
         self.scope_distance = set_scope_distance
         if set_scope_distance == 0:
             self.add_tag("in-scope")
@@ -465,6 +481,23 @@ class BaseEvent:
                 self._priority = getattr(self.source, "priority", ()) + (timestamp,)
         return self._priority
 
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, val):
+        self._type = val
+        self._hash = None
+        self._id = None
+        self._check_omit()
+
+    def _check_omit(self):
+        if self.scan is not None:
+            omit_event_types = self.scan.config.get("omit_event_types", [])
+            if omit_event_types and self.type in omit_event_types:
+                self._omit = True
+
     def __iter__(self):
         """
         For dict(event)
@@ -496,8 +529,9 @@ class BaseEvent:
         return self._hash
 
     def __str__(self):
+        max_event_len = 80
         d = str(self.data)
-        return f'{self.type}("{d[:50]}{("..." if len(d) > 50 else "")}", module={self.module}, tags={self.tags})'
+        return f'{self.type}("{d[:max_event_len]}{("..." if len(d) > max_event_len else "")}", module={self.module}, tags={self.tags})'
 
     def __repr__(self):
         return str(self)
@@ -618,10 +652,14 @@ class DNS_NAME(DnsEvent):
 
     def _words(self):
         stem = self.host_stem
-        if "wildcard" in self.tags:
-            stem = "".join(stem.split(".")[1:])
-        if "resolved" in self.tags:
-            return extract_words(stem)
+        if not is_ptr(stem):
+            split_stem = stem.split(".")
+            if split_stem:
+                leftmost_segment = split_stem[0]
+                if leftmost_segment == "_wildcard":
+                    stem = ".".join(split_stem[1:])
+            if stem:
+                return extract_words(stem)
         return set()
 
 
@@ -634,7 +672,7 @@ class OPEN_TCP_PORT(BaseEvent):
         return host
 
     def _words(self):
-        if not is_ip(self.host):
+        if not is_ip(self.host) and not is_ptr(self.host):
             return extract_words(self.host_stem)
         return set()
 
@@ -660,8 +698,12 @@ class URL_UNVERIFIED(BaseEvent):
         url_extension_httpx_only = []
         scan = getattr(self, "scan", None)
         if scan is not None:
-            url_extension_blacklist = [e.lower() for e in scan.config.get("url_extension_blacklist", [])]
-            url_extension_httpx_only = [e.lower() for e in scan.config.get("url_extension_httpx_only", [])]
+            _url_extension_blacklist = scan.config.get("url_extension_blacklist", [])
+            _url_extension_httpx_only = scan.config.get("url_extension_httpx_only", [])
+            if _url_extension_blacklist:
+                url_extension_blacklist = [e.lower() for e in _url_extension_blacklist]
+            if _url_extension_httpx_only:
+                url_extension_httpx_only = [e.lower() for e in _url_extension_httpx_only]
 
         extension = get_file_extension(parsed_path_lower)
         if extension:
@@ -688,6 +730,13 @@ class URL_UNVERIFIED(BaseEvent):
     def _host(self):
         return make_ip_type(self.parsed.hostname)
 
+    def _data_id(self):
+        # consider spider-danger tag when deduping
+        data = super()._data_id()
+        if "spider-danger" in self.tags:
+            data = "spider-danger" + data
+        return data
+
 
 class URL(URL_UNVERIFIED):
     def sanitize_data(self, data):
@@ -699,7 +748,7 @@ class URL(URL_UNVERIFIED):
 
     @property
     def resolved_hosts(self):
-        return [i.split("-")[1] for i in self.tags if i.startswith("ip-")]
+        return [".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")]
 
     @property
     def pretty_string(self):
@@ -758,6 +807,12 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         data["header-dict"] = header_dict
         return data
 
+    def _data_human(self):
+        data = dict(self.data)
+        new_data = {"url": data.pop("url")}
+        new_data.update(data)
+        return new_data
+
     def _words(self):
         return set()
 
@@ -805,6 +860,7 @@ class TECHNOLOGY(DictHostEvent):
         _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
 
     def _data_id(self):
+        # dedupe by host+port+tech
         tech = self.data.get("technology", "")
         return f"{self.host}:{self.port}:{tech}"
 
@@ -845,7 +901,15 @@ class PROTOCOL(DictHostEvent):
         return self.data["protocol"]
 
 
-class Geolocation(BaseEvent):
+class GEOLOCATION(BaseEvent):
+    _always_emit = True
+
+
+class SOCIAL(DictEvent):
+    _always_emit = True
+
+
+class WEBSCREENSHOT(BaseEvent):
     _always_emit = True
 
 
@@ -865,6 +929,10 @@ def make_event(
     If data is already an event, simply return it
     """
 
+    # allow tags to be either a string or an array
+    if isinstance(tags, str):
+        tags = [tags]
+
     if is_event(data):
         if scan is not None and not data.scan:
             data.scan = scan
@@ -873,7 +941,7 @@ def make_event(
         if module is not None:
             data.module = module
         if source is not None:
-            data.set_source(source)
+            data.source = source
         if internal == True and not data._made_internal:
             data.make_internal()
         event_type = data.type

@@ -10,6 +10,7 @@ from .wordcloud import WordCloud
 from .cloud import CloudProviders
 from .interactsh import Interactsh
 from .threadpool import as_completed
+from ...scanner.target import Target
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
 
@@ -67,6 +68,9 @@ class ConfigAwareHelper:
     def clean_old_scans(self):
         _filter = lambda x: x.is_dir() and self.regexes.scan_name_regex.match(x.name)
         self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
+
+    def make_target(self, events):
+        return Target(self.scan, *events)
 
     @property
     def scan(self):

@@ -7,6 +7,7 @@ import getpass
 import logging
 from time import sleep
 from pathlib import Path
+from threading import Lock
 from itertools import chain
 from contextlib import suppress
 from ansible_runner.interface import run
@@ -51,6 +52,8 @@ class DepsInstaller:
             self.venv = sys.prefix
 
         self.all_modules_preloaded = module_loader.preloaded()
+
+        self.ensure_root_lock = Lock()
 
     def install(self, *modules):
         self.install_core_deps()
@@ -123,33 +126,40 @@ class DepsInstaller:
         success = True
         preloaded = self.all_modules_preloaded[module]
 
+        # ansible tasks
+        ansible_tasks = preloaded["deps"]["ansible"]
+        if ansible_tasks:
+            success &= self.tasks(module, ansible_tasks)
+
         # apt
         deps_apt = preloaded["deps"]["apt"]
         if deps_apt:
             self.apt_install(deps_apt)
-
-        # pip
-        deps_pip = preloaded["deps"]["pip"]
-        if deps_pip:
-            success &= self.pip_install(deps_pip)
 
         # shell
         deps_shell = preloaded["deps"]["shell"]
         if deps_shell:
             success &= self.shell(module, deps_shell)
 
-        # ansible tasks
-        ansible_tasks = preloaded["deps"]["ansible"]
-        if ansible_tasks:
-            success &= self.tasks(module, ansible_tasks)
+        # pip
+        deps_pip = preloaded["deps"]["pip"]
+        deps_pip_constraints = preloaded["deps"]["pip_constraints"]
+        if deps_pip:
+            success &= self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
         return success
 
-    def pip_install(self, packages):
+    def pip_install(self, packages, constraints=None):
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
+
+        if constraints:
+            contraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)
+            command.append("--constraint")
+            command.append(contraints_tempfile)
+
         process = None
         try:
             process = self.parent_helper.run(command, check=True)
@@ -287,19 +297,20 @@ class DepsInstaller:
             json.dump(self.setup_status, f)
 
     def ensure_root(self, message=""):
-        if os.geteuid() != 0 and self._sudo_password is None:
-            if message:
-                log.warning(message)
-            while not self._sudo_password:
-                # sleep for a split second to flush previous log messages
-                sleep(0.1)
-                password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
-                if self.parent_helper.verify_sudo_password(password):
-                    log.success("Authentication successful")
-                    self._sudo_password = password
-                    configurator.bbot_sudo_pass = password
-                else:
-                    log.warning("Incorrect password")
+        with self.ensure_root_lock:
+            if os.geteuid() != 0 and self._sudo_password is None:
+                if message:
+                    log.warning(message)
+                while not self._sudo_password:
+                    # sleep for a split second to flush previous log messages
+                    sleep(0.1)
+                    password = getpass.getpass(prompt="[USER] Please enter sudo password: ")
+                    if self.parent_helper.verify_sudo_password(password):
+                        log.success("Authentication successful")
+                        self._sudo_password = password
+                        configurator.bbot_sudo_pass = password
+                    else:
+                        log.warning("Incorrect password")
 
     def install_core_deps(self):
         to_install = set()

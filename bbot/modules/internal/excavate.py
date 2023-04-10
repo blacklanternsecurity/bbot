@@ -4,8 +4,8 @@ import base64
 import jwt as j
 from urllib.parse import urlparse, urljoin
 
+from bbot.core.helpers.regexes import _email_regex
 from bbot.modules.internal.base import BaseInternalModule
-from bbot.core.helpers.regexes import _email_regex, junk_remover
 
 
 class BaseExtractor:
@@ -19,10 +19,16 @@ class BaseExtractor:
             self.compiled_regexes[rname] = re.compile(r)
 
     def search(self, content, event, **kwargs):
+        results = set()
+        for result, name in self._search(content, event, **kwargs):
+            results.add(result)
+        for result in results:
+            self.report(result, name, event, **kwargs)
+
+    def _search(self, content, event, **kwargs):
         for name, regex in self.compiled_regexes.items():
-            results = regex.findall(content)
-            for result in results:
-                self.report(result, name, event, **kwargs)
+            for result in regex.findall(content):
+                yield result, name
 
     def report(self, result, name, event):
         pass
@@ -40,7 +46,7 @@ class HostnameExtractor(BaseExtractor):
         for i, t in enumerate(dns_targets):
             if not any(x in dns_targets_set for x in excavate.helpers.domain_parents(t, include_self=True)):
                 dns_targets_set.add(t)
-                self.regexes[f"dns_name_{i+1}"] = junk_remover + r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
+                self.regexes[f"dns_name_{i+1}"] = r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")"
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
@@ -49,45 +55,69 @@ class HostnameExtractor(BaseExtractor):
 
 class URLExtractor(BaseExtractor):
     regexes = {
-        "fullurl": r"(?i)"
-        + junk_remover
-        + r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
+        "fullurl": r"(?i)" + r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
 
-    prefix_blacklist = ["javascript:", "mailto:", "tel:"]
+    prefix_blacklist = ["javascript:", "mailto:", "tel:", "data:", "vbscript:", "about:", "file:"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
+
+    def search(self, content, event, **kwargs):
+        result_hashes = set()
+        results = []
+        for result in self._search(content, event, **kwargs):
+            result_hash = hash(result)
+            if result_hash not in result_hashes:
+                result_hashes.add(result_hash)
+                results.append(result)
+        for i, (result, name) in enumerate(results):
+            new_kwargs = dict(kwargs)
+            if i > self.web_spider_links_per_page:
+                # self.excavate.critical(f"SPIDER DANGER: {result}")
+                new_kwargs["exceeded_max_links"] = True
+            self.report(result, name, event, **new_kwargs)
+
+    def _search(self, content, event, **kwargs):
+        parsed = getattr(event, "parsed", None)
+        for name, regex in self.compiled_regexes.items():
+            for result in regex.findall(content):
+                if name == "fullurl":
+                    protocol, other = result
+                    result = f"{protocol}://{other}"
+
+                elif name in ("a-tag", "script-tag") and parsed:
+                    path = html.unescape(result[1]).lstrip("/")
+
+                    for p in self.prefix_blacklist:
+                        if path.lower().startswith(p.lower()):
+                            self.excavate.debug(
+                                f"omitted result from a-tag parser because of blacklisted prefix [{p}]"
+                            )
+                            continue
+
+                    if not self.compiled_regexes["fullurl"].match(path):
+                        path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
+                        full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
+                        result = urljoin(full_url, urlparse(full_url).path)
+                    else:
+                        result = path
+
+                yield result, name
 
     def report(self, result, name, event, **kwargs):
         spider_danger = kwargs.get("spider_danger", True)
+        exceeded_max_links = kwargs.get("exceeded_max_links", False)
 
         tags = []
-        parsed = getattr(event, "parsed", None)
-
-        if name == "fullurl":
-            protocol, other = result
-            result = f"{protocol}://{other}"
-
-        elif name in ("a-tag", "script-tag") and parsed:
-            path = html.unescape(result[1]).lstrip("/")
-
-            if not self.compiled_regexes["fullurl"].match(path):
-                path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
-                full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
-                result = urljoin(full_url, urlparse(full_url).path)
-
-            else:
-                result = path
-
-            for p in self.prefix_blacklist:
-                if path.startswith(p):
-                    self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
-                    return
 
         parsed_uri = self.excavate.helpers.urlparse(result)
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
         # Handle non-HTTP URIs (ftp, s3, etc.)
-        if parsed_uri.scheme.lower() not in ("http", "https"):
+        if not "http" in parsed_uri.scheme.lower():
             event_data = {"host": str(host), "description": f"Non-HTTP URI: {result}"}
             parsed_url = getattr(event, "parsed", None)
             if parsed_url:
@@ -104,11 +134,7 @@ class URLExtractor(BaseExtractor):
             )
             return
 
-        url_depth = self.excavate.helpers.url_depth(result)
-        web_spider_depth = self.excavate.scan.config.get("web_spider_depth", 1)
-        spider_distance = getattr(event, "web_spider_distance", 0)
-        web_spider_distance = self.excavate.scan.config.get("web_spider_distance", 0)
-        if spider_danger and (url_depth > web_spider_depth or spider_distance > web_spider_distance):
+        if exceeded_max_links or (spider_danger and self.excavate.is_spider_danger(event, result)):
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
@@ -261,7 +287,7 @@ class excavate(BaseInternalModule):
 
     scope_distance_modifier = None
 
-    deps_pip = ["pyjwt"]
+    deps_pip = ["pyjwt~=2.6.0"]
 
     def setup(self):
         self.hostname = HostnameExtractor(self)
@@ -306,7 +332,9 @@ class excavate(BaseInternalModule):
                     data = {"host": host, "description": f"Non-standard URI scheme: {scheme}://", "url": location}
                     self.emit_event(data, "FINDING", event)
 
-            body = event.data.get("body", "")
+            body = self.helpers.recursive_decode(event.data.get("body", ""))
+            # Cloud extractors
+            self.helpers.cloud.excavate(event, body)
             self.search(
                 body,
                 [
@@ -323,7 +351,7 @@ class excavate(BaseInternalModule):
                 spider_danger=True,
             )
 
-            headers = event.data.get("raw_header", "")
+            headers = self.helpers.recursive_decode(event.data.get("raw_header", ""))
             self.search(
                 headers,
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
@@ -337,6 +365,3 @@ class excavate(BaseInternalModule):
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,
             )
-
-        # Cloud extractors
-        self.helpers.cloud.excavate(event)

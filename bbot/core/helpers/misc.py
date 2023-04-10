@@ -4,29 +4,35 @@ import sys
 import copy
 import json
 import atexit
+import codecs
 import psutil
 import random
 import shutil
 import signal
 import string
+import difflib
+import inspect
 import logging
 import platform
 import ipaddress
-import wordninja
+
+import traceback
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
 from datetime import datetime
 from tabulate import tabulate
+import wordninja as _wordninja
 from contextlib import suppress
 import tldextract as _tldextract
-from urllib.parse import urlparse, quote  # noqa F401
 from hashlib import sha1 as hashlib_sha1
+from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
 from . import regexes
 from .. import errors
 from .punycode import *  # noqa F401
+from .logger import log_to_stderr
 from .names_generator import random_name, names, adjectives  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -52,6 +58,14 @@ def is_subdomain(d):
     if extracted.domain and extracted.subdomain:
         return True
     return False
+
+
+def is_ptr(d):
+    """
+    "wsc-11-22-33-44.evilcorp.com" --> True
+    "www2.evilcorp.com" --> False
+    """
+    return bool(regexes.ptr_regex.search(str(d)))
 
 
 def is_url(u):
@@ -130,6 +144,30 @@ def domain_parents(d, include_self=False):
         elif is_domain(parent):
             yield parent
         break
+
+
+def parent_url(u):
+    parsed = urlparse(u)
+    path = Path(parsed.path)
+    if path.parent == path:
+        return None
+    else:
+        return urlunparse(parsed._replace(path=str(path.parent)))
+
+
+def url_parents(u):
+    """
+    "http://www.evilcorp.co.uk/admin/tools/cmd.php" --> ["http://www.evilcorp.co.uk/admin/tools/","http://www.evilcorp.co.uk/admin/", "http://www.evilcorp.co.uk/"]
+    """
+
+    parent_list = set()
+    while 1:
+        parent = parent_url(u)
+        if parent == None:
+            return list(parent_list)
+        else:
+            parent_list.add(parent)
+            u = parent
 
 
 def tldextract(data):
@@ -270,6 +308,34 @@ def smart_encode(data):
     return str(data).encode("utf-8", errors="ignore")
 
 
+encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\[ntrbv]")
+backslash_regex = re.compile(r"(?P<slashes>\\+)(?P<char>[ntrvb])")
+
+
+def recursive_decode(data, max_depth=5):
+    """
+    Encode double or triple-encoded strings
+    """
+    # Decode newline and tab escapes
+    data = backslash_regex.sub(
+        lambda match: {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "v": "\v"}.get(match.group("char")), data
+    )
+    data = smart_decode(data)
+    if max_depth == 0:
+        return data
+    # Decode URL encoding
+    data = unquote(data, errors="ignore")
+    # Decode Unicode escapes
+    with suppress(UnicodeEncodeError):
+        data = codecs.decode(data, "unicode_escape", errors="ignore")
+    # Check if there's still URL-encoded or Unicode-escaped content
+    if encoded_regex.search(data):
+        # If yes, continue decoding
+        return recursive_decode(data, max_depth=max_depth - 1)
+
+    return data
+
+
 rand_pool = string.ascii_lowercase
 rand_pool_digits = rand_pool + string.digits
 
@@ -286,15 +352,16 @@ def rand_string(length=10, digits=True):
     return "".join([random.choice(pool) for _ in range(int(length))])
 
 
-def extract_words(data, max_length=100):
+def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
     """
     Intelligently extract words from given data
     Returns set() of extracted words
     """
+    if word_regexes is None:
+        word_regexes = regexes.word_regexes
     words = set()
     data = smart_decode(data)
-
-    for r in regexes.word_regexes:
+    for r in word_regexes:
         for word in set(r.findall(data)):
             # blacklanternsecurity
             if len(word) <= max_length:
@@ -303,19 +370,51 @@ def extract_words(data, max_length=100):
     # blacklanternsecurity --> ['black', 'lantern', 'security']
     # max_slice_length = 3
     for word in list(words):
-        subwords = wordninja.split(word)
-        for subword in subwords:
-            words.add(subword)
+        if wordninja:
+            if model is None:
+                model = _wordninja
+            subwords = model.split(word)
+            for subword in subwords:
+                words.add(subword)
         # blacklanternsecurity --> ['black', 'lantern', 'security', 'blacklantern', 'lanternsecurity']
         # for s, e in combinations(range(len(subwords) + 1), 2):
         #    if e - s <= max_slice_length:
         #        subword_slice = "".join(subwords[s:e])
         #        words.add(subword_slice)
         # blacklanternsecurity --> bls
-        if len(subwords) > 1:
-            words.add("".join([c[0] for c in subwords if len(c) > 0]))
+        if acronyms:
+            if len(subwords) > 1:
+                words.add("".join([c[0] for c in subwords if len(c) > 0]))
 
     return words
+
+
+def closest_match(s, choices, n=1, cutoff=0.0):
+    """
+    Given a string and a list of choices, returns the best match
+
+    closest_match("asdf", ["asd", "fds"]) --> "asd"
+    closest_match("asdf", ["asd", "fds", "asdff"], n=3) --> ["asd", "asdff", "fds"]
+    """
+    matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
+    if not choices or not matches:
+        return
+    if n == 1:
+        return matches[0]
+    return matches
+
+
+def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
+    """
+    Return the closest match, warn, and exit
+    """
+    if msg is None:
+        msg = ""
+    else:
+        msg += " "
+    closest = closest_match(s, choices)
+    log_to_stderr(f'Could not find {msg}"{s}". Did you mean "{closest}"?', level="HUGEWARNING")
+    sys.exit(2)
 
 
 def kill_children(parent_pid=None, sig=signal.SIGTERM):
@@ -626,6 +725,13 @@ def latest_mtime(d):
     return max(mtimes)
 
 
+def filesize(f):
+    f = Path(f)
+    if f.is_file():
+        return f.stat().st_size
+    return 0
+
+
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):
     """
     Given a directory "d", measure the number of subdirectories and files (matching "filter")
@@ -654,65 +760,18 @@ def extract_emails(s):
         yield email.lower()
 
 
-loglevel_mapping = {
-    "DEBUG": "DBUG",
-    "VERBOSE": "VERB",
-    "HUGEVERBOSE": "VERB",
-    "INFO": "INFO",
-    "HUGEINFO": "INFO",
-    "SUCCESS": "SUCC",
-    "HUGESUCCESS": "SUCC",
-    "WARNING": "WARN",
-    "HUGEWARNING": "WARN",
-    "ERROR": "ERRR",
-    "CRITICAL": "CRIT",
-}
-color_mapping = {
-    "DEBUG": 242,  # grey
-    "VERBOSE": 242,  # grey
-    "INFO": 69,  # blue
-    "HUGEINFO": 69,  # blue
-    "SUCCESS": 118,  # green
-    "HUGESUCCESS": 118,  # green
-    "WARNING": 208,  # orange
-    "HUGEWARNING": 208,  # orange
-    "ERROR": 196,  # red
-    "CRITICAL": 196,  # red
-}
-color_prefix = "\033[1;38;5;"
-color_suffix = "\033[0m"
-
-
-def colorize(s, level="INFO"):
-    seq = color_mapping.get(level, 15)  # default white
-    colored = f"{color_prefix}{seq}m{s}{color_suffix}"
-    return colored
-
-
-def log_to_stderr(msg, level="INFO"):
-    """
-    Print to stderr with BBOT logger colors
-    """
-    levelname = level.upper()
-    if not any(x in sys.argv for x in ("-s", "--silent")):
-        levelshort = f"[{loglevel_mapping.get(level, 'INFO')}]"
-        levelshort = f"{colorize(levelshort, level=levelname)}"
-        if levelname == "CRITICAL" or levelname.startswith("HUGE"):
-            msg = colorize(msg)
-        print(f"{levelshort} bbot: {msg}", file=sys.stderr)
-
-
 def can_sudo_without_password():
     """
     Return True if the current user can sudo without a password
     """
-    env = dict(os.environ)
-    env["SUDO_ASKPASS"] = "/bin/false"
-    try:
-        sp.run(["sudo", "-K"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
-        sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
-    except sp.CalledProcessError:
-        return False
+    if os.geteuid() != 0:
+        env = dict(os.environ)
+        env["SUDO_ASKPASS"] = "/bin/false"
+        try:
+            sp.run(["sudo", "-K"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+            sp.run(["sudo", "-An", "/bin/true"], stderr=sp.DEVNULL, stdout=sp.DEVNULL, check=True, env=env)
+        except sp.CalledProcessError:
+            return False
     return True
 
 
@@ -771,6 +830,55 @@ def human_timedelta(d):
     return ", ".join(result)
 
 
+def bytes_to_human(_bytes):
+    """
+    Converts bytes to human-readable filesize
+        bytes_to_human(1234129384) --> "1.15GB"
+    """
+    sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
+    units = {}
+    for count, size in enumerate(sizes):
+        units[size] = pow(1024, count)
+    for size in sizes:
+        if abs(_bytes) < 1024.0:
+            if size == sizes[0]:
+                _bytes = str(int(_bytes))
+            else:
+                _bytes = f"{_bytes:.2f}"
+            return f"{_bytes}{size}"
+        _bytes /= 1024
+    raise ValueError(f'Unable to convert "{_bytes}" to human filesize')
+
+
+filesize_regex = re.compile(r"(?P<num>[0-9\.]+)[\s]*(?P<char>[a-z])", re.I)
+
+
+def human_to_bytes(filesize):
+    """
+    Converts human-readable filesize to bytes
+        human_to_bytes("23.23gb") --> 24943022571
+    """
+    if isinstance(filesize, int):
+        return filesize
+    sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
+    units = {}
+    for count, size in enumerate(sizes):
+        size_increment = pow(1024, count)
+        units[size] = size_increment
+        if len(size) == 2:
+            units[size[0]] = size_increment
+    match = filesize_regex.match(filesize)
+    try:
+        if match:
+            num, size = match.groups()
+            size = size.upper()
+            size_increment = units[size]
+            return int(float(num) * size_increment)
+    except KeyError:
+        pass
+    raise ValueError(f'Unable to convert filesize "{filesize}" to bytes')
+
+
 def cpu_architecture():
     """
     Returns the CPU architecture, e.g. "amd64, "armv7", "arm64", etc.
@@ -812,3 +920,70 @@ def tagify(s):
     """
     ret = str(s).lower()
     return tag_filter_regex.sub("-", ret).strip("-")
+
+
+def memory_status():
+    """
+    Return statistics on system memory consumption
+
+    Example: to get available memory (not including swap):
+        memory_status().available
+
+    Example: to get percent memory used:
+        memory_status().percent
+    """
+    return psutil.virtual_memory()
+
+
+def swap_status():
+    """
+    Return statistics on swap memory consumption
+
+    Example: to get total swap:
+        swap_status().total
+
+    Example: to get in-use swap:
+        swap_status().used
+    """
+    return psutil.swap_memory()
+
+
+def get_size(obj, max_depth=5, seen=None):
+    """
+    Recursively get size of object in bytes
+    """
+    size = 0
+    if max_depth <= 0:
+        return size
+    new_max_depth = max_depth - 1
+    try:
+        size = sys.getsizeof(obj)
+        if seen is None:
+            seen = set()
+        obj_id = id(obj)
+        if obj_id in seen:
+            return 0
+        # Important mark as seen *before* entering recursion to gracefully handle
+        # self-referential objects
+        seen.add(obj_id)
+        if hasattr(obj, "__dict__"):
+            for _cls in obj.__class__.__mro__:
+                if "__dict__" in _cls.__dict__:
+                    d = _cls.__dict__["__dict__"]
+                    if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
+                        size += get_size(obj.__dict__, max_depth=new_max_depth, seen=seen)
+                    break
+        if isinstance(obj, dict):
+            size += sum((get_size(v, max_depth=new_max_depth, seen=seen) for v in obj.values()))
+            size += sum((get_size(k, max_depth=new_max_depth, seen=seen) for k in obj.keys()))
+        # elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
+        #     size += sum((get_size(i, seen) for i in obj))
+        if hasattr(obj, "__slots__"):  # can have __slots__ with __dict__
+            size += sum(
+                get_size(getattr(obj, s), max_depth=new_max_depth, seen=seen) for s in obj.__slots__ if hasattr(obj, s)
+            )
+    except Exception as e:
+        log.debug(f"Error getting size of {obj}: {e}")
+        log.trace(traceback.format_exc())
+
+    return size

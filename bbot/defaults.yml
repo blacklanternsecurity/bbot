@@ -21,7 +21,7 @@ user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 ### ADVANCED OPTIONS ###
 
 # How far out from the main scope to search
-scope_search_distance: 1
+scope_search_distance: 0
 # How far out from the main scope to resolve DNS names / IPs
 scope_dns_search_distance: 2
 # Limit how many DNS records can be followed in a row (for malicious/misconfigured DNS records)
@@ -55,6 +55,8 @@ http_max_redirects: 5
 web_spider_distance: 0
 # Set the maximum directory depth for the web spider
 web_spider_depth: 1
+# Set the maximum number of links that can be followed per page
+web_spider_links_per_page: 25
 # DNS query timeout
 dns_timeout: 5
 # How many times to retry DNS queries
@@ -63,11 +65,11 @@ dns_retries: 1
 dns_wildcard_ignore: []
 # How many sanity checks to make when verifying wildcard DNS
 # Increase this value if BBOT's wildcard detection isn't working
-dns_wildcard_tests: 5
+dns_wildcard_tests: 10
 # Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
 # This helps prevent faulty DNS servers from hanging up the scan
 dns_abort_threshold: 10
-# Enable/disable filtering of PTR records containing IP addresses
+# Don't show PTR records containing IP addresses
 dns_filter_ptrs: true
 # Enable/disable debug messages for dns queries
 dns_debug: false
@@ -110,6 +112,8 @@ url_extension_httpx_only:
 omit_event_types:
     - HTTP_RESPONSE
     - URL_UNVERIFIED
+    # - DNS_NAME_UNRESOLVED
+    # - IP_ADDRESS
 # URL of BBOT server
 agent_url: ''
 # Agent Bearer authentication token

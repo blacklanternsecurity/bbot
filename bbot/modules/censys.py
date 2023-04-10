@@ -19,7 +19,7 @@ class censys(shodan_dns):
         "max_records": "Limit results to help prevent exceeding API quota",
     }
 
-    deps_pip = ["censys"]
+    deps_pip = ["censys~=2.1.9"]
 
     def setup(self):
         self.max_records = self.config.get("max_records", 1000)

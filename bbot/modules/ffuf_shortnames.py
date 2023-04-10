@@ -39,7 +39,7 @@ class ffuf_shortnames(ffuf):
         "wordlist_extensions": "",  # default is defined within setup function
         "lines": 1000000,
         "max_depth": 1,
-        "version": "1.5.0",
+        "version": "2.0.0",
         "extensions": "",
         "ignore_redirects": True,
         "find_common_prefixes": False,
@@ -58,8 +58,6 @@ class ffuf_shortnames(ffuf):
         "find_delimeters": "Attempt to detect common delimeters and make additional ffuf runs against them",
     }
 
-    in_scope_only = True
-
     deps_ansible = [
         {
             "name": "Download ffuf",
@@ -72,8 +70,10 @@ class ffuf_shortnames(ffuf):
         }
     ]
 
+    in_scope_only = True
+
     def setup(self):
-        self.sanity_canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
+        self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist = self.config.get("wordlist", "")
         if not wordlist:
             wordlist = f"{self.helpers.wordlist_dir}/ffuf_shortname_candidates.txt"
@@ -98,13 +98,15 @@ class ffuf_shortnames(ffuf):
     def build_extension_list(self, event):
         used_extensions = []
         extension_hint = event.parsed.path.rsplit(".", 1)[1].lower().strip()
-        with open(self.wordlist_extensions) as f:
-            for l in f:
-                l = l.lower().lstrip(".")
-                if l.lower().startswith(extension_hint):
-                    used_extensions.append(l.strip())
-
-        return used_extensions
+        if len(extension_hint) == 3:
+            with open(self.wordlist_extensions) as f:
+                for l in f:
+                    l = l.lower().lstrip(".")
+                    if l.lower().startswith(extension_hint):
+                        used_extensions.append(l.strip())
+            return used_extensions
+        else:
+            return [extension_hint]
 
     def find_delimeter(self, hint):
         delimeters = ["_", "-"]
@@ -113,6 +115,9 @@ class ffuf_shortnames(ffuf):
                 if not hint.startswith(d) and not hint.endswith(d):
                     return d, hint.split(d)[0], hint.split(d)[1]
         return None
+
+    def filter_event(self, event):
+        return True
 
     def handle_event(self, event):
         if event.source.type == "URL":
@@ -150,8 +155,9 @@ class ffuf_shortnames(ffuf):
                             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
                 elif "shortname-directory" in event.tags:
-                    for r in self.execute_ffuf(tempfile, root_url):
-                        self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                    for r in self.execute_ffuf(tempfile, root_url, exts=["/"]):
+                        r_url = f"{r['url'].rstrip('/')}/"
+                        self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
             if self.config.get("find_delimeters"):
                 if "shortname-directory" in event.tags:
@@ -160,7 +166,7 @@ class ffuf_shortnames(ffuf):
                         delimeter, prefix, partial_hint = delimeter_r
                         self.verbose(f"Detected delimeter [{delimeter}] in hint [{filename_hint}]")
                         tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
-                        for r in self.execute_ffuf(tempfile, root_url, prefix=f"{prefix}{delimeter}"):
+                        for r in self.execute_ffuf(tempfile, root_url, prefix=f"{prefix}{delimeter}", exts=["/"]):
                             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
                 elif "shortname-file" in event.tags:
@@ -202,7 +208,7 @@ class ffuf_shortnames(ffuf):
                                         f"Running common prefix check for URL_HINT: {hint} with prefix: {prefix} and partial_hint: {partial_hint}"
                                     )
 
-                                    for r in self.execute_ffuf(tempfile, url, prefix=prefix):
+                                    for r in self.execute_ffuf(tempfile, url, prefix=prefix, exts=["/"]):
                                         self.emit_event(
                                             r["url"],
                                             "URL_UNVERIFIED",

@@ -5,7 +5,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class neo4j(BaseOutputModule):
     """
-    docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+    docker run -p 7687:7687 -p 7474:7474 -v "$(pwd)/data/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
     """
 
     watched_events = ["*"]
@@ -16,7 +16,7 @@ class neo4j(BaseOutputModule):
         "username": "Neo4j username",
         "password": "Neo4j password",
     }
-    deps_pip = ["py2neo"]
+    deps_pip = ["py2neo~=2021.2.3"]
     batch_size = 50
 
     def setup(self):

@@ -125,6 +125,15 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     # assert "lanternsecurity" in extracted_words
     # assert "blacklanternsecurity" in extracted_words
     assert "bls" in extracted_words
+
+    choices = ["asdf.fdsa", "asdf.1234", "4321.5678"]
+    best_match = helpers.closest_match("asdf.123a", choices)
+    assert best_match == "asdf.1234"
+    best_matches = helpers.closest_match("asdf.123a", choices, n=2)
+    assert len(best_matches) == 2
+    assert best_matches[0] == "asdf.1234"
+    assert best_matches[1] == "asdf.fdsa"
+
     ipv4_netloc = helpers.make_netloc("192.168.1.1", 80)
     assert ipv4_netloc == "192.168.1.1:80"
     ipv6_netloc = helpers.make_netloc("dead::beef", "443")
@@ -326,6 +335,22 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     with pytest.raises(ValueError):
         helpers.smart_encode_punycode(b"asdf")
 
+    assert helpers.recursive_decode("Hello%20world%21") == "Hello world!"
+    assert helpers.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"
+    assert helpers.recursive_decode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021") == " Привет!"
+    assert helpers.recursive_decode("Hello%2520world%2521") == "Hello world!"
+    assert (
+        helpers.recursive_decode("Hello%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442")
+        == "Hello Привет"
+    )
+    assert (
+        helpers.recursive_decode("%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021")
+        == " Привет!"
+    )
+    assert (
+        helpers.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText") == "Hello\nWorld\tGreetings\nMore\nText"
+    )
+
     def raise_filenotfound():
         raise FileNotFoundError("asdf")
 
@@ -510,43 +535,39 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
-    children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts = scan.helpers.resolve_event(
-        wildcard_event1
-    )
-    children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts = scan.helpers.resolve_event(
-        wildcard_event2
-    )
-    children, event_tags3, event_whitelisted3, event_blacklisted3, resolved_hosts = scan.helpers.resolve_event(
-        wildcard_event3
-    )
-    assert "wildcard" in event_tags1
-    assert "a-wildcard" in event_tags1
-    assert "srv-wildcard" not in event_tags1
-    assert "wildcard" in event_tags2
-    assert "a-wildcard" in event_tags2
-    assert "srv-wildcard" not in event_tags2
+    event_tags1, event_whitelisted1, event_blacklisted1, children1 = scan.helpers.resolve_event(wildcard_event1)
+    event_tags2, event_whitelisted2, event_blacklisted2, children2 = scan.helpers.resolve_event(wildcard_event2)
+    event_tags3, event_whitelisted3, event_blacklisted3, children3 = scan.helpers.resolve_event(wildcard_event3)
+    helpers.handle_wildcard_event(wildcard_event1, children1)
+    helpers.handle_wildcard_event(wildcard_event2, children2)
+    helpers.handle_wildcard_event(wildcard_event3, children3)
+    assert "wildcard" in wildcard_event1.tags
+    assert "a-wildcard" in wildcard_event1.tags
+    assert "srv-wildcard" not in wildcard_event1.tags
+    assert "wildcard" in wildcard_event2.tags
+    assert "a-wildcard" in wildcard_event2.tags
+    assert "srv-wildcard" not in wildcard_event2.tags
     assert wildcard_event1.data == "_wildcard.github.io"
     assert wildcard_event2.data == "_wildcard.github.io"
-    assert event_tags1 == event_tags2
-    assert event_whitelisted1 == event_whitelisted2
-    assert event_blacklisted1 == event_blacklisted2
-    assert "wildcard-domain" in event_tags3
-    assert "a-wildcard-domain" in event_tags3
-    assert "srv-wildcard-domain" not in event_tags3
+    assert wildcard_event1.tags == wildcard_event2.tags
+    assert "wildcard-domain" in wildcard_event3.tags
+    assert "a-wildcard-domain" in wildcard_event3.tags
+    assert "srv-wildcard-domain" not in wildcard_event3.tags
+    # misc dns helpers
+    assert helpers.is_ptr("wsc-11-22-33-44-wat.evilcorp.com") == True
+    assert helpers.is_ptr("wsc-11-22-33-wat.evilcorp.com") == False
+    assert helpers.is_ptr("11wat.evilcorp.com") == False
 
     # Ensure events with hosts have resolved_hosts attribute populated
 
     resolved_hosts_event1 = scan.make_event("dns.google", "DNS_NAME", dummy=True)
     resolved_hosts_event2 = scan.make_event("http://dns.google/", "URL_UNVERIFIED", dummy=True)
-    children, event_tags1, event_whitelisted1, event_blacklisted1, resolved_hosts1 = scan.helpers.resolve_event(
-        resolved_hosts_event1
-    )
-    children, event_tags2, event_whitelisted2, event_blacklisted2, resolved_hosts2 = scan.helpers.resolve_event(
-        resolved_hosts_event2
-    )
+    event_tags1, event_whitelisted1, event_blacklisted1, children1 = scan.helpers.resolve_event(resolved_hosts_event1)
+    event_tags2, event_whitelisted2, event_blacklisted2, children2 = scan.helpers.resolve_event(resolved_hosts_event2)
 
-    assert "8.8.8.8" in [str(x) for x in resolved_hosts1]
-    assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
+    assert "8.8.8.8" in [str(x) for x in children1["A"]]
+    assert "8.8.8.8" in [str(x) for x in children2["A"]]
+    assert set(children1.keys()) == set(children2.keys())
 
     msg = "Ignore this error, it belongs here"
 
@@ -595,6 +616,23 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
         with pytest.raises(InteractshError):
             interactsh_client.deregister()
 
+    test_filesize = Path("/tmp/test_filesize")
+    test_filesize.touch()
+    assert test_filesize.is_file()
+    assert helpers.filesize(test_filesize) == 0
+    assert helpers.filesize("/tmp/glkasjdlgksadlkfsdf") == 0
+
+    # memory stuff
+    int(helpers.memory_status().available)
+    int(helpers.swap_status().total)
+
+    assert helpers.bytes_to_human(459819198709) == "428.24GB"
+    assert helpers.human_to_bytes("428.24GB") == 459819198709
+
+    scan1 = bbot_scanner(modules="ipneighbor")
+    scan1.load_modules()
+    assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
+
 
 def test_word_cloud(helpers, bbot_config, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
@@ -635,6 +673,40 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     word_cloud.load()
     assert word_cloud["plumbus"] == 1
     assert word_cloud["rumbus"] == 1
+
+    # mutators
+    from bbot.core.helpers.wordcloud import DNSMutator
+
+    m = DNSMutator()
+    m.add_word("blacklantern-security")
+    m.add_word("sec")
+    m.add_word("sec2")
+    m.add_word("black2")
+    mutations = sorted(m.mutations("whitebasket"))
+    assert mutations == sorted(
+        [
+            "basket",
+            "basket-security",
+            "basket2",
+            "basketlantern-security",
+            "blackbasket-security",
+            "blacklantern-basket",
+            "blacklantern-white",
+            "blacklantern-whitebasket",
+            "blackwhite-security",
+            "blackwhitebasket-security",
+            "white",
+            "white-security",
+            "white2",
+            "whitebasket",
+            "whitebasket-security",
+            "whitebasket2",
+            "whitebasketlantern-security",
+            "whitelantern-security",
+        ]
+    )
+    top_mutations = sorted(m.top_mutations().items(), key=lambda x: x[-1], reverse=True)
+    assert top_mutations[:2] == [((None,), 3), ((None, "2"), 2)]
 
 
 def test_queues(scan, helpers):
