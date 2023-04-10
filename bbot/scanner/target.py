@@ -9,7 +9,9 @@ from bbot.modules.base import BaseModule
 log = logging.getLogger("bbot.core.target")
 
 
-class ScanTarget:
+class Target:
+    make_in_scope = False
+
     def __init__(self, scan, *targets, strict_scope=False):
         self.scan = scan
         self.dummy_module = ScanTargetDummyModule(scan)
@@ -25,10 +27,17 @@ class ScanTarget:
     def add_target(self, t):
         if type(t) == self.__class__:
             for k, v in t._events.items():
-                self._events[k].update(v)
+                try:
+                    self._events[k].update(v)
+                except KeyError:
+                    self._events[k] = set(t._events[k])
         else:
-            event = self.scan.make_event(t, source=self.scan.root_event, module=self.dummy_module, tags=["target"])
-            event.make_in_scope()
+            try:
+                event = self.scan.make_event(t)
+            except ValidationError:
+                event = self.scan.make_event(t, source=self.scan.root_event, module=self.dummy_module, tags=["target"])
+            if self.make_in_scope:
+                event.make_in_scope()
             try:
                 self._events[event.host].add(event)
             except KeyError:
@@ -108,6 +117,10 @@ class ScanTarget:
             else:
                 num_hosts += len(_events)
         return num_hosts
+
+
+class ScanTarget(Target):
+    make_in_scope = True
 
 
 class ScanTargetDummyModule(BaseModule):

@@ -2,7 +2,6 @@ import json
 import yaml
 from itertools import islice
 from bbot.modules.base import BaseModule
-from bbot.scanner.target import ScanTarget
 
 
 class nuclei(BaseModule):
@@ -129,7 +128,7 @@ class nuclei(BaseModule):
         return True
 
     def handle_batch(self, *events):
-        temp_target = ScanTarget(self.scan, *events)
+        temp_target = self.helpers.make_target(events)
         nuclei_input = [str(e.data) for e in events]
         for severity, template, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
