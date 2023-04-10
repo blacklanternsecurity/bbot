@@ -730,6 +730,13 @@ class URL_UNVERIFIED(BaseEvent):
     def _host(self):
         return make_ip_type(self.parsed.hostname)
 
+    def _data_id(self):
+        # consider spider-danger tag when deduping
+        data = super()._data_id()
+        if "spider-danger" in self.tags:
+            data = "spider-danger" + data
+        return data
+
 
 class URL(URL_UNVERIFIED):
     def sanitize_data(self, data):
