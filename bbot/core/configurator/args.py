@@ -128,7 +128,7 @@ for p in (parser, dummy_parser):
         "--require-flags",
         nargs="+",
         default=[],
-        help=f"Disable modules that don't have these flags (e.g. -rf passive)",
+        help=f"Only enable modules with these flags (e.g. -rf passive)",
         metavar="FLAG",
     )
     p.add_argument(

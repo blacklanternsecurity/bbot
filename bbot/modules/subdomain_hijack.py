@@ -71,25 +71,31 @@ class subdomain_hijack(BaseModule):
             for domain in f.domains:
                 self_matches = self.helpers.host_in_host(event.data, domain)
                 child_matches = any(self.helpers.host_in_host(domain, h) for h in event.resolved_hosts)
-                if self_matches or child_matches:
-                    for scheme in ("https", "http"):
-                        if self.scan.stopping:
-                            return False, "Scan cancelled"
-                        # first, try base request
-                        url = f"{scheme}://{event.data}"
-                        match, reason = self._verify_fingerprint(f, url)
-                        if match:
-                            return match, reason
-                        # next, try {random_domain} -[DNS]-> domain
-                        url = f"{scheme}://{domain}"
-                        headers = {"Host": event.data}
-                        match, reason = self._verify_fingerprint(f, url, headers=headers)
-                        if match:
-                            return match, reason
+                if event.type == "DNS_NAME_UNRESOLVED":
+                    if self_matches and f.nxdomain:
+                        return True, "NXDOMAIN"
+                else:
+                    if self_matches or child_matches:
+                        for scheme in ("https", "http"):
+                            if self.scan.stopping:
+                                return False, "Scan cancelled"
+                            # first, try base request
+                            url = f"{scheme}://{event.data}"
+                            match, reason = self._verify_fingerprint(f, url, cache_for=60 * 60 * 24)
+                            if match:
+                                return match, reason
+                            # next, try subdomain -[CNAME]-> other_domain
+                            url = f"{scheme}://{domain}"
+                            headers = {"Host": event.data}
+                            match, reason = self._verify_fingerprint(f, url, headers=headers)
+                            if match:
+                                return match, reason
         return False, f'Subdomain "{event.data}" not hijackable'
 
     def _verify_fingerprint(self, fingerprint, *args, **kwargs):
         kwargs["raise_error"] = True
+        kwargs["timeout"] = 10
+        kwargs["retries"] = 0
         if fingerprint.http_status is not None:
             kwargs["allow_redirects"] = False
         try:

@@ -70,7 +70,7 @@ class WordCloud(dict):
     def absorb_event(self, event):
         for word in event.words:
             self.add_word(word)
-        if event.scope_distance == 0 and event.type == "DNS_NAME":
+        if event.scope_distance == 0 and event.type.startswith("DNS_NAME"):
             subdomain = tldextract(event.data).subdomain
             if subdomain and not self.parent_helper.is_ptr(subdomain):
                 for s in subdomain.split("."):
@@ -250,6 +250,16 @@ class Mutator(dict):
 
 class DNSMutator(Mutator):
     word_regex = re.compile(r"[^_\W]+")
+    extract_word_regexes = [
+        re.compile(r, re.I)
+        for r in [
+            r"[a-z]+",
+            r"[a-z0-9]+",
+            r"[a-z0-9-]+",
+            r"[a-z0-9_]+",
+            r"[a-z0-9_-]+",
+        ]
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -262,7 +272,7 @@ class DNSMutator(Mutator):
             words = [words]
         new_words = set()
         for word in words:
-            for e in extract_words(word, acronyms=False, model=self.model):
+            for e in extract_words(word, acronyms=False, model=self.model, word_regexes=self.extract_word_regexes):
                 new_words.add(e)
         return super().mutations(new_words, max_mutations=max_mutations)
 

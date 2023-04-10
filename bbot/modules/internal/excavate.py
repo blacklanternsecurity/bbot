@@ -19,10 +19,16 @@ class BaseExtractor:
             self.compiled_regexes[rname] = re.compile(r)
 
     def search(self, content, event, **kwargs):
+        results = set()
+        for result, name in self._search(content, event, **kwargs):
+            results.add(result)
+        for result in results:
+            self.report(result, name, event, **kwargs)
+
+    def _search(self, content, event, **kwargs):
         for name, regex in self.compiled_regexes.items():
-            results = regex.findall(content)
-            for result in results:
-                self.report(result, name, event, **kwargs)
+            for result in regex.findall(content):
+                yield result, name
 
     def report(self, result, name, event):
         pass
@@ -56,31 +62,57 @@ class URLExtractor(BaseExtractor):
 
     prefix_blacklist = ["javascript:", "mailto:", "tel:", "data:", "vbscript:", "about:", "file:"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
+
+    def search(self, content, event, **kwargs):
+        result_hashes = set()
+        results = []
+        for result in self._search(content, event, **kwargs):
+            result_hash = hash(result)
+            if result_hash not in result_hashes:
+                result_hashes.add(result_hash)
+                results.append(result)
+        for i, (result, name) in enumerate(results):
+            new_kwargs = dict(kwargs)
+            if i > self.web_spider_links_per_page:
+                # self.excavate.critical(f"SPIDER DANGER: {result}")
+                new_kwargs["exceeded_max_links"] = True
+            self.report(result, name, event, **new_kwargs)
+
+    def _search(self, content, event, **kwargs):
+        parsed = getattr(event, "parsed", None)
+        for name, regex in self.compiled_regexes.items():
+            for result in regex.findall(content):
+                if name == "fullurl":
+                    protocol, other = result
+                    result = f"{protocol}://{other}"
+
+                elif name in ("a-tag", "script-tag") and parsed:
+                    path = html.unescape(result[1]).lstrip("/")
+
+                    for p in self.prefix_blacklist:
+                        if path.lower().startswith(p.lower()):
+                            self.excavate.debug(
+                                f"omitted result from a-tag parser because of blacklisted prefix [{p}]"
+                            )
+                            continue
+
+                    if not self.compiled_regexes["fullurl"].match(path):
+                        path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
+                        full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
+                        result = urljoin(full_url, urlparse(full_url).path)
+                    else:
+                        result = path
+
+                yield result, name
+
     def report(self, result, name, event, **kwargs):
         spider_danger = kwargs.get("spider_danger", True)
+        exceeded_max_links = kwargs.get("exceeded_max_links", False)
 
         tags = []
-        parsed = getattr(event, "parsed", None)
-
-        if name == "fullurl":
-            protocol, other = result
-            result = f"{protocol}://{other}"
-
-        elif name in ("a-tag", "script-tag") and parsed:
-            path = html.unescape(result[1]).lstrip("/")
-
-            for p in self.prefix_blacklist:
-                if path.lower().startswith(p.lower()):
-                    self.excavate.debug(f"omitted result from a-tag parser because of blacklisted prefix [{p}]")
-                    return
-
-            if not self.compiled_regexes["fullurl"].match(path):
-                path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
-                full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
-                result = urljoin(full_url, urlparse(full_url).path)
-
-            else:
-                result = path
 
         parsed_uri = self.excavate.helpers.urlparse(result)
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
@@ -102,7 +134,7 @@ class URLExtractor(BaseExtractor):
             )
             return
 
-        if spider_danger and self.excavate.is_spider_danger(event, result):
+        if exceeded_max_links or (spider_danger and self.excavate.is_spider_danger(event, result)):
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")

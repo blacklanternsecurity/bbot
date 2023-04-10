@@ -103,7 +103,7 @@ class ScanManager:
         if event == event.get_source():
             log.debug(f"Skipping event with self as source: {event}")
             return False
-        if self.is_duplicate_event(event):
+        if not event._force_output and self.is_duplicate_event(event):
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
         return True
@@ -120,7 +120,7 @@ class ScanManager:
             skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
             if skip_dns_resolution:
                 event._resolved.set()
-                dns_children = []
+                dns_children = {}
                 dns_tags = {"resolved"}
                 event_whitelisted_dns = True
                 event_blacklisted_dns = False
@@ -128,12 +128,16 @@ class ScanManager:
             else:
                 # DNS resolution
                 (
-                    dns_children,
                     dns_tags,
                     event_whitelisted_dns,
                     event_blacklisted_dns,
-                    resolved_hosts,
+                    dns_children,
                 ) = self.scan.helpers.dns.resolve_event(event, minimal=not self.dns_resolution)
+                resolved_hosts = set()
+                for rdtype, ips in dns_children.items():
+                    if rdtype in ("A", "AAAA", "CNAME"):
+                        for ip in ips:
+                            resolved_hosts.add(ip)
 
             # kill runaway DNS chains
             dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
@@ -141,7 +145,7 @@ class ScanManager:
                 log.debug(
                     f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.max_dns_resolve_distance})"
                 )
-                dns_children = []
+                dns_children = {}
 
             # We do this again in case event.data changed during resolve_event()
             if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
@@ -182,7 +186,7 @@ class ScanManager:
             if event_whitelisted:
                 set_scope_distance = 0
             if event.host:
-                if (event_whitelisted or event_in_report_distance) and not event_is_duplicate:
+                if (event_whitelisted or event_in_report_distance) and (event._force_output or not event_is_duplicate):
                     if set_scope_distance == 0:
                         log.debug(f"Making {event} in-scope")
                     source_trail = event.make_in_scope(set_scope_distance)
@@ -232,8 +236,6 @@ class ScanManager:
                 self.distribute_event(event)
                 event_distributed = True
 
-            ### Emit DNS children ###
-            emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
             if (
@@ -250,21 +252,35 @@ class ScanManager:
                     if "target" in event.tags:
                         source_event.add_tag("target")
                     self.emit_event(source_event, _block=False, _force_submit=True)
-            if self.dns_resolution and emit_children:
-                dns_child_events = []
-                if dns_children:
-                    for rdtype, record in dns_children:
-                        module = self.scan.helpers.dns._get_dummy_module(rdtype)
-                        module._priority = 4
-                        try:
-                            child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)
-                            dns_child_events.append(child_event)
-                        except ValidationError as e:
-                            log.warning(
-                                f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
-                            )
-                for child_event in dns_child_events:
-                    self.emit_event(child_event, _block=False, _force_submit=True)
+
+            ### Emit DNS children ###
+            if self.dns_resolution:
+                emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
+                if emit_children:
+                    host_hash = hash(str(event.host))
+                    with self.events_accepted_lock:
+                        if host_hash in self.events_accepted:
+                            emit_children = False
+                        self.events_accepted.add(host_hash)
+
+                if emit_children:
+                    dns_child_events = []
+                    if dns_children:
+                        for rdtype, records in dns_children.items():
+                            module = self.scan.helpers.dns._get_dummy_module(rdtype)
+                            module._priority = 4
+                            for record in records:
+                                try:
+                                    child_event = self.scan.make_event(
+                                        record, "DNS_NAME", module=module, source=source_event
+                                    )
+                                    dns_child_events.append(child_event)
+                                except ValidationError as e:
+                                    log.warning(
+                                        f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
+                                    )
+                    for child_event in dns_child_events:
+                        self.emit_event(child_event, _block=False, _force_submit=True)
 
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
@@ -302,10 +318,11 @@ class ScanManager:
             duplicate_event = suppress_dupes and event_hash in self.events_accepted
             if add:
                 self.events_accepted.add(event_hash)
-        return duplicate_event and not event._force_output
+        return duplicate_event
 
     def accept_event(self, event):
-        if self.is_duplicate_event(event, add=True):
+        is_duplicate = self.is_duplicate_event(event, add=True)
+        if is_duplicate and not event._force_output:
             log.debug(f"{event.module}: not raising duplicate event {event}")
             return False
         return True

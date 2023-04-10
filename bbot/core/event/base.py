@@ -298,11 +298,11 @@ class BaseEvent:
 
     def unmake_internal(self, set_scope_distance=None, force_output=False):
         source_trail = []
+        self.remove_tag("internal")
         if self._made_internal:
             if set_scope_distance is not None:
                 self.scope_distance = set_scope_distance
             self._internal = False
-            self.remove_tag("internal")
             self._made_internal = False
         if force_output is True:
             self._force_output = True
@@ -529,8 +529,9 @@ class BaseEvent:
         return self._hash
 
     def __str__(self):
+        max_event_len = 80
         d = str(self.data)
-        return f'{self.type}("{d[:50]}{("..." if len(d) > 50 else "")}", module={self.module}, tags={self.tags})'
+        return f'{self.type}("{d[:max_event_len]}{("..." if len(d) > max_event_len else "")}", module={self.module}, tags={self.tags})'
 
     def __repr__(self):
         return str(self)
@@ -650,17 +651,15 @@ class DNS_NAME(DnsEvent):
         return self.data
 
     def _words(self):
-        # only operate on resolved DNS_NAMEs
-        if self.type == "DNS_NAME":
-            stem = self.host_stem
-            if not is_ptr(stem):
-                split_stem = stem.split(".")
-                if split_stem:
-                    leftmost_segment = split_stem[0]
-                    if leftmost_segment == "_wildcard":
-                        stem = ".".join(split_stem[1:])
-                if stem:
-                    return extract_words(stem)
+        stem = self.host_stem
+        if not is_ptr(stem):
+            split_stem = stem.split(".")
+            if split_stem:
+                leftmost_segment = split_stem[0]
+                if leftmost_segment == "_wildcard":
+                    stem = ".".join(split_stem[1:])
+            if stem:
+                return extract_words(stem)
         return set()
 
 
@@ -742,7 +741,7 @@ class URL(URL_UNVERIFIED):
 
     @property
     def resolved_hosts(self):
-        return [i.split("-")[1] for i in self.tags if i.startswith("ip-")]
+        return [".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")]
 
     @property
     def pretty_string(self):
@@ -800,6 +799,12 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
                 header_dict[k] = v
         data["header-dict"] = header_dict
         return data
+
+    def _data_human(self):
+        data = dict(self.data)
+        new_data = {"url": data.pop("url")}
+        new_data.update(data)
+        return new_data
 
     def _words(self):
         return set()

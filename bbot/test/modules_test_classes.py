@@ -164,7 +164,7 @@ class Subdomain_Hijack(HttpxMockHelper):
                 and event.data["host"] == self.rand_subdomain
             ):
                 return True
-        return False
+        return False, f"No hijackable subdomains in {events}"
 
 
 class Fingerprintx(HttpxMockHelper):
