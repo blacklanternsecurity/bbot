@@ -143,6 +143,61 @@ class Excavate(HttpxMockHelper):
         return True
 
 
+class Excavate_relativelinks(HttpxMockHelper):
+    additional_modules = ["httpx"]
+    targets = ["http://127.0.0.1:8888/", "test.notreal", "http://127.0.0.1:8888/subdir/"]
+    config_overrides = {"web_spider_distance": 1, "web_spider_depth": 1}
+
+    def setup(self):
+        self.bbot_httpserver.no_handler_status_code = 404
+
+    def mock_args(self):
+        # root relative
+        expect_args = {"method": "GET", "uri": "/rootrelative.html"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # page relative
+        expect_args = {"method": "GET", "uri": "/subdir/pagerelative.html"}
+        respond_args = {"response_data": "alive"}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/subdir/"}
+        respond_args = {
+            "response_data": "<a href='/rootrelative.html'>root relative</a><a href='pagerelative.html'>page relative</a>"
+        }
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check_events(self, events):
+        root_relative_detection = False
+        page_relative_detection = False
+        root_page_confusion_1 = False
+        root_page_confusion_2 = False
+
+        for e in events:
+            if e.type == "URL_UNVERIFIED":
+                # these cases represent the desired behavior for parsing relative links
+                if e.data == "http://127.0.0.1:8888/rootrelative.html":
+                    root_relative_detection = True
+                if e.data == "http://127.0.0.1:8888/subdir/pagerelative.html":
+                    page_relative_detection = True
+
+                # these cases indicates that excavate parsed the relative links incorrectly
+                if e.data == "http://127.0.0.1:8888/pagerelative.html":
+                    root_page_confusion_1 = True
+                if e.data == "http://127.0.0.1:8888/subdir/rootrelative.html":
+                    root_page_confusion_2 = True
+
+        if (
+            root_relative_detection
+            and page_relative_detection
+            and not root_page_confusion_1
+            and not root_page_confusion_2
+        ):
+            return True
+        return False
+
+
 class Subdomain_Hijack(HttpxMockHelper):
     additional_modules = ["httpx", "excavate"]
 
