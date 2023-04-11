@@ -90,7 +90,7 @@ class URLExtractor(BaseExtractor):
                     result = f"{protocol}://{other}"
 
                 elif name in ("a-tag", "script-tag") and parsed:
-                    path = html.unescape(result[1]).lstrip("/")
+                    path = html.unescape(result[1])
 
                     for p in self.prefix_blacklist:
                         if path.lower().startswith(p.lower()):
@@ -100,9 +100,8 @@ class URLExtractor(BaseExtractor):
                             continue
 
                     if not self.compiled_regexes["fullurl"].match(path):
-                        path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
-                        full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
-                        result = urljoin(full_url, urlparse(full_url).path)
+                        source_url = event.parsed.geturl()
+                        result = urljoin(source_url, path)
                     else:
                         result = path
 
