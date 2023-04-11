@@ -2,7 +2,7 @@ import re
 import html
 import base64
 import jwt as j
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin
 
 from bbot.core.helpers.regexes import _email_regex
 from bbot.modules.internal.base import BaseInternalModule
