@@ -170,17 +170,20 @@ class DNSHelper:
                         self._errors[parent_hash] += 1
                     except KeyError:
                         self._errors[parent_hash] = 1
-                log.verbose(
-                    f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far): {e}'
-                )
                 errors.append(e)
                 # don't retry if we get a SERVFAIL
                 if isinstance(e, dns.resolver.NoNameservers):
                     break
                 tries_left -= 1
+                err_msg = (
+                    f'DNS error or timeout for {rdtype} query "{query}" ({self._errors[parent_hash]:,} so far): {e}'
+                )
                 if tries_left > 0:
                     retry_num = (retries + 1) - tries_left
+                    self.debug(err_msg)
                     self.debug(f"Retry (#{retry_num}) resolving {query} with kwargs={kwargs}")
+                else:
+                    log.verbose(err_msg)
 
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors

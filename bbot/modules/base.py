@@ -553,13 +553,6 @@ class BaseModule:
         return total > 0
 
     @property
-    def active(self):
-        """
-        Indicates whether the module has data yet to be processed
-        """
-        return self._foo
-
-    @property
     def running(self):
         """
         Indicates whether the module is currently processing data.
