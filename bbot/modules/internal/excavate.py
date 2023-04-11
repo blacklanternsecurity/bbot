@@ -102,6 +102,9 @@ class URLExtractor(BaseExtractor):
                     if not self.compiled_regexes["fullurl"].match(path):
                         source_url = event.parsed.geturl()
                         result = urljoin(source_url, path)
+                        # this is necessary to weed out mailto: and such
+                        if not self.compiled_regexes["fullurl"].match(result):
+                            continue
                     else:
                         result = path
 
