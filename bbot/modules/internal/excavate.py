@@ -111,7 +111,7 @@ class URLExtractor(BaseExtractor):
                 yield result, name
 
     def report(self, result, name, event, **kwargs):
-        spider_danger = kwargs.get("spider_danger", True)
+        consider_spider_danger = kwargs.get("consider_spider_danger", True)
         exceeded_max_links = kwargs.get("exceeded_max_links", False)
 
         tags = []
@@ -136,7 +136,8 @@ class URLExtractor(BaseExtractor):
             )
             return
 
-        if exceeded_max_links or (spider_danger and self.excavate.is_spider_danger(event, result)):
+        is_spider_danger = self.excavate.is_spider_danger(event, result)
+        if exceeded_max_links or (consider_spider_danger and is_spider_danger):
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
@@ -350,7 +351,7 @@ class excavate(BaseInternalModule):
                     self.functionality,
                 ],
                 event,
-                spider_danger=True,
+                consider_spider_danger=True,
             )
 
             headers = self.helpers.recursive_decode(event.data.get("raw_header", ""))
@@ -358,7 +359,7 @@ class excavate(BaseInternalModule):
                 headers,
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,
-                spider_danger=False,
+                consider_spider_danger=False,
             )
 
         else:
