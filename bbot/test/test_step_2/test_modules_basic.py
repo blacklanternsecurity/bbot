@@ -1,5 +1,6 @@
 import re
 import requests_mock
+from contextlib import suppress
 
 from ..bbot_fixtures import *
 
@@ -232,7 +233,10 @@ def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbo
         # event filters
         for module_name, module in scan2.modules.items():
             log.info(f"Testing {module_name}.filter_event()")
-            assert module.filter_event(events.emoji) in (
+            result = module.filter_event(events.emoji)
+            with suppress(ValueError, TypeError):
+                result, reason = result
+            assert result in (
                 True,
                 False,
             ), f"{module_name}.filter_event() must return either True or False"

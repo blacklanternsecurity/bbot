@@ -2,7 +2,7 @@ import re
 import html
 import base64
 import jwt as j
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin
 
 from bbot.core.helpers.regexes import _email_regex
 from bbot.modules.internal.base import BaseInternalModule
@@ -90,7 +90,7 @@ class URLExtractor(BaseExtractor):
                     result = f"{protocol}://{other}"
 
                 elif name in ("a-tag", "script-tag") and parsed:
-                    path = html.unescape(result[1]).lstrip("/")
+                    path = html.unescape(result[1])
 
                     for p in self.prefix_blacklist:
                         if path.lower().startswith(p.lower()):
@@ -100,16 +100,18 @@ class URLExtractor(BaseExtractor):
                             continue
 
                     if not self.compiled_regexes["fullurl"].match(path):
-                        path = f"{'/'.join(event.parsed.path.split('/')[0:-1])}/{path}"
-                        full_url = f"{event.parsed.scheme}://{event.parsed.netloc}{path}"
-                        result = urljoin(full_url, urlparse(full_url).path)
+                        source_url = event.parsed.geturl()
+                        result = urljoin(source_url, path)
+                        # this is necessary to weed out mailto: and such
+                        if not self.compiled_regexes["fullurl"].match(result):
+                            continue
                     else:
                         result = path
 
                 yield result, name
 
     def report(self, result, name, event, **kwargs):
-        spider_danger = kwargs.get("spider_danger", True)
+        consider_spider_danger = kwargs.get("consider_spider_danger", True)
         exceeded_max_links = kwargs.get("exceeded_max_links", False)
 
         tags = []
@@ -134,7 +136,8 @@ class URLExtractor(BaseExtractor):
             )
             return
 
-        if exceeded_max_links or (spider_danger and self.excavate.is_spider_danger(event, result)):
+        is_spider_danger = self.excavate.is_spider_danger(event, result)
+        if exceeded_max_links or (consider_spider_danger and is_spider_danger):
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
@@ -348,7 +351,7 @@ class excavate(BaseInternalModule):
                     self.functionality,
                 ],
                 event,
-                spider_danger=True,
+                consider_spider_danger=True,
             )
 
             headers = self.helpers.recursive_decode(event.data.get("raw_header", ""))
@@ -356,7 +359,7 @@ class excavate(BaseInternalModule):
                 headers,
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,
-                spider_danger=False,
+                consider_spider_danger=False,
             )
 
         else:

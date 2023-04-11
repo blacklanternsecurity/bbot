@@ -21,6 +21,11 @@ def test_excavate(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
+def test_excavate_relativelinks(bbot_config, bbot_scanner, bbot_httpserver):
+    x = Excavate_relativelinks(bbot_config, bbot_scanner, bbot_httpserver, module_name="excavate")
+    x.run()
+
+
 def test_subdomain_hijack(bbot_config, bbot_scanner, bbot_httpserver):
     x = Subdomain_Hijack(bbot_config, bbot_scanner, bbot_httpserver)
     x.run()

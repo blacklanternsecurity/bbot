@@ -681,6 +681,8 @@ class URL_UNVERIFIED(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
+        if self.type == "URL_UNVERIFIED":
+            self.web_spider_distance += 1
         self.num_redirects = getattr(self.source, "num_redirects", 0)
 
     def sanitize_data(self, data):
@@ -786,12 +788,9 @@ class EMAIL_ADDRESS(BaseEvent):
 class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
         self.num_redirects = getattr(self.source, "num_redirects", 0)
         if str(self.data.get("status_code", 0)).startswith("3"):
             self.num_redirects += 1
-        else:
-            self.web_spider_distance += 1
 
     def sanitize_data(self, data):
         url = data.get("url", "")
