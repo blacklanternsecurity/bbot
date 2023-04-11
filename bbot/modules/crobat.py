@@ -42,6 +42,14 @@ class crobat(BaseModule):
         # reject if already processed
         if self.already_processed(query):
             return False, "Event was already processed"
+        eligible, reason = self.eligible_for_enumeration(event)
+        if eligible:
+            self.processed.add(hash(query))
+            return True, reason
+        return False, reason
+
+    def eligible_for_enumeration(self, event):
+        query = self.make_query(event)
         # check if wildcard
         is_wildcard = self._is_wildcard(query)
         # check if cloud
@@ -61,8 +69,7 @@ class crobat(BaseModule):
             elif self.reject_wildcards == "cloud_only":
                 if is_wildcard and is_cloud:
                     return False, "Event is both a cloud resource and a wildcard domain"
-        self.processed.add(hash(query))
-        return True
+        return True, ""
 
     def already_processed(self, hostname):
         for parent in self.helpers.domain_parents(hostname, include_self=True):

@@ -80,8 +80,17 @@ class massdns(crobat):
         return super().setup()
 
     def filter_event(self, event):
-        self.add_found(event)
-        return super().filter_event(event)
+        query = self.make_query(event)
+        eligible, reason = self.eligible_for_enumeration(event)
+        if eligible:
+            self.add_found(event)
+        # reject if already processed
+        if self.already_processed(query):
+            return False, f'Query "{query}" was already processed'
+        if eligible:
+            self.processed.add(hash(query))
+            return True, reason
+        return False, reason
 
     def handle_event(self, event):
         query = self.make_query(event)
@@ -197,7 +206,7 @@ class massdns(crobat):
             answers = j.get("data", {}).get("answers", [])
             if type(answers) == list and len(answers) > 0:
                 answer = answers[0]
-                hostname = answer.get("name", "").strip(".")
+                hostname = answer.get("name", "").strip(".").lower()
                 if hostname.endswith(f".{domain}"):
                     data = answer.get("data", "")
                     rdtype = answer.get("type", "").upper()
@@ -217,7 +226,6 @@ class massdns(crobat):
                             if rdtype in wildcard_rdtypes:
                                 self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
                                 continue
-                        hostname = hostname.rstrip(".").lower()
                         hostname_hash = hash(hostname)
                         if hostname_hash not in hosts_yielded:
                             hosts_yielded.add(hostname_hash)
