@@ -123,8 +123,7 @@ class massdns(crobat):
         resolved = dict(self.helpers.resolve_batch(results, type=("A", "AAAA", "CNAME"), cache_result=True))
         resolved = {k: v for k, v in resolved.items() if v}
         for hostname in resolved:
-            if hostname.endswith(f".{domain}"):
-                self.add_found(hostname)
+            self.add_found(hostname)
         return list(resolved)
 
     def _canary_check(self, domain, num_checks=50):
@@ -198,8 +197,8 @@ class massdns(crobat):
             answers = j.get("data", {}).get("answers", [])
             if type(answers) == list and len(answers) > 0:
                 answer = answers[0]
-                hostname = answer.get("name", "")
-                if hostname:
+                hostname = answer.get("name", "").strip(".")
+                if hostname.endswith(f".{domain}"):
                     data = answer.get("data", "")
                     rdtype = answer.get("type", "").upper()
                     # avoid garbage answers like this:
