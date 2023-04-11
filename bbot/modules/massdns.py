@@ -123,7 +123,8 @@ class massdns(crobat):
         resolved = dict(self.helpers.resolve_batch(results, type=("A", "AAAA", "CNAME"), cache_result=True))
         resolved = {k: v for k, v in resolved.items() if v}
         for hostname in resolved:
-            self.add_found(hostname)
+            if hostname.endswith(f".{domain}"):
+                self.add_found(hostname)
         return list(resolved)
 
     def _canary_check(self, domain, num_checks=50):
@@ -293,8 +294,8 @@ class massdns(crobat):
                     for hostname in results:
                         source_event = self.get_source_event(hostname)
                         if source_event is None:
-                            self.verbose(f"Could not correlate source event from: {hostname}")
-                            source_event = self.scan.root_event
+                            self.warning(f"Could not correlate source event from: {hostname}")
+                            continue
                         self.emit_result(hostname, source_event, query)
                     if results:
                         continue
