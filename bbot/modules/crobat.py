@@ -91,7 +91,11 @@ class crobat(BaseModule):
         if results:
             for hostname in set(results):
                 if hostname:
-                    hostname = self.helpers.validators.validate_host(hostname)
+                    try:
+                        hostname = self.helpers.validators.validate_host(hostname)
+                    except ValueError as e:
+                        self.verbose(e)
+                        continue
                     if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
                         self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
 
