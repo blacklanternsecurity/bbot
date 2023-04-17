@@ -4,7 +4,6 @@ com
 test
 dev
 en
-xn
 api
 de
 m

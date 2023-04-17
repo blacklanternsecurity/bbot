@@ -258,9 +258,11 @@ class masscan(BaseModule):
             self.helpers.backup_file(self.ping_cache)
             self.ping_cache_fd = open(self.ping_cache, "w")
         self.ping_cache_fd.write(f"{host}\n")
+        self.ping_cache_fd.flush()
 
     def _write_syn_result(self, data):
         if self.syn_cache_fd is None:
             self.helpers.backup_file(self.syn_cache)
             self.syn_cache_fd = open(self.syn_cache, "w")
         self.syn_cache_fd.write(f"{data}\n")
+        self.syn_cache_fd.flush()
