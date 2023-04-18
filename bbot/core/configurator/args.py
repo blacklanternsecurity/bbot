@@ -6,7 +6,7 @@ from contextlib import suppress
 
 from ...modules import module_loader
 from ..helpers.logger import log_to_stderr
-from ..helpers.misc import chain_lists, match_and_exit
+from ..helpers.misc import chain_lists, match_and_exit, is_file
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))

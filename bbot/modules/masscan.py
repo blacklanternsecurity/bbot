@@ -209,6 +209,8 @@ class masscan(BaseModule):
             else:
                 self.verbose(f"No hosts cached from previous ping scan")
             for ip in cached_pings:
+                if self.scan.stopping:
+                    break
                 ip_event = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
                 ip_events[ip] = ip_event
                 self.emit_event(ip_event)
@@ -220,6 +222,8 @@ class masscan(BaseModule):
             else:
                 self.warning(f"No hosts cached from previous SYN scan")
             for line in cached_syns:
+                if self.scan.stopping:
+                    break
                 host, port = self.helpers.split_host_port(line)
                 host = str(host)
                 source_event = ip_events.get(host)
