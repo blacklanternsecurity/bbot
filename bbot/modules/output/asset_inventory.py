@@ -16,7 +16,7 @@ severity_map = {
 
 
 class asset_inventory(CSV):
-    watched_events = ["OPEN_TCP_PORT", "DNS_NAME", "URL", "FINDING", "VULNERABILITY", "TECHNOLOGY"]
+    watched_events = ["OPEN_TCP_PORT", "DNS_NAME", "URL", "FINDING", "VULNERABILITY", "TECHNOLOGY", "IP_ADDRESS"]
     meta = {"description": "Output to an asset inventory style flattened CSV file"}
     options = {"output_file": ""}
     options_desc = {"output_file": "Set a custom output file"}
