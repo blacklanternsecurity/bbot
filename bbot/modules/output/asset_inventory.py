@@ -29,7 +29,10 @@ class asset_inventory(CSV):
         self.open_port_producers = "httpx" in self.scan.modules or any(
             ["portscan" in m.flags for m in self.scan.modules.values()]
         )
-        return super().setup()
+        ret = super().setup()
+        if self.output_file.is_file():
+            self.helpers.backup_file(self.output_file)
+        return ret
 
     def handle_event(self, event):
         if (
