@@ -2,12 +2,13 @@ import os
 import sys
 from pathlib import Path
 from omegaconf import OmegaConf
+from contextlib import suppress
 
 from . import files, args, environ
 from ..errors import ConfigLoadError
 from ...modules import module_loader
 from ..helpers.logger import log_to_stderr
-from ..helpers.misc import error_and_exit, filter_dict, clean_dict, match_and_exit
+from ..helpers.misc import error_and_exit, filter_dict, clean_dict, match_and_exit, is_file
 
 # cached sudo password
 bbot_sudo_pass = None
@@ -42,7 +43,7 @@ sentinel = object()
 
 def check_cli_args():
     for c in args.cli_config:
-        if not Path(c).is_file():
+        if not is_file(c):
             c = c.split("=")[0].strip()
             v = OmegaConf.select(default_config, c, default=sentinel)
             if v is sentinel:

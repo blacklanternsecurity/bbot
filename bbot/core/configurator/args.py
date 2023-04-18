@@ -210,7 +210,7 @@ def get_config():
             cli_config = cli_options.config
     if cli_config:
         filename = Path(cli_config[0]).resolve()
-        if len(cli_config) == 1 and filename.is_file():
+        if len(cli_config) == 1 and is_file(filename):
             try:
                 conf = OmegaConf.load(str(filename))
                 log_to_stderr(f"Loaded custom config from {filename}")

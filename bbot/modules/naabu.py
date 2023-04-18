@@ -19,7 +19,7 @@ class naabu(BaseModule):
         "version": "naabu version",
     }
     max_event_handlers = 2
-    batch_size = 100
+    batch_size = 256
     _priority = 2
 
     deps_ansible = [

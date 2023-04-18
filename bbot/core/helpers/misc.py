@@ -987,3 +987,9 @@ def get_size(obj, max_depth=5, seen=None):
         log.trace(traceback.format_exc())
 
     return size
+
+
+def is_file(f):
+    with suppress(Exception):
+        return Path(f).is_file()
+    return False
