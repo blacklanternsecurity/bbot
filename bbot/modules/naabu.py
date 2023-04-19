@@ -11,15 +11,17 @@ class naabu(BaseModule):
     options = {
         "ports": "",
         "top_ports": 100,
+        "skip_host_discovery": True,
         "version": "2.1.1",
     }
     options_desc = {
         "ports": "ports to scan",
         "top_ports": "top ports to scan",
+        "skip_host_discovery": "skip host discovery (-Pn)",
         "version": "naabu version",
     }
     max_event_handlers = 2
-    batch_size = 100
+    batch_size = 256
     _priority = 2
 
     deps_ansible = [
@@ -56,6 +58,7 @@ class naabu(BaseModule):
 
     def setup(self):
         self.helpers.depsinstaller.ensure_root(message="Naabu requires root privileges")
+        self.skip_host_discovery = self.config.get("skip_host_discovery", True)
         return True
 
     def handle_batch(self, *events):
@@ -104,6 +107,8 @@ class naabu(BaseModule):
             # "-r",
             # self.helpers.resolver_file
         ]
+        if self.skip_host_discovery:
+            command += ["-Pn"]
         if ports:
             command += ["-p", ports]
         else:

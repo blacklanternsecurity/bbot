@@ -3,8 +3,8 @@ import ipaddress
 from contextlib import suppress
 
 from bbot.core.errors import *
-from bbot.core.event import make_event
 from bbot.modules.base import BaseModule
+from bbot.core.event import make_event, is_event
 
 log = logging.getLogger("bbot.core.target")
 
@@ -32,9 +32,9 @@ class Target:
                 except KeyError:
                     self._events[k] = set(t._events[k])
         else:
-            try:
-                event = self.scan.make_event(t)
-            except ValidationError:
+            if is_event(t):
+                event = t
+            else:
                 event = self.scan.make_event(t, source=self.scan.root_event, module=self.dummy_module, tags=["target"])
             if self.make_in_scope:
                 event.make_in_scope()

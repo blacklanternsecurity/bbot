@@ -1,7 +1,7 @@
 from ..bbot_fixtures import *
 
 
-def test_cli(monkeypatch, bbot_config):
+def test_cli(monkeypatch, caplog, bbot_config):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
@@ -9,6 +9,40 @@ def test_cli(monkeypatch, bbot_config):
     monkeypatch.setattr(cli, "config", bbot_config)
 
     old_sys_argv = sys.argv
+
+    # basic scan
+    home_dir = Path(bbot_config["home"])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "bbot",
+            "-y",
+            "-t",
+            "127.0.0.1",
+            "www.example.com",
+            "-om",
+            "human",
+            "csv",
+            "json",
+            "-n",
+            "test_scan",
+            "-c",
+            "dns_resolution=False",
+        ],
+    )
+    caplog.set_level(0, logger="bbot")
+    cli.main()
+    caplog.set_level(9999, logger="bbot")
+    ip_success = False
+    dns_success = False
+    for r in caplog.records:
+        if r.levelname == "STDOUT":
+            if "[IP_ADDRESS]        \t127.0.0.1\tTARGET" in r.message:
+                ip_success = True
+            if "[DNS_NAME]          \twww.example.com\tTARGET" in r.message:
+                dns_success = True
+    assert ip_success and dns_success
 
     # show version
     monkeypatch.setattr("sys.argv", ["bbot", "--version"])
@@ -24,15 +58,6 @@ def test_cli(monkeypatch, bbot_config):
 
     # list module options
     monkeypatch.setattr("sys.argv", ["bbot", "--help-all"])
-    cli.main()
-
-    # basic scan
-    home_dir = Path(bbot_config["home"])
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["bbot", "-y", "-t", "www.example.com", "-om", "human", "csv", "json", "-n", "test_scan"],
-    )
     cli.main()
 
     # unpatch sys.argv

@@ -267,7 +267,9 @@ def main():
 
                     def keyboard_listen():
                         while 1:
-                            keyboard_input = input()
+                            keyboard_input = "a"
+                            with suppress(Exception):
+                                keyboard_input = input()
                             if not keyboard_input:
                                 toggle_log_level(logger=log)
 

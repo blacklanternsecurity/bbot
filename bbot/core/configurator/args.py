@@ -6,7 +6,7 @@ from contextlib import suppress
 
 from ...modules import module_loader
 from ..helpers.logger import log_to_stderr
-from ..helpers.misc import chain_lists, match_and_exit
+from ..helpers.misc import chain_lists, match_and_exit, is_file
 
 module_choices = sorted(set(module_loader.configs(type="scan")))
 output_module_choices = sorted(set(module_loader.configs(type="output")))
@@ -210,7 +210,7 @@ def get_config():
             cli_config = cli_options.config
     if cli_config:
         filename = Path(cli_config[0]).resolve()
-        if len(cli_config) == 1 and filename.is_file():
+        if len(cli_config) == 1 and is_file(filename):
             try:
                 conf = OmegaConf.load(str(filename))
                 log_to_stderr(f"Loaded custom config from {filename}")
