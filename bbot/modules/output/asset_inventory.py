@@ -1,3 +1,4 @@
+import csv
 from .csv import CSV
 
 severity_map = {
