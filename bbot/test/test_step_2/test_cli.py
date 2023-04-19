@@ -15,7 +15,21 @@ def test_cli(monkeypatch, caplog, bbot_config):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bbot", "-y", "-t", "127.0.0.1", "www.example.com", "-om", "human", "csv", "json", "-n", "test_scan", "-c", "dns_resolution=False"],
+        [
+            "bbot",
+            "-y",
+            "-t",
+            "127.0.0.1",
+            "www.example.com",
+            "-om",
+            "human",
+            "csv",
+            "json",
+            "-n",
+            "test_scan",
+            "-c",
+            "dns_resolution=False",
+        ],
     )
     caplog.set_level(0, logger="bbot")
     cli.main()
