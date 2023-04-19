@@ -28,6 +28,8 @@ class CSV(BaseOutputModule):
     @property
     def file(self):
         if self._file is None:
+            if self.output_file.is_file():
+                self.helpers.backup_file(self.output_file)
             self._file = open(self.output_file, mode="a", newline="")
         return self._file
 

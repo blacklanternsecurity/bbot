@@ -37,8 +37,6 @@ class asset_inventory(CSV):
         self.use_previous = self.config.get("use_previous", False)
         self.emitted_contents = False
         ret = super().setup()
-        if self.output_file.is_file():
-            self.helpers.backup_file(self.output_file)
         return ret
 
     def handle_event(self, event):
@@ -104,6 +102,7 @@ class asset_inventory(CSV):
         if self.use_previous and not self.emitted_contents:
             self.emitted_contents = True
             if self.output_file.is_file():
+                self.info(f"Emitting previous results from {self.output_file}")
                 with open(self.output_file, newline="") as f:
                     c = csv.DictReader(f)
                     for line in c:
@@ -120,6 +119,10 @@ class asset_inventory(CSV):
                                 open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=ip_event)
                                 open_port_event.make_in_scope()
                                 self.emit_event(open_port_event)
+            else:
+                self.warning(
+                    f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
+                )
 
 
 class Asset:
