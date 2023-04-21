@@ -451,7 +451,7 @@ def str_or_file(s):
         yield s
 
 
-def chain_lists(l, try_files=False, msg=None):
+def chain_lists(l, try_files=False, msg=None, remove_blank=True):
     """
     Chain together list, splitting entries on comma
         - Optionally try to open entries as files and add their contents to the list
@@ -474,7 +474,10 @@ def chain_lists(l, try_files=False, msg=None):
             else:
                 final_list[f] = None
 
-    return list(final_list)
+    ret = list(final_list)
+    if remove_blank:
+        ret = [r for r in ret if r]
+    return ret
 
 
 def list_files(directory, filter=lambda x: True):
