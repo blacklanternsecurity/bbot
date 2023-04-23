@@ -271,6 +271,7 @@ def main():
                             keyboard_input = "a"
                             try:
                                 keyboard_input = input()
+                                allowed_errors = 10
                             except Exception:
                                 allowed_errors -= 1
                             if not keyboard_input:
