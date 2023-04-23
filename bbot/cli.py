@@ -266,12 +266,17 @@ def main():
                         input()
 
                     def keyboard_listen():
+                        allowed_errors = 10
                         while 1:
                             keyboard_input = "a"
-                            with suppress(Exception):
+                            try:
                                 keyboard_input = input()
+                            except Exception:
+                                allowed_errors -= 1
                             if not keyboard_input:
                                 toggle_log_level(logger=log)
+                            if allowed_errors <= 0:
+                                break
 
                     keyboard_listen_thread = threading.Thread(target=keyboard_listen, daemon=True)
                     keyboard_listen_thread.start()
