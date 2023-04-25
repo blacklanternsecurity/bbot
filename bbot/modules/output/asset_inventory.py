@@ -143,7 +143,7 @@ class Asset:
     def absorb_csv_row(self, row):
         # ips
         ip_addresses = [i.strip() for i in row.get("IP(s)", "").split(",")]
-        ips = [self.helpers.make_ip_type(i) for i in ip_addresses if i and is_ip(i)]
+        ips = [make_ip_type(i) for i in ip_addresses if i and is_ip(i)]
         self.ip_addresses = set([i for i in ips if is_ip(i)])
         # ports
         ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
