@@ -33,7 +33,6 @@ class asset_inventory(CSV):
 
     def setup(self):
         self.assets = {}
-        self.custom_fields = {}
         self.open_port_producers = "httpx" in self.scan.modules or any(
             ["portscan" in m.flags for m in self.scan.modules.values()]
         )
@@ -72,9 +71,6 @@ class asset_inventory(CSV):
                 "Findings": "\n".join(findings_and_vulns),
                 "Description": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
             }
-            custom_fields = self.custom_fields.get(hostkey, None)
-            if custom_fields is not None:
-                row.update(custom_fields)
             row.update(asset.custom_fields)
             self.writerow(row)
 
