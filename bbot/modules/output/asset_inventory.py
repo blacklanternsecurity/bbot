@@ -113,8 +113,8 @@ class asset_inventory(CSV):
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
                 )
 
-        def finish(self):
-            self.emit_contents()
+    def finish(self):
+        self.emit_contents()
 
     def _run_hooks(self):
         """
