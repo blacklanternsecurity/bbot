@@ -43,7 +43,6 @@ class asset_inventory(CSV):
         return ret
 
     def handle_event(self, event):
-        self.emit_contents()
         if (
             (not event._internal)
             and str(event.module) != "speculate"
@@ -113,6 +112,9 @@ class asset_inventory(CSV):
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
                 )
+
+        def finish(self):
+            self.emit_contents()
 
     def _run_hooks(self):
         """
