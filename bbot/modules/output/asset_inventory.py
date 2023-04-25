@@ -146,6 +146,9 @@ class Asset:
         self.custom_fields = {}
 
     def absorb_csv_row(self, row):
+        host = row.get("Host", "").strip()
+        if host and not is_ip(host):
+            self.host = host
         # ips
         self.ip_addresses = set(_make_ip_list(row.get("IP(s)", "")))
         # ports
