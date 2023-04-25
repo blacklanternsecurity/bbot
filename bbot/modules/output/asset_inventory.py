@@ -50,10 +50,10 @@ class asset_inventory(CSV):
             and self.scan.in_scope(event)
             and not "unresolved" in event.tags
         ):
-            ip_key = _make_hostkey(event.host, event.resolved_hosts)
-            if ip_key not in self.assets:
-                self.assets[ip_key] = Asset(event.host)
-            self.assets[ip_key].absorb_event(event)
+            hostkey = _make_hostkey(event.host, event.resolved_hosts)
+            if hostkey not in self.assets:
+                self.assets[hostkey] = Asset(event.host)
+            self.assets[hostkey].absorb_event(event)
 
     def report(self):
         for asset in sorted(self.assets.values(), key=lambda a: str(a.host)):
@@ -90,24 +90,31 @@ class asset_inventory(CSV):
                     c = csv.DictReader(f)
                     for row in c:
                         host = row.get("Host", "").strip()
-                        if not host:
+                        ips = row.get("IP(s)", "")
+                        if not host or not ips:
                             continue
-                        host = make_ip_type(host)
-                        asset = self.assets.get(host, None)
+                        hostkey = _make_hostkey(host, ips)
+                        asset = self.assets.get(hostkey, None)
                         if asset is None:
                             asset = Asset(host)
-                            self.assets[host] = asset
+                            self.assets[hostkey] = asset
                         asset.absorb_csv_row(row)
                         self.add_custom_headers(list(asset.custom_fields))
-                        for ip in asset.ip_addresses:
-                            ip_event = self.make_event(ip, "IP_ADDRESS", source=self.scan.root_event)
-                            ip_event.make_in_scope()
-                            self.emit_event(ip_event)
+                        if not is_ip(asset.host):
+                            host_event = self.make_event(asset.host, "DNS_NAME", source=self.scan.root_event)
+                            self.emit_event(host_event)
                             for port in asset.ports:
-                                netloc = self.helpers.make_netloc(ip, port)
-                                open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=ip_event)
-                                open_port_event.make_in_scope()
+                                netloc = self.helpers.make_netloc(asset.host, port)
+                                open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=host_event)
                                 self.emit_event(open_port_event)
+                        else:
+                            for ip in asset.ip_addresses:
+                                ip_event = self.make_event(ip, "IP_ADDRESS", source=self.scan.root_event)
+                                self.emit_event(ip_event)
+                                for port in asset.ports:
+                                    netloc = self.helpers.make_netloc(ip, port)
+                                    open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=ip_event)
+                                    self.emit_event(open_port_event)
             else:
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
@@ -144,9 +151,7 @@ class Asset:
 
     def absorb_csv_row(self, row):
         # ips
-        ip_addresses = [i.strip() for i in row.get("IP(s)", "").split(",")]
-        ips = [make_ip_type(i) for i in ip_addresses if i and is_ip(i)]
-        self.ip_addresses = set([i for i in ips if is_ip(i)])
+        self.ip_addresses = set(_make_ip_list(row.get("IP(s)", "")))
         # ports
         ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
         self.ports.update(set(i for i in ports if i and is_port(i)))
@@ -176,7 +181,7 @@ class Asset:
         if not is_ip(event.host):
             self.host = event.host
 
-        self.ip_addresses = set(i for i in event.resolved_hosts if is_ip(i))
+        self.ip_addresses = set(_make_ip_list(event.resolved_hosts))
 
         if event.port:
             self.ports.add(str(event.port))
@@ -203,7 +208,7 @@ class Asset:
                 break
 
     @property
-    def ip_key(self):
+    def hostkey(self):
         return _make_hostkey(self.host, self.ip_addresses)
 
 
@@ -213,10 +218,15 @@ def _make_hostkey(host, ips):
     If the IPs are public, we dedupe by host
     If they're private, we dedupe by the IPs themselves
     """
-    if isinstance(ips, str):
-        ips = ips.split(",")
-    ips = [make_ip_type(i) for i in ips]
+    ips = _make_ip_list(ips)
     is_private = ips and all(is_ip(i) and i.is_private for i in ips)
     if is_private:
         return ",".join(sorted([str(i) for i in ips]))
     return str(host)
+
+
+def _make_ip_list(ips):
+    if isinstance(ips, str):
+        ips = [i.strip() for i in ips.split(",")]
+    ips = [make_ip_type(i) for i in ips if i and is_ip(i)]
+    return ips
