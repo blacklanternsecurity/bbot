@@ -203,6 +203,11 @@ def ip_network_parents(i, include_self=False):
         yield ipaddress.ip_network(f"{net.network_address}/{i}", strict=False)
 
 
+def is_port(p):
+    p = str(p)
+    return p and p.isdigit() and 0 <= int(p) <= 65535
+
+
 def is_ip(d, version=None):
     """
     "192.168.1.1" --> True
@@ -996,3 +1001,28 @@ def is_file(f):
     with suppress(Exception):
         return Path(f).is_file()
     return False
+
+
+class AttributeDict:
+    """
+    This AttributeDict class behaves like a regular dictionary,
+    but you can also access its contents using attribute syntax.
+
+    Thanks chatgpt.
+    """
+
+    def __getattr__(self, key):
+        if key in self:
+            return self[key]
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+
+    def __setattr__(self, key, value):
+        if key in dir(dict):
+            raise AttributeError(f"Cannot set built-in attribute '{key}' on '{self.__class__.__name__}' object")
+        self[key] = value
+
+    def __delattr__(self, key):
+        if key in self:
+            del self[key]
+        else:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")

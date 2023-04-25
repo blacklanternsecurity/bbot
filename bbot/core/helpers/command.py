@@ -28,37 +28,20 @@ def run_live(self, command, *args, **kwargs):
     NOTE: STDERR is logged after the process exits, if its exit code is non-zero
         If you want to see it immediately, pass stderr=None
     """
-
-    if not "stdout" in kwargs:
-        kwargs["stdout"] = subprocess.PIPE
-    if not "stderr" in kwargs:
-        kwargs["stderr"] = subprocess.PIPE
+    command, kwargs = self._prepare_command_kwargs(command, kwargs)
     _input = kwargs.pop("input", "")
-    sudo = kwargs.pop("sudo", False)
     input_msg = ""
     if _input:
         kwargs["stdin"] = subprocess.PIPE
         input_msg = " (with stdin)"
-
-    command = [str(s) for s in command]
-    env = kwargs.get("env", os.environ)
-    if sudo and os.geteuid() != 0:
-        self.depsinstaller.ensure_root()
-        env["SUDO_ASKPASS"] = str((self.tools_dir / self.depsinstaller.askpass_filename).resolve())
-        env["BBOT_SUDO_PASS"] = self.depsinstaller._sudo_password
-        kwargs["env"] = env
-
-        PATH = os.environ.get("PATH", "")
-        LD_LIBRARY_PATH = os.environ.get("LD_LIBRARY_PATH", "")
-        command = ["sudo", "-E", "-A", f"LD_LIBRARY_PATH={LD_LIBRARY_PATH}", f"PATH={PATH}"] + command
-    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}")
+    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)} with kwargs={kwargs}")
     try:
         with catch(subprocess.Popen, command, *args, **kwargs) as process:
             if _input:
                 if type(_input) in (str, bytes):
                     _input = (_input,)
                 self.feed_pipe(process.stdin, _input, text=False)
-            for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore"):
+            for line in io.TextIOWrapper(process.stdout, encoding="utf-8", errors="ignore", line_buffering=True):
                 yield line
 
             # surface stderr
@@ -82,12 +65,27 @@ def run(self, command, *args, **kwargs):
     NOTE: STDERR is captured (not displayed) by default.
         If you want to see it, self.debug(process.stderr) or pass stderr=None
     """
+    command, kwargs = self._prepare_command_kwargs(command, kwargs)
+    if not "text" in kwargs:
+        kwargs["text"] = True
+    log.hugeverbose(f"run: {' '.join(command)} with kwargs={kwargs}")
+    result = catch(subprocess.run, command, *args, **kwargs)
+
+    # surface stderr
+    if result.stderr and result.returncode != 0:
+        stderr = smart_decode(result.stderr)
+        if stderr:
+            command_str = " ".join(command)
+            log.warning(f"Stderr for {command_str}:\n\t{stderr}")
+
+    return result
+
+
+def _prepare_command_kwargs(self, command, kwargs):
     if not "stdout" in kwargs:
         kwargs["stdout"] = subprocess.PIPE
     if not "stderr" in kwargs:
         kwargs["stderr"] = subprocess.PIPE
-    if not "text" in kwargs:
-        kwargs["text"] = True
     sudo = kwargs.pop("sudo", False)
 
     command = [str(s) for s in command]
@@ -101,17 +99,7 @@ def run(self, command, *args, **kwargs):
         PATH = os.environ.get("PATH", "")
         LD_LIBRARY_PATH = os.environ.get("LD_LIBRARY_PATH", "")
         command = ["sudo", "-E", "-A", f"LD_LIBRARY_PATH={LD_LIBRARY_PATH}", f"PATH={PATH}"] + command
-    log.hugeverbose(f"run: {' '.join(command)}")
-    result = catch(subprocess.run, command, *args, **kwargs)
-
-    # surface stderr
-    if result.stderr and result.returncode != 0:
-        stderr = smart_decode(result.stderr)
-        if stderr:
-            command_str = " ".join(command)
-            log.warning(f"Stderr for {command_str}:\n\t{stderr}")
-
-    return result
+    return command, kwargs
 
 
 def catch(callback, *args, **kwargs):
@@ -208,7 +196,7 @@ def tempfile_tail(self, callback):
 
 def tail(filename, callback):
     try:
-        with open(filename) as f:
+        with open(filename, errors="ignore") as f:
             for line in f:
                 line = line.rstrip("\r\n")
                 callback(line)

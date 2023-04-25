@@ -218,6 +218,7 @@ class BaseModule:
             if reason:
                 self.debug(f"Not accepting {event} because {reason}")
             return
+        self.scan.stats.event_consumed(event, self)
         return callback(event)
 
     def _register_running(self, callback, *args, **kwargs):
@@ -496,7 +497,6 @@ class BaseModule:
             if reason and reason != "its type is not in watched_events":
                 self.debug(f"Not accepting {event} because {reason}")
             return
-        self.scan.stats.event_consumed(event, self)
         try:
             self.incoming_event_queue.put(event)
         except AttributeError:

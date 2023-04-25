@@ -1,5 +1,4 @@
 import json
-import functools
 import subprocess
 from contextlib import suppress
 
@@ -138,16 +137,21 @@ class masscan(BaseModule):
             self.debug(line)
         config_file = self.helpers.tempfile(masscan_config)
         # output file
-        process_output = functools.partial(self.process_output, result_callback=result_callback)
-        json_output_file = self.helpers.tempfile_tail(process_output)
+        # process_output = functools.partial(self.process_output, result_callback=result_callback)
+        # json_output_file = self.helpers.tempfile_tail(process_output)
         # command
         command = self._build_masscan_command(config=config_file, exclude=exclude, ping=ping)
-        command += ("-oJ", json_output_file)
         # execute
-        self.helpers.run(command, sudo=True)
+        stats_file = self.helpers.tempfile_tail(callback=self.verbose)
+        try:
+            with open(stats_file, "w") as stats_fh:
+                for line in self.helpers.run_live(command, sudo=True, stderr=stats_fh):
+                    self.process_output(line, result_callback=result_callback)
+        finally:
+            stats_file.unlink()
 
     def _build_masscan_command(self, targets=None, config=None, exclude=None, dry_run=False, ping=False):
-        command = ("masscan", "--rate", self.rate, "--wait", self.wait, "--open-only")
+        command = ("masscan", "--rate", self.rate, "--wait", self.wait, "--open-only", "-oJ", "-")
         if targets is not None:
             command += (targets,)
         if config is not None:
