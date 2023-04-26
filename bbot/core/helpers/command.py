@@ -34,7 +34,7 @@ def run_live(self, command, *args, **kwargs):
     if _input:
         kwargs["stdin"] = subprocess.PIPE
         input_msg = " (with stdin)"
-    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)} with kwargs={kwargs}")
+    log.hugeverbose(f"run_live{input_msg}: {' '.join(command)}")
     try:
         with catch(subprocess.Popen, command, *args, **kwargs) as process:
             if _input:
@@ -68,7 +68,7 @@ def run(self, command, *args, **kwargs):
     command, kwargs = self._prepare_command_kwargs(command, kwargs)
     if not "text" in kwargs:
         kwargs["text"] = True
-    log.hugeverbose(f"run: {' '.join(command)} with kwargs={kwargs}")
+    log.hugeverbose(f"run: {' '.join(command)}")
     result = catch(subprocess.run, command, *args, **kwargs)
 
     # surface stderr
