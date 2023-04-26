@@ -1,7 +1,7 @@
 from ..bbot_fixtures import *
 
 
-def test_cli(monkeypatch, caplog, bbot_config):
+def test_cli(monkeypatch, bbot_config):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
@@ -10,8 +10,10 @@ def test_cli(monkeypatch, caplog, bbot_config):
 
     old_sys_argv = sys.argv
 
-    # basic scan
     home_dir = Path(bbot_config["home"])
+    scans_home = home_dir / "scans"
+
+    # basic scan
     monkeypatch.setattr(
         sys,
         "argv",
@@ -26,21 +28,34 @@ def test_cli(monkeypatch, caplog, bbot_config):
             "csv",
             "json",
             "-n",
-            "test_scan",
+            "test_cli_scan",
             "-c",
             "dns_resolution=False",
+            "-o",
+            "/tmp",
         ],
     )
-    caplog.set_level(0, logger="bbot")
     cli.main()
-    caplog.set_level(9999, logger="bbot")
+
+    scan_home = scans_home / "test_cli_scan"
+    assert (scan_home / "wordcloud.tsv").is_file()
+    assert (scan_home / "output.txt").is_file()
+    assert (scan_home / "output.csv").is_file()
+    assert (scan_home / "output.json").is_file()
+    with open(scan_home / "output.csv") as f:
+        lines = f.readlines()
+        assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
+        assert len(lines) > 1
+
     ip_success = False
     dns_success = False
-    for r in caplog.records:
-        if r.levelname == "STDOUT":
-            if "[IP_ADDRESS]        \t127.0.0.1\tTARGET" in r.message:
+    output_filename = scan_home / "output.txt"
+    with open(output_filename) as f:
+        lines = f.read().splitlines()
+        for line in lines:
+            if "[IP_ADDRESS]        \t127.0.0.1\tTARGET" in line:
                 ip_success = True
-            if "[DNS_NAME]          \twww.example.com\tTARGET" in r.message:
+            if "[DNS_NAME]          \twww.example.com\tTARGET" in line:
                 dns_success = True
     assert ip_success and dns_success
 
@@ -62,16 +77,6 @@ def test_cli(monkeypatch, caplog, bbot_config):
 
     # unpatch sys.argv
     monkeypatch.setattr("sys.argv", old_sys_argv)
-
-    scan_home = home_dir / "scans" / "test_scan"
-    assert (scan_home / "wordcloud.tsv").is_file()
-    assert (scan_home / "output.txt").is_file()
-    assert (scan_home / "output.csv").is_file()
-    assert (scan_home / "output.json").is_file()
-    with open(scan_home / "output.csv") as f:
-        lines = f.readlines()
-        assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
-        assert len(lines) > 1
 
 
 def test_config_validation(monkeypatch, capsys, bbot_config):

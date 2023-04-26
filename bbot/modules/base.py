@@ -218,6 +218,7 @@ class BaseModule:
             if reason:
                 self.debug(f"Not accepting {event} because {reason}")
             return
+        self.scan.stats.event_consumed(event, self)
         return callback(event)
 
     def _register_running(self, callback, *args, **kwargs):
@@ -420,6 +421,9 @@ class BaseModule:
         if self.target_only:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
+        # exclude certain URLs (e.g. javascript):
+        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
+            return False, "its extension was listed in url_extension_httpx_only"
         # if event is an IP address that was speculated from a CIDR
         source_is_range = getattr(event.source, "type", "") == "IP_RANGE"
         if (
@@ -496,7 +500,6 @@ class BaseModule:
             if reason and reason != "its type is not in watched_events":
                 self.debug(f"Not accepting {event} because {reason}")
             return
-        self.scan.stats.event_consumed(event, self)
         try:
             self.incoming_event_queue.put(event)
         except AttributeError:
@@ -569,10 +572,10 @@ class BaseModule:
             self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
         return r
 
-    def is_spider_danger(self, event, url):
+    def is_spider_danger(self, source_event, url):
         url_depth = self.helpers.url_depth(url)
         web_spider_depth = self.scan.config.get("web_spider_depth", 1)
-        spider_distance = getattr(event, "web_spider_distance", 0)
+        spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
         web_spider_distance = self.scan.config.get("web_spider_distance", 0)
         if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
             return True

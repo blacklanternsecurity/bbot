@@ -352,14 +352,14 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "2.0.0.34"
+version = "2.0.0.36"
 description = "Check whether an IP address belongs to a cloud provider"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "cloudcheck-2.0.0.34-py3-none-any.whl", hash = "sha256:cce87b23049deca39c366e00956866c48dc37f1660dadf02acdb54c27e99bbf0"},
-    {file = "cloudcheck-2.0.0.34.tar.gz", hash = "sha256:3a6918279349179a76a2a22e43ccdc1ac435eb0d609f53749a1ad07d6026905d"},
+    {file = "cloudcheck-2.0.0.36-py3-none-any.whl", hash = "sha256:c500fd8b18839ca85eac5037a5bd47dd86b8c1c1290b125bf48d28a6621e6609"},
+    {file = "cloudcheck-2.0.0.36.tar.gz", hash = "sha256:c5348b6185a4bcf1a5766c33d2a58cb8bd232ee88065ee12a962f6a8fa474b96"},
 ]
 
 [package.dependencies]
