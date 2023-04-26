@@ -112,6 +112,7 @@ class URLExtractor(BaseExtractor):
 
     def report(self, result, name, event, **kwargs):
         consider_spider_danger = kwargs.get("consider_spider_danger", True)
+        web_spider_distance = getattr(event, "web_spider_distance", 0)
         exceeded_max_links = kwargs.get("exceeded_max_links", False)
 
         tags = []
@@ -137,7 +138,13 @@ class URLExtractor(BaseExtractor):
             return
 
         is_spider_danger = self.excavate.is_spider_danger(event, result)
-        if exceeded_max_links or (consider_spider_danger and is_spider_danger):
+        if (
+            exceeded_max_links  # if we exceeded the max number of links
+            or (consider_spider_danger and is_spider_danger)  # or if there's spider danger
+            or (
+                (not consider_spider_danger) and (web_spider_distance > self.excavate.max_redirects)
+            )  # or if the spider distance is way out of control (greater than max_redirects)
+        ):
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
@@ -315,7 +322,8 @@ class excavate(BaseInternalModule):
         # HTTP_RESPONSE is a special case
         if event.type == "HTTP_RESPONSE":
             # handle redirects
-            num_redirects = getattr(event, "num_redirects", 0)
+            web_spider_distance = getattr(event, "web_spider_distance", 0)
+            num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
             location = event.data.get("location", "")
             host = event.host
             if location:

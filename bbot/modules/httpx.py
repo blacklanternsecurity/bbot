@@ -136,14 +136,14 @@ class httpx(BaseModule):
             title = self.helpers.tagify(j.get("title", ""))
             if title:
                 tags.append(f"http-title-{title}")
-            url_event = self.make_event(url, "URL", source_event, tags=tags)
+            url_event = self.make_event(url, "URL", source_event, module=source_event.module, tags=tags)
             if url_event:
                 if url_event != source_event:
                     self.emit_event(url_event)
                 else:
                     url_event._resolved.set()
                 # HTTP response
-                self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)
+                self.emit_event(j, "HTTP_RESPONSE", url_event, module=source_event.module, internal=True)
 
     def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
