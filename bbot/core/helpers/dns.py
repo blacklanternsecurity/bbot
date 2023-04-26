@@ -312,7 +312,8 @@ class DNSHelper:
                 for future in self.parent_helper.as_completed(futures):
                     resolved_raw, errors = future.result()
                     for rdtype, e in errors:
-                        event_tags.add(f"{rdtype.lower()}-error")
+                        if rdtype not in resolved_raw:
+                            event_tags.add(f"{rdtype.lower()}-error")
                     for rdtype, records in resolved_raw:
                         event_tags.add("resolved")
                         rdtype = str(rdtype).upper()
