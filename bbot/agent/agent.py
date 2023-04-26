@@ -59,10 +59,11 @@ class Agent:
                 self.ws.send(json.dumps(message))
                 break
             except Exception as e:
+                if getattr(self.scan, "stopping", True):
+                    break
                 log.warning(f"Error sending message: {e}, retrying")
                 log.trace(traceback.format_exc())
                 sleep(1)
-                continue
 
     def on_message(self, ws, message):
         try:

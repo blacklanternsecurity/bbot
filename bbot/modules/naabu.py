@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 
 
 class naabu(BaseModule):
-    watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
+    watched_events = ["IP_ADDRESS", "DNS_NAME"]
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active", "portscan", "aggressive", "web-thorough"]
     meta = {"description": "Execute port scans with naabu"}

@@ -2,7 +2,6 @@ import json
 import logging
 import ipaddress
 import traceback
-import cloudcheck
 import dns.resolver
 import dns.exception
 from threading import Lock
@@ -11,7 +10,7 @@ from contextlib import suppress
 from .regexes import dns_name_regex
 from bbot.core.errors import ValidationError, DNSError
 from .threadpool import NamedLock, PatchedThreadPoolExecutor
-from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
+from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string, cloudcheck
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
@@ -312,11 +311,13 @@ class DNSHelper:
                 for future in self.parent_helper.as_completed(futures):
                     resolved_raw, errors = future.result()
                     for rdtype, e in errors:
-                        event_tags.add(f"{rdtype.lower()}-error")
+                        if rdtype not in resolved_raw:
+                            event_tags.add(f"{rdtype.lower()}-error")
                     for rdtype, records in resolved_raw:
-                        event_tags.add("resolved")
                         rdtype = str(rdtype).upper()
-                        event_tags.add(f"{rdtype.lower()}-record")
+                        if records:
+                            event_tags.add("resolved")
+                            event_tags.add(f"{rdtype.lower()}-record")
 
                         # whitelisting and blacklisting of IPs
                         for r in records:
@@ -356,9 +357,10 @@ class DNSHelper:
                         if provider:
                             event_tags.add(f"{provider_type}-{provider}")
 
-                # check for private IPs
-                if "resolved" not in event_tags:
+                # if needed, mark as unresolved
+                if not is_ip(event_host) and "resolved" not in event_tags:
                     event_tags.add("unresolved")
+                # check for private IPs
                 for rdtype, ips in dns_children.items():
                     for ip in ips:
                         try:

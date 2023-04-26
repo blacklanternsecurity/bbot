@@ -422,7 +422,7 @@ class BaseEvent:
 
     def json(self, mode="json"):
         j = dict()
-        for i in ("type", "id", "web_spider_distance"):
+        for i in ("type", "id"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
@@ -431,6 +431,9 @@ class BaseEvent:
             j["data"] = data_attr
         else:
             j["data"] = smart_decode(self.data)
+        web_spider_distance = getattr(self, "web_spider_distance", None)
+        if web_spider_distance is not None:
+            j["web_spider_distance"] = web_spider_distance
         j["scope_distance"] = self.scope_distance
         if self.scan:
             j["scan"] = self.scan.id
@@ -681,7 +684,8 @@ class URL_UNVERIFIED(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
-        if self.type == "URL_UNVERIFIED":
+        # increment the web spider distance
+        if self.type == "URL_UNVERIFIED" and getattr(self.module, "name", "") != "TARGET":
             self.web_spider_distance += 1
         self.num_redirects = getattr(self.source, "num_redirects", 0)
 
@@ -804,10 +808,8 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
                 v = v.lstrip()
                 header_dict[k] = v
         data["header-dict"] = header_dict
-        return data
-
-    def _data_human(self):
-        data = dict(self.data)
+        # move URL to the front of the dictionary for visibility
+        data = dict(data)
         new_data = {"url": data.pop("url")}
         new_data.update(data)
         return new_data

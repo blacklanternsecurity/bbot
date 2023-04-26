@@ -15,7 +15,6 @@ import inspect
 import logging
 import platform
 import ipaddress
-
 import traceback
 import subprocess as sp
 from pathlib import Path
@@ -24,6 +23,7 @@ from datetime import datetime
 from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
+import cloudcheck as _cloudcheck
 import tldextract as _tldextract
 from hashlib import sha1 as hashlib_sha1
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
@@ -201,6 +201,11 @@ def ip_network_parents(i, include_self=False):
     net = ipaddress.ip_network(i, strict=False)
     for i in range(net.prefixlen - (0 if include_self else 1), -1, -1):
         yield ipaddress.ip_network(f"{net.network_address}/{i}", strict=False)
+
+
+def is_port(p):
+    p = str(p)
+    return p and p.isdigit() and 0 <= int(p) <= 65535
 
 
 def is_ip(d, version=None):
@@ -996,3 +1001,22 @@ def is_file(f):
     with suppress(Exception):
         return Path(f).is_file()
     return False
+
+
+provider_map = {"amazon": "aws", "google": "gcp"}
+
+
+def cloudcheck(ip):
+    """
+    Check whether an IP address belongs to a cloud provider
+
+        provider, provider_type, subnet = cloudcheck("168.62.20.37")
+        print(provider) # "Azure"
+        print(provider_type) # "cloud"
+        print(subnet) # IPv4Network('168.62.0.0/19')
+    """
+    provider, provider_type, subnet = _cloudcheck.check(ip)
+    if provider:
+        with suppress(KeyError):
+            provider = provider_map[provider.lower()]
+    return provider, provider_type, subnet
