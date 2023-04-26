@@ -54,7 +54,6 @@ class httpx(BaseModule):
             return False, "event has spider danger"
 
         # scope filtering
-
         in_scope_only = self.config.get("in_scope_only", True)
         safe_to_visit = "httpx-safe" in event.tags
         if not safe_to_visit and (in_scope_only and not self.scan.in_scope(event)):

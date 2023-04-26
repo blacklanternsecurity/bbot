@@ -572,10 +572,10 @@ class BaseModule:
             self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
         return r
 
-    def is_spider_danger(self, event, url):
+    def is_spider_danger(self, source_event, url):
         url_depth = self.helpers.url_depth(url)
         web_spider_depth = self.scan.config.get("web_spider_depth", 1)
-        spider_distance = getattr(event, "web_spider_distance", 0)
+        spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
         web_spider_distance = self.scan.config.get("web_spider_distance", 0)
         if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
             return True
