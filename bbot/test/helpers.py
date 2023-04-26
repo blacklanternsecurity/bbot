@@ -34,8 +34,6 @@ class MockHelper:
 
     def run(self):
         events = list(self.scan.start())
-        for e in events:
-            print(e)
         events = [e for e in events if e.module == self.module]
         assert self.check_events(events)
 

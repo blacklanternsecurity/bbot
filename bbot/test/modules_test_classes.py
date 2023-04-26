@@ -13,6 +13,10 @@ class Httpx(HttpxMockHelper):
         respond_args = dict(response_data=json.dumps({"foo": "bar"}))
         self.set_expect_requests(request_args, respond_args)
 
+    def run(self):
+        events = list(self.scan.start())
+        assert self.check_events(events)
+
     def check_events(self, events):
         for e in events:
             if e.type == "HTTP_RESPONSE":
@@ -879,8 +883,6 @@ class Buckets(HttpxMockHelper, RequestMockHelper):
             self.m = m
             self.mock_args_requests()
             events = list(self.scan.start())
-            for e in events:
-                print(e)
             self.check_events(events)
 
     def check_events(self, events):
@@ -1268,7 +1270,6 @@ class Vhost(HttpxMockHelper):
         wordcloud_detection = False
 
         for e in events:
-            print(e)
             if e.type == "VHOST":
                 if e.data["vhost"] == "admin":
                     basic_detection = True
@@ -1599,7 +1600,6 @@ class Nuclei_manual(HttpxMockHelper):
         first_run_detect = False
         second_run_detect = False
         for e in events:
-            print(e.type)
             if e.type == "FINDING":
                 if "Directory listing enabled" in e.data["description"]:
                     first_run_detect = True
