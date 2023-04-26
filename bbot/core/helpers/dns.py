@@ -315,9 +315,10 @@ class DNSHelper:
                         if rdtype not in resolved_raw:
                             event_tags.add(f"{rdtype.lower()}-error")
                     for rdtype, records in resolved_raw:
-                        event_tags.add("resolved")
                         rdtype = str(rdtype).upper()
-                        event_tags.add(f"{rdtype.lower()}-record")
+                        if records:
+                            event_tags.add("resolved")
+                            event_tags.add(f"{rdtype.lower()}-record")
 
                         # whitelisting and blacklisting of IPs
                         for r in records:
@@ -357,9 +358,10 @@ class DNSHelper:
                         if provider:
                             event_tags.add(f"{provider_type}-{provider}")
 
-                # check for private IPs
-                if "resolved" not in event_tags:
+                # if needed, mark as unresolved
+                if not is_ip(event_host) and "resolved" not in event_tags:
                     event_tags.add("unresolved")
+                # check for private IPs
                 for rdtype, ips in dns_children.items():
                     for ip in ips:
                         try:
