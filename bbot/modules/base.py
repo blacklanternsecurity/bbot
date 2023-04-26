@@ -421,6 +421,9 @@ class BaseModule:
         if self.target_only:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
+        # exclude certain URLs (e.g. javascript):
+        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
+            return False, "its extension was listed in url_extension_httpx_only"
         # if event is an IP address that was speculated from a CIDR
         source_is_range = getattr(event.source, "type", "") == "IP_RANGE"
         if (
