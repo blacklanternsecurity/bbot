@@ -15,8 +15,8 @@ import inspect
 import logging
 import platform
 import ipaddress
-
 import traceback
+import cloudcheck
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
@@ -1003,26 +1003,20 @@ def is_file(f):
     return False
 
 
-class AttributeDict:
+provider_map = {"amazon": "aws", "google": "gcp"}
+
+
+def cloudcheck(ip):
     """
-    This AttributeDict class behaves like a regular dictionary,
-    but you can also access its contents using attribute syntax.
+    Check whether an IP address belongs to a cloud provider
 
-    Thanks chatgpt.
+        provider, provider_type, subnet = cloudcheck("168.62.20.37")
+        print(provider) # "Azure"
+        print(provider_type) # "cloud"
+        print(subnet) # IPv4Network('168.62.0.0/19')
     """
-
-    def __getattr__(self, key):
-        if key in self:
-            return self[key]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
-
-    def __setattr__(self, key, value):
-        if key in dir(dict):
-            raise AttributeError(f"Cannot set built-in attribute '{key}' on '{self.__class__.__name__}' object")
-        self[key] = value
-
-    def __delattr__(self, key):
-        if key in self:
-            del self[key]
-        else:
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+    provider, provider_type, subnet = cloudcheck.check(ip)
+    if provider:
+        with suppress(KeyError):
+            provider = provider_map[provider.lower()]
+    return provider, provider_type, subnet

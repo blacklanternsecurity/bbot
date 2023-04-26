@@ -809,6 +809,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
                 header_dict[k] = v
         data["header-dict"] = header_dict
         # move URL to the front of the dictionary for visibility
+        data = dict(data)
         new_data = {"url": data.pop("url")}
         new_data.update(data)
         return new_data

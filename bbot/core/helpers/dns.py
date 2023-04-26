@@ -2,7 +2,6 @@ import json
 import logging
 import ipaddress
 import traceback
-import cloudcheck
 import dns.resolver
 import dns.exception
 from threading import Lock
@@ -11,7 +10,7 @@ from contextlib import suppress
 from .regexes import dns_name_regex
 from bbot.core.errors import ValidationError, DNSError
 from .threadpool import NamedLock, PatchedThreadPoolExecutor
-from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string
+from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string, cloudcheck
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
