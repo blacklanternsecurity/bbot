@@ -60,7 +60,6 @@ class asset_inventory(CSV):
             ports = getattr(asset, "ports", set())
             ports = [str(p) for p in sorted([int(p) for p in asset.ports])]
             ips = sorted([str(i) for i in getattr(asset, "ip_addresses", [])])
-            hostkey = _make_hostkey(asset.host, ips)
             row = {
                 "Host": getattr(asset, "host", ""),
                 "Provider": getattr(asset, "provider", ""),
@@ -146,6 +145,7 @@ class Asset:
         self.custom_fields = {}
 
     def absorb_csv_row(self, row):
+        # host
         host = row.get("Host", "").strip()
         if host and not is_ip(host):
             self.host = host
