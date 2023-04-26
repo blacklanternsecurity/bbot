@@ -753,15 +753,13 @@ range = 9.8.7.6"""
 
     def run_masscan(self, command, *args, **kwargs):
         if "masscan" in command[0]:
-            json_output_file = command[-1]
-            with open(json_output_file, "w") as f:
-                f.write(self.masscan_output)
+            yield from self.masscan_output.splitlines()
             self.masscan_run = True
         else:
-            return self.scan.helpers.run(command, *args, **kwargs)
+            yield from self.scan.helpers.run_live(command, *args, **kwargs)
 
     def patch_scan(self, scan):
-        scan.helpers.run = self.run_masscan
+        scan.helpers.run_live = self.run_masscan
 
     def run(self):
         super().run()
