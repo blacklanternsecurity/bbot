@@ -353,7 +353,7 @@ class DNSHelper:
                             for ip in ips:
                                 to_check.add(ip)
                     for ip in to_check:
-                        provider, provider_type, subnet = cloudcheck.check(ip)
+                        provider, provider_type, subnet = cloudcheck(ip)
                         if provider:
                             event_tags.add(f"{provider_type}-{provider}")
 
