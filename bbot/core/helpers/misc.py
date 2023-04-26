@@ -16,7 +16,6 @@ import logging
 import platform
 import ipaddress
 import traceback
-import cloudcheck
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
@@ -24,6 +23,7 @@ from datetime import datetime
 from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
+import cloudcheck as _cloudcheck
 import tldextract as _tldextract
 from hashlib import sha1 as hashlib_sha1
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
@@ -1015,7 +1015,7 @@ def cloudcheck(ip):
         print(provider_type) # "cloud"
         print(subnet) # IPv4Network('168.62.0.0/19')
     """
-    provider, provider_type, subnet = cloudcheck.check(ip)
+    provider, provider_type, subnet = _cloudcheck.check(ip)
     if provider:
         with suppress(KeyError):
             provider = provider_map[provider.lower()]
