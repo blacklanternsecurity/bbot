@@ -27,7 +27,7 @@ class asset_inventory(CSV):
     options_desc = {
         "output_file": "Set a custom output file",
         "use_previous": "Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)",
-        "summary_netmask": "Subnet mask to use when summarizing IP addresses at end of scan"
+        "summary_netmask": "Subnet mask to use when summarizing IP addresses at end of scan",
     }
 
     header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
@@ -65,6 +65,7 @@ class asset_inventory(CSV):
     def report(self):
         stats = dict()
         totals = dict()
+
         def increment_stat(stat, value):
             try:
                 totals[stat] += 1
@@ -76,6 +77,7 @@ class asset_inventory(CSV):
                 stats[stat][value] += 1
             except KeyError:
                 stats[stat][value] = 1
+
         for asset in sorted(self.assets.values(), key=lambda a: str(a.host)):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             ports = getattr(asset, "ports", set())
@@ -110,9 +112,9 @@ class asset_inventory(CSV):
                 table = []
                 stats_sorted = sorted(stats[header].items(), key=lambda x: x[-1], reverse=True)
                 total = totals[header]
-                for k,v in stats_sorted:
+                for k, v in stats_sorted:
                     table.append([str(k), f"{v:,}/{total} ({v/total*100:.1f}%)"])
-                self.log_table(table, table_header, table_name="asset-inventory-stats")
+                self.log_table(table, table_header, table_name=f"asset-inventory-{header}")
 
         if self._file is not None:
             with self._report_lock:
