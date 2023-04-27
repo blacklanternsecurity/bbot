@@ -6,5 +6,4 @@ class aggregate(BaseReportModule):
     meta = {"description": "Summarize statistics at the end of a scan"}
 
     def report(self):
-        for table_row in str(self.scan.stats).splitlines():
-            self.info(table_row)
+        self.log_table(*self.scan.stats._make_table(), table_name="scan-stats")

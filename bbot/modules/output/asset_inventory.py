@@ -1,6 +1,7 @@
 import csv
-from .csv import CSV
+import ipaddress
 
+from .csv import CSV
 from bbot.core.helpers.misc import make_ip_type, is_ip, is_port
 
 severity_map = {
@@ -22,10 +23,11 @@ class asset_inventory(CSV):
     watched_events = ["OPEN_TCP_PORT", "DNS_NAME", "URL", "FINDING", "VULNERABILITY", "TECHNOLOGY", "IP_ADDRESS"]
     produced_events = ["IP_ADDRESS", "OPEN_TCP_PORT"]
     meta = {"description": "Output to an asset inventory style flattened CSV file"}
-    options = {"output_file": "", "use_previous": False}
+    options = {"output_file": "", "use_previous": False, "summary_netmask": 16}
     options_desc = {
         "output_file": "Set a custom output file",
         "use_previous": "Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)",
+        "summary_netmask": "Subnet mask to use when summarizing IP addresses at end of scan"
     }
 
     header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
@@ -37,31 +39,60 @@ class asset_inventory(CSV):
             ["portscan" in m.flags for m in self.scan.modules.values()]
         )
         self.use_previous = self.config.get("use_previous", False)
+        self.summary_netmask = self.config.get("summary_netmask", 16)
         self.emitted_contents = False
         ret = super().setup()
         return ret
 
+    def filter_event(self, event):
+        if event._internal:
+            return False, "event is internal"
+        if event.type not in self.watched_events:
+            return False, "event type is not in watched_events"
+        if not self.scan.in_scope(event):
+            return False, "event is not in scope"
+        if "unresolved" in event.tags:
+            return False, "event is unresolved"
+        return True, ""
+
     def handle_event(self, event):
-        if (
-            (not event._internal)
-            and str(event.module) != "speculate"
-            and event.type in self.watched_events
-            and self.scan.in_scope(event)
-            and not "unresolved" in event.tags
-        ):
+        if self.filter_event(event)[0]:
             hostkey = _make_hostkey(event.host, event.resolved_hosts)
             if hostkey not in self.assets:
                 self.assets[hostkey] = Asset(event.host)
             self.assets[hostkey].absorb_event(event)
 
     def report(self):
+        stats = dict()
+        totals = dict()
+        def increment_stat(stat, value):
+            try:
+                totals[stat] += 1
+            except KeyError:
+                totals[stat] = 1
+            if not stat in stats:
+                stats[stat] = {}
+            try:
+                stats[stat][value] += 1
+            except KeyError:
+                stats[stat][value] = 1
         for asset in sorted(self.assets.values(), key=lambda a: str(a.host)):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             ports = getattr(asset, "ports", set())
             ports = [str(p) for p in sorted([int(p) for p in asset.ports])]
             ips = sorted([str(i) for i in getattr(asset, "ip_addresses", [])])
+            host = getattr(asset, "host", "")
+            if host:
+                domain = self.helpers.tldextract(host).registered_domain
+                if domain:
+                    increment_stat("Domains", domain)
+            for ip in ips:
+                net = ipaddress.ip_network(f"{ip}/{self.summary_netmask}", strict=False)
+                increment_stat("IP Addresses", str(net))
+            for port in ports:
+                increment_stat("Open Ports", port)
             row = {
-                "Host": getattr(asset, "host", ""),
+                "Host": host,
                 "Provider": getattr(asset, "provider", ""),
                 "IP(s)": ",".join(ips),
                 "Status": "Active" if asset.ports else "N/A",
@@ -73,8 +104,19 @@ class asset_inventory(CSV):
             row.update(asset.custom_fields)
             self.writerow(row)
 
+        for header in ("Domains", "IP Addresses", "Open Ports"):
+            table_header = [header, ""]
+            if header in stats:
+                table = []
+                stats_sorted = sorted(stats[header].items(), key=lambda x: x[-1], reverse=True)
+                total = totals[header]
+                for k,v in stats_sorted:
+                    table.append([str(k), f"{v:,}/{total} ({v/total*100:.1f}%)"])
+                self.log_table(table, table_header, table_name="asset-inventory-stats")
+
         if self._file is not None:
-            self.info(f"Saved asset-inventory output to {self.output_file}")
+            with self._report_lock:
+                self.info(f"Saved asset-inventory output to {self.output_file}")
 
     def emit_contents(self):
         if self.use_previous and not self.emitted_contents:

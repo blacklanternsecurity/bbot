@@ -79,7 +79,11 @@ class speculate(BaseInternalModule):
         if event.type == "URL":
             url_parents = self.helpers.url_parents(event.data)
             for up in url_parents:
-                self.emit_event(f"{up}/", "URL_UNVERIFIED", source=event)
+                url_event = self.make_event(f"{up}/", "URL_UNVERIFIED", source=event)
+                # inherit web spider distance from parent (don't increment)
+                source_web_spider_distance = getattr(event, "web_spider_distance", 0)
+                url_event.web_spider_distance = source_web_spider_distance
+                self.emit_event(url_event)
 
         # from hosts
         if emit_open_ports:

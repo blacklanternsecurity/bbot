@@ -93,4 +93,5 @@ class web_report(BaseOutputModule):
             self.file.write(markdown.markdown(self.markdown))
             self.file.write(self.html_footer)
             self.file.flush()
-            self.info(f"Web Report saved to {self.output_file}")
+            with self._report_lock:
+                self.info(f"Web Report saved to {self.output_file}")

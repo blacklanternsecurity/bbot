@@ -4,7 +4,7 @@ from bbot.modules.report.base import BaseReportModule
 class affiliates(BaseReportModule):
     watched_events = ["*"]
     produced_events = []
-    flags = ["passive", "safe"]
+    flags = ["passive", "safe", "affiliates"]
     meta = {"description": "Summarize affiliate domains at the end of a scan"}
     scope_distance_modifier = None
     accept_dupes = True
@@ -24,8 +24,7 @@ class affiliates(BaseReportModule):
             count = stats["count"]
             weight = stats["weight"]
             table.append([domain, f"{weight:.2f}", f"{count:,}"])
-        for row in self.helpers.make_table(table, header).splitlines():
-            self.info(row)
+        self.log_table(table, header, table_name="affiliates")
 
     def add_affiliate(self, event):
         if event.scope_distance > 0 and event.host and isinstance(event.host, str):
