@@ -234,16 +234,17 @@ class massdns(crobat):
     def finish(self):
         found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
         # if we have a lot of rounds to make, don't try mutations on less-populated domains
-        avg_subdomains = sum([len(subdomains) for domain, subdomains in found[:50]]) / len(found[:50])
         trimmed_found = []
-        for i, (domain, subdomains) in enumerate(found):
-            # accept domains that are in the top 50 or have more than 5 percent of the average number of subdomains
-            if i < 50 or (len(subdomains) > 1 and len(subdomains) >= (avg_subdomains * 0.05)):
-                trimmed_found.append((domain, subdomains))
-            else:
-                self.verbose(
-                    f"Skipping mutations on {domain} because it only has {len(subdomains):,} subdomain(s) (avg: {avg_subdomains:,})"
-                )
+        if found:
+            avg_subdomains = sum([len(subdomains) for domain, subdomains in found[:50]]) / len(found[:50])
+            for i, (domain, subdomains) in enumerate(found):
+                # accept domains that are in the top 50 or have more than 5 percent of the average number of subdomains
+                if i < 50 or (len(subdomains) > 1 and len(subdomains) >= (avg_subdomains * 0.05)):
+                    trimmed_found.append((domain, subdomains))
+                else:
+                    self.verbose(
+                        f"Skipping mutations on {domain} because it only has {len(subdomains):,} subdomain(s) (avg: {avg_subdomains:,})"
+                    )
 
         base_mutations = set()
         try:
