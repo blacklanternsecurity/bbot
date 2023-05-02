@@ -65,14 +65,14 @@ class ScanStats:
         table.sort(key=lambda x: self.module_stats[x[0]].produced_total, reverse=True)
         return [header] + table
 
-    def __str__(self):
+    def _make_table(self):
         self.perf_stats.sort(key=lambda x: x[-1])
         for callback, runtime in self.perf_stats:
             log.info(f"{callback}\t{runtime}")
         table = self.table()
         if len(table) == 1:
             table += [["None", "None", "None"]]
-        return self.scan.helpers.make_table(table[1:], table[0])
+        return table[1:], table[0]
 
 
 class ModuleStat:

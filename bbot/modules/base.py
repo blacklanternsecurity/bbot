@@ -76,6 +76,8 @@ class BaseModule:
     # Type, for differentiating between normal modules and output modules, etc.
     _type = "scan"
 
+    _report_lock = threading.Lock()
+
     def __init__(self, scan):
         self.scan = scan
         self.errored = False
@@ -623,6 +625,20 @@ class BaseModule:
 
     def __str__(self):
         return self.name
+
+    def log_table(self, *args, **kwargs):
+        with self._report_lock:
+            table_name = kwargs.pop("table_name", None)
+            table = self.helpers.make_table(*args, **kwargs)
+            for line in table.splitlines():
+                self.info(line)
+            if table_name is not None:
+                date = self.helpers.make_date()
+                filename = self.scan.home / f"{self.helpers.tagify(table_name)}-table-{date}.txt"
+                with open(filename, "w") as f:
+                    f.write(table)
+                self.verbose(f"Wrote {table_name} to {filename}")
+            return table
 
     def stdout(self, *args, **kwargs):
         self.log.stdout(*args, extra={"scan_id": self.scan.id}, **kwargs)

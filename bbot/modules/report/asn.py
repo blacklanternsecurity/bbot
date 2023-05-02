@@ -60,8 +60,7 @@ class asn(BaseReportModule):
             country = asn["country"]
             description = asn["description"]
             table.append([number, str(subnet), f"{count:,}", name, description, country])
-        for row in self.helpers.make_table(table, header).splitlines():
-            self.info(row)
+        self.log_table(table, header, table_name="asns")
 
     def cache_put(self, asn):
         asn = dict(asn)

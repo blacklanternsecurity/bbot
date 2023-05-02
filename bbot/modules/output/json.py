@@ -29,4 +29,5 @@ class JSON(BaseOutputModule):
 
     def report(self):
         if self._file is not None:
-            self.info(f"Saved JSON output to {self.output_file}")
+            with self._report_lock:
+                self.info(f"Saved JSON output to {self.output_file}")

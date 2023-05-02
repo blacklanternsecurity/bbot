@@ -1,6 +1,7 @@
 name: tests
 on:
   push:
+  pull_request:
   pull_request_target:
     types:
       - closed
@@ -27,8 +28,8 @@ jobs:
           files: ./cov.xml
           verbose: true
   publish:
-    runs-on: ubuntu-latest
     needs: test
+    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'dev' || github.event.pull_request.base.ref == 'stable')
     continue-on-error: true
     steps:
