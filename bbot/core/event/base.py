@@ -447,6 +447,8 @@ class BaseEvent:
             j.update({"tags": list(self.tags)})
         if self.module:
             j.update({"module": str(self.module)})
+        if self.module_sequence:
+            j.update({"module_sequence": str(self.module_sequence)})
 
         # normalize non-primitive python objects
         for k, v in list(j.items()):
@@ -462,6 +464,18 @@ class BaseEvent:
     @staticmethod
     def from_json(j):
         return event_from_json(j)
+
+    @property
+    def module_sequence(self):
+        """
+        A human-friendly representation of the module name that includes modules from omitted source events
+
+        Helpful in identifying where a URL came from
+        """
+        module_name = getattr(self.module, "name", "")
+        if getattr(self.source, "_omit", False):
+            module_name = f"{self.source.module_sequence}->{module_name}"
+        return module_name
 
     @property
     def module_priority(self):

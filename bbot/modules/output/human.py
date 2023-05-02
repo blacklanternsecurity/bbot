@@ -20,7 +20,7 @@ class Human(BaseOutputModule):
         event_tags = ""
         if getattr(event, "tags", []):
             event_tags = f'\t({", ".join(sorted(getattr(event, "tags", [])))})'
-        event_str = f"{event_type:<20}\t{event.data_human}\t{event.module}{event_tags}"
+        event_str = f"{event_type:<20}\t{event.data_human}\t{event.module_sequence}{event_tags}"
         # log vulnerabilities in vivid colors
         if event.type == "VULNERABILITY":
             severity = event.data.get("severity", "INFO")
