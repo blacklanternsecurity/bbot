@@ -1128,6 +1128,14 @@ class PROTOCOL(DictHostEvent):
 class GEOLOCATION(BaseEvent):
     _always_emit = True
 
+class PASSWORD(BaseEvent):
+    _always_emit = True
+
+class HASHED_PASSWORD(BaseEvent):
+    _always_emit = True
+
+class USERNAME(BaseEvent):
+    _always_emit = True
 
 class SOCIAL(DictEvent):
     _always_emit = True
