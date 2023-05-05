@@ -34,6 +34,8 @@ class ScanManager:
         self.events_resolved = dict()
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
 
+        self.status_frequency = self.scan.config.get("status_frequency", 15)
+
         self.last_log_time = datetime.now()
 
     def init_events(self):
@@ -407,7 +409,7 @@ class ScanManager:
                     yield from events
 
                 try:
-                    self.log_status()
+                    self.log_status(self.status_frequency)
                     event, kwargs = self.incoming_event_queue.get_nowait()
                     while not self.scan.aborting:
                         try:
@@ -416,7 +418,7 @@ class ScanManager:
                                 activity = True
                             break
                         except queue.Full:
-                            self.log_status()
+                            self.log_status(self.status_frequency)
                             with self.event_emitted:
                                 self.event_emitted.wait(timeout=0.1)
                 except queue.Empty:
@@ -451,8 +453,8 @@ class ScanManager:
             for mod in self.scan.modules.values():
                 self.catch(mod._register_running, mod.report, _force=True)
 
-    def log_status(self, frequency=10):
-        # print status every 10 seconds
+    def log_status(self, frequency=15):
+        # print status every 15 seconds (or status_frequency setting)
         timedelta_secs = timedelta(seconds=frequency)
         now = datetime.now()
         time_since_last_log = now - self.last_log_time

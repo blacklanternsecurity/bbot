@@ -75,6 +75,8 @@ dns_filter_ptrs: true
 dns_debug: false
 # Whether to verify SSL certificates
 ssl_verify: false
+# Interval for displaying status messages
+status_frequency: 15
 # How many scan results to keep before cleaning up the older ones
 keep_scans: 20
 # Completely ignore URLs with these extensions
