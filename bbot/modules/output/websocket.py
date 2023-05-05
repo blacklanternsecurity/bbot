@@ -1,7 +1,6 @@
 import json
-import threading
+import asyncio
 import websockets
-from time import sleep
 
 from bbot.modules.output.base import BaseOutputModule
 

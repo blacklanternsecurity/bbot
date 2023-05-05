@@ -55,14 +55,14 @@ class asset_inventory(CSV):
             return False, "event is unresolved"
         return True, ""
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         if self.filter_event(event)[0]:
             hostkey = _make_hostkey(event.host, event.resolved_hosts)
             if hostkey not in self.assets:
                 self.assets[hostkey] = Asset(event.host)
             self.assets[hostkey].absorb_event(event)
 
-    def report(self):
+    async def report(self):
         stats = dict()
         totals = dict()
 

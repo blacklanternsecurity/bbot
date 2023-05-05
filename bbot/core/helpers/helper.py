@@ -5,6 +5,7 @@ from threading import Lock
 
 from . import misc
 from .dns import DNSHelper
+from .web import WebHelper
 from .diff import HttpCompare
 from .wordcloud import WordCloud
 from .cloud import CloudProviders
@@ -45,6 +46,7 @@ class ConfigAwareHelper:
         self._future_lock = Lock()
 
         self.dns = DNSHelper(self)
+        self.web = WebHelper(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
@@ -114,8 +116,12 @@ class ConfigAwareHelper:
                     # then try dns
                     return getattr(self.dns, attr)
                 except AttributeError:
-                    # then die
-                    raise AttributeError(f'Helper has no attribute "{attr}"')
+                    try:
+                        # then try web
+                        return getattr(self.web, attr)
+                    except AttributeError:
+                        # then die
+                        raise AttributeError(f'Helper has no attribute "{attr}"')
 
 
 class DummyModule(BaseModule):

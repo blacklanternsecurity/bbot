@@ -1,7 +1,7 @@
 import queue
 import asyncio
 import logging
-import threading
+import traceback
 from sys import exc_info
 from contextlib import suppress
 

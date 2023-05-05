@@ -1,13 +1,13 @@
+import queue
 import asyncio
 import logging
 import traceback
 from sys import exc_info
 from pathlib import Path
-import concurrent.futures
 from datetime import datetime
 from omegaconf import OmegaConf
 from contextlib import suppress
-from collections import OrderedDict, deque
+from collections import OrderedDict
 
 from bbot import config as bbot_config
 
@@ -321,7 +321,6 @@ class Scanner:
         self.verbose(f"Setting up modules")
         hard_failed = []
         soft_failed = []
-        setup_futures = dict()
 
         for task in asyncio.as_completed([m._setup() for m in self.modules.values()]):
             module_name, status, msg = await task

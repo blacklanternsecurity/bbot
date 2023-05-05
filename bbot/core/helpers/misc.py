@@ -1024,3 +1024,10 @@ def cloudcheck(ip):
 
 def is_async_function(f):
     return inspect.iscoroutinefunction(f)
+
+
+async def execute_sync_or_async(callback, *args, **kwargs):
+    if is_async_function(callback):
+        return await callback(*args, **kwargs)
+    else:
+        return callback(*args, **kwargs)

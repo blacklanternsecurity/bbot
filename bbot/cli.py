@@ -32,11 +32,12 @@ log_level = get_log_level()
 from . import config
 
 
+err = False
 scan_name = ""
 
 
 async def _main():
-    err = False
+    global err
     global scan_name
 
     ensure_config_files()
@@ -336,7 +337,7 @@ def main():
         if scan_name:
             msg = f"You killed {scan_name}"
         log_to_stderr(msg, level="ERROR")
-        err = True
+        os._exit(1)
 
 
 if __name__ == "__main__":

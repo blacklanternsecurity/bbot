@@ -2,9 +2,7 @@ import queue
 import asyncio
 import logging
 import traceback
-from time import sleep
 from contextlib import suppress
-from datetime import datetime, timedelta
 
 from ..core.helpers.queueing import EventQueue
 from ..core.helpers.async_helpers import TaskCounter
@@ -29,8 +27,6 @@ class ScanManager:
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
         self._task_counter = TaskCounter()
         self._new_activity = True
-
-        self.last_log_time = datetime.now()
 
     async def init_events(self):
         """
@@ -341,10 +337,7 @@ class ScanManager:
                 break
         try:
             if not self.scan.stopping or force:
-                if self.scan.helpers.is_async_function(callback):
-                    ret = await callback(*args, **kwargs)
-                else:
-                    ret = callback(*args, **kwargs)
+                ret = await self.scan.helpers.execute_sync_or_async(callback, *args, **kwargs)
         except ScanCancelledError as e:
             log.debug(f"ScanCancelledError in {fn.__qualname__}(): {e}")
         except BrokenPipeError as e:
@@ -355,12 +348,11 @@ class ScanManager:
         except KeyboardInterrupt:
             log.debug(f"Interrupted")
             self.scan.stop()
+        except asyncio.CancelledError as e:
+            log.debug(f"{e}")
         if callable(on_finish_callback):
             try:
-                if self.scan.helpers.is_async_function(on_finish_callback):
-                    await on_finish_callback()
-                else:
-                    on_finish_callback()
+                await self.scan.helpers.execute_sync_or_async(on_finish_callback)
             except Exception as e:
                 log.error(
                     f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {fn.__qualname__}(): {e}"

@@ -1,4 +1,3 @@
-import json
 import asyncio
 import logging
 import ipaddress
@@ -84,32 +83,33 @@ class DNSHelper:
         # DNS over TCP is more reliable
         # But setting this breaks DNS resolution on Ubuntu because systemd-resolve doesn't support TCP
         # kwargs["tcp"] = True
-        query = str(query).strip()
-        if is_ip(query):
-            kwargs.pop("type", None)
-            kwargs.pop("rdtype", None)
-            results, errors = await self._resolve_ip(query, **kwargs)
-            return [("PTR", results)], [("PTR", e) for e in errors]
-        else:
+        with suppress(asyncio.CancelledError):
             results = []
             errors = []
-            types = ["A", "AAAA"]
-            kwargs.pop("rdtype", None)
-            if "type" in kwargs:
-                t = kwargs.pop("type")
-                if isinstance(t, str):
-                    if t.strip().lower() in ("any", "all", "*"):
-                        types = self.all_rdtypes
-                    else:
-                        types = [t.strip().upper()]
-                elif any([isinstance(t, x) for x in (list, tuple)]):
-                    types = [str(_).strip().upper() for _ in t]
-            for t in types:
-                r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
-                if r:
-                    results.append((t, r))
-                for error in e:
-                    errors.append((t, error))
+            query = str(query).strip()
+            if is_ip(query):
+                kwargs.pop("type", None)
+                kwargs.pop("rdtype", None)
+                results, errors = await self._resolve_ip(query, **kwargs)
+                return [("PTR", results)], [("PTR", e) for e in errors]
+            else:
+                types = ["A", "AAAA"]
+                kwargs.pop("rdtype", None)
+                if "type" in kwargs:
+                    t = kwargs.pop("type")
+                    if isinstance(t, str):
+                        if t.strip().lower() in ("any", "all", "*"):
+                            types = self.all_rdtypes
+                        else:
+                            types = [t.strip().upper()]
+                    elif any([isinstance(t, x) for x in (list, tuple)]):
+                        types = [str(_).strip().upper() for _ in t]
+                for t in types:
+                    r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
+                    if r:
+                        results.append((t, r))
+                    for error in e:
+                        errors.append((t, error))
 
             return (results, errors)
 
@@ -277,7 +277,7 @@ class DNSHelper:
                     types = ("A", "AAAA")
 
             if types:
-                tasks = [self.resolve_raw(event_host, type=t, cache_result=True) for t in types]
+                tasks = [asyncio.create_task(self.resolve_raw(event_host, type=t, cache_result=True)) for t in types]
                 for task in asyncio.as_completed(tasks):
                     resolved_raw, errors = await task
                     for rdtype, e in errors:
@@ -454,7 +454,9 @@ class DNSHelper:
             # then resolve the query for all rdtypes
             for _rdtype in self.all_rdtypes:
                 # resolve the base query
-                wildcard_tasks[_rdtype].append(self.resolve_raw(query, type=_rdtype, cache_result=True))
+                wildcard_tasks[_rdtype].append(
+                    asyncio.create_task(self.resolve_raw(query, type=_rdtype, cache_result=True))
+                )
 
             for _rdtype, tasks in wildcard_tasks.items():
                 for task in asyncio.as_completed(tasks):
