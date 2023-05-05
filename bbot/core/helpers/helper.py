@@ -9,7 +9,6 @@ from .diff import HttpCompare
 from .wordcloud import WordCloud
 from .cloud import CloudProviders
 from .interactsh import Interactsh
-from .threadpool import as_completed
 from ...scanner.target import Target
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
@@ -87,10 +86,6 @@ class ConfigAwareHelper:
     @property
     def in_tests(self):
         return os.environ.get("BBOT_TESTING", "") == "True"
-
-    @staticmethod
-    def as_completed(*args, **kwargs):
-        return as_completed(*args, **kwargs)
 
     def _make_dummy_module(self, name, _type="scan"):
         """

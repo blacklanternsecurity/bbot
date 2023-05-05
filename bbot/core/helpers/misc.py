@@ -1020,3 +1020,7 @@ def cloudcheck(ip):
         with suppress(KeyError):
             provider = provider_map[provider.lower()]
     return provider, provider_type, subnet
+
+
+def is_async_function(f):
+    return inspect.iscoroutinefunction(f)

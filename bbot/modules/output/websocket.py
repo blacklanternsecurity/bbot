@@ -12,7 +12,7 @@ class Websocket(BaseOutputModule):
     options = {"url": "", "token": ""}
     options_desc = {"url": "Web URL", "token": "Authorization Bearer token"}
 
-    def setup(self):
+    async def setup(self):
         self.url = self.config.get("url", "")
         if not self.url:
             return False, "Must set URL"

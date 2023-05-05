@@ -45,7 +45,7 @@ class asn(BaseReportModule):
                     for email in emails:
                         self.emit_event(email, "EMAIL_ADDRESS", source=asn_event)
 
-    def report(self):
+    async def report(self):
         asn_data = sorted(self.asn_cache.items(), key=lambda x: self.asn_counts[x[0]], reverse=True)
         if not asn_data:
             return

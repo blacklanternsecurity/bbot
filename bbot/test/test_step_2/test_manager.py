@@ -87,6 +87,26 @@ def test_manager(bbot_config, bbot_scanner):
     assert len(event_children) == 0
     assert googledns in output
 
+    # error catching
+    msg = "Ignore this error, it belongs here"
+
+    def raise_e():
+        raise Exception(msg)
+
+    def raise_k():
+        raise KeyboardInterrupt(msg)
+
+    def raise_s():
+        raise ScanCancelledError(msg)
+
+    def raise_b():
+        raise BrokenPipeError(msg)
+
+    manager.catch(raise_e, _on_finish_callback=raise_e)
+    manager.catch(raise_k)
+    manager.catch(raise_s)
+    manager.catch(raise_b)
+
 
 def test_scope_distance(bbot_scanner, bbot_config):
     # event filtering based on scope_distance

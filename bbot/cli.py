@@ -2,6 +2,7 @@
 
 import os
 import sys
+import asyncio
 import logging
 import threading
 import traceback
@@ -31,9 +32,12 @@ log_level = get_log_level()
 from . import config
 
 
-def main():
+scan_name = ""
+
+
+async def _main():
     err = False
-    scan_name = ""
+    global scan_name
 
     ensure_config_files()
 
@@ -258,7 +262,7 @@ def main():
 
                 scanner.helpers.word_cloud.load(options.load_wordcloud)
 
-                scanner.prep()
+                await scanner.prep()
 
                 if not options.dry_run:
                     if not options.agent_mode and not options.yes and sys.stdin.isatty():
@@ -282,7 +286,7 @@ def main():
                     keyboard_listen_thread = threading.Thread(target=keyboard_listen, daemon=True)
                     keyboard_listen_thread.start()
 
-                    scanner.start_without_generator()
+                    await scanner.start_without_generator()
 
             except bbot.core.errors.ScanError as e:
                 log_to_stderr(str(e), level="ERROR")
@@ -290,7 +294,7 @@ def main():
                 raise
             finally:
                 with suppress(NameError):
-                    scanner.cleanup()
+                    await scanner.cleanup()
 
     except bbot.core.errors.BBOTError as e:
         log_to_stderr(f"{e} (--debug for details)", level="ERROR")
@@ -300,13 +304,6 @@ def main():
 
     except Exception:
         log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level="ERROR")
-        err = True
-
-    except KeyboardInterrupt:
-        msg = "Interrupted"
-        if scan_name:
-            msg = f"You killed {scan_name}"
-        log_to_stderr(msg, level="ERROR")
         err = True
 
     finally:
@@ -328,6 +325,18 @@ def main():
             scanner.manager.modules_status(_log=True)
             sleep(1)
         """
+
+
+def main():
+    global scan_name
+    try:
+        asyncio.run(_main())
+    except KeyboardInterrupt:
+        msg = "Interrupted"
+        if scan_name:
+            msg = f"You killed {scan_name}"
+        log_to_stderr(msg, level="ERROR")
+        err = True
 
 
 if __name__ == "__main__":

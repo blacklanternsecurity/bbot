@@ -299,7 +299,7 @@ class excavate(BaseInternalModule):
 
     deps_pip = ["pyjwt~=2.6.0"]
 
-    def setup(self):
+    async def setup(self):
         self.hostname = HostnameExtractor(self)
         self.url = URLExtractor(self)
         self.email = EmailExtractor(self)
@@ -316,7 +316,7 @@ class excavate(BaseInternalModule):
         for e in extractors:
             e.search(source, event, **kwargs)
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         data = event.data
 
         # HTTP_RESPONSE is a special case

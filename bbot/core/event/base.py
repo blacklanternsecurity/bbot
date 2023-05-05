@@ -1,4 +1,5 @@
 import json
+import asyncio
 import logging
 import ipaddress
 import traceback
@@ -6,7 +7,6 @@ from typing import Optional
 from datetime import datetime
 from contextlib import suppress
 from pydantic import BaseModel, validator
-from threading import Event as ThreadingEvent
 
 from .helpers import *
 from bbot.core.errors import *
@@ -125,8 +125,8 @@ class BaseEvent:
             if _internal:  # or source._internal:
                 self.make_internal()
 
-        # a threading event indicating whether the event has undergone DNS resolution yet
-        self._resolved = ThreadingEvent()
+        # an event indicating whether the event has undergone DNS resolution
+        self._resolved = asyncio.Event()
 
     @property
     def data(self):

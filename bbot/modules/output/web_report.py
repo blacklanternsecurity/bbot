@@ -13,7 +13,7 @@ class web_report(BaseOutputModule):
     options_desc = {"output_file": "Output to file", "css_theme_file": "CSS theme URL for HTML output"}
     deps_pip = ["markdown~=3.4.3"]
 
-    def setup(self):
+    async def setup(self):
         html_css_file = self.config.get("css_theme_file", "")
 
         self.html_header = f"""

@@ -1,12 +1,12 @@
 import queue
+import asyncio
 import logging
 import threading
-import traceback
 from sys import exc_info
 from contextlib import suppress
 
 from ..core.helpers.misc import get_size
-from ..core.helpers.threadpool import ThreadPoolWrapper, TaskCounter
+from ..core.helpers.async_helpers import TaskCounter
 from ..core.errors import ScanCancelledError, ValidationError, WordlistError
 
 
@@ -76,28 +76,21 @@ class BaseModule:
     # Type, for differentiating between normal modules and output modules, etc.
     _type = "scan"
 
-    _report_lock = threading.Lock()
-
     def __init__(self, scan):
         self.scan = scan
         self.errored = False
         self._log = None
         self._incoming_event_queue = None
         # seconds since we've submitted a batch
+        self._outgoing_event_queue = None
+        # seconds since we've submitted a batch
         self._last_submitted_batch = None
-        # wrapper around shared thread pool to ensure that a single module doesn't hog more than its share
-        self.thread_pool = ThreadPoolWrapper(self.scan._thread_pool)
-        self._internal_thread_pool = ThreadPoolWrapper(
-            self.scan._internal_thread_pool.executor, max_workers=self.max_event_handlers
-        )
         # additional callbacks to be executed alongside self.cleanup()
         self.cleanup_callbacks = []
         self._cleanedup = False
         self._watched_events = None
 
-        self._lock = threading.RLock()
-        self._running_counter = TaskCounter()
-        self.event_received = threading.Condition(self._lock)
+        self._task_counter = TaskCounter()
 
         # string constant
         self._custom_filter_criteria_msg = "it did not meet custom filter criteria"
@@ -105,7 +98,7 @@ class BaseModule:
         # track number of failures (for .request_with_fail_count())
         self._request_failures = 0
 
-    def setup(self):
+    async def setup(self):
         """
         Perform setup functions at the beginning of the scan.
         Optionally override this method.
@@ -114,7 +107,7 @@ class BaseModule:
         """
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         """
         Override this method if batch_size == 1.
         """
@@ -135,7 +128,7 @@ class BaseModule:
         """
         return True
 
-    def finish(self):
+    async def finish(self):
         """
         Perform final functions when scan is nearing completion
 
@@ -147,7 +140,7 @@ class BaseModule:
         """
         return
 
-    def report(self):
+    async def report(self):
         """
         Perform a final task when the scan is finished, but before cleanup happens
 
@@ -155,7 +148,7 @@ class BaseModule:
         """
         return
 
-    def cleanup(self):
+    async def cleanup(self):
         """
         Perform final cleanup after the scan has finished
         This method is called only once, and may not raise events.
@@ -211,21 +204,21 @@ class BaseModule:
         kwargs["_block"] = False
         return self.thread_pool.submit_task(self.catch, *args, **kwargs)
 
-    def catch(self, *args, **kwargs):
-        return self.scan.manager.catch(*args, **kwargs)
+    async def catch(self, *args, **kwargs):
+        return await self.scan.manager.catch(*args, **kwargs)
 
-    def _postcheck_and_run(self, callback, event):
+    async def _postcheck_and_run(self, callback, event):
         acceptable, reason = self._event_postcheck(event)
         if not acceptable:
             if reason:
                 self.debug(f"Not accepting {event} because {reason}")
             return
         self.scan.stats.event_consumed(event, self)
-        return callback(event)
+        return await callback(event)
 
-    def _register_running(self, callback, *args, **kwargs):
-        with self._running_counter:
-            return callback(*args, **kwargs)
+    async def _register_running(self, callback, *args, **kwargs):
+        with self._task_counter:
+            return await callback(*args, **kwargs)
 
     def _handle_batch(self, force=False):
         if self.batch_size <= 1:
@@ -276,24 +269,7 @@ class BaseModule:
         for o in ("on_success_callback", "abort_if", "quick"):
             event_kwargs.pop(o, None)
         event = self.make_event(*args, **event_kwargs)
-        if event is None:
-            return
-        # nerf event's priority if it's likely not to be in scope
-        if event.scope_distance > 0:
-            event_in_scope = self.scan.whitelisted(event) and not self.scan.blacklisted(event)
-            if not event_in_scope:
-                event.module_priority += event.scope_distance
-        if event:
-            # Wait for parent event to resolve (in case its scope distance changes)
-            while 1:
-                if self.scan.stopping:
-                    return
-                resolved = event.source._resolved.wait(timeout=0.1)
-                if resolved:
-                    # update event's scope distance based on its parent
-                    event.scope_distance = event.source.scope_distance + 1
-                    break
-            self.scan.manager.incoming_event_queue.put((event, kwargs))
+        self.scan.manager.queue_event(event)
 
     @property
     def events_waiting(self):
@@ -324,16 +300,15 @@ class BaseModule:
         return ret
 
     def start(self):
-        self.thread = threading.Thread(target=self._worker, daemon=True)
-        self.thread.start()
+        self.tasks = [asyncio.create_task(self._worker()) for _ in range(self.max_event_handlers)]
 
-    def _setup(self):
+    async def _setup(self):
         status_codes = {False: "hard-fail", None: "soft-fail", True: "success"}
 
         status = False
         self.debug(f"Setting up module {self.name}")
         try:
-            result = self.setup()
+            result = await self.setup()
             if type(result) == tuple and len(result) == 2:
                 status, msg = result
             else:
@@ -346,7 +321,7 @@ class BaseModule:
                 status = None
             msg = f"{e}"
             self.trace()
-        return status, str(msg)
+        return self.name, status, str(msg)
 
     @property
     def _force_batch(self):
@@ -356,41 +331,36 @@ class BaseModule:
         # if we're below our maximum threading potential
         return self._internal_thread_pool.num_tasks < self.max_event_handlers
 
-    def _worker(self):
+    async def _worker(self):
         try:
             while not self.scan.stopping:
                 # hold the reigns if our outgoing queue is full
-                if self._qsize and self.outgoing_event_queue_qsize >= self._qsize:
-                    with self.event_received:
-                        self.event_received.wait(timeout=0.1)
-                    continue
+                # if self._qsize and self.outgoing_event_queue.qsize() >= self._qsize:
+                #     with self.event_received:
+                #         await self.event_received.wait()
 
                 if self.batch_size > 1:
-                    submitted = self._handle_batch(force=self._force_batch)
-                    if not submitted:
-                        with self.event_received:
-                            self.event_received.wait(timeout=0.1)
+                    pass
+                    # submitted = self._handle_batch(force=self._force_batch)
+                    # if not submitted:
+                    #     with self.event_received:
+                    #         await self.event_received.wait()
 
                 else:
                     try:
                         if self.incoming_event_queue:
-                            e = self.incoming_event_queue.get(timeout=0.1)
+                            e = await self.incoming_event_queue.get()
                         else:
                             self.debug(f"Event queue is in bad state")
                             return
                     except queue.Empty:
                         continue
-                    self.debug(f"Got {e} from {getattr(e, 'module', e)}")
+                    self.debug(f"Got {e} from {getattr(e, 'module', 'unknown_module')}")
                     # if we receive the special "FINISHED" event
                     if e.type == "FINISHED":
-                        self._internal_thread_pool.submit_task(self.catch, self._register_running, self.finish)
+                        await self.catch(self._register_running, self.finish)
                     else:
-                        if self._type == "output":
-                            self.catch(self._register_running, self._postcheck_and_run, self.handle_event, e)
-                        else:
-                            self._internal_thread_pool.submit_task(
-                                self.catch, self._register_running, self._postcheck_and_run, self.handle_event, e
-                            )
+                        await self.catch(self._register_running, self._postcheck_and_run, self.handle_event, e)
 
         except KeyboardInterrupt:
             self.debug(f"Interrupted")
@@ -486,12 +456,12 @@ class BaseModule:
 
         return True, ""
 
-    def _cleanup(self):
+    async def _cleanup(self):
         if not self._cleanedup:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
                 if callable(callback):
-                    self.catch(self._register_running, callback, _force=True)
+                    await self.catch(self._register_running, callback, _force=True)
 
     def queue_event(self, event):
         if self.incoming_event_queue in (None, False):
@@ -503,11 +473,9 @@ class BaseModule:
                 self.debug(f"Not accepting {event} because {reason}")
             return
         try:
-            self.incoming_event_queue.put(event)
+            self.incoming_event_queue.put_nowait(event)
         except AttributeError:
             self.debug(f"Not in an acceptable state to queue event")
-        with self.event_received:
-            self.event_received.notify()
 
     def set_error_state(self, message=None):
         if not self.errored:
@@ -535,34 +503,27 @@ class BaseModule:
 
     @property
     def status(self):
-        main_pool = self.thread_pool.num_tasks
-        internal_pool = self._internal_thread_pool.num_tasks
-        pool_total = main_pool + internal_pool
-        incoming_qsize = 0
-        if self.incoming_event_queue:
-            incoming_qsize = self.incoming_event_queue.qsize()
         status = {
-            "events": {"incoming": incoming_qsize, "outgoing": self.outgoing_event_queue_qsize},
-            "tasks": {"main_pool": main_pool, "internal_pool": internal_pool, "total": pool_total},
+            "events": {"incoming": self.num_queued_events, "outgoing": self.outgoing_event_queue.qsize()},
+            "tasks": self._task_counter.value,
             "errored": self.errored,
         }
         status["running"] = self.running
-        status["active"] = self._is_active(status)
         return status
-
-    @staticmethod
-    def _is_active(status):
-        if status["running"]:
-            return True
-        total = status["tasks"]["total"] + status["events"]["incoming"] + status["events"]["outgoing"]
-        return total > 0
 
     @property
     def running(self):
         """
         Indicates whether the module is currently processing data.
         """
-        return self._running_counter.value > 0
+        return self._task_counter.value > 0
+
+    @property
+    def finished(self):
+        """
+        Indicates whether the module is finished (not running and nothing in queues)
+        """
+        return not self.running and self.num_queued_events <= 0 and self.outgoing_event_queue.qsize() <= 0
 
     def request_with_fail_count(self, *args, **kwargs):
         r = self.helpers.request(*args, **kwargs)
@@ -593,12 +554,14 @@ class BaseModule:
     @property
     def incoming_event_queue(self):
         if self._incoming_event_queue is None:
-            self._incoming_event_queue = queue.PriorityQueue()
+            self._incoming_event_queue = asyncio.PriorityQueue()
         return self._incoming_event_queue
 
     @property
-    def outgoing_event_queue_qsize(self):
-        return self.scan.manager.incoming_event_queue.modules.get(str(self), 0)
+    def outgoing_event_queue(self):
+        if self._outgoing_event_queue is None:
+            self._outgoing_event_queue = asyncio.PriorityQueue()
+        return self._outgoing_event_queue
 
     @property
     def priority(self):
@@ -627,18 +590,17 @@ class BaseModule:
         return self.name
 
     def log_table(self, *args, **kwargs):
-        with self._report_lock:
-            table_name = kwargs.pop("table_name", None)
-            table = self.helpers.make_table(*args, **kwargs)
-            for line in table.splitlines():
-                self.info(line)
-            if table_name is not None:
-                date = self.helpers.make_date()
-                filename = self.scan.home / f"{self.helpers.tagify(table_name)}-table-{date}.txt"
-                with open(filename, "w") as f:
-                    f.write(table)
-                self.verbose(f"Wrote {table_name} to {filename}")
-            return table
+        table_name = kwargs.pop("table_name", None)
+        table = self.helpers.make_table(*args, **kwargs)
+        for line in table.splitlines():
+            self.info(line)
+        if table_name is not None:
+            date = self.helpers.make_date()
+            filename = self.scan.home / f"{self.helpers.tagify(table_name)}-table-{date}.txt"
+            with open(filename, "w") as f:
+                f.write(table)
+            self.verbose(f"Wrote {table_name} to {filename}")
+        return table
 
     def stdout(self, *args, **kwargs):
         self.log.stdout(*args, extra={"scan_id": self.scan.id}, **kwargs)

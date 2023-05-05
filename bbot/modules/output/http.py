@@ -25,7 +25,7 @@ class HTTP(BaseOutputModule):
         "timeout": "HTTP timeout",
     }
 
-    def setup(self):
+    async def setup(self):
         self.session = requests.Session()
         if not self.config.get("url", ""):
             self.warning("Must set URL")

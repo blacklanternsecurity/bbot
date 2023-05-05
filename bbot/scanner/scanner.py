@@ -1,5 +1,5 @@
+import asyncio
 import logging
-import threading
 import traceback
 from sys import exc_info
 from pathlib import Path
@@ -22,7 +22,6 @@ from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.logger import init_logging, get_log_level
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.configurator.environ import prepare_environment
-from bbot.core.helpers.threadpool import ThreadPoolWrapper, BBOTThreadPoolExecutor
 from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
@@ -84,25 +83,8 @@ class Scanner:
         self._status = "NOT_STARTED"
         self._status_code = 0
 
-        # Set up thread pools
-        max_workers = max(1, self.config.get("max_threads", 25))
-        # Shared thread pool, for module use
-        self._thread_pool = BBOTThreadPoolExecutor(max_workers=max_workers)
-        # Event thread pool, for event emission
-        self._event_thread_pool = ThreadPoolWrapper(
-            BBOTThreadPoolExecutor(max_workers=max_workers * 2), qsize=max_workers
-        )
-        # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
-        self._internal_thread_pool = ThreadPoolWrapper(BBOTThreadPoolExecutor(max_workers=max_workers))
-        self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
+        self.max_workers = max(1, self.config.get("max_threads", 25))
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
-        self.pools = {
-            "process_pool": self.process_pool,
-            "internal_thread_pool": self._internal_thread_pool,
-            "dns_thread_pool": self.helpers.dns._thread_pool,
-            "event_thread_pool": self._event_thread_pool,
-            "main_thread_pool": self._thread_pool,
-        }
         output_dir = self.config.get("output_dir", "")
 
         if name is None:
@@ -170,12 +152,14 @@ class Scanner:
                 "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
             )
 
+        # how often to print scan status
+        self.status_frequency = self.config.get("status_frequency", 15)
+
         self._prepped = False
-        self._thread_pools_shutdown = False
-        self._thread_pools_shutdown_threads = []
+        self._finished_init = False
         self._cleanedup = False
 
-    def prep(self):
+    async def prep(self):
         self.helpers.mkdir(self.home)
         if not self._prepped:
             start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target):,} targets"
@@ -191,21 +175,25 @@ class Scanner:
             self.load_modules()
 
             self.info(f"Setting up modules...")
-            self.setup_modules()
+            await self.setup_modules()
 
             self.success(f"Setup succeeded for {len(self.modules):,} modules.")
             self._prepped = True
 
-    def start_without_generator(self):
-        deque(self.start(), maxlen=0)
+    async def start_without_generator(self):
+        async for event in self.start():
+            pass
 
-    def start(self):
-        self.prep()
+    async def start(self):
+        await self.prep()
 
         failed = True
 
         if not self.target:
             self.warning(f"No scan targets specified")
+
+        # start status ticker
+        ticker_task = asyncio.create_task(self._status_ticker(self.))
 
         scan_start_time = datetime.now()
         try:
@@ -218,23 +206,59 @@ class Scanner:
             else:
                 self.hugesuccess(f"Starting scan {self.name}")
 
-            if self.stopping:
-                return
+            self.dispatcher.on_start(self)
+
+            # start manager worker loops
+            manager_worker_loop_tasks = [
+                asyncio.create_task(self.manager._worker_loop()) for _ in range(self.max_workers)
+            ]
 
             # distribute seed events
-            self.manager.init_events()
-
-            if self.stopping:
-                return
+            init_events_task = asyncio.create_task(self.manager.init_events())
 
             self.status = "RUNNING"
             self.start_modules()
             self.verbose(f"{len(self.modules):,} modules started")
 
-            if self.stopping:
-                return
+            # main scan loop
+            while 1:
+                # abort if we're aborting
+                if self.aborting:
+                    # Empty event queues
+                    for module in self.modules.values():
+                        with suppress(queue.Empty):
+                            while 1:
+                                module.incoming_event_queue.get_nowait()
+                    with suppress(queue.Empty):
+                        while 1:
+                            self.incoming_event_queue.get_nowait()
+                    break
 
-            yield from self.manager.loop_until_finished()
+                if "python" in self.modules:
+                    events, finish, report = self.modules["python"].events_waiting
+                    for e in events:
+                        yield e
+
+                if self._finished_init and not self.manager.active:
+                    # And if new events were generated since last time we were here
+                    if self.manager._new_activity:
+                        self.manager._new_activity = False
+                        self.status = "FINISHING"
+                        # Trigger .finished() on every module and start over
+                        log.info("Finishing scan")
+                        finished_event = self.make_event("FINISHED", "FINISHED", dummy=True)
+                        for module in self.modules.values():
+                            module.queue_event(finished_event)
+                    else:
+                        # Otherwise stop the scan if no new events were generated since last time
+                        break
+
+                await asyncio.sleep(0.01)
+
+            # for module in self.modules.values():
+            #     for task in module.tasks:
+            #         await task
+
             failed = False
 
         except KeyboardInterrupt:
@@ -255,21 +279,8 @@ class Scanner:
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
-            self.cleanup()
-            self.shutdown_threadpools()
-            while 1:
-                for t in self._thread_pools_shutdown_threads:
-                    t.join(timeout=1)
-                    if t.is_alive():
-                        try:
-                            pool = t._args[0]
-                            for s in pool.threads_status:
-                                self.debug(s)
-                        except AttributeError:
-                            continue
-                if not any(t.is_alive() for t in self._thread_pools_shutdown_threads):
-                    self.debug("Finished shutting down thread pools")
-                    break
+            await self.report()
+            await self.cleanup()
 
             log_fn = self.hugesuccess
             if self.status == "ABORTING":
@@ -281,6 +292,19 @@ class Scanner:
             else:
                 self.status = "FINISHED"
 
+            ticker_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await ticker_task
+
+            init_events_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await init_events_task
+
+            for t in manager_worker_loop_tasks:
+                t.cancel()
+                with suppress(asyncio.CancelledError):
+                    await t
+
             scan_run_time = datetime.now() - scan_start_time
             scan_run_time = self.helpers.human_timedelta(scan_run_time)
             log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
@@ -288,23 +312,19 @@ class Scanner:
             self.dispatcher.on_finish(self)
 
     def start_modules(self):
-        self.verbose(f"Starting module threads")
+        self.verbose(f"Starting module worker loops")
         for module_name, module in self.modules.items():
             module.start()
 
-    def setup_modules(self, remove_failed=True):
+    async def setup_modules(self, remove_failed=True):
         self.load_modules()
         self.verbose(f"Setting up modules")
         hard_failed = []
         soft_failed = []
         setup_futures = dict()
 
-        for module_name, module in self.modules.items():
-            future = self._internal_thread_pool.submit_task(module._setup)
-            setup_futures[future] = module_name
-        for future in self.helpers.as_completed(setup_futures):
-            module_name = setup_futures[future]
-            status, msg = future.result()
+        for task in asyncio.as_completed([m._setup() for m in self.modules.values()]):
+            module_name, status, msg = await task
             if status == True:
                 self.debug(f"Setup succeeded for {module_name} ({msg})")
             elif status == False:
@@ -332,34 +352,17 @@ class Scanner:
             self.status = "ABORTING"
             self.hugewarning(f"Aborting scan")
             self.helpers.kill_children()
-            self.shutdown_threadpools()
             self.helpers.kill_children()
 
-    def shutdown_threadpools(self):
-        if not self._thread_pools_shutdown:
-            self._thread_pools_shutdown = True
+    async def report(self):
+        for mod in self.modules.values():
+            await self.manager.catch(mod._register_running, mod.report)
 
-            def shutdown_pool(pool, pool_name, **kwargs):
-                self.debug(f"Shutting down {pool_name} with kwargs={kwargs}")
-                pool.shutdown(**kwargs)
-                self.debug(f"Finished shutting down {pool_name} with kwargs={kwargs}")
-
-            self.debug(f"Shutting down thread pools")
-            for pool_name, pool in self.pools.items():
-                t = threading.Thread(
-                    target=shutdown_pool,
-                    args=(pool, pool_name),
-                    kwargs={"wait": True, "cancel_futures": True},
-                    daemon=True,
-                )
-                t.start()
-                self._thread_pools_shutdown_threads.append(t)
-
-    def cleanup(self):
+    async def cleanup(self):
         # clean up modules
         self.status = "CLEANING_UP"
         for mod in self.modules.values():
-            mod._cleanup()
+            await mod._cleanup()
         if not self._cleanedup:
             self._cleanedup = True
             with suppress(Exception):
@@ -394,6 +397,10 @@ class Scanner:
         return not self.running
 
     @property
+    def stopped(self):
+        return self._status_code > 5
+
+    @property
     def running(self):
         return 0 < self._status_code < 4
 
@@ -420,22 +427,6 @@ class Scanner:
                 self.dispatcher.on_status(self._status, self.id)
         else:
             self.debug(f'Attempt to set invalid status "{status}" on scan')
-
-    @property
-    def status_detailed(self):
-        event_threadpool_tasks = self._event_thread_pool.num_tasks
-        internal_tasks = self._internal_thread_pool.num_tasks
-        process_tasks = self.process_pool.num_tasks
-        total_tasks = event_threadpool_tasks + internal_tasks + process_tasks
-        status = {
-            "queued_tasks": {
-                "internal": internal_tasks,
-                "process": process_tasks,
-                "event": event_threadpool_tasks,
-                "total": total_tasks,
-            },
-        }
-        return status
 
     def make_event(self, *args, **kwargs):
         kwargs["scan"] = self
@@ -614,3 +605,8 @@ class Scanner:
                 self.warning(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)
         return loaded_modules, failed
+
+    async def _status_ticker(self, interval=15):
+        while not self.stopped:
+            await asyncio.sleep(interval)
+            await self.manager.modules_status(_log=True)

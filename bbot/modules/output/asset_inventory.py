@@ -33,7 +33,7 @@ class asset_inventory(CSV):
     header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
     filename = "asset-inventory.csv"
 
-    def setup(self):
+    async def setup(self):
         self.assets = {}
         self.open_port_producers = "httpx" in self.scan.modules or any(
             ["portscan" in m.flags for m in self.scan.modules.values()]
@@ -41,7 +41,7 @@ class asset_inventory(CSV):
         self.use_previous = self.config.get("use_previous", False)
         self.summary_netmask = self.config.get("summary_netmask", 16)
         self.emitted_contents = False
-        ret = super().setup()
+        ret = await super().setup()
         return ret
 
     def filter_event(self, event):

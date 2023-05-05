@@ -25,7 +25,7 @@ class speculate(BaseInternalModule):
     _scope_shepherding = False
     _priority = 4
 
-    def setup(self):
+    async def setup(self):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
         self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
         self.range_to_ip = True
@@ -47,7 +47,7 @@ class speculate(BaseInternalModule):
 
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         # generate individual IP addresses from IP range
         if event.type == "IP_RANGE" and self.range_to_ip:
             net = ipaddress.ip_network(event.data)

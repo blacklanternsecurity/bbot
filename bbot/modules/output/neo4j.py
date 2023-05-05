@@ -19,7 +19,7 @@ class neo4j(BaseOutputModule):
     deps_pip = ["py2neo~=2021.2.3"]
     batch_size = 50
 
-    def setup(self):
+    async def setup(self):
         try:
             self.neo4j = Neo4j(
                 uri=self.config.get("uri", self.options["uri"]),

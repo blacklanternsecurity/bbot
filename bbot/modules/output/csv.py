@@ -13,7 +13,7 @@ class CSV(BaseOutputModule):
     header_row = ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
     filename = "output.csv"
 
-    def setup(self):
+    async def setup(self):
         self.custom_headers = []
         self._headers_set = set()
         self._writer = None
@@ -43,7 +43,7 @@ class CSV(BaseOutputModule):
         self.writer.writerow(row)
         self.file.flush()
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         # ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
         self.writerow(
             {
@@ -58,15 +58,14 @@ class CSV(BaseOutputModule):
             }
         )
 
-    def cleanup(self):
+    async def cleanup(self):
         if getattr(self, "_file", None) is not None:
             with suppress(Exception):
                 self.file.close()
 
-    def report(self):
+    async def report(self):
         if self._file is not None:
-            with self._report_lock:
-                self.info(f"Saved CSV output to {self.output_file}")
+            self.info(f"Saved CSV output to {self.output_file}")
 
     def add_custom_headers(self, headers):
         if isinstance(headers, str):
