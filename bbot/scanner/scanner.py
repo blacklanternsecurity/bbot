@@ -279,6 +279,10 @@ class Scanner:
             self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
+            init_events_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await init_events_task
+
             await self.report()
             await self.cleanup()
 
@@ -295,10 +299,6 @@ class Scanner:
             ticker_task.cancel()
             with suppress(asyncio.CancelledError):
                 await ticker_task
-
-            init_events_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await init_events_task
 
             for t in manager_worker_loop_tasks:
                 t.cancel()

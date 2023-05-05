@@ -281,6 +281,9 @@ class ScanManager:
                     for child_event in dns_child_events:
                         self.queue_event(child_event)
 
+        except KeyboardInterrupt:
+            self.scan.stop()
+
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
             log.trace(traceback.format_exc())
