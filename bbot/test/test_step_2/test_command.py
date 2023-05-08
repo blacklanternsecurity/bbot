@@ -26,12 +26,18 @@ async def test_command(bbot_scanner, bbot_config):
         ["cat"], input=scan1.helpers.run_live(["echo", "-en", r"some\nrandom\nstdin"])
     ):
         lines.append(line)
-    log.critical(lines)
     assert lines == ["some", "random", "stdin"]
 
     # test missing executable
     result = await scan1.helpers.run(["sgkjlskdfsdf"])
     assert result is None
+    lines = [l async for l in scan1.helpers.run_live(["ljhsdghsdf"])]
+    assert not lines
+    # test stderr
+    result = await scan1.helpers.run(["ls", "/sldikgjasldkfsdf"])
+    assert "No such file or directory" in result.stderr
+    lines = [l async for l in scan1.helpers.run_live(["ls", "/sldikgjasldkfsdf"])]
+    assert not lines
 
     # test sudo + existence of environment variables
     scan1.load_modules()

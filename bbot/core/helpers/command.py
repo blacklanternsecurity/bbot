@@ -15,7 +15,7 @@ async def run(self, *command, **kwargs):
         process = await run(["ls", "/tmp"])
         process.stdout --> "file1.txt\nfile2.txt"
     """
-    proc, _input = await self._spawn_proc(*command, **kwargs)
+    proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         if _input is not None:
             _input = smart_encode(_input)
@@ -26,7 +26,7 @@ async def run(self, *command, **kwargs):
         stdout = smart_decode(stdout)
         if stderr and proc.returncode != 0:
             command_str = " ".join(command)
-            log.warning(f"Stderr for {command_str}:\n\t{stderr}")
+            log.warning(f"Stderr for run({command_str}):\n\t{stderr}")
 
         return CompletedProcess(command, proc.returncode, stdout, stderr)
 
@@ -37,7 +37,7 @@ async def run_live(self, *command, **kwargs):
         async for line in run_live(["ls", "/tmp"]):
             log.info(line)
     """
-    proc, _input = await self._spawn_proc(*command, **kwargs)
+    proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         input_task = None
         if _input is not None:
@@ -54,13 +54,14 @@ async def run_live(self, *command, **kwargs):
         await proc.wait()
 
         # surface stderr
-        # if proc.stderr and proc.returncode != 0:
-        #     command_str = " ".join(command)
-        #     log.warning(f"Stderr for {command_str}:\n\t{stderr}")
+        if proc.returncode != 0:
+            stdout, stderr = await proc.communicate()
+            command_str = " ".join(command)
+            log.warning(f"Stderr for run_live({command_str}):\n\t{smart_decode(stderr)}")
 
 
 async def _spawn_proc(self, *command, **kwargs):
-    command, kwargs = self._prepare_command_kwargs_async(command, kwargs)
+    command, kwargs = self._prepare_command_kwargs(command, kwargs)
     _input = kwargs.pop("input", None)
     if _input is not None:
         if kwargs.get("stdin") is not None:
@@ -70,11 +71,11 @@ async def _spawn_proc(self, *command, **kwargs):
     log.hugeverbose(f"run: {' '.join(command)}")
     try:
         proc = await asyncio.create_subprocess_exec(*command, **kwargs)
-        return proc, _input
+        return proc, _input, command
     except FileNotFoundError as e:
         log.warning(f"{e} - missing executable?")
         log.trace(traceback.format_exc())
-    return None, None
+    return None, None, None
 
 
 async def _write_stdin(proc, _input):
@@ -88,7 +89,7 @@ async def _write_stdin(proc, _input):
         proc.stdin.close()
 
 
-def _prepare_command_kwargs_async(self, command, kwargs):
+def _prepare_command_kwargs(self, command, kwargs):
     if not "stdout" in kwargs:
         kwargs["stdout"] = asyncio.subprocess.PIPE
     if not "stderr" in kwargs:
