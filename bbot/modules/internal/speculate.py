@@ -104,7 +104,7 @@ class speculate(BaseInternalModule):
                         quick=True,
                     )
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self
         if str(event.module) == "speculate":
             if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):

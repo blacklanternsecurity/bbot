@@ -62,26 +62,26 @@ class massdns(crobat):
 
     digit_regex = re.compile(r"\d+")
 
-    def setup(self):
+    async def setup(self):
         self.found = dict()
         self.mutations_tried = set()
         self.source_events = dict()
-        self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
+        self.subdomain_file = await self.helpers.wordlist(self.config.get("wordlist"))
         self.max_resolvers = self.config.get("max_resolvers", 500)
         self.max_mutations = self.config.get("max_mutations", 500)
         nameservers_url = (
             "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt"
         )
-        self.resolver_file = self.helpers.wordlist(
+        self.resolver_file = await self.helpers.wordlist(
             nameservers_url,
             cache_hrs=24 * 7,
         )
         self.devops_mutations = list(self.helpers.word_cloud.devops_mutations)
-        return super().setup()
+        return await super().setup()
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         query = self.make_query(event)
-        eligible, reason = self.eligible_for_enumeration(event)
+        eligible, reason = await self.eligible_for_enumeration(event)
         if eligible:
             self.add_found(event)
         # reject if already processed
@@ -92,14 +92,14 @@ class massdns(crobat):
             return True, reason
         return False, reason
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
         h = hash(query)
         if not h in self.source_events:
             self.source_events[h] = event
 
         self.info(f"Brute-forcing subdomains for {query}")
-        for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):
+        for hostname in await self.massdns(query, self.helpers.read_file(self.subdomain_file)):
             self.emit_result(hostname, event, query)
 
     def abort_if(self, event):
@@ -118,33 +118,35 @@ class massdns(crobat):
             return True
         return False
 
-    def massdns(self, domain, subdomains):
+    async def massdns(self, domain, subdomains):
         abort_msg = f"Aborting massdns on {domain} due to false positives"
-        if self._canary_check(domain):
+        if await self._canary_check(domain):
             self.info(abort_msg)
             return []
-        results = list(self._massdns(domain, subdomains))
+        results = [l async for l in self._massdns(domain, subdomains)]
         if len(results) > 50:
-            if self._canary_check(domain):
+            if await self._canary_check(domain):
                 self.info(abort_msg)
                 return []
         self.verbose(f"Resolving batch of {len(results):,} results")
-        resolved = dict(self.helpers.resolve_batch(results, type=("A", "AAAA", "CNAME"), cache_result=True))
+        resolved = dict(
+            [l async for l in self.helpers.resolve_batch(results, type=("A", "AAAA", "CNAME"), cache_result=True)]
+        )
         resolved = {k: v for k, v in resolved.items() if v}
         for hostname in resolved:
             self.add_found(hostname)
         return list(resolved)
 
-    def _canary_check(self, domain, num_checks=50):
+    async def _canary_check(self, domain, num_checks=50):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
         self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
-        canary_results = list(self._massdns(domain, random_subdomains))
+        canary_results = [l async for l in self._massdns(domain, random_subdomains)]
         for result in canary_results:
-            if self.helpers.resolve(result):
+            if await self.helpers.resolve(result):
                 return True
         return False
 
-    def _massdns(self, domain, subdomains):
+    async def _massdns(self, domain, subdomains):
         """
         {
           "name": "www.blacklanternsecurity.com.",
@@ -176,7 +178,7 @@ class massdns(crobat):
             return
 
         domain_wildcard_rdtypes = set()
-        for domain, rdtypes in self.helpers.is_wildcard_domain(domain).items():
+        for domain, rdtypes in (await self.helpers.is_wildcard_domain(domain)).items():
             for rdtype, results in rdtypes.items():
                 if results:
                     domain_wildcard_rdtypes.add(rdtype)
@@ -197,7 +199,7 @@ class massdns(crobat):
         )
         subdomains = self.gen_subdomains(subdomains, domain)
         hosts_yielded = set()
-        for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL, input=subdomains):
+        async for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL, input=subdomains):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:
@@ -222,7 +224,7 @@ class massdns(crobat):
                                     f"Skipping {hostname}:{rdtype} because it may be a wildcard (reason: performance)"
                                 )
                                 continue
-                            wildcard_rdtypes = self.helpers.is_wildcard(hostname, ips=(data,))
+                            wildcard_rdtypes = await self.helpers.is_wildcard(hostname, ips=(data,))
                             if rdtype in wildcard_rdtypes:
                                 self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
                                 continue
@@ -231,7 +233,7 @@ class massdns(crobat):
                             hosts_yielded.add(hostname_hash)
                             yield hostname
 
-    def finish(self):
+    async def finish(self):
         found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
         # if we have a lot of rounds to make, don't try mutations on less-populated domains
         trimmed_found = []
@@ -310,7 +312,7 @@ class massdns(crobat):
 
                     if mutations:
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
-                        results = list(self.massdns(query, mutations))
+                        results = list(await self.massdns(query, mutations))
                         for hostname in results:
                             source_event = self.get_source_event(hostname)
                             if source_event is None:
@@ -334,7 +336,7 @@ class massdns(crobat):
                 except KeyError:
                     self.found[domain] = set((subdomain,))
 
-    def gen_subdomains(self, prefixes, domain):
+    async def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
             d = f"{p}.{domain}"
             yield d

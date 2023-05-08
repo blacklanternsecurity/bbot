@@ -2,7 +2,6 @@ import re
 import datetime
 import ipaddress
 import requests_mock
-from time import sleep
 
 from ..bbot_fixtures import *
 
@@ -351,72 +350,6 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
         helpers.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText") == "Hello\nWorld\tGreetings\nMore\nText"
     )
 
-    def raise_filenotfound():
-        raise FileNotFoundError("asdf")
-
-    def raise_brokenpipe():
-        raise BrokenPipeError("asdf")
-
-    from bbot.core.helpers import command
-
-    command.catch(raise_filenotfound)
-    command.catch(raise_brokenpipe)
-
-    ### COMMAND ###
-    scan1 = bbot_scanner(config=bbot_config)
-    assert "plumbus\n" in scan1.helpers.run(["echo", "plumbus"], text=True).stdout
-    assert "plumbus\n" in list(scan1.helpers.run_live(["echo", "plumbus"]))
-    expected_output = ["lumbus\n", "plumbus\n", "rumbus\n"]
-    assert list(scan1.helpers.run_live(["cat"], input="lumbus\nplumbus\nrumbus")) == expected_output
-
-    def plumbus_generator():
-        yield "lumbus"
-        yield "plumbus"
-
-    assert "plumbus\n" in list(scan1.helpers.run_live(["cat"], input=plumbus_generator()))
-    tempfile = helpers.tempfile(("lumbus", "plumbus"), pipe=True)
-    with open(tempfile) as f:
-        assert "plumbus\n" in list(f)
-    tempfile = helpers.tempfile(("lumbus", "plumbus"), pipe=False)
-    with open(tempfile) as f:
-        assert "plumbus\n" in list(f)
-
-    results = []
-    tempfile = helpers.tempfile_tail(callback=lambda x: results.append(x))
-    with open(tempfile, "w") as f:
-        f.write("asdf\n")
-    sleep(0.1)
-    assert "asdf" in results
-
-    # test sudo + existence of environment variables
-    scan1.load_modules()
-    path_parts = os.environ.get("PATH", "").split(":")
-    assert "/tmp/.bbot_test/tools" in path_parts
-    run_lines = scan1.helpers.run(["env"]).stdout.splitlines()
-    assert f"BBOT_PLUMBUS=asdf" in run_lines
-    for line in run_lines:
-        if line.startswith("PATH="):
-            path_parts = line.split("=", 1)[-1].split(":")
-            assert "/tmp/.bbot_test/tools" in path_parts
-    run_lines_sudo = scan1.helpers.run(["env"], sudo=True).stdout.splitlines()
-    assert f"BBOT_PLUMBUS=asdf" in run_lines_sudo
-    for line in run_lines_sudo:
-        if line.startswith("PATH="):
-            path_parts = line.split("=", 1)[-1].split(":")
-            assert "/tmp/.bbot_test/tools" in path_parts
-    run_live_lines = list(scan1.helpers.run_live(["env"]))
-    assert f"BBOT_PLUMBUS=asdf\n" in run_live_lines
-    for line in run_live_lines:
-        if line.startswith("PATH="):
-            path_parts = line.strip().split("=", 1)[-1].split(":")
-            assert "/tmp/.bbot_test/tools" in path_parts
-    run_live_lines_sudo = list(scan1.helpers.run_live(["env"], sudo=True))
-    assert f"BBOT_PLUMBUS=asdf\n" in run_live_lines_sudo
-    for line in run_live_lines_sudo:
-        if line.startswith("PATH="):
-            path_parts = line.strip().split("=", 1)[-1].split(":")
-            assert "/tmp/.bbot_test/tools" in path_parts
-
     ### CACHE ###
     helpers.cache_put("string", "wat")
     helpers.cache_put("binary", b"wat")
@@ -443,32 +376,6 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
         cache_dict[str(i)] = i + 1
     assert len(cache_dict) == 10
     assert tuple(cache_dict) == tuple(hash(str(x)) for x in range(10, 20))
-
-    ### WEB ###
-    with requests_mock.Mocker() as m:
-        # test base request
-        m.get("http://blacklanternsecurity.com/yep", text="yep")
-        assert getattr(helpers.request("http://blacklanternsecurity.com/yep"), "text", "") == "yep"
-        # test cached request
-        m.get("http://blacklanternsecurity.com/yepyep", text="yepyep")
-        assert getattr(helpers.request("http://blacklanternsecurity.com/yepyep", cache_for=60), "text", "") == "yepyep"
-        # test caching
-        m.get("http://blacklanternsecurity.com/yepyep", text="nope")
-        assert getattr(helpers.request("http://blacklanternsecurity.com/yepyep", cache_for=60), "text", "") == "yepyep"
-        # test downloading
-        m.get("http://blacklanternsecurity.com/download", text="downloaded")
-        filename = helpers.download("http://blacklanternsecurity.com/download", cache_hrs=1)
-        assert Path(str(filename)).is_file()
-        assert helpers.is_cached("http://blacklanternsecurity.com/download")
-        # test wordlist
-        m.get("http://blacklanternsecurity.com/wordlist", text="wordlist")
-        assert helpers.wordlist("http://blacklanternsecurity.com/wordlist").is_file()
-
-    # custom headers
-    bbot_httpserver.expect_request("/test-custom-http-headers-requests", headers={"test": "header"}).respond_with_data(
-        "OK"
-    )
-    assert scan.helpers.request(bbot_httpserver.url_for("/test-custom-http-headers-requests")).status_code == 200
 
     test_file = Path(scan.config["home"]) / "testfile.asdf"
     with open(test_file, "w") as f:

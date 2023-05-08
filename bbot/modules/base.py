@@ -119,7 +119,7 @@ class BaseModule:
         """
         pass
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         """
         Accept/reject events based on custom criteria
 
@@ -208,7 +208,7 @@ class BaseModule:
         return await self.scan.manager.catch(*args, **kwargs)
 
     async def _postcheck_and_run(self, callback, event):
-        acceptable, reason = self._event_postcheck(event)
+        acceptable, reason = await self._event_postcheck(event)
         if not acceptable:
             if reason:
                 self.debug(f"Not accepting {event} because {reason}")
@@ -411,7 +411,7 @@ class BaseModule:
                 return False, "module consumes IP ranges directly"
         return True, ""
 
-    def _event_postcheck(self, event):
+    async def _event_postcheck(self, event):
         """
         Check if an event should be accepted by the module
         Used when taking an event FROM the module's queue (immediately before it's handled)
@@ -437,7 +437,7 @@ class BaseModule:
 
         # custom filtering
         try:
-            filter_result = self.filter_event(event)
+            filter_result = await self.filter_event(event)
             msg = str(self._custom_filter_criteria_msg)
             with suppress(ValueError, TypeError):
                 filter_result, reason = filter_result

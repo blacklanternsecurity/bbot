@@ -193,7 +193,7 @@ class Scanner:
             self.warning(f"No scan targets specified")
 
         # start status ticker
-        ticker_task = asyncio.create_task(self._status_ticker(self.))
+        ticker_task = asyncio.create_task(self._status_ticker(self.status_frequency))
 
         scan_start_time = datetime.now()
         try:
@@ -322,7 +322,7 @@ class Scanner:
         hard_failed = []
         soft_failed = []
 
-        for task in asyncio.as_completed([m._setup() for m in self.modules.values()]):
+        for task in asyncio.as_completed([asyncio.create_task(m._setup()) for m in self.modules.values()]):
             module_name, status, msg = await task
             if status == True:
                 self.debug(f"Setup succeeded for {module_name} ({msg})")

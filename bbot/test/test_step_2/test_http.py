@@ -17,10 +17,10 @@ async def test_http_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     bbot_httpserver.expect_request(uri="/test_http_helpers", headers=headers).respond_with_data(
         "test_http_helpers_yep"
     )
-    response = await scan1.helpers.request_async(url)
+    response = await scan1.helpers.request(url)
     # should fail because URL is not in-scope
     assert response.status_code == 500
-    response = await scan2.helpers.request_async(url)
+    response = await scan2.helpers.request(url)
     # should suceed because URL is in-scope
     assert response.status_code == 200
     assert response.text == "test_http_helpers_yep"
@@ -30,7 +30,7 @@ async def test_http_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     url = bbot_httpserver.url_for(path)
     download_content = "test_http_helpers_download_yep"
     bbot_httpserver.expect_request(uri=path).respond_with_data(download_content)
-    filename = await scan1.helpers.download_async(url)
+    filename = await scan1.helpers.download(url)
     assert Path(str(filename)).is_file()
     assert scan1.helpers.is_cached(url)
     with open(filename) as f:
@@ -40,7 +40,7 @@ async def test_http_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     url = bbot_httpserver.url_for(path)
     download_content = "404"
     bbot_httpserver.expect_request(uri=path).respond_with_data(download_content, status=404)
-    filename = await scan1.helpers.download_async(url)
+    filename = await scan1.helpers.download(url)
     assert filename is None
     assert not scan1.helpers.is_cached(url)
 
@@ -49,11 +49,45 @@ async def test_http_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     url = bbot_httpserver.url_for(path)
     download_content = "a\ncool\nword\nlist"
     bbot_httpserver.expect_request(uri=path).respond_with_data(download_content)
-    filename = await scan1.helpers.wordlist_async(url)
+    filename = await scan1.helpers.wordlist(url)
     assert Path(str(filename)).is_file()
     assert scan1.helpers.is_cached(url)
-    with open(filename) as f:
-        assert f.read().splitlines() == ["a", "cool", "word", "list"]
+    assert list(scan1.helpers.read_file(filename)) == ["a", "cool", "word", "list"]
+
+    # page iteration
+    base_path = "/test_http_page_iteration"
+    template_path = base_path + "/{page}?page_size={page_size}&offset={offset}"
+    template_url = bbot_httpserver.url_for(template_path)
+    bbot_httpserver.expect_request(
+        uri=f"{base_path}/1", query_string={"page_size": "100", "offset": "0"}
+    ).respond_with_data("page1")
+    bbot_httpserver.expect_request(
+        uri=f"{base_path}/2", query_string={"page_size": "100", "offset": "100"}
+    ).respond_with_data("page2")
+    bbot_httpserver.expect_request(
+        uri=f"{base_path}/3", query_string={"page_size": "100", "offset": "200"}
+    ).respond_with_data("page3")
+    results = []
+    agen = scan1.helpers.api_page_iter(template_url)
+    try:
+        async for result in agen:
+            if result and result.text.startswith("page"):
+                results.append(result)
+            else:
+                break
+    finally:
+        await agen.aclose()
+    assert not results
+    agen = scan1.helpers.api_page_iter(template_url, json=False)
+    try:
+        async for result in agen:
+            if result and result.text.startswith("page"):
+                results.append(result)
+            else:
+                break
+    finally:
+        await agen.aclose()
+    assert [r.text for r in results] == ["page1", "page2", "page3"]
 
 
 @pytest.mark.asyncio

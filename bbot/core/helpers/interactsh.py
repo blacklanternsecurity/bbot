@@ -56,7 +56,7 @@ class Interactsh:
                 "secret-key": self.secret,
                 "correlation-id": self.correlation_id,
             }
-            r = await self.parent_helper.request_async(
+            r = await self.parent_helper.request(
                 f"https://{server}/register", headers=headers, json=data, method="POST"
             )
             if r is None:
@@ -93,7 +93,7 @@ class Interactsh:
 
         data = {"secret-key": self.secret, "correlation-id": self.correlation_id}
 
-        r = await self.parent_helper.request_async(
+        r = await self.parent_helper.request(
             f"https://{self.server}/deregister", headers=headers, json=data, method="POST"
         )
 
@@ -111,7 +111,7 @@ class Interactsh:
         if self.token:
             headers["Authorization"] = self.token
 
-        r = await self.parent_helper.request_async(
+        r = await self.parent_helper.request(
             f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
         )
 

@@ -22,19 +22,19 @@ class crobat(BaseModule):
     # until the queue is ready to receive its results
     _qsize = 1
 
-    def setup(self):
+    async def setup(self):
         self.processed = set()
         self.http_timeout = self.scan.config.get("http_timeout", 10)
         self._failures = 0
         return True
 
-    def _is_wildcard(self, query):
-        for domain, wildcard_rdtypes in self.helpers.is_wildcard_domain(query).items():
+    async def _is_wildcard(self, query):
+        for domain, wildcard_rdtypes in (await self.helpers.is_wildcard_domain(query)).items():
             if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
                 return True
         return False
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         """
         This filter_event is used across many modules
         """
@@ -42,16 +42,16 @@ class crobat(BaseModule):
         # reject if already processed
         if self.already_processed(query):
             return False, "Event was already processed"
-        eligible, reason = self.eligible_for_enumeration(event)
+        eligible, reason = await self.eligible_for_enumeration(event)
         if eligible:
             self.processed.add(hash(query))
             return True, reason
         return False, reason
 
-    def eligible_for_enumeration(self, event):
+    async def eligible_for_enumeration(self, event):
         query = self.make_query(event)
         # check if wildcard
-        is_wildcard = self._is_wildcard(query)
+        is_wildcard = await self._is_wildcard(query)
         # check if cloud
         is_cloud = False
         if any(t.startswith("cloud-") for t in event.tags):
@@ -85,7 +85,7 @@ class crobat(BaseModule):
             return True
         return False
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
         results = self.query(query)
         if results:
