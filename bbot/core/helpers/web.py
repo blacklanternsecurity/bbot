@@ -183,7 +183,7 @@ class WebHelper:
             curl_command.append("--path-as-is")
 
         # respect global ssl verify settings
-        ssl_verify = self.config.get("ssl_verify")
+        ssl_verify = self.parent_helper.config.get("ssl_verify")
         if ssl_verify == False:
             curl_command.append("-k")
 
@@ -194,15 +194,15 @@ class WebHelper:
         if ignore_bbot_global_settings:
             log.debug("ignore_bbot_global_settings enabled. Global settings will not be applied")
         else:
-            http_timeout = self.config.get("http_timeout", 20)
-            user_agent = self.config.get("user_agent", "BBOT")
+            http_timeout = self.parent_helper.config.get("http_timeout", 20)
+            user_agent = self.parent_helper.config.get("user_agent", "BBOT")
 
             if "User-Agent" not in headers:
                 headers["User-Agent"] = user_agent
 
             # only add custom headers if the URL is in-scope
-            if self.scan.in_scope(url):
-                for hk, hv in self.scan.config.get("http_headers", {}).items():
+            if self.parent_helper.scan.in_scope(url):
+                for hk, hv in self.parent_helper.scan.config.get("http_headers", {}).items():
                     headers[hk] = hv
 
             # add the timeout
@@ -257,5 +257,5 @@ class WebHelper:
             curl_command.append("-d")
             curl_command.append(raw_body)
 
-        output = await self.run(curl_command).stdout
+        output = (await self.parent_helper.run(curl_command)).stdout
         return output

@@ -2,7 +2,7 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_http_helpers(bbot_scanner, bbot_config, bbot_httpserver):
+async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     scan1 = bbot_scanner("8.8.8.8", config=bbot_config)
     scan2 = bbot_scanner("127.0.0.1", config=bbot_config)
 
@@ -91,7 +91,7 @@ async def test_http_helpers(bbot_scanner, bbot_config, bbot_httpserver):
 
 
 @pytest.mark.asyncio
-async def test_http_interactsh(bbot_scanner, bbot_config, bbot_httpserver):
+async def test_web_interactsh(bbot_scanner, bbot_config, bbot_httpserver):
     from bbot.core.helpers.interactsh import server_list
 
     scan1 = bbot_scanner("8.8.8.8", config=bbot_config)
@@ -106,3 +106,36 @@ async def test_http_interactsh(bbot_scanner, bbot_config, bbot_httpserver):
     data_list = await interactsh_client.poll()
     assert isinstance(data_list, list)
     assert await interactsh_client.deregister() is None
+
+
+@pytest.mark.asyncio
+async def test_web_curl(bbot_scanner, bbot_config, bbot_httpserver):
+    scan = bbot_scanner("127.0.0.1", config=bbot_config)
+    helpers = scan.helpers
+    url = bbot_httpserver.url_for("/curl")
+    bbot_httpserver.expect_request(uri="/curl").respond_with_data("curl_yep")
+    bbot_httpserver.expect_request(uri="/index.html").respond_with_data("curl_yep_index")
+    assert await helpers.curl(url=url) == "curl_yep"
+    assert await helpers.curl(url=url, ignore_bbot_global_settings=True) == "curl_yep"
+    assert (await helpers.curl(url=url, head_mode=True)).startswith("HTTP/")
+    assert await helpers.curl(url=url, raw_body="body") == "curl_yep"
+    assert (
+        await helpers.curl(
+            url=url,
+            raw_path=True,
+            headers={"test": "test", "test2": ["test2"]},
+            ignore_bbot_global_settings=False,
+            post_data={"test": "test"},
+            method="POST",
+            cookies={"test": "test"},
+            path_override="/index.html",
+        )
+        == "curl_yep_index"
+    )
+    # test custom headers
+    bbot_httpserver.expect_request("/test-custom-http-headers-curl", headers={"test": "header"}).respond_with_data(
+        "curl_yep_headers"
+    )
+    headers_url = bbot_httpserver.url_for("/test-custom-http-headers-curl")
+    curl_result = await helpers.curl(url=headers_url)
+    assert curl_result == "curl_yep_headers"
