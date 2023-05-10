@@ -4,9 +4,9 @@ import logging
 import traceback
 from contextlib import suppress
 
+from ..core.errors import ValidationError
 from ..core.helpers.queueing import EventQueue
 from ..core.helpers.async_helpers import TaskCounter
-from ..core.errors import ScanCancelledError, ValidationError
 
 log = logging.getLogger("bbot.scanner.manager")
 
@@ -32,16 +32,14 @@ class ScanManager:
         """
         seed scanner with target events
         """
-        with self._task_counter:
-            self.distribute_event(self.scan.root_event)
-            sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
-            for event in sorted_events:
-                self.scan.verbose(f"Target: {event}")
-                self.queue_event(event)
-            # force submit batches
-            # for mod in self.scan.modules.values():
-            #     mod._handle_batch(force=True)
-            self.scan._finished_init = True
+        async with self.scan.acatch(context=self.init_events):
+            with self._task_counter:
+                await self.distribute_event(self.scan.root_event)
+                sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
+                for event in sorted_events:
+                    self.scan.verbose(f"Target: {event}")
+                    self.queue_event(event)
+                self.scan._finished_init = True
 
     async def emit_event(self, event, *args, **kwargs):
         """
@@ -56,38 +54,20 @@ class ScanManager:
                 event._resolved.set()
                 return False
 
+            log.debug(f'Module "{event.module}" raised {event}')
+
             # "quick" queues the event immediately
             quick = kwargs.pop("quick", False)
             if quick:
                 log.debug(f'Module "{event.module}" raised {event}')
                 event._resolved.set()
-                for kwarg in ["abort_if", "on_success_callback", "_block"]:
+                for kwarg in ["abort_if", "on_success_callback"]:
                     kwargs.pop(kwarg, None)
-                try:
-                    self.distribute_event(event, *args, **kwargs)
-                    return True
-                except ScanCancelledError:
-                    return False
-                except Exception as e:
-                    log.error(f"Unexpected error in manager.emit_event(): {e}")
-                    log.trace(traceback.format_exc())
+                async with self.scan.acatch(context=self.distribute_event):
+                    await self.distribute_event(event, *args, **kwargs)
             else:
-                # don't raise an exception if the thread pool has been shutdown
-                error = True
-                try:
-                    await self.catch(self._emit_event, event, *args, **kwargs)
-                    error = False
-                    log.debug(f'Module "{event.module}" raised {event}')
-                    return True
-                except ScanCancelledError:
-                    return False
-                except Exception as e:
-                    log.error(f"Unexpected error in manager.emit_event(): {e}")
-                    log.trace(traceback.format_exc())
-                finally:
-                    if error:
-                        event._resolved.set()
-            return False
+                async with self.scan.acatch(context=self._emit_event, finally_callback=event._resolved.set):
+                    await self._emit_event(event, *args, **kwargs)
 
     def _event_precheck(self, event, exclude=("DNS_NAME",)):
         """
@@ -203,7 +183,8 @@ class ScanManager:
 
             # now that the event is properly tagged, we can finally make decisions about it
             if callable(abort_if):
-                abort_result = abort_if(event)
+                async with self.scan.acatch(context=abort_if):
+                    abort_result = await self.helpers.execute_sync_or_async(abort_if, event)
                 msg = f"{event.module}: not raising event {event} due to custom criteria in abort_if()"
                 with suppress(ValueError, TypeError):
                     abort_result, reason = abort_result
@@ -218,7 +199,8 @@ class ScanManager:
             # run success callback before distributing event (so it can add tags, etc.)
             if distribute_event:
                 if callable(on_success_callback):
-                    self.catch(on_success_callback, event)
+                    async with self.scan.acatch(context=on_success_callback):
+                        await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
 
             if not event.host or (event.always_emit and not event_is_duplicate):
                 log.debug(
@@ -229,7 +211,7 @@ class ScanManager:
                     self.queue_event(s)
 
             if distribute_event:
-                self.distribute_event(event)
+                await self.distribute_event(event)
                 event_distributed = True
 
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
@@ -277,9 +259,6 @@ class ScanManager:
                     for child_event in dns_child_events:
                         self.queue_event(child_event)
 
-        except KeyboardInterrupt:
-            self.scan.stop()
-
         except ValidationError as e:
             log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
             log.trace(traceback.format_exc())
@@ -322,66 +301,29 @@ class ScanManager:
             return False
         return True
 
-    async def catch(self, callback, *args, **kwargs):
-        """
-        Wrapper to ensure error messages get surfaced to the user
-        """
-        ret = None
-        on_finish_callback = kwargs.pop("_on_finish_callback", None)
-        force = kwargs.pop("_force", False)
-        fn = callback
-        for arg in args:
-            if callable(arg):
-                fn = arg
-            else:
-                break
-        try:
-            if not self.scan.stopping or force:
-                ret = await self.scan.helpers.execute_sync_or_async(callback, *args, **kwargs)
-        except ScanCancelledError as e:
-            log.debug(f"ScanCancelledError in {fn.__qualname__}(): {e}")
-        except BrokenPipeError as e:
-            log.debug(f"BrokenPipeError in {fn.__qualname__}(): {e}")
-        except Exception as e:
-            log.error(f"Error in {fn.__qualname__}(): {e}")
-            log.trace(traceback.format_exc())
-        except KeyboardInterrupt:
-            log.debug(f"Interrupted")
-            self.scan.stop()
-        except asyncio.CancelledError as e:
-            log.debug(f"{e}")
-        if callable(on_finish_callback):
-            try:
-                await self.scan.helpers.execute_sync_or_async(on_finish_callback)
-            except Exception as e:
-                log.error(
-                    f"Error in on_finish_callback {on_finish_callback.__qualname__}() after {fn.__qualname__}(): {e}"
-                )
-                log.trace(traceback.format_exc())
-        return ret
-
     async def _register_running(self, callback, *args, **kwargs):
         with self._task_counter:
             return await callback(*args, **kwargs)
 
-    def distribute_event(self, *args, **kwargs):
+    async def distribute_event(self, *args, **kwargs):
         """
         Queue event with modules
         """
-        event = self.scan.make_event(*args, **kwargs)
+        async with self.scan.acatch(context=self.distribute_event):
+            event = self.scan.make_event(*args, **kwargs)
 
-        event_hash = hash(event)
-        dup = event_hash in self.events_distributed
-        if dup:
-            self.scan.verbose(f"{event.module}: Duplicate event: {event}")
-        else:
-            self.events_distributed.add(event_hash)
-        # absorb event into the word cloud if it's in scope
-        if not dup and -1 < event.scope_distance < 1:
-            self.scan.word_cloud.absorb_event(event)
-        for mod in self.scan.modules.values():
-            if not dup or mod.accept_dupes:
-                mod.queue_event(event)
+            event_hash = hash(event)
+            dup = event_hash in self.events_distributed
+            if dup:
+                self.scan.verbose(f"{event.module}: Duplicate event: {event}")
+            else:
+                self.events_distributed.add(event_hash)
+            # absorb event into the word cloud if it's in scope
+            if not dup and -1 < event.scope_distance < 1:
+                self.scan.word_cloud.absorb_event(event)
+            for mod in self.scan.modules.values():
+                if not dup or mod.accept_dupes:
+                    await mod.queue_event(event)
 
     async def _worker_loop(self):
         try:

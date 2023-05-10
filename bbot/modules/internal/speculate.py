@@ -29,6 +29,7 @@ class speculate(BaseInternalModule):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
         self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
         self.range_to_ip = True
+        self.dns_resolution = self.scan.config.get("dns_resolution", True)
 
         self.ports = self.config.get("ports", [80, 443])
         if isinstance(self.ports, int):
@@ -88,10 +89,9 @@ class speculate(BaseInternalModule):
         # from hosts
         if emit_open_ports:
             # don't act on unresolved DNS_NAMEs
-
             usable_dns = False
             if event.type == "DNS_NAME":
-                if "a-record" in event.tags or "aaaa-record" in event.tags:
+                if (not self.dns_resolution) or ("a-record" in event.tags or "aaaa-record" in event.tags):
                     usable_dns = True
 
             if event.type == "IP_ADDRESS" or usable_dns:

@@ -137,7 +137,7 @@ class Agent:
                     log.warning(msg)
                     return {"error": msg}
                 scan_id = str(self.scan.id)
-                self.scan.stop(wait=True)
+                self.scan.stop()
                 msg = f"Stopped scan {scan_id}"
                 log.warning(msg)
                 self.scan = None

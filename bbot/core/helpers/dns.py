@@ -72,11 +72,13 @@ class DNSHelper:
         }
         """
         results = set()
-        raw_results, errors = await self.resolve_raw(query, **kwargs)
-        for rdtype, answers in raw_results:
-            for answer in answers:
-                for _, t in self.extract_targets(answer):
-                    results.add(t)
+        r = await self.resolve_raw(query, **kwargs)
+        if r:
+            raw_results, errors = r
+            for rdtype, answers in raw_results:
+                for answer in answers:
+                    for _, t in self.extract_targets(answer):
+                        results.add(t)
         return results
 
     async def resolve_raw(self, query, **kwargs):
@@ -350,22 +352,24 @@ class DNSHelper:
         except KeyError:
             return set(), None, None, set()
 
+    async def _resolve_batch_coro_wrapper(self, q, **kwargs):
+        """
+        Helps us correlate task results back to their original arguments
+        """
+        result = await self.resolve(q, **kwargs)
+        return (q, result)
+
     async def resolve_batch(self, queries, **kwargs):
         """
-        await resolve_batch("www.evilcorp.com", "evilcorp.com") --> [
+        await resolve_batch(["www.evilcorp.com", "evilcorp.com"]) --> [
             ("www.evilcorp.com", {"1.1.1.1"}),
             ("evilcorp.com", {"2.2.2.2"})
         ]
         """
 
-        async def coro_wrapper(q, **_kwargs):
-            """
-            Helps us correlate task results back to their original arguments
-            """
-            result = await self.resolve(q, **_kwargs)
-            return (q, result)
-
-        for task in asyncio.as_completed([coro_wrapper(q, **kwargs) for q in queries]):
+        for task in asyncio.as_completed(
+            [asyncio.create_task(self._resolve_batch_coro_wrapper(q, **kwargs)) for q in queries]
+        ):
             yield await task
 
     def extract_targets(self, record):
@@ -439,10 +443,6 @@ class DNSHelper:
         # skip check if the query is a domain
         if is_domain(query):
             return {}
-        # skip check if the query's parent domain is excluded in the config
-        for d in self.wildcard_ignore:
-            if self.parent_helper.host_in_host(query, d):
-                return {}
 
         parent = parent_domain(query)
         parents = list(domain_parents(query))
@@ -512,6 +512,12 @@ class DNSHelper:
         """
         wildcard_domain_results = {}
         domain = self._clean_dns_record(domain)
+
+        # skip check if the query's parent domain is excluded in the config
+        for d in self.wildcard_ignore:
+            if self.parent_helper.host_in_host(domain, d):
+                log.debug(f"Skipping wildcard detection on {domain} because it is excluded in the config")
+                return {}
 
         # make a list of its parents
         parents = list(domain_parents(domain, include_self=True))

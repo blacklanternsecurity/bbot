@@ -1031,3 +1031,24 @@ async def execute_sync_or_async(callback, *args, **kwargs):
         return await callback(*args, **kwargs)
     else:
         return callback(*args, **kwargs)
+
+
+def get_exception_chain(e):
+    """
+    Get the full chain of exceptions that led to the current one
+    """
+    exception_chain = []
+    current_exception = e
+    while current_exception is not None:
+        exception_chain.append(current_exception)
+        current_exception = getattr(current_exception, "__context__", None)
+    return exception_chain
+
+
+def get_traceback_details(e):
+    tb = traceback.extract_tb(e.__traceback__)
+    last_frame = tb[-1]  # Get the last frame in the traceback (the one where the exception was raised)
+    filename = last_frame.filename
+    lineno = last_frame.lineno
+    funcname = last_frame.name
+    return filename, lineno, funcname

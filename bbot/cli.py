@@ -320,12 +320,9 @@ async def _main():
             os._exit(1)
 
         # debug troublesome modules
-        """
-        from time import sleep
-        while 1:
-            scanner.manager.modules_status(_log=True)
-            sleep(1)
-        """
+        # while 1:
+        #     await scanner.manager.modules_status(_log=True)
+        #     await asyncio.sleep(1)
 
 
 def main():

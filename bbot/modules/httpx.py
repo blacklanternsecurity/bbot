@@ -32,7 +32,7 @@ class httpx(BaseModule):
     scope_distance_modifier = 1
     _priority = 2
 
-    def setup(self):
+    async def setup(self):
         self.threads = self.config.get("threads", 50)
         self.timeout = self.scan.config.get("httpx_timeout", 5)
         self.retries = self.scan.config.get("httpx_retries", 1)
@@ -40,7 +40,7 @@ class httpx(BaseModule):
         self.visited = set()
         return True
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if "_wildcard" in str(event.host).split("."):
             return False, "event is wildcard"
 
@@ -62,7 +62,7 @@ class httpx(BaseModule):
         # note: speculate makes open ports from
         return True
 
-    def handle_batch(self, *events):
+    async def handle_batch(self, *events):
         stdin = {}
         for e in events:
             url_hash = None
@@ -106,7 +106,7 @@ class httpx(BaseModule):
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:
             command += ["-http-proxy", proxy]
-        for line in self.helpers.run_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
+        async for line in self.helpers.run_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:

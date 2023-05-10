@@ -7,7 +7,7 @@ from contextlib import suppress
 
 from ..core.helpers.misc import get_size
 from ..core.helpers.async_helpers import TaskCounter
-from ..core.errors import ScanCancelledError, ValidationError, WordlistError
+from ..core.errors import ValidationError, WordlistError
 
 
 class BaseModule:
@@ -97,6 +97,8 @@ class BaseModule:
 
         # track number of failures (for .request_with_fail_count())
         self._request_failures = 0
+
+        self._event_received = asyncio.Condition()
 
     async def setup(self):
         """
@@ -200,56 +202,26 @@ class BaseModule:
             self._watched_events = set(self.watched_events)
         return self._watched_events
 
-    def submit_task(self, *args, **kwargs):
-        kwargs["_block"] = False
-        return self.thread_pool.submit_task(self.catch, *args, **kwargs)
-
-    async def catch(self, *args, **kwargs):
-        return await self.scan.manager.catch(*args, **kwargs)
-
-    async def _postcheck_and_run(self, callback, event):
-        acceptable, reason = await self._event_postcheck(event)
-        if not acceptable:
-            if reason:
-                self.debug(f"Not accepting {event} because {reason}")
-            return
-        self.scan.stats.event_consumed(event, self)
-        return await callback(event)
-
-    async def _register_running(self, callback, *args, **kwargs):
-        with self._task_counter:
-            return await callback(*args, **kwargs)
-
-    def _handle_batch(self, force=False):
+    async def _handle_batch(self):
+        submitted = False
         if self.batch_size <= 1:
             return
-        if self.num_queued_events > 0 and (force or self.num_queued_events >= self.batch_size):
-            on_finish_callback = None
-            events, finish, report = self.events_waiting
-            if finish:
-                on_finish_callback = self.finish
-            elif report:
-                on_finish_callback = self.report
-            checked_events = []
-            for e in events:
-                acceptable, reason = self._event_postcheck(e)
-                if not acceptable:
-                    if reason:
-                        self.debug(f"Not accepting {e} because {reason}")
-                    continue
-                checked_events.append(e)
-            if checked_events:
+        if self.num_queued_events > 0:
+            events, finish, report = await self.events_waiting()
+            if not self.errored:
                 self.debug(f"Handling batch of {len(events):,} events")
-                if not self.errored:
-                    self._internal_thread_pool.submit_task(
-                        self.catch,
-                        self._register_running,
-                        self.handle_batch,
-                        *checked_events,
-                        _on_finish_callback=on_finish_callback,
-                    )
-                return True
-        return False
+                if events:
+                    submitted = True
+                    async with self.scan.acatch(context=f"{self.name}.handle_batch"):
+                        with self._task_counter:
+                            await self.handle_batch(*events)
+                if finish:
+                    async with self.scan.acatch(context=f"{self.name}.finish"):
+                        await self.finish()
+                elif report:
+                    async with self.scan.acatch(context=f"{self.name}.report"):
+                        await self.report()
+        return submitted
 
     def make_event(self, *args, **kwargs):
         raise_error = kwargs.pop("raise_error", False)
@@ -271,8 +243,7 @@ class BaseModule:
         event = self.make_event(*args, **event_kwargs)
         self.scan.manager.queue_event(event)
 
-    @property
-    def events_waiting(self):
+    async def events_waiting(self):
         """
         yields all events in queue, up to maximum batch size
         """
@@ -284,11 +255,16 @@ class BaseModule:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
-                if event.type == "FINISHED":
-                    finish = True
-                else:
-                    events.append(event)
-            except queue.Empty:
+                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
+                acceptable, reason = await self._event_postcheck(event)
+                if acceptable:
+                    if event.type == "FINISHED":
+                        finish = True
+                    else:
+                        events.append(event)
+                elif reason:
+                    self.debug(f"Not accepting {event} because {reason}")
+            except asyncio.queues.QueueEmpty:
                 break
         return events, finish, report
 
@@ -323,53 +299,41 @@ class BaseModule:
             self.trace()
         return self.name, status, str(msg)
 
-    @property
-    def _force_batch(self):
-        """
-        Determine whether a batch should be forcefully submitted
-        """
-        # if we're below our maximum threading potential
-        return self._internal_thread_pool.num_tasks < self.max_event_handlers
-
     async def _worker(self):
-        try:
-            while not self.scan.stopping:
-                # hold the reigns if our outgoing queue is full
-                # if self._qsize and self.outgoing_event_queue.qsize() >= self._qsize:
-                #     with self.event_received:
-                #         await self.event_received.wait()
+        while not self.scan.stopping:
+            # hold the reigns if our outgoing queue is full
+            # if self._qsize and self.outgoing_event_queue.qsize() >= self._qsize:
+            #     with self.event_received:
+            #         await self.event_received.wait()
 
-                if self.batch_size > 1:
-                    pass
-                    # submitted = self._handle_batch(force=self._force_batch)
-                    # if not submitted:
-                    #     with self.event_received:
-                    #         await self.event_received.wait()
+            if self.batch_size > 1:
+                submitted = await self._handle_batch()
+                if not submitted:
+                    async with self._event_received:
+                        await self._event_received.wait()
 
-                else:
-                    try:
-                        if self.incoming_event_queue:
-                            e = await self.incoming_event_queue.get()
-                        else:
-                            self.debug(f"Event queue is in bad state")
-                            return
-                    except queue.Empty:
-                        continue
-                    self.debug(f"Got {e} from {getattr(e, 'module', 'unknown_module')}")
-                    # if we receive the special "FINISHED" event
-                    if e.type == "FINISHED":
-                        await self.catch(self._register_running, self.finish)
+            else:
+                try:
+                    if self.incoming_event_queue:
+                        event = await self.incoming_event_queue.get()
                     else:
-                        await self.catch(self._register_running, self._postcheck_and_run, self.handle_event, e)
-
-        except KeyboardInterrupt:
-            self.debug(f"Interrupted")
-            self.scan.stop()
-        except ScanCancelledError as e:
-            self.verbose(f"Scan cancelled, {e}")
-        except Exception as e:
-            self.set_error_state(f"Exception ({e.__class__.__name__}) in module {self.name}:\n{e}")
-            self.trace()
+                        self.debug(f"Event queue is in bad state")
+                        return
+                except asyncio.queues.QueueEmpty:
+                    continue
+                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
+                acceptable, reason = await self._event_postcheck(event)
+                if not acceptable:
+                    self.debug(f"Not accepting {event} because {reason}")
+                if acceptable:
+                    if event.type == "FINISHED":
+                        async with self.scan.acatch(context=f"{self.name}.finish"):
+                            with self._task_counter:
+                                await self.finish()
+                    else:
+                        async with self.scan.acatch(context=f"{self.name}.handle_event"):
+                            with self._task_counter:
+                                await self.handle_event(event)
 
     @property
     def max_scope_distance(self):
@@ -416,12 +380,16 @@ class BaseModule:
         Check if an event should be accepted by the module
         Used when taking an event FROM the module's queue (immediately before it's handled)
         """
+        # special exception for "FINISHED" event
         if event.type in ("FINISHED",):
             return True, ""
 
+        # reject out-of-scope events for active modules
+        # TODO: reconsider this
         if "active" in self.flags and "target" in event.tags and event not in self.scan.whitelist:
             return False, "it is not in whitelist and module has active flag"
 
+        # check scope distance
         if self._type != "output":
             if self.in_scope_only:
                 if event.scope_distance > 0:
@@ -436,7 +404,7 @@ class BaseModule:
                     )
 
         # custom filtering
-        try:
+        async with self.scan.acatch(context=self.filter_event):
             filter_result = await self.filter_event(event)
             msg = str(self._custom_filter_criteria_msg)
             with suppress(ValueError, TypeError):
@@ -444,16 +412,12 @@ class BaseModule:
                 msg += f": {reason}"
             if not filter_result:
                 return False, msg
-        except ScanCancelledError:
-            return False, "Scan cancelled"
-        except Exception as e:
-            self.error(f"Error in filter_event({event}): {e}")
-            self.trace()
 
         if self._type == "output" and not event._stats_recorded:
             event._stats_recorded = True
             self.scan.stats.event_produced(event)
 
+        self.debug(f"{event} passed post-check")
         return True, ""
 
     async def _cleanup(self):
@@ -461,9 +425,11 @@ class BaseModule:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
                 if callable(callback):
-                    await self.catch(self._register_running, callback, _force=True)
+                    async with self.scan.acatch(context=self.name):
+                        with self._task_counter:
+                            await self.helpers.execute_sync_or_async(callback)
 
-    def queue_event(self, event):
+    async def queue_event(self, event):
         if self.incoming_event_queue in (None, False):
             self.debug(f"Not in an acceptable state to queue event")
             return
@@ -474,6 +440,8 @@ class BaseModule:
             return
         try:
             self.incoming_event_queue.put_nowait(event)
+            async with self._event_received:
+                self._event_received.notify()
         except AttributeError:
             self.debug(f"Not in an acceptable state to queue event")
 

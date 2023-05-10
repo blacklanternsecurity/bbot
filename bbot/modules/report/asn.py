@@ -1,4 +1,3 @@
-from bbot.core.errors import ScanCancelledError
 from bbot.modules.report.base import BaseReportModule
 
 
@@ -90,8 +89,6 @@ class asn(BaseReportModule):
         """
         for attempt in range(retries + 1):
             for i, source in enumerate(list(self.sources)):
-                if self.scan.stopping:
-                    raise ScanCancelledError()
                 get_asn_fn = getattr(self, f"get_asn_{source}")
                 res = get_asn_fn(ip)
                 if res == False:

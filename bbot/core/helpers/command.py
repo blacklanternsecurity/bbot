@@ -18,7 +18,10 @@ async def run(self, *command, **kwargs):
     proc, _input, command = await self._spawn_proc(*command, **kwargs)
     if proc is not None:
         if _input is not None:
-            _input = smart_encode(_input)
+            if isinstance(_input, (list, tuple)):
+                _input = b"\n".join(smart_encode(i) for i in _input) + b"\n"
+            else:
+                _input = smart_encode(_input)
         stdout, stderr = await proc.communicate(_input)
 
         # surface stderr
@@ -50,14 +53,18 @@ async def run_live(self, *command, **kwargs):
             yield smart_decode(line).rstrip("\r\n")
 
         if input_task is not None:
-            await input_task
+            try:
+                await input_task
+            except BrokenPipeError:
+                log.trace(traceback.format_exc())
         await proc.wait()
 
         # surface stderr
         if proc.returncode != 0:
             stdout, stderr = await proc.communicate()
-            command_str = " ".join(command)
-            log.warning(f"Stderr for run_live({command_str}):\n\t{smart_decode(stderr)}")
+            if stderr:
+                command_str = " ".join(command)
+                log.warning(f"Stderr for run_live({command_str}):\n\t{smart_decode(stderr)}")
 
 
 async def _spawn_proc(self, *command, **kwargs):
@@ -80,8 +87,11 @@ async def _spawn_proc(self, *command, **kwargs):
 
 async def _write_stdin(proc, _input):
     if _input is not None:
-        if isinstance(_input, str):
-            proc.stdin.write(smart_encode(_input))
+        if isinstance(_input, (str, bytes)):
+            _input = [_input]
+        if isinstance(_input, (list, tuple)):
+            for chunk in _input:
+                proc.stdin.write(smart_encode(chunk) + b"\n")
         else:
             async for chunk in _input:
                 proc.stdin.write(smart_encode(chunk) + b"\n")

@@ -221,6 +221,7 @@ def set_log_level(level, logger=None):
     _log_level_override = level
     log = logging.getLogger("bbot")
     log.setLevel(level)
+    logging.getLogger("asyncio").setLevel(level)
 
 
 def toggle_log_level(logger=None):

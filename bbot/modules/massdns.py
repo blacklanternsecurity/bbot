@@ -98,7 +98,7 @@ class massdns(crobat):
         if not h in self.source_events:
             self.source_events[h] = event
 
-        self.info(f"Brute-forcing subdomains for {query}")
+        self.info(f"Brute-forcing subdomains for {query} ({event})")
         for hostname in await self.massdns(query, self.helpers.read_file(self.subdomain_file)):
             self.emit_result(hostname, event, query)
 
@@ -141,9 +141,12 @@ class massdns(crobat):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
         self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
         canary_results = [l async for l in self._massdns(domain, random_subdomains)]
-        for result in canary_results:
-            if await self.helpers.resolve(result):
+        async for result in self.helpers.resolve_batch(canary_results):
+            if result:
                 return True
+        # for result in canary_results:
+        #     if await self.helpers.resolve(result):
+        #         return True
         return False
 
     async def _massdns(self, domain, subdomains):

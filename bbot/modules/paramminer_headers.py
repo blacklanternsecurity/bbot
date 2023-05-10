@@ -1,5 +1,5 @@
 from bbot.modules.base import BaseModule
-from bbot.core.errors import HttpCompareError, ScanCancelledError
+from bbot.core.errors import HttpCompareError
 
 
 class paramminer_headers(BaseModule):
@@ -70,8 +70,6 @@ class paramminer_headers(BaseModule):
                         )
                         results.clear()
                         assert False
-        except ScanCancelledError:
-            return
         except AssertionError:
             pass
 
@@ -130,8 +128,6 @@ class paramminer_headers(BaseModule):
             self.warning(f"Submitted group of size 0 to binary_search()")
 
     def check_batch(self, compare_helper, url, header_list):
-        if self.scan.stopping:
-            raise ScanCancelledError()
         rand = self.rand_string()
         test_headers = {}
         for header in header_list:

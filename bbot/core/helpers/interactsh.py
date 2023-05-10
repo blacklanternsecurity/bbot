@@ -126,7 +126,8 @@ class Interactsh:
         return ret
 
     async def poll_loop(self, callback):
-        return await self.parent_helper.scan.manager.catch(self._poll_loop, callback, _force=True)
+        async with self.parent_helper.scan.acatch(context=self._poll_loop):
+            return await self._poll_loop(callback)
 
     async def _poll_loop(self, callback):
         while 1:

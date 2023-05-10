@@ -9,6 +9,8 @@ async def test_command(bbot_scanner, bbot_config):
     assert "plumbus\n" == (await scan1.helpers.run(["echo", "plumbus"])).stdout
     result = (await scan1.helpers.run(["cat"], input="some\nrandom\nstdin")).stdout
     assert result.splitlines() == ["some", "random", "stdin"]
+    result = (await scan1.helpers.run(["cat"], input=["some", "random", "stdin"])).stdout
+    assert result.splitlines() == ["some", "random", "stdin"]
 
     # run_live
     lines = []
@@ -17,6 +19,10 @@ async def test_command(bbot_scanner, bbot_config):
     assert lines == ["plumbus"]
     lines = []
     async for line in scan1.helpers.run_live(["cat"], input="some\nrandom\nstdin"):
+        lines.append(line)
+    assert lines == ["some", "random", "stdin"]
+    lines = []
+    async for line in scan1.helpers.run_live(["cat"], input=["some", "random", "stdin"]):
         lines.append(line)
     assert lines == ["some", "random", "stdin"]
 

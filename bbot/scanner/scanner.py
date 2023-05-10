@@ -1,12 +1,14 @@
 import queue
+
+# import signal
 import asyncio
 import logging
 import traceback
+import contextlib
 from sys import exc_info
 from pathlib import Path
 from datetime import datetime
 from omegaconf import OmegaConf
-from contextlib import suppress
 from collections import OrderedDict
 
 from bbot import config as bbot_config
@@ -22,7 +24,7 @@ from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.logger import init_logging, get_log_level
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.configurator.environ import prepare_environment
-from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
+from bbot.core.errors import BBOTError, ScanError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
 
@@ -159,7 +161,15 @@ class Scanner:
         self._finished_init = False
         self._cleanedup = False
 
+        self._loop = asyncio.get_event_loop()
+
+    def _on_keyboard_interrupt(self, loop, event):
+        self.stop()
+
     async def prep(self):
+        # event = asyncio.Event()
+        # self._loop.add_signal_handler(signal.SIGINT, self._on_keyboard_interrupt, loop, event)
+
         self.helpers.mkdir(self.home)
         if not self._prepped:
             start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target):,} targets"
@@ -224,14 +234,7 @@ class Scanner:
             while 1:
                 # abort if we're aborting
                 if self.aborting:
-                    # Empty event queues
-                    for module in self.modules.values():
-                        with suppress(queue.Empty):
-                            while 1:
-                                module.incoming_event_queue.get_nowait()
-                    with suppress(queue.Empty):
-                        while 1:
-                            self.incoming_event_queue.get_nowait()
+                    self.drain_queues()
                     break
 
                 if "python" in self.modules:
@@ -239,48 +242,37 @@ class Scanner:
                     for e in events:
                         yield e
 
+                # if initialization finished and the scan is no longer active
                 if self._finished_init and not self.manager.active:
-                    # And if new events were generated since last time we were here
-                    if self.manager._new_activity:
-                        self.manager._new_activity = False
-                        self.status = "FINISHING"
-                        # Trigger .finished() on every module and start over
-                        log.info("Finishing scan")
-                        finished_event = self.make_event("FINISHED", "FINISHED", dummy=True)
-                        for module in self.modules.values():
-                            module.queue_event(finished_event)
-                    else:
-                        # Otherwise stop the scan if no new events were generated since last time
+                    new_activity = await self.finish()
+                    if not new_activity:
                         break
 
                 await asyncio.sleep(0.01)
 
-            # for module in self.modules.values():
-            #     for task in module.tasks:
-            #         await task
-
             failed = False
 
-        except KeyboardInterrupt:
-            self.stop()
-            failed = False
+        except BaseException as e:
+            exception_chain = self.helpers.get_exception_chain(e)
+            if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+                self.stop()
+                failed = False
+            else:
+                try:
+                    raise
+                except ScanError as e:
+                    self.error(f"{e}")
 
-        except ScanCancelledError:
-            self.debug("Scan cancelled")
+                except BBOTError as e:
+                    self.critical(f"Error during scan: {e}")
+                    self.trace()
 
-        except ScanError as e:
-            self.error(f"{e}")
-
-        except BBOTError as e:
-            self.critical(f"Error during scan: {e}")
-            self.trace()
-
-        except Exception:
-            self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
+                except Exception:
+                    self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
             init_events_task.cancel()
-            with suppress(asyncio.CancelledError):
+            with contextlib.suppress(asyncio.CancelledError):
                 await init_events_task
 
             await self.report()
@@ -297,12 +289,12 @@ class Scanner:
                 self.status = "FINISHED"
 
             ticker_task.cancel()
-            with suppress(asyncio.CancelledError):
+            with contextlib.suppress(asyncio.CancelledError):
                 await ticker_task
 
             for t in manager_worker_loop_tasks:
                 t.cancel()
-                with suppress(asyncio.CancelledError):
+                with contextlib.suppress(asyncio.CancelledError):
                     await t
 
             scan_run_time = datetime.now() - scan_start_time
@@ -346,16 +338,49 @@ class Scanner:
         elif total_failed > 0:
             self.warning(f"Setup failed for {total_failed:,} modules")
 
-    def stop(self, wait=False):
+    def stop(self):
         if self.status != "ABORTING":
             self.status = "ABORTING"
             self.hugewarning(f"Aborting scan")
+            self.trace()
+            self.drain_queues()
             self.helpers.kill_children()
+            self.drain_queues()
             self.helpers.kill_children()
+
+    async def finish(self):
+        # if new events were generated since last time we were here
+        if self.manager._new_activity:
+            self.manager._new_activity = False
+            self.status = "FINISHING"
+            # Trigger .finished() on every module and start over
+            log.info("Finishing scan")
+            finished_event = self.make_event("FINISHED", "FINISHED", dummy=True)
+            for module in self.modules.values():
+                await module.queue_event(finished_event)
+            self.verbose("Completed finish()")
+            return True
+        # Return False if no new events were generated since last time
+        self.verbose("Completed final finish()")
+        return False
+
+    def drain_queues(self):
+        # Empty event queues
+        self.debug("Draining queues")
+        for module in self.modules.values():
+            with contextlib.suppress(asyncio.queues.QueueEmpty):
+                while 1:
+                    module.incoming_event_queue.get_nowait()
+        with contextlib.suppress(queue.Empty):
+            while 1:
+                self.manager.incoming_event_queue.get_nowait()
+        self.debug("Finished draining queues")
 
     async def report(self):
         for mod in self.modules.values():
-            await self.manager.catch(mod._register_running, mod.report)
+            async with self.acatch(context=mod.report):
+                with mod._task_counter:
+                    await mod.report()
 
     async def cleanup(self):
         # clean up modules
@@ -364,7 +389,7 @@ class Scanner:
             await mod._cleanup()
         if not self._cleanedup:
             self._cleanedup = True
-            with suppress(Exception):
+            with contextlib.suppress(Exception):
                 self.home.rmdir()
             self.helpers.clean_old_scans()
 
@@ -606,6 +631,53 @@ class Scanner:
         return loaded_modules, failed
 
     async def _status_ticker(self, interval=15):
-        while not self.stopped:
-            await asyncio.sleep(interval)
-            await self.manager.modules_status(_log=True)
+        async with self.acatch():
+            # while not self.stopped:
+            while 1:
+                await asyncio.sleep(interval)
+                await self.manager.modules_status(_log=True)
+
+    @contextlib.contextmanager
+    def catch(self, context="scan", finally_callback=None):
+        """
+        Handle common errors by stopping scan, logging tracebacks, etc.
+
+        with catch():
+            do_stuff()
+        """
+        try:
+            yield
+        except BaseException as e:
+            self._handle_exception(e, context=context)
+
+    @contextlib.asynccontextmanager
+    async def acatch(self, context="scan", finally_callback=None):
+        """
+        Async version of catch()
+
+        async with catch():
+            await do_stuff()
+        """
+        try:
+            yield
+        except BaseException as e:
+            self._handle_exception(e, context=context)
+
+    def _handle_exception(self, e, context="scan", finally_callback=None):
+        if callable(context):
+            context = f"{context.__qualname__}()"
+        filename, lineno, funcname = self.helpers.get_traceback_details(e)
+        exception_chain = self.helpers.get_exception_chain(e)
+        if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+            log.debug(f"Interrupted")
+            self.stop()
+        elif isinstance(e, BrokenPipeError):
+            log.debug(f"BrokenPipeError in {filename}:{lineno}:{funcname}(): {e}")
+        elif isinstance(e, asyncio.CancelledError):
+            log.debug(f"asyncio CancelledError: {e}")
+            log.trace(traceback.format_exc())
+        elif isinstance(e, Exception):
+            log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
+            log.trace(traceback.format_exc())
+        if callable(finally_callback):
+            self.helpers.execute_sync_or_async(finally_callback, e)

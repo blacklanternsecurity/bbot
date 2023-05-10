@@ -1,4 +1,3 @@
-from bbot.core.errors import ScanCancelledError
 from .paramminer_headers import paramminer_headers
 
 
@@ -22,8 +21,6 @@ class paramminer_cookies(paramminer_headers):
     compare_mode = "cookie"
 
     def check_batch(self, compare_helper, url, cookie_list):
-        if self.scan.stopping:
-            raise ScanCancelledError()
         cookies = {p: self.rand_string(14) for p in cookie_list}
         return compare_helper.compare(url, cookies=cookies)
 
