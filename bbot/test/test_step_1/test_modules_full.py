@@ -11,9 +11,10 @@ def test_gowitness(bbot_config, bbot_scanner, bbot_httpserver):
     x.run()
 
 
-def test_httpx(bbot_config, bbot_scanner, bbot_httpserver):
+@pytest.mark.asyncio
+async def test_httpx(bbot_config, bbot_scanner, bbot_httpserver):
     x = Httpx(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+    await x.run()
 
 
 def test_excavate(bbot_config, bbot_scanner, bbot_httpserver):

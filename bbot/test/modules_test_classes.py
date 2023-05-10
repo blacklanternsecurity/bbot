@@ -13,8 +13,8 @@ class Httpx(HttpxMockHelper):
         respond_args = dict(response_data=json.dumps({"foo": "bar"}))
         self.set_expect_requests(request_args, respond_args)
 
-    def run(self):
-        events = list(self.scan.start())
+    async def run(self):
+        events = [e async for e in self.scan.start()]
         assert self.check_events(events)
 
     def check_events(self, events):

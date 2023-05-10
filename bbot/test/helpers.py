@@ -1,6 +1,9 @@
+import logging
 import requests_mock
 from abc import abstractmethod
 from omegaconf import OmegaConf
+
+log = logging.getLogger("bbot.test.helpers")
 
 
 class MockHelper:
@@ -13,17 +16,16 @@ class MockHelper:
     def __init__(self, config, bbot_scanner, *args, **kwargs):
         self.name = kwargs.get("module_name", self.__class__.__name__.lower())
         self.config = OmegaConf.merge(config, OmegaConf.create(self.config_overrides))
+        modules = [self.name] + self.additional_modules
         self.scan = bbot_scanner(
             *self.targets,
-            modules=[self.name] + self.additional_modules,
+            modules=modules,
             name=f"{self.name}_test",
             config=self.config,
             whitelist=self.whitelist,
             blacklist=self.blacklist,
         )
         self.patch_scan(self.scan)
-        self.scan.prep()
-        self.module = self.scan.modules[self.name]
         self.setup()
 
     def patch_scan(self, scan):
@@ -40,6 +42,10 @@ class MockHelper:
     @abstractmethod
     def check_events(self, events):
         raise NotImplementedError
+
+    @property
+    def module(self):
+        return self.scan.modules[self.name]
 
 
 class RequestMockHelper(MockHelper):

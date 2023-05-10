@@ -127,8 +127,6 @@ class DNSHelper:
         parent_hash = hash(f"{parent}:{rdtype}")
         dns_cache_hash = hash(f"{query}:{rdtype}")
         while tries_left > 0:
-            # if self.parent_helper.scan_stopping:
-            #     break
             try:
                 try:
                     results = self._dns_cache[dns_cache_hash]
@@ -176,8 +174,6 @@ class DNSHelper:
         errors = []
         dns_cache_hash = hash(f"{query}:PTR")
         while tries_left > 0:
-            # if self.parent_helper.scan_stopping:
-            #     break
             try:
                 if dns_cache_hash in self._dns_cache:
                     result = self._dns_cache[dns_cache_hash]
@@ -586,9 +582,3 @@ class DNSHelper:
             dummy_module = self.parent_helper._make_dummy_module(name=name, _type="DNS")
             self._dummy_modules[name] = dummy_module
         return dummy_module
-
-    def dns_warning(self, msg):
-        msg_hash = hash(msg)
-        if msg_hash not in self._dns_warnings:
-            log.warning(msg)
-            self._dns_warnings.add(msg_hash)
