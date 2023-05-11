@@ -2,14 +2,14 @@ import os
 import asyncio
 import logging
 import traceback
-from subprocess import CompletedProcess
+from subprocess import CompletedProcess, CalledProcessError
 
 from .misc import smart_decode, smart_encode
 
 log = logging.getLogger("bbot.core.helpers.command")
 
 
-async def run(self, *command, **kwargs):
+async def run(self, *command, check=False, text=True, **kwargs):
     """
     Simple helper for running a command, and getting its output as a string
         process = await run(["ls", "/tmp"])
@@ -25,16 +25,20 @@ async def run(self, *command, **kwargs):
         stdout, stderr = await proc.communicate(_input)
 
         # surface stderr
-        stderr = smart_decode(stderr)
-        stdout = smart_decode(stdout)
-        if stderr and proc.returncode != 0:
-            command_str = " ".join(command)
-            log.warning(f"Stderr for run({command_str}):\n\t{stderr}")
+        if text:
+            stderr = smart_decode(stderr)
+            stdout = smart_decode(stdout)
+        if proc.returncode:
+            if check:
+                raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
+            if stderr:
+                command_str = " ".join(command)
+                log.warning(f"Stderr for run({command_str}):\n\t{stderr}")
 
         return CompletedProcess(command, proc.returncode, stdout, stderr)
 
 
-async def run_live(self, *command, **kwargs):
+async def run_live(self, *command, check=False, text=True, **kwargs):
     """
     Simple helper for running a command and iterating through its output line by line in realtime
         async for line in run_live(["ls", "/tmp"]):
@@ -50,7 +54,11 @@ async def run_live(self, *command, **kwargs):
             line = await proc.stdout.readline()
             if not line:
                 break
-            yield smart_decode(line).rstrip("\r\n")
+            if text:
+                line = smart_decode(line).rstrip("\r\n")
+            else:
+                line = line.rstrip(b"\r\n")
+            yield line
 
         if input_task is not None:
             try:
@@ -59,12 +67,17 @@ async def run_live(self, *command, **kwargs):
                 log.trace(traceback.format_exc())
         await proc.wait()
 
-        # surface stderr
-        if proc.returncode != 0:
+        if proc.returncode:
             stdout, stderr = await proc.communicate()
+            if text:
+                stderr = smart_decode(stderr)
+                stdout = smart_decode(stdout)
+            if check:
+                raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
+            # surface stderr
             if stderr:
                 command_str = " ".join(command)
-                log.warning(f"Stderr for run_live({command_str}):\n\t{smart_decode(stderr)}")
+                log.warning(f"Stderr for run_live({command_str}):\n\t{stderr}")
 
 
 async def _spawn_proc(self, *command, **kwargs):
@@ -100,6 +113,8 @@ async def _write_stdin(proc, _input):
 
 
 def _prepare_command_kwargs(self, command, kwargs):
+    # limit = 10MB (this is needed for cases like httpx that are sending large JSON blobs over stdout)
+    kwargs["limit"] = 1024 * 1024 * 10
     if not "stdout" in kwargs:
         kwargs["stdout"] = asyncio.subprocess.PIPE
     if not "stderr" in kwargs:

@@ -19,10 +19,10 @@ class secretsdb(BaseModule):
     }
     deps_pip = ["pyyaml~=6.0"]
 
-    def setup(self):
+    async def setup(self):
         self.rules = []
         self.min_confidence = self.config.get("min_confidence", 99)
-        self.sig_file = self.helpers.wordlist(self.config.get("signatures", ""))
+        self.sig_file = await self.helpers.wordlist(self.config.get("signatures", ""))
         with open(self.sig_file) as f:
             rules_yaml = yaml.safe_load(f).get("patterns", [])
         for r in rules_yaml:
@@ -41,7 +41,7 @@ class secretsdb(BaseModule):
                     self.debug(f"Error compiling regex: r'{regex}'")
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         resp_body = event.data.get("body", "")
         resp_headers = event.data.get("raw_header", "")
         for r in self.rules:

@@ -29,6 +29,7 @@ class DepsInstaller:
         os.environ["ANSIBLE_TIMEOUT"] = str(http_timeout)
 
         self.askpass_filename = "sudo_askpass.py"
+        self._installed_sudo_askpass = False
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         if self._sudo_password is None:
             if configurator.bbot_sudo_pass is not None:
@@ -55,7 +56,7 @@ class DepsInstaller:
 
         self.ensure_root_lock = Lock()
 
-    def install(self, *modules):
+    async def install(self, *modules):
         self.install_core_deps()
         succeeded = []
         failed = []
@@ -95,7 +96,7 @@ class DepsInstaller:
                         # get sudo access if we need it
                         if preloaded.get("sudo", False) == True:
                             self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
-                        success = self.install_module(m)
+                        success = await self.install_module(m)
                         self.setup_status[module_hash] = success
                         if success or self.ignore_failed_deps:
                             log.debug(f'Setup succeeded for module "{m}"')
@@ -122,7 +123,7 @@ class DepsInstaller:
         failed.sort()
         return succeeded, failed
 
-    def install_module(self, module):
+    async def install_module(self, module):
         success = True
         preloaded = self.all_modules_preloaded[module]
 
@@ -145,11 +146,11 @@ class DepsInstaller:
         deps_pip = preloaded["deps"]["pip"]
         deps_pip_constraints = preloaded["deps"]["pip_constraints"]
         if deps_pip:
-            success &= self.pip_install(deps_pip, constraints=deps_pip_constraints)
+            success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
         return success
 
-    def pip_install(self, packages, constraints=None):
+    async def pip_install(self, packages, constraints=None):
         packages_str = ",".join(packages)
         log.info(f"Installing the following pip packages: {packages_str}")
 
@@ -162,7 +163,7 @@ class DepsInstaller:
 
         process = None
         try:
-            process = self.parent_helper.run(command, check=True)
+            process = await self.parent_helper.run(command, check=True)
             message = f'Successfully installed pip packages "{packages_str}"'
             output = process.stdout.splitlines()[-1]
             if output:
@@ -297,6 +298,7 @@ class DepsInstaller:
             json.dump(self.setup_status, f)
 
     def ensure_root(self, message=""):
+        self._install_sudo_askpass()
         with self.ensure_root_lock:
             if os.geteuid() != 0 and self._sudo_password is None:
                 if message:
@@ -314,11 +316,7 @@ class DepsInstaller:
 
     def install_core_deps(self):
         to_install = set()
-        # install custom askpass script
-        askpass_src = Path(__file__).resolve().parent / self.askpass_filename
-        askpass_dst = self.parent_helper.tools_dir / self.askpass_filename
-        shutil.copy(askpass_src, askpass_dst)
-        askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)
+        self._install_sudo_askpass()
         # ensure tldextract data is cached
         self.parent_helper.tldextract("evilcorp.co.uk")
         # command: package_name
@@ -329,3 +327,12 @@ class DepsInstaller:
         if to_install:
             self.ensure_root()
             self.apt_install(list(to_install))
+
+    def _install_sudo_askpass(self):
+        if not self._installed_sudo_askpass:
+            self._installed_sudo_askpass = True
+            # install custom askpass script
+            askpass_src = Path(__file__).resolve().parent / self.askpass_filename
+            askpass_dst = self.parent_helper.tools_dir / self.askpass_filename
+            shutil.copy(askpass_src, askpass_dst)
+            askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)

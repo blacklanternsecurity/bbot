@@ -29,28 +29,28 @@ class paramminer_headers(BaseModule):
     in_scope_only = True
     compare_mode = "header"
 
-    def setup(self):
+    async def setup(self):
         wordlist_url = self.config.get("wordlist", "")
-        self.wordlist = self.helpers.wordlist(wordlist_url)
+        self.wordlist = await self.helpers.wordlist(wordlist_url)
         return True
 
     def rand_string(self, *args, **kwargs):
         return self.helpers.rand_string(*args, **kwargs)
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         url = event.data
         try:
             compare_helper = self.helpers.http_compare(url)
         except HttpCompareError as e:
             self.debug(e)
             return
-        batch_size = self.count_test(url)
+        batch_size = await self.count_test(url)
         if batch_size == None or batch_size <= 0:
             self.debug(f"Failed to get baseline max {self.compare_mode} count, aborting")
             return
         self.debug(f"Resolved batch_size at {str(batch_size)}")
 
-        if compare_helper.canary_check(url, mode=self.compare_mode) == False:
+        if await compare_helper.canary_check(url, mode=self.compare_mode) == False:
             self.verbose(f'Aborting "{url}" due to failed canary check')
             return
 
@@ -62,7 +62,7 @@ class paramminer_headers(BaseModule):
         abort_threshold = 25
         try:
             for group in self.helpers.grouper(wordlist_cleaned, batch_size):
-                for result, reasons, reflection in self.binary_search(compare_helper, url, group):
+                async for result, reasons, reflection in self.binary_search(compare_helper, url, group):
                     results.add((result, ",".join(reasons), reflection))
                     if len(results) >= abort_threshold:
                         self.warning(
@@ -85,14 +85,14 @@ class paramminer_headers(BaseModule):
                 tags=tags,
             )
 
-    def count_test(self, url):
-        baseline = self.helpers.request(url)
+    async def count_test(self, url):
+        baseline = await self.helpers.request(url)
         if baseline is None:
             return
         if str(baseline.status_code)[0] in ("4", "5"):
             return
         for count, args, kwargs in self.gen_count_args(url):
-            r = self.helpers.request(*args, **kwargs)
+            r = await self.helpers.request(*args, **kwargs)
             if r is not None and not ((str(r.status_code)[0] in ("4", "5"))):
                 return count
 
@@ -112,7 +112,7 @@ class paramminer_headers(BaseModule):
             return True
         return False
 
-    def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
+    async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
             reasons = []
         self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
@@ -121,15 +121,16 @@ class paramminer_headers(BaseModule):
                 yield group[0], reasons, reflection
         elif len(group) > 1:
             for group_slice in self.helpers.split_list(group):
-                match, reasons, reflection, subject_response = self.check_batch(compare_helper, url, group_slice)
+                match, reasons, reflection, subject_response = await self.check_batch(compare_helper, url, group_slice)
                 if match == False:
-                    yield from self.binary_search(compare_helper, url, group_slice, reasons, reflection)
+                    async for r in self.binary_search(compare_helper, url, group_slice, reasons, reflection):
+                        yield r
         else:
             self.warning(f"Submitted group of size 0 to binary_search()")
 
-    def check_batch(self, compare_helper, url, header_list):
+    async def check_batch(self, compare_helper, url, header_list):
         rand = self.rand_string()
         test_headers = {}
         for header in header_list:
             test_headers[header] = rand
-        return compare_helper.compare(url, headers=test_headers, check_reflection=(len(header_list) == 1))
+        return await compare_helper.compare(url, headers=test_headers, check_reflection=(len(header_list) == 1))

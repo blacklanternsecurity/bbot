@@ -77,17 +77,17 @@ class crobat(BaseModule):
                 return True
         return False
 
-    def abort_if(self, event):
+    async def abort_if(self, event):
         # this helps weed out unwanted results when scanning IP_RANGES and wildcard domains
         if "in-scope" not in event.tags:
             return True
-        if self._is_wildcard(event.data):
+        if await self._is_wildcard(event.data):
             return True
         return False
 
     async def handle_event(self, event):
         query = self.make_query(event)
-        results = self.query(query)
+        results = await self.query(query)
         if results:
             for hostname in set(results):
                 if hostname:
@@ -99,9 +99,9 @@ class crobat(BaseModule):
                     if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
                         self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
-        return self.request_with_fail_count(url)
+        return await self.request_with_fail_count(url)
 
     def make_query(self, event):
         if "target" in event.tags:
@@ -116,13 +116,13 @@ class crobat(BaseModule):
             for hostname in json:
                 yield hostname
 
-    def query(self, query, parse_fn=None, request_fn=None):
+    async def query(self, query, parse_fn=None, request_fn=None):
         if parse_fn is None:
             parse_fn = self.parse_results
         if request_fn is None:
             request_fn = self.request_url
         try:
-            results = list(parse_fn(request_fn(query), query))
+            results = list(parse_fn(await request_fn(query), query))
             if results:
                 return results
             self.debug(f'No results for "{query}"')

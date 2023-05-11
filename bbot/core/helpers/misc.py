@@ -10,6 +10,7 @@ import random
 import shutil
 import signal
 import string
+import asyncio
 import difflib
 import inspect
 import logging
@@ -18,6 +19,7 @@ import ipaddress
 import traceback
 import subprocess as sp
 from pathlib import Path
+from asyncio import sleep  # noqa
 from itertools import islice
 from datetime import datetime
 from tabulate import tabulate
@@ -1052,3 +1054,18 @@ def get_traceback_details(e):
     lineno = last_frame.lineno
     funcname = last_frame.name
     return filename, lineno, funcname
+
+
+def create_task(*args, **kwargs):
+    return asyncio.create_task(*args, **kwargs)
+
+
+def as_completed(*args, **kwargs):
+    yield from asyncio.as_completed(*args, **kwargs)
+
+
+async def cancel_tasks(tasks):
+    for task in tasks:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task

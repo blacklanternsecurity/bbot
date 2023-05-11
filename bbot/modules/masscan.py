@@ -50,7 +50,7 @@ class masscan(BaseModule):
     ]
     _qsize = 100
 
-    def setup(self):
+    async def setup(self):
         self.ports = self.config.get("ports", "80,443")
         self.rate = self.config.get("rate", 600)
         self.wait = self.config.get("wait", 10)
@@ -61,7 +61,7 @@ class masscan(BaseModule):
         if not self.helpers.in_tests:
             try:
                 dry_run_command = self._build_masscan_command(self._target_findkey, dry_run=True)
-                dry_run_result = self.helpers.run(dry_run_command)
+                dry_run_result = await self.helpers.run(dry_run_command)
                 self.masscan_config = dry_run_result.stdout
                 self.masscan_config = "\n".join(l for l in self.masscan_config.splitlines() if "nocapture" not in l)
             except subprocess.CalledProcessError as e:
@@ -91,7 +91,7 @@ class masscan(BaseModule):
         self.syn_cache_fd = None
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         if self.use_cache:
             self.emit_from_cache()
         else:
@@ -114,7 +114,7 @@ class masscan(BaseModule):
             if self.ping_first:
                 self.verbose("Starting masscan (ping scan)")
 
-                self.masscan(targets, result_callback=self.append_alive_host, exclude=exclude, ping=True)
+                await self.masscan(targets, result_callback=self.append_alive_host, exclude=exclude, ping=True)
                 targets = ",".join(str(h) for h in self.alive_hosts)
                 if not targets:
                     self.warning("No hosts responded to pings")
@@ -123,13 +123,13 @@ class masscan(BaseModule):
             # TCP SYN scan
             if self.ports:
                 self.verbose("Starting masscan (TCP SYN scan)")
-                self.masscan(targets, result_callback=self.emit_open_tcp_port, exclude=exclude)
+                await self.masscan(targets, result_callback=self.emit_open_tcp_port, exclude=exclude)
             else:
                 self.verbose("No ports specified, skipping TCP SYN scan")
             # save memory
             self.alive_hosts.clear()
 
-    def masscan(self, targets, result_callback, exclude=None, ping=False):
+    async def masscan(self, targets, result_callback, exclude=None, ping=False):
         # config file
         masscan_config = self.masscan_config.replace(self._target_findkey, targets)
         self.debug("Masscan config:")
@@ -145,7 +145,8 @@ class masscan(BaseModule):
         stats_file = self.helpers.tempfile_tail(callback=self.verbose)
         try:
             with open(stats_file, "w") as stats_fh:
-                for line in self.helpers.run_live(command, sudo=True, stderr=stats_fh):
+                self.critical(f"masscan: {command}")
+                async for line in self.helpers.run_live(command, sudo=True, stderr=stats_fh):
                     self.process_output(line, result_callback=result_callback)
         finally:
             stats_file.unlink()

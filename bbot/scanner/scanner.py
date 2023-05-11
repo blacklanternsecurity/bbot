@@ -162,6 +162,9 @@ class Scanner:
         self._cleanedup = False
 
         self._loop = asyncio.get_event_loop()
+        self.manager_worker_loop_tasks = []
+        self.init_events_task = None
+        self.ticker_task = None
 
     def _on_keyboard_interrupt(self, loop, event):
         self.stop()
@@ -182,7 +185,7 @@ class Scanner:
                 start_msg += f" ({', '.join(details)})"
             self.hugeinfo(start_msg)
 
-            self.load_modules()
+            await self.load_modules()
 
             self.info(f"Setting up modules...")
             await self.setup_modules()
@@ -203,7 +206,7 @@ class Scanner:
             self.warning(f"No scan targets specified")
 
         # start status ticker
-        ticker_task = asyncio.create_task(self._status_ticker(self.status_frequency))
+        self.ticker_task = asyncio.create_task(self._status_ticker(self.status_frequency))
 
         scan_start_time = datetime.now()
         try:
@@ -219,12 +222,12 @@ class Scanner:
             self.dispatcher.on_start(self)
 
             # start manager worker loops
-            manager_worker_loop_tasks = [
+            self.manager_worker_loop_tasks = [
                 asyncio.create_task(self.manager._worker_loop()) for _ in range(self.max_workers)
             ]
 
             # distribute seed events
-            init_events_task = asyncio.create_task(self.manager.init_events())
+            self.init_events_task = asyncio.create_task(self.manager.init_events())
 
             self.status = "RUNNING"
             self.start_modules()
@@ -271,10 +274,7 @@ class Scanner:
                     self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
-            init_events_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await init_events_task
-
+            await self.cancel_tasks()
             await self.report()
             await self.cleanup()
 
@@ -288,15 +288,6 @@ class Scanner:
             else:
                 self.status = "FINISHED"
 
-            ticker_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await ticker_task
-
-            for t in manager_worker_loop_tasks:
-                t.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await t
-
             scan_run_time = datetime.now() - scan_start_time
             scan_run_time = self.helpers.human_timedelta(scan_run_time)
             log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
@@ -309,7 +300,7 @@ class Scanner:
             module.start()
 
     async def setup_modules(self, remove_failed=True):
-        self.load_modules()
+        await self.load_modules()
         self.verbose(f"Setting up modules")
         hard_failed = []
         soft_failed = []
@@ -375,6 +366,24 @@ class Scanner:
             while 1:
                 self.manager.incoming_event_queue.get_nowait()
         self.debug("Finished draining queues")
+
+    async def cancel_tasks(self):
+        tasks = []
+        # module workers
+        for m in self.modules.values():
+            tasks += getattr(m, "_tasks", [])
+        # init events
+        if self.init_events_task:
+            tasks.append(self.init_events_task)
+        # ticker
+        if self.ticker_task:
+            tasks.append(self.ticker_task)
+        # manager worker loops
+        tasks += self.manager_worker_loop_tasks
+        for t in tasks:
+            t.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await t
 
     async def report(self):
         for mod in self.modules.values():
@@ -540,7 +549,7 @@ class Scanner:
             if self.config.get(modname, True):
                 yield modname
 
-    def load_modules(self):
+    async def load_modules(self):
         if not self._modules_loaded:
             all_modules = list(set(self._scan_modules + self._output_modules + self._internal_modules))
             if not all_modules:
@@ -551,7 +560,7 @@ class Scanner:
                 self.warning(f"No scan modules to load")
 
             # install module dependencies
-            succeeded, failed = self.helpers.depsinstaller.install(
+            succeeded, failed = await self.helpers.depsinstaller.install(
                 *self._scan_modules, *self._output_modules, *self._internal_modules
             )
             if failed:

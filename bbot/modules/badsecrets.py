@@ -11,7 +11,7 @@ class badsecrets(BaseModule):
     max_event_handlers = 2
     deps_pip = ["badsecrets~=0.1.287"]
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         resp_body = event.data.get("body", None)
         resp_headers = event.data.get("header", None)
         resp_cookies = {}

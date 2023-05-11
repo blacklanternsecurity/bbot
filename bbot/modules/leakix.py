@@ -9,9 +9,9 @@ class leakix(crobat):
 
     base_url = "https://leakix.net"
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/api/subdomains/{self.helpers.quote(query)}"
-        return self.request_with_fail_count(url, headers={"Accept": "application/json"})
+        return await self.request_with_fail_count(url, headers={"Accept": "application/json"})
 
     def parse_results(self, r, query=None):
         json = r.json()

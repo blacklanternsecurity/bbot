@@ -26,10 +26,10 @@ class fingerprintx(BaseModule):
         },
     ]
 
-    def handle_batch(self, *events):
+    async def handle_batch(self, *events):
         _input = {e.data: e for e in events}
         command = ["fingerprintx", "--json"]
-        for line in self.helpers.run_live(command, input=list(_input), stderr=subprocess.DEVNULL):
+        async for line in self.helpers.run_live(command, input=list(_input), stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except Exception as e:

@@ -16,11 +16,11 @@ class robots(BaseModule):
 
     in_scope_only = True
 
-    def setup(self):
+    async def setup(self):
         self.scanned_hosts = set()
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         parsed_host = event.parsed
         host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
         host_hash = hash(host)
@@ -32,7 +32,7 @@ class robots(BaseModule):
 
         result = None
         url = f"{host}robots.txt"
-        result = self.helpers.request(url)
+        result = await self.helpers.request(url)
         if result:
             body = result.text
 

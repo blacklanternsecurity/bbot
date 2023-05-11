@@ -1231,6 +1231,25 @@ files = [
 Werkzeug = ">=2.0.0"
 
 [[package]]
+name = "pytest-httpx"
+version = "0.22.0"
+description = "Send responses to httpx."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pytest_httpx-0.22.0-py3-none-any.whl", hash = "sha256:cefb7dcf66a4cb0601b0de05e576cca423b6081f3245e7912a4d84c58fa3eae8"},
+    {file = "pytest_httpx-0.22.0.tar.gz", hash = "sha256:3a82797f3a9a14d51e8c6b7fa97524b68b847ee801109c062e696b4744f4431c"},
+]
+
+[package.dependencies]
+httpx = ">=0.24.0,<0.25.0"
+pytest = ">=6.0,<8.0"
+
+[package.extras]
+testing = ["pytest-asyncio (>=0.20.0,<0.21.0)", "pytest-cov (>=4.0.0,<5.0.0)"]
+
+[[package]]
 name = "pytest-rerunfailures"
 version = "11.1.2"
 description = "pytest plugin to re-run tests to eliminate flaky failures"
@@ -1385,26 +1404,6 @@ files = [
 [package.dependencies]
 requests = ">=1.0.0"
 six = "*"
-
-[[package]]
-name = "requests-mock"
-version = "1.10.0"
-description = "Mock out responses from the requests package"
-category = "dev"
-optional = false
-python-versions = "*"
-files = [
-    {file = "requests-mock-1.10.0.tar.gz", hash = "sha256:59c9c32419a9fb1ae83ec242d98e889c45bd7d7a65d48375cc243ec08441658b"},
-    {file = "requests_mock-1.10.0-py2.py3-none-any.whl", hash = "sha256:2fdbb637ad17ee15c06f33d31169e71bf9fe2bdb7bc9da26185be0dd8d842699"},
-]
-
-[package.dependencies]
-requests = ">=2.3,<3"
-six = "*"
-
-[package.extras]
-fixture = ["fixtures"]
-test = ["fixtures", "mock", "purl", "pytest", "requests-futures", "sphinx", "testrepository (>=0.0.18)", "testtools"]
 
 [[package]]
 name = "resolvelib"
@@ -1705,4 +1704,4 @@ xmltodict = ">=0.12.0,<0.13.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "5366646b07e8aa2c1189f64e976bab2ec624855eb5943bde2710376c8e115305"
+content-hash = "e8bc6b97f09142c3d7099d7378d826270a470ee7b454bd39f8c52779d57153cf"

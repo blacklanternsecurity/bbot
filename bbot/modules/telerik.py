@@ -1,6 +1,8 @@
-from bbot.modules.base import BaseModule
-from urllib.parse import urlparse
+import asyncio
 from sys import executable
+from urllib.parse import urlparse
+
+from bbot.modules.base import BaseModule
 
 
 class telerik(BaseModule):
@@ -156,12 +158,12 @@ class telerik(BaseModule):
 
     max_event_handlers = 5
 
-    def setup(self):
+    async def setup(self):
         self.scanned_hosts = set()
         self.timeout = self.scan.config.get("httpx_timeout", 5)
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
         host_hash = hash(host)
         if host_hash in self.scanned_hosts:
@@ -171,7 +173,7 @@ class telerik(BaseModule):
             self.scanned_hosts.add(host_hash)
 
         webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
-        result = self.test_detector(event.data, webresource)
+        result, _ = await self.test_detector(event.data, webresource)
         if result:
             if "RadAsyncUpload handler is registered succesfully" in result.text:
                 self.debug(f"Detected Telerik instance (Telerik.Web.UI.WebResource.axd?type=rau)")
@@ -198,7 +200,7 @@ class telerik(BaseModule):
                                 str(root_tool_path / "testfile.txt"),
                                 result.url,
                             ]
-                            output = self.helpers.run(command)
+                            output = await self.helpers.run(command)
                             description = f"[CVE-2017-11317] [{str(version)}] {webresource}"
                             if "fileInfo" in output.stdout:
                                 self.debug(f"Confirmed Vulnerable Telerik (version: {str(version)}")
@@ -214,15 +216,16 @@ class telerik(BaseModule):
                                 )
                                 break
 
-        futures = {}
+        tasks = []
         for dh in self.DialogHandlerUrls:
-            future = self.submit_task(self.test_detector, event.data, f"{dh}?dp=1")
-            futures[future] = dh
+            tasks.append(self.helpers.create_task(self.test_detector(event.data, f"{dh}?dp=1")))
 
         fail_count = 0
-        for future in self.helpers.as_completed(futures):
-            dh = futures[future]
-            result = future.result()
+        for task in self.helpers.as_completed(tasks):
+            try:
+                result, dh = await task
+            except asyncio.CancelledError:
+                continue
 
             # cancel if we run into timeouts etc.
             if result is None:
@@ -232,14 +235,11 @@ class telerik(BaseModule):
                 if fail_count < 2:
                     continue
                 self.debug(f"Cancelling run against {event.data} due to failed request")
-                for future in futures:
-                    future.cancel()
+                self.helpers.cancel_tasks(tasks)
                 break
-            if result:
+            else:
                 if "Cannot deserialize dialog parameters" in result.text:
-                    for future in futures:
-                        future.cancel()
-
+                    self.helpers.cancel_tasks(tasks)
                     self.debug(f"Detected Telerik UI instance ({dh})")
                     description = f"Telerik DialogHandler detected"
                     self.emit_event(
@@ -247,16 +247,18 @@ class telerik(BaseModule):
                         "FINDING",
                         event,
                     )
-                # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
-                break
+                    # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
+                    break
+
+        self.helpers.cancel_tasks(tasks)
 
         spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
-        result = self.test_detector(event.data, spellcheckhandler)
+        result, _ = await self.test_detector(event.data, spellcheckhandler)
         try:
             # The standard behavior for the spellcheck handler without parameters is a 500
             if result.status_code == 500:
                 # Sometimes webapps will just return 500 for everything, so rule out the false positive
-                validate_result = self.test_detector(event.data, self.helpers.rand_string())
+                validate_result, _ = await self.test_detector(event.data, self.helpers.rand_string())
                 self.debug(validate_result)
                 if validate_result.status_code != 500:
                     self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
@@ -273,16 +275,16 @@ class telerik(BaseModule):
         except Exception:
             pass
 
-    def test_detector(self, baseurl, detector):
+    async def test_detector(self, baseurl, detector):
         result = None
         if "/" != baseurl[-1]:
             url = f"{baseurl}/{detector}"
         else:
             url = f"{baseurl}{detector}"
-        result = self.helpers.request(url, timeout=self.timeout)
-        return result
+        result = await self.helpers.request(url, timeout=self.timeout)
+        return result, detector
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if "endpoint" in event.tags:
             return False
         else:

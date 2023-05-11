@@ -1,5 +1,4 @@
 import logging
-import requests_mock
 from abc import abstractmethod
 from omegaconf import OmegaConf
 
@@ -13,11 +12,13 @@ class MockHelper:
     config_overrides = {}
     additional_modules = []
 
-    def __init__(self, config, bbot_scanner, *args, **kwargs):
+    def __init__(self, request, **kwargs):
         self.name = kwargs.get("module_name", self.__class__.__name__.lower())
-        self.config = OmegaConf.merge(config, OmegaConf.create(self.config_overrides))
+        self.bbot_config = request.getfixturevalue("bbot_config")
+        self.bbot_scanner = request.getfixturevalue("bbot_scanner")
+        self.config = OmegaConf.merge(self.bbot_config, OmegaConf.create(self.config_overrides))
         modules = [self.name] + self.additional_modules
-        self.scan = bbot_scanner(
+        self.scan = self.bbot_scanner(
             *self.targets,
             modules=modules,
             name=f"{self.name}_test",
@@ -25,8 +26,6 @@ class MockHelper:
             whitelist=self.whitelist,
             blacklist=self.blacklist,
         )
-        self.patch_scan(self.scan)
-        self.setup()
 
     def patch_scan(self, scan):
         return
@@ -34,10 +33,13 @@ class MockHelper:
     def setup(self):
         pass
 
-    def run(self):
-        events = list(self.scan.start())
-        events = [e for e in events if e.module == self.module]
-        assert self.check_events(events)
+    async def run(self):
+        await self.scan.prep()
+        self.setup()
+        self.patch_scan(self.scan)
+        self._after_scan_prep()
+        events = [e async for e in self.scan.start()]
+        self.check_events(events)
 
     @abstractmethod
     def check_events(self, events):
@@ -47,29 +49,29 @@ class MockHelper:
     def module(self):
         return self.scan.modules[self.name]
 
+    def _after_scan_prep(self):
+        pass
+
 
 class RequestMockHelper(MockHelper):
+    def __init__(self, request, **kwargs):
+        self.httpx_mock = request.getfixturevalue("httpx_mock")
+        super().__init__(request, **kwargs)
+
     @abstractmethod
     def mock_args(self):
         raise NotImplementedError
 
-    def register_uri(self, uri, method="GET", **kwargs):
-        self.m.register_uri(method, uri, **kwargs)
-
-    def run(self):
-        with requests_mock.Mocker() as m:
-            self.m = m
-            self.mock_args()
-            return super().run()
+    def _after_scan_prep(self):
+        self.mock_args()
 
 
 class HttpxMockHelper(MockHelper):
     targets = ["http://127.0.0.1:8888/"]
 
-    def __init__(self, config, bbot_scanner, bbot_httpserver, *args, **kwargs):
-        self.bbot_httpserver = bbot_httpserver
-        super().__init__(config, bbot_scanner, *args, **kwargs)
-        self.mock_args()
+    def __init__(self, request, **kwargs):
+        self.bbot_httpserver = request.getfixturevalue("bbot_httpserver")
+        super().__init__(request, **kwargs)
 
     @abstractmethod
     def mock_args(self):
@@ -79,6 +81,9 @@ class HttpxMockHelper(MockHelper):
         if "uri" not in expect_args:
             expect_args["uri"] = "/"
         self.bbot_httpserver.expect_request(**expect_args).respond_with_data(**respond_args)
+
+    def _after_scan_prep(self):
+        self.mock_args()
 
 
 def tempwordlist(content):

@@ -1,4 +1,3 @@
-import queue
 import asyncio
 import logging
 import traceback
@@ -98,6 +97,7 @@ class BaseModule:
         # track number of failures (for .request_with_fail_count())
         self._request_failures = 0
 
+        self._tasks = []
         self._event_received = asyncio.Condition()
 
     async def setup(self):
@@ -238,10 +238,13 @@ class BaseModule:
 
     def emit_event(self, *args, **kwargs):
         event_kwargs = dict(kwargs)
+        emit_kwargs = {}
         for o in ("on_success_callback", "abort_if", "quick"):
-            event_kwargs.pop(o, None)
+            v = event_kwargs.pop(o, None)
+            if v is not None:
+                emit_kwargs[o] = v
         event = self.make_event(*args, **event_kwargs)
-        self.scan.manager.queue_event(event)
+        self.scan.manager.queue_event(event, **emit_kwargs)
 
     async def events_waiting(self):
         """
@@ -262,6 +265,7 @@ class BaseModule:
                         finish = True
                     else:
                         events.append(event)
+                        self.scan.stats.event_consumed(event, self)
                 elif reason:
                     self.debug(f"Not accepting {event} because {reason}")
             except asyncio.queues.QueueEmpty:
@@ -276,7 +280,7 @@ class BaseModule:
         return ret
 
     def start(self):
-        self.tasks = [asyncio.create_task(self._worker()) for _ in range(self.max_event_handlers)]
+        self._tasks = [asyncio.create_task(self._worker()) for _ in range(self.max_event_handlers)]
 
     async def _setup(self):
         status_codes = {False: "hard-fail", None: "soft-fail", True: "success"}
@@ -300,40 +304,42 @@ class BaseModule:
         return self.name, status, str(msg)
 
     async def _worker(self):
-        while not self.scan.stopping:
-            # hold the reigns if our outgoing queue is full
-            # if self._qsize and self.outgoing_event_queue.qsize() >= self._qsize:
-            #     with self.event_received:
-            #         await self.event_received.wait()
+        async with self.scan.acatch(context=self._worker):
+            while not self.scan.stopping:
+                # hold the reigns if our outgoing queue is full
+                # if self._qsize and self.outgoing_event_queue.qsize() >= self._qsize:
+                #     with self.event_received:
+                #         await self.event_received.wait()
 
-            if self.batch_size > 1:
-                submitted = await self._handle_batch()
-                if not submitted:
-                    async with self._event_received:
-                        await self._event_received.wait()
+                if self.batch_size > 1:
+                    submitted = await self._handle_batch()
+                    if not submitted:
+                        async with self._event_received:
+                            await self._event_received.wait()
 
-            else:
-                try:
-                    if self.incoming_event_queue:
-                        event = await self.incoming_event_queue.get()
-                    else:
-                        self.debug(f"Event queue is in bad state")
-                        return
-                except asyncio.queues.QueueEmpty:
-                    continue
-                self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                acceptable, reason = await self._event_postcheck(event)
-                if not acceptable:
-                    self.debug(f"Not accepting {event} because {reason}")
-                if acceptable:
-                    if event.type == "FINISHED":
-                        async with self.scan.acatch(context=f"{self.name}.finish"):
-                            with self._task_counter:
-                                await self.finish()
-                    else:
-                        async with self.scan.acatch(context=f"{self.name}.handle_event"):
-                            with self._task_counter:
-                                await self.handle_event(event)
+                else:
+                    try:
+                        if self.incoming_event_queue:
+                            event = await self.incoming_event_queue.get()
+                        else:
+                            self.debug(f"Event queue is in bad state")
+                            return
+                    except asyncio.queues.QueueEmpty:
+                        continue
+                    self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
+                    acceptable, reason = await self._event_postcheck(event)
+                    if not acceptable:
+                        self.debug(f"Not accepting {event} because {reason}")
+                    if acceptable:
+                        if event.type == "FINISHED":
+                            async with self.scan.acatch(context=f"{self.name}.finish"):
+                                with self._task_counter:
+                                    await self.finish()
+                        else:
+                            self.scan.stats.event_consumed(event, self)
+                            async with self.scan.acatch(context=f"{self.name}.handle_event"):
+                                with self._task_counter:
+                                    await self.handle_event(event)
 
     @property
     def max_scope_distance(self):
@@ -454,7 +460,7 @@ class BaseModule:
             # clear incoming queue
             if self.incoming_event_queue:
                 self.debug(f"Emptying event_queue")
-                with suppress(queue.Empty):
+                with suppress(asyncio.queues.QueueEmpty):
                     while 1:
                         self.incoming_event_queue.get_nowait()
                 # set queue to None to prevent its use
@@ -493,8 +499,8 @@ class BaseModule:
         """
         return not self.running and self.num_queued_events <= 0 and self.outgoing_event_queue.qsize() <= 0
 
-    def request_with_fail_count(self, *args, **kwargs):
-        r = self.helpers.request(*args, **kwargs)
+    async def request_with_fail_count(self, *args, **kwargs):
+        r = await self.helpers.request(*args, **kwargs)
         if r is None:
             self._request_failures += 1
         else:
@@ -550,8 +556,7 @@ class BaseModule:
         """
         Return how much memory the module is currently using in bytes
         """
-        seen = set(self.scan.pools.values())
-        seen.update({self.scan, self.helpers, self.log})
+        seen = {self.scan, self.helpers, self.log}
         return get_size(self, max_depth=3, seen=seen)
 
     def __str__(self):

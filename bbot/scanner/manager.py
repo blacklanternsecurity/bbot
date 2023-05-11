@@ -182,9 +182,10 @@ class ScanManager:
                         await self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
 
             # now that the event is properly tagged, we can finally make decisions about it
+            abort_result = False
             if callable(abort_if):
                 async with self.scan.acatch(context=abort_if):
-                    abort_result = await self.helpers.execute_sync_or_async(abort_if, event)
+                    abort_result = await self.scan.helpers.execute_sync_or_async(abort_if, event)
                 msg = f"{event.module}: not raising event {event} due to custom criteria in abort_if()"
                 with suppress(ValueError, TypeError):
                     abort_result, reason = abort_result
@@ -429,6 +430,17 @@ class ScanManager:
                 )
             else:
                 self.scan.info(f"{self.scan.name}: No events in queue")
+
+            if self.scan.log_level <= logging.DEBUG:
+                # log module memory usage
+                module_memory_usage = []
+                for module in self.scan.modules.values():
+                    memory_usage = module.memory_usage
+                    module_memory_usage.append((module.name, memory_usage))
+                module_memory_usage.sort(key=lambda x: x[-1], reverse=True)
+                self.scan.debug(f"MODULE MEMORY USAGE:")
+                for module_name, usage in module_memory_usage:
+                    self.scan.debug(f"    - {module_name}: {self.scan.helpers.bytes_to_human(usage)}")
 
             # Uncomment these lines to enable debugging of event queues
 

@@ -8,22 +8,30 @@ log = logging.getLogger(f"bbot.test")
 
 
 class Httpx(HttpxMockHelper):
+    targets = ["http://127.0.0.1:8888/url", "127.0.0.1:8888"]
+
     def mock_args(self):
-        request_args = dict(headers={"test": "header"})
-        respond_args = dict(response_data=json.dumps({"foo": "bar"}))
+        request_args = dict(uri="/", headers={"test": "header"})
+        respond_args = dict(response_data=json.dumps({"open": "port"}))
+        self.set_expect_requests(request_args, respond_args)
+        request_args = dict(uri="/url", headers={"test": "header"})
+        respond_args = dict(response_data=json.dumps({"url": "url"}))
         self.set_expect_requests(request_args, respond_args)
 
-    async def run(self):
-        events = [e async for e in self.scan.start()]
-        assert self.check_events(events)
-
     def check_events(self, events):
+        url = False
+        open_port = False
         for e in events:
             if e.type == "HTTP_RESPONSE":
                 j = json.loads(e.data["body"])
-                if j.get("foo", "") == "bar":
-                    return True
-        return False
+                if e.data["path"] == "/":
+                    if j.get("open", "") == "port":
+                        open_port = True
+                elif e.data["path"] == "/url":
+                    if j.get("url", "") == "url":
+                        url = True
+        assert url, "Failed to visit target URL"
+        assert open_port, "Failed to visit target OPEN_TCP_PORT"
 
 
 class Gowitness(HttpxMockHelper):
@@ -63,7 +71,6 @@ class Gowitness(HttpxMockHelper):
         assert url, "No URL emitted"
         assert webscreenshot, "No WEBSCREENSHOT emitted"
         assert technology, "No TECHNOLOGY emitted"
-        return True
 
 
 class Excavate(HttpxMockHelper):
@@ -158,7 +165,6 @@ class Excavate(HttpxMockHelper):
             and "spider-danger" in e.tags
             for e in events
         )
-        return True
 
 
 class Excavate_relativelinks(HttpxMockHelper):
@@ -206,14 +212,10 @@ class Excavate_relativelinks(HttpxMockHelper):
                 if e.data == "http://127.0.0.1:8888/subdir/rootrelative.html":
                     root_page_confusion_2 = True
 
-        if (
-            root_relative_detection
-            and page_relative_detection
-            and not root_page_confusion_1
-            and not root_page_confusion_2
-        ):
-            return True
-        return False
+        assert root_relative_detection, "Failed to properly excavate root-relative URL"
+        assert page_relative_detection, "Failed to properly excavate page-relative URL"
+        assert not root_page_confusion_1, "Incorrectly detected page-relative URL"
+        assert not root_page_confusion_2, "Incorrectly detected root-relative URL"
 
 
 class Subdomain_Hijack(HttpxMockHelper):
@@ -229,15 +231,13 @@ class Subdomain_Hijack(HttpxMockHelper):
         self.set_expect_requests(respond_args=respond_args)
 
     def check_events(self, events):
-        for event in events:
-            if (
-                event.type == "FINDING"
-                and event.data["description"].startswith("Hijackable Subdomain")
-                and self.rand_subdomain in event.data["description"]
-                and event.data["host"] == self.rand_subdomain
-            ):
-                return True
-        return False, f"No hijackable subdomains in {events}"
+        assert any(
+            event.type == "FINDING"
+            and event.data["description"].startswith("Hijackable Subdomain")
+            and self.rand_subdomain in event.data["description"]
+            and event.data["host"] == self.rand_subdomain
+            for event in events
+        ), f"No hijackable subdomains in {events}"
 
 
 class Fingerprintx(HttpxMockHelper):
@@ -247,22 +247,20 @@ class Fingerprintx(HttpxMockHelper):
         pass
 
     def check_events(self, events):
-        for event in events:
-            if (
-                event.type == "PROTOCOL"
-                and event.host == self.scan.helpers.make_ip_type("127.0.0.1")
-                and event.port == 8888
-                and event.data["protocol"] == "HTTP"
-            ):
-                return True
-        return False
+        assert any(
+            event.type == "PROTOCOL"
+            and event.host == self.scan.helpers.make_ip_type("127.0.0.1")
+            and event.port == 8888
+            and event.data["protocol"] == "HTTP"
+            for event in events
+        ), "HTTP protocol not detected"
 
 
 class Otx(RequestMockHelper):
     def mock_args(self):
         for t in self.targets:
-            self.register_uri(
-                f"https://otx.alienvault.com/api/v1/indicators/domain/{t}/passive_dns",
+            self.httpx_mock.add_response(
+                url=f"https://otx.alienvault.com/api/v1/indicators/domain/{t}/passive_dns",
                 json={
                     "passive_dns": [
                         {
@@ -282,10 +280,7 @@ class Otx(RequestMockHelper):
             )
 
     def check_events(self, events):
-        for e in events:
-            if e.data == "asdf.blacklanternsecurity.com":
-                return True
-        return False
+        assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
 
 
 class Anubisdb(RequestMockHelper):
@@ -294,16 +289,13 @@ class Anubisdb(RequestMockHelper):
 
     def mock_args(self):
         for t in self.targets:
-            self.register_uri(
-                f"https://jldc.me/anubis/subdomains/{t}",
+            self.httpx_mock.add_response(
+                url=f"https://jldc.me/anubis/subdomains/{t}",
                 json=["asdf.blacklanternsecurity.com", "zzzz.blacklanternsecurity.com"],
             )
 
     def check_events(self, events):
-        for e in events:
-            if e.data == "asdf.blacklanternsecurity.com":
-                return True
-        return False
+        assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
 
 
 class SecretsDB(HttpxMockHelper):
@@ -315,7 +307,7 @@ class SecretsDB(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        return any(e.type == "FINDING" for e in events)
+        assert any(e.type == "FINDING" for e in events)
 
 
 class Badsecrets(HttpxMockHelper):
@@ -421,9 +413,10 @@ class Badsecrets(HttpxMockHelper):
             ):
                 CookieBasedDetection_2 = True
 
-        if SecretFound and IdentifyOnly and CookieBasedDetection and CookieBasedDetection_2:
-            return True
-        return False
+        assert SecretFound, "No secret found"
+        assert IdentifyOnly, "No crypto product identified"
+        assert CookieBasedDetection, "No JWT cookie detected"
+        assert CookieBasedDetection_2, "No Express.js cookie detected"
 
 
 class Telerik(HttpxMockHelper):
@@ -491,57 +484,10 @@ class Telerik(HttpxMockHelper):
                 telerik_spellcheck_detection = True
                 continue
 
-        if (
-            telerik_axd_detection
-            and telerik_axd_vulnerable
-            and telerik_spellcheck_detection
-            and telerik_dialoghandler_detection
-        ):
-            return True
-        return False
-
-
-class Paramminer_getparams(HttpxMockHelper):
-    getparam_body = """
-    <html>
-    <title>the title</title>
-    <body>
-    <p>Hello null!</p>';
-    </body>
-    </html>
-    """
-
-    getparam_body_match = """
-    <html>
-    <title>the title</title>
-    <body>
-    <p>Hello AAAAAAAAAAAAAA!</p>';
-    </body>
-    </html>
-    """
-    additional_modules = ["httpx"]
-
-    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "id"])}}}
-
-    def setup(self):
-        from bbot.core.helpers import helper
-
-        self.module.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
-        helper.HttpCompare.gen_cache_buster = lambda *args, **kwargs: {"AAAAAA": "1"}
-
-    def mock_args(self):
-        expect_args = {"query_string": b"id=AAAAAAAAAAAAAA&AAAAAA=1"}
-        respond_args = {"response_data": self.getparam_body_match}
-        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-        respond_args = {"response_data": self.getparam_body}
-        self.set_expect_requests(respond_args=respond_args)
-
-    def check_events(self, events):
-        for e in events:
-            if e.type == "FINDING" and e.data["description"] == "[Paramminer] Getparam: [id] Reasons: [body]":
-                return True
-        return False
+        assert telerik_axd_detection, "Telerik AXD detection failed"
+        assert telerik_axd_vulnerable, "Telerik vulnerable AXD detection failed"
+        assert telerik_spellcheck_detection, "Telerik spellcheck detection failed"
+        assert telerik_dialoghandler_detection, "Telerik dialoghandler detection failed"
 
 
 class Paramminer_headers(HttpxMockHelper):
@@ -581,10 +527,61 @@ class Paramminer_headers(HttpxMockHelper):
         self.set_expect_requests(respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "FINDING" and e.data["description"] == "[Paramminer] Header: [tracestate] Reasons: [body]":
-                return True
-        return False
+        assert any(
+            e.type == "FINDING" and e.data["description"] == "[Paramminer] Header: [tracestate] Reasons: [body]"
+            for e in events
+        )
+        assert not any(
+            e.type == "FINDING" and e.data["description"] == "[Paramminer] Header: [junkword1] Reasons: [body]"
+            for e in events
+        )
+
+
+class Paramminer_getparams(HttpxMockHelper):
+    getparam_body = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello null!</p>';
+    </body>
+    </html>
+    """
+
+    getparam_body_match = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello AAAAAAAAAAAAAA!</p>';
+    </body>
+    </html>
+    """
+    additional_modules = ["httpx"]
+
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "id"])}}}
+
+    def setup(self):
+        from bbot.core.helpers import helper
+
+        self.module.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        helper.HttpCompare.gen_cache_buster = lambda *args, **kwargs: {"AAAAAA": "1"}
+
+    def mock_args(self):
+        expect_args = {"query_string": b"id=AAAAAAAAAAAAAA&AAAAAA=1"}
+        respond_args = {"response_data": self.getparam_body_match}
+        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        respond_args = {"response_data": self.getparam_body}
+        self.set_expect_requests(respond_args=respond_args)
+
+    def check_events(self, events):
+        assert any(
+            e.type == "FINDING" and e.data["description"] == "[Paramminer] Getparam: [id] Reasons: [body]"
+            for e in events
+        )
+        assert not any(
+            e.type == "FINDING" and e.data["description"] == "[Paramminer] Getparam: [canary] Reasons: [body]"
+            for e in events
+        )
 
 
 class Paramminer_cookies(HttpxMockHelper):
@@ -624,16 +621,20 @@ class Paramminer_cookies(HttpxMockHelper):
         self.set_expect_requests(respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "FINDING" and e.data["description"] == "[Paramminer] Cookie: [admincookie] Reasons: [body]":
-                return True
-        return False
+        assert any(
+            e.type == "FINDING" and e.data["description"] == "[Paramminer] Cookie: [admincookie] Reasons: [body]"
+            for e in events
+        )
+        assert not any(
+            e.type == "FINDING" and e.data["description"] == "[Paramminer] Cookie: [junkcookie] Reasons: [body]"
+            for e in events
+        )
 
 
 class LeakIX(RequestMockHelper):
     def mock_args(self):
-        self.register_uri(
-            "https://leakix.net/api/subdomains/blacklanternsecurity.com",
+        self.httpx_mock.add_response(
+            url="https://leakix.net/api/subdomains/blacklanternsecurity.com",
             json=[
                 {
                     "subdomain": "www.blacklanternsecurity.com",
@@ -652,32 +653,33 @@ class LeakIX(RequestMockHelper):
         www = False
         asdf = False
         for e in events:
-            if e.type in ("DNS_NAME", "DNS_NAME_UNRESOLVED"):
+            if e.type in ("DNS_NAME", "DNS_NAME_UNRESOLVED") and str(e.module) == "leakix":
                 if e.data == "www.blacklanternsecurity.com":
                     www = True
                 elif e.data == "asdf.blacklanternsecurity.com":
                     asdf = True
-        return www and asdf
+        assert www
+        assert asdf
 
 
-class Massdns(MockHelper):
+class Massdns(RequestMockHelper):
     subdomain_wordlist = tempwordlist(["www", "asdf"])
     config_overrides = {"modules": {"massdns": {"wordlist": str(subdomain_wordlist)}}}
 
-    def __init__(self, *args, **kwargs):
-        with requests_mock.Mocker() as m:
-            m.register_uri(
-                "GET",
-                "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt",
-                text="8.8.8.8\n8.8.4.4\n1.1.1.1",
-            )
-            super().__init__(*args, **kwargs)
+    def __init__(self, request):
+        super().__init__(request)
+        self.httpx_mock.add_response(
+            url="https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt",
+            text="8.8.8.8\n8.8.4.4\n1.1.1.1",
+        )
+
+    def mock_args(self):
+        pass
 
     def check_events(self, events):
-        for e in events:
-            if e.type in ("DNS_NAME", "DNS_NAME_UNRESOLVED") and e.data == "www.blacklanternsecurity.com":
-                return True
-        return False
+        assert any(
+            e.type in ("DNS_NAME", "DNS_NAME_UNRESOLVED") and e.data == "www.blacklanternsecurity.com" for e in events
+        )
 
 
 class Robots(HttpxMockHelper):
@@ -700,7 +702,8 @@ class Robots(HttpxMockHelper):
 
         for e in events:
             if e.type == "URL_UNVERIFIED":
-                assert "spider-danger" in e.tags, f"{e} doesn't have spider-danger tag"
+                if str(e.module) != "TARGET":
+                    assert "spider-danger" in e.tags, f"{e} doesn't have spider-danger tag"
                 if e.data == "http://127.0.0.1:8888/allow/":
                     allow_bool = True
 
@@ -713,9 +716,10 @@ class Robots(HttpxMockHelper):
                 if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.data):
                     wildcard_bool = True
 
-        if allow_bool and disallow_bool and sitemap_bool and wildcard_bool:
-            return True
-        return False
+        assert allow_bool
+        assert disallow_bool
+        assert sitemap_bool
+        assert wildcard_bool
 
 
 class Masscan(MockHelper):
@@ -734,13 +738,12 @@ shard = 1/1
 ports = 
 range = 9.8.7.6"""
 
-    def __init__(self, config, bbot_scanner, *args, **kwargs):
-        super().__init__(config, bbot_scanner, *args, **kwargs)
+    def _after_scan_prep(self):
         self.scan.modules["masscan"].masscan_config = self.masscan_config
 
-        def setup_scan_2():
-            config2 = OmegaConf.merge(config, OmegaConf.create(self.config_overrides_2))
-            self.scan2 = bbot_scanner(
+        async def setup_scan_2():
+            config2 = OmegaConf.merge(self.config, OmegaConf.create(self.config_overrides_2))
+            self.scan2 = self.bbot_scanner(
                 *self.targets,
                 modules=[self.name] + self.additional_modules,
                 name=f"{self.name}_test",
@@ -749,35 +752,37 @@ range = 9.8.7.6"""
                 blacklist=self.blacklist,
             )
             self.patch_scan(self.scan2)
-            self.scan2.prep()
+            await self.scan2.prep()
             self.scan2.modules["masscan"].masscan_config = self.masscan_config
 
         self.setup_scan_2 = setup_scan_2
         self.masscan_run = False
 
-    def run_masscan(self, command, *args, **kwargs):
-        if "masscan" in command[0]:
-            yield from self.masscan_output.splitlines()
+    async def run_masscan(self, command, *args, **kwargs):
+        log.critical(f"patched: {command}")
+        if "masscan" in command[:2]:
+            for l in self.masscan_output.splitlines():
+                yield l
             self.masscan_run = True
         else:
-            yield from self.scan.helpers.run_live(command, *args, **kwargs)
+            async for l in self.scan.helpers.run_live(command, *args, **kwargs):
+                yield l
 
     def patch_scan(self, scan):
         scan.helpers.run_live = self.run_masscan
 
-    def run(self):
-        super().run()
-        self.setup_scan_2()
+    async def run(self):
+        await super().run()
         assert self.masscan_run == True, "masscan didn't run when it was supposed to"
+        await self.setup_scan_2()
         self.masscan_run = False
-        events = list(self.scan2.start())
+        events = [e async for e in self.scan2.start()]
         self.check_events(events)
         assert self.masscan_run == False, "masscan ran when it wasn't supposed to"
 
     def check_events(self, events):
         assert any(e.type == "IP_ADDRESS" and e.data == "8.8.8.8" for e in events), "No IP_ADDRESS emitted"
         assert any(e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:443" for e in events), "No OPEN_TCP_PORT emitted"
-        return True
 
 
 class Buckets(HttpxMockHelper, RequestMockHelper):

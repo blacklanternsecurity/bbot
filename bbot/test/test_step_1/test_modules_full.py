@@ -6,192 +6,229 @@ from ..modules_test_classes import *
 log = logging.getLogger(f"bbot.test")
 
 
-def test_gowitness(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Gowitness(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
-
-
 @pytest.mark.asyncio
-async def test_httpx(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Httpx(bbot_config, bbot_scanner, bbot_httpserver)
+async def test_httpx(request):
+    x = Httpx(request)
     await x.run()
 
 
-def test_excavate(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Excavate(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_gowitness(request):
+    x = Gowitness(request)
+    await x.run()
 
 
-def test_excavate_relativelinks(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Excavate_relativelinks(bbot_config, bbot_scanner, bbot_httpserver, module_name="excavate")
-    x.run()
+@pytest.mark.asyncio
+async def test_excavate(request):
+    x = Excavate(request)
+    await x.run()
 
 
-def test_subdomain_hijack(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Subdomain_Hijack(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_excavate_relativelinks(request):
+    x = Excavate_relativelinks(request, module_name="excavate")
+    await x.run()
 
 
-def test_fingerprintx(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Fingerprintx(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_subdomain_hijack(request):
+    x = Subdomain_Hijack(request)
+    await x.run()
 
 
-def test_otx(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Otx(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_fingerprintx(request):
+    x = Fingerprintx(request)
+    await x.run()
 
 
-def test_anubisdb(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Anubisdb(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_otx(request):
+    x = Otx(request)
+    await x.run()
 
 
-def test_paramminer_getparams(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Paramminer_getparams(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_anubisdb(request):
+    x = Anubisdb(request)
+    await x.run()
 
 
-def test_paramminer_headers(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Paramminer_headers(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_secretsdb(request):
+    x = SecretsDB(request)
+    await x.run()
 
 
-def test_paramminer_cookies(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Paramminer_cookies(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_badsecrets(request):
+    x = Badsecrets(request)
+    await x.run()
 
 
-def test_telerik(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Telerik(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_telerik(request):
+    x = Telerik(request)
+    await x.run()
 
 
-def test_leakix(bbot_config, bbot_scanner, bbot_httpserver):
-    x = LeakIX(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_paramminer_headers(request):
+    x = Paramminer_headers(request)
+    await x.run()
 
 
-def test_massdns(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Massdns(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_paramminer_getparams(request):
+    x = Paramminer_getparams(request)
+    await x.run()
 
 
-def test_masscan(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Masscan(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_paramminer_cookies(request):
+    x = Paramminer_cookies(request)
+    await x.run()
 
 
-def test_secretsdb(bbot_config, bbot_scanner, bbot_httpserver):
-    x = SecretsDB(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_leakix(request):
+    x = LeakIX(request)
+    await x.run()
 
 
-def test_badsecrets(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Badsecrets(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_massdns(request):
+    x = Massdns(request)
+    await x.run()
 
 
-def test_robots(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Robots(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_masscan(request):
+    x = Masscan(request)
+    await x.run()
 
 
-def test_buckets(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Buckets(bbot_config, bbot_scanner, bbot_httpserver, module_name="excavate")
-    x.run()
+@pytest.mark.asyncio
+async def test_robots(request):
+    x = Robots(request)
+    await x.run()
 
 
-def test_asn(bbot_config, bbot_scanner, bbot_httpserver):
-    x = ASN(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_buckets(request):
+    x = Buckets(request, module_name="excavate")
+    await x.run()
 
 
-def test_wafw00f(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Wafw00f(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_asn(request):
+    x = ASN(request)
+    await x.run()
 
 
-def test_ffuf(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Ffuf(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_wafw00f(request):
+    x = Wafw00f(request)
+    await x.run()
 
 
-def test_ffuf_extensions(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Ffuf_extensions(bbot_config, bbot_scanner, bbot_httpserver, module_name="ffuf")
-    x.run()
+@pytest.mark.asyncio
+async def test_ffuf(request):
+    x = Ffuf(request)
+    await x.run()
 
 
-def test_bypass403(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Bypass403(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_ffuf_extensions(request):
+    x = Ffuf_extensions(request, module_name="ffuf")
+    await x.run()
 
 
-def test_bypass403_waf(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Bypass403_waf(bbot_config, bbot_scanner, bbot_httpserver, module_name="bypass403")
-    x.run()
+@pytest.mark.asyncio
+async def test_bypass403(request):
+    x = Bypass403(request)
+    await x.run()
 
 
-def test_bypass403_aspnetcookieless(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Bypass403_aspnetcookieless(bbot_config, bbot_scanner, bbot_httpserver, module_name="bypass403")
-    x.run()
+@pytest.mark.asyncio
+async def test_bypass403_waf(request):
+    x = Bypass403_waf(request, module_name="bypass403")
+    await x.run()
 
 
-def test_ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Ffuf_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_bypass403_aspnetcookieless(request):
+    x = Bypass403_aspnetcookieless(request, module_name="bypass403")
+    await x.run()
 
 
-def test_iis_shortnames(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Iis_shortnames(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_ffuf_shortnames(request):
+    x = Ffuf_shortnames(request)
+    await x.run()
 
 
-def test_nuclei_technology(bbot_config, bbot_scanner, bbot_httpserver, caplog):
-    x = Nuclei_technology(bbot_config, bbot_scanner, bbot_httpserver, caplog, module_name="nuclei")
-    x.run()
+@pytest.mark.asyncio
+async def test_iis_shortnames(request):
+    x = Iis_shortnames(request)
+    await x.run()
 
 
-def test_nuclei_manual(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Nuclei_manual(bbot_config, bbot_scanner, bbot_httpserver, module_name="nuclei")
-    x.run()
+@pytest.mark.asyncio
+async def test_nuclei_technology(request, caplog):
+    x = Nuclei_technology(request, caplog, module_name="nuclei")
+    await x.run()
 
 
-def test_nuclei_severe(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Nuclei_severe(bbot_config, bbot_scanner, bbot_httpserver, module_name="nuclei")
-    x.run()
+@pytest.mark.asyncio
+async def test_nuclei_manual(request):
+    x = Nuclei_manual(request, module_name="nuclei")
+    await x.run()
 
 
-def test_nuclei_budget(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Nuclei_budget(bbot_config, bbot_scanner, bbot_httpserver, module_name="nuclei")
-    x.run()
+@pytest.mark.asyncio
+async def test_nuclei_severe(request):
+    x = Nuclei_severe(request, module_name="nuclei")
+    await x.run()
 
 
-def test_url_manipulation(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Url_manipulation(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_nuclei_budget(request):
+    x = Nuclei_budget(request, module_name="nuclei")
+    await x.run()
 
 
-def test_naabu(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Naabu(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_url_manipulation(request):
+    x = Url_manipulation(request)
+    await x.run()
 
 
-def test_hunt(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Hunt(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_naabu(request):
+    x = Naabu(request)
+    await x.run()
 
 
-def test_vhost(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Vhost(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_hunt(request):
+    x = Hunt(request)
+    await x.run()
 
 
-def test_speculate_subdirectories(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Speculate_subdirectories(bbot_config, bbot_scanner, bbot_httpserver, module_name="speculate")
-    x.run()
+@pytest.mark.asyncio
+async def test_vhost(request):
+    x = Vhost(request)
+    await x.run()
 
 
-def test_social(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Social(bbot_config, bbot_scanner, bbot_httpserver)
-    x.run()
+@pytest.mark.asyncio
+async def test_speculate_subdirectories(request):
+    x = Speculate_subdirectories(request, module_name="speculate")
+    await x.run()
+
+
+@pytest.mark.asyncio
+async def test_social(request):
+    x = Social(request)
+    await x.run()
