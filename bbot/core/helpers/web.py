@@ -69,7 +69,7 @@ class WebHelper:
     async def request(self, *args, **kwargs):
         raise_error = kwargs.pop("raise_error", False)
         # TODO: use this
-        cache_for = kwargs.pop("cache_for", None) # noqa
+        cache_for = kwargs.pop("cache_for", None)  # noqa
 
         # in case of URL only, assume GET request
         if len(args) == 1:
