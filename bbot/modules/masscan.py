@@ -145,7 +145,6 @@ class masscan(BaseModule):
         stats_file = self.helpers.tempfile_tail(callback=self.verbose)
         try:
             with open(stats_file, "w") as stats_fh:
-                self.critical(f"masscan: {command}")
                 async for line in self.helpers.run_live(command, sudo=True, stderr=stats_fh):
                     self.process_output(line, result_callback=result_callback)
         finally:

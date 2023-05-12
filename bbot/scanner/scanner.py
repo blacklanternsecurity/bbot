@@ -641,7 +641,6 @@ class Scanner:
 
     async def _status_ticker(self, interval=15):
         async with self.acatch():
-            # while not self.stopped:
             while 1:
                 await asyncio.sleep(interval)
                 await self.manager.modules_status(_log=True)
@@ -671,6 +670,9 @@ class Scanner:
             yield
         except BaseException as e:
             self._handle_exception(e, context=context)
+
+    def run_in_executor(self, *args, **kwargs):
+        return self._loop.run_in_executor(None, *args, **kwargs)
 
     def _handle_exception(self, e, context="scan", finally_callback=None):
         if callable(context):

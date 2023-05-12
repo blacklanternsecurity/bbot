@@ -18,7 +18,8 @@ class MockHelper:
         self.bbot_scanner = request.getfixturevalue("bbot_scanner")
         self.config = OmegaConf.merge(self.bbot_config, OmegaConf.create(self.config_overrides))
         modules = [self.name] + self.additional_modules
-        self.scan = self.bbot_scanner(
+        self.scans = []
+        self.scan = self.add_scan(
             *self.targets,
             modules=modules,
             name=f"{self.name}_test",
@@ -27,19 +28,25 @@ class MockHelper:
             blacklist=self.blacklist,
         )
 
-    def patch_scan(self, scan):
-        return
+    def add_scan(self, *args, **kwargs):
+        scan = self.bbot_scanner(*args, **kwargs)
+        self.scans.append(scan)
+        return scan
 
-    def setup(self):
+    def setup(self, scan):
         pass
 
     async def run(self):
-        await self.scan.prep()
-        self.setup()
-        self.patch_scan(self.scan)
+        for i, scan in enumerate(self.scans):
+            if i == 0:
+                self.scan = scan
+            await scan.prep()
+            self.setup(scan)
+
         self._after_scan_prep()
-        events = [e async for e in self.scan.start()]
-        self.check_events(events)
+        for i, scan in enumerate(self.scans):
+            events = [e async for e in scan.start()]
+            self.check_events(events)
 
     @abstractmethod
     def check_events(self, events):

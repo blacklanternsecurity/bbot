@@ -219,7 +219,7 @@ class DNSHelper:
                 event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
 
         # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-        if not is_ip(event.host) and children and wildcard_rdtypes:
+        if not is_ip(event.host) and wildcard_rdtypes and children:
             # these are the rdtypes that successfully resolve
             resolved_rdtypes = set([c.upper() for c in children])
             # these are the rdtypes that have wildcards
@@ -228,16 +228,18 @@ class DNSHelper:
             event_is_wildcard = False
             if resolved_rdtypes:
                 event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
-            if event_is_wildcard and event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
-                wildcard_parent = self.parent_helper.parent_domain(event_host)
-                for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
-                    if _is_wildcard:
-                        wildcard_parent = _parent_domain
-                        break
-                wildcard_data = f"_wildcard.{wildcard_parent}"
-                if wildcard_data != event.data:
-                    log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
-                    event.data = wildcard_data
+            # if event_is_wildcard and event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
+            if event_is_wildcard:
+                if event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
+                    wildcard_parent = self.parent_helper.parent_domain(event_host)
+                    for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
+                        if _is_wildcard:
+                            wildcard_parent = _parent_domain
+                            break
+                    wildcard_data = f"_wildcard.{wildcard_parent}"
+                    if wildcard_data != event.data:
+                        log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
+                        event.data = wildcard_data
 
     async def resolve_event(self, event, minimal=False):
         """

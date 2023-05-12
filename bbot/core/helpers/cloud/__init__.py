@@ -25,9 +25,13 @@ class CloudProviders:
             self.providers[provider_name] = provider
             setattr(self, provider_name, provider)
 
-    def excavate(self, event, http_body):
+    def excavate(self, *args, **kwargs):
         for provider in self.providers.values():
-            provider.excavate(event, http_body)
+            provider.excavate(*args, **kwargs)
+
+    def speculate(self, *args, **kwargs):
+        for provider in self.providers.values():
+            provider.speculate(*args, **kwargs)
 
     def __iter__(self):
         yield from self.providers.values()

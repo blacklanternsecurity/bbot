@@ -79,7 +79,7 @@ class Excavate(HttpxMockHelper):
 
     config_overrides = {"web_spider_distance": 1, "web_spider_depth": 1}
 
-    def setup(self):
+    def setup(self, scan):
         self.bbot_httpserver.no_handler_status_code = 404
 
     def mock_args(self):
@@ -172,7 +172,7 @@ class Excavate_relativelinks(HttpxMockHelper):
     targets = ["http://127.0.0.1:8888/", "test.notreal", "http://127.0.0.1:8888/subdir/"]
     config_overrides = {"web_spider_distance": 1, "web_spider_depth": 1}
 
-    def setup(self):
+    def setup(self, scan):
         self.bbot_httpserver.no_handler_status_code = 404
 
     def mock_args(self):
@@ -284,7 +284,7 @@ class Otx(RequestMockHelper):
 
 
 class Anubisdb(RequestMockHelper):
-    def setup(self):
+    def setup(self, scan):
         self.module.abort_if = lambda e: False
 
     def mock_args(self):
@@ -512,7 +512,7 @@ class Paramminer_headers(HttpxMockHelper):
 
     config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"])}}}
 
-    def setup(self):
+    def setup(self, scan):
         from bbot.core.helpers import helper
 
         self.module.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
@@ -559,7 +559,7 @@ class Paramminer_getparams(HttpxMockHelper):
 
     config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "id"])}}}
 
-    def setup(self):
+    def setup(self, scan):
         from bbot.core.helpers import helper
 
         self.module.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
@@ -606,7 +606,7 @@ class Paramminer_cookies(HttpxMockHelper):
 
     config_overrides = {"modules": {"paramminer_cookies": {"wordlist": tempwordlist(["junkcookie", "admincookie"])}}}
 
-    def setup(self):
+    def setup(self, scan):
         from bbot.core.helpers import helper
 
         self.module.rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
@@ -738,28 +738,20 @@ shard = 1/1
 ports = 
 range = 9.8.7.6"""
 
-    def _after_scan_prep(self):
-        self.scan.modules["masscan"].masscan_config = self.masscan_config
-
-        async def setup_scan_2():
-            config2 = OmegaConf.merge(self.config, OmegaConf.create(self.config_overrides_2))
-            self.scan2 = self.bbot_scanner(
-                *self.targets,
-                modules=[self.name] + self.additional_modules,
-                name=f"{self.name}_test",
-                config=config2,
-                whitelist=self.whitelist,
-                blacklist=self.blacklist,
-            )
-            self.patch_scan(self.scan2)
-            await self.scan2.prep()
-            self.scan2.modules["masscan"].masscan_config = self.masscan_config
-
-        self.setup_scan_2 = setup_scan_2
+    def __init__(self, request):
+        super().__init__(request)
+        config2 = OmegaConf.merge(self.config, OmegaConf.create(self.config_overrides_2))
+        self.add_scan(
+            *self.targets,
+            modules=[self.name] + self.additional_modules,
+            name=f"{self.name}_test",
+            config=config2,
+            whitelist=self.whitelist,
+            blacklist=self.blacklist,
+        )
         self.masscan_run = False
 
     async def run_masscan(self, command, *args, **kwargs):
-        log.critical(f"patched: {command}")
         if "masscan" in command[:2]:
             for l in self.masscan_output.splitlines():
                 yield l
@@ -768,26 +760,30 @@ range = 9.8.7.6"""
             async for l in self.scan.helpers.run_live(command, *args, **kwargs):
                 yield l
 
-    def patch_scan(self, scan):
+    def setup(self, scan):
         scan.helpers.run_live = self.run_masscan
+        scan.modules["masscan"].masscan_config = self.masscan_config
 
     async def run(self):
-        await super().run()
-        assert self.masscan_run == True, "masscan didn't run when it was supposed to"
-        await self.setup_scan_2()
-        self.masscan_run = False
-        events = [e async for e in self.scan2.start()]
-        self.check_events(events)
-        assert self.masscan_run == False, "masscan ran when it wasn't supposed to"
+        for i, scan in enumerate(self.scans):
+            await scan.prep()
+            self.setup(scan)
+            events = [e async for e in scan.start()]
+            self.check_events(events)
+            if i == 0:
+                assert self.masscan_run == True, "masscan didn't run when it was supposed to"
+                self.masscan_run = False
+            else:
+                assert self.masscan_run == False, "masscan ran when it wasn't supposed to"
 
     def check_events(self, events):
         assert any(e.type == "IP_ADDRESS" and e.data == "8.8.8.8" for e in events), "No IP_ADDRESS emitted"
         assert any(e.type == "OPEN_TCP_PORT" and e.data == "8.8.8.8:443" for e in events), "No OPEN_TCP_PORT emitted"
 
 
-class Buckets(HttpxMockHelper, RequestMockHelper):
+class Buckets(HttpxMockHelper):
     providers = ["aws", "gcp", "azure", "digitalocean", "firebase"]
-    # providers = ["aws"]
+    # providers = ["azure"]
     additional_modules = ["excavate", "speculate", "httpx"] + [f"bucket_{p}" for p in providers]
     config_overrides = {
         "modules": {
@@ -817,7 +813,11 @@ class Buckets(HttpxMockHelper, RequestMockHelper):
   ]
 }"""
 
-    def patch_scan(self, scan):
+    def __init__(self, request, **kwargs):
+        self.httpx_mock = request.getfixturevalue("httpx_mock")
+        super().__init__(request, **kwargs)
+
+    def setup(self, scan):
         scan.helpers.word_cloud.mutations = lambda b, cloud=False: [
             (b, "dev"),
         ]
@@ -839,56 +839,43 @@ class Buckets(HttpxMockHelper, RequestMockHelper):
         """
         self.set_expect_requests(expect_args=expect_args, respond_args={"response_data": body})
 
-    def mock_args_requests(self):
-        self.m.register_uri("GET", requests_mock.ANY, text="", status_code=404)
-        self.register_uri(
-            f"https://{self.random_bucket_name_2}.s3-ap-southeast-2.amazonaws.com/",
+        self.httpx_mock.add_response(
+            url=f"https://{self.random_bucket_name_2}.s3-ap-southeast-2.amazonaws.com",
             text=self.open_aws_bucket,
         )
-        self.register_uri(
-            f"https://{self.random_bucket_name_2}.fra1.digitaloceanspaces.com/",
+        self.httpx_mock.add_response(
+            url=f"https://{self.random_bucket_name_2}.fra1.digitaloceanspaces.com",
             text=self.open_digitalocean_bucket,
         )
-        self.register_uri(
-            f"https://{self.random_bucket_name_2}.blob.core.windows.net/{self.random_bucket_name_2}?restype=container",
-            text="",
-        )
-        self.register_uri(
-            f"https://www.googleapis.com/storage/v1/b/{self.random_bucket_name_2}/iam/testPermissions?permissions=storage.buckets.setIamPolicy&permissions=storage.objects.list&permissions=storage.objects.get&permissions=storage.objects.create",
+        self.httpx_mock.add_response(
+            url=f"https://www.googleapis.com/storage/v1/b/{self.random_bucket_name_2}/iam/testPermissions?permissions=storage.buckets.setIamPolicy&permissions=storage.objects.list&permissions=storage.objects.get&permissions=storage.objects.create",
             text=self.open_gcp_bucket,
         )
-        self.register_uri(
-            f"https://{self.random_bucket_name_2}.firebaseio.com/.json",
+        self.httpx_mock.add_response(
+            url=f"https://{self.random_bucket_name_2}.firebaseio.com/.json",
             text="",
         )
-
-        self.register_uri(
-            f"https://{self.random_bucket_name_2}-dev.s3.amazonaws.com/",
+        self.httpx_mock.add_response(
+            url=f"https://{self.random_bucket_name_2}-dev.s3.amazonaws.com",
             text="",
         )
-        self.register_uri(
-            f"https://{self.random_bucket_name_2}-dev.fra1.digitaloceanspaces.com/",
+        self.httpx_mock.add_response(
+            url=f"https://{self.random_bucket_name_2}-dev.fra1.digitaloceanspaces.com",
             text="",
         )
-        self.register_uri(
-            f"https://{self.random_bucket_name_2}-dev.blob.core.windows.net/{self.random_bucket_name_2}-dev?restype=container",
+        self.httpx_mock.add_response(
+            url=f"https://{self.random_bucket_name_2}-dev.blob.core.windows.net/{self.random_bucket_name_2}-dev?restype=container",
             text="",
         )
-        self.register_uri(
-            f"https://www.googleapis.com/storage/v1/b/{self.random_bucket_name_2}-dev",
+        self.httpx_mock.add_response(
+            url=f"https://www.googleapis.com/storage/v1/b/{self.random_bucket_name_2}-dev",
             text="",
         )
-        self.register_uri(
-            f"https://{self.random_bucket_name_2}-dev.firebaseio.com/.json",
+        self.httpx_mock.add_response(
+            url=f"https://{self.random_bucket_name_2}-dev.firebaseio.com/.json",
             text="",
         )
-
-    def run(self):
-        with requests_mock.Mocker() as m:
-            self.m = m
-            self.mock_args_requests()
-            events = list(self.scan.start())
-            self.check_events(events)
+        self.httpx_mock.add_response(url=re.compile(".*"), text="", status_code=404)
 
     def check_events(self, events):
         for provider in self.providers:
@@ -906,6 +893,7 @@ class Buckets(HttpxMockHelper, RequestMockHelper):
                         url = e.data.get("url", "")
                         assert self.random_bucket_name_2 in url
                         assert not self.random_bucket_name_1 in url
+                        assert not f"{self.random_bucket_name_2}-dev" in url
             # make sure bucket mutations were found
             assert any(
                 e.type == "STORAGE_BUCKET"
@@ -915,7 +903,7 @@ class Buckets(HttpxMockHelper, RequestMockHelper):
             ), f'bucket (dev mutation) not found for provider "{provider}"'
 
 
-class ASN(RequestMockHelper):
+class ASN(HttpxMockHelper):
     targets = ["8.8.8.8"]
     response_get_asn_ripe = {
         "messages": [],
@@ -1115,39 +1103,41 @@ class ASN(RequestMockHelper):
     }
     config_overrides = {"scope_report_distance": 2}
 
-    def __init__(self, config, bbot_scanner, *args):
-        super().__init__(config, bbot_scanner, *args)
-        self.scan2 = bbot_scanner(
+    def __init__(self, request, **kwargs):
+        super().__init__(request, **kwargs)
+        self.scan2 = self.add_scan(
             *self.targets,
             modules=[self.name] + self.additional_modules,
             name=f"{self.name}_test_2",
             config=self.config,
         )
-        self.scan2.prep()
-        self.module2 = self.scan2.modules[self.name]
 
     def mock_args(self):
-        pass
+        self.httpx_mock.add_response(
+            url="https://stat.ripe.net/data/network-info/data.json?resource=8.8.8.8",
+            text=json.dumps(self.response_get_asn_ripe),
+        )
+        self.httpx_mock.add_response(
+            url="https://stat.ripe.net/data/whois/data.json?resource=15169",
+            text=json.dumps(self.response_get_asn_metadata_ripe),
+        )
+        self.httpx_mock.add_response(
+            url="https://api.bgpview.io/ip/8.8.8.8", text=json.dumps(self.response_get_asn_bgpview)
+        )
+        self.httpx_mock.add_response(
+            url="https://api.bgpview.io/asn/15169", text=json.dumps(self.response_get_emails_bgpview)
+        )
 
-    def run(self):
-        with requests_mock.Mocker() as m:
-            self.m = m
-            self.register_uri(
-                "https://stat.ripe.net/data/network-info/data.json?resource=8.8.8.8",
-                text=json.dumps(self.response_get_asn_ripe),
-            )
-            self.register_uri(
-                "https://stat.ripe.net/data/whois/data.json?resource=15169",
-                text=json.dumps(self.response_get_asn_metadata_ripe),
-            )
-            self.register_uri("https://api.bgpview.io/ip/8.8.8.8", text=json.dumps(self.response_get_asn_bgpview))
-            self.register_uri("https://api.bgpview.io/asn/15169", text=json.dumps(self.response_get_emails_bgpview))
-            self.module.sources = ["bgpview", "ripe"]
-            events = list(e for e in self.scan.start() if e.module == self.module)
-            assert self.check_events(events)
-            self.module2.sources = ["ripe", "bgpview"]
-            events2 = list(e for e in self.scan2.start() if e.module == self.module2)
-            assert self.check_events(events2)
+    async def run(self):
+        await self.scan.prep()
+        self.module.sources = ["bgpview", "ripe"]
+        events = [e async for e in self.scan.start() if e.module == self.module]
+        assert self.check_events(events)
+        await self.scan2.prep()
+        self.module2 = self.scan2.modules["asn"]
+        self.module2.sources = ["ripe", "bgpview"]
+        events2 = [e async for e in self.scan2.start() if e.module == self.module2]
+        assert self.check_events(events2)
 
     def check_events(self, events):
         asn = False
@@ -1169,11 +1159,7 @@ class Wafw00f(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "WAF":
-                if "LiteSpeed" in e.data["WAF"]:
-                    return True
-        return False
+        assert any(e.type == "WAF" and "LiteSpeed" in e.data["WAF"] for e in events)
 
 
 class Ffuf(HttpxMockHelper):
@@ -1310,7 +1296,7 @@ class Ffuf_shortnames(HttpxMockHelper):
         }
     }
 
-    def setup(self):
+    def setup(self, scan):
         self.bbot_httpserver.no_handler_status_code = 404
 
         seed_events = []
@@ -1509,7 +1495,7 @@ class Iis_shortnames(HttpxMockHelper):
 
     config_overrides = {"modules": {"iis_shortnames": {"detect_only": False}}}
 
-    def setup(self):
+    def setup(self, scan):
         self.bbot_httpserver.no_handler_status_code = 404
 
     def mock_args(self):
@@ -1792,7 +1778,7 @@ class Bypass403(HttpxMockHelper):
 
     targets = ["http://127.0.0.1:8888/test"]
 
-    def setup(self):
+    def setup(self, scan):
         self.bbot_httpserver.no_handler_status_code = 403
 
     def mock_args(self):
@@ -1812,7 +1798,7 @@ class Bypass403_aspnetcookieless(HttpxMockHelper):
 
     targets = ["http://127.0.0.1:8888/admin.aspx"]
 
-    def setup(self):
+    def setup(self, scan):
         self.bbot_httpserver.no_handler_status_code = 403
 
     def mock_args(self):
@@ -1832,7 +1818,7 @@ class Bypass403_waf(HttpxMockHelper):
 
     targets = ["http://127.0.0.1:8888/test"]
 
-    def setup(self):
+    def setup(self, scan):
         self.bbot_httpserver.no_handler_status_code = 403
 
     def mock_args(self):

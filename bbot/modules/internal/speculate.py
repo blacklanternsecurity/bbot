@@ -10,7 +10,16 @@ class speculate(BaseInternalModule):
     in situations where e.g. a port scanner isn't enabled
     """
 
-    watched_events = ["IP_RANGE", "URL", "URL_UNVERIFIED", "DNS_NAME", "IP_ADDRESS", "HTTP_RESPONSE", "STORAGE_BUCKET"]
+    watched_events = [
+        "IP_RANGE",
+        "URL",
+        "URL_UNVERIFIED",
+        "DNS_NAME",
+        "DNS_NAME_UNRESOLVED",
+        "IP_ADDRESS",
+        "HTTP_RESPONSE",
+        "STORAGE_BUCKET",
+    ]
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING"]
     flags = ["passive"]
     meta = {"description": "Derive certain event types from others by common sense"}
@@ -103,6 +112,9 @@ class speculate(BaseInternalModule):
                         internal=True,
                         quick=True,
                     )
+
+        # storage buckets etc.
+        self.helpers.cloud.speculate(event)
 
     async def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self

@@ -19,7 +19,6 @@ import ipaddress
 import traceback
 import subprocess as sp
 from pathlib import Path
-from asyncio import sleep  # noqa
 from itertools import islice
 from datetime import datetime
 from tabulate import tabulate
@@ -28,6 +27,7 @@ from contextlib import suppress
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
 from hashlib import sha1 as hashlib_sha1
+from asyncio import as_completed, create_task, sleep  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
@@ -1054,14 +1054,6 @@ def get_traceback_details(e):
     lineno = last_frame.lineno
     funcname = last_frame.name
     return filename, lineno, funcname
-
-
-def create_task(*args, **kwargs):
-    return asyncio.create_task(*args, **kwargs)
-
-
-def as_completed(*args, **kwargs):
-    yield from asyncio.as_completed(*args, **kwargs)
 
 
 async def cancel_tasks(tasks):

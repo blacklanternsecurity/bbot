@@ -16,13 +16,13 @@ class bucket_firebase(bucket_aws):
     delimiters = ("", "-")
     base_domains = ["firebaseio.com"]
 
-    def check_bucket_exists(self, bucket_name, url):
+    async def check_bucket_exists(self, bucket_name, url):
         url = url.strip("/") + "/.json"
-        return super().check_bucket_exists(bucket_name, url)
+        return await super().check_bucket_exists(bucket_name, url)
 
-    def check_bucket_open(self, bucket_name, url):
+    async def check_bucket_open(self, bucket_name, url):
         url = url.strip("/") + "/.json"
-        response = self.helpers.request(url)
+        response = await self.helpers.request(url)
         tags = self.gen_tags_exists(response)
         status_code = getattr(response, "status_code", 404)
         msg = ""

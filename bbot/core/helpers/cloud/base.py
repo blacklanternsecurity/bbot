@@ -41,6 +41,25 @@ class BaseCloudProvider:
                         else:
                             self.emit_event(**kwargs)
 
+    def speculate(self, event):
+        base_kwargs = dict(source=event, tags=self.base_tags)
+
+        if event.type.startswith("DNS_NAME"):
+            # check for DNS_NAMEs that are buckets
+            for event_type, sigs in self.signatures.items():
+                found = set()
+                for sig in sigs:
+                    match = sig.match(event.data)
+                    if match:
+                        kwargs = dict(base_kwargs)
+                        kwargs["event_type"] = event_type
+                        if not event.data in found:
+                            found.add(event.data)
+                            if event_type == "STORAGE_BUCKET":
+                                self.emit_bucket(match.groups(), **kwargs)
+                            else:
+                                self.emit_event(**kwargs)
+
     def emit_bucket(self, match, **kwargs):
         bucket_name, bucket_domain = match
         kwargs["data"] = {"name": bucket_name, "url": f"https://{bucket_name}.{bucket_domain}"}
@@ -61,11 +80,16 @@ class BaseCloudProvider:
             # its host directly matches this cloud provider's domains
             if isinstance(event.host, str) and self.domain_match(event.host):
                 event.tags.update(self.base_tags)
-                return
-            # or it has a CNAME that matches this cloud provider's domains
-            for rh in event.resolved_hosts:
-                if not self.parent_helper.is_ip(rh) and self.domain_match(rh):
-                    event.tags.update(self.base_tags)
+                # tag as buckets, etc.
+                for event_type, sigs in self.signatures.items():
+                    for sig in sigs:
+                        if sig.match(event.host):
+                            event.add_tag(f"cloud-{event_type}")
+            else:
+                # or it has a CNAME that matches this cloud provider's domains
+                for rh in event.resolved_hosts:
+                    if not self.parent_helper.is_ip(rh) and self.domain_match(rh):
+                        event.tags.update(self.base_tags)
 
     def domain_match(self, s):
         for r in self.domain_regexes:

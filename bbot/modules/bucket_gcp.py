@@ -29,12 +29,12 @@ class bucket_gcp(bucket_aws):
     def build_url(self, bucket_name, base_domain, region):
         return f"https://www.googleapis.com/storage/v1/b/{bucket_name}"
 
-    def check_bucket_open(self, bucket_name, url):
+    async def check_bucket_open(self, bucket_name, url):
         bad_permissions = []
         try:
             list_permissions = "&".join(["=".join(("permissions", p)) for p in self.bad_permissions])
             url = f"https://www.googleapis.com/storage/v1/b/{bucket_name}/iam/testPermissions?" + list_permissions
-            response = self.helpers.request(url)
+            response = await self.helpers.request(url)
             permissions = response.json()
             if isinstance(permissions, dict):
                 bad_permissions = list(permissions.get("permissions", {}))
@@ -46,8 +46,8 @@ class bucket_gcp(bucket_aws):
             msg = f"Open permissions on storage bucket ({perms_str})"
         return (msg, set())
 
-    def check_bucket_exists(self, bucket_name, url):
-        response = self.helpers.request(url)
+    async def check_bucket_exists(self, bucket_name, url):
+        response = await self.helpers.request(url)
         status_code = getattr(response, "status_code", 0)
         existent_bucket = status_code not in (0, 400, 404)
-        return existent_bucket, set()
+        return existent_bucket, set(), bucket_name, url

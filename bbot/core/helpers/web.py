@@ -44,19 +44,32 @@ class WebHelper:
     For making HTTP requests
     """
 
-    client_options = ("auth", "params", "headers", "cookies", "timeout", "follow_redirects", "max_redirects")
+    client_options = (
+        "auth",
+        "params",
+        "headers",
+        "retries",
+        "cookies",
+        "verify",
+        "timeout",
+        "follow_redirects",
+        "max_redirects",
+    )
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
+        self.ssl_verify = self.parent_helper.config.get("ssl_verify", False)
 
     def AsyncClient(self, *args, **kwargs):
         kwargs["_bbot_scan"] = self.parent_helper.scan
         retries = kwargs.pop("retries", self.parent_helper.config.get("http_retries", 1))
-        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries)
+        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=self.ssl_verify)
         return BBOTAsyncClient(*args, **kwargs)
 
     async def request(self, *args, **kwargs):
         raise_error = kwargs.pop("raise_error", False)
+        # TODO: use this
+        cache_for = kwargs.pop("cache_for", None) # noqa
 
         # in case of URL only, assume GET request
         if len(args) == 1:
@@ -183,8 +196,7 @@ class WebHelper:
             curl_command.append("--path-as-is")
 
         # respect global ssl verify settings
-        ssl_verify = self.parent_helper.config.get("ssl_verify")
-        if ssl_verify == False:
+        if self.ssl_verify == False:
             curl_command.append("-k")
 
         headers = kwargs.get("headers", {})

@@ -336,10 +336,11 @@ class excavate(BaseInternalModule):
                 if scheme in ("http", "https"):
                     if num_redirects <= self.max_redirects:
                         url_event = self.make_event(location, "URL_UNVERIFIED", event)
-                        # inherit web spider distance from parent (don't increment)
-                        source_web_spider_distance = getattr(event, "web_spider_distance", 0)
-                        url_event.web_spider_distance = source_web_spider_distance
-                        self.emit_event(url_event)
+                        if url_event is not None:
+                            # inherit web spider distance from parent (don't increment)
+                            source_web_spider_distance = getattr(event, "web_spider_distance", 0)
+                            url_event.web_spider_distance = source_web_spider_distance
+                            self.emit_event(url_event)
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
                 elif scheme:
