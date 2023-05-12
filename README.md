@@ -149,41 +149,15 @@ bbot -f subdomain-enum -t evilcorp.com --output-modules neo4j
 # Usage
 ~~~
 $ bbot --help
-usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-n SCAN_NAME] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]]
-            [-f FLAG [FLAG ...]] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [-o DIR] [-c [CONFIG ...]] [--allow-deadly] [-v] [-d] [-s] [--force] [-y] [--dry-run] [--current-config]
-            [--save-wordcloud FILE] [--load-wordcloud FILE] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [-a] [--version]
+usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]]
+            [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME] [-o DIR] [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y] [--dry-run] [--current-config] [--save-wordcloud FILE] [--load-wordcloud FILE]
+            [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [-a] [--version]
 
 Bighuge BLS OSINT Tool
 
 options:
   -h, --help            show this help message and exit
   --help-all            Display full help including module config options
-  -n SCAN_NAME, --name SCAN_NAME
-                        Name of scan (default: random)
-  -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,anubisdb,asn,azure_tenant,badsecrets,bevigil,binaryedge,bucket_aws,bucket_azure,bucket_digitalocean,bucket_firebase,bucket_gcp,builtwith,bypass403,c99,censys,certspotter,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fingerprintx,fullhunt,generic_ssrf,github,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,ipstack,leakix,masscan,massdns,naabu,ntlm,nuclei,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,rapiddns,riddler,robots,secretsdb,securitytrails,shodan_dns,skymem,smuggler,social,sslcert,subdomain_hijack,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,zoomeye
-  -l, --list-modules    List available modules.
-  -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
-                        Exclude these modules.
-  -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,affiliates,aggressive,cloud-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
-  -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
-                        Disable modules that don't have these flags (e.g. -rf passive)
-  -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
-                        Disable modules with these flags. (e.g. -ef aggressive)
-  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,http,human,json,neo4j,python,web_report,websocket
-  -o DIR, --output-dir DIR
-  -c [CONFIG ...], --config [CONFIG ...]
-                        custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
-  --allow-deadly        Enable the use of highly aggressive modules
-  -v, --verbose         Be more verbose
-  -d, --debug           Enable debugging
-  -s, --silent          Be quiet
-  --force               Run scan even if module setups fail
-  -y, --yes             Skip scan confirmation prompt
-  --dry-run             Abort before executing scan
-  --current-config      Show current config in YAML format
 
 Target:
   -t TARGET [TARGET ...], --targets TARGET [TARGET ...]
@@ -193,6 +167,36 @@ Target:
   -b BLACKLIST [BLACKLIST ...], --blacklist BLACKLIST [BLACKLIST ...]
                         Don't touch these things
   --strict-scope        Don't consider subdomains of target/whitelist to be in-scope
+
+Modules:
+  -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
+                        Modules to enable. Choices: affiliates,anubisdb,asn,azure_tenant,badsecrets,bevigil,binaryedge,bucket_aws,bucket_azure,bucket_digitalocean,bucket_firebase,bucket_gcp,builtwith,bypass403,c99,censys,certspotter,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fingerprintx,fullhunt,generic_ssrf,github,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,ipstack,leakix,masscan,massdns,naabu,ntlm,nuclei,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,rapiddns,riddler,robots,secretsdb,securitytrails,shodan_dns,skymem,smuggler,social,sslcert,subdomain_hijack,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,zoomeye
+  -l, --list-modules    List available modules.
+  -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
+                        Exclude these modules.
+  -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
+                        Enable modules by flag. Choices: active,affiliates,aggressive,cloud-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
+  -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
+                        Only enable modules with these flags (e.g. -rf passive)
+  -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
+                        Disable modules with these flags. (e.g. -ef aggressive)
+  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
+                        Output module(s). Choices: asset_inventory,csv,http,human,json,neo4j,python,web_report,websocket
+  --allow-deadly        Enable the use of highly aggressive modules
+
+Scan:
+  -n SCAN_NAME, --name SCAN_NAME
+                        Name of scan (default: random)
+  -o DIR, --output-dir DIR
+  -c [CONFIG ...], --config [CONFIG ...]
+                        custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'
+  -v, --verbose         Be more verbose
+  -d, --debug           Enable debugging
+  -s, --silent          Be quiet
+  --force               Run scan even if module setups fail
+  -y, --yes             Skip scan confirmation prompt
+  --dry-run             Abort before executing scan
+  --current-config      Show current config in YAML format
 
 Word cloud:
   Save/load wordlist of common words gathered during a scan
