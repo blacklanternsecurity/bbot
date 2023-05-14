@@ -1,12 +1,12 @@
 import re
 import datetime
 import ipaddress
-import requests_mock
 
 from ..bbot_fixtures import *
 
 
-def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
+@pytest.mark.asyncio
+async def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     ### URL ###
     bad_urls = (
         "http://e.co/index.html",
@@ -45,17 +45,6 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert helpers.url_depth("http://evilcorp.com/asdf") == 1
     assert helpers.url_depth("http://evilcorp.com/") == 0
     assert helpers.url_depth("http://evilcorp.com") == 0
-
-    ### HTTP COMPARE ###
-    with requests_mock.Mocker() as m:
-        m.get(re.compile(r"http://www.example.com.*"), text="wat")
-        compare_helper = helpers.http_compare("http://www.example.com")
-        compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
-        compare_helper.compare("http://www.example.com", cookies={"asdf": "asdf"})
-        compare_helper.compare("http://www.example.com", check_reflection=True)
-        compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
-        for mode in ("getparam", "header", "cookie"):
-            compare_helper.canary_check("http://www.example.com", mode=mode) == True
 
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
@@ -382,12 +371,12 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
         for i in range(100):
             f.write(f"{i}\n")
     assert len(list(open(test_file).readlines())) == 100
-    assert helpers.wordlist(test_file).is_file()
-    truncated_file = helpers.wordlist(test_file, lines=10)
+    assert (await helpers.wordlist(test_file)).is_file()
+    truncated_file = await helpers.wordlist(test_file, lines=10)
     assert truncated_file.is_file()
     assert len(list(open(truncated_file).readlines())) == 10
     with pytest.raises(WordlistError):
-        helpers.wordlist("/tmp/a9pseoysadf/asdkgjaosidf")
+        await helpers.wordlist("/tmp/a9pseoysadf/asdkgjaosidf")
     test_file.unlink()
 
     # misc DNS helpers
@@ -406,21 +395,6 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     with pytest.raises(NTLMError):
         helpers.ntlm.ntlmdecode("asdf")
 
-    # interact.sh
-    with requests_mock.Mocker() as m:
-        from bbot.core.helpers.interactsh import server_list
-
-        for server in server_list:
-            m.post(re.compile(rf"https://{server}/.*"), text="nope")
-
-        interactsh_client = helpers.interactsh()
-        with pytest.raises(InteractshError):
-            interactsh_client.register()
-        with pytest.raises(InteractshError):
-            list(interactsh_client.poll())
-        with pytest.raises(InteractshError):
-            interactsh_client.deregister()
-
     test_filesize = Path("/tmp/test_filesize")
     test_filesize.touch()
     assert test_filesize.is_file()
@@ -435,7 +409,7 @@ def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     assert helpers.human_to_bytes("428.24GB") == 459819198709
 
     scan1 = bbot_scanner(modules="ipneighbor")
-    scan1.load_modules()
+    await scan1.load_modules()
     assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
 
 

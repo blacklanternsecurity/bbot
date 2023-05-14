@@ -1,3 +1,5 @@
+import re
+
 from ..bbot_fixtures import *
 
 
@@ -139,3 +141,15 @@ async def test_web_curl(bbot_scanner, bbot_config, bbot_httpserver):
     headers_url = bbot_httpserver.url_for("/test-custom-http-headers-curl")
     curl_result = await helpers.curl(url=headers_url)
     assert curl_result == "curl_yep_headers"
+
+
+@pytest.mark.asyncio
+async def test_web_http_compare(httpx_mock, helpers):
+    httpx_mock.add_response(re.compile(r"http://www.example.com.*"), text="wat")
+    compare_helper = helpers.http_compare("http://www.example.com")
+    await compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
+    await compare_helper.compare("http://www.example.com", cookies={"asdf": "asdf"})
+    await compare_helper.compare("http://www.example.com", check_reflection=True)
+    compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
+    for mode in ("getparam", "header", "cookie"):
+        assert await compare_helper.canary_check("http://www.example.com", mode=mode) == True

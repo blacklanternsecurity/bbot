@@ -125,6 +125,7 @@ def split_host_port(d):
 def parent_domain(d):
     """
     "www.internal.evilcorp.co.uk" --> "internal.evilcorp.co.uk"
+    "www.internal.evilcorp.co.uk:8080" --> "internal.evilcorp.co.uk:8080"
     "www.evilcorp.co.uk" --> "evilcorp.co.uk"
     "evilcorp.co.uk" --> "evilcorp.co.uk"
     """
