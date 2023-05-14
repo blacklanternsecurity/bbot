@@ -145,6 +145,30 @@ async def test_ffuf_extensions(request):
 
 
 @pytest.mark.asyncio
+async def test_vhost(request):
+    x = Vhost(request)
+    await x.run()
+
+
+@pytest.mark.asyncio
+async def test_ffuf_shortnames(request):
+    x = Ffuf_shortnames(request)
+    await x.run()
+
+
+@pytest.mark.asyncio
+async def test_iis_shortnames(request):
+    x = Iis_shortnames(request)
+    await x.run()
+
+
+@pytest.mark.asyncio
+async def test_nuclei_manual(request):
+    x = Nuclei_manual(request, module_name="nuclei")
+    await x.run()
+
+
+@pytest.mark.asyncio
 async def test_bypass403(request):
     x = Bypass403(request)
     await x.run()
@@ -163,26 +187,8 @@ async def test_bypass403_aspnetcookieless(request):
 
 
 @pytest.mark.asyncio
-async def test_ffuf_shortnames(request):
-    x = Ffuf_shortnames(request)
-    await x.run()
-
-
-@pytest.mark.asyncio
-async def test_iis_shortnames(request):
-    x = Iis_shortnames(request)
-    await x.run()
-
-
-@pytest.mark.asyncio
 async def test_nuclei_technology(request, caplog):
     x = Nuclei_technology(request, caplog, module_name="nuclei")
-    await x.run()
-
-
-@pytest.mark.asyncio
-async def test_nuclei_manual(request):
-    x = Nuclei_manual(request, module_name="nuclei")
     await x.run()
 
 
@@ -213,12 +219,6 @@ async def test_naabu(request):
 @pytest.mark.asyncio
 async def test_hunt(request):
     x = Hunt(request)
-    await x.run()
-
-
-@pytest.mark.asyncio
-async def test_vhost(request):
-    x = Vhost(request)
     await x.run()
 
 

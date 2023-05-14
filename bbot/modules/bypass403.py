@@ -81,7 +81,7 @@ class bypass403(BaseModule):
     meta = {"description": "Check 403 pages for common bypasses"}
     in_scope_only = True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         try:
             compare_helper = self.helpers.http_compare(event.data, allow_redirects=True)
         except HttpCompareError as e:
@@ -94,7 +94,7 @@ class bypass403(BaseModule):
                 headers = dict(sig[2])
             else:
                 headers = None
-            match, reasons, reflection, subject_response = compare_helper.compare(
+            match, reasons, reflection, subject_response = await compare_helper.compare(
                 sig[1], headers=headers, method=sig[0], allow_redirects=True
             )
 
@@ -121,7 +121,7 @@ class bypass403(BaseModule):
                 else:
                     self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if ("status-403" in event.tags) or ("status-401" in event.tags):
             return True
         return False

@@ -326,7 +326,7 @@ class hunt(BaseModule):
                     self.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
                     yield s
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         body = event.data.get("body", "")
         for p in self.extract_params(body):
             for k in hunt_param_dict.keys():

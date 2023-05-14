@@ -71,6 +71,11 @@ class WebHelper:
         # TODO: use this
         cache_for = kwargs.pop("cache_for", None)  # noqa
 
+        # allow vs follow, httpx why??
+        allow_redirects = kwargs.pop("allow_redirects", None)
+        if allow_redirects is not None and "follow_redirects" not in kwargs:
+            kwargs["follow_redirects"] = allow_redirects
+
         # in case of URL only, assume GET request
         if len(args) == 1:
             kwargs["url"] = args[0]

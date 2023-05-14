@@ -1184,11 +1184,8 @@ class Ffuf(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "URL_UNVERIFIED":
-                if "admin" in e.data:
-                    return True
-        return False
+        assert any(e.type == "URL_UNVERIFIED" and "admin" in e.data for e in events)
+        assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.data for e in events)
 
 
 class Ffuf_extensions(HttpxMockHelper):
@@ -1207,11 +1204,8 @@ class Ffuf_extensions(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "URL_UNVERIFIED":
-                if "console" in e.data:
-                    return True
-        return False
+        assert any(e.type == "URL_UNVERIFIED" and "console" in e.data for e in events)
+        assert not any(e.type == "URL_UNVERIFIED" and "11111111" in e.data for e in events)
 
 
 class Vhost(HttpxMockHelper):
@@ -1273,15 +1267,11 @@ class Vhost(HttpxMockHelper):
                 if e.data["vhost"] == "secret":
                     wordcloud_detection = True
 
-        if (
-            basic_detection
-            and mutaton_of_detected
-            and basehost_mutation
-            and special_vhost_list
-            and wordcloud_detection
-        ):
-            return True
-        return False
+        assert basic_detection
+        assert mutaton_of_detected
+        assert basehost_mutation
+        assert special_vhost_list
+        assert wordcloud_detection
 
 
 class Ffuf_shortnames(HttpxMockHelper):
@@ -1477,17 +1467,13 @@ class Ffuf_shortnames(HttpxMockHelper):
                 if e.data == "http://127.0.0.1:8888/short.pl":
                     short_extensions_detection = True
 
-        if (
-            basic_detection
-            and directory_detection
-            and prefix_detection
-            and delimeter_detection
-            and directory_delimeter_detection
-            and prefix_delimeter_detection
-            and short_extensions_detection
-        ):
-            return True
-        return False
+        assert basic_detection
+        assert directory_detection
+        assert prefix_detection
+        assert delimeter_detection
+        assert directory_delimeter_detection
+        assert prefix_delimeter_detection
+        assert short_extensions_detection
 
 
 class Iis_shortnames(HttpxMockHelper):
@@ -1540,9 +1526,8 @@ class Iis_shortnames(HttpxMockHelper):
             if e.type == "URL_HINT" and e.data == "http://127.0.0.1:8888/BLSHAX~1":
                 url_hintEmitted = True
 
-        if vulnerabilityEmitted and url_hintEmitted:
-            return True
-        return False
+        assert vulnerabilityEmitted
+        assert url_hintEmitted
 
 
 class Nuclei_manual(HttpxMockHelper):
@@ -1568,10 +1553,11 @@ class Nuclei_manual(HttpxMockHelper):
         "web_spider_depth": 1,
         "modules": {
             "nuclei": {
+                "version": "2.9.4",
                 "mode": "manual",
                 "concurrency": 2,
                 "ratelimit": 10,
-                "templates": "/tmp/.bbot_test/tools/nuclei-templates/miscellaneous/",
+                "templates": "/tmp/.bbot_test/tools/nuclei-templates/http/miscellaneous/",
                 "interactsh_disable": True,
                 "directory_only": False,
             }
@@ -1596,9 +1582,8 @@ class Nuclei_manual(HttpxMockHelper):
                     first_run_detect = True
                 elif "Copyright" in e.data["description"]:
                     second_run_detect = True
-        if first_run_detect and second_run_detect:
-            return True
-        return False
+        assert first_run_detect
+        assert second_run_detect
 
 
 class Nuclei_severe(HttpxMockHelper):
@@ -1621,11 +1606,10 @@ class Nuclei_severe(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "VULNERABILITY":
-                if "Generic Linux - Local File Inclusion" in e.data["description"]:
-                    return True
-        return False
+        assert any(
+            e.type == "VULNERABILITY" and "Generic Linux - Local File Inclusion" in e.data["description"]
+            for e in events
+        )
 
 
 class Nuclei_technology(HttpxMockHelper):
@@ -1636,9 +1620,9 @@ class Nuclei_technology(HttpxMockHelper):
         "modules": {"nuclei": {"mode": "technology", "concurrency": 2, "tags": "apache"}},
     }
 
-    def __init__(self, config, bbot_scanner, bbot_httpserver, caplog, *args, **kwargs):
+    def __init__(self, request, caplog, **kwargs):
         self.caplog = caplog
-        super().__init__(config, bbot_scanner, bbot_httpserver, *args, **kwargs)
+        super().__init__(request, **kwargs)
 
     def mock_args(self):
         expect_args = {"method": "GET", "uri": "/"}
@@ -1651,12 +1635,7 @@ class Nuclei_technology(HttpxMockHelper):
     def check_events(self, events):
         if "Using Interactsh Server" in self.caplog.text:
             return False
-
-        for e in events:
-            if e.type == "FINDING":
-                if "apache" in e.data["description"]:
-                    return True
-        return False
+        assert any(e.type == "FINDING" and "apache" in e.data["description"] for e in events)
 
 
 class Nuclei_budget(HttpxMockHelper):
@@ -1680,11 +1659,7 @@ class Nuclei_budget(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "FINDING":
-                if "SpiderFoot" in e.data["description"]:
-                    return True
-        return False
+        assert any(e.type == "FINDING" and "SpiderFoot" in e.data["description"] for e in events)
 
 
 class Url_manipulation(HttpxMockHelper):
@@ -1716,14 +1691,12 @@ class Url_manipulation(HttpxMockHelper):
         self.set_expect_requests(respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if (
-                e.type == "FINDING"
-                and e.data["description"]
-                == f"Url Manipulation: [body] Sig: [Modified URL: http://127.0.0.1:8888/?{self.module.rand_string}=.xml]"
-            ):
-                return True
-        return False
+        assert any(
+            e.type == "FINDING"
+            and e.data["description"]
+            == f"Url Manipulation: [body] Sig: [Modified URL: http://127.0.0.1:8888/?{self.module.rand_string}=.xml]"
+            for e in events
+        )
 
 
 class Naabu(HttpxMockHelper):
@@ -1733,10 +1706,7 @@ class Naabu(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "OPEN_TCP_PORT":
-                return True
-        return False
+        assert any(e.type == "OPEN_TCP_PORT" for e in events)
 
 
 class Social(HttpxMockHelper):
@@ -1748,11 +1718,7 @@ class Social(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "SOCIAL":
-                if e.data["platform"] == "discord":
-                    return True
-        return False
+        assert any(e.type == "SOCIAL" and e.data["platform"] == "discord" for e in events)
 
 
 class Hunt(HttpxMockHelper):
@@ -1764,13 +1730,10 @@ class Hunt(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if (
-                e.type == "FINDING"
-                and e.data["description"] == "Found potential INSECURE CRYPTOGRAPHY parameter [cipher]"
-            ):
-                return True
-        return False
+        assert any(
+            e.type == "FINDING" and e.data["description"] == "Found potential INSECURE CRYPTOGRAPHY parameter [cipher]"
+            for e in events
+        )
 
 
 class Bypass403(HttpxMockHelper):
@@ -1787,10 +1750,7 @@ class Bypass403(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "FINDING":
-                return True
-        return False
+        assert any(e.type == "FINDING" for e in events)
 
 
 class Bypass403_aspnetcookieless(HttpxMockHelper):
@@ -1807,10 +1767,7 @@ class Bypass403_aspnetcookieless(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "FINDING":
-                return True
-        return False
+        assert any(e.type == "FINDING" for e in events)
 
 
 class Bypass403_waf(HttpxMockHelper):
@@ -1827,10 +1784,7 @@ class Bypass403_waf(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "FINDING":
-                return False
-        return True
+        assert not any(e.type == "FINDING" for e in events)
 
 
 class Speculate_subdirectories(HttpxMockHelper):
@@ -1851,8 +1805,4 @@ class Speculate_subdirectories(HttpxMockHelper):
         self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check_events(self, events):
-        for e in events:
-            if e.type == "URL_UNVERIFIED":
-                if e.data == "http://127.0.0.1:8888/subdir1/":
-                    return True
-        return False
+        assert any(e.type == "URL_UNVERIFIED" and e.data == "http://127.0.0.1:8888/subdir1/" for e in events)

@@ -39,7 +39,7 @@ class bucket_gcp(bucket_aws):
             if isinstance(permissions, dict):
                 bad_permissions = list(permissions.get("permissions", {}))
         except Exception as e:
-            self.warning(f'Failed to enumerate permissions for bucket "{bucket_name}": {e}')
+            self.info(f'Failed to enumerate permissions for bucket "{bucket_name}": {e}')
         msg = ""
         if bad_permissions:
             perms_str = ",".join(bad_permissions)

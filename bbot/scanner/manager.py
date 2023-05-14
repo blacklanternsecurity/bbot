@@ -39,6 +39,7 @@ class ScanManager:
                 for event in sorted_events:
                     self.scan.verbose(f"Target: {event}")
                     self.queue_event(event)
+                await asyncio.sleep(0.1)
                 self.scan._finished_init = True
 
     async def emit_event(self, event, *args, **kwargs):

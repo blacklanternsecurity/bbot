@@ -45,6 +45,7 @@ def is_domain(d):
     "evilcorp.co.uk" --> True
     "www.evilcorp.co.uk" --> False
     """
+    d, _ = split_host_port(d)
     extracted = tldextract(d)
     if extracted.domain and not extracted.subdomain:
         return True
@@ -56,6 +57,7 @@ def is_subdomain(d):
     "www.evilcorp.co.uk" --> True
     "evilcorp.co.uk" --> False
     """
+    d, _ = split_host_port(d)
     extracted = tldextract(d)
     if extracted.domain and extracted.subdomain:
         return True
@@ -126,8 +128,9 @@ def parent_domain(d):
     "www.evilcorp.co.uk" --> "evilcorp.co.uk"
     "evilcorp.co.uk" --> "evilcorp.co.uk"
     """
+    host, port = split_host_port(d)
     if is_subdomain(d):
-        return ".".join(str(d).split(".")[1:])
+        return make_netloc(".".join(str(host).split(".")[1:]), port)
     return d
 
 
@@ -534,10 +537,13 @@ def gen_numbers(n, padding=2):
 
 def make_netloc(host, port):
     """
+    ("192.168.1.1", None) --> "192.168.1.1"
     ("192.168.1.1", 443) --> "192.168.1.1:443"
     ("evilcorp.com", 80) --> "evilcorp.com:80"
     ("dead::beef", 443) --> "[dead::beef]:443"
     """
+    if port is None:
+        return host
     if is_ip(host, version=6):
         host = f"[{host}]"
     return f"{host}:{port}"
