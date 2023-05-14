@@ -5,7 +5,9 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_modules_basic(patch_commands, patch_ansible, scan, helpers, events, bbot_config, bbot_scanner, httpx_mock):
+async def test_modules_basic(
+    patch_commands, patch_ansible, scan, helpers, events, bbot_config, bbot_scanner, httpx_mock
+):
     fallback_nameservers = scan.helpers.temp_dir / "nameservers.txt"
     with open(fallback_nameservers, "w") as f:
         f.write("8.8.8.8\n")
@@ -141,9 +143,7 @@ async def test_modules_basic(patch_commands, patch_ansible, scan, helpers, event
         assert type(preloaded.get("deps_apt", [])) == list, f"{module_name}.deps_apt must be of type list"
         assert type(preloaded.get("deps_shell", [])) == list, f"{module_name}.deps_shell must be of type list"
         assert type(preloaded.get("config", None)) == dict, f"{module_name}.options must be of type list"
-        assert (
-            type(preloaded.get("options_desc", None)) == dict
-        ), f"{module_name}.options_desc must be of type list"
+        assert type(preloaded.get("options_desc", None)) == dict, f"{module_name}.options_desc must be of type list"
         # options must have descriptions
         assert set(preloaded.get("config", {})) == set(
             preloaded.get("options_desc", {})
