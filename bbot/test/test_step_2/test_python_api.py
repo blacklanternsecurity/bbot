@@ -1,6 +1,7 @@
 from ..bbot_fixtures import *
 
 
+@pytest.mark.asyncio
 def test_python_api(bbot_config):
     from bbot.scanner import Scanner
 

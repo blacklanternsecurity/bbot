@@ -1,6 +1,7 @@
 import os
 import sys
 import pytest
+import asyncio  # noqa
 import logging
 import subprocess
 import tldextract
@@ -71,6 +72,8 @@ def patch_commands():
         # ffuf
         """{"input":{"FUZZ":"L2luZGV4Lmh0bWw="},"position":1,"status":200,"length":1256,"words":298,"lines":47,"content-type":"text/html;charset=UTF-8","redirectlocation":"","url":"http://example.com:80//index.html","duration":101243249,"resultfile":"","host":"example.com:80"}""",
         "https://api.publicapis.org:443/health",
+        # fingerprintx
+        """{"ip":"8.8.8.8","port":443,"protocol":"https","tls":true,"transport":"tcp","version":"HTTP server (unknown)","metadata":{"status":"302 Found","statusCode":302,"responseHeaders":{"Access-Control-Allow-Origin":["*"],"Alt-Svc":["h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"],"Content-Length":["216"],"Content-Type":["text/html; charset=UTF-8"],"Date":["Mon, 15 May 2023 18:34:49 GMT"],"Location":["https://dns.google/"],"Server":["HTTP server (unknown)"],"X-Content-Type-Options":["nosniff"],"X-Frame-Options":["SAMEORIGIN"],"X-Xss-Protection":["0"]},"technologies":["HTTP/3"]}}"""
         # open port
         "api.publicapis.org:443",
         # host
@@ -80,10 +83,11 @@ def patch_commands():
     ]
 
     def patch_scan_commands(scanner):
-        def run(*args, **kwargs):
+        async def run(*args, **kwargs):
             log.debug(f"helpers.command.run(args={args}, kwargs={kwargs})")
             text = kwargs.get("text", True)
-            return subprocess.run(["echo", "\n".join(sample_output)], text=text, stdout=subprocess.PIPE)
+            output = "\n".join(sample_output)
+            return subprocess.run(["echo", output], text=text)
 
         def run_live(*args, **kwargs):
             log.debug(f"helpers.command.run_live(args={args}, kwargs={kwargs})")
@@ -156,7 +160,6 @@ def scan(monkeypatch, patch_ansible, patch_commands, bbot_config):
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
     patch_commands(bbot_scan)
     patch_ansible(bbot_scan)
-    bbot_scan.status = "RUNNING"
 
     fallback_nameservers_file = bbot_scan.helpers.bbot_home / "fallback_nameservers.txt"
     with open(fallback_nameservers_file, "w") as f:
@@ -311,6 +314,9 @@ from bbot import config as default_config
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 test_config = OmegaConf.merge(default_config, test_config)
+
+if test_config.get("debug", False):
+    logging.getLogger("bbot").setLevel(logging.DEBUG)
 
 
 @pytest.fixture

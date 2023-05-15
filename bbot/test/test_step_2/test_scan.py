@@ -1,7 +1,8 @@
 from ..bbot_fixtures import *
 
 
-def test_scan(
+@pytest.mark.asyncio
+async def test_scan(
     patch_ansible,
     patch_commands,
     events,

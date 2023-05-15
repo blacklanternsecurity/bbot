@@ -36,11 +36,13 @@ class Scope_test_whitelist(HttpxMockHelper):
         return True
 
 
-def test_scope_blacklist(bbot_config, bbot_scanner, bbot_httpserver):
+@pytest.mark.asyncio
+async def test_scope_blacklist(bbot_config, bbot_scanner, bbot_httpserver):
     x = Scope_test_blacklist(bbot_config, bbot_scanner, bbot_httpserver, module_name="httpx")
-    x.run()
+    await x.run()
 
 
-def test_scope_whitelist(bbot_config, bbot_scanner, bbot_httpserver):
+@pytest.mark.asyncio
+async def test_scope_whitelist(bbot_config, bbot_scanner, bbot_httpserver):
     x = Scope_test_whitelist(bbot_config, bbot_scanner, bbot_httpserver, module_name="httpx")
-    x.run()
+    await x.run()

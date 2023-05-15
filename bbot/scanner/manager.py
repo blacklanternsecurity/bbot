@@ -237,6 +237,7 @@ class ScanManager:
             if self.dns_resolution:
                 emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
                 if emit_children:
+                    # only emit DNS children once for each unique host
                     host_hash = hash(str(event.host))
                     if host_hash in self.events_accepted:
                         emit_children = False
