@@ -1,5 +1,6 @@
 import json
 import asyncio
+import websockets
 
 from ..bbot_fixtures import *  # noqa: F401
 
