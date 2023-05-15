@@ -7,7 +7,7 @@ from contextlib import suppress
 
 from bbot.modules.base import BaseModule
 from bbot.core.errors import ValidationError
-from bbot.core.helpers.threadpool import NamedLock
+from bbot.core.helpers.async_helpers import NamedLock
 
 
 class sslcert(BaseModule):

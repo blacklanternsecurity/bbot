@@ -14,29 +14,29 @@ class dnszonetransfer(BaseModule):
     max_event_handlers = 5
     suppress_dupes = False
 
-    def setup(self):
+    async def setup(self):
         self.timeout = self.config.get("timeout", 10)
         return True
 
-    def filter_event(self, event):
-        if any([x in event.tags for x in ("ns_record", "soa_record")]):
+    async def filter_event(self, event):
+        if any([x in event.tags for x in ("ns-record", "soa-record")]):
             return True
         return False
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         domain = event.data
         self.debug("Finding nameservers with NS/SOA query")
-        nameservers = list(self.helpers.resolve(event.data, type=("NS", "SOA")))
+        nameservers = list(await self.helpers.resolve(event.data, type=("NS", "SOA")))
         nameserver_ips = set()
         for n in nameservers:
-            nameserver_ips.update(self.helpers.resolve(n))
+            nameserver_ips.update(await self.helpers.resolve(n))
         self.debug(f"Found {len(nameservers):} nameservers for domain {domain}")
         for nameserver in nameserver_ips:
             if self.scan.stopping:
                 break
             try:
                 self.debug(f"Attempting zone transfer against {nameserver} for domain {domain}")
-                xfr_answer = dns.query.xfr(nameserver, domain, timeout=self.timeout, lifetime=self.timeout)
+                xfr_answer = await dns.asyncquery.xfr(nameserver, domain, timeout=self.timeout, lifetime=self.timeout)
                 zone = dns.zone.from_xfr(xfr_answer)
             except Exception as e:
                 self.debug(f"Error retrieving zone: {e}")

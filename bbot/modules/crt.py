@@ -10,14 +10,14 @@ class crt(crobat):
     base_url = "https://crt.sh"
     reject_wildcards = False
 
-    def setup(self):
+    async def setup(self):
         self.cert_ids = set()
         return super().setup()
 
-    def request_url(self, query):
+    async def request_url(self, query):
         params = {"q": f"%.{query}", "output": "json"}
         url = self.helpers.add_get_params(self.base_url, params).geturl()
-        return self.request_with_fail_count(url, timeout=self.http_timeout + 10)
+        return await self.request_with_fail_count(url, timeout=self.http_timeout + 10)
 
     def parse_results(self, r, query):
         j = r.json()

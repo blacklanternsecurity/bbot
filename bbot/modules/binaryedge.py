@@ -14,20 +14,20 @@ class binaryedge(shodan_dns):
 
     base_url = "https://api.binaryedge.io/v2"
 
-    def setup(self):
+    async def setup(self):
         self.max_records = self.config.get("max_records", 1000)
         self.headers = {"X-Key": self.config.get("api_key", "")}
         return super().setup()
 
-    def ping(self):
+    async def ping(self):
         url = f"{self.base_url}/user/subscription"
-        j = self.request_with_fail_count(url, headers=self.headers).json()
+        j = (await self.request_with_fail_count(url, headers=self.headers)).json()
         assert j.get("requests_left", 0) > 0
 
-    def request_url(self, query):
+    async def request_url(self, query):
         # todo: host query (certs + services)
         url = f"{self.base_url}/query/domains/subdomain/{self.helpers.quote(query)}"
-        return self.request_with_fail_count(url, headers=self.headers)
+        return await self.request_with_fail_count(url, headers=self.headers)
 
     def parse_results(self, r, query):
         j = r.json()

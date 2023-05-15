@@ -145,6 +145,6 @@ class httpx(BaseModule):
                 # HTTP response
                 self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)
 
-    def cleanup(self):
+    async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)

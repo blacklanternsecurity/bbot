@@ -44,7 +44,7 @@ class asset_inventory(CSV):
         ret = await super().setup()
         return ret
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if event._internal:
             return False, "event is internal"
         if event.type not in self.watched_events:
@@ -159,7 +159,7 @@ class asset_inventory(CSV):
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
                 )
 
-    def finish(self):
+    async def finish(self):
         self.emit_contents()
 
     def _run_hooks(self):

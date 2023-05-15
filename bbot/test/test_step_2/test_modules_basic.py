@@ -12,6 +12,7 @@ async def test_modules_basic(
     with open(fallback_nameservers, "w") as f:
         f.write("8.8.8.8\n")
 
+    httpx_mock.assert_all_responses_were_requested = False
     for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
 
@@ -90,13 +91,21 @@ async def test_modules_basic(
     scan2.helpers.dns.fallback_nameservers_file = fallback_nameservers
     patch_commands(scan2)
     patch_ansible(scan2)
-    scan2.load_modules()
+    await scan2.load_modules()
     scan2.status = "RUNNING"
 
     # attributes, descriptions, etc.
-    for module_name, module in scan2.modules.items():
+    for module_name, module in sorted(scan2.modules.items()):
         # flags
         assert module._type in ("internal", "output", "scan")
+        # async stuff
+        not_async = []
+        for func_name in ("setup", "ping", "filter_event", "handle_event", "finish", "report", "cleanup"):
+            f = getattr(module, func_name)
+            if not scan2.helpers.is_async_function(f):
+                log.error(f"{f.__qualname__}() is not async")
+                not_async.append(f)
+    assert not any(not_async)
 
     # module preloading
     all_preloaded = module_loader.preloaded()

@@ -96,14 +96,14 @@ class dnscommonsrv(BaseModule):
     meta = {"description": "Check for common SRV records"}
     max_event_handlers = 10
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         # skip SRV wildcards
-        if "SRV" in self.helpers.is_wildcard(event.host):
+        if "SRV" in await self.helpers.is_wildcard(event.host):
             return False
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         queries = [event.data] + [f"{srv}.{event.data}" for srv in common_srvs]
-        for query, results in self.helpers.resolve_batch(queries, type="srv"):
+        async for query, results in self.helpers.resolve_batch(queries, type="srv"):
             if results:
                 self.emit_event(query, "DNS_NAME", tags=["srv-record"], source=event)

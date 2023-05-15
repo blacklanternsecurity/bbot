@@ -1,7 +1,5 @@
-from threading import Lock
-
 from bbot.modules.base import BaseModule
-from bbot.core.errors import NTLMError, RequestException
+from bbot.core.errors import NTLMError, RequestError
 
 ntlm_discovery_endpoints = [
     "",
@@ -70,14 +68,13 @@ class ntlm(BaseModule):
 
     in_scope_only = True
 
-    def setup(self):
+    async def setup(self):
         self.processed = set()
-        self.processed_lock = Lock()
         self.found = set()
         self.try_all = self.config.get("try_all", False)
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         found_hash = hash(f"{event.host}:{event.port}")
         if found_hash not in self.found:
             result_FQDN, request_url = self.handle_url(event)
@@ -94,7 +91,7 @@ class ntlm(BaseModule):
                 )
                 self.emit_event(result_FQDN, "DNS_NAME", source=event)
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if self.try_all:
             return True
         if event.type == "HTTP_RESPONSE":
@@ -104,7 +101,7 @@ class ntlm(BaseModule):
                     return True
         return False
 
-    def handle_url(self, event):
+    async def handle_url(self, event):
         if event.type == "URL":
             urls = {
                 event.data,
@@ -117,35 +114,33 @@ class ntlm(BaseModule):
             for endpoint in ntlm_discovery_endpoints:
                 urls.add(f"{event.parsed.scheme}://{event.parsed.netloc}/{endpoint}")
 
-        futures = {}
+        tasks = []
         for url in urls:
-            future = self.submit_task(self.check_ntlm, url)
-            futures[future] = url
+            url_hash = hash(url)
+            if url_hash in self.processed:
+                continue
+            self.processed.add(url_hash)
+            task = self.helpers.create_task(self.check_ntlm(url))
+            tasks.append(task)
 
-        for future in self.helpers.as_completed(futures):
-            url = futures[future]
+        for task in self.helpers.as_completed(tasks):
             try:
-                result = future.result()
+                result, url = await task
                 if result:
-                    for future in futures:
-                        future.cancel()
+                    self.helpers.cancel_tasks(tasks)
                     return str(result["FQDN"]), url
-            except RequestException as e:
+            except RequestError as e:
                 self.warning(str(e))
+                # cancel all the tasks if there's an error
+                self.helpers.cancel_tasks(tasks)
+                break
 
         return None, None
 
-    def check_ntlm(self, test_url):
-        url_hash = hash(test_url)
-
-        with self.processed_lock:
-            if url_hash in self.processed:
-                return
-            self.processed.add(url_hash)
-
+    async def check_ntlm(self, test_url):
         # use lower timeout value
         http_timeout = self.config.get("httpx_timeout", 5)
-        r = self.helpers.request(
+        r = await self.helpers.request(
             test_url, headers=NTLM_test_header, raise_error=True, allow_redirects=False, timeout=http_timeout
         )
         ntlm_resp = r.headers.get("WWW-Authenticate", "")
@@ -154,6 +149,6 @@ class ntlm(BaseModule):
             try:
                 ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
                 if ntlm_resp_decoded:
-                    return ntlm_resp_decoded
+                    return ntlm_resp_decoded, test_url
             except NTLMError as e:
                 self.verbose(str(e))

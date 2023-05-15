@@ -165,9 +165,9 @@ class DepsInstaller:
         try:
             process = await self.parent_helper.run(command, check=True)
             message = f'Successfully installed pip packages "{packages_str}"'
-            output = process.stdout.splitlines()[-1]
-            if output:
-                message = output
+            output = process.stdout
+            if output is not None:
+                message = output.splitlines()[-1]
             log.info(message)
             return True
         except CalledProcessError as err:

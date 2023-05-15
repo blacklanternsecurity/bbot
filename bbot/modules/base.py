@@ -173,7 +173,7 @@ class BaseModule:
         else:
             return None, "No API key set"
 
-    def ping(self):
+    async def ping(self):
         """
         Used in conjuction with require_api_key to ensure an API is up and responding
 

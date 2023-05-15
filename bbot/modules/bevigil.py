@@ -15,35 +15,35 @@ class bevigil(shodan_dns):
 
     base_url = "https://osint.bevigil.com/api"
 
-    def setup(self):
+    async def setup(self):
         self.api_key = self.config.get("api_key", "")
         self.headers = {"X-Access-Token": self.api_key}
         self.urls = self.config.get("urls", False)
         return super().setup()
 
-    def ping(self):
+    async def ping(self):
         pass
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
-        subdomains = self.query(query, request_fn=self.request_subdomains, parse_fn=self.parse_subdomains)
+        subdomains = await self.query(query, request_fn=self.request_subdomains, parse_fn=self.parse_subdomains)
         if subdomains:
             for subdomain in subdomains:
                 self.emit_event(subdomain, "DNS_NAME", source=event)
 
         if self.urls:
-            urls = self.query(query, request_fn=self.request_urls, parse_fn=self.parse_urls)
+            urls = await self.query(query, request_fn=self.request_urls, parse_fn=self.parse_urls)
             if urls:
                 for parsed_url in self.helpers.collapse_urls(urls):
                     self.emit_event(parsed_url.geturl(), "URL_UNVERIFIED", source=event)
 
-    def request_subdomains(self, query):
+    async def request_subdomains(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}/subdomains/"
-        return self.request_with_fail_count(url, headers=self.headers)
+        return await self.request_with_fail_count(url, headers=self.headers)
 
-    def request_urls(self, query):
+    async def request_urls(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}/urls/"
-        return self.request_with_fail_count(url, headers=self.headers)
+        return await self.request_with_fail_count(url, headers=self.headers)
 
     def parse_subdomains(self, r, query=None):
         results = set()

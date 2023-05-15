@@ -21,7 +21,7 @@ class censys(shodan_dns):
 
     deps_pip = ["censys~=2.1.9"]
 
-    def setup(self):
+    async def setup(self):
         self.max_records = self.config.get("max_records", 1000)
         self.api_id = self.config.get("api_id", "")
         self.api_secret = self.config.get("api_secret", "")
@@ -32,13 +32,13 @@ class censys(shodan_dns):
             self.certificates = CensysCertificates(api_id=self.api_id, api_secret=self.api_secret)
         return super().setup()
 
-    def ping(self):
+    async def ping(self):
         quota = self.certificates.quota()
         used = int(quota["used"])
         allowance = int(quota["allowance"])
         assert used < allowance, "No quota remaining"
 
-    def query(self, query):
+    async def query(self, query):
         emails = set()
         dns_names = set()
         ip_addresses = dict()
@@ -46,9 +46,10 @@ class censys(shodan_dns):
             # certificates
             certificate_query = f"parsed.names: {query}"
             certificate_fields = ["parsed.names", "parsed.issuer_dn", "parsed.subject_dn"]
-            for result in self.certificates.search(
-                certificate_query, fields=certificate_fields, max_records=self.max_records
-            ):
+            results = await self.scan.run_in_executor(
+                self.certificates.search, certificate_query, fields=certificate_fields, max_records=self.max_records
+            )
+            for result in results:
                 parsed_names = result.get("parsed.names", [])
                 # helps filter out third-party certs with a lot of garbage names
                 _filter = lambda x: True
@@ -64,7 +65,10 @@ class censys(shodan_dns):
             per_page = 100
             pages = max(1, int(self.max_records / per_page))
             hosts_query = f"services.tls.certificates.leaf_data.names: {query} or services.tls.certificates.leaf_data.subject.email_address: {query}"
-            for i, page in enumerate(self.hosts.search(hosts_query, per_page=per_page, pages=pages)):
+            hosts_results = await self.scan.run_in_executor(
+                self.hosts.search, hosts_query, per_page=per_page, pages=pages
+            )
+            for i, page in enumerate(hosts_results):
                 for result in page:
                     ip = result.get("ip", "")
                     if not ip:
@@ -90,7 +94,7 @@ class censys(shodan_dns):
 
         return emails, dns_names, ip_addresses
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
         emails, dns_names, ip_addresses = self.query(query)
         for email in emails:

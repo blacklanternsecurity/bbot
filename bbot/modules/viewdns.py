@@ -20,27 +20,27 @@ class viewdns(BaseModule):
     in_scope_only = True
     _qsize = 1
 
-    def setup(self):
+    async def setup(self):
         self.processed = set()
         self.date_regex = re.compile(r"\d{4}-\d{2}-\d{2}")
         return True
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         _, domain = self.helpers.split_domain(event.data)
         if hash(domain) in self.processed:
             return False
         self.processed.add(hash(domain))
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
-        for domain, _ in self.query(query):
+        for domain, _ in await self.query(query):
             self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
             # todo: registrar?
 
-    def query(self, query):
+    async def query(self, query):
         url = f"{self.base_url}/reversewhois/?q={query}"
-        r = self.helpers.request(url)
+        r = await self.helpers.request(url)
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200,):
             self.verbose(f"Error retrieving reverse whois results (status code: {status_code})")
