@@ -20,7 +20,7 @@ from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
 from bbot.core.helpers.logger import log_to_stderr
-from bbot.core.configurator import ensure_config_files, check_cli_args
+from bbot.core.configurator import ensure_config_files, check_cli_args, environ
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
@@ -39,6 +39,7 @@ scan_name = ""
 async def _main():
     global err
     global scan_name
+    environ.cli_execution = True
 
     ensure_config_files()
 
@@ -70,7 +71,7 @@ async def _main():
             agent = Agent(config)
             success = agent.setup()
             if success:
-                agent.start()
+                await agent.start()
 
         else:
             from bbot.scanner import Scanner
@@ -293,9 +294,6 @@ async def _main():
                 log_to_stderr(str(e), level="ERROR")
             except Exception:
                 raise
-            finally:
-                with suppress(NameError):
-                    await scanner.cleanup()
 
     except bbot.core.errors.BBOTError as e:
         log_to_stderr(f"{e} (--debug for details)", level="ERROR")

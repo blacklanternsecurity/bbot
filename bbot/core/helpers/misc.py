@@ -111,9 +111,9 @@ def split_host_port(d):
     host = None
     with suppress(ValueError):
         if parsed.port is None:
-            if parsed.scheme == "https":
+            if parsed.scheme in ("https", "wss"):
                 port = 443
-            elif parsed.scheme == "http":
+            elif parsed.scheme in ("http", "ws"):
                 port = 80
         else:
             port = int(parsed.port)

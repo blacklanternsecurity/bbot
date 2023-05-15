@@ -21,10 +21,10 @@ from bbot.modules import module_loader
 from bbot.core.event import make_event
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.helper import ConfigAwareHelper
-from bbot.core.logger import init_logging, get_log_level
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.configurator.environ import prepare_environment
 from bbot.core.errors import BBOTError, ScanError, ValidationError
+from bbot.core.logger import init_logging, get_log_level, set_log_level
 
 log = logging.getLogger("bbot.scanner")
 
@@ -74,6 +74,8 @@ class Scanner:
             config = OmegaConf.create(config)
         self.config = OmegaConf.merge(bbot_config, config)
         prepare_environment(self.config)
+        if self.config.get("debug", False):
+            set_log_level(logging.DEBUG)
 
         self.strict_scope = strict_scope
         self.force_start = force_start
@@ -198,18 +200,17 @@ class Scanner:
             pass
 
     async def start(self):
-        await self.prep()
-
         failed = True
-
-        if not self.target:
-            self.warning(f"No scan targets specified")
-
-        # start status ticker
-        self.ticker_task = asyncio.create_task(self._status_ticker(self.status_frequency))
-
         scan_start_time = datetime.now()
         try:
+            await self.prep()
+
+            if not self.target:
+                self.warning(f"No scan targets specified")
+
+            # start status ticker
+            self.ticker_task = asyncio.create_task(self._status_ticker(self.status_frequency))
+
             self.status = "STARTING"
 
             if not self.modules:
@@ -219,7 +220,7 @@ class Scanner:
             else:
                 self.hugesuccess(f"Starting scan {self.name}")
 
-            self.dispatcher.on_start(self)
+            await self.dispatcher.on_start(self)
 
             # start manager worker loops
             self.manager_worker_loop_tasks = [
@@ -292,7 +293,7 @@ class Scanner:
             scan_run_time = self.helpers.human_timedelta(scan_run_time)
             log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
 
-            self.dispatcher.on_finish(self)
+            await self.dispatcher.on_finish(self)
 
     def start_modules(self):
         self.verbose(f"Starting module worker loops")
@@ -455,9 +456,12 @@ class Scanner:
             if self.status == "ABORTING" and not status == "ABORTED":
                 self.debug(f'Attempt to set invalid status "{status}" on aborted scan')
             else:
-                self._status = status
-                self._status_code = self._status_codes[status]
-                self.dispatcher.on_status(self._status, self.id)
+                if status != self._status:
+                    self._status = status
+                    self._status_code = self._status_codes[status]
+                    asyncio.create_task(self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id))
+                else:
+                    self.debug(f'Scan status is already "{status}"')
         else:
             self.debug(f'Attempt to set invalid status "{status}" on scan')
 

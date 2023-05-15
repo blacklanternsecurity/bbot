@@ -298,34 +298,12 @@ def events(scan):
 
 
 @pytest.fixture
-def agent(monkeypatch, websocketapp, bbot_config):
+def agent(monkeypatch, bbot_config):
     from bbot import agent
-    from bbot.modules.output.websocket import Websocket
-
-    monkeypatch.setattr(Websocket, "send", lambda *args, **kwargs: True)
 
     test_agent = agent.Agent(bbot_config)
     test_agent.setup()
-    monkeypatch.setattr(test_agent, "ws", websocketapp())
     return test_agent
-
-
-@pytest.fixture
-def websocketapp():
-    class WebSocketApp:
-        def __init__(*args, **kwargs):
-            return
-
-        def send(self, message):
-            assert type(message) == str
-
-        def run_forever(*args, **kwargs):
-            return False
-
-        def close(self):
-            return
-
-    return WebSocketApp
 
 
 # bbot config

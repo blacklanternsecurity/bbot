@@ -297,6 +297,7 @@ class BaseModule:
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
             self.set_error_state()
+            # soft-fail if it's only a wordlist error
             if isinstance(e, WordlistError):
                 status = None
             msg = f"{e}"
