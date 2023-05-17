@@ -123,9 +123,12 @@ class sslcert(BaseModule):
 
             # Connect to the host
             try:
-                transport, _ = await self.scan._loop.create_connection(
+                transport, _ = await asyncio.wait_for(self.scan._loop.create_connection(
                     lambda: asyncio.Protocol(), host, port, ssl=ssl_context
-                )
+                ), timeout=self.timeout)
+            except asyncio.TimeoutError:
+                self.debug(f"Timed out after {self.timeout} seconds while connecting to {netloc}")
+                return [], [], (host, port)
             except Exception as e:
                 log_fn = self.warning
                 if isinstance(e, OSError):
