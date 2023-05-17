@@ -56,7 +56,7 @@ class asset_inventory(CSV):
         return True, ""
 
     async def handle_event(self, event):
-        if self.filter_event(event)[0]:
+        if (await self.filter_event(event))[0]:
             hostkey = _make_hostkey(event.host, event.resolved_hosts)
             if hostkey not in self.assets:
                 self.assets[hostkey] = Asset(event.host)
@@ -117,8 +117,7 @@ class asset_inventory(CSV):
                 self.log_table(table, table_header, table_name=f"asset-inventory-{header}")
 
         if self._file is not None:
-            with self._report_lock:
-                self.info(f"Saved asset-inventory output to {self.output_file}")
+            self.info(f"Saved asset-inventory output to {self.output_file}")
 
     def emit_contents(self):
         if self.use_previous and not self.emitted_contents:

@@ -27,8 +27,8 @@ from contextlib import suppress
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
 from hashlib import sha1 as hashlib_sha1
-from asyncio import as_completed, create_task, sleep  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
+from asyncio import as_completed, create_task, sleep, wait_for  # noqa
 
 from .url import *  # noqa F401
 from . import regexes

@@ -158,14 +158,14 @@ class BaseModule:
         """
         return
 
-    def require_api_key(self):
+    async def require_api_key(self):
         """
         Use in setup() to ensure the module is configured with an API key
         """
         self.api_key = self.config.get("api_key", "")
         if self.auth_secret:
             try:
-                self.ping()
+                await self.ping()
                 self.hugesuccess(f"API is ready")
                 return True
             except Exception as e:

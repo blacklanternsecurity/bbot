@@ -7,7 +7,6 @@ import subprocess
 import tldextract
 from pathlib import Path
 from omegaconf import OmegaConf
-from pytest_httpserver import HTTPServer
 import pytest_httpserver
 
 from werkzeug.wrappers import Request
@@ -337,21 +336,3 @@ def install_all_python_deps():
     for module in module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
-
-
-@pytest.fixture
-def bbot_httpserver():
-    server = HTTPServer(host="127.0.0.1", port=8888)
-    server.start()
-
-    yield server
-
-    server.clear()
-    if server.is_running():
-        server.stop()
-
-    # this is to check if the client has made any request where no
-    # `assert_request` was called on it from the test
-
-    server.check_assertions()
-    server.clear()

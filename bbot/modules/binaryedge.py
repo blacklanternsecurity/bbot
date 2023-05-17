@@ -17,7 +17,7 @@ class binaryedge(shodan_dns):
     async def setup(self):
         self.max_records = self.config.get("max_records", 1000)
         self.headers = {"X-Key": self.config.get("api_key", "")}
-        return super().setup()
+        return await super().setup()
 
     async def ping(self):
         url = f"{self.base_url}/user/subscription"

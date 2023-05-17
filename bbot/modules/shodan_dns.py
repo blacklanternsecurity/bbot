@@ -17,8 +17,8 @@ class shodan_dns(crobat):
     base_url = "https://api.shodan.io"
 
     async def setup(self):
-        super().setup()
-        return self.require_api_key()
+        await super().setup()
+        return await self.require_api_key()
 
     async def ping(self):
         r = await self.request_with_fail_count(f"{self.base_url}/api-info?key={self.api_key}")

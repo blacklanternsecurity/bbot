@@ -19,7 +19,7 @@ class bevigil(shodan_dns):
         self.api_key = self.config.get("api_key", "")
         self.headers = {"X-Access-Token": self.api_key}
         self.urls = self.config.get("urls", False)
-        return super().setup()
+        return await super().setup()
 
     async def ping(self):
         pass
