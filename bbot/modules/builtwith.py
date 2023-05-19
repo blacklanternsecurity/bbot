@@ -52,7 +52,7 @@ class builtwith(shodan_dns):
 
     def parse_domains(self, r, query):
         """
-        This method yields subdomains.
+        This method returns a set of subdomains.
         Each subdomain is an "FQDN" that was reported in the "Detailed Technology Profile" page on builtwith.com
 
         Parameters
@@ -60,20 +60,25 @@ class builtwith(shodan_dns):
         r (requests Response): The raw requests response from the API
         query (string): The query used against the API
         """
+        results_set = set()
+        self.critical(r.content)
         json = r.json()
         if json:
-            for result in json.get("Results", []):
-                for chunk in result.get("Result", {}).get("Paths", []):
-                    domain = chunk.get("Domain", "")
-                    subdomain = chunk.get("SubDomain", "")
-                    if domain:
-                        if subdomain:
-                            domain = f"{subdomain}.{domain}"
-                        yield domain
+            results = json.get("Results", [])
+            if results:
+                for result in results:
+                    for chunk in result.get("Result", {}).get("Paths", []):
+                        domain = chunk.get("Domain", "")
+                        subdomain = chunk.get("SubDomain", "")
+                        if domain:
+                            if subdomain:
+                                domain = f"{subdomain}.{domain}"
+                            results_set.add(domain)
             else:
                 error = json.get("Errors", [{}])[0].get("Message", "Unknown Error")
                 if error:
                     self.verbose(f"No results for {query}: {error}")
+        return results_set
 
     def parse_redirects(self, r, query):
         """

@@ -20,6 +20,11 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 @pytest.fixture
+def non_mocked_hosts() -> list:
+    return ["127.0.0.1"]
+
+
+@pytest.fixture
 def bbot_httpserver():
     server = HTTPServer(host="127.0.0.1", port=8888)
     server.start()

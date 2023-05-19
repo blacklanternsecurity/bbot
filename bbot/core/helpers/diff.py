@@ -47,7 +47,9 @@ class HttpCompare:
 
             if baseline_1 is None or baseline_2 is None:
                 log.debug("HTTP error while establishing baseline, aborting")
-                raise HttpCompareError("Can't get baseline from source URL")
+                raise HttpCompareError(
+                    f"Can't get baseline from source URL: {url_1}:{baseline_1} / {url_2}:{baseline_2}"
+                )
             if baseline_1.status_code != baseline_2.status_code:
                 log.debug("Status code not stable during baseline, aborting")
                 raise HttpCompareError("Can't get baseline from source URL")

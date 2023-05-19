@@ -175,6 +175,9 @@ class WebHelper:
         offset = 0
         while 1:
             new_url = url.format(page=page, page_size=page_size, offset=offset)
+            data = requests_kwargs.get("data", None)
+            if data is not None:
+                requests_kwargs["data"] = requests_kwargs["data"].format(page=page, page_size=page_size, offset=offset)
             result = await self.request(new_url, **requests_kwargs)
             try:
                 if json:

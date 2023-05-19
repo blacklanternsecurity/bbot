@@ -12,7 +12,7 @@ class crt(crobat):
 
     async def setup(self):
         self.cert_ids = set()
-        return super().setup()
+        return await super().setup()
 
     async def request_url(self, query):
         params = {"q": f"%.{query}", "output": "json"}
