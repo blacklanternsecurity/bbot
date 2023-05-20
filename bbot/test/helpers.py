@@ -91,16 +91,3 @@ class HttpxMockHelper(MockHelper):
 
     def _after_scan_prep(self):
         self.mock_args()
-
-
-def tempwordlist(content):
-    tmp_path = "/tmp/.bbot_test/"
-    from bbot.core.helpers.misc import rand_string, mkdir
-
-    mkdir(tmp_path)
-    filename = f"{tmp_path}{rand_string(8)}"
-    with open(filename, "w", errors="ignore") as f:
-        for c in content:
-            line = f"{c}\n"
-            f.write(line)
-    return filename

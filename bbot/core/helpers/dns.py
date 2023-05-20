@@ -431,6 +431,13 @@ class DNSHelper:
         Note that is_wildcard can be True, False, or None (indicating that wildcard detection was inconclusive)
         """
         result = {}
+
+        # skip check if the query's parent domain is excluded in the config
+        for d in self.wildcard_ignore:
+            if self.parent_helper.host_in_host(query, d):
+                log.debug(f"Skipping wildcard detection on {query} because it is excluded in the config")
+                return {}
+
         if rdtype is None:
             rdtype = "ANY"
 

@@ -14,17 +14,18 @@ class fullhunt(shodan_dns):
     async def setup(self):
         self.api_key = self.config.get("api_key", "")
         self.headers = {"x-api-key": self.api_key}
-        return super().setup()
+        return await super().setup()
 
     async def ping(self):
         url = f"{self.base_url}/auth/status"
-        j = await self.request_with_fail_count(url, headers=self.headers).json()
+        j = (await self.request_with_fail_count(url, headers=self.headers)).json()
         remaining = j["user_credits"]["remaining_credits"]
         assert remaining > 0, "No credits remaining"
 
     async def request_url(self, query):
         url = f"{self.base_url}/domain/{self.helpers.quote(query)}/subdomains"
-        return await self.request_with_fail_count(url, headers=self.headers)
+        response = await self.request_with_fail_count(url, headers=self.headers)
+        return response
 
     def parse_results(self, r, query):
         return r.json().get("hosts", [])
