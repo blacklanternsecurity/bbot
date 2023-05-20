@@ -104,9 +104,14 @@ async def test_web_interactsh(bbot_scanner, bbot_config, bbot_httpserver):
         log.debug(f"interactsh poll: {data}")
 
     interactsh_domain = await interactsh_client.register(callback=async_callback)
+    url = f"https://{interactsh_domain}/bbot_interactsh_test"
+    response = await scan1.helpers.request(url)
+    assert response.status_code == 200
+    await asyncio.sleep(10)
     assert any(interactsh_domain.endswith(f"{s}") for s in server_list)
     data_list = await interactsh_client.poll()
     assert isinstance(data_list, list)
+    assert any("bbot_interactsh_test" in d.get("raw-request", "") for d in data_list)
     assert await interactsh_client.deregister() is None
 
 

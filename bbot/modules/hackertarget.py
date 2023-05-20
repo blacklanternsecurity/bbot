@@ -9,8 +9,10 @@ class hackertarget(crobat):
 
     base_url = "https://api.hackertarget.com"
 
-    def request_url(self, query):
-        return self.request_with_fail_count(f"{self.base_url}/hostsearch/?q={self.helpers.quote(query)}")
+    async def request_url(self, query):
+        url = f"{self.base_url}/hostsearch/?q={self.helpers.quote(query)}"
+        response = await self.request_with_fail_count(url)
+        return response
 
     def parse_results(self, r, query):
         for line in r.text.splitlines():

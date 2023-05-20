@@ -1,48 +1,22 @@
 from ..bbot_fixtures import *  # noqa: F401
-from ..modules_test_classes import HttpxMockHelper
+from ..test_step_1.module_tests.base import ModuleTestBase
 
 
-class Scope_test_blacklist(HttpxMockHelper):
-    additional_modules = ["httpx"]
+class Scope_test_blacklist(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx"]
 
     blacklist = ["127.0.0.1"]
 
-    def mock_args(self):
+    def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": "alive"}
-        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-    def check_events(self, events):
-        for e in events:
-            if e.type == "URL":
-                return False
-        return True
+    def check(self, module_test, events):
+        assert not any(e.type == "URL" for e in events)
 
 
-class Scope_test_whitelist(HttpxMockHelper):
-    additional_modules = ["httpx"]
-
+class Scope_test_whitelist(Scope_test_blacklist):
+    blacklist = []
     whitelist = ["255.255.255.255"]
-
-    def mock_args(self):
-        expect_args = {"method": "GET", "uri": "/"}
-        respond_args = {"response_data": "alive"}
-        self.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
-
-    def check_events(self, events):
-        for e in events:
-            if e.type == "URL":
-                return False
-        return True
-
-
-@pytest.mark.asyncio
-async def test_scope_blacklist(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Scope_test_blacklist(bbot_config, bbot_scanner, bbot_httpserver, module_name="httpx")
-    await x.run()
-
-
-@pytest.mark.asyncio
-async def test_scope_whitelist(bbot_config, bbot_scanner, bbot_httpserver):
-    x = Scope_test_whitelist(bbot_config, bbot_scanner, bbot_httpserver, module_name="httpx")
-    await x.run()

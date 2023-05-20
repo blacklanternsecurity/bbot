@@ -22,7 +22,6 @@ class TestGowitness(ModuleTestBase):
         }
         module_test.set_expect_requests(respond_args=respond_args)
 
-
     def check(self, module_test, events):
         screenshots_path = self.home_dir / "scans" / module_test.scan.name / "gowitness" / "screenshots"
         screenshots = list(screenshots_path.glob("*.png"))
