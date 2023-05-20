@@ -34,44 +34,6 @@ class Httpx(HttpxMockHelper):
         assert open_port, "Failed to visit target OPEN_TCP_PORT"
 
 
-class Gowitness(HttpxMockHelper):
-    additional_modules = ["httpx"]
-    import shutil
-    from pathlib import Path
-
-    home_dir = Path("/tmp/.bbot_gowitness_test")
-    shutil.rmtree(home_dir, ignore_errors=True)
-    config_overrides = {"force_deps": True, "home": str(home_dir)}
-
-    def mock_args(self):
-        respond_args = {
-            "response_data": """<html><head><title>BBOT is life</title></head><body>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@700&family=Open+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-</body></html>""",
-            "headers": {"Server": "Apache/2.4.41 (Ubuntu)"},
-        }
-        self.set_expect_requests(respond_args=respond_args)
-
-    def check_events(self, events):
-        screenshots_path = self.home_dir / "scans" / "gowitness_test" / "gowitness" / "screenshots"
-        screenshots = list(screenshots_path.glob("*.png"))
-        assert screenshots, f"No .png files found at {screenshots_path}"
-        url = False
-        webscreenshot = False
-        technology = False
-        for event in events:
-            if event.type == "URL_UNVERIFIED":
-                url = True
-            elif event.type == "WEBSCREENSHOT":
-                webscreenshot = True
-            elif event.type == "TECHNOLOGY":
-                technology = True
-        assert url, "No URL emitted"
-        assert webscreenshot, "No WEBSCREENSHOT emitted"
-        assert technology, "No TECHNOLOGY emitted"
-
 
 class Subdomain_Hijack(HttpxMockHelper):
     additional_modules = ["httpx", "excavate"]

@@ -42,7 +42,7 @@ class github(shodan_dns):
         try:
             async for r in agen:
                 if r is None:
-                    continue
+                    break
                 status_code = getattr(r, "status_code", 0)
                 if status_code == 429:
                     "Github is rate-limiting us (HTTP status: 429)"
@@ -51,7 +51,7 @@ class github(shodan_dns):
                     j = r.json()
                 except Exception as e:
                     self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
-                    continue
+                    break
                 items = j.get("items", [])
                 if not items:
                     break
