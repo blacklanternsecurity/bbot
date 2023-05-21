@@ -1066,5 +1066,10 @@ def get_traceback_details(e):
 async def cancel_tasks(tasks):
     for task in tasks:
         task.cancel()
-        with suppress(asyncio.CancelledError):
+        try:
             await task
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            log.debug(e)
+            log.trace(traceback.format_exc())

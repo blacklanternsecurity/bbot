@@ -1,6 +1,5 @@
 import dns.zone
 import dns.query
-from functools import partial
 
 from bbot.modules.base import BaseModule
 
@@ -37,8 +36,9 @@ class dnszonetransfer(BaseModule):
                 break
             try:
                 self.debug(f"Attempting zone transfer against {nameserver} for domain {domain}")
-                xfr_fn = partial(dns.query.xfr, timeout=self.timeout, lifetime=self.timeout)
-                xfr_answer = await self.scan.run_in_executor(xfr_fn, nameserver, domain)
+                xfr_answer = await self.scan.run_in_executor(
+                    dns.query.xfr, nameserver, domain, timeout=self.timeout, lifetime=self.timeout
+                )
                 zone = dns.zone.from_xfr(xfr_answer)
             except Exception as e:
                 self.verbose(f"Error retrieving zone: {e}")

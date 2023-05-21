@@ -235,11 +235,11 @@ class telerik(BaseModule):
                 if fail_count < 2:
                     continue
                 self.debug(f"Cancelling run against {event.data} due to failed request")
-                self.helpers.cancel_tasks(tasks)
+                await self.helpers.cancel_tasks(tasks)
                 break
             else:
                 if "Cannot deserialize dialog parameters" in result.text:
-                    self.helpers.cancel_tasks(tasks)
+                    await self.helpers.cancel_tasks(tasks)
                     self.debug(f"Detected Telerik UI instance ({dh})")
                     description = f"Telerik DialogHandler detected"
                     self.emit_event(
@@ -250,7 +250,7 @@ class telerik(BaseModule):
                     # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
                     break
 
-        self.helpers.cancel_tasks(tasks)
+        await self.helpers.cancel_tasks(tasks)
 
         spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
         result, _ = await self.test_detector(event.data, spellcheckhandler)

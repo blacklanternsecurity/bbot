@@ -1,7 +1,6 @@
 import dns.zone
 import dns.query
 import dns.message
-from types import SimpleNamespace
 
 from .base import ModuleTestBase
 
@@ -13,23 +12,11 @@ class TestDNSZoneTransfer(ModuleTestBase):
     def setup_after_prep(self, module_test):
         old_resolve_fn = module_test.scan.helpers.dns._resolve_hostname
 
-        class MockRecord:
-            def __init__(self, record, rdtype):
-                self.rdtype = SimpleNamespace()
-                self.rdtype.name = rdtype
-                self.record = record
-
-            def __str__(self):
-                return self.record
-
-            def to_text(self):
-                return str(self)
-
         async def _resolve_hostname(query, **kwargs):
             if query == "blacklanternsecurity.fakedomain" and kwargs.get("rdtype", "").upper() == "NS":
-                return [MockRecord("ns01.blacklanternsecurity.fakedomain", "NS")], []
+                return [module_test.mock_record("ns01.blacklanternsecurity.fakedomain", "NS")], []
             if query == "ns01.blacklanternsecurity.fakedomain" and kwargs.get("rdtype", "").upper() in "A":
-                return [MockRecord("127.0.0.1", "A")], []
+                return [module_test.mock_record("127.0.0.1", "A")], []
             return await old_resolve_fn(query, **kwargs)
 
         def from_xfr(*args, **kwargs):

@@ -432,6 +432,9 @@ class DNSHelper:
         """
         result = {}
 
+        if is_ip(query):
+            return result
+
         # skip check if the query's parent domain is excluded in the config
         for d in self.wildcard_ignore:
             if self.parent_helper.host_in_host(query, d):
@@ -517,6 +520,9 @@ class DNSHelper:
         """
         wildcard_domain_results = {}
         domain = self._clean_dns_record(domain)
+
+        if is_ip(domain):
+            return {}
 
         # skip check if the query's parent domain is excluded in the config
         for d in self.wildcard_ignore:

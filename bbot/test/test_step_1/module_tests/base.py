@@ -1,8 +1,9 @@
 import pytest
-import pytest_asyncio
 import logging
+import pytest_asyncio
 from abc import abstractmethod
 from omegaconf import OmegaConf
+from types import SimpleNamespace
 
 from bbot.scanner import Scanner
 from bbot.modules import module_loader
@@ -25,6 +26,19 @@ def tempwordlist(content):
     return filename
 
 
+class MockRecord:
+    def __init__(self, record, rdtype):
+        self.rdtype = SimpleNamespace()
+        self.rdtype.name = rdtype
+        self.record = record
+
+    def __str__(self):
+        return self.record
+
+    def to_text(self):
+        return str(self)
+
+
 class TestClass:
     @pytest_asyncio.fixture
     async def my_fixture(self, bbot_httpserver):
@@ -45,13 +59,14 @@ class ModuleTestBase:
     modules_overrides = []
 
     class ModuleTest:
-        def __init__(self, module_test_base, httpx_mock, httpserver, monkeypatch):
+        def __init__(self, module_test_base, httpx_mock, httpserver, monkeypatch, request):
             self.name = module_test_base.name
             self.config = OmegaConf.merge(test_config, OmegaConf.create(module_test_base.config_overrides))
 
             self.httpx_mock = httpx_mock
             self.httpserver = httpserver
             self.monkeypatch = monkeypatch
+            self.request_fixture = request
 
             # handle output, internal module types
             preloaded = module_loader.preloaded()
@@ -90,9 +105,12 @@ class ModuleTestBase:
         def module(self):
             return self.scan.modules[self.name]
 
+        def mock_record(self, *args, **kwargs):
+            return MockRecord(*args, **kwargs)
+
     @pytest_asyncio.fixture
-    async def module_test(self, httpx_mock, bbot_httpserver, monkeypatch):
-        module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, monkeypatch)
+    async def module_test(self, httpx_mock, bbot_httpserver, monkeypatch, request):
+        module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, monkeypatch, request)
         self.setup_before_prep(module_test)
         await module_test.scan.prep()
         self.setup_after_prep(module_test)

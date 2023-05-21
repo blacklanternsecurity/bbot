@@ -1,5 +1,5 @@
 from bbot.modules.base import BaseModule
-from bbot.core.errors import NTLMError, RequestError
+from bbot.core.errors import NTLMError, RequestError, ReadTimeout
 
 ntlm_discovery_endpoints = [
     "",
@@ -77,19 +77,21 @@ class ntlm(BaseModule):
     async def handle_event(self, event):
         found_hash = hash(f"{event.host}:{event.port}")
         if found_hash not in self.found:
-            result_FQDN, request_url = self.handle_url(event)
-            if result_FQDN and request_url:
+            result, request_url = await self.handle_url(event)
+            if result and request_url:
                 self.found.add(found_hash)
                 self.emit_event(
                     {
                         "host": str(event.host),
                         "url": request_url,
-                        "description": f"NTLM AUTH: {result_FQDN}",
+                        "description": f"NTLM AUTH: {result}",
                     },
                     "FINDING",
                     source=event,
                 )
-                self.emit_event(result_FQDN, "DNS_NAME", source=event)
+                fqdn = result.get("FQDN", "")
+                if fqdn:
+                    self.emit_event(fqdn, "DNS_NAME", source=event)
 
     async def filter_event(self, event):
         if self.try_all:
@@ -127,12 +129,13 @@ class ntlm(BaseModule):
             try:
                 result, url = await task
                 if result:
-                    self.helpers.cancel_tasks(tasks)
-                    return str(result["FQDN"]), url
-            except RequestError as e:
-                self.warning(str(e))
+                    await self.helpers.cancel_tasks(tasks)
+                    return result, url
+            except (RequestError, ReadTimeout) as e:
+                if str(e):
+                    self.warning(str(e))
                 # cancel all the tasks if there's an error
-                self.helpers.cancel_tasks(tasks)
+                await self.helpers.cancel_tasks(tasks)
                 break
 
         return None, None
@@ -152,3 +155,5 @@ class ntlm(BaseModule):
                     return ntlm_resp_decoded, test_url
             except NTLMError as e:
                 self.verbose(str(e))
+                return None, test_url
+        return None, test_url

@@ -327,6 +327,8 @@ def main():
     global scan_name
     try:
         asyncio.run(_main())
+    except asyncio.CancelledError:
+        pass
     except KeyboardInterrupt:
         msg = "Interrupted"
         if scan_name:

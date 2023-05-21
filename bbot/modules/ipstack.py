@@ -19,8 +19,12 @@ class Ipstack(shodan_dns):
 
     base_url = "http://api.ipstack.com/"
 
+    async def filter_event(self, event):
+        return True
+
     async def ping(self):
-        r = await self.request_with_fail_count(f"{self.base_url}/check?access_key={self.api_key}")
+        url = f"{self.base_url}/check?access_key={self.api_key}"
+        r = await self.request_with_fail_count(url)
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 

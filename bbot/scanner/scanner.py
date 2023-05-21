@@ -8,6 +8,7 @@ import contextlib
 from sys import exc_info
 from pathlib import Path
 from datetime import datetime
+from functools import partial
 from omegaconf import OmegaConf
 from collections import OrderedDict
 
@@ -381,10 +382,7 @@ class Scanner:
             tasks.append(self.ticker_task)
         # manager worker loops
         tasks += self.manager_worker_loop_tasks
-        for t in tasks:
-            t.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await t
+        await self.helpers.cancel_tasks(tasks)
 
     async def report(self):
         for mod in self.modules.values():
@@ -675,8 +673,9 @@ class Scanner:
         except BaseException as e:
             self._handle_exception(e, context=context)
 
-    def run_in_executor(self, *args, **kwargs):
-        return self._loop.run_in_executor(None, *args, **kwargs)
+    def run_in_executor(self, callback, *args, **kwargs):
+        callback = partial(callback, **kwargs)
+        return self._loop.run_in_executor(None, callback, *args)
 
     def _handle_exception(self, e, context="scan", finally_callback=None):
         if callable(context):
