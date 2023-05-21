@@ -9,7 +9,7 @@ from contextlib import suppress
 from .regexes import dns_name_regex
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.errors import ValidationError, DNSError
-from .misc import is_ip, is_domain, domain_parents, parent_domain, rand_string, cloudcheck
+from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
@@ -432,8 +432,8 @@ class DNSHelper:
         """
         result = {}
 
-        if is_ip(query):
-            return result
+        if not is_dns_name(query):
+            return {}
 
         # skip check if the query's parent domain is excluded in the config
         for d in self.wildcard_ignore:
@@ -521,7 +521,7 @@ class DNSHelper:
         wildcard_domain_results = {}
         domain = self._clean_dns_record(domain)
 
-        if is_ip(domain):
+        if not is_dns_name(domain):
             return {}
 
         # skip check if the query's parent domain is excluded in the config

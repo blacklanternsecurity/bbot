@@ -214,6 +214,17 @@ def is_port(p):
     return p and p.isdigit() and 0 <= int(p) <= 65535
 
 
+def is_dns_name(d):
+    if is_ip(d):
+        return False
+    d = smart_decode(d)
+    if regexes.hostname_regex.match(d):
+        return True
+    if regexes.dns_name_regex.match(d):
+        return True
+    return False
+
+
 def is_ip(d, version=None):
     """
     "192.168.1.1" --> True

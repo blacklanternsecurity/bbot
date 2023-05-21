@@ -79,6 +79,12 @@ async def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver
     ]
     assert helpers.is_ip("127.0.0.1")
     assert not helpers.is_ip("127.0.0.0.1")
+    assert helpers.is_dns_name("evilcorp.com")
+    assert helpers.is_dns_name("evilcorp")
+    assert helpers.is_dns_name("ドメイン.テスト")
+    assert not helpers.is_dns_name("127.0.0.1")
+    assert not helpers.is_dns_name("dead::beef")
+    assert not helpers.is_dns_name("bob@evilcorp.com")
 
     assert helpers.domain_stem("evilcorp.co.uk") == "evilcorp"
     assert helpers.domain_stem("www.evilcorp.co.uk") == "www.evilcorp"

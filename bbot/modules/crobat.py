@@ -29,9 +29,10 @@ class crobat(BaseModule):
         return True
 
     async def _is_wildcard(self, query):
-        for domain, wildcard_rdtypes in (await self.helpers.is_wildcard_domain(query)).items():
-            if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
-                return True
+        if self.helpers.is_dns_name(query):
+            for domain, wildcard_rdtypes in (await self.helpers.is_wildcard_domain(query)).items():
+                if any(t in wildcard_rdtypes for t in ("A", "AAAA", "CNAME")):
+                    return True
         return False
 
     async def filter_event(self, event):
