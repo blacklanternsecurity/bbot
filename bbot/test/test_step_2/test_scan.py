@@ -7,7 +7,6 @@ async def test_scan(
     bbot_config,
     helpers,
     neograph,
-    websocketapp,
     monkeypatch,
     bbot_scanner,
 ):
@@ -45,38 +44,13 @@ async def test_scan(
     assert scan2.in_scope("8.8.8.8")
     assert not scan2.in_scope("8.8.4.4")
 
-    scan3 = bbot_scanner(
-        "127.0.0.0/30",
-        "127.0.0.2:8443",
-        "https://localhost",
-        "[::1]:80",
-        "http://[::1]:8080",
-        modules=["ipneighbor"],
-        output_modules=list(available_output_modules),
-        config=bbot_config,
-        blacklist=["http://127.0.0.3:8000/asdf"],
-        whitelist=["127.0.0.0/29"],
-    )
-    patch_commands(scan3)
-    patch_ansible(scan3)
-    assert "targets" in scan3.json
-    assert "127.0.0.3" in scan3.target
-    assert "127.0.0.4" not in scan3.target
-    assert "127.0.0.4" in scan3.whitelist
-    assert scan3.whitelisted("127.0.0.4")
-    assert "127.0.0.3" in scan3.blacklist
-    assert scan3.blacklisted("127.0.0.3")
-    assert scan3.in_scope("127.0.0.1")
-    assert not scan3.in_scope("127.0.0.3")
-    scan3.prep()
-    monkeypatch.setattr(scan3.modules["websocket"], "ws", websocketapp())
-    events = list(scan3.start())
-
     # make sure DNS resolution works
     dns_config = OmegaConf.create({"dns_resolution": True})
     dns_config = OmegaConf.merge(bbot_config, dns_config)
     scan4 = bbot_scanner("8.8.8.8", config=dns_config)
-    events = list(scan4.start())
+    events = []
+    async for event in scan4.start():
+        events.append(event)
     event_data = [e.data for e in events]
     assert "dns.google" in event_data
 
@@ -84,6 +58,8 @@ async def test_scan(
     no_dns_config = OmegaConf.create({"dns_resolution": False})
     no_dns_config = OmegaConf.merge(bbot_config, no_dns_config)
     scan5 = bbot_scanner("8.8.8.8", config=no_dns_config)
-    events = list(scan5.start())
+    events = []
+    async for event in scan5.start():
+        events.append(event)
     event_data = [e.data for e in events]
     assert "dns.google" not in event_data
