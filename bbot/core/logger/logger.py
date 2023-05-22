@@ -16,6 +16,15 @@ from ..helpers.logger import colorize, loglevel_mapping
 _log_level_override = None
 
 
+# Log to stderr
+stderr_handler = logging.StreamHandler(sys.stderr)
+
+# Log to stdout
+stdout_handler = logging.StreamHandler(sys.stdout)
+
+log_listener = None
+
+
 class ColoredFormatter(logging.Formatter):
     """
     Pretty colors for terminal
@@ -120,12 +129,6 @@ def log_listener_setup(logging_queue):
     if not mkdir(log_dir, raise_error=False):
         error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
 
-    # Log to stderr
-    stderr_handler = logging.StreamHandler(sys.stderr)
-
-    # Log to stdout
-    stdout_handler = logging.StreamHandler(sys.stdout)
-
     # Main log file
     main_handler = logging.handlers.TimedRotatingFileHandler(
         f"{log_dir}/bbot.log", when="d", interval=1, backupCount=14
@@ -166,6 +169,7 @@ def log_listener_setup(logging_queue):
 
     handlers = [stdout_handler, stderr_handler, main_handler, debug_handler]
 
+    global log_listener
     log_listener = QueueListener(logging_queue, *handlers)
     log_listener.start()
     atexit.register(stop_listener, log_listener)

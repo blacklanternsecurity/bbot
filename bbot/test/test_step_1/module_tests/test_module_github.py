@@ -2,7 +2,7 @@ from .base import ModuleTestBase
 
 
 class TestGithub(ModuleTestBase):
-    config_overrides = {"omit_event_types": [], "scope_report_distance": 1}
+    config_overrides = {"modules": {"github": {"api_key": "asdf"}}, "omit_event_types": [], "scope_report_distance": 1}
 
     def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
