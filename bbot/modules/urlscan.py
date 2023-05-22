@@ -13,13 +13,13 @@ class urlscan(crobat):
 
     base_url = "https://urlscan.io/api/v1"
 
-    def setup(self):
+    async def setup(self):
         self.urls = self.config.get("urls", False)
-        return super().setup()
+        return await super().setup()
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
-        for domain, url in self.query(query):
+        for domain, url in await self.query(query):
             source_event = event
             if domain and domain != query:
                 domain_event = self.make_event(domain, "DNS_NAME", source=event)
@@ -38,10 +38,12 @@ class urlscan(crobat):
                     else:
                         self.debug(f"{url_event.host} does not match {query}")
 
-    def query(self, query):
-        results = self.helpers.request(f"{self.base_url}/search/?q={self.helpers.quote(query)}")
+    async def query(self, query):
+        results = set()
+        url = f"{self.base_url}/search/?q={self.helpers.quote(query)}"
+        r = await self.helpers.request(url)
         try:
-            json = results.json()
+            json = r.json()
             if json and type(json) == dict:
                 for result in json.get("results", []):
                     if result and type(result) == dict:
@@ -50,14 +52,15 @@ class urlscan(crobat):
                             domain = task.get("domain", "")
                             url = task.get("url", "")
                             if domain or url:
-                                yield domain, url
+                                results.add((domain, url))
                         page = result.get("page", {})
                         if page and type(page) == dict:
                             domain = page.get("domain", "")
                             url = page.get("url", "")
                             if domain or url:
-                                yield domain, url
+                                results.add((domain, url))
             else:
                 self.debug(f'No results for "{query}"')
         except Exception:
             self.verbose(f"Error retrieving urlscan results")
+        return results

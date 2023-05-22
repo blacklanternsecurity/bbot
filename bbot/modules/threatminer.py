@@ -11,9 +11,11 @@ class threatminer(crobat):
 
     base_url = "https://api.threatminer.org/v2"
 
-    def request_url(self, query):
-        return self.request_with_fail_count(f"{self.base_url}/domain.php?q={self.helpers.quote(query)}&rt=5")
+    async def request_url(self, query):
+        url = f"{self.base_url}/domain.php?q={self.helpers.quote(query)}&rt=5"
+        r = await self.request_with_fail_count(url)
+        return r
 
     def parse_results(self, r, query):
         j = r.json()
-        yield from j.get("results", [])
+        return list(j.get("results", []))

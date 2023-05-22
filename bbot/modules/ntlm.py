@@ -3,7 +3,8 @@ from bbot.core.errors import NTLMError, RequestError, ReadTimeout
 
 ntlm_discovery_endpoints = [
     "",
-    "autodiscover/autodiscover.xml" "ecp/",
+    "autodiscover/autodiscover.xml",
+    "ecp/",
     "ews/",
     "ews/exchange.asmx",
     "exchange/",

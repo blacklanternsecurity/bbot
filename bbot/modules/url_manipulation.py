@@ -78,7 +78,7 @@ class url_manipulation(BaseModule):
                 else:
                     self.debug("Ignoring positive result due to presence of parameter name in result")
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         accepted_status_codes = ["200", "301", "302"]
 
         for c in accepted_status_codes:

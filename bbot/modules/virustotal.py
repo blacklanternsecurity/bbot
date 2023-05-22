@@ -11,18 +11,19 @@ class virustotal(shodan_dns):
 
     base_url = "https://www.virustotal.com/api/v3"
 
-    def setup(self):
+    async def setup(self):
         self.api_key = self.config.get("api_key", "")
         self.headers = {"x-apikey": self.api_key}
-        return super().setup()
+        return await super().setup()
 
-    def ping(self):
+    async def ping(self):
         # virustotal does not have a ping function
         return
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/domains/{self.helpers.quote(query)}/subdomains"
-        return self.request_with_fail_count(url, headers=self.headers)
+        r = await self.request_with_fail_count(url, headers=self.headers)
+        return r
 
     def parse_results(self, r, query):
         results = set()

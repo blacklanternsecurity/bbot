@@ -119,7 +119,7 @@ class WebHelper:
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
         log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
         if cache_hrs > 0 and self.parent_helper.is_cached(url):
-            log.debug(f"{url} is cached")
+            log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
             success = True
         else:
             # kwargs["raise_error"] = True
@@ -175,9 +175,6 @@ class WebHelper:
         offset = 0
         while 1:
             new_url = url.format(page=page, page_size=page_size, offset=offset)
-            data = requests_kwargs.get("data", None)
-            if data is not None:
-                requests_kwargs["data"] = requests_kwargs["data"].format(page=page, page_size=page_size, offset=offset)
             result = await self.request(new_url, **requests_kwargs)
             try:
                 if json:

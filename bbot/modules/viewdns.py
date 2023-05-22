@@ -39,6 +39,7 @@ class viewdns(BaseModule):
             # todo: registrar?
 
     async def query(self, query):
+        results = set()
         url = f"{self.base_url}/reversewhois/?q={query}"
         r = await self.helpers.request(url)
         status_code = getattr(r, "status_code", 0)
@@ -47,7 +48,7 @@ class viewdns(BaseModule):
 
         content = getattr(r, "content", b"")
         html = BeautifulSoup(content, features="lxml")
-        yielded = set()
+        found = set()
         for table_row in html.findAll("tr"):
             table_cells = table_row.findAll("td")
             # make double-sure we're in the right table by checking the date field
@@ -58,10 +59,12 @@ class viewdns(BaseModule):
                     # registrar == last cell
                     registrar = table_cells[-1].text.strip()
                     if domain and not domain == query:
-                        to_yield = (domain, registrar)
-                        to_yield_hash = hash(to_yield)
-                        if to_yield_hash not in yielded:
-                            yield to_yield
+                        result = (domain, registrar)
+                        result_hash = hash(result)
+                        if result_hash not in found:
+                            found.add(result_hash)
+                            results.add(result)
             except IndexError:
                 self.debug(f"Invalid row {str(table_row)[:40]}...")
                 continue
+        return results

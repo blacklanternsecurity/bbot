@@ -22,12 +22,12 @@ class wappalyzer(BaseModule):
     scope_distance_modifier = None
     max_event_handlers = 5
 
-    def setup(self):
-        self.wappalyzer = Wappalyzer.latest()
+    async def setup(self):
+        self.wappalyzer = await self.scan.run_in_executor(Wappalyzer.latest)
         return True
 
-    def handle_event(self, event):
-        for res in self.wappalyze(event.data):
+    async def handle_event(self, event):
+        for res in await self.scan.run_in_executor(self.wappalyze, event.data):
             self.emit_event(
                 {"technology": res.lower(), "url": event.data["url"], "host": str(event.host)}, "TECHNOLOGY", event
             )
