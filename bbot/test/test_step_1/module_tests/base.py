@@ -57,14 +57,14 @@ class ModuleTestBase:
             self.httpserver = httpserver
             self.monkeypatch = monkeypatch
             self.request_fixture = request
+            self.preloaded = module_loader.preloaded()
 
             # handle output, internal module types
-            preloaded = module_loader.preloaded()
             output_modules = None
             modules = list(module_test_base.modules)
             output_modules = []
             for module in list(modules):
-                module_type = preloaded[module]["type"]
+                module_type = self.preloaded[module]["type"]
                 if module_type in ("internal", "output"):
                     modules.remove(module)
                     if module_type == "output":
@@ -101,9 +101,9 @@ class ModuleTestBase:
     @pytest_asyncio.fixture
     async def module_test(self, httpx_mock, bbot_httpserver, monkeypatch, request):
         module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, monkeypatch, request)
-        self.setup_before_prep(module_test)
+        await self.setup_before_prep(module_test)
         await module_test.scan.prep()
-        self.setup_after_prep(module_test)
+        await self.setup_after_prep(module_test)
         module_test.events = [e async for e in module_test.scan.start()]
         yield module_test
 
@@ -133,8 +133,8 @@ class ModuleTestBase:
             return self.modules_overrides
         return [self.name]
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         pass
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         pass

@@ -7,7 +7,7 @@ class TestRobots(ModuleTestBase):
     modules_overrides = ["httpx", "robots"]
     config_overrides = {"modules": {"robots": {"include_sitemap": True}}}
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         sample_robots = f"Allow: /allow/\nDisallow: /disallow/\nJunk: test.com\nDisallow: /*/wildcard.txt\nSitemap: {self.targets[0]}/sitemap.txt"
 
         expect_args = {"method": "GET", "uri": "/robots.txt"}

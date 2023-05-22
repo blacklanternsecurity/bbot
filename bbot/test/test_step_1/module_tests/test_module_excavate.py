@@ -6,7 +6,7 @@ class TestExcavate(ModuleTestBase):
     modules_overrides = ["excavate", "httpx"]
     config_overrides = {"web_spider_distance": 1, "web_spider_depth": 1}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         response_data = """
         ftp://ftp.test.notreal
         \\nhttps://www1.test.notreal
@@ -96,7 +96,7 @@ class TestExcavate(ModuleTestBase):
 class TestExcavate2(TestExcavate):
     targets = ["http://127.0.0.1:8888/", "test.notreal", "http://127.0.0.1:8888/subdir/"]
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         # root relative
         expect_args = {"method": "GET", "uri": "/rootrelative.html"}
         respond_args = {"response_data": "alive"}
@@ -109,7 +109,11 @@ class TestExcavate2(TestExcavate):
 
         expect_args = {"method": "GET", "uri": "/subdir/"}
         respond_args = {
-            "response_data": "<a href='/rootrelative.html'>root relative</a><a href='pagerelative.html'>page relative</a>"
+            "response_data": """
+                <a href='/rootrelative.html'>root relative</a>
+                <a href='pagerelative1.html'>page relative 1</a>
+                <a href='./pagerelative2.html'>page relative 2</a>
+                """
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -117,7 +121,8 @@ class TestExcavate2(TestExcavate):
 
     def check(self, module_test, events):
         root_relative_detection = False
-        page_relative_detection = False
+        page_relative_detection_1 = False
+        page_relative_detection_1 = False
         root_page_confusion_1 = False
         root_page_confusion_2 = False
 
@@ -126,8 +131,10 @@ class TestExcavate2(TestExcavate):
                 # these cases represent the desired behavior for parsing relative links
                 if e.data == "http://127.0.0.1:8888/rootrelative.html":
                     root_relative_detection = True
-                if e.data == "http://127.0.0.1:8888/subdir/pagerelative.html":
-                    page_relative_detection = True
+                if e.data == "http://127.0.0.1:8888/subdir/pagerelative1.html":
+                    page_relative_detection_1 = True
+                if e.data == "http://127.0.0.1:8888/subdir/pagerelative2.html":
+                    page_relative_detection_2 = True
 
                 # these cases indicates that excavate parsed the relative links incorrectly
                 if e.data == "http://127.0.0.1:8888/pagerelative.html":
@@ -136,6 +143,7 @@ class TestExcavate2(TestExcavate):
                     root_page_confusion_2 = True
 
         assert root_relative_detection, "Failed to properly excavate root-relative URL"
-        assert page_relative_detection, "Failed to properly excavate page-relative URL"
+        assert page_relative_detection_1, "Failed to properly excavate page-relative URL"
+        assert page_relative_detection_2, "Failed to properly excavate page-relative URL"
         assert not root_page_confusion_1, "Incorrectly detected page-relative URL"
         assert not root_page_confusion_2, "Incorrectly detected root-relative URL"

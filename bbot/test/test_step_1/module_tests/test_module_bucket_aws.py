@@ -44,7 +44,7 @@ class Bucket_AWS_Base(ModuleTestBase):
         <a href="{self.url_2}"/>
         """
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         self.bucket_setup()
         # patch mutations
         module_test.scan.helpers.word_cloud.mutations = lambda b, cloud=False: [

@@ -22,7 +22,7 @@ class TestUrl_Manipulation(ModuleTestBase):
     </html>
     """
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         expect_args = {"query_string": f"{module_test.module.rand_string}=.xml".encode()}
         respond_args = {"response_data": self.body_match}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)

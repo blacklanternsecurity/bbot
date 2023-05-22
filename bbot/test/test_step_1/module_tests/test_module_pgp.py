@@ -25,7 +25,7 @@ sig  sig  <a href="/pks/lookup?op=get&search=0xd4e98af823deadbeef">0xd4e98af823d
 </pre>
 </body></html>"""
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=vindex&search=blacklanternsecurity.com",
             text=self.web_body,

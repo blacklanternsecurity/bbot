@@ -38,8 +38,6 @@ class viewdns(BaseModule):
             # todo: registrar?
 
     async def query(self, query):
-        from bs4 import BeautifulSoup
-
         results = set()
         url = f"{self.base_url}/reversewhois/?q={query}"
         r = await self.helpers.request(url)
@@ -48,6 +46,8 @@ class viewdns(BaseModule):
             self.verbose(f"Error retrieving reverse whois results (status code: {status_code})")
 
         content = getattr(r, "content", b"")
+        from bs4 import BeautifulSoup
+
         html = BeautifulSoup(content, features="lxml")
         found = set()
         for table_row in html.findAll("tr"):

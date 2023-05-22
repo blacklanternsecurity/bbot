@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestBinaryEdge(ModuleTestBase):
     config_overrides = {"modules": {"binaryedge": {"api_key": "asdf"}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url=f"https://api.binaryedge.io/v2/query/domains/subdomain/blacklanternsecurity.com",
             json={

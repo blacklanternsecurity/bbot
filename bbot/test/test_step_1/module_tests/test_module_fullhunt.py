@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestFullhunt(ModuleTestBase):
     config_overrides = {"modules": {"fullhunt": {"api_key": "asdf"}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://fullhunt.io/api/v1/auth/status",
             match_headers={"x-api-key": "asdf"},

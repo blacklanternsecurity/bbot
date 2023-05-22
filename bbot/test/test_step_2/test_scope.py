@@ -8,7 +8,7 @@ class Scope_test_blacklist(ModuleTestBase):
 
     blacklist = ["127.0.0.1"]
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": "alive"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)

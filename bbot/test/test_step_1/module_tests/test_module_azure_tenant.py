@@ -35,7 +35,7 @@ class TestAzure_Tenant(ModuleTestBase):
   </s:Body>
 </s:Envelope>"""
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             method="POST",
             url="https://autodiscover-s.outlook.com/autodiscover/autodiscover.svc",

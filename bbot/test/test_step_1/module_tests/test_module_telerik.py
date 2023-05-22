@@ -7,7 +7,7 @@ class TestTelerik(ModuleTestBase):
     modules_overrides = ["httpx", "telerik"]
     config_overrides = {"modules": {"telerik": {"exploit_RAU_crypto": True}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         # Simulate Telerik.Web.UI.WebResource.axd?type=rau detection
         expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.WebResource.axd", "query_string": "type=rau"}
         respond_args = {

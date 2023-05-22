@@ -6,7 +6,7 @@ class TestNTLM(ModuleTestBase):
     modules_overrides = ["httpx", "ntlm"]
     config_overrides = {"modules": {"ntlm": {"try_all": True}}}
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         request_args = dict(uri="/", headers={"test": "header"})
         module_test.set_expect_requests(request_args, {})
         request_args = dict(

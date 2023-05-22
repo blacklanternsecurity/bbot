@@ -2,7 +2,7 @@ from .base import ModuleTestBase
 
 
 class TestEmailFormat(ModuleTestBase):
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://www.email-format.com/d/blacklanternsecurity.com/",
             text="<p>info@blacklanternsecurity.com</a>",

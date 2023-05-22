@@ -2,7 +2,7 @@ from .base import ModuleTestBase
 
 
 class TestCrobat(ModuleTestBase):
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://sonar.omnisint.io/subdomains/blacklanternsecurity.com",
             json=["asdf.blacklanternsecurity.com"],

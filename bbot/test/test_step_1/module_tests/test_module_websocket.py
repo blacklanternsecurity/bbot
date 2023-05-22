@@ -25,7 +25,7 @@ async def server_coroutine():
 class TestWebsocket(ModuleTestBase):
     config_overrides = {"output_modules": {"websocket": {"url": "ws://127.0.0.1:8765/testing"}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         self.server_task = asyncio.create_task(server_coroutine())
 
     def check(self, module_test, events):

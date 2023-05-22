@@ -5,7 +5,7 @@ class TestWappalyzer(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "wappalyzer"]
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         respond_args = {
             "response_data": """<html><head><title>BBOT is life</title></head><body>
 <link rel="preconnect" href="https://fonts.googleapis.com">

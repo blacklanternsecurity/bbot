@@ -2,7 +2,7 @@ from .base import ModuleTestBase
 
 
 class TestDNSDumpster(ModuleTestBase):
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url=f"https://dnsdumpster.com",
             headers={"Set-Cookie": "csrftoken=asdf"},

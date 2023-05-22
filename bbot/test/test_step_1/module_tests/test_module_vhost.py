@@ -13,7 +13,7 @@ class TestVhost(ModuleTestBase):
         }
     }
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/", "headers": {"Host": "admin.localhost:8888"}}
         respond_args = {"response_data": "Alive vhost admin"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)

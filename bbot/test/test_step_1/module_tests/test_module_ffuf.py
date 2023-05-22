@@ -13,7 +13,7 @@ class TestFFUF(ModuleTestBase):
     }
     modules_overrides = ["ffuf", "httpx"]
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/admin"}
         respond_args = {"response_data": "alive admin page"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -31,7 +31,7 @@ class TestFFUF2(TestFFUF):
     test_wordlist = ["11111111", "console", "junkword1", "zzzjunkword2"]
     config_overrides = {"modules": {"ffuf": {"wordlist": tempwordlist(test_wordlist), "extensions": "php"}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/console.php"}
         respond_args = {"response_data": "alive admin page"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)

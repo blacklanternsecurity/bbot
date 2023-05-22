@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestDNSCommonSRV(ModuleTestBase):
     targets = ["blacklanternsecurity.notreal"]
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         old_resolve_fn = module_test.scan.helpers.dns.resolve
 
         async def resolve(query, **kwargs):

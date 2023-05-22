@@ -2,7 +2,11 @@ from .base import ModuleTestBase
 
 
 class TestNeo4j(ModuleTestBase):
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
+        # install py2neo
+        deps_pip = module_test.preloaded["neo4j"]["deps"]["pip"]
+        await module_test.scan.helpers.depsinstaller.pip_install(deps_pip)
+
         class MockGraph:
             def __init__(self, *args, **kwargs):
                 self.used = False

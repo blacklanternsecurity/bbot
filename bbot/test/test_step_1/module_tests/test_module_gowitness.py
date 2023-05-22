@@ -11,7 +11,7 @@ class TestGowitness(ModuleTestBase):
     shutil.rmtree(home_dir, ignore_errors=True)
     config_overrides = {"force_deps": True, "home": str(home_dir)}
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         respond_args = {
             "response_data": """<html><head><title>BBOT is life</title></head><body>
 <link rel="preconnect" href="https://fonts.googleapis.com">

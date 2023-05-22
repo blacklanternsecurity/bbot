@@ -43,7 +43,7 @@ class TestBadSecrets(ModuleTestBase):
 
     modules_overrides = ["badsecrets", "httpx"]
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         expect_args = {"uri": "/test.aspx"}
         respond_args = {"response_data": self.sample_viewstate}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)

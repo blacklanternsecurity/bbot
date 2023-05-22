@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestZoomEye(ModuleTestBase):
     config_overrides = {"modules": {"zoomeye": {"api_key": "asdf", "include_related": True, "max_pages": 3}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.zoomeye.org/resources-info",
             match_headers={"API-KEY": "asdf"},

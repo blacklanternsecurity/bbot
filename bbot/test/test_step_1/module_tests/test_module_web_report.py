@@ -5,7 +5,7 @@ class TestWebReport(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "wappalyzer", "badsecrets", "web_report", "secretsdb"]
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         # secretsdb --> FINDING
         module_test.httpx_mock.add_response(
             url="https://raw.githubusercontent.com/blacklanternsecurity/secrets-patterns-db/master/db/rules-stable.yml",

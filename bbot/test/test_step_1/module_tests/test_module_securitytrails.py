@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestSecurityTrails(ModuleTestBase):
     config_overrides = {"modules": {"securitytrails": {"api_key": "asdf"}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.securitytrails.com/v1/ping?apikey=asdf",
         )

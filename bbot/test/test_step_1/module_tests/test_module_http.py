@@ -15,7 +15,7 @@ class TestHTTP(ModuleTestBase):
         }
     }
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             method="PUT", headers={"Authorization": "bearer auth_token"}, url=self.downstream_url
         )

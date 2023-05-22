@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestBuiltWith(ModuleTestBase):
     config_overrides = {"modules": {"builtwith": {"api_key": "asdf"}}}
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url=f"https://api.builtwith.com/v20/api.json?KEY=asdf&LOOKUP=blacklanternsecurity.com&NOMETA=yes&NOATTR=yes&HIDETEXT=yes&HIDEDL=yes",
             json={

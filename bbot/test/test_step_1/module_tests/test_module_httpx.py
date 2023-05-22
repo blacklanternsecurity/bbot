@@ -5,7 +5,7 @@ from .base import ModuleTestBase
 class TestHTTPX(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/url", "127.0.0.1:8888"]
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         request_args = dict(uri="/", headers={"test": "header"})
         respond_args = dict(response_data=json.dumps({"open": "port"}))
         module_test.set_expect_requests(request_args, respond_args)

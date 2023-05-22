@@ -8,7 +8,7 @@ class TestIIS_Shortnames(ModuleTestBase):
     modules_overrides = ["httpx", "iis_shortnames"]
     config_overrides = {"modules": {"iis_shortnames": {"detect_only": False}}}
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpserver.no_handler_status_code = 404
 
         expect_args = {"method": "GET", "uri": "/"}

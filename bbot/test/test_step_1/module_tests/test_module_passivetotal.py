@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestPassiveTotal(ModuleTestBase):
     config_overrides = {"modules": {"passivetotal": {"username": "jon@bls.fakedomain", "api_key": "asdf"}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.passivetotal.org/v2/account/quota",
             json={"user": {"counts": {"search_api": 10}, "limits": {"search_api": 20}}},
@@ -14,7 +14,7 @@ class TestPassiveTotal(ModuleTestBase):
             json={"subdomains": ["asdf"]},
         )
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.monkeypatch.setattr(module_test.scan.modules["passivetotal"], "abort_if", lambda e: False)
 
     def check(self, module_test, events):

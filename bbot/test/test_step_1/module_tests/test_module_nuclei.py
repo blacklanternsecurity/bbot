@@ -36,7 +36,7 @@ class TestNucleiManual(ModuleTestBase):
 </body></html>
 """
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": self.test_html}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -70,7 +70,7 @@ class TestNucleiSevere(TestNucleiManual):
         "interactsh_disable": True,
     }
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/etc/passwd"}
         respond_args = {"response_data": "<html>root:.*:0:0:</html>"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -88,7 +88,7 @@ class TestNucleiTechnology(TestNucleiManual):
         "modules": {"nuclei": {"mode": "technology", "concurrency": 2, "tags": "apache"}},
     }
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         self.caplog = module_test.request_fixture.getfixturevalue("caplog")
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {
@@ -116,7 +116,7 @@ class TestNucleiBudget(TestNucleiManual):
         }
     }
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": "<html><title>SpiderFoot</title><p>support@spiderfoot.net</p></html>"}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)

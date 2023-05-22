@@ -75,7 +75,7 @@ class TestASNBGPView(ModuleTestBase):
         "@meta": {"time_zone": "UTC", "api_version": 1, "execution_time": "56.55 ms"},
     }
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.bgpview.io/ip/8.8.8.8", json=self.response_get_asn_bgpview
         )
@@ -223,7 +223,7 @@ class TestASNRipe(ModuleTestBase):
         "time": "2023-02-17T21:25:29.417812",
     }
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://stat.ripe.net/data/network-info/data.json?resource=8.8.8.8",
             json=self.response_get_asn_ripe,

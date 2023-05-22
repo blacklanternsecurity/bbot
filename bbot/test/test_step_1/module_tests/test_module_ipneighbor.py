@@ -5,7 +5,7 @@ class TestIPNeighbor(ModuleTestBase):
     targets = ["127.0.0.15", "www.bls.notreal"]
     config_overrides = {"scope_report_distance": 1, "dns_resolution": True, "scope_dns_search_distance": 2}
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         old_resolve_ip = module_test.scan.helpers.dns._resolve_ip
         old_resolve_hostname = module_test.scan.helpers.dns._resolve_hostname
 

@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestC99(ModuleTestBase):
     config_overrides = {"modules": {"c99": {"api_key": "asdf"}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://api.c99.nl/randomnumber?key=asdf&between=1,100&json",
             json={"success": True, "output": 65},

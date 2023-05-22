@@ -9,7 +9,7 @@ class TestDNSZoneTransfer(ModuleTestBase):
     targets = ["blacklanternsecurity.fakedomain"]
     config_overrides = {"dns_resolution": True}
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         old_resolve_fn = module_test.scan.helpers.dns._resolve_hostname
 
         async def _resolve_hostname(query, **kwargs):

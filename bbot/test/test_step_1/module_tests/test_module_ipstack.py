@@ -5,7 +5,7 @@ class TestIPStack(ModuleTestBase):
     targets = ["8.8.8.8"]
     config_overrides = {"modules": {"ipstack": {"api_key": "asdf"}}}
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="http://api.ipstack.com//check?access_key=asdf",
             json={

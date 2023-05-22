@@ -23,7 +23,7 @@ class TestParamminer_Cookies(TestParamminer_Headers):
     </html>
     """
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         module_test.scan.modules["paramminer_cookies"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
         module_test.monkeypatch.setattr(
             helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}

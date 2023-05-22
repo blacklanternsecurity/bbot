@@ -18,7 +18,7 @@ range = 9.8.7.6"""
 {   "ip": "8.8.8.8",   "timestamp": "1680197558", "ports": [ {"port": 443, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }
 ]"""
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         self.masscan_run = False
 
         async def run_masscan(command, *args, **kwargs):

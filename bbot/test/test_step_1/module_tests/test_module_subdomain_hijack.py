@@ -5,7 +5,7 @@ class TestSubdomain_Hijack(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "excavate", "subdomain_hijack"]
 
-    def setup_before_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://raw.githubusercontent.com/EdOverflow/can-i-take-over-xyz/master/fingerprints.json",
             json=[
@@ -24,7 +24,7 @@ class TestSubdomain_Hijack(ModuleTestBase):
             ],
         )
 
-    def setup_after_prep(self, module_test):
+    async def setup_after_prep(self, module_test):
         fingerprints = module_test.module.fingerprints
         assert fingerprints, "No subdomain hijacking fingerprints available"
         fingerprint = next(iter(fingerprints))
