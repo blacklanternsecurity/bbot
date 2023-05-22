@@ -274,11 +274,11 @@ class nuclei(BaseModule):
 
 class NucleiBudget:
     def __init__(self, budget, templates_dir):
+        self._yaml_files = {}
         self.templates_dir = templates_dir
         self.yaml_list = self.get_yaml_list()
         self.budget_paths = self.find_budget_paths(budget)
         self.collapsable_templates, self.severity_stats = self.find_collapsable_templates()
-        self._yaml_files
 
     def get_yaml_list(self):
         return list(self.templates_dir.rglob("*.yaml"))
