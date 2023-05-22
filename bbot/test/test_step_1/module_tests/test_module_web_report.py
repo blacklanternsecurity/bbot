@@ -19,7 +19,6 @@ class TestWebReport(ModuleTestBase):
         # badsecrets --> VULNERABILITY
         respond_args = {"response_data": web_body}
         module_test.set_expect_requests(respond_args=respond_args)
-        module_test.httpx_mock.assert_all_responses_were_requested = False
 
     def check(self, module_test, events):
         report_file = module_test.scan.home / "web_report.html"

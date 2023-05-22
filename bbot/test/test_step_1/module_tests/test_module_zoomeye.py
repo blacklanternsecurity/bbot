@@ -26,7 +26,6 @@ class TestZoomEye(ModuleTestBase):
             url="https://api.zoomeye.org/domain/search?q=blacklanternsecurity.com&type=0&page=4",
             json={"list": [{"name": "nope.blacklanternsecurity.com"}]},
         )
-        module_test.httpx_mock.assert_all_responses_were_requested = False
 
     def check(self, module_test, events):
         assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain #1"

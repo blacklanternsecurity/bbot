@@ -278,6 +278,7 @@ class NucleiBudget:
         self.yaml_list = self.get_yaml_list()
         self.budget_paths = self.find_budget_paths(budget)
         self.collapsable_templates, self.severity_stats = self.find_collapsable_templates()
+        self._yaml_files
 
     def get_yaml_list(self):
         return list(self.templates_dir.rglob("*.yaml"))
@@ -357,9 +358,12 @@ class NucleiBudget:
         return collapsable_templates, severity_dict
 
     def parse_yaml(self, yamlfile):
-        with open(yamlfile, "r") as stream:
-            try:
-                y = yaml.safe_load(stream)
-                return y
-            except yaml.YAMLError as e:
-                self.debug(f"failed to read yaml file: {e}")
+        if yamlfile not in self._yaml_files:
+            with open(yamlfile, "r") as stream:
+                try:
+                    y = yaml.safe_load(stream)
+                    self._yaml_files[yamlfile] = y
+                except yaml.YAMLError as e:
+                    self.warning(f"failed to load yaml file: {e}")
+                    return {}
+        return self._yaml_files[yamlfile]

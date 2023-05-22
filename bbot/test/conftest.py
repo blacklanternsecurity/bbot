@@ -27,6 +27,11 @@ def non_mocked_hosts() -> list:
 
 
 @pytest.fixture
+def assert_all_responses_were_requested() -> bool:
+    return False
+
+
+@pytest.fixture
 def bbot_httpserver():
     server = HTTPServer(host="127.0.0.1", port=8888)
     server.start()

@@ -12,7 +12,6 @@ async def test_modules_basic(
     with open(fallback_nameservers, "w") as f:
         f.write("8.8.8.8\n")
 
-    httpx_mock.assert_all_responses_were_requested = False
     for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
 
