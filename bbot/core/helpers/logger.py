@@ -48,5 +48,5 @@ def log_to_stderr(msg, level="INFO", logname=True):
         if levelname == "CRITICAL" or levelname.startswith("HUGE"):
             msg = colorize(msg, level=levelname)
         if logname:
-            msg = f"{levelshort} bbot: {msg}"
+            msg = f"{levelshort} {msg}"
         print(msg, file=sys.stderr)

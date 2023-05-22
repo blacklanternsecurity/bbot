@@ -1,5 +1,4 @@
 import re
-from bs4 import BeautifulSoup
 
 from bbot.modules.base import BaseModule
 
@@ -39,6 +38,8 @@ class viewdns(BaseModule):
             # todo: registrar?
 
     async def query(self, query):
+        from bs4 import BeautifulSoup
+
         results = set()
         url = f"{self.base_url}/reversewhois/?q={query}"
         r = await self.helpers.request(url)
