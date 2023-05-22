@@ -39,16 +39,6 @@ class MockRecord:
         return str(self)
 
 
-class TestClass:
-    @pytest_asyncio.fixture
-    async def my_fixture(self, bbot_httpserver):
-        yield bbot_httpserver
-
-    @pytest.mark.asyncio
-    async def test_asdf(self, my_fixture):
-        log.critical(my_fixture)
-
-
 class ModuleTestBase:
     targets = ["blacklanternsecurity.com"]
     scan_name = None

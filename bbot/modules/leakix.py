@@ -31,7 +31,6 @@ class leakix(shodan_dns):
     async def request_url(self, query):
         url = f"{self.base_url}/api/subdomains/{self.helpers.quote(query)}"
         response = await self.request_with_fail_count(url, headers=self.headers)
-        self.hugewarning(response.json())
         return response
 
     def parse_results(self, r, query=None):

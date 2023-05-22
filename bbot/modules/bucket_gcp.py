@@ -50,5 +50,4 @@ class bucket_gcp(bucket_aws):
         response = await self.helpers.request(url)
         status_code = getattr(response, "status_code", 0)
         existent_bucket = status_code not in (0, 400, 404)
-        self.critical(f"{bucket_name}: {url}: {existent_bucket}")
         return existent_bucket, set(), bucket_name, url

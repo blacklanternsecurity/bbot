@@ -15,7 +15,7 @@ class TestDNSZoneTransfer(ModuleTestBase):
         async def _resolve_hostname(query, **kwargs):
             if query == "blacklanternsecurity.fakedomain" and kwargs.get("rdtype", "").upper() == "NS":
                 return [module_test.mock_record("ns01.blacklanternsecurity.fakedomain", "NS")], []
-            if query == "ns01.blacklanternsecurity.fakedomain" and kwargs.get("rdtype", "").upper() in "A":
+            if query == "ns01.blacklanternsecurity.fakedomain" and kwargs.get("rdtype", "").upper() == "A":
                 return [module_test.mock_record("127.0.0.1", "A")], []
             return await old_resolve_fn(query, **kwargs)
 

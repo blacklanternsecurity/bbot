@@ -14,7 +14,6 @@ class emailformat(viewdns):
         _, query = self.helpers.split_domain(event.data)
         url = f"{self.base_url}/d/{self.helpers.quote(query)}/"
         r = await self.request_with_fail_count(url)
-        self.hugesuccess(r.content)
         if not r:
             return
         for email in self.helpers.extract_emails(r.text):

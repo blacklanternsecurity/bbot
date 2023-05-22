@@ -23,11 +23,11 @@ class smuggler(BaseModule):
         }
     ]
 
-    def setup(self):
+    async def setup(self):
         self.scanned_hosts = set()
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
         host_hash = hash(host)
         if host_hash in self.scanned_hosts:
@@ -44,7 +44,7 @@ class smuggler(BaseModule):
             "-u",
             event.data,
         ]
-        for f in self.helpers.run_live(command):
+        async for f in self.helpers.run_live(command):
             if "Issue Found" in f:
                 technique = f.split(":")[0].rstrip()
                 text = f.split(":")[1].split("-")[0].strip()

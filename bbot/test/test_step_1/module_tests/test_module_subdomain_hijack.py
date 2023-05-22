@@ -30,7 +30,6 @@ class TestSubdomain_Hijack(ModuleTestBase):
         fingerprint = next(iter(fingerprints))
         rand_string = module_test.scan.helpers.rand_string(length=15, digits=False)
         self.rand_subdomain = f"{rand_string}.{next(iter(fingerprint.domains))}"
-        module_test.log.critical(self.rand_subdomain)
         respond_args = {"response_data": f'<a src="http://{self.rand_subdomain}"/>'}
         module_test.set_expect_requests(respond_args=respond_args)
 

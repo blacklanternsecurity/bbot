@@ -61,7 +61,6 @@ class builtwith(shodan_dns):
         query (string): The query used against the API
         """
         results_set = set()
-        self.critical(r.content)
         json = r.json()
         if json:
             results = json.get("Results", [])

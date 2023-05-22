@@ -32,7 +32,7 @@ class web_report(BaseOutputModule):
         self._prep_output_dir("web_report.html")
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         if event.type == "URL":
             parsed = event.parsed
             host = f"{parsed.scheme}://{parsed.netloc}/"
@@ -74,7 +74,7 @@ class web_report(BaseOutputModule):
                 else:
                     self.web_assets[host][event.type].append(html.escape(event.pretty_string))
 
-    def report(self):
+    async def report(self):
         for host in self.web_assets.keys():
             self.markdown += f"# {host}\n\n"
 
@@ -93,5 +93,4 @@ class web_report(BaseOutputModule):
             self.file.write(markdown.markdown(self.markdown))
             self.file.write(self.html_footer)
             self.file.flush()
-            with self._report_lock:
-                self.info(f"Web Report saved to {self.output_file}")
+            self.info(f"Web Report saved to {self.output_file}")
