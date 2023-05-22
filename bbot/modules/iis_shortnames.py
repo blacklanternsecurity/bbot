@@ -71,7 +71,7 @@ class iis_shortnames(BaseModule):
         duplicates = []
         count = 2
         base_hint = re.sub(r"~\d", "", url_hint)
-        suffix = "\\a.aspx"
+        suffix = "/a.aspx"
 
         while 1:
             payload = encode_all(f"{base_hint}~{str(count)}*")
@@ -107,7 +107,7 @@ class iis_shortnames(BaseModule):
 
         tasks = []
         for c in valid_chars:
-            suffix = "\\a.aspx"
+            suffix = "/a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
@@ -189,7 +189,6 @@ class iis_shortnames(BaseModule):
                             file_name_hints += duplicates
 
                     # check for the case of a folder and file with the same filename
-
                     for d in file_name_hints:
                         if await self.directory_confirm(normalized_url, method, d, affirmative_status_code):
                             self.verbose(f"Confirmed Directory URL_HINT: {d} from node {normalized_url}")
