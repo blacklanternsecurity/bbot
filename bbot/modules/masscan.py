@@ -254,7 +254,7 @@ class masscan(BaseModule):
                 targets.append(t)
         return ",".join(str(t) for t in targets), invalid_targets
 
-    def cleanup(self):
+    async def cleanup(self):
         if self.ping_first:
             with suppress(Exception):
                 self.ping_cache_fd.close()

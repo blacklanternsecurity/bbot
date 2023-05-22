@@ -3,8 +3,6 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_scan(
-    patch_ansible,
-    patch_commands,
     events,
     bbot_config,
     helpers,

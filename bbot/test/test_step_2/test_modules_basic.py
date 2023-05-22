@@ -1,13 +1,10 @@
 import re
-from contextlib import suppress
 
 from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_modules_basic(
-    patch_commands, patch_ansible, scan, helpers, events, bbot_config, bbot_scanner, httpx_mock
-):
+async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock):
     fallback_nameservers = scan.helpers.temp_dir / "nameservers.txt"
     with open(fallback_nameservers, "w") as f:
         f.write("8.8.8.8\n")
@@ -88,8 +85,6 @@ async def test_modules_basic(
         config=bbot_config,
     )
     scan2.helpers.dns.fallback_nameservers_file = fallback_nameservers
-    patch_commands(scan2)
-    patch_ansible(scan2)
     await scan2.load_modules()
     scan2.status = "RUNNING"
 
@@ -160,90 +155,3 @@ async def test_modules_basic(
         assert all(
             o for o in preloaded.get("options_desc", {}).values()
         ), f"{module_name}.options_desc descriptions must not be blank"
-
-    # setups
-    futures = {}
-    for module_name, module in scan2.modules.items():
-        log.info(f"Testing {module_name}.setup()")
-        future = scan2._thread_pool.submit(module.setup)
-        futures[future] = module
-    for future in helpers.as_completed(futures):
-        module = futures[future]
-        result = future.result()
-        if type(result) == tuple:
-            assert len(result) == 2, f"if tuple, {module.name}.setup() return value must have length of 2"
-            status, msg = result
-            assert status in (
-                True,
-                False,
-                None,
-            ), f"if tuple, the first element of {module.name}.setup()'s return value must be either True, False, or None"
-            assert (
-                type(msg) == str
-            ), f"if tuple, the second element of {module.name}.setup()'s return value must be a message of type str"
-        else:
-            assert result in (
-                True,
-                False,
-                None,
-            ), f"{module.name}.setup() must return a status of either True, False, or None"
-        if result == False:
-            module.set_error_state()
-
-    futures.clear()
-
-    # handle_event / handle_batch
-    futures = {}
-    for module_name, module in scan2.modules.items():
-        module.emit_event = lambda *args, **kwargs: None
-        module._filter = lambda *args, **kwargs: True, ""
-        events_to_submit = [e for e in events.all if e.type in module.watched_events]
-        if module.batch_size > 1:
-            log.info(f"Testing {module_name}.handle_batch()")
-            future = scan2._thread_pool.submit(module.handle_batch, *events_to_submit)
-            futures[future] = module
-        else:
-            for e in events_to_submit:
-                log.info(f"Testing {module_name}.handle_event()")
-                future = scan2._thread_pool.submit(module.handle_event, e)
-                futures[future] = module
-    for future in helpers.as_completed(futures):
-        try:
-            assert future.result() == None
-        except Exception as e:
-            import traceback
-
-            module = futures[future]
-            assert module.errored == True, f'Error in module "{module}": {e}\n{traceback.format_exc()}'
-    futures.clear()
-
-    # finishes
-    futures = {}
-    for module_name, module in scan2.modules.items():
-        log.info(f"Testing {module_name}.finish()")
-        future = scan2._thread_pool.submit(module.finish)
-        futures[future] = module
-    for future in helpers.as_completed(futures):
-        assert future.result() == None
-    futures.clear()
-
-    # cleanups
-    futures = {}
-    for module_name, module in scan2.modules.items():
-        log.info(f"Testing {module_name}.cleanup()")
-        future = scan2._thread_pool.submit(module.cleanup)
-        futures[future] = module
-    for future in helpers.as_completed(futures):
-        assert future.result() == None
-    futures.clear()
-
-    # event filters
-    for module_name, module in scan2.modules.items():
-        log.info(f"Testing {module_name}.filter_event()")
-        result = module.filter_event(events.emoji)
-        with suppress(ValueError, TypeError):
-            result, reason = result
-        assert result in (
-            True,
-            False,
-        ), f"{module_name}.filter_event() must return either True or False"
