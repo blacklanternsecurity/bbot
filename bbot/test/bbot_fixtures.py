@@ -34,11 +34,14 @@ test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
     os.environ["BBOT_DEBUG"] = "True"
 
+# clear log handlers (pytest takes care of this)
+from bbot.core.logger import logger
+
+logger.log_listener.handlers = []
+
 from .bbot_fixtures import *  # noqa: F401
 import bbot.core.logger  # noqa: F401
 from bbot.core.errors import *  # noqa: F401
-
-log = logging.getLogger(f"bbot.test")
 
 # silence pytest_httpserver
 log = logging.getLogger("werkzeug")

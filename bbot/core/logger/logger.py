@@ -30,6 +30,9 @@ class ColoredFormatter(logging.Formatter):
     Pretty colors for terminal
     """
 
+    formatter = logging.Formatter("%(levelname)s %(message)s")
+    module_formatter = logging.Formatter("%(levelname)s %(name)s: %(message)s")
+
     def format(self, record):
         colored_record = copy(record)
         levelname = colored_record.levelname
@@ -37,7 +40,11 @@ class ColoredFormatter(logging.Formatter):
         colored_record.levelname = colorize(f"[{levelshort}]", level=levelname)
         if levelname == "CRITICAL" or levelname.startswith("HUGE"):
             colored_record.msg = colorize(colored_record.msg, level=levelname)
-        return logging.Formatter.format(self, colored_record)
+        # remove name
+        if colored_record.name.startswith("bbot.modules."):
+            colored_record.name = colored_record.name.split("bbot.modules.")[-1]
+            return self.module_formatter.format(colored_record)
+        return self.formatter.format(colored_record)
 
 
 def addLoggingLevel(levelName, levelNum, methodName=None):

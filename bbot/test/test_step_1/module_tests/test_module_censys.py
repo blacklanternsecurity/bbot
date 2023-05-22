@@ -2,7 +2,7 @@ from .base import ModuleTestBase
 
 
 class TestCensys(ModuleTestBase):
-    config_overrides = {"modules": {"censys": {"api_key": "asdf"}}}
+    config_overrides = {"modules": {"censys": {"api_id": "api_id", "api_secret": "api_secret"}}}
 
     def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
