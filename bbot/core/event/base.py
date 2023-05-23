@@ -335,7 +335,12 @@ class BaseEvent:
         return source_trail
 
     def _host(self):
-        return ""
+        if isinstance(self.data, dict) and "host" in self.data:
+            return make_ip_type(self.data["host"])
+        else:
+            parsed = getattr(self, "parsed", None)
+            if parsed is not None:
+                return make_ip_type(parsed.hostname)
 
     def _sanitize_data(self, data):
         data = self._data_load(data)
@@ -589,23 +594,14 @@ class DictEvent(BaseEvent):
         return data
 
 
-class DictHostEvent(DictEvent):
-    def _host(self):
-        return make_ip_type(self.data["host"])
-
-
 class ASN(DictEvent):
     _always_emit = True
 
 
-class CODE_REPOSITORY(DictHostEvent):
+class CODE_REPOSITORY(DictEvent):
     class _data_validator(BaseModel):
         url: str
         _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
-
-    def _host(self):
-        self.parsed = validators.validate_url_parsed(self.data["url"])
-        return make_ip_type(self.parsed.hostname)
 
     def _pretty_string(self):
         return self.data["url"]
@@ -751,9 +747,6 @@ class URL_UNVERIFIED(BaseEvent):
             return extract_words(first_elem)
         return set()
 
-    def _host(self):
-        return make_ip_type(self.parsed.hostname)
-
     def _data_id(self):
         # consider spider-danger tag when deduping
         data = super()._data_id()
@@ -839,7 +832,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         return f'{self.data["hash"]["header_mmh3"]}:{self.data["hash"]["body_mmh3"]}'
 
 
-class VULNERABILITY(DictHostEvent):
+class VULNERABILITY(DictEvent):
     _always_emit = True
 
     def sanitize_data(self, data):
@@ -858,7 +851,7 @@ class VULNERABILITY(DictHostEvent):
         return f'[{self.data["severity"]}] {self.data["description"]}'
 
 
-class FINDING(DictHostEvent):
+class FINDING(DictEvent):
     _always_emit = True
 
     class _data_validator(BaseModel):
@@ -871,7 +864,7 @@ class FINDING(DictHostEvent):
         return self.data["description"]
 
 
-class TECHNOLOGY(DictHostEvent):
+class TECHNOLOGY(DictEvent):
     class _data_validator(BaseModel):
         host: str
         technology: str
@@ -887,7 +880,7 @@ class TECHNOLOGY(DictHostEvent):
         return self.data["technology"]
 
 
-class VHOST(DictHostEvent):
+class VHOST(DictEvent):
     class _data_validator(BaseModel):
         host: str
         vhost: str
@@ -898,7 +891,7 @@ class VHOST(DictHostEvent):
         return self.data["vhost"]
 
 
-class PROTOCOL(DictHostEvent):
+class PROTOCOL(DictEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
@@ -928,7 +921,7 @@ class SOCIAL(DictEvent):
     _always_emit = True
 
 
-class WEBSCREENSHOT(BaseEvent):
+class WEBSCREENSHOT(DictEvent):
     _always_emit = True
 
 
