@@ -335,11 +335,11 @@ class ScanManager:
     async def _worker_loop(self):
         try:
             while 1:
-                log.debug("manager worker loop")
-                result = await self.get_event_from_modules()
-                if result is None:
+                try:
+                    event, kwargs = self.get_event_from_modules()
+                except asyncio.queues.QueueEmpty:
+                    await asyncio.sleep(0.1)
                     continue
-                event, kwargs = result
                 acceptable = await self.emit_event(event, **kwargs)
                 if acceptable:
                     self._new_activity = True
@@ -371,35 +371,13 @@ class ScanManager:
             self._module_priority_weights = priorities
         return self._module_priority_weights
 
-    async def _wait_on_queue(self, q, waiter_tasks, first_done):
-        item = await q.get()
-        first_done.set_result(item)
-        self.scan.helpers.cancel_tasks(waiter_tasks)
-
-    def get_random_event_from_modules(self):
+    def get_event_from_modules(self):
         for q in self.scan.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
             try:
                 return q.get_nowait()
             except asyncio.queues.QueueEmpty:
                 continue
-
-    async def get_first_event_from_modules(self):
-        waiter_tasks = []
-        first_done = asyncio.Future()
-        for q in self.incoming_queues:
-            waiter_tasks.append(asyncio.create_task(self._wait_on_queue(q, waiter_tasks, first_done)))
-        try:
-            return await asyncio.wait_for(first_done, timeout=0.1)
-        except asyncio.TimeoutError:
-            self.scan.helpers.cancel_tasks(waiter_tasks)
-
-    async def get_event_from_modules(self):
-        # try to get a (weighted) random one first
-        event = self.get_random_event_from_modules()
-        # if all the queues are, empty, then wait
-        if event is None:
-            event = await self.get_first_event_from_modules()
-        return event
+        raise asyncio.queues.QueueEmpty()
 
     @property
     def queued_event_types(self):

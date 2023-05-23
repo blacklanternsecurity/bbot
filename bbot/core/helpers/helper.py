@@ -60,11 +60,14 @@ class ConfigAwareHelper:
     def http_compare(self, url, allow_redirects=False, include_cache_buster=True):
         return HttpCompare(url, self, allow_redirects=allow_redirects, include_cache_buster=include_cache_buster)
 
-    def temp_filename(self):
+    def temp_filename(self, extension=None):
         """
         temp_filename() --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
         """
-        return self.temp_dir / self.rand_string(20)
+        filename = self.rand_string(20)
+        if extension is not None:
+            filename = f"{filename}.{extension}"
+        return self.temp_dir / filename
 
     def clean_old_scans(self):
         _filter = lambda x: x.is_dir() and self.regexes.scan_name_regex.match(x.name)
