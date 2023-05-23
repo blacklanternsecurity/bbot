@@ -62,7 +62,7 @@ class ModuleTestBase:
             # handle output, internal module types
             output_modules = None
             modules = list(module_test_base.modules)
-            output_modules = []
+            output_modules = ["python"]
             for module in list(modules):
                 module_type = self.preloaded[module]["type"]
                 if module_type in ("internal", "output"):
@@ -71,8 +71,6 @@ class ModuleTestBase:
                         output_modules.append(module)
                     elif module_type == "internal":
                         self.config = OmegaConf.merge(self.config, {module: True})
-            if not output_modules:
-                output_modules = None
 
             self.scan = Scanner(
                 *module_test_base.targets,
