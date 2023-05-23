@@ -234,7 +234,6 @@ class Scanner:
 
             # main scan loop
             while 1:
-                self.debug("main scan loop")
                 # abort if we're aborting
                 if self.aborting:
                     self.drain_queues()

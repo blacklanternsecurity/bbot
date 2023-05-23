@@ -6,6 +6,7 @@ import dns.asyncresolver
 from contextlib import suppress
 
 from .regexes import dns_name_regex
+from bbot.core.helpers.ratelimiter import RateLimiter
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.errors import ValidationError, DNSError
 from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck
@@ -47,7 +48,8 @@ class DNSHelper:
         self._dns_warnings = set()
         self._errors = dict()
         self.fallback_nameservers_file = self.parent_helper.wordlist_dir / "nameservers.txt"
-        self.max_threads = self.parent_helper.config.get("max_dns_threads", 100)
+        self.dns_queries_per_second = self.parent_helper.config.get("dns_queries_per_second", 100)
+        self.dns_rate_limiter = RateLimiter(self.dns_queries_per_second)
         self._debug = self.parent_helper.config.get("dns_debug", False)
         self._dummy_modules = dict()
         self._dns_cache = self.parent_helper.CacheDict(max_size=100000)
@@ -136,7 +138,8 @@ class DNSHelper:
                             f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                         )
                         return results, errors
-                    results = await self._catch(self.resolver.resolve, query, **kwargs)
+                    async with self.dns_rate_limiter:
+                        results = await self._catch(self.resolver.resolve, query, **kwargs)
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = results
                     if parent_hash in self._errors:
@@ -177,7 +180,8 @@ class DNSHelper:
                 if dns_cache_hash in self._dns_cache:
                     result = self._dns_cache[dns_cache_hash]
                 else:
-                    result = await self._catch(self.resolver.resolve_address, query, **kwargs)
+                    async with self.dns_rate_limiter:
+                        result = await self._catch(self.resolver.resolve_address, query, **kwargs)
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = result
                 return result, errors
@@ -550,7 +554,9 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_tasks[rdtype].append(self.resolve(rand_query, type=rdtype, cache_result=False))
+                        wildcard_tasks[rdtype].append(
+                            asyncio.create_task(self.resolve(rand_query, type=rdtype, cache_result=False))
+                        )
 
                 # combine the random results
                 is_wildcard = False

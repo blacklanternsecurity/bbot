@@ -4,6 +4,7 @@ import traceback
 from pathlib import Path
 
 from bbot.core.errors import WordlistError, CurlError
+from bbot.core.helpers.ratelimiter import RateLimiter
 
 log = logging.getLogger("bbot.core.helpers.web")
 
@@ -59,6 +60,8 @@ class WebHelper:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.ssl_verify = self.parent_helper.config.get("ssl_verify", False)
+        self.web_requests_per_second = self.parent_helper.config.get("web_requests_per_second", 50)
+        self.web_rate_limiter = RateLimiter(self.web_requests_per_second)
 
     def AsyncClient(self, *args, **kwargs):
         kwargs["_bbot_scan"] = self.parent_helper.scan
@@ -96,7 +99,8 @@ class WebHelper:
                 if http_debug:
                     logstr = f"Web request: {str(args)}, {str(kwargs)}"
                     log.debug(logstr)
-                response = await client.request(*args, **kwargs)
+                async with self.web_rate_limiter:
+                    response = await client.request(*args, **kwargs)
                 if http_debug:
                     log.debug(
                         f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}"

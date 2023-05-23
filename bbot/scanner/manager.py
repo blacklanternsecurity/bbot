@@ -409,13 +409,11 @@ class ScanManager:
     def running(self):
         active_tasks = self._task_counter.value
         incoming_events = self.incoming_event_queue.qsize()
-        log.debug(f"active tasks: {active_tasks}, incoming events: {incoming_events}")
         return active_tasks > 0 or incoming_events > 0
 
     @property
     def modules_finished(self):
         finished_modules = [m.finished for m in self.scan.modules.values()]
-        log.debug(f"finished modules: {finished_modules}")
         return all(finished_modules)
 
     @property
