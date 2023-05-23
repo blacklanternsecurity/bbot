@@ -37,7 +37,7 @@ class Target:
             else:
                 event = self.scan.make_event(t, source=self.scan.root_event, module=self.dummy_module, tags=["target"])
             if self.make_in_scope:
-                event.make_in_scope()
+                event.set_scope_distance(0)
             try:
                 self._events[event.host].add(event)
             except KeyError:

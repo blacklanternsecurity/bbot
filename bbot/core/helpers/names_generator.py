@@ -21,7 +21,6 @@ adjectives = [
     "blazed",
     "bloodshot",
     "brown",
-    "carbonated",
     "cheeky",
     "childish",
     "chiseled",

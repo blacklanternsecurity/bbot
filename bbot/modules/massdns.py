@@ -13,7 +13,7 @@ class massdns(crobat):
     meta = {"description": "Brute-force subdomains with massdns (highly effective)"}
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
-        "max_resolvers": 500,
+        "max_resolvers": 1000,
         "max_mutations": 500,
     }
     options_desc = {
@@ -67,7 +67,7 @@ class massdns(crobat):
         self.mutations_tried = set()
         self.source_events = dict()
         self.subdomain_file = await self.helpers.wordlist(self.config.get("wordlist"))
-        self.max_resolvers = self.config.get("max_resolvers", 500)
+        self.max_resolvers = self.config.get("max_resolvers", 1000)
         self.max_mutations = self.config.get("max_mutations", 500)
         nameservers_url = (
             "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt"
@@ -98,7 +98,7 @@ class massdns(crobat):
         if not h in self.source_events:
             self.source_events[h] = event
 
-        self.info(f"Brute-forcing subdomains for {query} ({event})")
+        self.info(f"Brute-forcing subdomains for {query} (source: {event.data})")
         for hostname in await self.massdns(query, self.helpers.read_file(self.subdomain_file)):
             self.emit_result(hostname, event, query)
 

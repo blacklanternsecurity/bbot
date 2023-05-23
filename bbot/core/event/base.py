@@ -309,6 +309,7 @@ class BaseEvent:
         if force_output == "trail_only":
             force_output = True
 
+        # if our source event is internal, unmake it too
         if getattr(self.source, "_internal", False):
             source_scope_distance = None
             if set_scope_distance is not None:
@@ -320,13 +321,16 @@ class BaseEvent:
 
         return source_trail
 
-    def make_in_scope(self, set_scope_distance=0):
+    def set_scope_distance(self, d=0):
+        """
+        Set the scope of an event and its parents
+        """
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
         if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output="trail_only")
-        self.scope_distance = set_scope_distance
-        if set_scope_distance == 0:
+            source_trail = self.unmake_internal(set_scope_distance=d, force_output="trail_only")
+        self.scope_distance = d
+        if d == 0:
             self.add_tag("in-scope")
         return source_trail
 

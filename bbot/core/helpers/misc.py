@@ -17,6 +17,7 @@ import logging
 import platform
 import ipaddress
 import traceback
+import numpy as np
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
@@ -1074,16 +1075,30 @@ def get_traceback_details(e):
     return filename, lineno, funcname
 
 
-async def cancel_tasks(tasks):
+def cancel_tasks(tasks):
     current_task = asyncio.current_task()
     for task in tasks:
         if task != current_task:
-            with suppress(asyncio.CancelledError):
-                task.cancel()
-    for task in tasks:
-        if task != current_task:
-            try:
-                await task
-            except Exception as e:
-                log.debug(e)
-                log.trace(traceback.format_exc())
+            task.cancel()
+
+
+def weighted_shuffle(items, weights):
+    # Make sure the list is a numpy array
+    items = np.array(items)
+
+    # Make an empty list to hold the shuffled items
+    shuffled_items = []
+
+    # While there are still items to be chosen...
+    while len(items) > 0:
+        # Choose an item
+        chosen_index = np.random.choice(range(len(items)), p=weights / np.sum(weights))
+
+        # Add the chosen item to the shuffled list
+        shuffled_items.append(items[chosen_index])
+
+        # Remove the chosen item from the available pool
+        items = np.delete(items, chosen_index)
+        weights = np.delete(weights, chosen_index)
+
+    return shuffled_items

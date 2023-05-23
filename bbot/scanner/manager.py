@@ -1,4 +1,3 @@
-import queue
 import asyncio
 import logging
 import traceback
@@ -27,7 +26,9 @@ class ScanManager:
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
         self._task_counter = TaskCounter()
         self._new_activity = True
+        self._modules_by_priority = None
         self._incoming_queues = None
+        self._module_priority_weights = None
 
     async def init_events(self):
         """
@@ -157,25 +158,27 @@ class ScanManager:
             for provider in self.scan.helpers.cloud.providers.values():
                 provider.tag_event(event)
 
-            # Scope shepherding
             event_is_duplicate = self.is_duplicate_event(event)
-            event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
-            set_scope_distance = event.scope_distance
-            if event_whitelisted:
-                set_scope_distance = 0
+
+            # Scope shepherding
+            # here, we buff or nerf an event based on its attributes and certain scan settings
+            # first, it needs to have a valid host
             if event.host:
-                if (event_whitelisted or event_in_report_distance) and (event._force_output or not event_is_duplicate):
-                    if set_scope_distance == 0:
-                        log.debug(f"Making {event} in-scope")
-                    source_trail = event.make_in_scope(set_scope_distance)
+                # if it's whitelisted, we make it in-scope
+                if event_whitelisted:
+                    log.debug(f"Making {event} in-scope")
+                    source_trail = event.set_scope_distance(0)
                     for s in source_trail:
                         self.queue_event(s)
-                else:
-                    if event.scope_distance > self.scan.scope_report_distance:
-                        log.debug(
-                            f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                        )
-                        event.make_internal()
+
+                # finally, we check if it's inside our configured report distance
+                event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
+                # if it's not, we make it internal (so it's only distributed to modules and not to the user)
+                if not event_in_report_distance and not event._force_output:
+                    log.debug(
+                        f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                    )
+                    event.make_internal()
 
             # check for wildcards
             if event.scope_distance <= self.scan.scope_search_distance:
@@ -207,7 +210,7 @@ class ScanManager:
 
             if not event.host or (event.always_emit and not event_is_duplicate):
                 log.debug(
-                    f"Force-emitting {event} because it does not have identifying scope information or because always_emit was True"
+                    f"Force-emitting {event} (host:{event.host}, always_emit={event.always_emit}, is_duplicate={event_is_duplicate})"
                 )
                 source_trail = event.unmake_internal(force_output=True)
                 for s in source_trail:
@@ -332,14 +335,14 @@ class ScanManager:
     async def _worker_loop(self):
         try:
             while 1:
-                try:
-                    # event, kwargs = self.incoming_event_queue.get_nowait()
-                    event, kwargs = await self.get_event_from_modules()
-                    acceptable = await self.emit_event(event, **kwargs)
-                    if acceptable:
-                        self._new_activity = True
-                except queue.Empty:
-                    await asyncio.sleep(0.1)
+                log.debug("manager worker loop")
+                result = await self.get_event_from_modules()
+                if result is None:
+                    continue
+                event, kwargs = result
+                acceptable = await self.emit_event(event, **kwargs)
+                if acceptable:
+                    self._new_activity = True
 
         except KeyboardInterrupt:
             self.scan.stop()
@@ -348,28 +351,67 @@ class ScanManager:
             log.critical(traceback.format_exc())
 
     @property
+    def modules_by_priority(self):
+        if not self._modules_by_priority:
+            self._modules_by_priority = sorted(list(self.scan.modules.values()), key=lambda m: m.priority)
+        return self._modules_by_priority
+
+    @property
     def incoming_queues(self):
-        if self._incoming_queues is None:
-            modules_by_priority = sorted(list(self.scan.modules.values()), key=lambda m: m.priority)
-            queues_by_priority = [m.outgoing_event_queue for m in modules_by_priority]
+        if not self._incoming_queues:
+            queues_by_priority = [m.outgoing_event_queue for m in self.modules_by_priority]
             self._incoming_queues = [self.incoming_event_queue] + queues_by_priority
         return self._incoming_queues
 
-    async def _wait_on_queue(self, queue, waiter_tasks, first_done):
-        item = await queue.get()
-        first_done.set_result(item)
-        current_task = asyncio.current_task()
-        for t in waiter_tasks:
-            if t != current_task:
-                t.cancel()
+    @property
+    def module_priority_weights(self):
+        if not self._module_priority_weights:
+            # we subtract from six because lower priorities == higher weights
+            priorities = [6 - m.priority for m in self.modules_by_priority]
+            self._module_priority_weights = priorities
+        return self._module_priority_weights
 
-    async def get_event_from_modules(self):
+    async def _wait_on_module(self, module, waiter_tasks, first_done):
+        item = await module.dequeue_outgoing_event()
+        first_done.set_result(item)
+        self.scan.helpers.cancel_tasks(waiter_tasks)
+
+    def get_random_event_from_modules(self):
+        for m in self.scan.helpers.weighted_shuffle(
+            [self] + self.modules_by_priority, [5] + self.module_priority_weights
+        ):
+            try:
+                return m.dequeue_outgoing_event_nowait()
+            except asyncio.queues.QueueEmpty:
+                continue
+
+    async def dequeue_outgoing_event(self):
+        # technically this is the manager's "incoming" queue
+        # but we are mirroring the module's method
+        return await self.incoming_event_queue.get()
+
+    def dequeue_outgoing_event_nowait(self):
+        # technically this is the manager's "incoming" queue
+        # but we are mirroring the module's method
+        return self.incoming_event_queue.get_nowait()
+
+    async def get_first_event_from_modules(self):
         waiter_tasks = []
         first_done = asyncio.Future()
-        for incoming_queue in self.incoming_queues:
-            waiter_tasks.append(asyncio.create_task(self._wait_on_queue(incoming_queue, waiter_tasks, first_done)))
-        result = await first_done
-        return result
+        for module in [self] + self.modules_by_priority:
+            waiter_tasks.append(asyncio.create_task(self._wait_on_module(module, waiter_tasks, first_done)))
+        try:
+            return await asyncio.wait_for(first_done, timeout=0.1)
+        except asyncio.TimeoutError:
+            self.scan.helpers.cancel_tasks(waiter_tasks)
+
+    async def get_event_from_modules(self):
+        # try to get a (weighted) random one first
+        event = self.get_random_event_from_modules()
+        # if all the queues are, empty, then wait
+        if event is None:
+            event = await self.get_first_event_from_modules()
+        return event
 
     @property
     def queued_event_types(self):

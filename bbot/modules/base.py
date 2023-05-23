@@ -246,7 +246,8 @@ class BaseModule:
             if v is not None:
                 emit_kwargs[o] = v
         event = self.make_event(*args, **event_kwargs)
-        self.queue_outgoing_event(event, **emit_kwargs)
+        if event:
+            self.queue_outgoing_event(event, **emit_kwargs)
 
     async def events_waiting(self):
         """
@@ -357,7 +358,7 @@ class BaseModule:
         """
         # special signal event types
         if event.type in ("FINISHED",):
-            return True, ""
+            return True, "its type is FINISHED"
         if self.errored:
             return False, f"module is in error state"
         # exclude non-watched types
@@ -382,7 +383,7 @@ class BaseModule:
                 # then skip the event.
                 # this helps avoid double-portscanning both an individual IP and its parent CIDR.
                 return False, "module consumes IP ranges directly"
-        return True, ""
+        return True, "precheck succeeded"
 
     async def _event_postcheck(self, event):
         """
@@ -450,6 +451,8 @@ class BaseModule:
             if reason and reason != "its type is not in watched_events":
                 self.debug(f"Not accepting {event} because {reason}")
             return
+        else:
+            self.debug(f"Accepting {event} because {reason}")
         try:
             self.incoming_event_queue.put_nowait(event)
             async with self._event_received:
@@ -468,6 +471,11 @@ class BaseModule:
 
     async def dequeue_outgoing_event(self):
         await self.outgoing_event_queue.get()
+        with self._event_dequeued:
+            self._event_dequeued.notify()
+
+    def dequeue_outgoing_event_nowait(self):
+        return self.outgoing_event_queue.get_nowait()
         with self._event_dequeued:
             self._event_dequeued.notify()
 

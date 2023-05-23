@@ -140,7 +140,7 @@ async def test_events(events, scan, helpers, bbot_config):
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
     assert event1._scope_distance == -1
-    event1.make_in_scope()
+    event1.set_scope_distance(0)
     assert event1._scope_distance == 0
     event2 = scan.make_event("2.3.4.5", source=event1)
     assert event2._scope_distance == 1
@@ -156,13 +156,13 @@ async def test_events(events, scan, helpers, bbot_config):
     internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)
     assert internal_event1._internal == True
     assert internal_event1._made_internal == True
-    internal_event1.make_in_scope()
+    internal_event1.set_scope_distance(0)
     assert internal_event1._internal == False
     assert internal_event1._made_internal == False
     internal_event2 = scan.make_event("2.3.4.5", source=internal_event1, internal=True)
     internal_event3 = scan.make_event("3.4.5.6", source=internal_event2, internal=True)
     internal_event4 = scan.make_event("4.5.6.7", source=internal_event3)
-    source_trail = internal_event4.make_in_scope()
+    source_trail = internal_event4.set_scope_distance(0)
     assert internal_event4._internal == False
     assert internal_event3._internal == False
     assert internal_event2._internal == False

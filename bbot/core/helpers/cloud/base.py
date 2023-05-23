@@ -69,7 +69,8 @@ class BaseCloudProvider:
         excavate_module = self.parent_helper.scan.modules.get("excavate", None)
         if excavate_module:
             event = self.dummy_module.make_event(*args, **kwargs)
-            excavate_module.emit_event(event)
+            if event:
+                excavate_module.emit_event(event)
 
     def is_valid_bucket(self, bucket_name):
         return self.bucket_name_regex.match(bucket_name)

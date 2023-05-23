@@ -130,13 +130,13 @@ class ntlm(BaseModule):
             try:
                 result, url = await task
                 if result:
-                    await self.helpers.cancel_tasks(tasks)
+                    self.helpers.cancel_tasks(tasks)
                     return result, url
             except (RequestError, ReadTimeout) as e:
                 if str(e):
                     self.warning(str(e))
                 # cancel all the tasks if there's an error
-                await self.helpers.cancel_tasks(tasks)
+                self.helpers.cancel_tasks(tasks)
                 break
 
         return None, None

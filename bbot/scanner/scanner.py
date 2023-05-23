@@ -234,6 +234,7 @@ class Scanner:
 
             # main scan loop
             while 1:
+                self.debug("main scan loop")
                 # abort if we're aborting
                 if self.aborting:
                     self.drain_queues()
@@ -273,7 +274,7 @@ class Scanner:
                     self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
-            await self.cancel_tasks()
+            self.cancel_tasks()
             await self.report()
             await self.cleanup()
 
@@ -361,12 +362,15 @@ class Scanner:
             with contextlib.suppress(asyncio.queues.QueueEmpty):
                 while 1:
                     module.incoming_event_queue.get_nowait()
+            with contextlib.suppress(asyncio.queues.QueueEmpty):
+                while 1:
+                    module.outgoing_event_queue.get_nowait()
         with contextlib.suppress(asyncio.queues.QueueEmpty):
             while 1:
                 self.manager.incoming_event_queue.get_nowait()
         self.debug("Finished draining queues")
 
-    async def cancel_tasks(self):
+    def cancel_tasks(self):
         tasks = []
         # module workers
         for m in self.modules.values():
@@ -379,7 +383,7 @@ class Scanner:
             tasks.append(self.ticker_task)
         # manager worker loops
         tasks += self.manager_worker_loop_tasks
-        await self.helpers.cancel_tasks(tasks)
+        self.helpers.cancel_tasks(tasks)
 
     async def report(self):
         for mod in self.modules.values():

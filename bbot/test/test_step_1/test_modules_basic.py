@@ -34,7 +34,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
         base_module = module_class(scan)
         localhost2 = scan.make_event("127.0.0.2", source=events.subdomain)
-        localhost2.make_in_scope()
+        localhost2.set_scope_distance(0)
         # base cases
         base_module._watched_events = None
         base_module.watched_events = ["*"]
@@ -55,7 +55,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
         ip_range = scan.make_event("127.0.0.0/24", dummy=True)
         localhost4 = scan.make_event("127.0.0.1", source=ip_range)
-        localhost4.make_in_scope()
+        localhost4.set_scope_distance(0)
         localhost4.module = "plumbus"
         assert base_module._event_precheck(localhost4)[0] == True
         localhost4.module = "speculate"

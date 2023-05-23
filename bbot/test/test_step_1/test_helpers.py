@@ -417,6 +417,22 @@ async def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver
     await scan1.load_modules()
     assert int(helpers.get_size(scan1.modules["ipneighbor"])) > 0
 
+    # weighted shuffle (used for module queues)
+    items = ["a", "b", "c", "d", "e"]
+    first_frequencies = {i: 0 for i in items}
+    weights = [1, 2, 3, 4, 5]
+    for i in range(10000):
+        shuffled = helpers.weighted_shuffle(items, weights)
+        first = shuffled[0]
+        first_frequencies[first] += 1
+    assert (
+        first_frequencies["a"]
+        < first_frequencies["b"]
+        < first_frequencies["c"]
+        < first_frequencies["d"]
+        < first_frequencies["e"]
+    )
+
 
 def test_word_cloud(helpers, bbot_config, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)

@@ -72,7 +72,7 @@ async def test_manager(bbot_config, bbot_scanner):
     googledns = scan1.make_event("8.8.8.8", source=scan1.root_event)
     googledns.module = DummyModule2()
     googledns.source = "asdf"
-    googledns.make_in_scope()
+    googledns.set_scope_distance(0)
     manager.queue_event = event_children_append
     await manager._emit_event(googledns)
     assert len(event_children) > 0
