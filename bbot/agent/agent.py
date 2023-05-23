@@ -107,36 +107,7 @@ class Agent:
                 await asyncio.sleep(1)
                 # rebuild = True
 
-    async def on_message(self, websocket, path):
-        message = await websocket.recv()
-        try:
-            message = json.loads(message)
-        except Exception as e:
-            log.warning(f'Failed to JSON-decode message "{message}": {e}')
-            return
-        message = messages.Message(**message)
-
-        if message.command == "ping":
-            if self.scan is None:
-                await self.send({"conversation": str(message.conversation), "message_type": "pong"})
-                return
-            else:
-                log.warning(f'Invalid command: "{message.command}"')
-
-        command_type = None
-        try:
-            command_type = getattr(messages, message.command)
-        except AttributeError:
-            log.warning(f'Invalid command: "{message.command}"')
-
-        command_args = command_type(**message.arguments)
-        command_fn = getattr(self, message.command)
-        async with self.error_hndle():
-            response = await command_fn(**command_args.dict())
-            log.info(str(response))
-            await self.send({"conversation": str(message.conversation), "message": response})
-
-    async def start_scan(self, scan_id="", name=None, targets=[], modules=[], output_modules=[], config={}):
+    async def start_scan(self, scan_id, name=None, targets=[], modules=[], output_modules=[], config={}):
         async with self._scan_lock:
             if self.scan is None:
                 log.success(

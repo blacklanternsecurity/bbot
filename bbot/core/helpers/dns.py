@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import ipaddress
-import traceback
 import dns.exception
 import dns.asyncresolver
 from contextlib import suppress
@@ -575,16 +574,6 @@ class DNSHelper:
                     log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
 
         return wildcard_domain_results
-
-    def _catch_keyboardinterrupt(self, callback, *args, **kwargs):
-        try:
-            return callback(*args, **kwargs)
-        except Exception as e:
-            log.error(f"Error in {callback.__qualname__}(): {e}")
-            log.trace(traceback.format_exc())
-        except KeyboardInterrupt:
-            if self.parent_helper.scan:
-                self.parent_helper.scan.stop()
 
     def debug(self, *args, **kwargs):
         if self._debug:

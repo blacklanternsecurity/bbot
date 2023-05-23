@@ -132,9 +132,17 @@ async def websocket_handler(websocket, path):
 
 @pytest.mark.asyncio
 async def test_agent(agent):
+    scan_status = await agent.scan_status()
+    assert scan_status["error"] == "Scan not in progress"
+
     global success
     async with websockets.serve(websocket_handler, "127.0.0.1", 8765):
         asyncio.create_task(agent.start())
         # wait for 30 seconds
         await asyncio.wait_for(scan_done.wait(), 10)
         assert success
+
+        await agent.start_scan("scan_to_be_cancelled", targets=["127.0.0.1"], modules=["ipneighbor"])
+        await agent.start_scan("scan_to_be_rejected", targets=["127.0.0.1"], modules=["ipneighbor"])
+        await asyncio.sleep(0.1)
+        await agent.stop_scan()
