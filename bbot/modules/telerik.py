@@ -239,7 +239,7 @@ class telerik(BaseModule):
                 break
             else:
                 if "Cannot deserialize dialog parameters" in result.text:
-                    await self.helpers.cancel_tasks(tasks)
+                    self.helpers.cancel_tasks(tasks)
                     self.debug(f"Detected Telerik UI instance ({dh})")
                     description = f"Telerik DialogHandler detected"
                     self.emit_event(
