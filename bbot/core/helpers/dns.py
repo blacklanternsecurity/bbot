@@ -84,9 +84,9 @@ class DNSHelper:
         # DNS over TCP is more reliable
         # But setting this breaks DNS resolution on Ubuntu because systemd-resolve doesn't support TCP
         # kwargs["tcp"] = True
+        results = []
+        errors = []
         with suppress(asyncio.CancelledError):
-            results = []
-            errors = []
             query = str(query).strip()
             if is_ip(query):
                 kwargs.pop("type", None)
@@ -112,7 +112,7 @@ class DNSHelper:
                     for error in e:
                         errors.append((t, error))
 
-            return (results, errors)
+        return (results, errors)
 
     async def _resolve_hostname(self, query, **kwargs):
         self.debug(f"Resolving {query} with kwargs={kwargs}")

@@ -5,7 +5,6 @@ import traceback
 from contextlib import suppress
 
 from ..core.errors import ValidationError
-from ..core.helpers.queueing import EventQueue
 from ..core.helpers.async_helpers import TaskCounter
 
 log = logging.getLogger("bbot.scanner.manager")
@@ -18,7 +17,8 @@ class ScanManager:
 
     def __init__(self, scan):
         self.scan = scan
-        self.incoming_event_queue = EventQueue()
+
+        self.incoming_event_queue = asyncio.PriorityQueue()
 
         # tracks duplicate events on a global basis
         self.events_distributed = set()
@@ -27,6 +27,7 @@ class ScanManager:
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
         self._task_counter = TaskCounter()
         self._new_activity = True
+        self._incoming_queues = None
 
     async def init_events(self):
         """
@@ -332,7 +333,8 @@ class ScanManager:
         try:
             while 1:
                 try:
-                    event, kwargs = self.incoming_event_queue.get_nowait()
+                    # event, kwargs = self.incoming_event_queue.get_nowait()
+                    event, kwargs = await self.get_event_from_modules()
                     acceptable = await self.emit_event(event, **kwargs)
                     if acceptable:
                         self._new_activity = True
@@ -344,6 +346,43 @@ class ScanManager:
 
         except Exception:
             log.critical(traceback.format_exc())
+
+    @property
+    def incoming_queues(self):
+        if self._incoming_queues is None:
+            modules_by_priority = sorted(list(self.scan.modules.values()), key=lambda m: m.priority)
+            queues_by_priority = [m.outgoing_event_queue for m in modules_by_priority]
+            self._incoming_queues = [self.incoming_event_queue] + queues_by_priority
+        return self._incoming_queues
+
+    async def _wait_on_queue(self, queue, waiter_tasks, first_done):
+        item = await queue.get()
+        first_done.set_result(item)
+        current_task = asyncio.current_task()
+        for t in waiter_tasks:
+            if t != current_task:
+                t.cancel()
+
+    async def get_event_from_modules(self):
+        waiter_tasks = []
+        first_done = asyncio.Future()
+        for incoming_queue in self.incoming_queues:
+            waiter_tasks.append(asyncio.create_task(self._wait_on_queue(incoming_queue, waiter_tasks, first_done)))
+        result = await first_done
+        return result
+
+    @property
+    def queued_event_types(self):
+        event_types = {}
+        for q in self.incoming_queues:
+            for event, _ in q._queue:
+                event_type = getattr(event, "type", None)
+                if event_type is not None:
+                    try:
+                        event_types[event_type] += 1
+                    except KeyError:
+                        event_types[event_type] = 1
+        return event_types
 
     def queue_event(self, event, **kwargs):
         if event:
@@ -423,7 +462,7 @@ class ScanManager:
                     f'{self.scan.name}: Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
                 )
 
-            queued_events_by_type = [(k, v) for k, v in self.incoming_event_queue.event_types.items() if v > 0]
+            queued_events_by_type = [(k, v) for k, v in self.queued_event_types.items() if v > 0]
             if queued_events_by_type:
                 queued_events_by_type.sort(key=lambda x: x[-1], reverse=True)
                 queued_events_by_type_str = ", ".join(f"{m}: {t:,}" for m, t in queued_events_by_type)

@@ -313,23 +313,21 @@ async def _main():
         if err:
             os._exit(1)
 
-        # debug troublesome modules
-        # while 1:
-        #     await scanner.manager.modules_status(_log=True)
-        #     await asyncio.sleep(1)
-
 
 def main():
     global scan_name
     try:
         asyncio.run(_main())
     except asyncio.CancelledError:
-        pass
+        if get_log_level() <= logging.DEBUG:
+            log_to_stderr(traceback.format_exc(), level="DEBUG")
     except KeyboardInterrupt:
         msg = "Interrupted"
         if scan_name:
             msg = f"You killed {scan_name}"
         log_to_stderr(msg, level="ERROR")
+        if get_log_level() <= logging.DEBUG:
+            log_to_stderr(traceback.format_exc(), level="DEBUG")
         os._exit(1)
 
 

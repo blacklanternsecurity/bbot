@@ -493,57 +493,6 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert top_mutations[:2] == [((None,), 3), ((None, "2"), 2)]
 
 
-def test_queues(scan, helpers):
-    from bbot.core.helpers.queueing import EventQueue
-
-    module_priority_1 = helpers._make_dummy_module("one")
-    module_priority_2 = helpers._make_dummy_module("two")
-    module_priority_3 = helpers._make_dummy_module("three")
-    module_priority_4 = helpers._make_dummy_module("four")
-    module_priority_5 = helpers._make_dummy_module("five")
-    module_priority_1._priority = 1
-    module_priority_2._priority = 2
-    module_priority_3._priority = 3
-    module_priority_4._priority = 4
-    module_priority_5._priority = 5
-    event1 = module_priority_1.make_event("1.1.1.1", source=scan.root_event)
-    event2 = module_priority_2.make_event("2.2.2.2", source=scan.root_event)
-    event3 = module_priority_3.make_event("3.3.3.3", source=scan.root_event)
-    event4 = module_priority_4.make_event("4.4.4.4", source=scan.root_event)
-    event5 = module_priority_5.make_event("5.5.5.5", source=scan.root_event)
-
-    event_queue = EventQueue()
-    for e in [event1, event2, event3, event4, event5]:
-        event_queue.put(e)
-
-    assert event1 == event_queue._queues[1].get().event
-    assert event2 == event_queue._queues[2].get().event
-    assert event3 == event_queue._queues[3].get().event
-    assert event4 == event_queue._queues[4].get().event
-    assert event5 == event_queue._queues[5].get().event
-
-    # insert each event 10000 times
-    for i in range(10000):
-        for e in [event1, event2, event3, event4, event5]:
-            event_queue.put(e)
-
-    # get 5000 events from queue and count how many of each there are
-    stats = dict()
-    for i in range(5000):
-        e = event_queue.get()
-        try:
-            stats[e.id] += 1
-        except KeyError:
-            stats[e.id] = 1
-
-    # make sure there's at least one of each event
-    for e in [event1, event2, event3, event4, event5]:
-        assert e.id in stats
-
-    # make sure there are more of the higher-priority ones
-    assert stats[event1.id] > stats[event2.id] > stats[event3.id] > stats[event4.id] > stats[event5.id]
-
-
 def test_names(helpers):
     assert helpers.names == sorted(helpers.names)
     assert helpers.adjectives == sorted(helpers.adjectives)

@@ -1,6 +1,3 @@
-import queue
-
-# import signal
 import asyncio
 import logging
 import traceback
@@ -364,7 +361,7 @@ class Scanner:
             with contextlib.suppress(asyncio.queues.QueueEmpty):
                 while 1:
                     module.incoming_event_queue.get_nowait()
-        with contextlib.suppress(queue.Empty):
+        with contextlib.suppress(asyncio.queues.QueueEmpty):
             while 1:
                 self.manager.incoming_event_queue.get_nowait()
         self.debug("Finished draining queues")
@@ -687,9 +684,9 @@ class Scanner:
             self.stop()
         elif isinstance(e, BrokenPipeError):
             log.debug(f"BrokenPipeError in {filename}:{lineno}:{funcname}(): {e}")
-        elif isinstance(e, asyncio.CancelledError):
-            log.debug(f"asyncio CancelledError: {e}")
-            log.trace(traceback.format_exc())
+        # elif isinstance(e, asyncio.CancelledError):
+        #     log.debug(f"asyncio CancelledError: {e}")
+        #     log.trace(traceback.format_exc())
         elif isinstance(e, Exception):
             log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
             log.trace(traceback.format_exc())

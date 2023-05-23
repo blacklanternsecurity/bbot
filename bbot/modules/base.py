@@ -66,8 +66,8 @@ class BaseModule:
     _scope_shepherding = True
     # Exclude from scan statistics
     _stats_exclude = False
-    # outgoing queue size (None == infinite)
-    _qsize = None
+    # outgoing queue size (0 == infinite)
+    _qsize = 0
     # Priority of events raised by this module, 1-5, lower numbers == higher priority
     _priority = 3
     # Name, overridden automatically
@@ -99,6 +99,8 @@ class BaseModule:
 
         self._tasks = []
         self._event_received = asyncio.Condition()
+        self._event_queued = asyncio.Condition()
+        self._event_dequeued = asyncio.Condition()
 
     async def setup(self):
         """
@@ -206,7 +208,7 @@ class BaseModule:
         submitted = False
         if self.batch_size <= 1:
             return
-        if self.num_queued_events > 0:
+        if self.num_incoming_events > 0:
             events, finish, report = await self.events_waiting()
             if not self.errored:
                 self.debug(f"Handling batch of {len(events):,} events")
@@ -244,7 +246,7 @@ class BaseModule:
             if v is not None:
                 emit_kwargs[o] = v
         event = self.make_event(*args, **event_kwargs)
-        self.scan.manager.queue_event(event, **emit_kwargs)
+        self.queue_outgoing_event(event, **emit_kwargs)
 
     async def events_waiting(self):
         """
@@ -273,7 +275,7 @@ class BaseModule:
         return events, finish, report
 
     @property
-    def num_queued_events(self):
+    def num_incoming_events(self):
         ret = 0
         if self.incoming_event_queue:
             ret = self.incoming_event_queue.qsize()
@@ -308,9 +310,9 @@ class BaseModule:
         async with self.scan.acatch(context=self._worker):
             while not self.scan.stopping:
                 # hold the reigns if our outgoing queue is full
-                # if self._qsize and self.outgoing_event_queue.qsize() >= self._qsize:
-                #     with self.event_received:
-                #         await self.event_received.wait()
+                if self._qsize > 0 and self.outgoing_event_queue.qsize() >= self._qsize:
+                    async with self._event_dequeued:
+                        await self._event_dequeued.wait()
 
                 if self.batch_size > 1:
                     submitted = await self._handle_batch()
@@ -437,8 +439,11 @@ class BaseModule:
                             await self.helpers.execute_sync_or_async(callback)
 
     async def queue_event(self, event):
+        """
+        Queue (incoming) event with module
+        """
         if self.incoming_event_queue in (None, False):
-            self.debug(f"Not in an acceptable state to queue event")
+            self.debug(f"Not in an acceptable state to queue incoming event")
             return
         acceptable, reason = self._event_precheck(event)
         if not acceptable:
@@ -450,7 +455,21 @@ class BaseModule:
             async with self._event_received:
                 self._event_received.notify()
         except AttributeError:
-            self.debug(f"Not in an acceptable state to queue event")
+            self.debug(f"Not in an acceptable state to queue incoming event")
+
+    def queue_outgoing_event(self, event, **kwargs):
+        """
+        Queue (outgoing) event with module
+        """
+        try:
+            self.outgoing_event_queue.put_nowait((event, kwargs))
+        except AttributeError:
+            self.debug(f"Not in an acceptable state to queue outgoing event")
+
+    async def dequeue_outgoing_event(self):
+        await self.outgoing_event_queue.get()
+        with self._event_dequeued:
+            self._event_dequeued.notify()
 
     def set_error_state(self, message=None):
         if not self.errored:
@@ -479,7 +498,7 @@ class BaseModule:
     @property
     def status(self):
         status = {
-            "events": {"incoming": self.num_queued_events, "outgoing": self.outgoing_event_queue.qsize()},
+            "events": {"incoming": self.num_incoming_events, "outgoing": self.outgoing_event_queue.qsize()},
             "tasks": self._task_counter.value,
             "errored": self.errored,
         }
@@ -498,7 +517,7 @@ class BaseModule:
         """
         Indicates whether the module is finished (not running and nothing in queues)
         """
-        return not self.running and self.num_queued_events <= 0 and self.outgoing_event_queue.qsize() <= 0
+        return not self.running and self.num_incoming_events <= 0 and self.outgoing_event_queue.qsize() <= 0
 
     async def request_with_fail_count(self, *args, **kwargs):
         r = await self.helpers.request(*args, **kwargs)
