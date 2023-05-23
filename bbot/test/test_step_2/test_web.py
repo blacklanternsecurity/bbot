@@ -150,7 +150,7 @@ async def test_web_curl(bbot_scanner, bbot_config, bbot_httpserver):
 
 @pytest.mark.asyncio
 async def test_web_http_compare(httpx_mock, helpers):
-    httpx_mock.add_response(re.compile(r"http://www.example.com.*"), text="wat")
+    httpx_mock.add_response(url=re.compile(r"http://www\.example\.com.*"), text="wat")
     compare_helper = helpers.http_compare("http://www.example.com")
     await compare_helper.compare("http://www.example.com", headers={"asdf": "asdf"})
     await compare_helper.compare("http://www.example.com", cookies={"asdf": "asdf"})
