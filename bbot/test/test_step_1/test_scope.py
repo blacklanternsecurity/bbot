@@ -1,5 +1,5 @@
 from ..bbot_fixtures import *  # noqa: F401
-from ..test_step_1.module_tests.base import ModuleTestBase
+from ..test_step_2.module_tests.base import ModuleTestBase
 
 
 class Scope_test_blacklist(ModuleTestBase):

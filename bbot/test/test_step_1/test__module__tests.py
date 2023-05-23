@@ -2,14 +2,14 @@ import logging
 import importlib
 from pathlib import Path
 
-from .base import ModuleTestBase
+from ..test_step_2.module_tests.base import ModuleTestBase
 from bbot.modules import module_loader
 
 log = logging.getLogger("bbot.test.modules")
 
-parent_dir = Path(__file__).parent
+module_tests_dir = Path(__file__).parent.parent / "test_step_2" / "module_tests"
 
-_module_test_files = list(parent_dir.glob("test_module_*.py"))
+_module_test_files = list(module_tests_dir.glob("test_module_*.py"))
 _module_test_files.sort(key=lambda p: p.name)
 module_test_files = [m.name.split("test_module_")[-1].split(".")[0] for m in _module_test_files]
 
@@ -23,7 +23,7 @@ def test__module__tests():
     # make sure each test file has a test class
     for file in _module_test_files:
         module_name = file.stem
-        import_path = f"bbot.test.test_step_1.module_tests.{module_name}"
+        import_path = f"bbot.test.test_step_2.module_tests.{module_name}"
         module_test_variables = importlib.import_module(import_path, "bbot")
         module_pass = False
         for var_name in dir(module_test_variables):

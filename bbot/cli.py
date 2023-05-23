@@ -101,12 +101,8 @@ async def _main():
                     k for k, v in module_loader.preloaded(type="output").items() if "console" in v["config"]
                 ]
 
-                # If no options are specified, use the default set
-                if not options.output_modules:
-                    options.output_modules = default_output_modules
-
                 # if none of the output modules provided on the command line are consoleable, don't turn off the defaults. Instead, just add the one specified to the defaults.
-                elif not any(o in consoleable_output_modules for o in options.output_modules):
+                if not any(o in consoleable_output_modules for o in options.output_modules):
                     options.output_modules += default_output_modules
 
                 scanner = Scanner(
@@ -124,9 +120,9 @@ async def _main():
                 if options.install_all_deps:
                     all_modules = list(module_loader.preloaded())
                     scanner.helpers.depsinstaller.force_deps = True
-                    scanner.helpers.depsinstaller.install(*all_modules)
+                    succeeded, failed = await scanner.helpers.depsinstaller.install(*all_modules)
                     log.info("Finished installing module dependencies")
-                    return
+                    return False if failed else True
 
                 scan_name = str(scanner.name)
 
@@ -244,7 +240,7 @@ async def _main():
                         log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
                         log.hugewarning(f"Deadly modules are highly intrusive")
                         log.hugewarning(f"Please specify --allow-deadly to continue")
-                        return
+                        return False
                     if active_modules:
                         if active_modules:
                             if active_aggressive_modules:
