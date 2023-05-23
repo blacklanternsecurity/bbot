@@ -250,8 +250,10 @@ class Scanner:
                     new_activity = await self.finish()
                     if not new_activity:
                         break
+                else:
+                    self.debug(f"manager.active: {self.manager.active}, finished init: {self._finished_init}")
 
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.1)
 
             failed = False
 

@@ -64,8 +64,8 @@ class ntlm(BaseModule):
     produced_events = ["FINDING", "DNS_NAME"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Watch for HTTP endpoints that support NTLM authentication"}
-    options = {"max_threads": 10, "try_all": False}
-    options_desc = {"max_threads": "Maximum concurrent requests", "try_all": "Try every NTLM endpoint"}
+    options = {"try_all": False}
+    options_desc = {"try_all": "Try every NTLM endpoint"}
 
     in_scope_only = True
 

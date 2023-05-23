@@ -367,39 +367,27 @@ class ScanManager:
     def module_priority_weights(self):
         if not self._module_priority_weights:
             # we subtract from six because lower priorities == higher weights
-            priorities = [6 - m.priority for m in self.modules_by_priority]
+            priorities = [5] + [6 - m.priority for m in self.modules_by_priority]
             self._module_priority_weights = priorities
         return self._module_priority_weights
 
-    async def _wait_on_module(self, module, waiter_tasks, first_done):
-        item = await module.dequeue_outgoing_event()
+    async def _wait_on_queue(self, q, waiter_tasks, first_done):
+        item = await q.get()
         first_done.set_result(item)
         self.scan.helpers.cancel_tasks(waiter_tasks)
 
     def get_random_event_from_modules(self):
-        for m in self.scan.helpers.weighted_shuffle(
-            [self] + self.modules_by_priority, [5] + self.module_priority_weights
-        ):
+        for q in self.scan.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
             try:
-                return m.dequeue_outgoing_event_nowait()
+                return q.get_nowait()
             except asyncio.queues.QueueEmpty:
                 continue
-
-    async def dequeue_outgoing_event(self):
-        # technically this is the manager's "incoming" queue
-        # but we are mirroring the module's method
-        return await self.incoming_event_queue.get()
-
-    def dequeue_outgoing_event_nowait(self):
-        # technically this is the manager's "incoming" queue
-        # but we are mirroring the module's method
-        return self.incoming_event_queue.get_nowait()
 
     async def get_first_event_from_modules(self):
         waiter_tasks = []
         first_done = asyncio.Future()
-        for module in [self] + self.modules_by_priority:
-            waiter_tasks.append(asyncio.create_task(self._wait_on_module(module, waiter_tasks, first_done)))
+        for q in self.incoming_queues:
+            waiter_tasks.append(asyncio.create_task(self._wait_on_queue(q, waiter_tasks, first_done)))
         try:
             return await asyncio.wait_for(first_done, timeout=0.1)
         except asyncio.TimeoutError:
@@ -441,11 +429,16 @@ class ScanManager:
 
     @property
     def running(self):
-        return self._task_counter.value > 0 or self.incoming_event_queue.qsize() > 0
+        active_tasks = self._task_counter.value
+        incoming_events = self.incoming_event_queue.qsize()
+        log.debug(f"active tasks: {active_tasks}, incoming events: {incoming_events}")
+        return active_tasks > 0 or incoming_events > 0
 
     @property
     def modules_finished(self):
-        return all(m.finished for m in self.scan.modules.values())
+        finished_modules = [m.finished for m in self.scan.modules.values()]
+        log.debug(f"finished modules: {finished_modules}")
+        return all(finished_modules)
 
     @property
     def active(self):

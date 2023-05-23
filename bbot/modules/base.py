@@ -312,8 +312,8 @@ class BaseModule:
             while not self.scan.stopping:
                 # hold the reigns if our outgoing queue is full
                 if self._qsize > 0 and self.outgoing_event_queue.qsize() >= self._qsize:
-                    async with self._event_dequeued:
-                        await self._event_dequeued.wait()
+                    await asyncio.sleep(0.1)
+                    continue
 
                 if self.batch_size > 1:
                     submitted = await self._handle_batch()

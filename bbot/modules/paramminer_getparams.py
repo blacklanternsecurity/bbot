@@ -15,7 +15,6 @@ class paramminer_getparams(paramminer_headers):
     options_desc = {"wordlist": "Define the wordlist to be used to derive GET params"}
     scanned_hosts = []
     getparam_blacklist = []
-    max_threads = 12
     in_scope_only = True
     compare_mode = "getparam"
 

@@ -175,7 +175,7 @@ async def test_scope_distance(bbot_scanner, bbot_config):
     assert test_event4.scope_distance == 2
     await manager._emit_event(test_event4)
     assert test_event4.scope_distance == 2
-    assert test_event4._internal == True
+    assert test_event4._internal == False
     assert test_event4._force_output == True
     assert test_event4 in output_queue
     assert test_event4 in module_queue

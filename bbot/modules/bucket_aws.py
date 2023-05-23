@@ -6,9 +6,8 @@ class bucket_aws(BaseModule):
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]
     meta = {"description": "Check for S3 buckets related to target"}
-    options = {"max_threads": 10, "permutations": False}
+    options = {"permutations": False}
     options_desc = {
-        "max_threads": "Maximum number of threads for HTTP requests",
         "permutations": "Whether to try permutations",
     }
     scope_distance_modifier = 3
