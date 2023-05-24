@@ -258,7 +258,7 @@ async def _main():
                             f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take longer than usual"
                         )
 
-                scanner.helpers.word_cloud.load(options.load_wordcloud)
+                scanner.helpers.word_cloud.load()
 
                 await scanner.prep()
 
