@@ -41,9 +41,9 @@ class Websocket(BaseOutputModule):
         while not self.scan.stopped:
             try:
                 ws = await self.ws(rebuild=rebuild)
-                message = json.dumps(message)
-                self.debug(f"Sending message of length {len(message)}")
-                await ws.send(message)
+                message_str = json.dumps(message)
+                self.debug(f"Sending message of length {len(message_str)}")
+                await ws.send(message_str)
                 rebuild = False
                 break
             except Exception as e:

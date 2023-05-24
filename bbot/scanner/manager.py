@@ -162,23 +162,30 @@ class ScanManager:
 
             # Scope shepherding
             # here, we buff or nerf an event based on its attributes and certain scan settings
-            # first, it needs to have a valid host
+            event_is_duplicate = self.is_duplicate_event(event)
+            event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
+            set_scope_distance = event.scope_distance
+            if event_whitelisted:
+                set_scope_distance = 0
             if event.host:
-                # if it's whitelisted, we make it in-scope
-                if event_whitelisted:
-                    log.debug(f"Making {event} in-scope")
-                    source_trail = event.set_scope_distance(0)
+                # here, we evaluate some weird logic
+                # the reason this exists is to ensure we don't have orphans in the graph
+                # because forcefully internalizing certain events can orphan their children
+                event_will_be_output = event_whitelisted or event_in_report_distance
+                event_is_not_duplicate = event._force_output or not event_is_duplicate
+                if event_will_be_output and event_is_not_duplicate:
+                    if set_scope_distance == 0:
+                        log.debug(f"Making {event} in-scope")
+                    source_trail = event.set_scope_distance(set_scope_distance)
+                    # force re-emit internal source events
                     for s in source_trail:
-                        self.queue_event(s)
-
-                # finally, we check if it's inside our configured report distance
-                event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
-                # if it's not, we make it internal (so it's only distributed to modules and not to the user)
-                if not event_in_report_distance and not event._force_output:
-                    log.debug(
-                        f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                    )
-                    event.make_internal()
+                        await self.emit_event(s, _block=False, _force_submit=True)
+                else:
+                    if event.scope_distance > self.scan.scope_report_distance:
+                        log.debug(
+                            f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                        )
+                        event.make_internal()
 
             # check for wildcards
             if event.scope_distance <= self.scan.scope_search_distance:
