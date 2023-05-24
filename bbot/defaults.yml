@@ -11,7 +11,7 @@ dns_resolution: true
 # Limit the number of BBOT threads
 max_threads: 25
 # Rate-limit DNS
-dns_queries_per_second: 250
+dns_queries_per_second: 1000
 # Rate-limit HTTP
 web_requests_per_second: 50
 # Interval for displaying status messages

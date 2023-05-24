@@ -20,11 +20,6 @@ class virustotal(shodan_dns):
         # virustotal does not have a ping function
         return
 
-    async def request_url(self, query):
-        url = f"{self.base_url}/domains/{self.helpers.quote(query)}/subdomains"
-        r = await self.request_with_fail_count(url, headers=self.headers)
-        return r
-
     def parse_results(self, r, query):
         results = set()
         text = getattr(r, "text", "")
@@ -32,4 +27,20 @@ class virustotal(shodan_dns):
             match = match.lower()
             if match.endswith(query):
                 results.add(match)
+        return results
+
+    async def query(self, query):
+        results = set()
+        url = f"{self.base_url}/domains/{self.helpers.quote(query)}/subdomains"
+        agen = self.helpers.api_page_iter(
+            url, json=False, headers=self.headers, next_key=lambda r: r.json().get("links", {}).get("next", "")
+        )
+        try:
+            async for response in agen:
+                r = self.parse_results(response, query)
+                if not r:
+                    break
+                results.update(r)
+        finally:
+            agen.aclose()
         return results

@@ -174,11 +174,53 @@ class WebHelper:
                     f.write(line)
             return truncated_filename
 
-    async def api_page_iter(self, url, page_size=100, json=True, **requests_kwargs):
+    async def api_page_iter(self, url, page_size=100, json=True, next_key=None, **requests_kwargs):
+        """
+        An async generator to fetch and loop through API pages.
+
+        This function keeps calling the API with the provided URL, increasing the page number each time, and spits out
+        the results one page at a time. It's perfect for APIs that split their data across multiple pages.
+
+        Args:
+            url (str): The API endpoint. May contain placeholders for 'page' and 'page_size'.
+            page_size (int, optional): How many items you want per page. Defaults to 100.
+            json (bool, optional): If True, we'll try to convert the response to JSON. Defaults to True.
+            next_key (callable, optional): If your API has a weird way to get to the next page, give us a function
+                                           that takes the response and spits out the new URL. Defaults to None.
+            **requests_kwargs: Any other stuff you want to pass to the request.
+
+        Yields:
+            If 'json' is True, you'll get a dict with the API's response, else you'll get the raw response.
+
+        Note:
+            You MUST break out of the loop when you stop getting useful results! Otherwise it will loop forever.
+
+        Example:
+            Here's a quick example of how to use this:
+            ```
+            agen = api_page_iter('https://api.example.com/data?page={page}&page_size={page_size}')
+            try:
+                async for page in agen:
+                    subdomains = json["subdomains"]
+                    self.hugesuccess(subdomains)
+                    if not subdomains:
+                        break
+            finally:
+                agen.aclose()
+            ```
+        """
         page = 1
         offset = 0
+        result = None
         while 1:
-            new_url = url.format(page=page, page_size=page_size, offset=offset)
+            if result and callable(next_key):
+                try:
+                    new_url = next_key(result)
+                except Exception as e:
+                    log.debug(f"Failed to extract next page of results from {url}: {e}")
+                    log.debug(traceback.formate_exc())
+            else:
+                new_url = url.format(page=page, page_size=page_size, offset=offset)
             result = await self.request(new_url, **requests_kwargs)
             try:
                 if json:

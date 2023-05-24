@@ -1,27 +1,28 @@
-![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)
-
 # BEE·bot
 ### OSINT automation for hackers.
 
-~~~bash
-pip install bbot
-~~~
-
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot)
+
+BBOT is a powerful and modular OSINT (Open Source Intelligence) framework designed to map the attack surface of an organization. With BBOT, you can execute the entire OSINT workflow with just a single command.
+
+![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)
+
+BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but takes it to the next level with features like multi-target scans, lightning-fast asyncio performance, and NLP-powered subdomain mutations. It offers a wide range of functionality, including subdomain enumeration, port scanning, web screenshots, vulnerability scanning, and much more. With over 80 modules and counting, BBOT provides a comprehensive set of tools for gathering intelligence.
+
+Whether you're a pentester, security researcher, or bug bounty hunter, BBOT simplifies and automates the OSINT process so you can focus on the fun part: hacking!
 
 ![bbot-demo](https://user-images.githubusercontent.com/20261699/217346759-d5bf56c3-3936-43f7-ad14-4d73d2cd1417.gif)
 
-### **BBOT** is a **recursive**, **modular** OSINT framework inspired by Spiderfoot.
 
-BBOT can execute the entire OSINT process in a single command: subdomain enumeration, port scans, web screenshots (with `gowitness`), vulnerability scanning (with `nuclei`), and much more. BBOT has over **80 modules** and counting.
-
-Read our [blog post](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off) to find out why BBOT is the most thorough subdomain enumeration tool available.
-
-![graphs-small](https://user-images.githubusercontent.com/20261699/199602154-14c71a93-57aa-4ac0-ad81-87ce64fbffc7.png)
+# Getting Started
 
 ## Installation ([pip](https://pypi.org/project/bbot/))
-Note: installing in a virtualenv (e.g. via `pipx`) is recommended
+Note: installing in a virtualenv (e.g. via `pipx`) is recommended. If you need help with installation, please refer to the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#installation).
 ~~~bash
+# Prerequisites:
+# - Linux (Windows and macOS are *not* supported)
+# - Python 3.9 or newer
+
 # stable version
 pip install bbot
 
@@ -30,29 +31,9 @@ pip install --pre bbot
 
 bbot --help
 ~~~
-Prerequisites:
-- Linux (Windows and macOS are *not* supported)
-- Python 3.9 or newer
 
-## Installation ([Docker](https://hub.docker.com/r/blacklanternsecurity/bbot))
-~~~bash
-# bleeding edge (dev)
-docker run -it blacklanternsecurity/bbot --help
-
-# stable
-docker run -it blacklanternsecurity/bbot:stable --help
-
-# note: alternatively there is a helper script that will map docker volumes to persist your BBOT scan data:
-./bbot-docker.sh --help
-~~~
-
-If you need help with installation, please refer to the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#installation).
-
-See also: [Release History](https://github.com/blacklanternsecurity/bbot/wiki/Release-History)
-
-## Scanning with BBOT
-
-### Examples
+## Example Commands
+Note: Scan output, logs, etc. are saved to `~/.bbot`.
 ~~~bash
 # subdomains
 bbot -t evilcorp.com -f subdomain-enum
@@ -77,7 +58,21 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m naabu 
 bbot -l
 ~~~
 
-### Targets
+## Using BBOT as a Python library
+~~~python
+from bbot.scanner import Scanner
+
+async def main():
+    # any number of targets can be specified
+    scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
+    async for event in scan.start():
+        print(event.json())
+
+import asyncio
+asyncio.run(main())
+~~~
+
+## Targets
 
 Targets seed a scan with initial data. You can specify an unlimited number of targets, either directly on the command line or in files (or both!). Targets can be any of the following:
 
@@ -94,64 +89,28 @@ For example, the following scan is totally valid:
 bbot -t evilcorp.com evilcorp.co.uk http://www.evilcorp.cn 1.2.3.0/24 other_targets.txt
 ~~~
 
-#### Whitelists / Blacklists
-
-BBOT's whitelist determines what's considered to be in-scope. By default, the whitelist is simply your target. But if you want more granular scope control, you can override it with `--whitelist` (or add a `--blacklist`).
-
-~~~bash
-# seed a scan with two domains, but only consider assets to be in scope if they are inside 1.2.3.0/24
-bbot -t evilcorp.com evilcorp.co.uk --whitelist 1.2.3.0/24 --blacklist test.evilcorp.com 1.2.3.4 blacklist.txt
-~~~
-
 Visit the wiki for more [tips and tricks](https://github.com/blacklanternsecurity/bbot/wiki#tips-and-tricks).
 
-## Using BBOT as a Python library
-~~~python
-from bbot.scanner import Scanner
-
-# any number of targets can be specified
-scan = Scanner("evilcorp.com", "evilcorp.co.uk", modules=["httpx", "sslcert"])
-for event in scan.start():
-    print(event.json())
-~~~
-
-# Output
-By default, BBOT saves its output in TXT, JSON, and CSV formats. To enable more output modules, you can use `--output-module`.
+## [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot)
+BBOT provides docker images, along with helper script `bbot-docker.sh` to persist your BBOT scan data.
 ~~~bash
-# tee to a file
-bbot -f subdomain-enum -t evilcorp.com | tee evilcorp.txt
+# helper script
+./bbot-docker.sh --help
 
-# output to JSON
-bbot --output-module json -f subdomain-enum -t evilcorp.com | jq
+# bleeding edge (dev)
+docker run -it blacklanternsecurity/bbot --help
 
-# output asset inventory in current directory
-bbot -o . --output-module asset_inventory -f subdomain-enum -t evilcorp.com
+# stable
+docker run -it blacklanternsecurity/bbot:stable --help
 ~~~
-For every scan, BBOT generates a unique and mildly-entertaining name like `demonic_jimmy`. Output for that scan, including the word cloud and any gowitness screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
 
-If you reuse a scan name, it will append to its original output files and leverage the previous word cloud.
-
-# Neo4j
-Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
-
-![neo4j](https://user-images.githubusercontent.com/20261699/182398274-729f3c48-c23c-4db0-8c2e-8b403c1bf790.png)
-
-- You can get Neo4j up and running with a single docker command:
-~~~bash
-docker run -p 7687:7687 -p 7474:7474 -v "$(pwd)/data/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
-~~~
-- After that, run bbot with `--output-modules neo4j`
-~~~bash
-bbot -f subdomain-enum -t evilcorp.com --output-modules neo4j
-~~~
-- Browse data at http://localhost:7474
 
 # Usage
 ~~~
 $ bbot --help
-usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-m MODULE [MODULE ...]] [-l] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]]
-            [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME] [-o DIR] [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y] [--dry-run] [--current-config] [--save-wordcloud FILE] [--load-wordcloud FILE]
-            [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [-a] [--version]
+usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-m MODULE [MODULE ...]] [-l]
+            [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME] [-o DIR] [-c [CONFIG ...]]
+            [-v] [-d] [-s] [--force] [-y] [--dry-run] [--current-config] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [-a] [--version]
 
 Bighuge BLS OSINT Tool
 
@@ -170,7 +129,7 @@ Target:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,anubisdb,asn,azure_tenant,badsecrets,bevigil,binaryedge,bucket_aws,bucket_azure,bucket_digitalocean,bucket_firebase,bucket_gcp,builtwith,bypass403,c99,censys,certspotter,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fingerprintx,fullhunt,generic_ssrf,github,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,ipstack,leakix,masscan,massdns,naabu,ntlm,nuclei,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,rapiddns,riddler,robots,secretsdb,securitytrails,shodan_dns,skymem,smuggler,social,sslcert,subdomain_hijack,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,zoomeye
+                        Modules to enable. Choices: affiliates,anubisdb,asn,azure_tenant,badsecrets,bevigil,binaryedge,bucket_aws,bucket_azure,bucket_digitalocean,bucket_firebase,bucket_gcp,builtwith,bypass403,c99,censys,certspotter,crobat,crt,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,fingerprintx,fullhunt,generic_ssrf,github,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,ipneighbor,ipstack,leakix,masscan,massdns,naabu,nmap,ntlm,nuclei,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,rapiddns,riddler,robots,secretsdb,securitytrails,shodan_dns,skymem,smuggler,social,sslcert,subdomain_hijack,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,zoomeye
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
@@ -198,14 +157,6 @@ Scan:
   --dry-run             Abort before executing scan
   --current-config      Show current config in YAML format
 
-Word cloud:
-  Save/load wordlist of common words gathered during a scan
-
-  --save-wordcloud FILE
-                        Output wordcloud to custom file when the scan completes
-  --load-wordcloud FILE
-                        Load wordcloud from a custom file
-
 Module dependencies:
   Control how modules install their dependencies
 
@@ -224,12 +175,13 @@ Misc:
   --version             show BBOT version and exit
 ~~~
 
+
 # BBOT Config
-BBOT loads its config from these places in the following order:
+Additional config options (such as API keys, rate limits, user-agent, etc.) can be passed to BBOT via its YAML config. BBOT loads its config beginning from `~/.config/bbot`:
 
 - `~/.config/bbot/bbot.yml` <-- Use this one as your main config
 - `~/.config/bbot/secrets.yml` <-- Use this one for sensitive stuff like API keys
-- command line (`--config`)
+- command line (`--config`) <-- Use this to specify a custom `.yml` or override individual config options
 
 These config files will be automatically created for you when you first run BBOT.
 
@@ -247,6 +199,39 @@ bbot --config modules.shodan.api_key=deadbeef
 ```
 
 For explanations of config options, see `defaults.yml` or the [wiki](https://github.com/blacklanternsecurity/bbot/wiki#yaml-config)
+
+
+# Output
+By default, BBOT saves its output in TXT, JSON, and CSV formats. You can enable other output modules with `--output-module`.
+~~~bash
+# tee to a file
+bbot -f subdomain-enum -t evilcorp.com | tee evilcorp.txt
+
+# output to JSON
+bbot --output-module json -f subdomain-enum -t evilcorp.com | jq
+
+# output asset inventory in current directory
+bbot -o . --output-module asset_inventory -f subdomain-enum -t evilcorp.com
+~~~
+For every scan, BBOT generates a unique and mildly-entertaining name like `demonic_jimmy`. Output for that scan, including scan stats and any gowitness screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
+
+If you reuse a scan name, it will append to its original output files and leverage the previous.
+
+## Neo4j
+Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
+
+![neo4j](https://user-images.githubusercontent.com/20261699/182398274-729f3c48-c23c-4db0-8c2e-8b403c1bf790.png)
+
+- You can get Neo4j up and running with a single docker command:
+~~~bash
+docker run -p 7687:7687 -p 7474:7474 -v "$(pwd)/data/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
+~~~
+- After that, run bbot with `--output-modules neo4j`
+~~~bash
+bbot -f subdomain-enum -t evilcorp.com --output-modules neo4j
+~~~
+- Browse data at http://localhost:7474
+
 
 # Modules
 
@@ -312,6 +297,8 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
 | naabu                | scan     |         | Execute port scans with naabu            | active,aggressive,portscan,web-thorough  | OPEN_TCP_PORT                            |
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
+| nmap                 | scan     |         | Execute port scans with nmap             | active,aggressive,portscan,web-thorough  | OPEN_TCP_PORT                            |
++----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
 | ntlm                 | scan     |         | Watch for HTTP endpoints that support    | active,safe,web-basic,web-thorough       | DNS_NAME,FINDING                         |
 |                      |          |         | NTLM authentication                      |                                          |                                          |
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
@@ -357,7 +344,7 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
 | wappalyzer           | scan     |         | Extract technologies from web responses  | active,safe,web-basic,web-thorough       | TECHNOLOGY                               |
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
-| affiliates           | scan     |         | Summarize affiliate domains at the end   | passive,report,safe                      |                                          |
+| affiliates           | scan     |         | Summarize affiliate domains at the end   | affiliates,passive,report,safe           |                                          |
 |                      |          |         | of a scan                                |                                          |                                          |
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
 | anubisdb             | scan     |         | Query jldc.me's database for subdomains  | passive,safe,subdomain-enum              | DNS_NAME                                 |
@@ -446,7 +433,7 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
 | zoomeye              | scan     | X       | Query ZoomEye's API for subdomains       | affiliates,passive,safe,subdomain-enum   | DNS_NAME                                 |
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
-| asset_inventory      | output   |         | Output to an asset inventory style       |                                          |                                          |
+| asset_inventory      | output   |         | Output to an asset inventory style       |                                          | IP_ADDRESS,OPEN_TCP_PORT                 |
 |                      |          |         | flattened CSV file                       |                                          |                                          |
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
 | csv                  | output   |         | Output to CSV                            |                                          |                                          |
@@ -477,12 +464,25 @@ To see modules' options (how to change wordlists, thread count, etc.), use `--he
 +----------------------+----------+---------+------------------------------------------+------------------------------------------+------------------------------------------+
 ~~~
 
-# Credit
 
-BBOT is written by @TheTechromancer. Web hacking in BBOT is made possible by @liquidsec, who wrote most of the web modules and helpers.
+# Acknowledgements
 
-Very special thanks to the following people who made BBOT possible:
+Thanks to all these amazing people for contributing to BBOT! :heart:
 
-- @kerrymilan for his Neo4j and Ansible expertise
+If you have an idea for a feature or run into bugs of any kind, please submit an issue or a PR. We welcome contributions!
+
+<p align="center">
+<a href="https://github.com/blacklanternsecurity/bbot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=blacklanternsecurity/bbot&max=500">
+</a>
+</p>
+
+Special thanks to the following people who made BBOT possible:
+
+- @TheTechromancer for creating BBOT
+- @liquidsec for his extensive work on BBOT's web hacking features
 - Steve Micallef (@smicallef) for creating Spiderfoot
+- @kerrymilan for his Neo4j and Ansible expertise
 - Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
+
+See also: [Release History](https://github.com/blacklanternsecurity/bbot/wiki/Release-History)
