@@ -1,4 +1,4 @@
-from time import sleep
+import asyncio
 
 from ..bbot_fixtures import *
 
@@ -18,5 +18,5 @@ async def test_files(bbot_scanner, bbot_config):
     tempfile = scan1.helpers.tempfile_tail(callback=lambda x: results.append(x))
     with open(tempfile, "w") as f:
         f.write("asdf\n")
-    sleep(0.1)
+    await asyncio.sleep(0.1)
     assert "asdf" in results
