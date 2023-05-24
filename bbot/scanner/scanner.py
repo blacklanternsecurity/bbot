@@ -166,6 +166,8 @@ class Scanner:
         self.init_events_task = None
         self.ticker_task = None
 
+        self._stopping = False
+
     def _on_keyboard_interrupt(self, loop, event):
         self.stop()
 
@@ -255,9 +257,9 @@ class Scanner:
             failed = False
 
         except BaseException as e:
+            self.stop()
             exception_chain = self.helpers.get_exception_chain(e)
             if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
-                self.stop()
                 failed = False
             else:
                 try:
@@ -267,7 +269,6 @@ class Scanner:
 
                 except BBOTError as e:
                     self.critical(f"Error during scan: {e}")
-                    self.trace()
 
                 except Exception:
                     self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
@@ -329,7 +330,8 @@ class Scanner:
             self.warning(f"Setup failed for {total_failed:,} modules")
 
     def stop(self):
-        if self.status != "ABORTING":
+        if not self._stopping:
+            self._stopping = True
             self.status = "ABORTING"
             self.hugewarning(f"Aborting scan")
             self.trace()
@@ -545,6 +547,7 @@ class Scanner:
 
     def critical(self, *args, **kwargs):
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
+        self.trace()
 
     def _internal_modules(self):
         for modname in module_loader.preloaded(type="internal"):

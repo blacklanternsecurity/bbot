@@ -598,8 +598,9 @@ def search_format_dict(d, **kwargs):
     elif isinstance(d, list):
         return [search_format_dict(v, **kwargs) for v in d]
     elif isinstance(d, str):
-        for k, v in kwargs.items():
-            d = d.replace("#{" + str(k) + "}", v)
+        for find, replace in kwargs.items():
+            find = "#{" + str(find) + "}"
+            d = d.replace(find, replace)
     return d
 
 

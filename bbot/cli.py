@@ -304,7 +304,7 @@ async def _main():
     finally:
         # save word cloud
         with suppress(BaseException):
-            save_success, filename = scanner.helpers.word_cloud.save(options.save_wordcloud)
+            save_success, filename = scanner.helpers.word_cloud.save()
             if save_success:
                 log_to_stderr(f"Saved word cloud ({len(scanner.helpers.word_cloud):,} words) to {filename}")
         # remove output directory if empty

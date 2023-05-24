@@ -276,7 +276,7 @@ class JavascriptExtractor(BaseExtractor):
         # ensure that basic auth matches aren't false positives
         if name == "authorization_basic":
             try:
-                b64test = base64.b64decode(result.split(" ")[1].encode())
+                b64test = base64.b64decode(result.split(" ", 1)[-1].encode())
                 if b":" not in b64test:
                     return
             except (base64.binascii.Error, UnicodeDecodeError):
