@@ -257,9 +257,9 @@ class Scanner:
             failed = False
 
         except BaseException as e:
-            self.stop()
             exception_chain = self.helpers.get_exception_chain(e)
             if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+                self.stop()
                 failed = False
             else:
                 try:
