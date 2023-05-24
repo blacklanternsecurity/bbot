@@ -512,3 +512,27 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
 def test_names(helpers):
     assert helpers.names == sorted(helpers.names)
     assert helpers.adjectives == sorted(helpers.adjectives)
+
+
+@pytest.mark.asyncio
+async def test_ratelimiter(helpers):
+    from bbot.core.helpers.ratelimiter import RateLimiter
+
+    results = []
+
+    async def web_request(r):
+        async with r:
+            await asyncio.sleep(0.12345)
+            results.append(None)
+
+    # allow 10 requests per second
+    r = RateLimiter(10)
+    tasks = []
+    # start 500 requests
+    for i in range(500):
+        tasks.append(asyncio.create_task(web_request(r)))
+    # sleep for 5 seconds
+    await asyncio.sleep(5)
+    helpers.cancel_tasks(tasks)
+    # 5 seconds * 10 requests per second == 50
+    assert len(results) == 50
