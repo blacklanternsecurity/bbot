@@ -147,3 +147,22 @@ class TestExcavate2(TestExcavate):
         assert page_relative_detection_2, "Failed to properly excavate page-relative URL"
         assert not root_page_confusion_1, "Incorrectly detected page-relative URL"
         assert not root_page_confusion_2, "Incorrectly detected root-relative URL"
+
+
+class TestExcavateRedirect(TestExcavate):
+    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/relative/"]
+    config_overrides = {"scope_report_distance": 1}
+
+    async def setup_before_prep(self, module_test):
+        # absolute redirect
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "", status=302, headers={"Location": "https://www.test.notreal/yep"}
+        )
+        module_test.httpserver.expect_request("/relative/").respond_with_data(
+            "", status=302, headers={"Location": "./owa/"}
+        )
+        module_test.httpserver.no_handler_status_code = 404
+
+    def check(self, module_test, events):
+        assert any(e.data == "https://www.test.notreal/yep" for e in events)
+        assert any(e.data == "http://127.0.0.1:8888/relative/owa/" for e in events)
