@@ -49,7 +49,7 @@ class DNSHelper:
         self._errors = dict()
         self.fallback_nameservers_file = self.parent_helper.wordlist_dir / "nameservers.txt"
         self.dns_queries_per_second = self.parent_helper.config.get("dns_queries_per_second", 100)
-        self.dns_rate_limiter = RateLimiter(self.dns_queries_per_second)
+        self.dns_rate_limiter = RateLimiter(self.dns_queries_per_second, "DNS")
         self._debug = self.parent_helper.config.get("dns_debug", False)
         self._dummy_modules = dict()
         self._dns_cache = self.parent_helper.CacheDict(max_size=100000)

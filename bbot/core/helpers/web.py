@@ -61,7 +61,7 @@ class WebHelper:
         self.parent_helper = parent_helper
         self.ssl_verify = self.parent_helper.config.get("ssl_verify", False)
         self.web_requests_per_second = self.parent_helper.config.get("web_requests_per_second", 50)
-        self.web_rate_limiter = RateLimiter(self.web_requests_per_second)
+        self.web_rate_limiter = RateLimiter(self.web_requests_per_second, "Web")
 
     def AsyncClient(self, *args, **kwargs):
         kwargs["_bbot_scan"] = self.parent_helper.scan

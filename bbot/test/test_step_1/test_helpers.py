@@ -526,7 +526,7 @@ async def test_ratelimiter(helpers):
             results.append(None)
 
     # allow 10 requests per second
-    r = RateLimiter(10)
+    r = RateLimiter(10, "Test")
     tasks = []
     # start 500 requests
     for i in range(500):

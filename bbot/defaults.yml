@@ -13,7 +13,7 @@ max_threads: 25
 # Rate-limit DNS
 dns_queries_per_second: 1000
 # Rate-limit HTTP
-web_requests_per_second: 50
+web_requests_per_second: 100
 # Interval for displaying status messages
 status_frequency: 15
 # HTTP proxy

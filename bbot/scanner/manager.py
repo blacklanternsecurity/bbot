@@ -172,8 +172,8 @@ class ScanManager:
                 # the reason this exists is to ensure we don't have orphans in the graph
                 # because forcefully internalizing certain events can orphan their children
                 event_will_be_output = event_whitelisted or event_in_report_distance
-                event_is_not_duplicate = event._force_output or not event_is_duplicate
-                if event_will_be_output and event_is_not_duplicate:
+                event_is_duplicate = event_is_duplicate and not event._force_output
+                if event_will_be_output and not event_is_duplicate:
                     if set_scope_distance == 0:
                         log.debug(f"Making {event} in-scope")
                     source_trail = event.set_scope_distance(set_scope_distance)
