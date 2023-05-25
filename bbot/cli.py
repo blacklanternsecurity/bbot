@@ -6,7 +6,6 @@ import asyncio
 import logging
 import threading
 import traceback
-from time import sleep
 from omegaconf import OmegaConf
 from contextlib import suppress
 
