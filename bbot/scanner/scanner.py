@@ -335,6 +335,7 @@ class Scanner:
             self.status = "ABORTING"
             self.hugewarning(f"Aborting scan")
             self.trace()
+            self.cancel_tasks()
             self.drain_queues()
             self.helpers.kill_children()
             self.drain_queues()
@@ -362,10 +363,12 @@ class Scanner:
         for module in self.modules.values():
             with contextlib.suppress(asyncio.queues.QueueEmpty):
                 while 1:
-                    module.incoming_event_queue.get_nowait()
+                    if module.incoming_event_queue:
+                        module.incoming_event_queue.get_nowait()
             with contextlib.suppress(asyncio.queues.QueueEmpty):
                 while 1:
-                    module.outgoing_event_queue.get_nowait()
+                    if module.outgoing_event_queue:
+                        module.outgoing_event_queue.get_nowait()
         with contextlib.suppress(asyncio.queues.QueueEmpty):
             while 1:
                 self.manager.incoming_event_queue.get_nowait()
@@ -690,9 +693,8 @@ class Scanner:
             self.stop()
         elif isinstance(e, BrokenPipeError):
             log.debug(f"BrokenPipeError in {filename}:{lineno}:{funcname}(): {e}")
-        # elif isinstance(e, asyncio.CancelledError):
-        #     log.debug(f"asyncio CancelledError: {e}")
-        #     log.trace(traceback.format_exc())
+        elif isinstance(e, asyncio.CancelledError):
+            raise
         elif isinstance(e, Exception):
             log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
             log.trace(traceback.format_exc())

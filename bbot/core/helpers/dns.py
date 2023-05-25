@@ -1,9 +1,9 @@
 import asyncio
 import logging
 import ipaddress
+import contextlib
 import dns.exception
 import dns.asyncresolver
-from contextlib import suppress
 
 from .regexes import dns_name_regex
 from bbot.core.helpers.ratelimiter import RateLimiter
@@ -88,31 +88,30 @@ class DNSHelper:
         # kwargs["tcp"] = True
         results = []
         errors = []
-        with suppress(asyncio.CancelledError):
-            query = str(query).strip()
-            if is_ip(query):
-                kwargs.pop("type", None)
-                kwargs.pop("rdtype", None)
-                results, errors = await self._resolve_ip(query, **kwargs)
-                return [("PTR", results)], [("PTR", e) for e in errors]
-            else:
-                types = ["A", "AAAA"]
-                kwargs.pop("rdtype", None)
-                if "type" in kwargs:
-                    t = kwargs.pop("type")
-                    if isinstance(t, str):
-                        if t.strip().lower() in ("any", "all", "*"):
-                            types = self.all_rdtypes
-                        else:
-                            types = [t.strip().upper()]
-                    elif any([isinstance(t, x) for x in (list, tuple)]):
-                        types = [str(_).strip().upper() for _ in t]
-                for t in types:
-                    r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
-                    if r:
-                        results.append((t, r))
-                    for error in e:
-                        errors.append((t, error))
+        query = str(query).strip()
+        if is_ip(query):
+            kwargs.pop("type", None)
+            kwargs.pop("rdtype", None)
+            results, errors = await self._resolve_ip(query, **kwargs)
+            return [("PTR", results)], [("PTR", e) for e in errors]
+        else:
+            types = ["A", "AAAA"]
+            kwargs.pop("rdtype", None)
+            if "type" in kwargs:
+                t = kwargs.pop("type")
+                if isinstance(t, str):
+                    if t.strip().lower() in ("any", "all", "*"):
+                        types = self.all_rdtypes
+                    else:
+                        types = [t.strip().upper()]
+                elif any([isinstance(t, x) for x in (list, tuple)]):
+                    types = [str(_).strip().upper() for _ in t]
+            for t in types:
+                r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
+                if r:
+                    results.append((t, r))
+                for error in e:
+                    errors.append((t, error))
 
         return (results, errors)
 
@@ -177,14 +176,14 @@ class DNSHelper:
         dns_cache_hash = hash(f"{query}:PTR")
         while tries_left > 0:
             try:
-                if dns_cache_hash in self._dns_cache:
-                    result = self._dns_cache[dns_cache_hash]
-                else:
+                try:
+                    results = self._dns_cache[dns_cache_hash]
+                except KeyError:
                     async with self.dns_rate_limiter:
                         result = await self._catch(self.resolver.resolve_address, query, **kwargs)
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = result
-                return result, errors
+                break
             except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, dns.resolver.NoNameservers) as e:
                 errors.append(e)
                 # don't retry if we get a SERVFAIL
@@ -299,11 +298,11 @@ class DNSHelper:
                                     ip = self.parent_helper.make_ip_type(t)
 
                                     if rdtype in ("A", "AAAA", "CNAME"):
-                                        with suppress(ValidationError):
+                                        with contextlib.suppress(ValidationError):
                                             if self.parent_helper.is_ip(ip):
                                                 if self.parent_helper.scan.whitelisted(ip):
                                                     event_whitelisted = True
-                                        with suppress(ValidationError):
+                                        with contextlib.suppress(ValidationError):
                                             if self.parent_helper.scan.blacklisted(ip):
                                                 event_blacklisted = True
 
@@ -416,7 +415,6 @@ class DNSHelper:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception:
             log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}")
-        return list()
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """

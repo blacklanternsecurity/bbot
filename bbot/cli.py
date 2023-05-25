@@ -41,6 +41,30 @@ async def _main():
     global scan_name
     environ.cli_execution = True
 
+    # async def monitor_tasks():
+    #     in_row = 0
+    #     while 1:
+    #         try:
+    #             print('looooping')
+    #             tasks = asyncio.all_tasks()
+    #             current_task = asyncio.current_task()
+    #             if len(tasks) == 1 and list(tasks)[0] == current_task:
+    #                 print('no tasks')
+    #                 in_row += 1
+    #             else:
+    #                 in_row = 0
+    #             for t in tasks:
+    #                 print(t)
+    #             if in_row > 2:
+    #                 break
+    #             await asyncio.sleep(1)
+    #         except BaseException as e:
+    #             print(traceback.format_exc())
+    #             with suppress(BaseException):
+    #                 await asyncio.sleep(.1)
+
+    # monitor_tasks_task = asyncio.create_task(monitor_tasks())
+
     ensure_config_files()
 
     try:

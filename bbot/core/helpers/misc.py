@@ -589,8 +589,8 @@ def search_dict_by_key(key, d):
 
 def search_format_dict(d, **kwargs):
     """
-    Recursively .format() string values in dictionary keys
-    search_format_dict({"test": "{name} is awesome"}, name="keanu")
+    Recursively .format() string values in dictionary values
+    search_format_dict({"test": "#{name} is awesome"}, name="keanu")
         --> {"test": "keanu is awesome"}
     """
     if isinstance(d, dict):
@@ -1080,6 +1080,7 @@ def cancel_tasks(tasks):
     current_task = asyncio.current_task()
     for task in tasks:
         if task != current_task:
+            log.debug(f"Cancelling task: {task}")
             task.cancel()
 
 

@@ -341,7 +341,7 @@ class ScanManager:
 
     async def _worker_loop(self):
         try:
-            while 1:
+            while not self.scan.stopped:
                 try:
                     event, kwargs = self.get_event_from_modules()
                 except asyncio.queues.QueueEmpty:
@@ -350,9 +350,6 @@ class ScanManager:
                 acceptable = await self.emit_event(event, **kwargs)
                 if acceptable:
                     self._new_activity = True
-
-        except KeyboardInterrupt:
-            self.scan.stop()
 
         except Exception:
             log.critical(traceback.format_exc())
