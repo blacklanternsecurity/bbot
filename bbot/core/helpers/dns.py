@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import ipaddress
+import traceback
 import contextlib
 import dns.exception
 import dns.asyncresolver
@@ -89,29 +90,33 @@ class DNSHelper:
         results = []
         errors = []
         query = str(query).strip()
-        if is_ip(query):
-            kwargs.pop("type", None)
-            kwargs.pop("rdtype", None)
-            results, errors = await self._resolve_ip(query, **kwargs)
-            return [("PTR", results)], [("PTR", e) for e in errors]
-        else:
-            types = ["A", "AAAA"]
-            kwargs.pop("rdtype", None)
-            if "type" in kwargs:
-                t = kwargs.pop("type")
-                if isinstance(t, str):
-                    if t.strip().lower() in ("any", "all", "*"):
-                        types = self.all_rdtypes
-                    else:
-                        types = [t.strip().upper()]
-                elif any([isinstance(t, x) for x in (list, tuple)]):
-                    types = [str(_).strip().upper() for _ in t]
-            for t in types:
-                r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
-                if r:
-                    results.append((t, r))
-                for error in e:
-                    errors.append((t, error))
+        try:
+            if is_ip(query):
+                kwargs.pop("type", None)
+                kwargs.pop("rdtype", None)
+                results, errors = await self._resolve_ip(query, **kwargs)
+                return [("PTR", results)], [("PTR", e) for e in errors]
+            else:
+                types = ["A", "AAAA"]
+                kwargs.pop("rdtype", None)
+                if "type" in kwargs:
+                    t = kwargs.pop("type")
+                    if isinstance(t, str):
+                        if t.strip().lower() in ("any", "all", "*"):
+                            types = self.all_rdtypes
+                        else:
+                            types = [t.strip().upper()]
+                    elif any([isinstance(t, x) for x in (list, tuple)]):
+                        types = [str(_).strip().upper() for _ in t]
+                for t in types:
+                    r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
+                    if r:
+                        results.append((t, r))
+                    for error in e:
+                        errors.append((t, error))
+        except RuntimeError as e:
+            log.debug(f"Error in resolve_raw({query}, kwargs={kwargs}): {e}")
+            log.trace(traceback.format_exc())
 
         return (results, errors)
 

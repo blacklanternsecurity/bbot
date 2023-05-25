@@ -165,6 +165,7 @@ class Scanner:
         self.manager_worker_loop_tasks = []
         self.init_events_task = None
         self.ticker_task = None
+        self.dispatcher_tasks = []
 
         self._stopping = False
 
@@ -385,6 +386,8 @@ class Scanner:
         # ticker
         if self.ticker_task:
             tasks.append(self.ticker_task)
+        # dispatcher
+        tasks += self.dispatcher_tasks
         # manager worker loops
         tasks += self.manager_worker_loop_tasks
         self.helpers.cancel_tasks(tasks)
@@ -462,7 +465,9 @@ class Scanner:
                 if status != self._status:
                     self._status = status
                     self._status_code = self._status_codes[status]
-                    asyncio.create_task(self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id))
+                    self.dispatcher_tasks.append(
+                        asyncio.create_task(self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id))
+                    )
                 else:
                     self.debug(f'Scan status is already "{status}"')
         else:
