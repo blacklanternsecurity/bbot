@@ -41,8 +41,7 @@ class dnszonetransfer(BaseModule):
                 )
                 zone = dns.zone.from_xfr(xfr_answer)
             except Exception as e:
-                self.verbose(f"Error retrieving zone: {e}")
-                self.trace()
+                self.debug(f"Error retrieving zone for {domain}: {e}")
                 continue
             self.hugesuccess(f"Successful zone transfer against {nameserver} for domain {domain}!")
             finding_description = f"Successful DNS zone transfer against {nameserver} for {domain}"

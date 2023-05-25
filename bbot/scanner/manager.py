@@ -481,8 +481,9 @@ class ScanManager:
             if queued_events_by_type:
                 queued_events_by_type.sort(key=lambda x: x[-1], reverse=True)
                 queued_events_by_type_str = ", ".join(f"{m}: {t:,}" for m, t in queued_events_by_type)
+                num_queued_events = sum(v for k, v in queued_events_by_type)
                 self.scan.info(
-                    f"{self.scan.name}: {self.incoming_event_queue.qsize():,} events in queue ({queued_events_by_type_str})"
+                    f"{self.scan.name}: {num_queued_events:,} events in queue ({queued_events_by_type_str})"
                 )
             else:
                 self.scan.info(f"{self.scan.name}: No events in queue")

@@ -13,7 +13,7 @@ class threatminer(crobat):
 
     async def request_url(self, query):
         url = f"{self.base_url}/domain.php?q={self.helpers.quote(query)}&rt=5"
-        r = await self.request_with_fail_count(url)
+        r = await self.request_with_fail_count(url, timeout=self.http_timeout + 30)
         return r
 
     def parse_results(self, r, query):
