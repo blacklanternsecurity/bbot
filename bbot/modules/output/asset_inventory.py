@@ -1,5 +1,6 @@
 import csv
 import ipaddress
+from contextlib import suppress
 
 from .csv import CSV
 from bbot.core.helpers.misc import make_ip_type, is_ip, is_port
@@ -78,7 +79,14 @@ class asset_inventory(CSV):
             except KeyError:
                 stats[stat][value] = 1
 
-        for asset in sorted(self.assets.values(), key=lambda a: str(a.host)):
+        def sort_key(asset):
+            host = str(asset.host)
+            is_digit = False
+            with suppress(IndexError):
+                is_digit = host[0].isdigit()
+            return (is_digit, host)
+
+        for asset in sorted(self.assets.values(), key=sort_key):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             ports = getattr(asset, "ports", set())
             ports = [str(p) for p in sorted([int(p) for p in asset.ports])]

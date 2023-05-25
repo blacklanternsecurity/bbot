@@ -379,7 +379,7 @@ class ScanManager:
         for q in self.scan.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
             try:
                 return q.get_nowait()
-            except asyncio.queues.QueueEmpty:
+            except (asyncio.queues.QueueEmpty, AttributeError):
                 continue
         raise asyncio.queues.QueueEmpty()
 

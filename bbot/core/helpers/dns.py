@@ -415,6 +415,7 @@ class DNSHelper:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
         except Exception:
             log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}")
+        return []
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """
