@@ -180,9 +180,9 @@ class DNSHelper:
                     results = self._dns_cache[dns_cache_hash]
                 except KeyError:
                     async with self.dns_rate_limiter:
-                        result = await self._catch(self.resolver.resolve_address, query, **kwargs)
+                        results = await self._catch(self.resolver.resolve_address, query, **kwargs)
                     if cache_result:
-                        self._dns_cache[dns_cache_hash] = result
+                        self._dns_cache[dns_cache_hash] = results
                 break
             except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, dns.resolver.NoNameservers) as e:
                 errors.append(e)

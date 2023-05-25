@@ -6,6 +6,7 @@ import asyncio
 import logging
 import threading
 import traceback
+from time import sleep
 from omegaconf import OmegaConf
 from contextlib import suppress
 
@@ -352,7 +353,7 @@ def main():
         log_to_stderr(msg, level="ERROR")
         if get_log_level() <= logging.DEBUG:
             log_to_stderr(traceback.format_exc(), level="DEBUG")
-        os._exit(1)
+        exit(1)
 
 
 if __name__ == "__main__":
