@@ -478,6 +478,22 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     from bbot.core.helpers.wordcloud import DNSMutator
 
     m = DNSMutator()
+    m.add_word("blacklantern-security237")
+    mutations = set(m)
+    assert mutations == {
+        (None, "237"),
+        ("black", None, "-security237"),
+        (None, "lantern-security237"),
+        ("blacklantern-", None),
+        ("black", None, "security237"),
+        (None,),
+        ("blacklantern", None, "237"),
+        (None, "-security237"),
+        ("blacklantern-", None, "237"),
+        (None, "lanternsecurity237"),
+    }
+
+    m = DNSMutator()
     m.add_word("blacklantern-security")
     m.add_word("sec")
     m.add_word("sec2")
@@ -489,12 +505,19 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
             "basket-security",
             "basket2",
             "basketlantern-security",
+            "basketlanternsecurity",
             "blackbasket-security",
+            "blackbasketsecurity",
             "blacklantern-basket",
             "blacklantern-white",
             "blacklantern-whitebasket",
+            "blacklanternbasket",
+            "blacklanternwhite",
+            "blacklanternwhitebasket",
             "blackwhite-security",
             "blackwhitebasket-security",
+            "blackwhitebasketsecurity",
+            "blackwhitesecurity",
             "white",
             "white-security",
             "white2",
@@ -502,11 +525,13 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
             "whitebasket-security",
             "whitebasket2",
             "whitebasketlantern-security",
+            "whitebasketlanternsecurity",
             "whitelantern-security",
+            "whitelanternsecurity",
         ]
     )
     top_mutations = sorted(m.top_mutations().items(), key=lambda x: x[-1], reverse=True)
-    assert top_mutations[:2] == [((None,), 3), ((None, "2"), 2)]
+    assert top_mutations[:2] == [((None,), 4), ((None, "2"), 2)]
 
 
 def test_names(helpers):
