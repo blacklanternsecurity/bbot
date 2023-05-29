@@ -942,14 +942,14 @@ def os_platform_friendly():
 tag_filter_regex = re.compile(r"[^a-z0-9]+")
 
 
-def tagify(s):
+def tagify(s, maxlen=None):
     """
     Sanitize a string into a tag-friendly format
 
     tagify("HTTP Web Title") --> "http-web-title"
     """
     ret = str(s).lower()
-    return tag_filter_regex.sub("-", ret).strip("-")
+    return tag_filter_regex.sub("-", ret)[:maxlen].strip("-")
 
 
 def memory_status():

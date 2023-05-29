@@ -18,15 +18,17 @@ class BaseExtractor:
         for rname, r in self.regexes.items():
             self.compiled_regexes[rname] = re.compile(r)
 
-    def search(self, content, event, **kwargs):
+    async def search(self, content, event, **kwargs):
         results = set()
-        for result, name in self._search(content, event, **kwargs):
+        async for result, name in self._search(content, event, **kwargs):
             results.add(result)
         for result in results:
             self.report(result, name, event, **kwargs)
 
-    def _search(self, content, event, **kwargs):
+    async def _search(self, content, event, **kwargs):
         for name, regex in self.compiled_regexes.items():
+            # yield to event loop
+            await self.excavate.helpers.sleep(0)
             for result in regex.findall(content):
                 yield result, name
 
@@ -66,10 +68,10 @@ class URLExtractor(BaseExtractor):
         super().__init__(*args, **kwargs)
         self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
 
-    def search(self, content, event, **kwargs):
+    async def search(self, content, event, **kwargs):
         result_hashes = set()
         results = []
-        for result in self._search(content, event, **kwargs):
+        async for result in self._search(content, event, **kwargs):
             result_hash = hash(result)
             if result_hash not in result_hashes:
                 result_hashes.add(result_hash)
@@ -81,9 +83,11 @@ class URLExtractor(BaseExtractor):
                 new_kwargs["exceeded_max_links"] = True
             self.report(result, name, event, **new_kwargs)
 
-    def _search(self, content, event, **kwargs):
+    async def _search(self, content, event, **kwargs):
         parsed = getattr(event, "parsed", None)
         for name, regex in self.compiled_regexes.items():
+            # yield to event loop
+            await self.excavate.helpers.sleep(0)
             for result in regex.findall(content):
                 if name == "fullurl":
                     protocol, other = result
@@ -312,9 +316,9 @@ class excavate(BaseInternalModule):
 
         return True
 
-    def search(self, source, extractors, event, **kwargs):
+    async def search(self, source, extractors, event, **kwargs):
         for e in extractors:
-            e.search(source, event, **kwargs)
+            await e.search(source, event, **kwargs)
 
     async def handle_event(self, event):
         data = event.data
@@ -353,7 +357,7 @@ class excavate(BaseInternalModule):
             body = self.helpers.recursive_decode(event.data.get("body", ""))
             # Cloud extractors
             self.helpers.cloud.excavate(event, body)
-            self.search(
+            await self.search(
                 body,
                 [
                     self.hostname,
@@ -370,7 +374,7 @@ class excavate(BaseInternalModule):
             )
 
             headers = self.helpers.recursive_decode(event.data.get("raw_header", ""))
-            self.search(
+            await self.search(
                 headers,
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,
@@ -378,7 +382,7 @@ class excavate(BaseInternalModule):
             )
 
         else:
-            self.search(
+            await self.search(
                 str(data),
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
                 event,

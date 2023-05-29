@@ -133,7 +133,7 @@ class httpx(BaseModule):
             # main URL
             httpx_ip = j.get("host", "unknown")
             tags = [f"status-{status_code}", f"ip-{httpx_ip}"]
-            title = self.helpers.tagify(j.get("title", ""))
+            title = self.helpers.tagify(j.get("title", ""), maxlen=30)
             if title:
                 tags.append(f"http-title-{title}")
             url_event = self.make_event(url, "URL", source_event, tags=tags)

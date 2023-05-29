@@ -1,3 +1,5 @@
+import multiprocessing
+
 from .base import BaseModule
 
 from badsecrets.base import carve_all_modules
@@ -10,6 +12,10 @@ class badsecrets(BaseModule):
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
     max_event_handlers = 2
     deps_pip = ["badsecrets~=0.1.287"]
+
+    @property
+    def _max_event_handlers(self):
+        return multiprocessing.cpu_count()
 
     async def handle_event(self, event):
         resp_body = event.data.get("body", None)
@@ -27,7 +33,7 @@ class badsecrets(BaseModule):
                     if len(c2) == 2:
                         resp_cookies[c2[0]] = c2[1]
         if resp_body or resp_cookies:
-            r_list = carve_all_modules(body=resp_body, cookies=resp_cookies)
+            r_list = await self.scan.run_in_executor_mp(carve_all_modules, body=resp_body, cookies=resp_cookies)
             if r_list:
                 for r in r_list:
                     if r["type"] == "SecretFound":

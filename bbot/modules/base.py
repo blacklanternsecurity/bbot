@@ -282,8 +282,12 @@ class BaseModule:
             ret = self.incoming_event_queue.qsize()
         return ret
 
+    @property
+    def _max_event_handlers(self):
+        return self.max_event_handlers
+
     def start(self):
-        self._tasks = [asyncio.create_task(self._worker()) for _ in range(self.max_event_handlers)]
+        self._tasks = [asyncio.create_task(self._worker()) for _ in range(self._max_event_handlers)]
 
     async def _setup(self):
         status_codes = {False: "hard-fail", None: "soft-fail", True: "success"}

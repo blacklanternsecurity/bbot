@@ -249,7 +249,6 @@ class Mutator(dict):
 
 
 class DNSMutator(Mutator):
-    word_regex = re.compile(r"[^_\W]+")
     extract_word_regexes = [
         re.compile(r, re.I)
         for r in [

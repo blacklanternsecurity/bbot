@@ -481,16 +481,16 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     m.add_word("blacklantern-security237")
     mutations = set(m)
     assert mutations == {
+        (None,),
         (None, "237"),
-        ("black", None, "-security237"),
+        (None, "-security237"),
+        (None, "lanternsecurity237"),
         (None, "lantern-security237"),
         ("blacklantern-", None),
-        ("black", None, "security237"),
-        (None,),
         ("blacklantern", None, "237"),
-        (None, "-security237"),
         ("blacklantern-", None, "237"),
-        (None, "lanternsecurity237"),
+        ("black", None, "security237"),
+        ("black", None, "-security237"),
     }
 
     m = DNSMutator()

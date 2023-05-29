@@ -302,6 +302,7 @@ async def _main():
                                 allowed_errors -= 1
                             if not keyboard_input:
                                 toggle_log_level(logger=log)
+                                scanner.manager.modules_status(_log=True)
                             if allowed_errors <= 0:
                                 break
 

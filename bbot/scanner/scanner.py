@@ -4,10 +4,12 @@ import traceback
 import contextlib
 from sys import exc_info
 from pathlib import Path
+import multiprocessing as mp
 from datetime import datetime
 from functools import partial
 from omegaconf import OmegaConf
 from collections import OrderedDict
+from concurrent.futures import ProcessPoolExecutor
 
 from bbot import config as bbot_config
 
@@ -167,6 +169,13 @@ class Scanner:
         self.ticker_task = None
         self.dispatcher_tasks = []
 
+        # multiprocessing thread pool
+        try:
+            mp.set_start_method("spawn")
+        except Exception:
+            self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
+        self.process_pool = ProcessPoolExecutor()
+
         self._stopping = False
 
     def _on_keyboard_interrupt(self, loop, event):
@@ -270,6 +279,9 @@ class Scanner:
 
                 except BBOTError as e:
                     self.critical(f"Error during scan: {e}")
+
+                except asyncio.CancelledError:
+                    self.trace()
 
                 except Exception:
                     self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
@@ -391,6 +403,8 @@ class Scanner:
         # manager worker loops
         tasks += self.manager_worker_loop_tasks
         self.helpers.cancel_tasks(tasks)
+        # process pool
+        self.process_pool.shutdown(cancel_futures=True)
 
     async def report(self):
         for mod in self.modules.values():
@@ -685,8 +699,18 @@ class Scanner:
             self._handle_exception(e, context=context)
 
     def run_in_executor(self, callback, *args, **kwargs):
+        """
+        Run a synchronous task in the event loop's default thread pool executor
+        """
         callback = partial(callback, **kwargs)
         return self._loop.run_in_executor(None, callback, *args)
+
+    def run_in_executor_mp(self, callback, *args, **kwargs):
+        """
+        Same as run_in_executor() except with a process pool executor
+        """
+        callback = partial(callback, **kwargs)
+        return self._loop.run_in_executor(self.process_pool, callback, *args)
 
     def _handle_exception(self, e, context="scan", finally_callback=None):
         if callable(context):
