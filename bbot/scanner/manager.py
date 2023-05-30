@@ -179,7 +179,7 @@ class ScanManager:
                     source_trail = event.set_scope_distance(set_scope_distance)
                     # force re-emit internal source events
                     for s in source_trail:
-                        self.emit_event(s, _block=False, _force_submit=True)
+                        await self.emit_event(s, _block=False, _force_submit=True)
                 else:
                     if event.scope_distance > self.scan.scope_report_distance:
                         log.debug(
