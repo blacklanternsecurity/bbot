@@ -529,47 +529,65 @@ class Scanner:
             j.update({"modules": [str(m) for m in self.modules]})
         return j
 
-    def debug(self, *args, **kwargs):
+    def debug(self, *args, trace=False, **kwargs):
         log.debug(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def verbose(self, *args, **kwargs):
+    def verbose(self, *args, trace=False, **kwargs):
         log.verbose(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def hugeverbose(self, *args, **kwargs):
+    def hugeverbose(self, *args, trace=False, **kwargs):
         log.hugeverbose(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def info(self, *args, **kwargs):
+    def info(self, *args, trace=False, **kwargs):
         log.info(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def hugeinfo(self, *args, **kwargs):
+    def hugeinfo(self, *args, trace=False, **kwargs):
         log.hugeinfo(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def success(self, *args, **kwargs):
+    def success(self, *args, trace=False, **kwargs):
         log.success(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def hugesuccess(self, *args, **kwargs):
+    def hugesuccess(self, *args, trace=False, **kwargs):
         log.hugesuccess(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def warning(self, *args, **kwargs):
+    def warning(self, *args, trace=True, **kwargs):
         log.warning(*args, extra={"scan_id": self.id}, **kwargs)
-        self.trace()
+        if trace:
+            self.trace()
 
-    def hugewarning(self, *args, **kwargs):
+    def hugewarning(self, *args, trace=True, **kwargs):
         log.hugewarning(*args, extra={"scan_id": self.id}, **kwargs)
-        self.trace()
+        if trace:
+            self.trace()
 
-    def error(self, *args, **kwargs):
+    def error(self, *args, trace=True, **kwargs):
         log.error(*args, extra={"scan_id": self.id}, **kwargs)
-        self.trace()
+        if trace:
+            self.trace()
 
     def trace(self):
         e_type, e_val, e_traceback = exc_info()
         if e_type is not None:
             log.trace(traceback.format_exc())
 
-    def critical(self, *args, **kwargs):
+    def critical(self, *args, trace=True, **kwargs):
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
-        self.trace()
+        if trace:
+            self.trace()
 
     def _internal_modules(self):
         for modname in module_loader.preloaded(type="internal"):

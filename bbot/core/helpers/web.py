@@ -1,3 +1,4 @@
+import ssl
 import httpx
 import logging
 import traceback
@@ -110,6 +111,8 @@ class WebHelper:
                 log.debug(f"Error with request: {e}")
                 if raise_error:
                     raise
+            except ssl.SSLError as e:
+                log.debug(f"SSL error with request: {e}")
 
     async def download(self, url, **kwargs):
         """

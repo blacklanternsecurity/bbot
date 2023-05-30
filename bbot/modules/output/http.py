@@ -58,5 +58,4 @@ class HTTP(BaseOutputModule):
                 break
             except RequestError as e:
                 self.warning(f"Error sending {event}: {e}, retrying...")
-                self.trace()
                 await self.helpers.sleep(1)

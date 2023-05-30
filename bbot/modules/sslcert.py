@@ -140,7 +140,11 @@ class sslcert(BaseModule):
                     transport.close()
 
             # Get the SSL object
-            ssl_object = transport.get_extra_info("ssl_object")
+            try:
+                ssl_object = transport.get_extra_info("ssl_object")
+            except Exception as e:
+                self.verbose(f"Error getting ssl_object: {e}", trace=True)
+                return [], [], (host, port)
 
             # Get the certificate
             der = ssl_object.getpeercert(binary_form=True)

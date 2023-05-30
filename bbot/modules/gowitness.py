@@ -239,7 +239,6 @@ class gowitness(BaseModule):
             return cur.execute(query)
         except sqlite3.OperationalError as e:
             self.warning(f"Error executing query: {query}: {e}")
-            self.trace()
             return []
 
     async def report(self):

@@ -39,8 +39,7 @@ class Ipstack(shodan_dns):
             else:
                 self.verbose(f"No response from {url}")
         except Exception:
-            self.verbose(f"Error retrieving results for {event.data}")
-            self.trace()
+            self.verbose(f"Error retrieving results for {event.data}", trace=True)
             return
         geo_data = {
             "ip": j.get("ip"),
