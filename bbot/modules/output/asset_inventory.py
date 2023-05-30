@@ -42,6 +42,7 @@ class asset_inventory(CSV):
         self.use_previous = self.config.get("use_previous", False)
         self.summary_netmask = self.config.get("summary_netmask", 16)
         self.emitted_contents = False
+        self._ran_hooks = False
         ret = await super().setup()
         return ret
 
@@ -127,7 +128,7 @@ class asset_inventory(CSV):
         if self._file is not None:
             self.info(f"Saved asset-inventory output to {self.output_file}")
 
-    def emit_contents(self):
+    async def finish(self):
         if self.use_previous and not self.emitted_contents:
             self.emitted_contents = True
             if self.output_file.is_file():
@@ -165,9 +166,8 @@ class asset_inventory(CSV):
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
                 )
-
-    async def finish(self):
-        self.emit_contents()
+        else:
+            self._run_hooks()
 
     def _run_hooks(self):
         """

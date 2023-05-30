@@ -670,7 +670,7 @@ class Scanner:
         async with self.acatch():
             while 1:
                 await asyncio.sleep(interval)
-                await self.manager.modules_status(_log=True)
+                self.manager.modules_status(_log=True)
 
     @contextlib.contextmanager
     def catch(self, context="scan", finally_callback=None):

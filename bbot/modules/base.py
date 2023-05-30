@@ -461,6 +461,8 @@ class BaseModule:
             self.incoming_event_queue.put_nowait(event)
             async with self._event_received:
                 self._event_received.notify()
+            if event.type != "FINISHED":
+                self.scan.manager._new_activity = True
         except AttributeError:
             self.debug(f"Not in an acceptable state to queue incoming event")
 

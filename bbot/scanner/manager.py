@@ -55,7 +55,7 @@ class ScanManager:
             # skip event if it fails precheck
             if not self._event_precheck(event):
                 event._resolved.set()
-                return False
+                return
 
             log.debug(f'Module "{event.module}" raised {event}')
 
@@ -179,7 +179,7 @@ class ScanManager:
                     source_trail = event.set_scope_distance(set_scope_distance)
                     # force re-emit internal source events
                     for s in source_trail:
-                        await self.emit_event(s, _block=False, _force_submit=True)
+                        self.emit_event(s, _block=False, _force_submit=True)
                 else:
                     if event.scope_distance > self.scan.scope_report_distance:
                         log.debug(
@@ -347,9 +347,7 @@ class ScanManager:
                 except asyncio.queues.QueueEmpty:
                     await asyncio.sleep(0.1)
                     continue
-                acceptable = await self.emit_event(event, **kwargs)
-                if acceptable:
-                    self._new_activity = True
+                await self.emit_event(event, **kwargs)
 
         except Exception:
             log.critical(traceback.format_exc())
@@ -424,7 +422,7 @@ class ScanManager:
     def active(self):
         return self.running or not self.modules_finished
 
-    async def modules_status(self, _log=False):
+    def modules_status(self, _log=False):
         finished = True
         status = {"modules": {}}
 
