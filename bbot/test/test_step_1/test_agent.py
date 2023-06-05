@@ -137,7 +137,7 @@ async def test_agent(agent):
 
     global success
     async with websockets.serve(websocket_handler, "127.0.0.1", 8765):
-        asyncio.create_task(agent.start())
+        asyncio.create_task(agent.async_start())
         # wait for 30 seconds
         await asyncio.wait_for(scan_done.wait(), 10)
         assert success

@@ -102,7 +102,7 @@ class ModuleTestBase:
         await self.setup_before_prep(module_test)
         await module_test.scan.prep()
         await self.setup_after_prep(module_test)
-        module_test.events = [e async for e in module_test.scan.start()]
+        module_test.events = [e async for e in module_test.scan.async_start()]
         yield module_test
 
     @pytest.mark.asyncio
