@@ -59,7 +59,7 @@ async def test_scan(
     dns_config = OmegaConf.merge(bbot_config, dns_config)
     scan4 = bbot_scanner("8.8.8.8", config=dns_config)
     events = []
-    async for event in scan4.start():
+    async for event in scan4.async_start():
         events.append(event)
     event_data = [e.data for e in events]
     assert "dns.google" in event_data
@@ -69,7 +69,7 @@ async def test_scan(
     no_dns_config = OmegaConf.merge(bbot_config, no_dns_config)
     scan5 = bbot_scanner("8.8.8.8", config=no_dns_config)
     events = []
-    async for event in scan5.start():
+    async for event in scan5.async_start():
         events.append(event)
     event_data = [e.data for e in events]
     assert "dns.google" not in event_data
