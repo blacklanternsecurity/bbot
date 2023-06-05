@@ -22,6 +22,7 @@ from bbot.core.event import make_event
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.names_generator import random_name
+from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.core.configurator.environ import prepare_environment
 from bbot.core.errors import BBOTError, ScanError, ValidationError
 from bbot.core.logger import init_logging, get_log_level, set_log_level
@@ -205,11 +206,19 @@ class Scanner:
             self.success(f"Setup succeeded for {len(self.modules):,} modules.")
             self._prepped = True
 
-    async def start_without_generator(self):
-        async for event in self.start():
+    def start(self):
+        for event in async_to_sync_gen(self.async_start()):
+            yield event
+
+    def start_without_generator(self):
+        for event in async_to_sync_gen(self.async_start()):
             pass
 
-    async def start(self):
+    async def async_start_without_generator(self):
+        async for event in self.async_start():
+            pass
+
+    async def async_start(self):
         failed = True
         scan_start_time = datetime.now()
         try:

@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import threading
+from queue import Queue, Empty
 from contextlib import asynccontextmanager
 
 log = logging.getLogger("bbot.core.helpers.async_helpers")
@@ -44,3 +46,37 @@ class TaskCounter:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.value -= 1
+
+
+def async_to_sync_gen(async_gen):
+    # Queue to hold generated values
+    queue = Queue()
+
+    # Flag to indicate if the async generator is done
+    is_done = False
+
+    # Function to run in the separate thread
+    async def runner():
+        nonlocal is_done
+        try:
+            async for value in async_gen:
+                queue.put(value)
+        finally:
+            is_done = True
+
+    def generator():
+        while True:
+            # Try to get a value from the queue
+            try:
+                yield queue.get(timeout=0.1)
+            except Empty:
+                # If the queue is empty, check if the async generator is done
+                if is_done:
+                    break
+
+    # Start the event loop in a separate thread
+    thread = threading.Thread(target=lambda: asyncio.run(runner()))
+    thread.start()
+
+    # Return the generator
+    return generator()

@@ -59,13 +59,23 @@ bbot -l
 ~~~
 
 ## Using BBOT as a Python library
+**Synchronous**
+~~~python
+from bbot.scanner import Scanner
+
+# any number of targets can be specified
+scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
+for event in scan.start():
+    print(event.json())
+~~~
+
+**Asynchronous**
 ~~~python
 from bbot.scanner import Scanner
 
 async def main():
-    # any number of targets can be specified
     scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
-    async for event in scan.start():
+    async for event in scan.async_start():
         print(event.json())
 
 import asyncio

@@ -561,3 +561,22 @@ async def test_ratelimiter(helpers):
     helpers.cancel_tasks(tasks)
     # 5 seconds * 10 requests per second == 50
     assert 45 <= len(results) <= 55
+
+
+def test_async_helpers():
+    from bbot.core.helpers.async_helpers import async_to_sync_gen
+
+    # async to sync generator converter
+    async def async_gen():
+        for i in range(5):
+            yield i
+
+    sync_gen = async_to_sync_gen(async_gen())
+
+    l = []
+    while 1:
+        try:
+            l.append(next(sync_gen))
+        except StopIteration:
+            break
+    assert l == [0, 1, 2, 3, 4]

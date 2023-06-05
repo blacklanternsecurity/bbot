@@ -139,7 +139,7 @@ class Agent:
     async def _start_scan_task(self, scan):
         self.scan = scan
         try:
-            await scan.start_without_generator()
+            await scan.async_start_without_generator()
         except bbot.core.errors.ScanError as e:
             log.error(f"Scan error: {e}")
             log.trace(traceback.format_exc())

@@ -309,7 +309,7 @@ async def _main():
                     keyboard_listen_thread = threading.Thread(target=keyboard_listen, daemon=True)
                     keyboard_listen_thread.start()
 
-                    await scanner.start_without_generator()
+                    await scanner.async_start_without_generator()
 
             except bbot.core.errors.ScanError as e:
                 log_to_stderr(str(e), level="ERROR")
