@@ -1,5 +1,6 @@
 import os
 import sys
+import resource
 import omegaconf
 from pathlib import Path
 
@@ -10,6 +11,23 @@ from ..helpers.misc import cpu_architecture, os_platform, os_platform_friendly
 
 # keep track of whether BBOT is being executed via the CLI
 cli_execution = False
+
+
+def increase_limit(new_limit):
+    # Get current limit
+    soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+
+    new_limit = min(new_limit, hard_limit)
+
+    # Attempt to set new limit
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (new_limit, hard_limit))
+    except ValueError as e:
+        sys.stderr.write(f"Failed to set new ulimit: {e}\n")
+    print(resource.getrlimit(resource.RLIMIT_NOFILE))
+
+
+increase_limit(65535)
 
 
 def flatten_config(config, base="bbot"):
