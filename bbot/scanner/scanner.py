@@ -164,7 +164,7 @@ class Scanner:
         self._finished_init = False
         self._cleanedup = False
 
-        self._loop = asyncio.get_event_loop()
+        self.__loop = None
         self.manager_worker_loop_tasks = []
         self.init_events_task = None
         self.ticker_task = None
@@ -672,6 +672,12 @@ class Scanner:
     @property
     def log_level(self):
         return get_log_level()
+
+    @property
+    def _loop(self):
+        if self.__loop is None:
+            self.__loop = asyncio.get_event_loop()
+        return self.__loop
 
     def _load_modules(self, modules):
         modules = [str(m) for m in modules]
