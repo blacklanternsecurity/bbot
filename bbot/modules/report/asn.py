@@ -117,6 +117,8 @@ class asn(BaseReportModule):
             asn_numbers = []
         for number in asn_numbers:
             asn = await self.get_asn_metadata_ripe(number)
+            if asn == False:
+                return False
             asn["subnet"] = prefix
             asns.append(asn)
         return asns

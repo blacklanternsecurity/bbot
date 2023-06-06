@@ -277,7 +277,7 @@ class Scanner:
 
         except BaseException as e:
             exception_chain = self.helpers.get_exception_chain(e)
-            if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+            if any(isinstance(exc, (KeyboardInterrupt, asyncio.CancelledError)) for exc in exception_chain):
                 self.stop()
                 failed = False
             else:
@@ -288,9 +288,6 @@ class Scanner:
 
                 except BBOTError as e:
                     self.critical(f"Error during scan: {e}")
-
-                except asyncio.CancelledError:
-                    self.trace()
 
                 except Exception:
                     self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
