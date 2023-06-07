@@ -1,6 +1,5 @@
 import os
 import sys
-import resource
 import omegaconf
 from pathlib import Path
 
@@ -14,17 +13,18 @@ cli_execution = False
 
 
 def increase_limit(new_limit):
-    # Get current limit
-    soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-
-    new_limit = min(new_limit, hard_limit)
-
-    # Attempt to set new limit
     try:
+        import resource
+
+        # Get current limit
+        soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+
+        new_limit = min(new_limit, hard_limit)
+
+        # Attempt to set new limit
         resource.setrlimit(resource.RLIMIT_NOFILE, (new_limit, hard_limit))
-    except ValueError as e:
+    except Exception as e:
         sys.stderr.write(f"Failed to set new ulimit: {e}\n")
-    print(resource.getrlimit(resource.RLIMIT_NOFILE))
 
 
 increase_limit(65535)

@@ -487,6 +487,25 @@ class ScanManager:
                 self.scan.info(f"{self.scan.name}: No events in queue")
 
             if self.scan.log_level <= logging.DEBUG:
+                # status debugging
+                scan_active_status = []
+                scan_active_status.append(f"manager.active: {self.active}")
+                scan_active_status.append(f"    manager.running: {self.running}")
+                scan_active_status.append(f"        manager._task_counter.value: {self._task_counter.value}")
+                scan_active_status.append(
+                    f"        manager.incoming_event_queue.qsize(): {self.incoming_event_queue.qsize()}"
+                )
+                scan_active_status.append(f"    manager.modules_finished: {self.modules_finished}")
+                for m in self.scan.modules.values():
+                    scan_active_status.append(f"        {m}.finished: {m.finished}")
+                    scan_active_status.append(f"            {m}.running: {m.running}")
+                    scan_active_status.append(f"            {m}.num_incoming_events: {m.num_incoming_events}")
+                    scan_active_status.append(
+                        f"            {m}.outgoing_event_queue.qsize(): {m.outgoing_event_queue.qsize()}"
+                    )
+                for line in scan_active_status:
+                    self.scan.debug(line)
+
                 # log module memory usage
                 module_memory_usage = []
                 for module in self.scan.modules.values():
