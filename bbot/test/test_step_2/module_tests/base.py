@@ -121,7 +121,9 @@ class ModuleTestBase:
     def _scan_name(self):
         if self.scan_name:
             return self.scan_name
-        return f"{self.__class__.__name__.lower()}_test_{rand_string()}"
+        if getattr(self, "__scan_name", None) is None:
+            self.__scan_name = f"{self.__class__.__name__.lower()}_test_{rand_string()}"
+        return self.__scan_name
 
     @property
     def modules(self):

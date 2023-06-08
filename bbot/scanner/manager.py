@@ -489,6 +489,7 @@ class ScanManager:
             if self.scan.log_level <= logging.DEBUG:
                 # status debugging
                 scan_active_status = []
+                scan_active_status.append(f"scan._finished_init: {self.scan._finished_init}")
                 scan_active_status.append(f"manager.active: {self.active}")
                 scan_active_status.append(f"    manager.running: {self.running}")
                 scan_active_status.append(f"        manager._task_counter.value: {self._task_counter.value}")
@@ -498,10 +499,10 @@ class ScanManager:
                 scan_active_status.append(f"    manager.modules_finished: {self.modules_finished}")
                 for m in self.scan.modules.values():
                     scan_active_status.append(f"        {m}.finished: {m.finished}")
-                    scan_active_status.append(f"            {m}.running: {m.running}")
-                    scan_active_status.append(f"            {m}.num_incoming_events: {m.num_incoming_events}")
+                    scan_active_status.append(f"            running: {m.running}")
+                    scan_active_status.append(f"            num_incoming_events: {m.num_incoming_events}")
                     scan_active_status.append(
-                        f"            {m}.outgoing_event_queue.qsize(): {m.outgoing_event_queue.qsize()}"
+                        f"            outgoing_event_queue.qsize(): {m.outgoing_event_queue.qsize()}"
                     )
                 for line in scan_active_status:
                     self.scan.debug(line)
