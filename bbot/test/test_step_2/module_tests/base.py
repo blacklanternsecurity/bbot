@@ -109,9 +109,8 @@ class ModuleTestBase:
     async def test_module_run(self, module_test):
         self.check(module_test, module_test.events)
 
-    @abstractmethod
     def check(self, module_test, events):
-        raise NotImplementedError
+        assert False, f"Must override {self.name}.check()"
 
     @property
     def name(self):

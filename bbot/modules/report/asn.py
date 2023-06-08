@@ -97,7 +97,7 @@ class asn(BaseReportModule):
                     self.verbose(f"Failed to contact {source}, retrying")
                     continue
                 return res
-        self.warning(f"Error retrieving ASN via for {ip}")
+        self.warning(f"Error retrieving ASN for {ip}")
         return []
 
     async def get_asn_ripe(self, ip):
@@ -215,6 +215,6 @@ class asn(BaseReportModule):
                 return data
             return j
         except Exception as e:
-            self.verbose(f"Error retrieving {data_type} at {url}: {e}")
+            self.verbose(f"Error retrieving {data_type} at {url}: {e}", trace=True)
             self.debug(f"Got data: {getattr(r, 'content', '')}")
             return False
