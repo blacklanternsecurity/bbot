@@ -57,7 +57,7 @@ class massdns(crobat):
             "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
-    reject_wildcards = "cloud_only"
+    reject_wildcards = "strict"
     _qsize = 100
 
     digit_regex = re.compile(r"\d+")
