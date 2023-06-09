@@ -47,3 +47,26 @@ def bbot_httpserver():
 
     server.check_assertions()
     server.clear()
+
+
+@pytest.fixture
+def interactsh_mock_instance():
+    interactsh_mock = Interactsh_mock()
+    return interactsh_mock
+
+
+class Interactsh_mock:
+    def __init__(self):
+        self.interactions = []
+
+    def mock_interaction(self, subdomain_tag):
+        self.interactions.append(subdomain_tag)
+
+    async def register(self, callback=None):
+        return "fakedomain.fakeinteractsh.com"
+
+    async def poll(self):
+        poll_results = []
+        for subdomain_tag in self.interactions:
+            poll_results.append({"full-id": f"{subdomain_tag}.fakedomain.fakeinteractsh.com", "protocol": "HTTP"})
+        return poll_results
