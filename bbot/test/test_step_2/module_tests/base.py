@@ -1,4 +1,3 @@
-import re
 import pytest
 import logging
 import pytest_asyncio
