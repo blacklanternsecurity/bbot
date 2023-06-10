@@ -265,16 +265,3 @@ def install_all_python_deps():
     for module in module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
-
-
-def tempwordlist(content):
-    tmp_path = "/tmp/.bbot_test/"
-    from bbot.core.helpers.misc import rand_string, mkdir
-
-    mkdir(tmp_path)
-    filename = f"{tmp_path}{rand_string(8)}"
-    with open(filename, "w", errors="ignore") as f:
-        for c in content:
-            line = f"{c}\n"
-            f.write(line)
-    return filename

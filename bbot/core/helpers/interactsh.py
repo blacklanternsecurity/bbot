@@ -145,7 +145,7 @@ class Interactsh:
                 continue
             for data in data_list:
                 if data:
-                    self.parent_helper.execute_sync_or_async(callback, data)
+                    await self.parent_helper.execute_sync_or_async(callback, data)
 
     def decrypt(self, aes_key, data):
         private_key = RSA.importKey(self.private_key)

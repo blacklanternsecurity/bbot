@@ -88,6 +88,9 @@ class ModuleTestBase:
                 expect_args["uri"] = "/"
             self.httpserver.expect_request(**expect_args).respond_with_data(**respond_args)
 
+        def set_expect_requests_handler(self, expect_args=None, request_handler=None):
+            self.httpserver.expect_request(expect_args).respond_with_handler(request_handler)
+
         @property
         def module(self):
             return self.scan.modules[self.name]
