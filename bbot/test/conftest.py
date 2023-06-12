@@ -58,12 +58,16 @@ def interactsh_mock_instance():
 class Interactsh_mock:
     def __init__(self):
         self.interactions = []
+        self.correlation_id = "deadbeef-dead-beef-dead-beefdeadbeef"
 
     def mock_interaction(self, subdomain_tag):
         self.interactions.append(subdomain_tag)
 
     async def register(self, callback=None):
         return "fakedomain.fakeinteractsh.com"
+
+    async def deregister(self, callback=None):
+        pass
 
     async def poll(self):
         poll_results = []

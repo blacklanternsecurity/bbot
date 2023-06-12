@@ -117,7 +117,6 @@ class host_header(BaseModule):
         self.subdomain_tags[subdomain_tag] = (event, technique_description)
         output = await self.helpers.curl(
             url=event.data["url"],
-            headers={"Host": f"{subdomain_tag}.{self.domain}"},
             path_override=event.data["url"],
             cookies=added_cookies,
         )

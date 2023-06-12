@@ -15,7 +15,7 @@ class TestGeneric_SSRF(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "generic_ssrf"]
 
-    def request_handler(self, request):  # ,interactsh_mock_instance=None
+    def request_handler(self, request):
         subdomain_tag = None
 
         if request.method == "GET":
