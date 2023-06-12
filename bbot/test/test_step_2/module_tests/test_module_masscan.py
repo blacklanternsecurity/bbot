@@ -27,7 +27,7 @@ range = 9.8.7.6"""
                     yield l
                 self.masscan_run = True
             else:
-                async for l in self.scan.helpers.run_live(command, *args, **kwargs):
+                async for l in module_test.scan.helpers.run_live(command, *args, **kwargs):
                     yield l
 
         module_test.scan.modules["masscan"].masscan_config = self.masscan_config
