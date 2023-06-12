@@ -214,6 +214,16 @@ class generic_ssrf(BaseModule):
                 # this is likely caused by something trying to resolve the base domain first and can be ignored
                 self.debug("skipping result because subdomain tag was missing")
 
+    async def cleanup(self):
+        if self.scan.config.get("interactsh_disable", False) == False:
+            try:
+                await self.interactsh_instance.deregister()
+                self.debug(
+                    f"successfully deregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
+                )
+            except InteractshError as e:
+                self.warning(f"Interactsh failure: {e}")
+
     async def finish(self):
         if self.scan.config.get("interactsh_disable", False) == False:
             await self.helpers.sleep(5)
