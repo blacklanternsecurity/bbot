@@ -26,8 +26,8 @@ smuggler_text = """
     [tabprefix1]   : Checking CLTE...
     [tabprefix1]   : Checking TECL...
     [tabprefix1]   : Checking CLTE...
-    [tabprefix1]   : Potential CLTE Issue Found - POST @ https://0a6b003504e05ba3801517d1002600a0.web-security-academy.net/post - default.py
-    [CRITICAL]     : CLTE Payload: /home/liquid/.bbot/tools/smuggler/payloads/https_0a6b003504e05ba3801517d1002600a0_web-security-academy_net_CLTE_tabprefix1.txt URL: https://0a6b003504e05ba3801517d1002600a0.web-security-academy.net/post
+    [tabprefix1]   : Potential CLTE Issue Found - POST @ http://127.0.0.1:8888 - default.py
+    [CRITICAL]     : CLTE Payload: /home/user/.bbot/tools/smuggler/payloads/http_127.0.0.1_net_CLTE_tabprefix1.txt URL: http://127.0.0.1:8888/
     """
 
 
