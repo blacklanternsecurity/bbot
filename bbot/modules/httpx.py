@@ -1,6 +1,7 @@
 import json
 import subprocess
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.web import is_login_page
 
 
 class httpx(BaseModule):
@@ -133,6 +134,10 @@ class httpx(BaseModule):
             # main URL
             httpx_ip = j.get("host", "unknown")
             tags = [f"status-{status_code}", f"ip-{httpx_ip}"]
+            # detect login pages
+            if is_login_page(j.get("body", "")):
+                tags.append("login-page")
+            # grab title
             title = self.helpers.tagify(j.get("title", ""), maxlen=30)
             if title:
                 tags.append(f"http-title-{title}")
@@ -143,7 +148,7 @@ class httpx(BaseModule):
                 else:
                     url_event._resolved.set()
                 # HTTP response
-                self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)
+                self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags, internal=True)
 
     async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"

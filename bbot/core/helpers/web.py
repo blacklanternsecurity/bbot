@@ -1,8 +1,10 @@
+import re
 import ssl
 import httpx
 import logging
 import traceback
 from pathlib import Path
+from bs4 import BeautifulSoup
 
 from bbot.core.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
@@ -325,3 +327,30 @@ class WebHelper:
 
         output = (await self.parent_helper.run(curl_command)).stdout
         return output
+
+
+user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
+pass_keywords = [re.compile(r, re.I) for r in ["pass"]]
+
+
+def is_login_page(html):
+    try:
+        soup = BeautifulSoup(html, "html.parser")
+    except Exception as e:
+        log.debug(f"Error parsing html: {e}")
+        return False
+
+    forms = soup.find_all("form")
+
+    # first, check for obvious password fields
+    for form in forms:
+        if form.find_all("input", {"type": "password"}):
+            return True
+
+    # next, check for forms that have both a user-like and password-like field
+    for form in forms:
+        user_fields = sum(bool(form.find_all("input", {"name": r})) for r in user_keywords)
+        pass_fields = sum(bool(form.find_all("input", {"name": r})) for r in pass_keywords)
+        if user_fields and pass_fields:
+            return True
+    return False

@@ -811,6 +811,7 @@ class EMAIL_ADDRESS(BaseEvent):
 class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # count number of consecutive redirects
         self.num_redirects = getattr(self.source, "num_redirects", 0)
         if str(self.data.get("status_code", 0)).startswith("3"):
             self.num_redirects += 1
@@ -831,6 +832,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         data = dict(data)
         new_data = {"url": data.pop("url")}
         new_data.update(data)
+
         return new_data
 
     def _words(self):

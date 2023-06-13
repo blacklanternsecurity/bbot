@@ -30,6 +30,8 @@ cloudcheck = "^2.0.0.34"
 websockets = "^11.0.2"
 httpx = {extras = ["http2"], version = "^0.24.0"}
 numpy = "^1.24.3"
+pyjwt = "^2.7.0"
+beautifulsoup4 = "^4.12.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
