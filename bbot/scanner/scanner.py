@@ -408,7 +408,7 @@ class Scanner:
         tasks += self.dispatcher_tasks
         # manager worker loops
         tasks += self.manager_worker_loop_tasks
-        self.helpers.cancel_tasks(tasks)
+        self.helpers.cancel_tasks_sync(tasks)
         # process pool
         self.process_pool.shutdown(cancel_futures=True)
 

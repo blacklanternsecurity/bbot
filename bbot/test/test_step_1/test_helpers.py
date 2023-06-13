@@ -558,7 +558,7 @@ async def test_ratelimiter(helpers):
         tasks.append(asyncio.create_task(web_request(r)))
     # sleep for 5 seconds
     await asyncio.sleep(5)
-    helpers.cancel_tasks(tasks)
+    await helpers.cancel_tasks(tasks)
     # 5 seconds * 10 requests per second == 50
     assert 45 <= len(results) <= 55
 
