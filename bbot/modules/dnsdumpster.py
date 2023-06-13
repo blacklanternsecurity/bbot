@@ -10,8 +10,6 @@ class dnsdumpster(crobat):
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Query dnsdumpster for subdomains"}
 
-    deps_pip = ["beautifulsoup4", "lxml~=4.9.2"]
-
     base_url = "https://dnsdumpster.com"
 
     async def query(self, domain):
@@ -27,7 +25,7 @@ class dnsdumpster(crobat):
             return ret
         else:
             self.debug(f'Valid response code "{status_code}" from DNSDumpster')
-        html = BeautifulSoup(res1.content, features="lxml")
+        html = BeautifulSoup(res1.content, "html.parser")
         csrftoken = None
         csrfmiddlewaretoken = None
         try:
@@ -75,7 +73,7 @@ class dnsdumpster(crobat):
             self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
 
-        html = BeautifulSoup(res2.content, features="lxml")
+        html = BeautifulSoup(res2.content, "html.parser")
         escaped_domain = re.escape(domain)
         match_pattern = re.compile(r"^[\w\.-]+\." + escaped_domain + r"$")
         for subdomain in html.findAll(text=match_pattern):

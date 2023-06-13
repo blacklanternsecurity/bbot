@@ -14,7 +14,6 @@ class viewdns(BaseModule):
     meta = {
         "description": "Query viewdns.info's reverse whois for related domains",
     }
-    deps_pip = ["beautifulsoup4", "lxml~=4.9.2"]
     base_url = "https://viewdns.info"
     in_scope_only = True
     _qsize = 1
@@ -48,7 +47,7 @@ class viewdns(BaseModule):
         content = getattr(r, "content", b"")
         from bs4 import BeautifulSoup
 
-        html = BeautifulSoup(content, features="lxml")
+        html = BeautifulSoup(content, "html.parser")
         found = set()
         for table_row in html.findAll("tr"):
             table_cells = table_row.findAll("td")
