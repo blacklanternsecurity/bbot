@@ -116,6 +116,9 @@ class sslcert(BaseModule):
                 ssl_context = ssl.create_default_context()
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
+                ssl_context.options &= ~ssl.OP_NO_SSLv2 & ~ssl.OP_NO_SSLv3
+                ssl_context.set_ciphers('ALL:@SECLEVEL=0')
+                ssl_context.options |= 0x4  # Add the OP_LEGACY_SERVER_CONNECT option
             except Exception as e:
                 self.warning(f"Error creating SSL context: {e}")
                 return [], [], (host, port)
