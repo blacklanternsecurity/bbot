@@ -13,7 +13,7 @@ Whether you're a pentester, security researcher, or bug bounty hunter, BBOT simp
 
 https://github.com/blacklanternsecurity/bbot/assets/20261699/ebf2a81e-7530-4a9e-922d-4e62eb949f35
 
-Visualization courtesey of [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)
+Visualization courtesy of [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)
 
 # Getting Started
 
