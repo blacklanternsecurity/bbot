@@ -11,7 +11,9 @@ BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but ta
 
 Whether you're a pentester, security researcher, or bug bounty hunter, BBOT simplifies and automates the OSINT process so you can focus on the fun part: hacking!
 
-![bbot-demo](https://user-images.githubusercontent.com/20261699/217346759-d5bf56c3-3936-43f7-ad14-4d73d2cd1417.gif)
+
+https://github.com/blacklanternsecurity/bbot/assets/20261699/02df1f23-d575-43b2-b158-bf5f3e708ae5
+
 Visualization courtesey of [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)
 
 # Getting Started
