@@ -17,7 +17,7 @@ class wappalyzer(BaseModule):
     meta = {
         "description": "Extract technologies from web responses",
     }
-    deps_pip = ["python-Wappalyzer~=0.3.1", "lxml~=4.9.2"]
+    deps_pip = ["python-Wappalyzer~=0.3.1"]
     # accept all events regardless of scope distance
     scope_distance_modifier = None
     max_event_handlers = 5

@@ -350,7 +350,7 @@ def main():
         msg = "Interrupted"
         if scan_name:
             msg = f"You killed {scan_name}"
-        log_to_stderr(msg, level="ERROR")
+        log_to_stderr(msg, level="WARNING")
         if get_log_level() <= logging.DEBUG:
             log_to_stderr(traceback.format_exc(), level="DEBUG")
         exit(1)
