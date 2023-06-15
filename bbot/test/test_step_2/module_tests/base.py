@@ -48,12 +48,13 @@ class ModuleTestBase:
     modules_overrides = []
 
     class ModuleTest:
-        def __init__(self, module_test_base, httpx_mock, httpserver, monkeypatch, request):
+        def __init__(self, module_test_base, httpx_mock, httpserver, httpserver_ssl, monkeypatch, request):
             self.name = module_test_base.name
             self.config = OmegaConf.merge(test_config, OmegaConf.create(module_test_base.config_overrides))
 
             self.httpx_mock = httpx_mock
             self.httpserver = httpserver
+            self.httpserver_ssl = httpserver_ssl
             self.monkeypatch = monkeypatch
             self.request_fixture = request
             self.preloaded = module_loader.preloaded()
@@ -99,8 +100,8 @@ class ModuleTestBase:
             return MockRecord(*args, **kwargs)
 
     @pytest_asyncio.fixture
-    async def module_test(self, httpx_mock, bbot_httpserver, monkeypatch, request):
-        module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, monkeypatch, request)
+    async def module_test(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request):
+        module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request)
         await self.setup_before_prep(module_test)
         await module_test.scan.prep()
         await self.setup_after_prep(module_test)

@@ -1,6 +1,8 @@
+import ssl
 import shutil
 import pytest
 import logging
+from pathlib import Path
 from pytest_httpserver import HTTPServer
 
 from bbot.core.helpers.interactsh import server_list as interactsh_servers
@@ -34,6 +36,29 @@ def assert_all_responses_were_requested() -> bool:
 @pytest.fixture
 def bbot_httpserver():
     server = HTTPServer(host="127.0.0.1", port=8888)
+    server.start()
+
+    yield server
+
+    server.clear()
+    if server.is_running():
+        server.stop()
+
+    # this is to check if the client has made any request where no
+    # `assert_request` was called on it from the test
+
+    server.check_assertions()
+    server.clear()
+
+
+@pytest.fixture
+def bbot_httpserver_ssl():
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    current_dir = Path(__file__).parent
+    keyfile = str(current_dir / "testsslkey.pem")
+    certfile = str(current_dir / "testsslcert.pem")
+    context.load_cert_chain(certfile, keyfile)
+    server = HTTPServer(host="127.0.0.1", port=9999, ssl_context=context)
     server.start()
 
     yield server
