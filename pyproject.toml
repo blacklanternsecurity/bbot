@@ -29,7 +29,6 @@ tabulate = "0.8.10"
 cloudcheck = "^2.0.0.34"
 websockets = "^11.0.2"
 httpx = {extras = ["http2"], version = "^0.24.0"}
-numpy = "^1.24.3"
 pyjwt = "^2.7.0"
 beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"

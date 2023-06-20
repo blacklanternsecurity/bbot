@@ -17,7 +17,6 @@ import logging
 import platform
 import ipaddress
 import traceback
-import numpy as np
 import subprocess as sp
 from pathlib import Path
 from itertools import islice
@@ -1098,22 +1097,22 @@ def cancel_tasks_sync(tasks):
 
 
 def weighted_shuffle(items, weights):
-    # Make sure the list is a numpy array
-    items = np.array(items)
+    # Create a list of tuples where each tuple is (item, weight)
+    pool = list(zip(items, weights))
 
-    # Make an empty list to hold the shuffled items
     shuffled_items = []
 
     # While there are still items to be chosen...
-    while len(items) > 0:
-        # Choose an item
-        chosen_index = np.random.choice(range(len(items)), p=weights / np.sum(weights))
+    while pool:
+        # Normalize weights
+        total = sum(weight for item, weight in pool)
+        weights = [weight / total for item, weight in pool]
+
+        # Choose an index based on weight
+        chosen_index = random.choices(range(len(pool)), weights=weights, k=1)[0]
 
         # Add the chosen item to the shuffled list
-        shuffled_items.append(items[chosen_index])
-
-        # Remove the chosen item from the available pool
-        items = np.delete(items, chosen_index)
-        weights = np.delete(weights, chosen_index)
+        chosen_item, chosen_weight = pool.pop(chosen_index)
+        shuffled_items.append(chosen_item)
 
     return shuffled_items
