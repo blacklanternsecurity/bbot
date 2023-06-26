@@ -1,2 +1,33 @@
+# Project information
+site_name: BBOT Docs
+site_url: https://blacklanternsecurity.github.io/bbot/
+site_author: TheTechromancer
+site_description: >-
+  OSINT automation for hackers
+# Repository
+repo_name: blacklanternsecurity/bbot
+repo_url: https://github.com/blacklanternsecurity/bbot
+
 theme:
   name: material
+  logo: bbot.png
+  palette: 
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - scheme: default
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+
+extra_css:
+  - stylesheets/extra.css
