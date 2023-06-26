@@ -72,8 +72,16 @@ def clean_url(url):
     """
     parsed = parse_url(url)
     parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
+    try:
+        scheme = parsed.scheme
+    except ValueError:
+        scheme = "https"
+    try:
+        port = parsed.port
+    except ValueError:
+        port = (80 if scheme == "http" else 443)
     # remove ports if they're redundant
-    if (parsed.scheme == "http" and parsed.port == 80) or (parsed.scheme == "https" and parsed.port == 443):
+    if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
         hostname = parsed.hostname
         # special case for IPv6 URLs
         if parsed.netloc.startswith("["):
