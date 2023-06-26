@@ -79,7 +79,7 @@ def clean_url(url):
     try:
         port = parsed.port
     except ValueError:
-        port = (80 if scheme == "http" else 443)
+        port = 80 if scheme == "http" else 443
     # remove ports if they're redundant
     if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
         hostname = parsed.hostname
