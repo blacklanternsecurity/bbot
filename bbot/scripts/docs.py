@@ -13,6 +13,7 @@ os.environ["BBOT_TABLE_FORMAT"] = "github"
 blacklist_chars = ["<", ">"]
 blacklist_re = re.compile(r"\|([^|]*[" + re.escape("".join(blacklist_chars)) + r"][^|]*)\|")
 
+
 def enclose_tags(text):
     # Use re.sub() to replace matched words with the same words enclosed in backticks
     result = blacklist_re.sub(r"|`\1`|", text)
