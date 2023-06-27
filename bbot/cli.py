@@ -228,6 +228,14 @@ async def _main():
                 if options.help_all:
                     log_fn(parser.format_help())
 
+                if options.list_flags:
+                    log.stdout("")
+                    log.stdout("### FLAGS ###")
+                    log.stdout("")
+                    for row in module_loader.flags_table(flags=options.flags).splitlines():
+                        log.stdout(row)
+                    return
+
                 log_fn("")
                 log_fn("### MODULES ###")
                 log_fn("")
@@ -241,7 +249,7 @@ async def _main():
                     for row in module_loader.modules_options_table(modules=help_modules).splitlines():
                         log_fn(row)
 
-                if options.list_modules or options.help_all:
+                if options.list_modules or options.list_flags or options.help_all:
                     return
 
                 module_list = module_loader.filter_modules(modules=modules)
