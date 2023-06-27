@@ -125,6 +125,7 @@ for p in (parser, dummy_parser):
         help=f'Enable modules by flag. Choices: {",".join(sorted(flag_choices))}',
         metavar="FLAG",
     )
+    modules.add_argument("-lf", "--list-flags", action="store_true", help=f"List available flags.")
     modules.add_argument(
         "-rf",
         "--require-flags",

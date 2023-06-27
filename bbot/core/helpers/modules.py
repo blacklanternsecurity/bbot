@@ -6,6 +6,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
+from ..flags import flag_descriptions
 from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
 
 
@@ -269,7 +270,7 @@ class ModuleLoader:
 
     def modules_table(self, modules=None, mod_type=None):
         table = []
-        header = ["Module", "Type", "Needs\nAPI\nKey", "Description", "Flags", "Produced Events"]
+        header = ["Module", "Type", "Needs API Key", "Description", "Flags", "Produced Events"]
         maxcolwidths = [20, 20, 5, 40, 40, 40]
         for module_name, preloaded in self.filter_modules(modules, mod_type):
             module_type = preloaded["type"]
@@ -283,6 +284,26 @@ class ModuleLoader:
             table.append(
                 [module_name, module_type, api_key_required, description, ",".join(flags), ",".join(produced_events)]
             )
+        return make_table(table, header, maxcolwidths=maxcolwidths)
+
+    def flags_table(self, flags=None):
+        table = []
+        header = ["Flag", "Description", "# Modules", "Modules"]
+        maxcolwidths = [20, 40, 5, 80]
+        _flags = {}
+        for module_name, preloaded in self.preloaded().items():
+            for flag in preloaded.get("flags", []):
+                if not flags or flag in flags:
+                    try:
+                        _flags[flag].add(module_name)
+                    except KeyError:
+                        _flags[flag] = {module_name}
+
+        _flags = sorted(_flags.items(), key=lambda x: len(x[-1]), reverse=True)
+
+        for flag, modules in _flags:
+            description = flag_descriptions.get(flag, "")
+            table.append([flag, description, f"{len(modules)}", ", ".join(sorted(modules))])
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
     def modules_options(self, modules=None, mod_type=None):

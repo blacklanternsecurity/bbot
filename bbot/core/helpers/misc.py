@@ -26,6 +26,7 @@ import wordninja as _wordninja
 from contextlib import suppress
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
+from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 from asyncio import as_completed, create_task, sleep, wait_for  # noqa
@@ -836,10 +837,18 @@ def make_table(*args, **kwargs):
     # fix IndexError: list index out of range
     if args and not args[0]:
         args = ([[]],) + args[1:]
-    defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": 40}
+    tablefmt = os.environ.get("BBOT_TABLE_FORMAT", None)
+    defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": None}
+    if tablefmt is None:
+        defaults.update({"maxcolwidths": 40})
+    else:
+        defaults.update({"tablefmt": tablefmt})
     for k, v in defaults.items():
         if k not in kwargs:
             kwargs[k] = v
+    # don't wrap columns in markdown
+    if tablefmt in ("github", "markdown"):
+        kwargs.pop("maxcolwidths")
     return tabulate(*args, **kwargs)
 
 
@@ -979,42 +988,44 @@ def swap_status():
 
 def get_size(obj, max_depth=5, seen=None):
     """
-    Recursively get size of object in bytes
+    Rough recursive measurement of a python object's memory footprint
     """
-    size = 0
-    if max_depth <= 0:
-        return size
+    # If seen is not provided, initialize an empty set
+    if seen is None:
+        seen = set()
+    # Get the id of the object
+    obj_id = id(obj)
+    # Decrease the maximum depth for the next recursion
     new_max_depth = max_depth - 1
-    try:
-        size = sys.getsizeof(obj)
-        if seen is None:
-            seen = set()
-        obj_id = id(obj)
-        if obj_id in seen:
-            return 0
-        # Important mark as seen *before* entering recursion to gracefully handle
-        # self-referential objects
-        seen.add(obj_id)
-        if hasattr(obj, "__dict__"):
-            for _cls in obj.__class__.__mro__:
-                if "__dict__" in _cls.__dict__:
-                    d = _cls.__dict__["__dict__"]
-                    if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
-                        size += get_size(obj.__dict__, max_depth=new_max_depth, seen=seen)
-                    break
-        if isinstance(obj, dict):
-            size += sum((get_size(v, max_depth=new_max_depth, seen=seen) for v in obj.values()))
-            size += sum((get_size(k, max_depth=new_max_depth, seen=seen) for k in obj.keys()))
-        # elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
-        #     size += sum((get_size(i, seen) for i in obj))
-        if hasattr(obj, "__slots__"):  # can have __slots__ with __dict__
-            size += sum(
-                get_size(getattr(obj, s), max_depth=new_max_depth, seen=seen) for s in obj.__slots__ if hasattr(obj, s)
-            )
-    except Exception as e:
-        log.debug(f"Error getting size of {obj}: {e}")
-        log.trace(traceback.format_exc())
-
+    # If the object has already been seen or we've reached the maximum recursion depth, return 0
+    if obj_id in seen or new_max_depth <= 0:
+        return 0
+    # Get the size of the object
+    size = sys.getsizeof(obj)
+    # Add the object's id to the set of seen objects
+    seen.add(obj_id)
+    # If the object has a __dict__ attribute, we want to measure its size
+    if hasattr(obj, "__dict__"):
+        # Iterate over the Method Resolution Order (MRO) of the class of the object
+        for cls in obj.__class__.__mro__:
+            # If the class's __dict__ contains a __dict__ key
+            if "__dict__" in cls.__dict__:
+                for k, v in obj.__dict__.items():
+                    size += get_size(k, new_max_depth, seen)
+                    size += get_size(v, new_max_depth, seen)
+                break
+    # If the object is a mapping (like a dictionary), we want to measure the size of its items
+    if isinstance(obj, Mapping):
+        with suppress(StopIteration):
+            k, v = next(iter(obj.items()))
+            size += (get_size(k, new_max_depth, seen) + get_size(v, new_max_depth, seen)) * len(obj)
+    # If the object is a container (like a list or tuple) but not a string or bytes-like object
+    elif isinstance(obj, (list, tuple, set)):
+        with suppress(StopIteration):
+            size += get_size(next(iter(obj)), new_max_depth, seen) * len(obj)
+    # If the object has __slots__, we want to measure the size of the attributes in __slots__
+    if hasattr(obj, "__slots__"):
+        size += sum(get_size(getattr(obj, s), new_max_depth, seen) for s in obj.__slots__ if hasattr(obj, s))
     return size
 
 
