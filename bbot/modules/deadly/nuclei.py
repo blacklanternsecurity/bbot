@@ -87,7 +87,7 @@ class nuclei(BaseModule):
         self.itoken = self.scan.config.get("interactsh_token", None)
 
         if self.mode not in ("technology", "severe", "manual", "budget"):
-            self.warning(f"Unable to intialize nuclei: invalid mode selected: [{self.mode}]")
+            self.warning(f"Unable to initialize nuclei: invalid mode selected: [{self.mode}]")
             return False
 
         if self.mode == "technology":
