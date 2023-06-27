@@ -286,26 +286,6 @@ class ModuleLoader:
             )
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
-    def flags_table(self, flags=None):
-        table = []
-        header = ["Flag", "Description", "# Modules", "Modules"]
-        maxcolwidths = [20, 40, 5, 80]
-        _flags = {}
-        for module_name, preloaded in self.preloaded().items():
-            for flag in preloaded.get("flags", []):
-                if not flags or flag in flags:
-                    try:
-                        _flags[flag].add(module_name)
-                    except KeyError:
-                        _flags[flag] = {module_name}
-
-        _flags = sorted(_flags.items(), key=lambda x: len(x[-1]), reverse=True)
-
-        for flag, modules in _flags:
-            description = flag_descriptions.get(flag, "")
-            table.append([flag, description, f"{len(modules)}", ", ".join(sorted(modules))])
-        return make_table(table, header, maxcolwidths=maxcolwidths)
-
     def modules_options(self, modules=None, mod_type=None):
         """
         Return a list of module options
@@ -332,6 +312,29 @@ class ModuleLoader:
         for module_name, module_options in self.modules_options(modules, mod_type).items():
             table += module_options
         return make_table(table, header)
+
+    def flags(self, flags=None):
+        _flags = {}
+        for module_name, preloaded in self.preloaded().items():
+            for flag in preloaded.get("flags", []):
+                if not flags or flag in flags:
+                    try:
+                        _flags[flag].add(module_name)
+                    except KeyError:
+                        _flags[flag] = {module_name}
+
+        _flags = sorted(_flags.items(), key=lambda x: len(x[-1]), reverse=True)
+        return _flags
+
+    def flags_table(self, flags=None):
+        table = []
+        header = ["Flag", "# Modules", "Description", "Modules"]
+        maxcolwidths = [20, 40, 5, 80]
+        _flags = self.flags(flags=flags)
+        for flag, modules in _flags:
+            description = flag_descriptions.get(flag, "")
+            table.append([flag, f"{len(modules)}", description, ", ".join(sorted(modules))])
+        return make_table(table, header, maxcolwidths=maxcolwidths)
 
     def filter_modules(self, modules=None, mod_type=None):
         if modules is None:
