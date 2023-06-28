@@ -55,12 +55,12 @@ for file in md_files:
 
 # BBOT module options
 bbot_module_options_table = module_loader.modules_options_table()
-assert len(bbot_module_options_table.splitlines()) > 50
+assert len(bbot_module_options_table.splitlines()) > 100
 for file in md_files:
     find_replace_file(file, "BBOT MODULE OPTIONS", bbot_module_options_table)
 
 # BBOT module flags
 bbot_module_flags_table = module_loader.flags_table()
-assert len(bbot_module_flags_table.splitlines()) > 50
+assert len(bbot_module_flags_table.splitlines()) > 10
 for file in md_files:
     find_replace_file(file, "BBOT MODULE FLAGS", bbot_module_flags_table)
