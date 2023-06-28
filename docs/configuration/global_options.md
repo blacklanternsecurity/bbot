@@ -1,3 +1,25 @@
+# Global Options
+
+## Overview
+
+BBOT is highly configurable, and allows tweaking of many internal values such as **user-agent** and **thread count**. Below is a full list of the config options supported, along with their defaults.
+
+You can specify these either via the command line or the config. For example, if you want to proxy your BBOT scan through a local proxy like [Burp Suite](https://portswigger.net/burp), you could either do:
+
+```bash
+bbot -t evilcorp.com --config http_proxy=http://127.0.0.1:8080
+```
+
+Or, in `~/.config/bbot/config.yml`:
+
+```yaml
+http_proxy: http://127.0.0.1:8080
+```
+
+## Defaults.yml
+
+<!-- BBOT DEFAULT CONFIG -->
+```yaml
 ### BASIC OPTIONS ###
 
 # BBOT working directory
@@ -127,3 +149,8 @@ agent_token: ''
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
+
+```
+<!-- END BBOT DEFAULT CONFIG -->
+
+Note that these are BBOT's global config options. If you're looking for module-specific config options, see [Module Options](../module_options/).

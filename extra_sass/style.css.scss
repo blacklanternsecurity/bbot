@@ -1,0 +1,72 @@
+/* GLOBAL STYLES */
+
+:root {
+  --bbot-orange: #FF8400;
+}
+
+.md-grid {
+  margin-left: unset;
+  margin-right: unset;
+  max-width: unset;
+}
+
+.md-nav__link--active {
+  font-weight: bold
+}
+
+.md-typeset__table tr {
+  white-space: nowrap;
+}
+
+.md-typeset__table td:first-child {
+  font-weight: bold;
+}
+
+.md-typeset a {
+  color: var(--bbot-orange);
+}
+
+a.md-source, .md-header__topic {
+  color: var(--bbot-orange);
+}
+
+div.md-source__repository ul {
+  color: white;
+}
+
+.md-typeset {
+  h1 h2 h3 h4 h5 {
+    font-weight: 500 !important;
+  }
+}
+
+table {
+  font-family: monospace;
+}
+
+/* DARK MODE SPECIFIC */
+
+[data-md-color-scheme=slate] {
+
+  a {
+    color: var(--bbot-orange);
+  }
+
+  .md-nav__link {
+    color: white;
+  }
+
+  .md-nav__link--active {
+    color: white;
+    font-weight: bold
+  }
+
+  .md-typeset__table tr {
+    background-color: #202027;
+  }
+
+  .md-typeset__table thead tr {
+    color: var(--bbot-orange);
+    background-color: var(--md-primary-fg-color--dark);
+  }
+}

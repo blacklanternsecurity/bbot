@@ -44,23 +44,36 @@ def find_replace_file(file, keyword, replace):
             f.write(new_content)
 
 
-bbot_code_dir = Path(__file__).parent.parent.parent
-md_files = [p for p in bbot_code_dir.glob("**/*.md") if p.is_file()]
+def update_docs():
+    bbot_code_dir = Path(__file__).parent.parent.parent
+    md_files = [p for p in bbot_code_dir.glob("**/*.md") if p.is_file()]
 
-# BBOT modules
-bbot_module_table = module_loader.modules_table()
-assert len(bbot_module_table.splitlines()) > 50
-for file in md_files:
-    find_replace_file(file, "BBOT MODULES", bbot_module_table)
+    # BBOT modules
+    bbot_module_table = module_loader.modules_table()
+    assert len(bbot_module_table.splitlines()) > 50
+    for file in md_files:
+        find_replace_file(file, "BBOT MODULES", bbot_module_table)
 
-# BBOT module options
-bbot_module_options_table = module_loader.modules_options_table()
-assert len(bbot_module_options_table.splitlines()) > 100
-for file in md_files:
-    find_replace_file(file, "BBOT MODULE OPTIONS", bbot_module_options_table)
+    # BBOT module options
+    bbot_module_options_table = module_loader.modules_options_table()
+    assert len(bbot_module_options_table.splitlines()) > 100
+    for file in md_files:
+        find_replace_file(file, "BBOT MODULE OPTIONS", bbot_module_options_table)
 
-# BBOT module flags
-bbot_module_flags_table = module_loader.flags_table()
-assert len(bbot_module_flags_table.splitlines()) > 10
-for file in md_files:
-    find_replace_file(file, "BBOT MODULE FLAGS", bbot_module_flags_table)
+    # BBOT module flags
+    bbot_module_flags_table = module_loader.flags_table()
+    assert len(bbot_module_flags_table.splitlines()) > 10
+    for file in md_files:
+        find_replace_file(file, "BBOT MODULE FLAGS", bbot_module_flags_table)
+
+    # Default config
+    default_config_file = bbot_code_dir / "bbot" / "defaults.yml"
+    with open(default_config_file) as f:
+        default_config_yml = f.read()
+    default_config_yml = f"```yaml\n{default_config_yml}\n```"
+    assert len(default_config_yml.splitlines()) > 20
+    for file in md_files:
+        find_replace_file(file, "BBOT DEFAULT CONFIG", default_config_yml)
+
+
+update_docs()

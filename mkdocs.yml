@@ -8,26 +8,36 @@ site_description: >-
 repo_name: blacklanternsecurity/bbot
 repo_url: https://github.com/blacklanternsecurity/bbot
 
+# Page tree
+nav:
+  - Basics:
+    - Getting Started: index.md
+  - Modules:
+    - modules.md
+  - Configuration:
+    - configuration/index.md
+    - Global Options: configuration/global_options.md
+    - Module Options: configuration/module_options.md
+  - Contribution:
+    - contribution/index.md
+
 theme:
   name: material
   logo: bbot.png
+  features:
+    - content.code.copy
+    - navigation.sections
   palette: 
-
-    # Palette toggle for dark mode
-    - scheme: slate
-      primary: black
-      accent: deep orange
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-
-    # Palette toggle for light mode
-    - scheme: default
-      primary: black
-      accent: deep orange
-      toggle:
-        icon: material/brightness-7 
-        name: Switch to dark mode
+  - scheme: slate
+    primary: black
+    accent: deep orange
 
 plugins:
+  - search
   - extra-sass
+
+markdown_extensions:
+  - codehilite:
+      use_pygments: True
+      noclasses: True
+      pygments_style: github-dark

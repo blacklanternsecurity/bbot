@@ -278,8 +278,7 @@ class ModuleLoader:
             flags = sorted(preloaded.get("flags", []))
             api_key_required = ""
             meta = preloaded.get("meta", {})
-            if meta.get("auth_required", False):
-                api_key_required = "X"
+            api_key_required = ("Yes" if meta.get("auth_required", False) else "No")
             description = meta.get("description", "")
             table.append(
                 [module_name, module_type, api_key_required, description, ",".join(flags), ",".join(produced_events)]
@@ -303,12 +302,12 @@ class ModuleLoader:
                 option_name = f"{module_key}.{module_name}.{k}"
                 option_type = type(v).__name__
                 option_description = module_options_desc[k]
-                modules_options[module_name].append((option_name, option_type, str(v), option_description))
+                modules_options[module_name].append((option_name, option_type, option_description, str(v)))
         return modules_options
 
     def modules_options_table(self, modules=None, mod_type=None):
         table = []
-        header = ["Option", "Type", "Default", "Description"]
+        header = ["Config Option", "Type", "Description", "Default"]
         for module_name, module_options in self.modules_options(modules, mod_type).items():
             table += module_options
         return make_table(table, header)
