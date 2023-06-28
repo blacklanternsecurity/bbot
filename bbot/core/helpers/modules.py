@@ -278,7 +278,7 @@ class ModuleLoader:
             flags = sorted(preloaded.get("flags", []))
             api_key_required = ""
             meta = preloaded.get("meta", {})
-            api_key_required = ("Yes" if meta.get("auth_required", False) else "No")
+            api_key_required = "Yes" if meta.get("auth_required", False) else "No"
             description = meta.get("description", "")
             table.append(
                 [module_name, module_type, api_key_required, description, ",".join(flags), ",".join(produced_events)]
