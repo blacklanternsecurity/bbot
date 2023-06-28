@@ -89,6 +89,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     scan2.status = "RUNNING"
 
     # attributes, descriptions, etc.
+    # TODO: Ensure every flag has a description
     for module_name, module in sorted(scan2.modules.items()):
         # flags
         assert module._type in ("internal", "output", "scan")
