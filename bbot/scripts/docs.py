@@ -49,15 +49,18 @@ md_files = [p for p in bbot_code_dir.glob("**/*.md") if p.is_file()]
 
 # BBOT modules
 bbot_module_table = module_loader.modules_table()
+assert len(bbot_module_table.splitlines()) > 50
 for file in md_files:
     find_replace_file(file, "BBOT MODULES", bbot_module_table)
 
 # BBOT module options
-bbot_module_table = module_loader.modules_options_table()
+bbot_module_options_table = module_loader.modules_options_table()
+assert len(bbot_module_options_table.splitlines()) > 50
 for file in md_files:
-    find_replace_file(file, "BBOT MODULE OPTIONS", bbot_module_table)
+    find_replace_file(file, "BBOT MODULE OPTIONS", bbot_module_options_table)
 
-# BBOT module options
-bbot_module_table = module_loader.flags_table()
+# BBOT module flags
+bbot_module_flags_table = module_loader.flags_table()
+assert len(bbot_module_flags_table.splitlines()) > 50
 for file in md_files:
-    find_replace_file(file, "BBOT MODULE FLAGS", bbot_module_table)
+    find_replace_file(file, "BBOT MODULE FLAGS", bbot_module_flags_table)
