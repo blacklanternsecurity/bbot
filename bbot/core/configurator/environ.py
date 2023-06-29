@@ -114,12 +114,13 @@ def prepare_environment(bbot_config):
 
     log = logging.getLogger()
     if bbot_config.get("debug", False):
-        global _log_level_override
         bbot_config["silent"] = False
-        _log_level_override = logging.DEBUG
         log = logging.getLogger("bbot")
         log.setLevel(logging.DEBUG)
         logging.getLogger("asyncio").setLevel(logging.DEBUG)
+    elif bbot_config.get("silent", False):
+        log = logging.getLogger("bbot")
+        log.setLevel(logging.CRITICAL)
 
     # copy config to environment
     bbot_environ = flatten_config(bbot_config)

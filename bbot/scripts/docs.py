@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 from bbot.modules import module_loader
+from bbot.core.configurator.args import parser, scan_examples, usage_examples
 
 os.environ["BBOT_TABLE_FORMAT"] = "github"
 
@@ -48,23 +49,42 @@ def update_docs():
     bbot_code_dir = Path(__file__).parent.parent.parent
     md_files = [p for p in bbot_code_dir.glob("**/*.md") if p.is_file()]
 
+    def update_md_files(keyword, s):
+        for file in md_files:
+            find_replace_file(file, keyword, s)
+
+    # Example commands
+    bbot_example_commands = ""
+    for examples in (scan_examples, usage_examples):
+        for title, description, command in examples:
+            example = "\n"
+            example += f"### {title}\n"
+            example += f"{description}\n"
+            example += f"```bash\n{command}\n```\n"
+            bbot_example_commands += example
+    assert len(bbot_example_commands.splitlines()) > 10
+    update_md_files("BBOT EXAMPLE COMMANDS", bbot_example_commands)
+
+    # Help output
+    bbot_help_output = parser.format_help()
+    bbot_help_output = f"```\n{bbot_help_output}\n```"
+    assert len(bbot_help_output.splitlines()) > 50
+    update_md_files("BBOT HELP OUTPUT", bbot_help_output)
+
     # BBOT modules
     bbot_module_table = module_loader.modules_table()
     assert len(bbot_module_table.splitlines()) > 50
-    for file in md_files:
-        find_replace_file(file, "BBOT MODULES", bbot_module_table)
+    update_md_files("BBOT MODULES", bbot_module_table)
 
     # BBOT module options
     bbot_module_options_table = module_loader.modules_options_table()
     assert len(bbot_module_options_table.splitlines()) > 100
-    for file in md_files:
-        find_replace_file(file, "BBOT MODULE OPTIONS", bbot_module_options_table)
+    update_md_files("BBOT MODULE OPTIONS", bbot_module_options_table)
 
     # BBOT module flags
     bbot_module_flags_table = module_loader.flags_table()
     assert len(bbot_module_flags_table.splitlines()) > 10
-    for file in md_files:
-        find_replace_file(file, "BBOT MODULE FLAGS", bbot_module_flags_table)
+    update_md_files("BBOT MODULE FLAGS", bbot_module_flags_table)
 
     # Default config
     default_config_file = bbot_code_dir / "bbot" / "defaults.yml"
@@ -72,8 +92,7 @@ def update_docs():
         default_config_yml = f.read()
     default_config_yml = f"```yaml\n{default_config_yml}\n```"
     assert len(default_config_yml.splitlines()) > 20
-    for file in md_files:
-        find_replace_file(file, "BBOT DEFAULT CONFIG", default_config_yml)
+    update_md_files("BBOT DEFAULT CONFIG", default_config_yml)
 
 
 update_docs()

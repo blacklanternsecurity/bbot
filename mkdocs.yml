@@ -12,8 +12,12 @@ repo_url: https://github.com/blacklanternsecurity/bbot
 nav:
   - Basics:
     - Getting Started: index.md
+    - Usage: usage.md
   - Modules:
-    - modules.md
+    - modules/index.md
+    - Flags: modules/flags.md
+  - Advanced Usage:
+    - advanced/index.md
   - Configuration:
     - configuration/index.md
     - Global Options: configuration/global_options.md
