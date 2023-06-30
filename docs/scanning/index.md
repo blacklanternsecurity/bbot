@@ -80,7 +80,7 @@ Modules fall into three categories:
 - **Output Modules**:
     - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](./output))
 - **Internal Modules**:
-    - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disable via the config (e.g. `-c speculate=false`).
+    - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disabled via the config (e.g. `-c speculate=false`).
         - `aggregate`: Summarizes results at the end of a scan
         - `excavate`: Extracts useful data such as subdomains from webpages, etc.
         - `speculate`: Intelligently infers new events, e.g. `OPEN_TCP_PORT` from `URL` or `IP_ADDRESS` from `IP_NETWORK`.

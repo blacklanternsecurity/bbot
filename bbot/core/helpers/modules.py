@@ -361,9 +361,7 @@ class ModuleLoader:
         for e in all_event_types:
             consuming = sorted(consuming_events.get(e, []))
             producing = sorted(producing_events.get(e, []))
-            table.append(
-                [e, len(consuming), len(producing), ", ".join(consuming), ", ".join(producing)]
-            )
+            table.append([e, len(consuming), len(producing), ", ".join(consuming), ", ".join(producing)])
         return make_table(table, header)
 
     def filter_modules(self, modules=None, mod_type=None):
