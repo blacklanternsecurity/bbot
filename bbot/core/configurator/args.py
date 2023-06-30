@@ -61,12 +61,12 @@ class DummyArgumentParser(BBOTArgumentParser):
 scan_examples = [
     (
         "Subdomains",
-        "Enable all modules with the `subdomain-enum` flag",
+        "Perform a full subdomain enumeration on evilcorp.com",
         "bbot -t evilcorp.com -f subdomain-enum",
     ),
     (
         "Subdomains (passive only)",
-        "Require modules to have the `passive` flag",
+        "Perform a passive-only subdomain enumeration on evilcorp.com",
         "bbot -t evilcorp.com -f subdomain-enum -rf passive",
     ),
     (
@@ -80,13 +80,13 @@ scan_examples = [
         "bbot -t evilcorp.com -f subdomain-enum web-basic",
     ),
     (
-        "Web Spider",
+        "Web spider",
         "Use the web spider to crawl for emails, secrets, etc.",
         "bbot -t www.evilcorp.com -m httpx badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2",
     ),
     (
-        "Subdomains + emails + cloud + port scan + basic web + web screenshots + nuclei",
         "Everything everywhere all at once",
+        "Subdomains, emails, cloud buckets, port scan, basic web, web screenshots, nuclei",
         "bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly",
     ),
 ]

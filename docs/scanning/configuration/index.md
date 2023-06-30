@@ -2,6 +2,11 @@
 
 BBOT and its modules are built to be configurable for a wide range of use cases. Config options are different from standard command-line arguments. They're designed to perform more granular changes such as setting the HTTP proxy, the global user-agent, or a module's API key.
 
+For a list of all possible config options, see:
+
+- [Global Options](./global_options/)
+- [Module Options](./module_options/)
+
 ## Configuration Files
 
 BBOT loads its config from the following files, in this order:
@@ -32,5 +37,3 @@ Here is an example of what a standard BBOT config might look like:
 modules:
   
 ```
-
-For a list of global config options, see [Global Options](./global_options/). For a full list of module config options, see [Module Options](./module_options/)

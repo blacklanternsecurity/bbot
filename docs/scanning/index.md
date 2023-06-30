@@ -1,7 +1,123 @@
-# Flags
+# Scanning Overview
+
+<video controls="" autoplay="" name="media"><source src="https://github-production-user-asset-6210df.s3.amazonaws.com/20261699/245941416-ebf2a81e-7530-4a9e-922d-4e62eb949f35.mp4" type="video/mp4"></video>
+
+Scan visualization courtesy of [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)
 
 
-## List of Flags
+## Targets (`-t`)
+
+Targets determine what's in-scope, and seed a scan with initial data. BBOT accepts an unlimited number of targets. They can be any of the following:
+
+- `DNS_NAME` (`evilcorp.com`)
+- `IP_ADDRESS` (`1.2.3.4`)
+- `IP_RANGE` (`1.2.3.0/24`)
+- `URL` (`https://www.evilcorp.com`)
+
+You can specify targets directly on the command line, load them from files, or both! For example:
+
+~~~bash
+$ cat targets.txt
+4.3.2.1
+1.2.3.0/24
+evilcorp.com
+evilcorp.co.uk
+https://www.evilcorp.co.uk
+
+# load targets from a file and from the command-line
+$ bbot -t targets.txt fsociety.com 5.6.7.0/24 -m nmap
+~~~
+
+On start, BBOT automatically converts Targets into [Events](./events).
+
+## Scope
+
+For pentesters and bug bounty hunters, staying in scope is extremely important. BBOT takes this seriously, meaning that active modules (e.g. `nuclei`) will only touch in-scope resources.
+
+By default, whatever you specify with `-t` becomes in-scope. This includes child subdomains. For example, if you specify `-t evilcorp.com`, any subdomains (`www.evilcorp.com`, `mail.evilcorp.com`, etc.) become in-scope.
+
+### Strict Scope
+
+If you want to include ***only*** that specific hostname and none of its children, you can specify `--strict-scope`.
+
+Note that `--strict-scope` only applies to targets and whitelists, not blacklists. This means that if you put `internal.evilcorp.com` in your blacklist, you can be sure none of its subdomains will be scanned, even when using `--strict-scope`.
+
+### Whitelists and Blacklists
+
+BBOT allows precise control over scope with whitelists and blacklists. These both use the same syntax as `--target`, meaning they accept the same event types, and you can specify an unlimited number of them, via a file, the CLI, or both.
+
+`--whitelist` enables you to override what's in scope. For example, if you want to run nuclei against `evilcorp.com`, but stay only inside their corporate IP range of `1.2.3.0/24`, you can accomplish this like so:
+
+```bash
+# Seed scan with evilcorp.com, but restrict scope to 1.2.3.0/24
+bbot -t evilcorp.com --whitelist 1.2.3.0/24 -f subdomain-enum -m nmap nuclei --allow-deadly
+```
+
+`--blacklist` takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it's in the whitelist.
+
+```bash
+# Scan evilcorp.com, but exclude internal.evilcorp.com and its children
+bbot -t evilcorp.com --blacklist internal.evilcorp.com -f subdomain-enum -m nmap nuclei --allow-deadly
+```
+
+## Modules (`-m`)
+
+To see a full list of modules and their descriptions, use `bbot -l` or see [Modules Table](./modules_table).
+
+Modules are the part of BBOT that does the work -- port scanning, subdomain brute-forcing, API querying, etc. Modules consume [Events](../events/) (`IP_ADDRESS`, `DNS_NAME`, etc.) from each other, process the data in a useful way, then emit the results as new events. You can enable individual modules with `-m`.
+
+```bash
+# Enable modules: nmap, sslcert, and httpx
+bbot -t www.evilcorp.com -m nmap sslcert httpx
+```
+
+### Types of Modules
+
+Modules fall into three categories:
+
+- **Scan Modules**:
+    - These make up the majority of modules. Examples are `nmap`, `sslcert`, `httpx`, etc. Enable with `-m`.
+- **Output Modules**:
+    - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](./output))
+- **Internal Modules**:
+    - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disable via the config (e.g. `-c speculate=false`).
+        - `aggregate`: Summarizes results at the end of a scan
+        - `excavate`: Extracts useful data such as subdomains from webpages, etc.
+        - `speculate`: Intelligently infers new events, e.g. `OPEN_TCP_PORT` from `URL` or `IP_ADDRESS` from `IP_NETWORK`.
+
+For details in the inner workings of modules, see [Creating a Module](../contribution/module_creation/).
+
+## Flags (`-f`)
+
+Flags are how BBOT categorizes its modules. In a way, you can think of them as groups. Flags let you enable a bunch of similar modules at the same time without having to specify them each individually. For example, `-f subdomain-enum` would enable all the modules having the `subdomain-enum` flag.
+
+### Filtering by Flag
+
+Modules can be easily filtered based on their flags:
+
+- `-f` Enable modules with this flag
+- `-rf` Require modules to have this flag
+- `-ef` Exclude modules with this flag
+- `-em` Exclude these individual modules
+- `-lf` List all available flags
+
+Every module is either `safe` or `aggressive`, and either `active` or `passive`. These can be useful for filtering. For example, if you wanted to enable all the `safe` modules, but exclude active ones, you could do:
+
+```bash
+# Enable safe modules but exclude active ones
+bbot -t evilcorp.com -f safe -ef active
+```
+
+This is equivalent to requiring the passive flag:
+
+```bash
+# Enable safe modules but only if they're also passive
+bbot -t evilcorp.com -f safe -rf passive
+```
+
+A single module can have multiple flags. For example, the `securitytrails` module is `passive`, `safe`, `subdomain-enum`. Below is a full list of flags and their associated modules.
+
+### List of Flags
 
 <!-- BBOT MODULE FLAGS -->
 | Flag             | # Modules   | Description   | Modules                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |

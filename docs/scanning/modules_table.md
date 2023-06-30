@@ -1,14 +1,4 @@
-# Modules Overview
-
-BBOT's power is in its modules. Modules can perform any kind of task, from port scans to subdomain brute-force to API queries. Modules in BBOT fall into four main categories:
-
-- **Scan Modules**
-- **Output Modules**
-- **Report Modules**
-- **Internal Modules**
-
-
-## List of Modules
+# List of Modules
 
 <!-- BBOT MODULES -->
 | Module               | Type     | Needs API Key   | Description                                                            | Flags                                                                         | Produced Events                                      |

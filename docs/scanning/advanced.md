@@ -1,4 +1,32 @@
-# Command-Line Usage
+# Advanced
+
+Below you can find some advanced uses of BBOT.
+
+## BBOT as a Python library
+**Synchronous**
+~~~python
+from bbot.scanner import Scanner
+
+# any number of targets can be specified
+scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
+for event in scan.start():
+    print(event.json())
+~~~
+
+**Asynchronous**
+~~~python
+from bbot.scanner import Scanner
+
+async def main():
+    scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
+    async for event in scan.async_start():
+        print(event.json())
+
+import asyncio
+asyncio.run(main())
+~~~
+
+## Command-Line Help
 
 <!-- BBOT HELP OUTPUT -->
 ```text

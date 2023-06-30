@@ -12,18 +12,21 @@ repo_url: https://github.com/blacklanternsecurity/bbot
 nav:
   - Basics:
     - Getting Started: index.md
-    - Usage: usage.md
-  - Modules:
-    - modules/index.md
-    - Flags: modules/flags.md
-  - Advanced Usage:
-    - advanced/index.md
-  - Configuration:
-    - configuration/index.md
-    - Global Options: configuration/global_options.md
-    - Module Options: configuration/module_options.md
+    - How it Works: how_it_works.md
+    - Comparison to Other Tools: comparison.md
+  - Scanning:
+    - scanning/index.md
+    - Events: scanning/events.md
+    - Output: scanning/output.md
+    - Advanced Usage: scanning/advanced.md
+    - Configuration:
+      - scanning/configuration/index.md
+      - Global Options: scanning/configuration/global_options.md
+      - Module Options: scanning/configuration/module_options.md
+    - Modules Table: scanning/modules_table.md
   - Contribution:
     - contribution/index.md
+    - Creating a Module: contribution/module_creation.md
 
 theme:
   name: material
@@ -31,6 +34,8 @@ theme:
   features:
     - content.code.copy
     - navigation.sections
+    - navigation.expand
+    - toc.integrate
   palette: 
   - scheme: slate
     primary: black

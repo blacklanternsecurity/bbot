@@ -1,6 +1,8 @@
+# Getting Started
+
 ## Installation
 
-BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, please see [Installation (Poetry)](./contribution).
+BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, please see [Installation (Poetry)](https://www.blacklanternsecurity.com/bbot/contribution).
 
 ### [Python (pip / pipx)](https://pypi.org/project/bbot/)
 Note: `pipx` installs BBOT inside its own virtual environment.
@@ -29,58 +31,46 @@ git clone https://github.com/blacklanternsecurity/bbot && cd bbot
 ./bbot-docker.sh --help
 ~~~
 
-## Example Scans
+## Examples
 
----
+Below are some common scan examples.
 
 <!-- BBOT EXAMPLE COMMANDS -->
-
-### Subdomains
-Enable all modules with the `subdomain-enum` flag
+**Subdomains:**
 ```bash
+# Perform a full subdomain enumeration on evilcorp.com
 bbot -t evilcorp.com -f subdomain-enum
 ```
 
-### Subdomains (passive only)
-Require modules to have the `passive` flag
+**Subdomains (passive only):**
 ```bash
+# Perform a passive-only subdomain enumeration on evilcorp.com
 bbot -t evilcorp.com -f subdomain-enum -rf passive
 ```
 
-### Subdomains + port scan + web screenshots
-Port-scan every subdomain, screenshot every webpage, output to current directory
+**Subdomains + port scan + web screenshots:**
 ```bash
+# Port-scan every subdomain, screenshot every webpage, output to current directory
 bbot -t evilcorp.com -f subdomain-enum -m nmap gowitness -n my_scan -o .
 ```
 
-### Subdomains + basic web scan
-A basic web scan includes wappalyzer, robots.txt, and other non-intrusive web modules
+**Subdomains + basic web scan:**
 ```bash
+# A basic web scan includes wappalyzer, robots.txt, and other non-intrusive web modules
 bbot -t evilcorp.com -f subdomain-enum web-basic
 ```
 
-### Web Spider
-Use the web spider to crawl for emails, secrets, etc.
+**Web spider:**
 ```bash
+# Use the web spider to crawl for emails, secrets, etc.
 bbot -t www.evilcorp.com -m httpx badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2
 ```
 
-### Subdomains + emails + cloud + port scan + basic web + web screenshots + nuclei
-Everything everywhere all at once
+**Everything everywhere all at once:**
 ```bash
+# Subdomains, emails, cloud buckets, port scan, basic web, web screenshots, nuclei
 bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly
 ```
-
-### List modules
-
-```bash
-bbot -l
-```
-
-### List flags
-
-```bash
-bbot -lf
-```
-
 <!-- END BBOT EXAMPLE COMMANDS -->
+
+For more information, see [Scanning](./scanning)

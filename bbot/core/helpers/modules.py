@@ -335,6 +335,37 @@ class ModuleLoader:
             table.append([flag, f"{len(modules)}", description, ", ".join(sorted(modules))])
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
+    def events(self):
+        consuming_events = {}
+        producing_events = {}
+        for module_name, preloaded in self.preloaded().items():
+            consumed = preloaded.get("watched_events", [])
+            produced = preloaded.get("produced_events", [])
+            for c in consumed:
+                try:
+                    consuming_events[c].add(module_name)
+                except KeyError:
+                    consuming_events[c] = {module_name}
+            for c in produced:
+                try:
+                    producing_events[c].add(module_name)
+                except KeyError:
+                    producing_events[c] = {module_name}
+        return consuming_events, producing_events
+
+    def events_table(self):
+        table = []
+        header = ["Event Type", "# Consuming Modules", "# Producing Modules", "Consuming Modules", "Producing Modules"]
+        consuming_events, producing_events = self.events()
+        all_event_types = sorted(set(consuming_events).union(set(producing_events)))
+        for e in all_event_types:
+            consuming = sorted(consuming_events.get(e, []))
+            producing = sorted(producing_events.get(e, []))
+            table.append(
+                [e, len(consuming), len(producing), ", ".join(consuming), ", ".join(producing)]
+            )
+        return make_table(table, header)
+
     def filter_modules(self, modules=None, mod_type=None):
         if modules is None:
             module_list = list(self.preloaded(type=mod_type).items())

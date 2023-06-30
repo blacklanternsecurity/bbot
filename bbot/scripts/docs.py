@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from bbot.modules import module_loader
-from bbot.core.configurator.args import parser, scan_examples, usage_examples
+from bbot.core.configurator.args import parser, scan_examples
 
 os.environ["BBOT_TABLE_FORMAT"] = "github"
 
@@ -54,22 +54,27 @@ def update_docs():
             find_replace_file(file, keyword, s)
 
     # Example commands
-    bbot_example_commands = ""
-    for examples in (scan_examples, usage_examples):
-        for title, description, command in examples:
-            example = "\n"
-            example += f"### {title}\n"
-            example += f"{description}\n"
-            example += f"```bash\n{command}\n```\n"
-            bbot_example_commands += example
+    bbot_example_commands = []
+    for title, description, command in scan_examples:
+        example = ""
+        example += f"**{title}:**\n"
+        # example += f"{description}\n"
+        example += f"```bash\n# {description}\n{command}\n```"
+        bbot_example_commands.append(example)
+    bbot_example_commands = "\n\n".join(bbot_example_commands)
     assert len(bbot_example_commands.splitlines()) > 10
     update_md_files("BBOT EXAMPLE COMMANDS", bbot_example_commands)
 
     # Help output
-    bbot_help_output = parser.format_help()
-    bbot_help_output = f"```\n{bbot_help_output}\n```"
+    bbot_help_output = parser.format_help().replace("docs.py", "bbot")
+    bbot_help_output = f"```text\n{bbot_help_output}\n```"
     assert len(bbot_help_output.splitlines()) > 50
     update_md_files("BBOT HELP OUTPUT", bbot_help_output)
+
+    # BBOT events
+    bbot_event_table = module_loader.events_table()
+    assert len(bbot_event_table.splitlines()) > 10
+    update_md_files("BBOT EVENTS", bbot_event_table)
 
     # BBOT modules
     bbot_module_table = module_loader.modules_table()
