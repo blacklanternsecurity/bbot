@@ -10,8 +10,12 @@ scope_report_distance: 0
 dns_resolution: true
 # Limit the number of BBOT threads
 max_threads: 25
-# Limit the number of DNS threads (this should be approximately 4x max_threads)
-max_dns_threads: 100
+# Rate-limit DNS
+dns_queries_per_second: 1000
+# Rate-limit HTTP
+web_requests_per_second: 100
+# Interval for displaying status messages
+status_frequency: 15
 # HTTP proxy
 http_proxy: 
 # Web user-agent
@@ -75,8 +79,6 @@ dns_filter_ptrs: true
 dns_debug: false
 # Whether to verify SSL certificates
 ssl_verify: false
-# Interval for displaying status messages
-status_frequency: 15
 # How many scan results to keep before cleaning up the older ones
 keep_scans: 20
 # Completely ignore URLs with these extensions

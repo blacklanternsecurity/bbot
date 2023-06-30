@@ -6,9 +6,8 @@ class bucket_firebase(bucket_aws):
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]
     meta = {"description": "Check for open Firebase databases related to target"}
-    options = {"max_threads": 10, "permutations": False}
+    options = {"permutations": False}
     options_desc = {
-        "max_threads": "Maximum number of threads for HTTP requests",
         "permutations": "Whether to try permutations",
     }
 
@@ -16,13 +15,13 @@ class bucket_firebase(bucket_aws):
     delimiters = ("", "-")
     base_domains = ["firebaseio.com"]
 
-    def check_bucket_exists(self, bucket_name, url):
+    async def check_bucket_exists(self, bucket_name, url):
         url = url.strip("/") + "/.json"
-        return super().check_bucket_exists(bucket_name, url)
+        return await super().check_bucket_exists(bucket_name, url)
 
-    def check_bucket_open(self, bucket_name, url):
+    async def check_bucket_open(self, bucket_name, url):
         url = url.strip("/") + "/.json"
-        response = self.helpers.request(url)
+        response = await self.helpers.request(url)
         tags = self.gen_tags_exists(response)
         status_code = getattr(response, "status_code", 404)
         msg = ""

@@ -1,4 +1,3 @@
-from bbot.core.errors import ScanCancelledError
 from bbot.modules.report.base import BaseReportModule
 
 
@@ -12,7 +11,7 @@ class asn(BaseReportModule):
     # because sometimes IP addresses are re-emitted with lower scope distances
     accept_dupes = True
 
-    def setup(self):
+    async def setup(self):
         self.asn_counts = {}
         self.asn_cache = {}
         self.sources = ["bgpview", "ripe"]
@@ -25,15 +24,15 @@ class asn(BaseReportModule):
         }
         return True
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if getattr(event.host, "is_private", False):
             return False
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         host = event.host
         if self.cache_get(host) == False:
-            asns = list(self.get_asn(host))
+            asns = await self.get_asn(host)
             if not asns:
                 self.cache_put(self.unknown_asn)
             else:
@@ -45,7 +44,7 @@ class asn(BaseReportModule):
                     for email in emails:
                         self.emit_event(email, "EMAIL_ADDRESS", source=asn_event)
 
-    def report(self):
+    async def report(self):
         asn_data = sorted(self.asn_cache.items(), key=lambda x: self.asn_counts[x[0]], reverse=True)
         if not asn_data:
             return
@@ -82,7 +81,7 @@ class asn(BaseReportModule):
                 continue
         return ret
 
-    def get_asn(self, ip, retries=1):
+    async def get_asn(self, ip, retries=1):
         """
         Takes in an IP
         returns a list of ASNs, e.g.:
@@ -90,22 +89,20 @@ class asn(BaseReportModule):
         """
         for attempt in range(retries + 1):
             for i, source in enumerate(list(self.sources)):
-                if self.scan.stopping:
-                    raise ScanCancelledError()
                 get_asn_fn = getattr(self, f"get_asn_{source}")
-                res = get_asn_fn(ip)
+                res = await get_asn_fn(ip)
                 if res == False:
                     # demote the current source to lowest priority since it just failed
                     self.sources.append(self.sources.pop(i))
                     self.verbose(f"Failed to contact {source}, retrying")
                     continue
                 return res
-        self.warning(f"Error retrieving ASN via for {ip}")
+        self.warning(f"Error retrieving ASN for {ip}")
         return []
 
-    def get_asn_ripe(self, ip):
+    async def get_asn_ripe(self, ip):
         url = f"https://stat.ripe.net/data/network-info/data.json?resource={ip}"
-        response = self.get_url(url, "ASN")
+        response = await self.get_url(url, "ASN")
         asns = []
         if response == False:
             return False
@@ -119,19 +116,21 @@ class asn(BaseReportModule):
         if not asn_numbers:
             asn_numbers = []
         for number in asn_numbers:
-            asn = self.get_asn_metadata_ripe(number)
+            asn = await self.get_asn_metadata_ripe(number)
+            if asn == False:
+                return False
             asn["subnet"] = prefix
             asns.append(asn)
         return asns
 
-    def get_asn_metadata_ripe(self, asn_number):
+    async def get_asn_metadata_ripe(self, asn_number):
         metadata_keys = {
             "name": ["ASName", "OrgId"],
             "description": ["OrgName", "OrgTechName", "RTechName"],
             "country": ["Country"],
         }
         url = f"https://stat.ripe.net/data/whois/data.json?resource={asn_number}"
-        response = self.get_url(url, "ASN Metadata", cache=True)
+        response = await self.get_url(url, "ASN Metadata", cache=True)
         if response == False:
             return False
         data = response.get("data", {})
@@ -158,9 +157,9 @@ class asn(BaseReportModule):
         asn["asn"] = str(asn_number)
         return asn
 
-    def get_asn_bgpview(self, ip):
+    async def get_asn_bgpview(self, ip):
         url = f"https://api.bgpview.io/ip/{ip}"
-        data = self.get_url(url, "ASN")
+        data = await self.get_url(url, "ASN")
         asns = []
         asns_tried = set()
         if data == False:
@@ -178,7 +177,7 @@ class asn(BaseReportModule):
             country = details.get("country_code") or prefix.get("country_code") or ""
             emails = []
             if not asn in asns_tried:
-                emails = self.get_emails_bgpview(asn)
+                emails = await self.get_emails_bgpview(asn)
                 if emails == False:
                     return False
                 asns_tried.add(asn)
@@ -189,10 +188,10 @@ class asn(BaseReportModule):
             self.debug(f'No results for "{ip}"')
         return asns
 
-    def get_emails_bgpview(self, asn):
+    async def get_emails_bgpview(self, asn):
         contacts = []
         url = f"https://api.bgpview.io/asn/{asn}"
-        data = self.get_url(url, "ASN metadata", cache=True)
+        data = await self.get_url(url, "ASN metadata", cache=True)
         if data == False:
             return False
         data = data.get("data", {})
@@ -204,11 +203,11 @@ class asn(BaseReportModule):
         contacts = [l.strip().lower() for l in email_contacts + abuse_contacts]
         return list(set(contacts))
 
-    def get_url(self, url, data_type, cache=False):
+    async def get_url(self, url, data_type, cache=False):
         kwargs = {}
         if cache:
             kwargs["cache_for"] = 60 * 60 * 24
-        r = self.helpers.request(url, **kwargs)
+        r = await self.helpers.request(url, **kwargs)
         data = {}
         try:
             j = r.json()
@@ -216,6 +215,6 @@ class asn(BaseReportModule):
                 return data
             return j
         except Exception as e:
-            self.verbose(f"Error retrieving {data_type} at {url}: {e}")
+            self.verbose(f"Error retrieving {data_type} at {url}: {e}", trace=True)
             self.debug(f"Got data: {getattr(r, 'content', '')}")
             return False

@@ -9,14 +9,14 @@ class affiliates(BaseReportModule):
     scope_distance_modifier = None
     accept_dupes = True
 
-    def setup(self):
+    async def setup(self):
         self.affiliates = {}
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         self.add_affiliate(event)
 
-    def report(self):
+    async def report(self):
         affiliates = sorted(self.affiliates.items(), key=lambda x: x[-1]["weight"], reverse=True)
         header = ["Affiliate", "Score", "Count"]
         table = []

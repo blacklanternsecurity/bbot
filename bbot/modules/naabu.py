@@ -20,7 +20,7 @@ class naabu(BaseModule):
         "skip_host_discovery": "skip host discovery (-Pn)",
         "version": "naabu version",
     }
-    max_event_handlers = 2
+    max_event_handlers = 1
     batch_size = 256
     _priority = 2
 
@@ -56,15 +56,15 @@ class naabu(BaseModule):
         },
     ]
 
-    def setup(self):
+    async def setup(self):
         self.helpers.depsinstaller.ensure_root(message="Naabu requires root privileges")
         self.skip_host_discovery = self.config.get("skip_host_discovery", True)
         return True
 
-    def handle_batch(self, *events):
+    async def handle_batch(self, *events):
         _input = [str(e.data) for e in events]
         command = self.construct_command()
-        for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL, sudo=False):
+        async for line in self.helpers.run_live(command, input=_input, stderr=subprocess.DEVNULL, sudo=False):
             try:
                 j = json.loads(line)
             except Exception as e:
@@ -115,6 +115,6 @@ class naabu(BaseModule):
             command += ["-top-ports", top_ports]
         return command
 
-    def cleanup(self):
+    async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)

@@ -10,19 +10,17 @@ class hunterio(shodan_dns):
     options_desc = {"api_key": "Hunter.IO API key"}
 
     base_url = "https://api.hunter.io/v2"
+    limit = 100
 
-    def setup(self):
-        self.limit = 100
-        return super().setup()
-
-    def ping(self):
-        r = self.helpers.request(f"{self.base_url}/account?api_key={self.api_key}")
+    async def ping(self):
+        url = f"{self.base_url}/account?api_key={self.api_key}"
+        r = await self.helpers.request(url)
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
-        for entry in self.query(query):
+        for entry in await self.query(query):
             email = entry.get("value", "")
             sources = entry.get("sources", [])
             if email:
@@ -37,15 +35,19 @@ class hunterio(shodan_dns):
                         if url:
                             self.emit_event(url, "URL_UNVERIFIED", email_event)
 
-    def query(self, query):
+    async def query(self, query):
         emails = []
         url = (
             f"{self.base_url}/domain-search?domain={query}&api_key={self.api_key}"
             + "&limit={page_size}&offset={offset}"
         )
-        for j in self.helpers.api_page_iter(url, page_size=self.limit):
-            new_emails = j.get("data", {}).get("emails", [])
-            if not new_emails:
-                break
-            emails += new_emails
+        agen = self.helpers.api_page_iter(url, page_size=self.limit)
+        try:
+            async for j in agen:
+                new_emails = j.get("data", {}).get("emails", [])
+                if not new_emails:
+                    break
+                emails += new_emails
+        finally:
+            agen.aclose()
         return emails

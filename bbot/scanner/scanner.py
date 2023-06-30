@@ -1,13 +1,15 @@
+import asyncio
 import logging
-import threading
 import traceback
+import contextlib
 from sys import exc_info
 from pathlib import Path
-import concurrent.futures
+import multiprocessing as mp
 from datetime import datetime
+from functools import partial
 from omegaconf import OmegaConf
-from contextlib import suppress
-from collections import OrderedDict, deque
+from collections import OrderedDict
+from concurrent.futures import ProcessPoolExecutor
 
 from bbot import config as bbot_config
 
@@ -19,11 +21,11 @@ from bbot.modules import module_loader
 from bbot.core.event import make_event
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.helper import ConfigAwareHelper
-from bbot.core.logger import init_logging, get_log_level
 from bbot.core.helpers.names_generator import random_name
+from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.core.configurator.environ import prepare_environment
-from bbot.core.helpers.threadpool import ThreadPoolWrapper, BBOTThreadPoolExecutor
-from bbot.core.errors import BBOTError, ScanError, ScanCancelledError, ValidationError
+from bbot.core.errors import BBOTError, ScanError, ValidationError
+from bbot.core.logger import init_logging, get_log_level, set_log_level
 
 log = logging.getLogger("bbot.scanner")
 
@@ -73,6 +75,8 @@ class Scanner:
             config = OmegaConf.create(config)
         self.config = OmegaConf.merge(bbot_config, config)
         prepare_environment(self.config)
+        if self.config.get("debug", False):
+            set_log_level(logging.DEBUG)
 
         self.strict_scope = strict_scope
         self.force_start = force_start
@@ -84,25 +88,8 @@ class Scanner:
         self._status = "NOT_STARTED"
         self._status_code = 0
 
-        # Set up thread pools
-        max_workers = max(1, self.config.get("max_threads", 25))
-        # Shared thread pool, for module use
-        self._thread_pool = BBOTThreadPoolExecutor(max_workers=max_workers)
-        # Event thread pool, for event emission
-        self._event_thread_pool = ThreadPoolWrapper(
-            BBOTThreadPoolExecutor(max_workers=max_workers * 2), qsize=max_workers
-        )
-        # Internal thread pool, for handle_event(), module setup, cleanup callbacks, etc.
-        self._internal_thread_pool = ThreadPoolWrapper(BBOTThreadPoolExecutor(max_workers=max_workers))
-        self.process_pool = ThreadPoolWrapper(concurrent.futures.ProcessPoolExecutor())
+        self.max_workers = max(1, self.config.get("max_threads", 25))
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
-        self.pools = {
-            "process_pool": self.process_pool,
-            "internal_thread_pool": self._internal_thread_pool,
-            "dns_thread_pool": self.helpers.dns._thread_pool,
-            "event_thread_pool": self._event_thread_pool,
-            "main_thread_pool": self._thread_pool,
-        }
         output_dir = self.config.get("output_dir", "")
 
         if name is None:
@@ -170,12 +157,35 @@ class Scanner:
                 "You have enabled custom HTTP headers. These will be attached to all in-scope requests and all requests made by httpx."
             )
 
+        # how often to print scan status
+        self.status_frequency = self.config.get("status_frequency", 15)
+
         self._prepped = False
-        self._thread_pools_shutdown = False
-        self._thread_pools_shutdown_threads = []
+        self._finished_init = False
         self._cleanedup = False
 
-    def prep(self):
+        self.__loop = None
+        self.manager_worker_loop_tasks = []
+        self.init_events_task = None
+        self.ticker_task = None
+        self.dispatcher_tasks = []
+
+        # multiprocessing thread pool
+        try:
+            mp.set_start_method("spawn")
+        except Exception:
+            self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
+        self.process_pool = ProcessPoolExecutor()
+
+        self._stopping = False
+
+    def _on_keyboard_interrupt(self, loop, event):
+        self.stop()
+
+    async def prep(self):
+        # event = asyncio.Event()
+        # self._loop.add_signal_handler(signal.SIGINT, self._on_keyboard_interrupt, loop, event)
+
         self.helpers.mkdir(self.home)
         if not self._prepped:
             start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target):,} targets"
@@ -188,27 +198,38 @@ class Scanner:
                 start_msg += f" ({', '.join(details)})"
             self.hugeinfo(start_msg)
 
-            self.load_modules()
+            await self.load_modules()
 
             self.info(f"Setting up modules...")
-            self.setup_modules()
+            await self.setup_modules()
 
             self.success(f"Setup succeeded for {len(self.modules):,} modules.")
             self._prepped = True
 
-    def start_without_generator(self):
-        deque(self.start(), maxlen=0)
-
     def start(self):
-        self.prep()
+        for event in async_to_sync_gen(self.async_start()):
+            yield event
 
+    def start_without_generator(self):
+        for event in async_to_sync_gen(self.async_start()):
+            pass
+
+    async def async_start_without_generator(self):
+        async for event in self.async_start():
+            pass
+
+    async def async_start(self):
         failed = True
-
-        if not self.target:
-            self.warning(f"No scan targets specified")
-
         scan_start_time = datetime.now()
         try:
+            await self.prep()
+
+            if not self.target:
+                self.warning(f"No scan targets specified")
+
+            # start status ticker
+            self.ticker_task = asyncio.create_task(self._status_ticker(self.status_frequency))
+
             self.status = "STARTING"
 
             if not self.modules:
@@ -218,58 +239,63 @@ class Scanner:
             else:
                 self.hugesuccess(f"Starting scan {self.name}")
 
-            if self.stopping:
-                return
+            await self.dispatcher.on_start(self)
+
+            # start manager worker loops
+            self.manager_worker_loop_tasks = [
+                asyncio.create_task(self.manager._worker_loop()) for _ in range(self.max_workers)
+            ]
 
             # distribute seed events
-            self.manager.init_events()
-
-            if self.stopping:
-                return
+            self.init_events_task = asyncio.create_task(self.manager.init_events())
 
             self.status = "RUNNING"
             self.start_modules()
             self.verbose(f"{len(self.modules):,} modules started")
 
-            if self.stopping:
-                return
+            # main scan loop
+            while 1:
+                # abort if we're aborting
+                if self.aborting:
+                    self.drain_queues()
+                    break
 
-            yield from self.manager.loop_until_finished()
+                if "python" in self.modules:
+                    events, finish, report = await self.modules["python"].events_waiting()
+                    for e in events:
+                        yield e
+
+                # if initialization finished and the scan is no longer active
+                if self._finished_init and not self.manager.active:
+                    new_activity = await self.finish()
+                    if not new_activity:
+                        break
+
+                await asyncio.sleep(0.1)
+
             failed = False
 
-        except KeyboardInterrupt:
-            self.stop()
-            failed = False
+        except BaseException as e:
+            exception_chain = self.helpers.get_exception_chain(e)
+            if any(isinstance(exc, (KeyboardInterrupt, asyncio.CancelledError)) for exc in exception_chain):
+                self.stop()
+                failed = False
+            else:
+                try:
+                    raise
+                except ScanError as e:
+                    self.error(f"{e}")
 
-        except ScanCancelledError:
-            self.debug("Scan cancelled")
+                except BBOTError as e:
+                    self.critical(f"Error during scan: {e}")
 
-        except ScanError as e:
-            self.error(f"{e}")
-
-        except BBOTError as e:
-            self.critical(f"Error during scan: {e}")
-            self.trace()
-
-        except Exception:
-            self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
+                except Exception:
+                    self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
-            self.cleanup()
-            self.shutdown_threadpools()
-            while 1:
-                for t in self._thread_pools_shutdown_threads:
-                    t.join(timeout=1)
-                    if t.is_alive():
-                        try:
-                            pool = t._args[0]
-                            for s in pool.threads_status:
-                                self.debug(s)
-                        except AttributeError:
-                            continue
-                if not any(t.is_alive() for t in self._thread_pools_shutdown_threads):
-                    self.debug("Finished shutting down thread pools")
-                    break
+            self.cancel_tasks()
+            await self.report()
+            await self.cleanup()
 
             log_fn = self.hugesuccess
             if self.status == "ABORTING":
@@ -285,26 +311,21 @@ class Scanner:
             scan_run_time = self.helpers.human_timedelta(scan_run_time)
             log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
 
-            self.dispatcher.on_finish(self)
+            await self.dispatcher.on_finish(self)
 
     def start_modules(self):
-        self.verbose(f"Starting module threads")
+        self.verbose(f"Starting module worker loops")
         for module_name, module in self.modules.items():
             module.start()
 
-    def setup_modules(self, remove_failed=True):
-        self.load_modules()
+    async def setup_modules(self, remove_failed=True):
+        await self.load_modules()
         self.verbose(f"Setting up modules")
         hard_failed = []
         soft_failed = []
-        setup_futures = dict()
 
-        for module_name, module in self.modules.items():
-            future = self._internal_thread_pool.submit_task(module._setup)
-            setup_futures[future] = module_name
-        for future in self.helpers.as_completed(setup_futures):
-            module_name = setup_futures[future]
-            status, msg = future.result()
+        for task in asyncio.as_completed([asyncio.create_task(m._setup()) for m in self.modules.values()]):
+            module_name, status, msg = await task
             if status == True:
                 self.debug(f"Setup succeeded for {module_name} ({msg})")
             elif status == False:
@@ -327,42 +348,84 @@ class Scanner:
         elif total_failed > 0:
             self.warning(f"Setup failed for {total_failed:,} modules")
 
-    def stop(self, wait=False):
-        if self.status != "ABORTING":
+    def stop(self):
+        if not self._stopping:
+            self._stopping = True
             self.status = "ABORTING"
             self.hugewarning(f"Aborting scan")
+            self.trace()
+            self.cancel_tasks()
+            self.drain_queues()
             self.helpers.kill_children()
-            self.shutdown_threadpools()
+            self.drain_queues()
             self.helpers.kill_children()
 
-    def shutdown_threadpools(self):
-        if not self._thread_pools_shutdown:
-            self._thread_pools_shutdown = True
+    async def finish(self):
+        # if new events were generated since last time we were here
+        if self.manager._new_activity:
+            self.manager._new_activity = False
+            self.status = "FINISHING"
+            # Trigger .finished() on every module and start over
+            log.info("Finishing scan")
+            finished_event = self.make_event("FINISHED", "FINISHED", dummy=True)
+            for module in self.modules.values():
+                await module.queue_event(finished_event)
+            self.verbose("Completed finish()")
+            return True
+        # Return False if no new events were generated since last time
+        self.verbose("Completed final finish()")
+        return False
 
-            def shutdown_pool(pool, pool_name, **kwargs):
-                self.debug(f"Shutting down {pool_name} with kwargs={kwargs}")
-                pool.shutdown(**kwargs)
-                self.debug(f"Finished shutting down {pool_name} with kwargs={kwargs}")
+    def drain_queues(self):
+        # Empty event queues
+        self.debug("Draining queues")
+        for module in self.modules.values():
+            with contextlib.suppress(asyncio.queues.QueueEmpty):
+                while 1:
+                    if module.incoming_event_queue:
+                        module.incoming_event_queue.get_nowait()
+            with contextlib.suppress(asyncio.queues.QueueEmpty):
+                while 1:
+                    if module.outgoing_event_queue:
+                        module.outgoing_event_queue.get_nowait()
+        with contextlib.suppress(asyncio.queues.QueueEmpty):
+            while 1:
+                self.manager.incoming_event_queue.get_nowait()
+        self.debug("Finished draining queues")
 
-            self.debug(f"Shutting down thread pools")
-            for pool_name, pool in self.pools.items():
-                t = threading.Thread(
-                    target=shutdown_pool,
-                    args=(pool, pool_name),
-                    kwargs={"wait": True, "cancel_futures": True},
-                    daemon=True,
-                )
-                t.start()
-                self._thread_pools_shutdown_threads.append(t)
+    def cancel_tasks(self):
+        tasks = []
+        # module workers
+        for m in self.modules.values():
+            tasks += getattr(m, "_tasks", [])
+        # init events
+        if self.init_events_task:
+            tasks.append(self.init_events_task)
+        # ticker
+        if self.ticker_task:
+            tasks.append(self.ticker_task)
+        # dispatcher
+        tasks += self.dispatcher_tasks
+        # manager worker loops
+        tasks += self.manager_worker_loop_tasks
+        self.helpers.cancel_tasks_sync(tasks)
+        # process pool
+        self.process_pool.shutdown(cancel_futures=True)
 
-    def cleanup(self):
+    async def report(self):
+        for mod in self.modules.values():
+            async with self.acatch(context=mod.report):
+                with mod._task_counter:
+                    await mod.report()
+
+    async def cleanup(self):
         # clean up modules
         self.status = "CLEANING_UP"
         for mod in self.modules.values():
-            mod._cleanup()
+            await mod._cleanup()
         if not self._cleanedup:
             self._cleanedup = True
-            with suppress(Exception):
+            with contextlib.suppress(Exception):
                 self.home.rmdir()
             self.helpers.clean_old_scans()
 
@@ -394,6 +457,10 @@ class Scanner:
         return not self.running
 
     @property
+    def stopped(self):
+        return self._status_code > 5
+
+    @property
     def running(self):
         return 0 < self._status_code < 4
 
@@ -415,27 +482,16 @@ class Scanner:
             if self.status == "ABORTING" and not status == "ABORTED":
                 self.debug(f'Attempt to set invalid status "{status}" on aborted scan')
             else:
-                self._status = status
-                self._status_code = self._status_codes[status]
-                self.dispatcher.on_status(self._status, self.id)
+                if status != self._status:
+                    self._status = status
+                    self._status_code = self._status_codes[status]
+                    self.dispatcher_tasks.append(
+                        asyncio.create_task(self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id))
+                    )
+                else:
+                    self.debug(f'Scan status is already "{status}"')
         else:
             self.debug(f'Attempt to set invalid status "{status}" on scan')
-
-    @property
-    def status_detailed(self):
-        event_threadpool_tasks = self._event_thread_pool.num_tasks
-        internal_tasks = self._internal_thread_pool.num_tasks
-        process_tasks = self.process_pool.num_tasks
-        total_tasks = event_threadpool_tasks + internal_tasks + process_tasks
-        status = {
-            "queued_tasks": {
-                "internal": internal_tasks,
-                "process": process_tasks,
-                "event": event_threadpool_tasks,
-                "total": total_tasks,
-            },
-        }
-        return status
 
     def make_event(self, *args, **kwargs):
         kwargs["scan"] = self
@@ -479,53 +535,72 @@ class Scanner:
             j.update({"modules": [str(m) for m in self.modules]})
         return j
 
-    def debug(self, *args, **kwargs):
+    def debug(self, *args, trace=False, **kwargs):
         log.debug(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def verbose(self, *args, **kwargs):
+    def verbose(self, *args, trace=False, **kwargs):
         log.verbose(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def hugeverbose(self, *args, **kwargs):
+    def hugeverbose(self, *args, trace=False, **kwargs):
         log.hugeverbose(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def info(self, *args, **kwargs):
+    def info(self, *args, trace=False, **kwargs):
         log.info(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def hugeinfo(self, *args, **kwargs):
+    def hugeinfo(self, *args, trace=False, **kwargs):
         log.hugeinfo(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def success(self, *args, **kwargs):
+    def success(self, *args, trace=False, **kwargs):
         log.success(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def hugesuccess(self, *args, **kwargs):
+    def hugesuccess(self, *args, trace=False, **kwargs):
         log.hugesuccess(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
-    def warning(self, *args, **kwargs):
+    def warning(self, *args, trace=True, **kwargs):
         log.warning(*args, extra={"scan_id": self.id}, **kwargs)
-        self.trace()
+        if trace:
+            self.trace()
 
-    def hugewarning(self, *args, **kwargs):
+    def hugewarning(self, *args, trace=True, **kwargs):
         log.hugewarning(*args, extra={"scan_id": self.id}, **kwargs)
-        self.trace()
+        if trace:
+            self.trace()
 
-    def error(self, *args, **kwargs):
+    def error(self, *args, trace=True, **kwargs):
         log.error(*args, extra={"scan_id": self.id}, **kwargs)
-        self.trace()
+        if trace:
+            self.trace()
 
     def trace(self):
         e_type, e_val, e_traceback = exc_info()
         if e_type is not None:
             log.trace(traceback.format_exc())
 
-    def critical(self, *args, **kwargs):
+    def critical(self, *args, trace=True, **kwargs):
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
+        if trace:
+            self.trace()
 
     def _internal_modules(self):
         for modname in module_loader.preloaded(type="internal"):
             if self.config.get(modname, True):
                 yield modname
 
-    def load_modules(self):
+    async def load_modules(self):
         if not self._modules_loaded:
             all_modules = list(set(self._scan_modules + self._output_modules + self._internal_modules))
             if not all_modules:
@@ -536,7 +611,7 @@ class Scanner:
                 self.warning(f"No scan modules to load")
 
             # install module dependencies
-            succeeded, failed = self.helpers.depsinstaller.install(
+            succeeded, failed = await self.helpers.depsinstaller.install(
                 *self._scan_modules, *self._output_modules, *self._internal_modules
             )
             if failed:
@@ -598,6 +673,12 @@ class Scanner:
     def log_level(self):
         return get_log_level()
 
+    @property
+    def _loop(self):
+        if self.__loop is None:
+            self.__loop = asyncio.get_event_loop()
+        return self.__loop
+
     def _load_modules(self, modules):
         modules = [str(m) for m in modules]
         loaded_modules = {}
@@ -614,3 +695,67 @@ class Scanner:
                 self.warning(f'Failed to load unknown module "{module_name}"')
             failed.add(module_name)
         return loaded_modules, failed
+
+    async def _status_ticker(self, interval=15):
+        async with self.acatch():
+            while 1:
+                await asyncio.sleep(interval)
+                self.manager.modules_status(_log=True)
+
+    @contextlib.contextmanager
+    def catch(self, context="scan", finally_callback=None):
+        """
+        Handle common errors by stopping scan, logging tracebacks, etc.
+
+        with catch():
+            do_stuff()
+        """
+        try:
+            yield
+        except BaseException as e:
+            self._handle_exception(e, context=context)
+
+    @contextlib.asynccontextmanager
+    async def acatch(self, context="scan", finally_callback=None):
+        """
+        Async version of catch()
+
+        async with catch():
+            await do_stuff()
+        """
+        try:
+            yield
+        except BaseException as e:
+            self._handle_exception(e, context=context)
+
+    def run_in_executor(self, callback, *args, **kwargs):
+        """
+        Run a synchronous task in the event loop's default thread pool executor
+        """
+        callback = partial(callback, **kwargs)
+        return self._loop.run_in_executor(None, callback, *args)
+
+    def run_in_executor_mp(self, callback, *args, **kwargs):
+        """
+        Same as run_in_executor() except with a process pool executor
+        """
+        callback = partial(callback, **kwargs)
+        return self._loop.run_in_executor(self.process_pool, callback, *args)
+
+    def _handle_exception(self, e, context="scan", finally_callback=None):
+        if callable(context):
+            context = f"{context.__qualname__}()"
+        filename, lineno, funcname = self.helpers.get_traceback_details(e)
+        exception_chain = self.helpers.get_exception_chain(e)
+        if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+            log.debug(f"Interrupted")
+            self.stop()
+        elif isinstance(e, BrokenPipeError):
+            log.debug(f"BrokenPipeError in {filename}:{lineno}:{funcname}(): {e}")
+        elif isinstance(e, asyncio.CancelledError):
+            raise
+        elif isinstance(e, Exception):
+            log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
+            log.trace(traceback.format_exc())
+        if callable(finally_callback):
+            self.helpers.execute_sync_or_async(finally_callback, e)

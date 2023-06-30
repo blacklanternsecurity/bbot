@@ -11,7 +11,7 @@ class certspotter(crobat):
 
     def request_url(self, query):
         url = f"{self.base_url}/issuances?domain={self.helpers.quote(query)}&include_subdomains=true&expand=dns_names"
-        return self.request_with_fail_count(url)
+        return self.request_with_fail_count(url, timeout=self.http_timeout + 30)
 
     def parse_results(self, r, query):
         json = r.json()

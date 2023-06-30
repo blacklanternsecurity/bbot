@@ -10,11 +10,11 @@ class JSON(BaseOutputModule):
     options = {"output_file": "", "console": False}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
 
-    def setup(self):
+    async def setup(self):
         self._prep_output_dir("output.json")
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         event_str = json.dumps(dict(event))
         if self.file is not None:
             self.file.write(event_str + "\n")
@@ -22,12 +22,11 @@ class JSON(BaseOutputModule):
         if self.config.get("console", False) or "human" not in self.scan.modules:
             self.stdout(event_str)
 
-    def cleanup(self):
+    async def cleanup(self):
         if getattr(self, "_file", None) is not None:
             with suppress(Exception):
                 self.file.close()
 
-    def report(self):
+    async def report(self):
         if self._file is not None:
-            with self._report_lock:
-                self.info(f"Saved JSON output to {self.output_file}")
+            self.info(f"Saved JSON output to {self.output_file}")

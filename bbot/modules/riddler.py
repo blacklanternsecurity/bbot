@@ -9,9 +9,10 @@ class riddler(crobat):
 
     base_url = "https://riddler.io"
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/search/exportcsv?q=pld:{self.helpers.quote(query)}"
-        return self.request_with_fail_count(url)
+        response = await self.request_with_fail_count(url)
+        return response
 
     def parse_results(self, r, query):
         results = set()

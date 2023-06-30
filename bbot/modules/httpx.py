@@ -1,6 +1,7 @@
 import json
 import subprocess
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.web import is_login_page
 
 
 class httpx(BaseModule):
@@ -32,7 +33,7 @@ class httpx(BaseModule):
     scope_distance_modifier = 1
     _priority = 2
 
-    def setup(self):
+    async def setup(self):
         self.threads = self.config.get("threads", 50)
         self.timeout = self.scan.config.get("httpx_timeout", 5)
         self.retries = self.scan.config.get("httpx_retries", 1)
@@ -40,7 +41,7 @@ class httpx(BaseModule):
         self.visited = set()
         return True
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if "_wildcard" in str(event.host).split("."):
             return False, "event is wildcard"
 
@@ -62,7 +63,7 @@ class httpx(BaseModule):
         # note: speculate makes open ports from
         return True
 
-    def handle_batch(self, *events):
+    async def handle_batch(self, *events):
         stdin = {}
         for e in events:
             url_hash = None
@@ -106,7 +107,7 @@ class httpx(BaseModule):
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:
             command += ["-http-proxy", proxy]
-        for line in self.helpers.run_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
+        async for line in self.helpers.run_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:
@@ -133,7 +134,11 @@ class httpx(BaseModule):
             # main URL
             httpx_ip = j.get("host", "unknown")
             tags = [f"status-{status_code}", f"ip-{httpx_ip}"]
-            title = self.helpers.tagify(j.get("title", ""))
+            # detect login pages
+            if is_login_page(j.get("body", "")):
+                tags.append("login-page")
+            # grab title
+            title = self.helpers.tagify(j.get("title", ""), maxlen=30)
             if title:
                 tags.append(f"http-title-{title}")
             url_event = self.make_event(url, "URL", source_event, tags=tags)
@@ -143,8 +148,8 @@ class httpx(BaseModule):
                 else:
                     url_event._resolved.set()
                 # HTTP response
-                self.emit_event(j, "HTTP_RESPONSE", url_event, internal=True)
+                self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags, internal=True)
 
-    def cleanup(self):
+    async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)

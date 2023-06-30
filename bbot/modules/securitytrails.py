@@ -11,18 +11,20 @@ class securitytrails(shodan_dns):
 
     base_url = "https://api.securitytrails.com/v1"
 
-    def setup(self):
+    async def setup(self):
         self.limit = 100
-        return super().setup()
+        return await super().setup()
 
-    def ping(self):
-        r = self.request_with_fail_count(f"{self.base_url}/ping?apikey={self.api_key}")
+    async def ping(self):
+        url = f"{self.base_url}/ping?apikey={self.api_key}"
+        r = await self.request_with_fail_count(url)
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/domain/{query}/subdomains?apikey={self.api_key}"
-        return self.request_with_fail_count(url)
+        response = await self.request_with_fail_count(url)
+        return response
 
     def parse_results(self, r, query):
         j = r.json()

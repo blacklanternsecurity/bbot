@@ -249,14 +249,12 @@ class Mutator(dict):
 
 
 class DNSMutator(Mutator):
-    word_regex = re.compile(r"[^_\W]+")
     extract_word_regexes = [
         re.compile(r, re.I)
         for r in [
             r"[a-z]+",
+            r"[a-z_-]+",
             r"[a-z0-9]+",
-            r"[a-z0-9-]+",
-            r"[a-z0-9_]+",
             r"[a-z0-9_-]+",
         ]
     ]
@@ -277,16 +275,22 @@ class DNSMutator(Mutator):
         return super().mutations(new_words, max_mutations=max_mutations)
 
     def add_word(self, word):
-        for match in self.word_regex.finditer(word):
-            start, end = match.span()
+        spans = set()
+        mutations = set()
+        for r in self.extract_word_regexes:
+            for match in r.finditer(word):
+                span = match.span()
+                if span not in spans:
+                    spans.add(span)
+        for start, end in spans:
             match_str = word[start:end]
             # skip digits
             if match_str.isdigit():
                 continue
             before = word[:start]
             after = word[end:]
-            basic_mutation = [before, None, after]
-            self._add_mutation(basic_mutation)
+            basic_mutation = (before, None, after)
+            mutations.add(basic_mutation)
             match_str_split = self.model.split(match_str)
             if len(match_str_split) > 1:
                 for i, s in enumerate(match_str_split):
@@ -294,5 +298,7 @@ class DNSMutator(Mutator):
                         continue
                     split_before = "".join(match_str_split[:i])
                     split_after = "".join(match_str_split[i + 1 :])
-                    wordninja_mutation = [before + split_before, None, split_after + after]
-                    self._add_mutation(wordninja_mutation)
+                    wordninja_mutation = (before + split_before, None, split_after + after)
+                    mutations.add(wordninja_mutation)
+        for m in mutations:
+            self._add_mutation(m)

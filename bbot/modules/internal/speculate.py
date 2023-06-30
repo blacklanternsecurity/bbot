@@ -10,7 +10,16 @@ class speculate(BaseInternalModule):
     in situations where e.g. a port scanner isn't enabled
     """
 
-    watched_events = ["IP_RANGE", "URL", "URL_UNVERIFIED", "DNS_NAME", "IP_ADDRESS", "HTTP_RESPONSE", "STORAGE_BUCKET"]
+    watched_events = [
+        "IP_RANGE",
+        "URL",
+        "URL_UNVERIFIED",
+        "DNS_NAME",
+        "DNS_NAME_UNRESOLVED",
+        "IP_ADDRESS",
+        "HTTP_RESPONSE",
+        "STORAGE_BUCKET",
+    ]
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING"]
     flags = ["passive"]
     meta = {"description": "Derive certain event types from others by common sense"}
@@ -25,10 +34,11 @@ class speculate(BaseInternalModule):
     _scope_shepherding = False
     _priority = 4
 
-    def setup(self):
+    async def setup(self):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
         self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
         self.range_to_ip = True
+        self.dns_resolution = self.scan.config.get("dns_resolution", True)
 
         self.ports = self.config.get("ports", [80, 443])
         if isinstance(self.ports, int):
@@ -47,7 +57,7 @@ class speculate(BaseInternalModule):
 
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         # generate individual IP addresses from IP range
         if event.type == "IP_RANGE" and self.range_to_ip:
             net = ipaddress.ip_network(event.data)
@@ -80,18 +90,18 @@ class speculate(BaseInternalModule):
             url_parents = self.helpers.url_parents(event.data)
             for up in url_parents:
                 url_event = self.make_event(f"{up}/", "URL_UNVERIFIED", source=event)
-                # inherit web spider distance from parent (don't increment)
-                source_web_spider_distance = getattr(event, "web_spider_distance", 0)
-                url_event.web_spider_distance = source_web_spider_distance
-                self.emit_event(url_event)
+                if url_event is not None:
+                    # inherit web spider distance from parent (don't increment)
+                    source_web_spider_distance = getattr(event, "web_spider_distance", 0)
+                    url_event.web_spider_distance = source_web_spider_distance
+                    self.emit_event(url_event)
 
         # from hosts
         if emit_open_ports:
             # don't act on unresolved DNS_NAMEs
-
             usable_dns = False
             if event.type == "DNS_NAME":
-                if "a-record" in event.tags or "aaaa-record" in event.tags:
+                if (not self.dns_resolution) or ("a-record" in event.tags or "aaaa-record" in event.tags):
                     usable_dns = True
 
             if event.type == "IP_ADDRESS" or usable_dns:
@@ -104,7 +114,10 @@ class speculate(BaseInternalModule):
                         quick=True,
                     )
 
-    def filter_event(self, event):
+        # storage buckets etc.
+        self.helpers.cloud.speculate(event)
+
+    async def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self
         if str(event.module) == "speculate":
             if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):

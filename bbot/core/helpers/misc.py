@@ -10,6 +10,7 @@ import random
 import shutil
 import signal
 import string
+import asyncio
 import difflib
 import inspect
 import logging
@@ -25,8 +26,10 @@ import wordninja as _wordninja
 from contextlib import suppress
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
+from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
+from asyncio import as_completed, create_task, sleep, wait_for  # noqa
 
 from .url import *  # noqa F401
 from . import regexes
@@ -43,6 +46,7 @@ def is_domain(d):
     "evilcorp.co.uk" --> True
     "www.evilcorp.co.uk" --> False
     """
+    d, _ = split_host_port(d)
     extracted = tldextract(d)
     if extracted.domain and not extracted.subdomain:
         return True
@@ -54,6 +58,7 @@ def is_subdomain(d):
     "www.evilcorp.co.uk" --> True
     "evilcorp.co.uk" --> False
     """
+    d, _ = split_host_port(d)
     extracted = tldextract(d)
     if extracted.domain and extracted.subdomain:
         return True
@@ -107,9 +112,9 @@ def split_host_port(d):
     host = None
     with suppress(ValueError):
         if parsed.port is None:
-            if parsed.scheme == "https":
+            if parsed.scheme in ("https", "wss"):
                 port = 443
-            elif parsed.scheme == "http":
+            elif parsed.scheme in ("http", "ws"):
                 port = 80
         else:
             port = int(parsed.port)
@@ -121,11 +126,13 @@ def split_host_port(d):
 def parent_domain(d):
     """
     "www.internal.evilcorp.co.uk" --> "internal.evilcorp.co.uk"
+    "www.internal.evilcorp.co.uk:8080" --> "internal.evilcorp.co.uk:8080"
     "www.evilcorp.co.uk" --> "evilcorp.co.uk"
     "evilcorp.co.uk" --> "evilcorp.co.uk"
     """
+    host, port = split_host_port(d)
     if is_subdomain(d):
-        return ".".join(str(d).split(".")[1:])
+        return make_netloc(".".join(str(host).split(".")[1:]), port)
     return d
 
 
@@ -206,6 +213,17 @@ def ip_network_parents(i, include_self=False):
 def is_port(p):
     p = str(p)
     return p and p.isdigit() and 0 <= int(p) <= 65535
+
+
+def is_dns_name(d):
+    if is_ip(d):
+        return False
+    d = smart_decode(d)
+    if regexes.hostname_regex.match(d):
+        return True
+    if regexes.dns_name_regex.match(d):
+        return True
+    return False
 
 
 def is_ip(d, version=None):
@@ -532,10 +550,13 @@ def gen_numbers(n, padding=2):
 
 def make_netloc(host, port):
     """
+    ("192.168.1.1", None) --> "192.168.1.1"
     ("192.168.1.1", 443) --> "192.168.1.1:443"
     ("evilcorp.com", 80) --> "evilcorp.com:80"
     ("dead::beef", 443) --> "[dead::beef]:443"
     """
+    if port is None:
+        return host
     if is_ip(host, version=6):
         host = f"[{host}]"
     return f"{host}:{port}"
@@ -568,8 +589,8 @@ def search_dict_by_key(key, d):
 
 def search_format_dict(d, **kwargs):
     """
-    Recursively .format() string values in dictionary keys
-    search_format_dict({"test": "{name} is awesome"}, name="keanu")
+    Recursively .format() string values in dictionary values
+    search_format_dict({"test": "#{name} is awesome"}, name="keanu")
         --> {"test": "keanu is awesome"}
     """
     if isinstance(d, dict):
@@ -577,8 +598,9 @@ def search_format_dict(d, **kwargs):
     elif isinstance(d, list):
         return [search_format_dict(v, **kwargs) for v in d]
     elif isinstance(d, str):
-        for k, v in kwargs.items():
-            d = d.replace("#{" + str(k) + "}", v)
+        for find, replace in kwargs.items():
+            find = "#{" + str(find) + "}"
+            d = d.replace(find, replace)
     return d
 
 
@@ -920,14 +942,14 @@ def os_platform_friendly():
 tag_filter_regex = re.compile(r"[^a-z0-9]+")
 
 
-def tagify(s):
+def tagify(s, maxlen=None):
     """
     Sanitize a string into a tag-friendly format
 
     tagify("HTTP Web Title") --> "http-web-title"
     """
     ret = str(s).lower()
-    return tag_filter_regex.sub("-", ret).strip("-")
+    return tag_filter_regex.sub("-", ret)[:maxlen].strip("-")
 
 
 def memory_status():
@@ -958,42 +980,44 @@ def swap_status():
 
 def get_size(obj, max_depth=5, seen=None):
     """
-    Recursively get size of object in bytes
+    Rough recursive measurement of a python object's memory footprint
     """
-    size = 0
-    if max_depth <= 0:
-        return size
+    # If seen is not provided, initialize an empty set
+    if seen is None:
+        seen = set()
+    # Get the id of the object
+    obj_id = id(obj)
+    # Decrease the maximum depth for the next recursion
     new_max_depth = max_depth - 1
-    try:
-        size = sys.getsizeof(obj)
-        if seen is None:
-            seen = set()
-        obj_id = id(obj)
-        if obj_id in seen:
-            return 0
-        # Important mark as seen *before* entering recursion to gracefully handle
-        # self-referential objects
-        seen.add(obj_id)
-        if hasattr(obj, "__dict__"):
-            for _cls in obj.__class__.__mro__:
-                if "__dict__" in _cls.__dict__:
-                    d = _cls.__dict__["__dict__"]
-                    if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
-                        size += get_size(obj.__dict__, max_depth=new_max_depth, seen=seen)
-                    break
-        if isinstance(obj, dict):
-            size += sum((get_size(v, max_depth=new_max_depth, seen=seen) for v in obj.values()))
-            size += sum((get_size(k, max_depth=new_max_depth, seen=seen) for k in obj.keys()))
-        # elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
-        #     size += sum((get_size(i, seen) for i in obj))
-        if hasattr(obj, "__slots__"):  # can have __slots__ with __dict__
-            size += sum(
-                get_size(getattr(obj, s), max_depth=new_max_depth, seen=seen) for s in obj.__slots__ if hasattr(obj, s)
-            )
-    except Exception as e:
-        log.debug(f"Error getting size of {obj}: {e}")
-        log.trace(traceback.format_exc())
-
+    # If the object has already been seen or we've reached the maximum recursion depth, return 0
+    if obj_id in seen or new_max_depth <= 0:
+        return 0
+    # Get the size of the object
+    size = sys.getsizeof(obj)
+    # Add the object's id to the set of seen objects
+    seen.add(obj_id)
+    # If the object has a __dict__ attribute, we want to measure its size
+    if hasattr(obj, "__dict__"):
+        # Iterate over the Method Resolution Order (MRO) of the class of the object
+        for cls in obj.__class__.__mro__:
+            # If the class's __dict__ contains a __dict__ key
+            if "__dict__" in cls.__dict__:
+                for k, v in obj.__dict__.items():
+                    size += get_size(k, new_max_depth, seen)
+                    size += get_size(v, new_max_depth, seen)
+                break
+    # If the object is a mapping (like a dictionary), we want to measure the size of its items
+    if isinstance(obj, Mapping):
+        with suppress(StopIteration):
+            k, v = next(iter(obj.items()))
+            size += (get_size(k, new_max_depth, seen) + get_size(v, new_max_depth, seen)) * len(obj)
+    # If the object is a container (like a list or tuple) but not a string or bytes-like object
+    elif isinstance(obj, (list, tuple, set)):
+        with suppress(StopIteration):
+            size += get_size(next(iter(obj)), new_max_depth, seen) * len(obj)
+    # If the object has __slots__, we want to measure the size of the attributes in __slots__
+    if hasattr(obj, "__slots__"):
+        size += sum(get_size(getattr(obj, s), new_max_depth, seen) for s in obj.__slots__ if hasattr(obj, s))
     return size
 
 
@@ -1020,3 +1044,78 @@ def cloudcheck(ip):
         with suppress(KeyError):
             provider = provider_map[provider.lower()]
     return provider, provider_type, subnet
+
+
+def is_async_function(f):
+    return inspect.iscoroutinefunction(f)
+
+
+async def execute_sync_or_async(callback, *args, **kwargs):
+    if is_async_function(callback):
+        return await callback(*args, **kwargs)
+    else:
+        return callback(*args, **kwargs)
+
+
+def get_exception_chain(e):
+    """
+    Get the full chain of exceptions that led to the current one
+    """
+    exception_chain = []
+    current_exception = e
+    while current_exception is not None:
+        exception_chain.append(current_exception)
+        current_exception = getattr(current_exception, "__context__", None)
+    return exception_chain
+
+
+def get_traceback_details(e):
+    tb = traceback.extract_tb(e.__traceback__)
+    last_frame = tb[-1]  # Get the last frame in the traceback (the one where the exception was raised)
+    filename = last_frame.filename
+    lineno = last_frame.lineno
+    funcname = last_frame.name
+    return filename, lineno, funcname
+
+
+async def cancel_tasks(tasks):
+    current_task = asyncio.current_task()
+    tasks = [t for t in tasks if t != current_task]
+    for task in tasks:
+        log.debug(f"Cancelling task: {task}")
+        task.cancel()
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            log.trace(traceback.format_exc())
+
+
+def cancel_tasks_sync(tasks):
+    current_task = asyncio.current_task()
+    for task in tasks:
+        if task != current_task:
+            log.debug(f"Cancelling task: {task}")
+            task.cancel()
+
+
+def weighted_shuffle(items, weights):
+    # Create a list of tuples where each tuple is (item, weight)
+    pool = list(zip(items, weights))
+
+    shuffled_items = []
+
+    # While there are still items to be chosen...
+    while pool:
+        # Normalize weights
+        total = sum(weight for item, weight in pool)
+        weights = [weight / total for item, weight in pool]
+
+        # Choose an index based on weight
+        chosen_index = random.choices(range(len(pool)), weights=weights, k=1)[0]
+
+        # Add the chosen item to the shuffled list
+        chosen_item, chosen_weight = pool.pop(chosen_index)
+        shuffled_items.append(chosen_item)
+
+    return shuffled_items

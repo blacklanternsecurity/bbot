@@ -4,7 +4,7 @@ from contextlib import suppress
 
 from bbot.core.errors import ValidationError
 from bbot.core.helpers import sha1, smart_decode, smart_decode_punycode
-from bbot.core.helpers.regexes import event_type_regexes, event_id_regex, _hostname_regex
+from bbot.core.helpers.regexes import event_type_regexes, event_id_regex, hostname_regex
 
 
 log = logging.getLogger("bbot.core.event.helpers")
@@ -36,7 +36,7 @@ def get_event_type(data):
                 return t
 
     # Assume DNS_NAME for basic words
-    if _hostname_regex.match(data):
+    if hostname_regex.match(data):
         return "DNS_NAME"
 
     raise ValidationError(f'Unable to autodetect event type from "{data}"')

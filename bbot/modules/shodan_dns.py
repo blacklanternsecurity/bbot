@@ -16,21 +16,23 @@ class shodan_dns(crobat):
 
     base_url = "https://api.shodan.io"
 
-    def setup(self):
-        super().setup()
-        return self.require_api_key()
+    async def setup(self):
+        await super().setup()
+        return await self.require_api_key()
 
-    def ping(self):
-        r = self.request_with_fail_count(f"{self.base_url}/api-info?key={self.api_key}")
+    async def ping(self):
+        url = f"{self.base_url}/api-info?key={self.api_key}"
+        r = await self.request_with_fail_count(url)
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={self.api_key}"
-        return self.request_with_fail_count(url)
+        response = await self.request_with_fail_count(url)
+        return response
 
     def parse_results(self, r, query):
         json = r.json()
         if json:
-            for hostname in json.get("subdomains"):
+            for hostname in json.get("subdomains", []):
                 yield f"{hostname}.{query}"

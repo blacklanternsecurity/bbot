@@ -1,6 +1,6 @@
 import re
 import json
-import requests
+import httpx
 
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.misc import tldextract
@@ -18,9 +18,9 @@ class subdomain_hijack(BaseModule):
     scope_distance_modifier = 3
     max_event_handlers = 5
 
-    def setup(self):
+    async def setup(self):
         fingerprints_url = self.config.get("fingerprints")
-        fingerprints_file = self.helpers.wordlist(fingerprints_url)
+        fingerprints_file = await self.helpers.wordlist(fingerprints_url)
         with open(fingerprints_file) as f:
             fingerprints = json.load(f)
         self.fingerprints = []
@@ -40,8 +40,8 @@ class subdomain_hijack(BaseModule):
         self.debug(f"Successfully processed {len(self.fingerprints):,} fingerprints")
         return True
 
-    def handle_event(self, event):
-        hijackable, reason = self.check_subdomain(event)
+    async def handle_event(self, event):
+        hijackable, reason = await self.check_subdomain(event)
         if hijackable:
             source_hosts = []
             e = event
@@ -66,7 +66,7 @@ class subdomain_hijack(BaseModule):
         else:
             self.debug(reason)
 
-    def check_subdomain(self, event):
+    async def check_subdomain(self, event):
         for f in self.fingerprints:
             for domain in f.domains:
                 self_matches = self.helpers.host_in_host(event.data, domain)
@@ -81,25 +81,25 @@ class subdomain_hijack(BaseModule):
                                 return False, "Scan cancelled"
                             # first, try base request
                             url = f"{scheme}://{event.data}"
-                            match, reason = self._verify_fingerprint(f, url, cache_for=60 * 60 * 24)
+                            match, reason = await self._verify_fingerprint(f, url, cache_for=60 * 60 * 24)
                             if match:
                                 return match, reason
                             # next, try subdomain -[CNAME]-> other_domain
                             url = f"{scheme}://{domain}"
                             headers = {"Host": event.data}
-                            match, reason = self._verify_fingerprint(f, url, headers=headers)
+                            match, reason = await self._verify_fingerprint(f, url, headers=headers)
                             if match:
                                 return match, reason
         return False, f'Subdomain "{event.data}" not hijackable'
 
-    def _verify_fingerprint(self, fingerprint, *args, **kwargs):
+    async def _verify_fingerprint(self, fingerprint, *args, **kwargs):
         kwargs["raise_error"] = True
         kwargs["timeout"] = 10
         kwargs["retries"] = 0
         if fingerprint.http_status is not None:
             kwargs["allow_redirects"] = False
         try:
-            r = self.helpers.request(*args, **kwargs)
+            r = await self.helpers.request(*args, **kwargs)
             if fingerprint.http_status is not None and r.status_code == fingerprint.http_status:
                 return True, f"HTTP status == {fingerprint.http_status}"
             text = getattr(r, "text", "")
@@ -109,7 +109,7 @@ class subdomain_hijack(BaseModule):
                 and fingerprint.fingerprint_regex.findall(text)
             ):
                 return True, "Fingerprint match"
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             if fingerprint.nxdomain and "Name or service not known" in str(e):
                 return True, f"NXDOMAIN"
         return False, "No match"

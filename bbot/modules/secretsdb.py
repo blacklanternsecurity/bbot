@@ -19,10 +19,10 @@ class secretsdb(BaseModule):
     }
     deps_pip = ["pyyaml~=6.0"]
 
-    def setup(self):
+    async def setup(self):
         self.rules = []
         self.min_confidence = self.config.get("min_confidence", 99)
-        self.sig_file = self.helpers.wordlist(self.config.get("signatures", ""))
+        self.sig_file = await self.helpers.wordlist(self.config.get("signatures", ""))
         with open(self.sig_file) as f:
             rules_yaml = yaml.safe_load(f).get("patterns", [])
         for r in rules_yaml:
@@ -41,9 +41,25 @@ class secretsdb(BaseModule):
                     self.debug(f"Error compiling regex: r'{regex}'")
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         resp_body = event.data.get("body", "")
         resp_headers = event.data.get("raw_header", "")
+        all_matches = await self.scan.run_in_executor(self.search_data, resp_body, resp_headers)
+        for matches, name in all_matches:
+            matches = [m.string[m.start() : m.end()] for m in matches]
+            description = f"Possible secret ({name}): {matches}"
+            event_data = {"host": str(event.host), "description": description}
+            parsed_url = getattr(event, "parsed", None)
+            if parsed_url:
+                event_data["url"] = parsed_url.geturl()
+            self.emit_event(
+                event_data,
+                "FINDING",
+                source=event,
+            )
+
+    def search_data(self, resp_body, resp_headers):
+        all_matches = []
         for r in self.rules:
             regex = r["regex"]
             name = r["name"]
@@ -51,14 +67,5 @@ class secretsdb(BaseModule):
                 if text:
                     matches = list(regex.finditer(text))
                     if matches:
-                        matches = [m.string[m.start() : m.end()] for m in matches]
-                        description = f"Possible secret ({name}): {matches}"
-                        event_data = {"host": str(event.host), "description": description}
-                        parsed_url = getattr(event, "parsed", None)
-                        if parsed_url:
-                            event_data["url"] = parsed_url.geturl()
-                        self.emit_event(
-                            event_data,
-                            "FINDING",
-                            source=event,
-                        )
+                        all_matches.append((matches, name))
+        return all_matches

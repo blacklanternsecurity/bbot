@@ -10,14 +10,12 @@ class dnsdumpster(crobat):
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Query dnsdumpster for subdomains"}
 
-    deps_pip = ["bs4", "lxml~=4.9.2"]
-
     base_url = "https://dnsdumpster.com"
 
-    def query(self, domain):
+    async def query(self, domain):
         ret = []
         # first, get the CSRF tokens
-        res1 = self.request_with_fail_count(self.base_url)
+        res1 = await self.request_with_fail_count(self.base_url)
         status_code = getattr(res1, "status_code", 0)
         if status_code in [429]:
             self.verbose(f'Too many requests "{status_code}"')
@@ -27,7 +25,7 @@ class dnsdumpster(crobat):
             return ret
         else:
             self.debug(f'Valid response code "{status_code}" from DNSDumpster')
-        html = BeautifulSoup(res1.content, features="lxml")
+        html = BeautifulSoup(res1.content, "html.parser")
         csrftoken = None
         csrfmiddlewaretoken = None
         try:
@@ -56,7 +54,7 @@ class dnsdumpster(crobat):
 
         # Otherwise, do the needful
         subdomains = set()
-        res2 = self.request_with_fail_count(
+        res2 = await self.request_with_fail_count(
             f"{self.base_url}/",
             method="POST",
             cookies={"csrftoken": csrftoken},
@@ -75,7 +73,7 @@ class dnsdumpster(crobat):
             self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
 
-        html = BeautifulSoup(res2.content, features="lxml")
+        html = BeautifulSoup(res2.content, "html.parser")
         escaped_domain = re.escape(domain)
         match_pattern = re.compile(r"^[\w\.-]+\." + escaped_domain + r"$")
         for subdomain in html.findAll(text=match_pattern):

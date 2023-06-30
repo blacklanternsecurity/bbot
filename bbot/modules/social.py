@@ -22,11 +22,11 @@ class social(BaseModule):
 
     scope_distance_modifier = 1
 
-    def setup(self):
+    async def setup(self):
         self.compiled_regexes = {k: re.compile(v) for k, v in self.social_media_regex.items()}
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         for platform, regex in self.compiled_regexes.items():
             for match in regex.findall(event.data):
                 social_media_links = {"platform": platform, "url": match}

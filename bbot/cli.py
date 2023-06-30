@@ -2,6 +2,7 @@
 
 import os
 import sys
+import asyncio
 import logging
 import threading
 import traceback
@@ -19,7 +20,7 @@ from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
 from bbot.core.helpers.logger import log_to_stderr
-from bbot.core.configurator import ensure_config_files, check_cli_args
+from bbot.core.configurator import ensure_config_files, check_cli_args, environ
 
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
@@ -31,9 +32,38 @@ log_level = get_log_level()
 from . import config
 
 
-def main():
-    err = False
-    scan_name = ""
+err = False
+scan_name = ""
+
+
+async def _main():
+    global err
+    global scan_name
+    environ.cli_execution = True
+
+    # async def monitor_tasks():
+    #     in_row = 0
+    #     while 1:
+    #         try:
+    #             print('looooping')
+    #             tasks = asyncio.all_tasks()
+    #             current_task = asyncio.current_task()
+    #             if len(tasks) == 1 and list(tasks)[0] == current_task:
+    #                 print('no tasks')
+    #                 in_row += 1
+    #             else:
+    #                 in_row = 0
+    #             for t in tasks:
+    #                 print(t)
+    #             if in_row > 2:
+    #                 break
+    #             await asyncio.sleep(1)
+    #         except BaseException as e:
+    #             print(traceback.format_exc())
+    #             with suppress(BaseException):
+    #                 await asyncio.sleep(.1)
+
+    # monitor_tasks_task = asyncio.create_task(monitor_tasks())
 
     ensure_config_files()
 
@@ -65,7 +95,7 @@ def main():
             agent = Agent(config)
             success = agent.setup()
             if success:
-                agent.start()
+                await agent.start()
 
         else:
             from bbot.scanner import Scanner
@@ -95,12 +125,8 @@ def main():
                     k for k, v in module_loader.preloaded(type="output").items() if "console" in v["config"]
                 ]
 
-                # If no options are specified, use the default set
-                if not options.output_modules:
-                    options.output_modules = default_output_modules
-
                 # if none of the output modules provided on the command line are consoleable, don't turn off the defaults. Instead, just add the one specified to the defaults.
-                elif not any(o in consoleable_output_modules for o in options.output_modules):
+                if not any(o in consoleable_output_modules for o in options.output_modules):
                     options.output_modules += default_output_modules
 
                 scanner = Scanner(
@@ -118,9 +144,9 @@ def main():
                 if options.install_all_deps:
                     all_modules = list(module_loader.preloaded())
                     scanner.helpers.depsinstaller.force_deps = True
-                    scanner.helpers.depsinstaller.install(*all_modules)
+                    succeeded, failed = await scanner.helpers.depsinstaller.install(*all_modules)
                     log.info("Finished installing module dependencies")
-                    return
+                    return False if failed else True
 
                 scan_name = str(scanner.name)
 
@@ -238,7 +264,7 @@ def main():
                         log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
                         log.hugewarning(f"Deadly modules are highly intrusive")
                         log.hugewarning(f"Please specify --allow-deadly to continue")
-                        return
+                        return False
                     if active_modules:
                         if active_modules:
                             if active_aggressive_modules:
@@ -256,9 +282,9 @@ def main():
                             f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take longer than usual"
                         )
 
-                scanner.helpers.word_cloud.load(options.load_wordcloud)
+                scanner.helpers.word_cloud.load()
 
-                scanner.prep()
+                await scanner.prep()
 
                 if not options.dry_run:
                     if not options.agent_mode and not options.yes and sys.stdin.isatty():
@@ -276,21 +302,19 @@ def main():
                                 allowed_errors -= 1
                             if not keyboard_input:
                                 toggle_log_level(logger=log)
+                                scanner.manager.modules_status(_log=True)
                             if allowed_errors <= 0:
                                 break
 
                     keyboard_listen_thread = threading.Thread(target=keyboard_listen, daemon=True)
                     keyboard_listen_thread.start()
 
-                    scanner.start_without_generator()
+                    await scanner.async_start_without_generator()
 
             except bbot.core.errors.ScanError as e:
                 log_to_stderr(str(e), level="ERROR")
             except Exception:
                 raise
-            finally:
-                with suppress(NameError):
-                    scanner.cleanup()
 
     except bbot.core.errors.BBOTError as e:
         log_to_stderr(f"{e} (--debug for details)", level="ERROR")
@@ -302,17 +326,10 @@ def main():
         log_to_stderr(f"Encountered unknown error: {traceback.format_exc()}", level="ERROR")
         err = True
 
-    except KeyboardInterrupt:
-        msg = "Interrupted"
-        if scan_name:
-            msg = f"You killed {scan_name}"
-        log_to_stderr(msg, level="ERROR")
-        err = True
-
     finally:
         # save word cloud
         with suppress(BaseException):
-            save_success, filename = scanner.helpers.word_cloud.save(options.save_wordcloud)
+            save_success, filename = scanner.helpers.word_cloud.save()
             if save_success:
                 log_to_stderr(f"Saved word cloud ({len(scanner.helpers.word_cloud):,} words) to {filename}")
         # remove output directory if empty
@@ -321,13 +338,22 @@ def main():
         if err:
             os._exit(1)
 
-        # debug troublesome modules
-        """
-        from time import sleep
-        while 1:
-            scanner.manager.modules_status(_log=True)
-            sleep(1)
-        """
+
+def main():
+    global scan_name
+    try:
+        asyncio.run(_main())
+    except asyncio.CancelledError:
+        if get_log_level() <= logging.DEBUG:
+            log_to_stderr(traceback.format_exc(), level="DEBUG")
+    except KeyboardInterrupt:
+        msg = "Interrupted"
+        if scan_name:
+            msg = f"You killed {scan_name}"
+        log_to_stderr(msg, level="WARNING")
+        if get_log_level() <= logging.DEBUG:
+            log_to_stderr(traceback.format_exc(), level="DEBUG")
+        exit(1)
 
 
 if __name__ == "__main__":

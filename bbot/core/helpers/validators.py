@@ -62,7 +62,7 @@ def validate_host(host):
             for r in regexes.event_type_regexes["DNS_NAME"]:
                 if r.match(host):
                     return host
-            if regexes._hostname_regex.match(host):
+            if regexes.hostname_regex.match(host):
                 return host
     assert False, f'Invalid hostname: "{host}"'
 

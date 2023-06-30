@@ -46,20 +46,18 @@ class ffuf(BaseModule):
 
     in_scope_only = True
 
-    def setup(self):
+    async def setup(self):
         self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
-        self.wordlist = self.helpers.wordlist(wordlist_url)
-        f = open(self.wordlist, "r")
-        self.wordlist_lines = f.readlines()
-        f.close()
+        self.wordlist = await self.helpers.wordlist(wordlist_url)
+        self.wordlist_lines = list(self.helpers.read_file(self.wordlist))
         self.tempfile, tempfile_len = self.generate_templist()
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
-        self.extensions = self.config.get("extensions")
+        self.extensions = self.config.get("extensions", "")
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         if self.helpers.url_depth(event.data) > self.config.get("max_depth"):
             self.debug(f"Exceeded max depth, aborting event")
             return
@@ -77,17 +75,17 @@ class ffuf(BaseModule):
             for ext in self.extensions.split(","):
                 exts.append(f".{ext}")
 
-        filters = self.baseline_ffuf(fixed_url, exts=exts)
-        for r in self.execute_ffuf(self.tempfile, fixed_url, exts=exts, filters=filters):
+        filters = await self.baseline_ffuf(fixed_url, exts=exts)
+        async for r in self.execute_ffuf(self.tempfile, fixed_url, exts=exts, filters=filters):
             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if "endpoint" in event.tags:
             self.debug(f"rejecting URL [{event.data}] because we don't ffuf endpoints")
             return False
         return True
 
-    def baseline_ffuf(self, url, exts=[""], prefix="", suffix="", mode="normal"):
+    async def baseline_ffuf(self, url, exts=[""], prefix="", suffix="", mode="normal"):
         filters = {}
         for ext in exts:
             self.debug(f"running baseline for URL [{url}] with ext [{ext}]")
@@ -102,7 +100,7 @@ class ffuf(BaseModule):
                 canary_length += 2
 
             canary_temp_file = self.helpers.tempfile(canary_list, pipe=False)
-            for canary_r in self.execute_ffuf(
+            async for canary_r in self.execute_ffuf(
                 canary_temp_file,
                 url,
                 prefix=prefix,
@@ -194,7 +192,7 @@ class ffuf(BaseModule):
 
         return filters
 
-    def execute_ffuf(
+    async def execute_ffuf(
         self,
         tempfile,
         url,
@@ -261,7 +259,7 @@ class ffuf(BaseModule):
                 command.append("-mc")
                 command.append("all")
 
-            for found in self.helpers.run_live(command):
+            async for found in self.helpers.run_live(command):
                 try:
                     found_json = json.loads(found)
                     input_json = found_json.get("input", {})
@@ -280,8 +278,9 @@ class ffuf(BaseModule):
                             if mode == "normal":
                                 # before emitting, we are going to send another baseline. This will immediately catch things like a WAF flipping blocking on us mid-scan
                                 if baseline == False:
-                                    pre_emit_temp_canary = list(
-                                        self.execute_ffuf(
+                                    pre_emit_temp_canary = [
+                                        f
+                                        async for f in self.execute_ffuf(
                                             self.helpers.tempfile(
                                                 ["".join(random.choice(string.ascii_lowercase) for i in range(4))],
                                                 pipe=False,
@@ -294,7 +293,7 @@ class ffuf(BaseModule):
                                             baseline=True,
                                             filters=filters,
                                         )
-                                    )
+                                    ]
                                     if len(pre_emit_temp_canary) == 0:
                                         yield found_json
                                     else:

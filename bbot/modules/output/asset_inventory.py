@@ -1,5 +1,6 @@
 import csv
 import ipaddress
+from contextlib import suppress
 
 from .csv import CSV
 from bbot.core.helpers.misc import make_ip_type, is_ip, is_port
@@ -33,7 +34,7 @@ class asset_inventory(CSV):
     header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
     filename = "asset-inventory.csv"
 
-    def setup(self):
+    async def setup(self):
         self.assets = {}
         self.open_port_producers = "httpx" in self.scan.modules or any(
             ["portscan" in m.flags for m in self.scan.modules.values()]
@@ -41,10 +42,11 @@ class asset_inventory(CSV):
         self.use_previous = self.config.get("use_previous", False)
         self.summary_netmask = self.config.get("summary_netmask", 16)
         self.emitted_contents = False
-        ret = super().setup()
+        self._ran_hooks = False
+        ret = await super().setup()
         return ret
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if event._internal:
             return False, "event is internal"
         if event.type not in self.watched_events:
@@ -55,14 +57,14 @@ class asset_inventory(CSV):
             return False, "event is unresolved"
         return True, ""
 
-    def handle_event(self, event):
-        if self.filter_event(event)[0]:
+    async def handle_event(self, event):
+        if (await self.filter_event(event))[0]:
             hostkey = _make_hostkey(event.host, event.resolved_hosts)
             if hostkey not in self.assets:
                 self.assets[hostkey] = Asset(event.host)
             self.assets[hostkey].absorb_event(event)
 
-    def report(self):
+    async def report(self):
         stats = dict()
         totals = dict()
 
@@ -78,7 +80,14 @@ class asset_inventory(CSV):
             except KeyError:
                 stats[stat][value] = 1
 
-        for asset in sorted(self.assets.values(), key=lambda a: str(a.host)):
+        def sort_key(asset):
+            host = str(asset.host)
+            is_digit = False
+            with suppress(IndexError):
+                is_digit = host[0].isdigit()
+            return (is_digit, host)
+
+        for asset in sorted(self.assets.values(), key=sort_key):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             ports = getattr(asset, "ports", set())
             ports = [str(p) for p in sorted([int(p) for p in asset.ports])]
@@ -117,10 +126,9 @@ class asset_inventory(CSV):
                 self.log_table(table, table_header, table_name=f"asset-inventory-{header}")
 
         if self._file is not None:
-            with self._report_lock:
-                self.info(f"Saved asset-inventory output to {self.output_file}")
+            self.info(f"Saved asset-inventory output to {self.output_file}")
 
-    def emit_contents(self):
+    async def finish(self):
         if self.use_previous and not self.emitted_contents:
             self.emitted_contents = True
             if self.output_file.is_file():
@@ -158,9 +166,8 @@ class asset_inventory(CSV):
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
                 )
-
-    def finish(self):
-        self.emit_contents()
+        else:
+            self._run_hooks()
 
     def _run_hooks(self):
         """

@@ -24,7 +24,7 @@ class iis_shortnames(BaseModule):
 
     max_event_handlers = 8
 
-    def detect(self, target):
+    async def detect(self, target):
         technique = None
         detections = []
         random_string = self.helpers.rand_string(8)
@@ -32,8 +32,8 @@ class iis_shortnames(BaseModule):
         test_url = f"{target}*~1*/a.aspx"
 
         for method in ["GET", "POST", "OPTIONS", "DEBUG", "HEAD", "TRACE"]:
-            control = self.helpers.request(method=method, url=control_url, allow_redirects=False, timeout=10)
-            test = self.helpers.request(method=method, url=test_url, allow_redirects=False, timeout=10)
+            control = await self.helpers.request(method=method, url=control_url, allow_redirects=False, timeout=10)
+            test = await self.helpers.request(method=method, url=test_url, allow_redirects=False, timeout=10)
             if (control != None) and (test != None):
                 if control.status_code != test.status_code:
                     technique = f"{str(control.status_code)}/{str(test.status_code)} HTTP Code"
@@ -46,7 +46,7 @@ class iis_shortnames(BaseModule):
                     technique = "HTTP Body Error Message"
         return detections
 
-    def setup(self):
+    async def setup(self):
         self.scanned_tracker_lock = Lock()
         self.scanned_tracker = set()
         return True
@@ -55,10 +55,10 @@ class iis_shortnames(BaseModule):
     def normalize_url(url):
         return str(url.rstrip("/") + "/").lower()
 
-    def directory_confirm(self, target, method, url_hint, affirmative_status_code):
+    async def directory_confirm(self, target, method, url_hint, affirmative_status_code):
         payload = encode_all(f"{url_hint}")
         url = f"{target}{payload}"
-        directory_confirm_result = self.helpers.request(
+        directory_confirm_result = await self.helpers.request(
             method=method, url=url, allow_redirects=False, retries=2, timeout=10
         )
 
@@ -67,17 +67,17 @@ class iis_shortnames(BaseModule):
         else:
             return False
 
-    def duplicate_check(self, target, method, url_hint, affirmative_status_code):
+    async def duplicate_check(self, target, method, url_hint, affirmative_status_code):
         duplicates = []
         count = 2
         base_hint = re.sub(r"~\d", "", url_hint)
-        suffix = "\\a.aspx"
+        suffix = "/a.aspx"
 
         while 1:
             payload = encode_all(f"{base_hint}~{str(count)}*")
             url = f"{target}{payload}{suffix}"
 
-            duplicate_check_results = self.helpers.request(
+            duplicate_check_results = await self.helpers.request(
                 method=method, url=url, allow_redirects=False, retries=2, timeout=10
             )
             if duplicate_check_results.status_code != affirmative_status_code:
@@ -92,30 +92,30 @@ class iis_shortnames(BaseModule):
 
         return duplicates
 
-    def threaded_request(self, method, url, affirmative_status_code):
-        r = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
+    async def threaded_request(self, method, url, affirmative_status_code, c):
+        r = await self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
         if r is not None:
             if r.status_code == affirmative_status_code:
-                return True
+                return True, c
+        return None, c
 
-    def solve_shortname_recursive(
+    async def solve_shortname_recursive(
         self, method, target, prefix, affirmative_status_code, extension_mode=False, node_count=0
     ):
         url_hint_list = []
         found_results = False
 
-        futures = {}
+        tasks = []
         for c in valid_chars:
-            suffix = "\\a.aspx"
+            suffix = "/a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
-            future = self.submit_task(self.threaded_request, method, url, affirmative_status_code)
-            futures[future] = c
+            task = self.helpers.create_task(self.threaded_request(method, url, affirmative_status_code, c))
+            tasks.append(task)
 
-        for future in self.helpers.as_completed(futures):
-            c = futures[future]
-            result = future.result()
+        for task in self.helpers.as_completed(tasks):
+            result, c = await task
             if result:
                 found_results = True
                 node_count += 1
@@ -130,12 +130,12 @@ class iis_shortnames(BaseModule):
                 wildcard = "~1*"
                 payload = encode_all(f"{prefix}{c}{wildcard}")
                 url = f"{target}{payload}{suffix}"
-                r = self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
+                r = await self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
                 if r is not None:
                     if r.status_code == affirmative_status_code:
                         url_hint_list.append(f"{prefix}{c}")
 
-                url_hint_list += self.solve_shortname_recursive(
+                url_hint_list += await self.solve_shortname_recursive(
                     method, target, f"{prefix}{c}", affirmative_status_code, extension_mode, node_count=node_count
                 )
         if len(prefix) > 0 and found_results == False:
@@ -143,12 +143,12 @@ class iis_shortnames(BaseModule):
             self.verbose(f"Found new (possibly partial) URL_HINT: {prefix} from node {target}")
         return url_hint_list
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         normalized_url = self.normalize_url(event.data)
         with self.scanned_tracker_lock:
             self.scanned_tracker.add(normalized_url)
 
-        detections = self.detect(normalized_url)
+        detections = await self.detect(normalized_url)
 
         technique_strings = []
         if detections:
@@ -171,7 +171,7 @@ class iis_shortnames(BaseModule):
                         break
 
                     file_name_hints = list(
-                        set(self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code))
+                        set(await self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code))
                     )
                     if len(file_name_hints) == 0:
                         continue
@@ -184,19 +184,18 @@ class iis_shortnames(BaseModule):
                     file_name_hints_dedupe = file_name_hints[:]
 
                     for x in file_name_hints_dedupe:
-                        duplicates = self.duplicate_check(normalized_url, method, x, affirmative_status_code)
+                        duplicates = await self.duplicate_check(normalized_url, method, x, affirmative_status_code)
                         if duplicates:
                             file_name_hints += duplicates
 
                     # check for the case of a folder and file with the same filename
-
                     for d in file_name_hints:
-                        if self.directory_confirm(normalized_url, method, d, affirmative_status_code):
+                        if await self.directory_confirm(normalized_url, method, d, affirmative_status_code):
                             self.verbose(f"Confirmed Directory URL_HINT: {d} from node {normalized_url}")
                             url_hint_list.append(d)
 
                     for y in file_name_hints:
-                        file_name_extension_hints = self.solve_shortname_recursive(
+                        file_name_extension_hints = await self.solve_shortname_recursive(
                             method, normalized_url, f"{y}.", affirmative_status_code, extension_mode=True
                         )
                         for z in file_name_extension_hints:
@@ -212,7 +211,7 @@ class iis_shortnames(BaseModule):
                             hint_type = "shortname-directory"
                         self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if "dir" in event.tags:
             with self.scanned_tracker_lock:
                 if self.normalize_url(event.data) not in self.scanned_tracker:

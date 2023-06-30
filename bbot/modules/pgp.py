@@ -14,20 +14,22 @@ class pgp(crobat):
     }
     options_desc = {"search_urls": "PGP key servers to search"}
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
-        results = self.query(query)
+        results = await self.query(query)
         if results:
             for hostname in results:
                 if not hostname == event:
                     self.emit_event(hostname, "EMAIL_ADDRESS", event, abort_if=self.abort_if)
 
-    def query(self, query):
+    async def query(self, query):
+        results = set()
         for url in self.config.get("search_urls", []):
             url = url.replace("<query>", self.helpers.quote(query))
-            response = self.helpers.request(url)
+            response = await self.helpers.request(url)
             if response is not None:
                 for email in self.helpers.extract_emails(response.text):
                     email = email.lower()
-                    if email.lower().endswith(query):
-                        yield email
+                    if email.endswith(query):
+                        results.add(email)
+        return results

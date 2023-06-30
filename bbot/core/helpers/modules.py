@@ -1,6 +1,7 @@
 import ast
 import sys
 import importlib
+import traceback
 from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
@@ -41,8 +42,6 @@ class ModuleLoader:
                 self._configs[module_file.stem] = config
                 self._preloaded[module_file.stem] = preloaded
             except Exception:
-                import traceback
-
                 print(f"[CRIT] Error preloading {module_file}\n\n{traceback.format_exc()}")
                 print(f"[CRIT] Error in {module_file.name}")
                 sys.exit(1)

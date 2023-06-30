@@ -1,4 +1,4 @@
-from requests.exceptions import RequestException  # noqa F401
+from httpx import RequestError, ReadTimeout  # noqa
 
 
 class BBOTError(Exception):
@@ -6,10 +6,6 @@ class BBOTError(Exception):
 
 
 class ScanError(BBOTError):
-    pass
-
-
-class ScanCancelledError(BBOTError):
     pass
 
 
