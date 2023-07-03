@@ -124,7 +124,7 @@ class WebHelper:
         Caching supported via "cache_hrs"
         """
         success = False
-        filename = kwargs.get(filename, self.parent_helper.cache_filename(url))
+        filename = kwargs.get("filename", self.parent_helper.cache_filename(url))
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
         log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
         if cache_hrs > 0 and self.parent_helper.is_cached(url):
