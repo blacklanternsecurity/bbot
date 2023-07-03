@@ -10,13 +10,13 @@ event type      event data          source module    tags
 
 In addition to the obvious data (e.g. `www.evilcorp.com`), an event also contains other useful information such as:
 
-- a `.timestamp` of when the event was discovered
+- a `.timestamp` of when the data was discovered
 - the `.module` that discovered it
 - the `.source` event that led to its discovery
 - its `.scope_distance` (how many hops it is from the main scope, 0 == in-scope)
 - a list of `.tags` that describe the data (`mx-record`, `http-title`, etc.)
 
-These attributes allow us to construct a visual graph of events (e.g. in Neo4j) and let us query/filter/grep them more easily.
+These attributes allow us to construct a visual graph of events (e.g. in Neo4j) and query/filter/grep them more easily.
 
 See below for a full list of event types and which modules produce/consume them.
 

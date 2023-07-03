@@ -73,4 +73,4 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 ```
 <!-- END BBOT EXAMPLE COMMANDS -->
 
-For more information, see [Scanning](./scanning)
+## Next: [Scanning](./scanning)

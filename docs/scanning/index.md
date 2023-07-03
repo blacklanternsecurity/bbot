@@ -2,7 +2,7 @@
 
 <video controls="" autoplay="" name="media"><source src="https://github-production-user-asset-6210df.s3.amazonaws.com/20261699/245941416-ebf2a81e-7530-4a9e-922d-4e62eb949f35.mp4" type="video/mp4"></video>
 
-*A BBOT scan in real-time - visualization courtesy of [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)*
+*A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)*
 
 
 ## Targets (`-t`)
@@ -29,44 +29,6 @@ $ bbot -t targets.txt fsociety.com 5.6.7.0/24 -m nmap
 ~~~
 
 On start, BBOT automatically converts Targets into [Events](./events).
-
-## Scope
-
-For pentesters and bug bounty hunters, staying in scope is extremely important. BBOT takes this seriously, meaning that active modules (e.g. `nuclei`) will only touch in-scope resources.
-
-By default, whatever you specify with `-t` becomes in-scope. This includes child subdomains. For example, if you specify `-t evilcorp.com`, any subdomains (`www.evilcorp.com`, `mail.evilcorp.com`, etc.) become in-scope.
-
-### Scope Distance
-
-Since BBOT is recursive, it would quickly resort to scannning the entire internet if left unscoped. To solve this problem, every [event](./events) discovered by BBOT is assigned a **Scope Distance**. Scope distance represents how far out from the main scope that data was discovered.
-
-For example, if your target is `evilcorp.com` and `evilcorp.com` resolves to `1.2.3.4`, `evilcorp.com` itself would have a scope distance of `0` (i.e. in-scope) and `1.2.3.4` would have a scope distance of `1`. 
-
-Scope distance continues to increase the further out you get. Most modules (e.g. `nuclei` and `nmap`) only consume in-scope events. Certain other passive modules such as `asn` accept out to distance `1`. By default, DNS resolution happens out to a distance of `2`. Any [event](./events) that's determined to be in-scope (i.e. `www.evilcorp.com`) immediately becomes distance `0`, and the cycle of discovery starts again.
-
-### Strict Scope
-
-If you want to scan ***only*** that specific target hostname and none of its children, you can specify `--strict-scope`.
-
-Note that `--strict-scope` only applies to targets and whitelists, but not blacklists. This means that if you put `internal.evilcorp.com` in your blacklist, you can be sure none of its subdomains will be scanned, even when using `--strict-scope`.
-
-### Whitelists and Blacklists
-
-BBOT allows precise control over scope with whitelists and blacklists. These both use the same syntax as `--target`, meaning they accept the same event types, and you can specify an unlimited number of them, via a file, the CLI, or both.
-
-`--whitelist` enables you to override what's in scope. For example, if you want to run nuclei against `evilcorp.com`, but stay only inside their corporate IP range of `1.2.3.0/24`, you can accomplish this like so:
-
-```bash
-# Seed scan with evilcorp.com, but restrict scope to 1.2.3.0/24
-bbot -t evilcorp.com --whitelist 1.2.3.0/24 -f subdomain-enum -m nmap nuclei --allow-deadly
-```
-
-`--blacklist` takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it's in the whitelist.
-
-```bash
-# Scan evilcorp.com, but exclude internal.evilcorp.com and its children
-bbot -t evilcorp.com --blacklist internal.evilcorp.com -f subdomain-enum -m nmap nuclei --allow-deadly
-```
 
 ## Modules (`-m`)
 
@@ -151,3 +113,52 @@ A single module can have multiple flags. For example, the `securitytrails` modul
 | web-screenshots  | 1           |               | gowitness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | service-enum     | 1           |               | fingerprintx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 <!-- END BBOT MODULE FLAGS -->
+
+
+
+## Scope
+
+For pentesters and bug bounty hunters, staying in scope is extremely important. BBOT takes this seriously, meaning that active modules (e.g. `nuclei`) will only touch in-scope resources.
+
+By default, scope is whatever you specify with `-t`. This includes child subdomains. For example, if you specify `-t evilcorp.com`, all its subdomains (`www.evilcorp.com`, `mail.evilcorp.com`, etc.) also become in-scope.
+
+### Scope Distance
+
+Since BBOT is recursive, it would quickly resort to scannning the entire internet if not properly restrained. To solve this problem, every [event](./events) discovered by BBOT is assigned a **Scope Distance**. Scope distance represents how far out from the main scope that data was discovered.
+
+For example, if your target is `evilcorp.com`, `www.evilcorp.com` itself would have a scope distance of `0` (i.e. in-scope). If BBOT discovers that `www.evilcorp.com` resolves to `1.2.3.4`, `1.2.3.4` is one hop away, which means it would have a scope distance of `1`. If `1.2.3.4` has a PTR record that points to `ecorp.blob.core.windows.net`, `ecorp.blob.core.windows.net` is two hops away, so its scope distance is `2`.
+
+Scope distance continues to increase the further out you get. Most modules (e.g. `nuclei` and `nmap`) only consume in-scope events. Certain other passive modules such as `asn` accept out to distance `1`. By default, DNS resolution happens out to a distance of `2`. Upon its discovery, any [event](./events) that's determined to be in-scope (e.g. `www.evilcorp.com`) immediately becomes distance `0`, and the cycle starts over.
+
+#### Displaying Out-of-scope Events
+
+By default, BBOT only displayed in-scope events (with a few exceptions such as `STORAGE_BUCKET`s). If you want to see more, you must increase the [config](./configuration) value of `scope_report_distance`:
+
+```bash
+# display out-of-scope events up to one hop away from the main scope
+bbot -t evilcorp.com -f subdomain-enum -c scope_report_distance=1
+```
+
+### Strict Scope
+
+If you want to scan ***only*** that specific target hostname and none of its children, you can specify `--strict-scope`.
+
+Note that `--strict-scope` only applies to targets and whitelists, but not blacklists. This means that if you put `internal.evilcorp.com` in your blacklist, you can be sure none of its subdomains will be scanned, even when using `--strict-scope`.
+
+### Whitelists and Blacklists
+
+BBOT allows precise control over scope with whitelists and blacklists. These both use the same syntax as `--target`, meaning they accept the same event types, and you can specify an unlimited number of them, via a file, the CLI, or both.
+
+`--whitelist` enables you to override what's in scope. For example, if you want to run nuclei against `evilcorp.com`, but stay only inside their corporate IP range of `1.2.3.0/24`, you can accomplish this like so:
+
+```bash
+# Seed scan with evilcorp.com, but restrict scope to 1.2.3.0/24
+bbot -t evilcorp.com --whitelist 1.2.3.0/24 -f subdomain-enum -m nmap nuclei --allow-deadly
+```
+
+`--blacklist` takes ultimate precedence. Anything in the blacklist is completely excluded from the scan, even if it's in the whitelist.
+
+```bash
+# Scan evilcorp.com, but exclude internal.evilcorp.com and its children
+bbot -t evilcorp.com --blacklist internal.evilcorp.com -f subdomain-enum -m nmap nuclei --allow-deadly
+```
