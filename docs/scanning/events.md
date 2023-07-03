@@ -1,13 +1,22 @@
 # Events
 
-Events are how data is represented inside BBOT. Examples of an event include `IP_ADDRESS`, `DNS_NAME`, `EMAIL_ADDRESS`, `URL`, etc. When you run a BBOT scan, events are constantly being exchanged between modules. They are also output to the console.
-
-The event type is in the left-most output column:
+Events are how data is represented inside BBOT. Examples of an event include `IP_ADDRESS`, `DNS_NAME`, `EMAIL_ADDRESS`, `URL`, etc. When you run a BBOT scan, events are constantly being exchanged between modules. They are also output to the console:
 
 ```text
-[DNS_NAME]      www.evilcorp.com    sslcert    (distance-0, in-scope, resolved, subdomain, a-record)
- ^^^^^^^^
+[DNS_NAME]      www.evilcorp.com    sslcert         (distance-0, in-scope, resolved, subdomain, a-record)
+ ^^^^^^^^       ^^^^^^^^^^^^^^^^    ^^^^^^^          ^^^^^^^^^^
+event type      event data          source module    tags
 ```
+
+In addition to the obvious data (e.g. `www.evilcorp.com`), an event also contains other useful information such as:
+
+- a `.timestamp` of when the event was discovered
+- the `.module` that discovered it
+- the `.source` event that led to its discovery
+- its `.scope_distance` (how many hops it is from the main scope, 0 == in-scope)
+- a list of `.tags` that describe the data (`mx-record`, `http-title`, etc.)
+
+These attributes allow us to construct a visual graph of events (e.g. in Neo4j) and let us query/filter/grep them more easily.
 
 See below for a full list of event types and which modules produce/consume them.
 

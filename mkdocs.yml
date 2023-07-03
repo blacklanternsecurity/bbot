@@ -24,9 +24,7 @@ nav:
       - Global Options: scanning/configuration/global_options.md
       - Module Options: scanning/configuration/module_options.md
     - Modules Table: scanning/modules_table.md
-  - Contribution:
-    - contribution/index.md
-    - Creating a Module: contribution/module_creation.md
+  - Contribution: contribution.md
 
 theme:
   name: material

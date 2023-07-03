@@ -2,12 +2,12 @@
 
 <video controls="" autoplay="" name="media"><source src="https://github-production-user-asset-6210df.s3.amazonaws.com/20261699/245941416-ebf2a81e-7530-4a9e-922d-4e62eb949f35.mp4" type="video/mp4"></video>
 
-Scan visualization courtesy of [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)
+*A BBOT scan in real-time - visualization courtesy of [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)*
 
 
 ## Targets (`-t`)
 
-Targets determine what's in-scope, and seed a scan with initial data. BBOT accepts an unlimited number of targets. They can be any of the following:
+Targets declare what's in-scope, and seed a scan with initial data. BBOT accepts an unlimited number of targets. They can be any of the following:
 
 - `DNS_NAME` (`evilcorp.com`)
 - `IP_ADDRESS` (`1.2.3.4`)
@@ -36,11 +36,19 @@ For pentesters and bug bounty hunters, staying in scope is extremely important. 
 
 By default, whatever you specify with `-t` becomes in-scope. This includes child subdomains. For example, if you specify `-t evilcorp.com`, any subdomains (`www.evilcorp.com`, `mail.evilcorp.com`, etc.) become in-scope.
 
+### Scope Distance
+
+Since BBOT is recursive, it would quickly resort to scannning the entire internet if left unscoped. To solve this problem, every [event](./events) discovered by BBOT is assigned a **Scope Distance**. Scope distance represents how far out from the main scope that data was discovered.
+
+For example, if your target is `evilcorp.com` and `evilcorp.com` resolves to `1.2.3.4`, `evilcorp.com` itself would have a scope distance of `0` (i.e. in-scope) and `1.2.3.4` would have a scope distance of `1`. 
+
+Scope distance continues to increase the further out you get. Most modules (e.g. `nuclei` and `nmap`) only consume in-scope events. Certain other passive modules such as `asn` accept out to distance `1`. By default, DNS resolution happens out to a distance of `2`. Any [event](./events) that's determined to be in-scope (i.e. `www.evilcorp.com`) immediately becomes distance `0`, and the cycle of discovery starts again.
+
 ### Strict Scope
 
-If you want to include ***only*** that specific hostname and none of its children, you can specify `--strict-scope`.
+If you want to scan ***only*** that specific target hostname and none of its children, you can specify `--strict-scope`.
 
-Note that `--strict-scope` only applies to targets and whitelists, not blacklists. This means that if you put `internal.evilcorp.com` in your blacklist, you can be sure none of its subdomains will be scanned, even when using `--strict-scope`.
+Note that `--strict-scope` only applies to targets and whitelists, but not blacklists. This means that if you put `internal.evilcorp.com` in your blacklist, you can be sure none of its subdomains will be scanned, even when using `--strict-scope`.
 
 ### Whitelists and Blacklists
 

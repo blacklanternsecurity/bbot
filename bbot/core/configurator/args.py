@@ -81,8 +81,8 @@ scan_examples = [
     ),
     (
         "Web spider",
-        "Use the web spider to crawl for emails, secrets, etc.",
-        "bbot -t www.evilcorp.com -m httpx badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2",
+        "Crawl www.evilcorp.com up to a max depth of 2, automatically extracting emails, secrets, etc.",
+        "bbot -t www.evilcorp.com -m httpx robots badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2",
     ),
     (
         "Everything everywhere all at once",

@@ -2,7 +2,7 @@
 
 ## Installation
 
-BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, please see [Installation (Poetry)](https://www.blacklanternsecurity.com/bbot/contribution).
+BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, see [Installation (Poetry)](https://www.blacklanternsecurity.com/bbot/contribution#installation-poetry).
 
 ### [Python (pip / pipx)](https://pypi.org/project/bbot/)
 Note: `pipx` installs BBOT inside its own virtual environment.
