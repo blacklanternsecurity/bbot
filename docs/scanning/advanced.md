@@ -119,7 +119,7 @@ EXAMPLES
         bbot -t evilcorp.com -f subdomain-enum web-basic
 
     Web spider:
-        bbot -t www.evilcorp.com -m httpx badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2
+        bbot -t www.evilcorp.com -m httpx robots badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2
 
     Everything everywhere all at once:
         bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly
