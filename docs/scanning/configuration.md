@@ -1,51 +1,198 @@
-# Module Options
+# Configuration Overview
 
-## Overview
+BBOT has a YAML config at `~/.config/bbot`. This config is different from the command-line arguments. This is where you change settings such as BBOT's **HTTP proxy**, **rate limits**, or global **User-Agent**. It's also where you put modules' **API keys**.
 
-Many modules accept their own configuration options. These are detailed in the table below. 
+For a list of all possible config options, see:
 
-Module's options have the ability to change their behavior. For example, the `nmap` module accepts options for `ports`, `timing`, etc.
+- [Global Options](./global_options/)
+- [Module Options](./module_options/)
 
-## Command-line vs Config File
+## Configuration Files
 
-If you wanted to pass these options to `nmap`, you could do it from the command line:
-```bash
-bbot --config modules.nmap.ports=80,443 modules.nmap.timing=T5
-```
+BBOT loads its config from the following files, in this order:
 
-or via the config (`~/.config/bbot/bbot.yml`):
+- `~/.config/bbot/bbot.yml`     <-- Use this one as your main config
+- `~/.config/bbot/secrets.yml`  <-- Use this one for sensitive stuff like API keys
+- command line (`--config`)     <-- Use this to specify a custom config file or override individual config options
 
-```yaml
-modules:
-  nmap:
-    ports: 80,443
-    timing: T5
-```
+These config files will be automatically created for you when you first run BBOT.
 
-If you wanted to add an API keys for `shodan` and `virustotal`, you could either specify them like this on the command line:
+## YAML Config vs Command Line
+
+You can specify config options either via the command line or the config. For example, if you want to proxy your BBOT scan through a local proxy like [Burp Suite](https://portswigger.net/burp), you could either do:
 
 ```bash
-bbot --config modules.shodan.api_key=deadbeef modules.virustotal.api_key=deadbeef
+bbot -t evilcorp.com --config http_proxy=http://127.0.0.1:8080
 ```
 
-Or in the config:
+Or, in `~/.config/bbot/config.yml`:
+
+```yaml
+http_proxy: http://127.0.0.1:8080
+```
+
+These two are equivalent.
+
+Config options specified via the command-line take precedence over all others. You can give BBOT a custom config file with `--config myconf.yml`, or individual arguments like this: `--config modules.shodan_dns.api_key=deadbeef`. To display the full and current BBOT config, including any command-line arguments, use `bbot --current-config`.
+
+Note that placing the following in `bbot.yml`:
 ```yaml
 modules:
-  shodan:
-    api_key: deadbeef
-  virustotal:
+  shodan_dns:
     api_key: deadbeef
 ```
+Is the same as:
+```bash
+bbot --config modules.shodan_dns.api_key=deadbeef
+```
 
-For a list of global BBOT config options such as HTTP Proxy, User-Agent, etc, see [Defaults](../defaults/)
+Here is an example of what a standard BBOT config might look like:
+```yaml
+modules:
+```
 
+## Global Config Options
+
+Below is a full list of the config options supported, along with their defaults.
+
+<!-- BBOT DEFAULT CONFIG -->
+```yaml
+### BASIC OPTIONS ###
+
+# BBOT working directory
+home: ~/.bbot
+# Don't output events that are further than this from the main scope
+# 1 == 1 hope away from main scope
+# 0 == in scope only
+scope_report_distance: 0
+# Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
+dns_resolution: true
+# Limit the number of BBOT threads
+max_threads: 25
+# Rate-limit DNS
+dns_queries_per_second: 1000
+# Rate-limit HTTP
+web_requests_per_second: 100
+# Interval for displaying status messages
+status_frequency: 15
+# HTTP proxy
+http_proxy: 
+# Web user-agent
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36
+
+
+### ADVANCED OPTIONS ###
+
+# How far out from the main scope to search
+scope_search_distance: 0
+# How far out from the main scope to resolve DNS names / IPs
+scope_dns_search_distance: 2
+# Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)
+dns_resolve_distance: 5
+
+# Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
+speculate: True
+# Passively search event data for URLs, hostnames, emails, etc.
+excavate: True
+# Summarize activity at the end of a scan
+aggregate: True
+
+# HTTP timeout (for Python requests; API calls, etc.)
+http_timeout: 10
+# HTTP timeout (for httpx)
+httpx_timeout: 5
+# Custom HTTP headers (e.g. cookies, etc.)
+# in the format { "Header-Key": "header_value" }
+# These are attached to all in-scope HTTP requests
+# Note that some modules (e.g. github) may end up sending these to out-of-scope resources
+http_headers: {}
+# HTTP retries (for Python requests; API calls, etc.)
+http_retries: 1
+# HTTP retries (for httpx)
+httpx_retries: 1
+# Enable/disable debug messages for web requests/responses
+http_debug: false
+# Maximum number of HTTP redirects to follow
+http_max_redirects: 5
+# Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
+web_spider_distance: 0
+# Set the maximum directory depth for the web spider
+web_spider_depth: 1
+# Set the maximum number of links that can be followed per page
+web_spider_links_per_page: 25
+# DNS query timeout
+dns_timeout: 5
+# How many times to retry DNS queries
+dns_retries: 1
+# Disable BBOT's smart DNS wildcard handling for select domains
+dns_wildcard_ignore: []
+# How many sanity checks to make when verifying wildcard DNS
+# Increase this value if BBOT's wildcard detection isn't working
+dns_wildcard_tests: 10
+# Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
+# This helps prevent faulty DNS servers from hanging up the scan
+dns_abort_threshold: 10
+# Don't show PTR records containing IP addresses
+dns_filter_ptrs: true
+# Enable/disable debug messages for dns queries
+dns_debug: false
+# Whether to verify SSL certificates
+ssl_verify: false
+# How many scan results to keep before cleaning up the older ones
+keep_scans: 20
+# Completely ignore URLs with these extensions
+url_extension_blacklist:
+    # images
+    - png
+    - jpg
+    - bmp
+    - ico
+    - jpeg
+    - gif
+    - svg
+    # web/fonts
+    - css
+    - woff
+    - woff2
+    - ttf
+    # audio
+    - mp3
+    - m4a
+    - wav
+    - flac
+    # video
+    - mp4
+    - mkv
+    - avi
+    - wmv
+    - mov
+    - flv
+    - webm
+# Distribute URLs with these extensions only to httpx (these are omitted from output)
+url_extension_httpx_only:
+    - js
+# Don't output these types of events (they are still distributed to modules)
+omit_event_types:
+    - HTTP_RESPONSE
+    - URL_UNVERIFIED
+    # - DNS_NAME_UNRESOLVED
+    # - IP_ADDRESS
+# URL of BBOT server
+agent_url: ''
+# Agent Bearer authentication token
+agent_token: ''
+
+# Custom interactsh server settings
+interactsh_server: null
+interactsh_token: null
+interactsh_disable: false
+
+```
+<!-- END BBOT DEFAULT CONFIG -->
 
 ## Module Config Options
 
-- **Config Option**: Name of the config option (`--config` syntax, see above for `yaml` equivalent)
-- **Type**: Data type of the option, e.g. `bool`, `str`, etc.
-- **Description**: Description of what the option does
-- **Default**: The option's default value
+Many modules accept their own configuration options. These options have the ability to change their behavior. For example, the `nmap` module accepts options for `ports`, `timing`, etc. Below is a list of all possible module config options.
 
 <!-- BBOT MODULE OPTIONS -->
 | Config Option                                  | Type   | Description                                                                                                                                                                                                                                                                                                     | Default                                                                                                                                                             |

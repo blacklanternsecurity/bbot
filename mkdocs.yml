@@ -19,12 +19,10 @@ nav:
     - Events: scanning/events.md
     - Output: scanning/output.md
     - Advanced Usage: scanning/advanced.md
-    - Configuration:
-      - scanning/configuration/index.md
-      - Global Options: scanning/configuration/global_options.md
-      - Module Options: scanning/configuration/module_options.md
-    - Modules Table: scanning/modules_table.md
-  - Contribution: contribution.md
+    - Configuration: scanning/configuration.md
+    - Modules Table: scanning/list_of_modules.md
+  - Contribution:
+    - How to Write a Module: contribution.md
 
 theme:
   name: material

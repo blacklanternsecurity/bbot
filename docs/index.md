@@ -1,5 +1,9 @@
 # Getting Started
 
+<video controls="" autoplay="" name="media"><source src="https://github-production-user-asset-6210df.s3.amazonaws.com/20261699/245941416-ebf2a81e-7530-4a9e-922d-4e62eb949f35.mp4" type="video/mp4"></video>
+
+*A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)*
+
 ## Installation
 
 BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, see [Installation (Poetry)](https://www.blacklanternsecurity.com/bbot/contribution#installation-poetry).
@@ -73,4 +77,24 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 ```
 <!-- END BBOT EXAMPLE COMMANDS -->
 
-## Next: [Scanning](./scanning)
+## API Keys
+
+No API keys are required to run BBOT. However, some modules need them to function. If you have API keys and want to make use of these modules, you can place them either in BBOT's YAML config (`~/.config/bbot/secrets.yml`):
+```yaml
+modules:
+  shodan_dns:
+    api_key: deadbeef
+  virustotal:
+    api_key: cafebabe
+```
+
+Or on the command-line:
+
+```bash
+# specify API key with -c
+bbot -t evilcorp.com -f subdomain-enum -c modules.shodan_dns.api_key=deadbeef modules.virustotal.api_key=cafebabe
+```
+
+For more information, see [Configuration](./configuration). For a full list of modules, including which ones require API keys, see [List of Modules](./scanning/list_of_modules).
+
+## Next Up: [Scanning](./scanning)

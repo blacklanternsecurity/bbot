@@ -27,8 +27,8 @@ Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
 ~~~bash
 docker run -p 7687:7687 -p 7474:7474 -v "$(pwd)/data/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
 ~~~
-- After that, run bbot with `--output-modules neo4j`
+- After that, run bbot with `-om neo4j`
 ~~~bash
-bbot -f subdomain-enum -t evilcorp.com --output-modules neo4j
+bbot -f subdomain-enum -t evilcorp.com -om neo4j
 ~~~
 - Browse data at [http://localhost:7474](http://localhost:7474)
