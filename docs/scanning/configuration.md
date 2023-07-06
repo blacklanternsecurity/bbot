@@ -7,7 +7,7 @@ For a list of all possible config options, see:
 - [Global Options](./global_options/)
 - [Module Options](./module_options/)
 
-For a summary of commonly-used config options, see [Common Config Options]
+For examples of common config changes, see [Tips and Tricks](../tips_and_tricks/).
 
 ## Configuration Files
 
