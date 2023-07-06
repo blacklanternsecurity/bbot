@@ -125,7 +125,19 @@ A single module can have multiple flags. For example, the `securitytrails` modul
 | web-screenshots  | 1           |               | gowitness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | service-enum     | 1           |               | fingerprintx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | subdomain-hijack | 1           |               | subdomain_hijack                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-<!-- END BBOT MODULE FLAGS -->
+<!-- END BBOT MODULE FLAGS --> 
+
+## Dependencies
+
+BBOT modules have external dependencies ranging from OS packages (`openssl`) to binaries (`nmap`) to Python libraries (`wappalyzer`). When a module is enabled, installation of its dependencies happens at runtime with [Ansible](https://github.com/ansible/ansible). BBOT provides several command-line flags to control how dependencies are installed.
+
+- `--no-deps` - Don't install module dependencies
+- `--force-deps` - Force install all module dependencies
+- `--retry-deps` - Try again to install failed module dependencies
+- `--ignore-failed-deps` - Run modules even if they have failed dependencies
+- `--install-all-deps` - Install dependencies for all modules (useful if you are provisioning a pentest system and want to install everything ahead of time)
+
+For details on how Ansible playbooks are attached to BBOT modules, see [How to Write a Module](../contribution/#module-dependencies).
 
 ## Scope
 
