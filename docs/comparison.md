@@ -6,4 +6,4 @@ Thanks to BBOT's recursive nature (and `massdns`' fancy subdomain mutations), it
 
 This holds true even for larger targets like `boeing.com` (1000+ subdomains):
 
-![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/1c262bbe-2e8c-4c69-bdd2-1e2553d47746)
+![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
