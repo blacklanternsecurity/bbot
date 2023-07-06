@@ -7,6 +7,8 @@ For a list of all possible config options, see:
 - [Global Options](./global_options/)
 - [Module Options](./module_options/)
 
+For a summary of commonly-used config options, see [Common Config Options]
+
 ## Configuration Files
 
 BBOT loads its config from the following files, in this order:
@@ -22,6 +24,7 @@ These config files will be automatically created for you when you first run BBOT
 You can specify config options either via the command line or the config. For example, if you want to proxy your BBOT scan through a local proxy like [Burp Suite](https://portswigger.net/burp), you could either do:
 
 ```bash
+# send BBOT traffic through an HTTP proxy
 bbot -t evilcorp.com --config http_proxy=http://127.0.0.1:8080
 ```
 

@@ -32,12 +32,14 @@ omit_event_types:
 ### Display Out-of-scope Events
 By default, BBOT only shows in-scope events (with a few exceptions for things like storage buckets). If you want to see events that BBOT is emitting internally (such as for DNS resolution, etc.), you can increase `scope_report_distance` in the config or on the command line like so:
 ~~~bash
+# display events up to scope distance 2 (default == 0)
 bbot -f subdomain-enum -t evilcorp.com -c scope_report_distance=2
 ~~~
 
 ### Speed Up Scans By Disabling DNS Resolution
 If you already have a list of discovered targets (e.g. URLs), you can speed up the scan by skipping BBOT's DNS resolution. You can do this by setting `dns_resolution` to `false`.
 ~~~bash
+# disable the creation of new events from DNS resoluion
 bbot -m httpx gowitness wappalyzer -t urls.txt -c dns_resolution=false
 ~~~
 
