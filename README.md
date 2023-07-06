@@ -95,6 +95,33 @@ BBOT accepts an unlimited number of targets which you can specify either directl
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/scanning/#scope).
 
+## BBOT as a Python library
+
+**Synchronous**
+
+```python
+from bbot.scanner import Scanner
+
+# any number of targets can be specified
+scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
+for event in scan.start():
+    print(event.json())
+```
+
+**Asynchronous**
+
+```python
+from bbot.scanner import Scanner
+
+async def main():
+    scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
+    async for event in scan.async_start():
+        print(event.json())
+
+import asyncio
+asyncio.run(main())
+```
+
 ## Acknowledgements
 
 Thanks to these amazing people for contributing to BBOT! :heart:

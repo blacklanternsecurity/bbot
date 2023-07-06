@@ -28,7 +28,12 @@ bbot --help
 ```
 
 - Now, any changes you make in the code will be reflected in the `bbot` command.
-- Run the tests locally to ensure they pass:
+- Run the tests locally to ensure they pass.
+- Finally, commit and push your changes, and create a pull request to the `dev` branch of the main BBOT repo.
+
+## Running Tests
+
+BBOT makes use of pytest for its unit testing. You can run the tests simply by executing the bash script at `bbot/test/run_tests.sh`:
 
 ```bash
 # auto-format code indentation, etc.
@@ -37,8 +42,6 @@ black .
 # run tests
 ./bbot/test/run_tests.sh
 ```
-
-- Finally, commit and push your changes, and create a pull request to the `dev` branch of the main BBOT repo.
 
 ## Creating a Module
 

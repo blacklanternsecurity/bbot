@@ -110,4 +110,4 @@ bbot -t evilcorp.com -f subdomain-enum -c modules.shodan_dns.api_key=deadbeef mo
 
 For more information, see [Configuration](./configuration). For a full list of modules, including which ones require API keys, see [List of Modules](./scanning/list_of_modules).
 
-## Next Up: [Scanning](./scanning)
+## See: [Scanning](./scanning)
