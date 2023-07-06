@@ -26,7 +26,7 @@ In a simple example, we run a BBOT scan with **three modules**: `nmap`, `sslcert
 
 - **`nmap`** consumes `DNS_NAME`s, port-scans them, and outputs `OPEN_TCP_PORT`s
 - **`sslcert`** consumes `OPEN_TCP_PORT`s, grabs certs, and extracts `DNS_NAME`s
-- **`httpx`** consumes `OPEN_TCP_PORT`s and visits any web services, extracting new `URL`s and `HTTP_RESPONSE`s.
+- **`httpx`** consumes `OPEN_TCP_PORT`s and visits any web services, ultimately producing new `DNS_NAME`s
 
 ```mermaid
 graph TD
