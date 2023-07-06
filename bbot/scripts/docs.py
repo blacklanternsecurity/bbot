@@ -41,8 +41,9 @@ def find_replace_file(file, keyword, replace):
         content = f.read()
         new_content = find_replace_markdown(content, keyword, replace)
     if new_content != content:
-        with open(file, "w") as f:
-            f.write(new_content)
+        if not "BBOT_TESTING" in os.environ:
+            with open(file, "w") as f:
+                f.write(new_content)
 
 
 def update_docs():

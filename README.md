@@ -4,7 +4,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
-BBOT is a modular OSINT (Open Source Intelligence) framework that can execute the entire OSINT workflow in a single command.
+BBOT is a modular OSINT framework that can execute the entire OSINT workflow in a single command.
 
 ![bbot_banner](https://github.com/blacklanternsecurity/bbot/assets/20261699/af2e822c-d7d6-40e7-bcba-2ce52faa6c4c)
 
@@ -18,7 +18,7 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 
 # Getting Started
 
-Consider reading our [Documentation](https://www.blacklanternsecurity.com/bbot).
+Consider checkout out our [Documentation](https://www.blacklanternsecurity.com/bbot).
 
 ## Installation ([pip](https://pypi.org/project/bbot/))
 
