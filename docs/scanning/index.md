@@ -1,6 +1,17 @@
 # Scanning Overview
 
-press enter to execute <span class="demonic-jimmy">demonic_jimmy</span>
+## Scan Names
+
+Every BBOT scan gets a random and mildly-entertaining name like **`demonic_jimmy`**. Output for that scan, including scan stats and any web screenshots, are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed.
+
+If you don't want a random name, you can change it with `-n`. You can also change the location of BBOT's output with `-o`:
+
+```bash
+# save everything to the folder "my_scan" in the current directory
+bbot -t evilcorp.com -f subdomain-enum -m gowitness -n my_scan -o .
+```
+
+If you reuse a scan name, BBOT will automatically append to your previous output files.
 
 ## Targets (`-t`)
 
@@ -13,7 +24,7 @@ Targets declare what's in-scope, and seed a scan with initial data. BBOT accepts
 
 You can specify targets directly on the command line, load them from files, or both! For example:
 
-~~~bash
+```bash
 $ cat targets.txt
 4.3.2.1
 1.2.3.0/24
@@ -23,7 +34,7 @@ https://www.evilcorp.co.uk
 
 # load targets from a file and from the command-line
 $ bbot -t targets.txt fsociety.com 5.6.7.0/24 -m nmap
-~~~
+```
 
 On start, BBOT automatically converts Targets into [Events](./events).
 
@@ -43,20 +54,25 @@ bbot -t www.evilcorp.com -m nmap sslcert httpx
 Modules fall into three categories:
 
 - **Scan Modules**:
-    - These make up the majority of modules. Examples are `nmap`, `sslcert`, `httpx`, etc. Enable with `-m`.
+  - These make up the majority of modules. Examples are `nmap`, `sslcert`, `httpx`, etc. Enable with `-m`.
 - **Output Modules**:
-    - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](./output))
+  - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](./output))
 - **Internal Modules**:
-    - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disabled via the config (e.g. `-c speculate=false`).
-        - `aggregate`: Summarizes results at the end of a scan
-        - `excavate`: Extracts useful data such as subdomains from webpages, etc.
-        - `speculate`: Intelligently infers new events, e.g. `OPEN_TCP_PORT` from `URL` or `IP_ADDRESS` from `IP_NETWORK`.
+  - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disabled via the config (e.g. `-c speculate=false`).
+    - `aggregate`: Summarizes results at the end of a scan
+    - `excavate`: Extracts useful data such as subdomains from webpages, etc.
+    - `speculate`: Intelligently infers new events, e.g. `OPEN_TCP_PORT` from `URL` or `IP_ADDRESS` from `IP_NETWORK`.
 
 For details in the inner workings of modules, see [Creating a Module](../contribution/module_creation/).
 
 ## Flags (`-f`)
 
-Flags are how BBOT categorizes its modules. In a way, you can think of them as groups. Flags let you enable a bunch of similar modules at the same time without having to specify them each individually. For example, `-f subdomain-enum` would enable all the modules having the `subdomain-enum` flag.
+Flags are how BBOT categorizes its modules. In a way, you can think of them as groups. Flags let you enable a bunch of similar modules at the same time without having to specify them each individually. For example, `-f subdomain-enum` would enable every module with the `subdomain-enum` flag.
+
+```bash
+# list all subdomain-enum modules
+bbot -f subdomain-enum -l
+```
 
 ### Filtering by Flag
 
@@ -100,9 +116,9 @@ A single module can have multiple flags. For example, the `securitytrails` modul
 | cloud-enum       | 7           |               | bucket_aws, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_gcp, httpx, subdomain_hijack                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | email-enum       | 6           |               | censys, emailformat, hunterio, pgp, skymem, sslcert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | affiliates       | 6           |               | affiliates, azure_tenant, builtwith, sslcert, viewdns, zoomeye                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| deadly           | 3           |               | ffuf, nuclei, vhost                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | web-paramminer   | 3           |               | paramminer_cookies, paramminer_getparams, paramminer_headers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | portscan         | 3           |               | masscan, naabu, nmap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| deadly           | 3           |               | ffuf, nuclei, vhost                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | social-enum      | 2           |               | httpx, social                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | iis-shortnames   | 2           |               | ffuf_shortnames, iis_shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | report           | 2           |               | affiliates, asn                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -110,8 +126,6 @@ A single module can have multiple flags. For example, the `securitytrails` modul
 | service-enum     | 1           |               | fingerprintx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | subdomain-hijack | 1           |               | subdomain_hijack                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 <!-- END BBOT MODULE FLAGS -->
-
-
 
 ## Scope
 
@@ -121,9 +135,9 @@ By default, scope is whatever you specify with `-t`. This includes child subdoma
 
 ### Scope Distance
 
-Since BBOT is recursive, it would quickly resort to scannning the entire internet if not properly restrained. To solve this problem, every [event](./events) discovered by BBOT is assigned a **Scope Distance**. Scope distance represents how far out from the main scope that data was discovered.
+Since BBOT is recursive, it would quickly resort to scannning the entire internet without some kind of restraining mechanism. To solve this problem, every [event](./events) discovered by BBOT is assigned a **Scope Distance**. Scope distance represents how far out from the main scope that data was discovered.
 
-For example, if your target is `evilcorp.com`, `www.evilcorp.com` itself would have a scope distance of `0` (i.e. in-scope). If BBOT discovers that `www.evilcorp.com` resolves to `1.2.3.4`, `1.2.3.4` is one hop away, which means it would have a scope distance of `1`. If `1.2.3.4` has a PTR record that points to `ecorp.blob.core.windows.net`, `ecorp.blob.core.windows.net` is two hops away, so its scope distance is `2`.
+For example, if your target is `evilcorp.com`, `www.evilcorp.com` would have a scope distance of `0` (i.e. in-scope). If BBOT discovers that `www.evilcorp.com` resolves to `1.2.3.4`, `1.2.3.4` is one hop away, which means it would have a scope distance of `1`. If `1.2.3.4` has a PTR record that points to `ecorp.blob.core.windows.net`, `ecorp.blob.core.windows.net` is two hops away, so its scope distance is `2`.
 
 Scope distance continues to increase the further out you get. Most modules (e.g. `nuclei` and `nmap`) only consume in-scope events. Certain other passive modules such as `asn` accept out to distance `1`. By default, DNS resolution happens out to a distance of `2`. Upon its discovery, any [event](./events) that's determined to be in-scope (e.g. `www.evilcorp.com`) immediately becomes distance `0`, and the cycle starts over.
 
@@ -138,7 +152,7 @@ bbot -t evilcorp.com -f subdomain-enum -c scope_report_distance=1
 
 ### Strict Scope
 
-If you want to scan ***only*** that specific target hostname and none of its children, you can specify `--strict-scope`.
+If you want to scan **_only_** that specific target hostname and none of its children, you can specify `--strict-scope`.
 
 Note that `--strict-scope` only applies to targets and whitelists, but not blacklists. This means that if you put `internal.evilcorp.com` in your blacklist, you can be sure none of its subdomains will be scanned, even when using `--strict-scope`.
 
@@ -159,3 +173,38 @@ bbot -t evilcorp.com --whitelist 1.2.3.0/24 -f subdomain-enum -m nmap nuclei --a
 # Scan evilcorp.com, but exclude internal.evilcorp.com and its children
 bbot -t evilcorp.com --blacklist internal.evilcorp.com -f subdomain-enum -m nmap nuclei --allow-deadly
 ```
+
+## DNS Wildcards
+
+BBOT has robust wildcard detection built-in. It can reliably detect wildcard domains, and will tag them accordingly:
+
+```text
+[DNS_NAME]      github.io   TARGET  (a-record, a-wildcard-domain, aaaa-wildcard-domain, wildcard-domain)
+                                               ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+```
+
+Wildcard hosts are collapsed into a single host beginning with `_wildcard`:
+
+```text
+[DNS_NAME]      _wildcard.github.io     TARGET  (a-record, a-wildcard, a-wildcard-domain, aaaa-record, aaaa-wildcard, aaaa-wildcard-domain, wildcard, wildcard-domain)
+                ^^^^^^^^^
+```
+
+If you don't want this, you can disable wildcard detection on a domain-to-domain basis in the [config](./configuration):
+
+**`~/.bbot/config/bbot.yml`**:
+
+```yaml
+dns_wildcard_ignore:
+  - evilcorp.com
+  - evilcorp.co.uk
+```
+
+There are certain edge cases (such as with dynamic DNS rules) where BBOT's wildcard detection fails. In these cases, you can try increasing the number of wildcard checks in the config:
+
+```yaml
+# default == 10
+dns_wildcard_tests: 20
+```
+
+If that doesn't work you can consider [blacklisting](#whitelists-and-blacklists) the offending domain.

@@ -3,18 +3,21 @@
 Below you can find some advanced uses of BBOT.
 
 ## BBOT as a Python library
+
 **Synchronous**
-~~~python
+
+```python
 from bbot.scanner import Scanner
 
 # any number of targets can be specified
 scan = Scanner("example.com", "scanme.nmap.org", modules=["nmap", "sslcert"])
 for event in scan.start():
     print(event.json())
-~~~
+```
 
 **Asynchronous**
-~~~python
+
+```python
 from bbot.scanner import Scanner
 
 async def main():
@@ -24,22 +27,16 @@ async def main():
 
 import asyncio
 asyncio.run(main())
-~~~
+```
 
 ## Command-Line Help
 
 <!-- BBOT HELP OUTPUT -->
 ```text
-usage: pytest [-h] [--help-all] [-t TARGET [TARGET ...]]
-              [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]]
-              [--strict-scope] [-m MODULE [MODULE ...]] [-l]
-              [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf]
-              [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]]
-              [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME]
-              [-o DIR] [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y]
-              [--dry-run] [--current-config]
-              [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps]
-              [-a] [--version]
+usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-m MODULE [MODULE ...]] [-l]
+               [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME] [-o DIR]
+               [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y] [--dry-run] [--current-config] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [-a]
+               [--version]
 
 Bighuge BLS OSINT Tool
 

@@ -99,9 +99,9 @@ For more information, see [Targets](https://www.blacklanternsecurity.com/scannin
 
 # Acknowledgements
 
-Thanks to all these amazing people for contributing to BBOT! :heart:
+Thanks to these amazing people for contributing to BBOT! :heart:
 
-If you have an idea for a feature or run into bugs of any kind, please submit an issue or a PR. We welcome contributions!
+If you're interested in contributing to BBOT, or just curious how it works under the hood, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/).
 
 <p align="center">
 <a href="https://github.com/blacklanternsecurity/bbot/graphs/contributors">

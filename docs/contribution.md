@@ -1,8 +1,8 @@
 # Contribution
 
-## Setting Up a Dev Environment
+We welcome contributions! If you have an idea for a new module, or are a Python developer who wants to get involved, please fork us or come talk to us on [Discord](https://discord.com/invite/PZqkgxu5SA).
 
-We welcome contributions! If you want a 
+## Setting Up a Dev Environment
 
 ### Installation (Poetry)
 
@@ -10,7 +10,8 @@ We welcome contributions! If you want a
 
 - Fork [BBOT](https://github.com/blacklanternsecurity/bbot) on GitHub
 - Clone your fork and set up a development environment with Poetry:
-~~~bash
+
+```bash
 # clone your forked repo and cd into it
 git clone git@github.com/<username>/bbot.git && cd bbot
 
@@ -24,9 +25,11 @@ poetry install
 poetry shell
 
 bbot --help
-~~~
+```
+
 - Now, any changes you make in the code will be reflected in the `bbot` command.
 - Run the tests locally to ensure they pass:
+
 ```bash
 # auto-format code indentation, etc.
 black .
@@ -34,8 +37,8 @@ black .
 # run tests
 ./bbot/test/run_tests.sh
 ```
-- Finally, commit and push your changes, and create a pull request to the `dev` branch of the main BBOT repo.
 
+- Finally, commit and push your changes, and create a pull request to the `dev` branch of the main BBOT repo.
 
 ## Creating a Module
 
@@ -44,14 +47,15 @@ Writing a module is easy and requires only a basic understanding of Python. It c
 1. Create a new `.py` file in `bbot/modules`
 1. At the top of the file, import `BaseModule`
 1. Declare a class that inherits from `BaseModule`
-    - the class must have the same name as your file (case-insensitive)
+   - the class must have the same name as your file (case-insensitive)
 1. Define in `watched_events` what type of data your module will consume
 1. Define in `produced_events` what type of data your module will produce
 1. Define (via `flags`) whether your module is `active` or `passive`, and whether it's `safe` or `aggressive`
 1. **Override `.handle_event()`** (see [`handle_event()` and `emit_event()`](#handle_event-and-emit_event))
 
 Here is a simple example of a working module (`bbot/modules/mymodule.py`):
-~~~python
+
+```python
 from bbot.modules.base import BaseModule
 
 class MyModule(BaseModule):
@@ -67,7 +71,7 @@ class MyModule(BaseModule):
         for ip in await self.helpers.resolve(event.data):
             self.hugesuccess(f"EMITTING IP_ADDRESS: {ip}")
             self.emit_event(ip, "IP_ADDRESS", source=event)
-~~~
+```
 
 After saving the module, you can run it simply by specifying it with `-m`:
 
@@ -77,6 +81,7 @@ bbot -t evilcorp.com -m mymodule
 ```
 
 This will produce the output:
+
 ```text
 [SUCC] Starting scan satanic_linda
 [SCAN]                  satanic_linda (SCAN:2e9ec8b6f06875bcf7980eea4c150754b53a6049)  TARGET  (distance-0)
@@ -122,7 +127,7 @@ The `emit_event()` method is how modules return data. When you call `emit_event(
 
 BBOT automates module dependencies with **Ansible**. If your module relies on a third-party binary, OS package, or python library, you can specify them in the `deps_*` attributes of your module.
 
-~~~python
+```python
 class MyModule(BaseModule):
     ...
     deps_pip = ["beautifulsoup4"]
@@ -152,4 +157,4 @@ class MyModule(BaseModule):
             "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
-~~~
+```

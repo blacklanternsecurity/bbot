@@ -58,7 +58,7 @@ def update_docs():
     bbot_example_commands = []
     for title, description, command in scan_examples:
         example = ""
-        example += f"**{title}:**\n"
+        example += f"**{title}:**\n\n"
         # example += f"{description}\n"
         example += f"```bash\n# {description}\n{command}\n```"
         bbot_example_commands.append(example)
