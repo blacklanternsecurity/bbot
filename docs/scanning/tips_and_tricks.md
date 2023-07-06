@@ -11,10 +11,10 @@ Press enter during a BBOT scan to change the log level. This will allow you to s
 
 ### Custom HTTP Proxy
 
-Web pentesters may appreciate the ability to proxy a BBOT scan through Burp Suite. When executed with gowitness, this can even capture auxiliary web resources, API calls, etc. To accomplish this, set the `http_proxy` config option like so:
+Web pentesters may appreciate the ability to proxy a scan through Burp Suite. When executed with gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `http_proxy` config option like so:
 
 ```bash
-# enumerate subdomains, take web screenshots
+# enumerate subdomains, take web screenshots, proxy through Burp
 bbot -t evilcorp.com -f subdomain-enum -m gowitness -c http_proxy=http://127.0.0.1:8080
 ```
 
