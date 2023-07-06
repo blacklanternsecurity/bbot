@@ -10,11 +10,9 @@ BBOT is a modular OSINT framework that can execute the entire OSINT workflow in 
 
 BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but takes it to the next level with features like multi-target scans, lightning-fast asyncio performance, and NLP-powered subdomain mutations. It offers a wide range of functionality, including subdomain enumeration, port scanning, web screenshots, vulnerability scanning, and much more. 
 
-BBOT typically outperforms other subdomain enumeration tools by 20-25%:
-
 ![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/1c262bbe-2e8c-4c69-bdd2-1e2553d47746)
 
-To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/how_it_works/).
+BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/how_it_works/).
 
 # Getting Started
 

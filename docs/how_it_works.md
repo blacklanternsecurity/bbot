@@ -36,6 +36,8 @@ graph TD
   httpx --> |DNS_NAME| nmap;
 ```
 
-This allows for some interesting chains of events. Given a single target such as `evilcorp.com`, `nmap` may start by discovering an `OPEN_TCP_PORT`. `sslcert` and `httpx` will then visit that port and extract more hostnames, which are in turn scanned by `nmap` and visited by `sslcert` and `httpx` to discover more hostnames which are again passed to `nmap`, and so on...
+This allows for some interesting chains of events. Given a single target such as `evilcorp.com`, `nmap` may start by discovering an `OPEN_TCP_PORT` `evilcorp.com:443`. `sslcert` and `httpx` will then visit that port and extract more hostnames, which are in turn scanned by `nmap` to produce more open ports which are visited by `sslcert` and `httpx`, which discover more hostnames, which are again passed to `nmap`, and so on...
+
+This is a simple example with only a few modules, but you can being to see how if 30 or 40 modules were enabled, they could feed each other exponentially to produce an immense amount of data. This recursion is exactly how BBOT is able to outperform other tools.
 
 For a full list of event types and which modules consume/produce them, see [List of Event Types](../scanning/events/#list-of-event-types).
