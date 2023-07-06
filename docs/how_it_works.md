@@ -22,10 +22,20 @@ Instead, BBOT works recursively, treating each new individual piece of data as a
 
 ## Module Example
 
-As a simple example, let's run a BBOT scan with **three modules**: `nmap`, `sslcert`, and `httpx`. Each of these modules "consume" a certain type of data:
+In a simple example, we run a BBOT scan with **three modules**: `nmap`, `sslcert`, and `httpx`. Each of these modules "consume" a certain type of data:
 
 - **`nmap`** consumes `DNS_NAME`s, port-scans them, and outputs `OPEN_TCP_PORT`s
 - **`sslcert`** consumes `OPEN_TCP_PORT`s, grabs certs, and extracts `DNS_NAME`s
 - **`httpx`** consumes `OPEN_TCP_PORT`s and visits any web services, extracting new `URL`s and `HTTP_RESPONSE`s.
 
+```mermaid
+graph TD
+  nmap -->|OPEN_TCP_PORT| sslcert;
+  nmap -->|OPEN_TCP_PORT| httpx;
+  sslcert --> |DNS_NAME| nmap;
+  httpx --> |DNS_NAME| nmap;
+```
 
+This allows for some interesting chains of events. Given a single target such as `evilcorp.com`, `nmap` may start by discovering an `OPEN_TCP_PORT`. `sslcert` and `httpx` will then visit that port and extract more hostnames, which are in turn scanned by `nmap` and visited by `sslcert` and `httpx` to discover more hostnames which are again passed to `nmap`, and so on...
+
+For a full list of event types and which modules consume/produce them, see [List of Event Types](../scanning/events/#list-of-event-types).

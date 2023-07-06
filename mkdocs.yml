@@ -47,6 +47,11 @@ markdown_extensions:
       use_pygments: True
       noclasses: True
       pygments_style: github-dark
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 extra_javascript:
   - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
