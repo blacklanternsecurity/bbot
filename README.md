@@ -8,13 +8,13 @@ BBOT is a modular OSINT framework that can execute the entire OSINT workflow in 
 
 ![bbot_banner](https://github.com/blacklanternsecurity/bbot/assets/20261699/af2e822c-d7d6-40e7-bcba-2ce52faa6c4c)
 
-BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but rises to the next level with features like multi-target scans, lightning-fast asyncio performance, and NLP-powered subdomain mutations. It offers a wide range of functionality, including subdomain enumeration, port scanning, web screenshots, vulnerability scanning, and much more. BBOT has over 80 modules and counting.
+BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but takes it to the next level with features like multi-target scans, lightning-fast asyncio performance, and NLP-powered subdomain mutations. It offers a wide range of functionality, including subdomain enumeration, port scanning, web screenshots, vulnerability scanning, and much more. 
 
-Whether you're a pentester, security researcher, or bug bounty hunter, BBOT automates the OSINT process so you can focus on the fun part: hacking!
+BBOT typically outperforms other subdomain enumeration tools by 20-25%:
 
-https://github.com/blacklanternsecurity/bbot/assets/20261699/ebf2a81e-7530-4a9e-922d-4e62eb949f35
+![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/1c262bbe-2e8c-4c69-bdd2-1e2553d47746)
 
-_A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)_
+To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/how_it_works/).
 
 # Getting Started
 
@@ -96,10 +96,6 @@ BBOT accepts an unlimited number of targets which you can specify either directl
 - URL (`https://www.evilcorp.com`)
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/scanning/#scope).
-
-## Comparison to Other Tools
-
-![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/1c262bbe-2e8c-4c69-bdd2-1e2553d47746)
 
 ## Acknowledgements
 
