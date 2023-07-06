@@ -112,6 +112,6 @@ Or on the command-line:
 bbot -t evilcorp.com -f subdomain-enum -c modules.shodan_dns.api_key=deadbeef modules.virustotal.api_key=cafebabe
 ```
 
-For more information, see [Configuration](./configuration). For a full list of modules, including which ones require API keys, see [List of Modules](./scanning/list_of_modules).
+For more information, see [Configuration](./scanning/configuration/). For a full list of modules, including which ones require API keys, see [List of Modules](./scanning/list_of_modules).
 
 [Next Up: Scanning](./scanning/){ .md-button .md-button--primary }
