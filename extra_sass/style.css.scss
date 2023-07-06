@@ -59,6 +59,15 @@ table {
 
 /* DARK MODE SPECIFIC */
 
+[data-md-color-primary=black] p a.md-button--primary {
+  background-color: black;
+  border: none;
+}
+
+[data-md-color-primary=black] p a.md-button--primary:hover {
+  background-color: var(--bbot-orange);
+}
+
 [data-md-color-scheme="slate"] {
   div.md-source__repository ul {
     color: white;

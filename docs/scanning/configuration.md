@@ -30,7 +30,7 @@ bbot -t evilcorp.com --config http_proxy=http://127.0.0.1:8080
 
 Or, in `~/.config/bbot/config.yml`:
 
-```yaml
+```yaml title="~/.bbot/config/bbot.yml"
 http_proxy: http://127.0.0.1:8080
 ```
 
@@ -39,7 +39,7 @@ These two are equivalent.
 Config options specified via the command-line take precedence over all others. You can give BBOT a custom config file with `--config myconf.yml`, or individual arguments like this: `--config modules.shodan_dns.api_key=deadbeef`. To display the full and current BBOT config, including any command-line arguments, use `bbot --current-config`.
 
 Note that placing the following in `bbot.yml`:
-```yaml
+```yaml title="~/.bbot/config/bbot.yml"
 modules:
   shodan_dns:
     api_key: deadbeef
@@ -49,17 +49,12 @@ Is the same as:
 bbot --config modules.shodan_dns.api_key=deadbeef
 ```
 
-Here is an example of what a standard BBOT config might look like:
-```yaml
-modules:
-```
-
 ## Global Config Options
 
 Below is a full list of the config options supported, along with their defaults.
 
 <!-- BBOT DEFAULT CONFIG -->
-```yaml
+```yaml title="defaults.yml"
 ### BASIC OPTIONS ###
 
 # BBOT working directory

@@ -6,13 +6,17 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 
 ## Installation
 
+!!! info "Supported Platforms"
+
+    Only **Linux** is supported at this time. **Windows** and **macOS** are *not* supported! If you use one of these platforms, considering using [Docker](#Docker).
+
 BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, see [Installation (Poetry)](https://www.blacklanternsecurity.com/bbot/contribution#installation-poetry).
 
 ### [Python (pip / pipx)](https://pypi.org/project/bbot/)
 
-Note: `pipx` installs BBOT inside its own virtual environment.
+???+ note
 
-Note: We only support Linux at this time. Windows and macOS are NOT supported!
+    `pipx` installs BBOT inside its own virtual environment.
 
 ```bash
 # stable version
@@ -93,7 +97,7 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 
 No API keys are required to run BBOT. However, some modules need them to function. If you have API keys and want to make use of these modules, you can place them either in BBOT's YAML config (`~/.config/bbot/secrets.yml`):
 
-```yaml
+```yaml title="~/.config/bbot/secrets.yml"
 modules:
   shodan_dns:
     api_key: deadbeef
@@ -110,4 +114,4 @@ bbot -t evilcorp.com -f subdomain-enum -c modules.shodan_dns.api_key=deadbeef mo
 
 For more information, see [Configuration](./configuration). For a full list of modules, including which ones require API keys, see [List of Modules](./scanning/list_of_modules).
 
-## Next Up: [Scanning](./scanning)
+[Next Up: Scanning](./scanning/){ .md-button .md-button--primary }

@@ -46,7 +46,10 @@ plugins:
   - extra-sass
 
 markdown_extensions:
-  - codehilite:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
       use_pygments: True
       noclasses: True
       pygments_style: github-dark

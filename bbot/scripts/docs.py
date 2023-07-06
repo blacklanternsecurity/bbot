@@ -96,7 +96,7 @@ def update_docs():
     default_config_file = bbot_code_dir / "bbot" / "defaults.yml"
     with open(default_config_file) as f:
         default_config_yml = f.read()
-    default_config_yml = f"```yaml\n{default_config_yml}\n```"
+    default_config_yml = f'```yaml title="defaults.yml"\n{default_config_yml}\n```'
     assert len(default_config_yml.splitlines()) > 20
     update_md_files("BBOT DEFAULT CONFIG", default_config_yml)
 

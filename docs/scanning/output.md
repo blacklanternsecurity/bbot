@@ -81,9 +81,7 @@ bbot -t evilcorp.com -om http -c output_modules.http.url=http://localhost:8000
 
 You can customize the HTTP method if needed. Authentication is also supported:
 
-**`~/.config/bbot.yml`:**
-
-```yaml
+```yaml title="~/.bbot/config/bbot.yml"
 output_modules:
   http:
     url: https://localhost:8000
