@@ -97,7 +97,11 @@ BBOT accepts an unlimited number of targets which you can specify either directl
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/scanning/#scope).
 
-# Acknowledgements
+## Comparison to Other Tools
+
+![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/1c262bbe-2e8c-4c69-bdd2-1e2553d47746)
+
+## Acknowledgements
 
 Thanks to these amazing people for contributing to BBOT! :heart:
 
