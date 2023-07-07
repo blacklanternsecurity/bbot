@@ -16,28 +16,63 @@ class TestCensys(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="https://search.censys.io/api/v1/search/certificates",
-            match_content=b'{"query": "parsed.names: blacklanternsecurity.com", "page": 1, "fields": ["parsed.names"]}',
+            url="https://search.censys.io/api/v2/certificates/search",
+            match_content=b'{"q": "names: blacklanternsecurity.com", "per_page": 100}',
             json={
-                "status": "ok",
-                "metadata": {
-                    "query": "parsed.names: blacklanternsecurity.com",
-                    "count": 1,
-                    "backend_time": 4465,
-                    "page": 1,
-                    "pages": 4,
+                "code": 200,
+                "status": "OK",
+                "result": {
+                    "query": "names: blacklanternsecurity.com",
+                    "total": 196,
+                    "duration_ms": 1046,
+                    "hits": [
+                        {
+                            "parsed": {
+                                "validity_period": {
+                                    "not_before": "2021-11-18T00:09:46Z",
+                                    "not_after": "2022-11-18T00:09:46Z",
+                                },
+                                "issuer_dn": "C=US, ST=Arizona, L=Scottsdale, O=GoDaddy.com\\, Inc., OU=http://certs.godaddy.com/repository/, CN=Go Daddy Secure Certificate Authority - G2",
+                                "subject_dn": "CN=asdf.blacklanternsecurity.com",
+                            },
+                            "fingerprint_sha256": "590ad51b8db62925f0fd3f300264c6a36692e20ceec2b5a22e7e4b41c1575cdc",
+                            "names": ["asdf.blacklanternsecurity.com", "asdf2.blacklanternsecurity.com"],
+                        },
+                    ],
+                    "links": {"next": "NextToken", "prev": ""},
                 },
-                "results": [
-                    {
-                        "parsed.names": [
-                            "asdf.blacklanternsecurity.com",
-                            "zzzz.blacklanternsecurity.com",
-                        ]
-                    },
-                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://search.censys.io/api/v2/certificates/search",
+            match_content=b'{"q": "names: blacklanternsecurity.com", "per_page": 100, "cursor": "NextToken"}',
+            json={
+                "code": 200,
+                "status": "OK",
+                "result": {
+                    "query": "names: blacklanternsecurity.com",
+                    "total": 196,
+                    "duration_ms": 1046,
+                    "hits": [
+                        {
+                            "parsed": {
+                                "validity_period": {
+                                    "not_before": "2021-11-18T00:09:46Z",
+                                    "not_after": "2022-11-18T00:09:46Z",
+                                },
+                                "issuer_dn": "C=US, ST=Arizona, L=Scottsdale, O=GoDaddy.com\\, Inc., OU=http://certs.godaddy.com/repository/, CN=Go Daddy Secure Certificate Authority - G2",
+                                "subject_dn": "CN=zzzz.blacklanternsecurity.com",
+                            },
+                            "fingerprint_sha256": "590ad51b8db62925f0fd3f300264c6a36692e20ceec2b5a22e7e4b41c1575cdc",
+                            "names": ["zzzz.blacklanternsecurity.com"],
+                        },
+                    ],
+                    "links": {"next": "", "prev": ""},
+                },
             },
         )
 
     def check(self, module_test, events):
-        assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
-        assert any(e.data == "zzzz.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"
+        assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect asdf subdomain"
+        assert any(e.data == "asdf2.blacklanternsecurity.com" for e in events), "Failed to detect asdf2 subdomain"
+        assert any(e.data == "zzzz.blacklanternsecurity.com" for e in events), "Failed to detect zzzz subdomain"
