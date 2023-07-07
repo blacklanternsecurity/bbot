@@ -4,7 +4,7 @@ BBOT is a system of modules that interchange data **recursively**. Okay, but lik
 
 ## What It **_Isn't_**
 
-BBOT's discovery process does not have "phases", or "stages". I.e. it does not work like this:
+BBOT's discovery process does not have "phases", or "stages"; i.e. it does not work like this:
 
 ![how_it_doesnt_work](https://github.com/blacklanternsecurity/bbot/assets/20261699/67c4e332-f181-47e7-b884-2112bda347a4)
 

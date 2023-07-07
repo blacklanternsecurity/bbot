@@ -41,7 +41,7 @@ bbot -t evilcorp.com -f subdomain-enum -c spider.yml
 
 ### Custom HTTP Proxy
 
-Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains owned by a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `http_proxy` config option like so:
+Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `http_proxy` config option like so:
 
 ```bash
 # enumerate subdomains, take web screenshots, proxy through Burp

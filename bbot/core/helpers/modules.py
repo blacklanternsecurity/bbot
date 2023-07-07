@@ -270,10 +270,11 @@ class ModuleLoader:
 
     def modules_table(self, modules=None, mod_type=None):
         table = []
-        header = ["Module", "Type", "Needs API Key", "Description", "Flags", "Produced Events"]
-        maxcolwidths = [20, 20, 5, 40, 40, 40]
+        header = ["Module", "Type", "Needs API Key", "Description", "Flags", "Consumed Events", "Produced Events"]
+        maxcolwidths = [20, 10, 5, 30, 30, 20, 20]
         for module_name, preloaded in self.filter_modules(modules, mod_type):
             module_type = preloaded["type"]
+            consumed_events = sorted(preloaded.get("watched_events", []))
             produced_events = sorted(preloaded.get("produced_events", []))
             flags = sorted(preloaded.get("flags", []))
             api_key_required = ""
@@ -281,7 +282,7 @@ class ModuleLoader:
             api_key_required = "Yes" if meta.get("auth_required", False) else "No"
             description = meta.get("description", "")
             table.append(
-                [module_name, module_type, api_key_required, description, ",".join(flags), ",".join(produced_events)]
+                [module_name, module_type, api_key_required, description, ", ".join(flags), ", ".join(consumed_events), ", ".join(produced_events)]
             )
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
@@ -322,7 +323,8 @@ class ModuleLoader:
                     except KeyError:
                         _flags[flag] = {module_name}
 
-        _flags = sorted(_flags.items(), key=lambda x: len(x[-1]), reverse=True)
+        _flags = sorted(_flags.items(), key=lambda x: x[0])
+        _flags = sorted(_flags, key=lambda x: len(x[-1]), reverse=True)
         return _flags
 
     def flags_table(self, flags=None):
