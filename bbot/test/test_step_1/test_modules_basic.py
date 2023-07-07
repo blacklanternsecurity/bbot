@@ -114,9 +114,13 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     assert all_preloaded["sslcert"]["deps"]["apt"]
     assert all_preloaded["massdns"]["deps"]["ansible"]
 
+    all_flags = set()
+
     for module_name, preloaded in all_preloaded.items():
         # either active or passive and never both
         flags = preloaded.get("flags", [])
+        for flag in flags:
+            all_flags.add(flag)
         if preloaded["type"] == "scan":
             assert ("active" in flags and not "passive" in flags) or (
                 not "active" in flags and "passive" in flags
@@ -156,3 +160,10 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         assert all(
             o for o in preloaded.get("options_desc", {}).values()
         ), f"{module_name}.options_desc descriptions must not be blank"
+
+    from bbot.core.flags import flag_descriptions
+
+    for flag in all_flags:
+        assert flag in flag_descriptions, f'Flag "{flag}" not listed in bbot/core/flags.py'
+        description = flag_descriptions.get(flag, "")
+        assert description, f'Flag "{flag}" has no description in bbot/core/flags.py'

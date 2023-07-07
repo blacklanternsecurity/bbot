@@ -78,6 +78,15 @@ http_proxy:
 # Web user-agent
 user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36
 
+### WEB SPIDER ###
+
+# Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
+web_spider_distance: 0
+# Set the maximum directory depth for the web spider
+web_spider_depth: 1
+# Set the maximum number of links that can be followed per page
+web_spider_links_per_page: 25
+
 
 ### ADVANCED OPTIONS ###
 
@@ -112,12 +121,6 @@ httpx_retries: 1
 http_debug: false
 # Maximum number of HTTP redirects to follow
 http_max_redirects: 5
-# Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
-web_spider_distance: 0
-# Set the maximum directory depth for the web spider
-web_spider_depth: 1
-# Set the maximum number of links that can be followed per page
-web_spider_links_per_page: 25
 # DNS query timeout
 dns_timeout: 5
 # How many times to retry DNS queries

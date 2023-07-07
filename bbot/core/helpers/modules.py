@@ -328,7 +328,7 @@ class ModuleLoader:
     def flags_table(self, flags=None):
         table = []
         header = ["Flag", "# Modules", "Description", "Modules"]
-        maxcolwidths = [20, 40, 5, 80]
+        maxcolwidths = [20, 5, 40, 80]
         _flags = self.flags(flags=flags)
         for flag, modules in _flags:
             description = flag_descriptions.get(flag, "")

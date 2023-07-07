@@ -9,9 +9,39 @@ Press enter during a BBOT scan to change the log level. This will allow you to s
 
 ## Common Config Changes
 
+### Web Spider
+
+The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of `web_spider_distance`.
+
+The web spider is controlled with three config values:
+
+- `web_spider_distance` (`0` == all spidering disabled, default: `0`): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where `web_spider_depth` fails (e.g. for an ecommerce website with thousands of base-level URLs).
+- `web_spider_depth` (default: `1`: the maximum directory depth allowed. This is to prevent the spider from delving too deep into a website.
+- `web_spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed. This is designed specifically for cases where a single page has hundreds or thousands of links.
+
+Here is a typical example:
+
+```yaml title="spider.yml"
+web_spider_depth: 2
+web_spider_distance: 2
+web_spider_links_per_page: 25
+```
+
+```bash
+# run the web spider against www.evilcorp.com
+bbot -t www.evilcorp.com -m httpx -c spider.yml
+```
+
+You can also pair the web spider with subdomain enumeration:
+
+```bash
+# spider every subdomain of evilcorp.com
+bbot -t evilcorp.com -f subdomain-enum -c spider.yml
+```
+
 ### Custom HTTP Proxy
 
-Web pentesters may appreciate the ability to proxy a scan through Burp Suite. When executed with gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `http_proxy` config option like so:
+Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains owned by a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `http_proxy` config option like so:
 
 ```bash
 # enumerate subdomains, take web screenshots, proxy through Burp

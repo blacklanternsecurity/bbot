@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - material-docs
+      - dev
 permissions:
   contents: write
 jobs:
