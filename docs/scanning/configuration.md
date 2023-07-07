@@ -4,8 +4,8 @@ BBOT has a YAML config at `~/.config/bbot`. This config is different from the co
 
 For a list of all possible config options, see:
 
-- [Global Options](./global_options/)
-- [Module Options](./module_options/)
+- [Global Options](#global-config-options)
+- [Module Options](#module-config-options)
 
 For examples of common config changes, see [Tips and Tricks](../tips_and_tricks/).
 

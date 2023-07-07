@@ -93,7 +93,7 @@ This will produce the output:
 [INFO] Finishing scan
 ```
 
-But something's wrong! We're emitting `IP_ADDRESS` [events](./scanning/events), but they're not showing up in the output. This is because by default, BBOT only shows in-scope [events](./scanning/events). To see them, we need to increase the report distance:
+But something's wrong! We're emitting `IP_ADDRESS` [events](./scanning/events/), but they're not showing up in the output. This is because by default, BBOT only shows in-scope [events](./scanning/events/). To see them, we need to increase the report distance:
 
 ```bash
 # run the module again but with a higher report distance
@@ -122,9 +122,9 @@ Now, with the `report_distance=1`:
 
 ### `handle_event()` and `emit_event()`
 
-The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that [event](./scanning/events).
+The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events/) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that [event](./scanning/events/).
 
-The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events) and prints it to the console. It also distributes it any modules that are interested in that data type.
+The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events/) and prints it to the console. It also distributes it any modules that are interested in that data type.
 
 ### Module Dependencies
 

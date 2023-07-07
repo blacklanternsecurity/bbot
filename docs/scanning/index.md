@@ -36,13 +36,13 @@ https://www.evilcorp.co.uk
 $ bbot -t targets.txt fsociety.com 5.6.7.0/24 -m nmap
 ```
 
-On start, BBOT automatically converts Targets into [Events](./events).
+On start, BBOT automatically converts Targets into [Events](./events/).
 
 ## Modules (`-m`)
 
-To see a full list of modules and their descriptions, use `bbot -l` or see [List of Modules](./list_of_modules).
+To see a full list of modules and their descriptions, use `bbot -l` or see [List of Modules](./list_of_modules/).
 
-Modules are the part of BBOT that does the work -- port scanning, subdomain brute-forcing, API querying, etc. Modules consume [Events](../events/) (`IP_ADDRESS`, `DNS_NAME`, etc.) from each other, process the data in a useful way, then emit the results as new events. You can enable individual modules with `-m`.
+Modules are the part of BBOT that does the work -- port scanning, subdomain brute-forcing, API querying, etc. Modules consume [Events](./events/) (`IP_ADDRESS`, `DNS_NAME`, etc.) from each other, process the data in a useful way, then emit the results as new events. You can enable individual modules with `-m`.
 
 ```bash
 # Enable modules: nmap, sslcert, and httpx
@@ -56,14 +56,14 @@ Modules fall into three categories:
 - **Scan Modules**:
   - These make up the majority of modules. Examples are `nmap`, `sslcert`, `httpx`, etc. Enable with `-m`.
 - **Output Modules**:
-  - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](./output))
+  - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](./output/))
 - **Internal Modules**:
   - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disabled via the config (e.g. `-c speculate=false`).
     - `aggregate`: Summarizes results at the end of a scan
     - `excavate`: Extracts useful data such as subdomains from webpages, etc.
     - `speculate`: Intelligently infers new events, e.g. `OPEN_TCP_PORT` from `URL` or `IP_ADDRESS` from `IP_NETWORK`.
 
-For details in the inner workings of modules, see [Creating a Module](../contribution/module_creation/).
+For details in the inner workings of modules, see [Creating a Module](../contribution/#creating-a-module).
 
 ## Flags (`-f`)
 
@@ -147,15 +147,15 @@ By default, scope is whatever you specify with `-t`. This includes child subdoma
 
 ### Scope Distance
 
-Since BBOT is recursive, it would quickly resort to scannning the entire internet without some kind of restraining mechanism. To solve this problem, every [event](./events) discovered by BBOT is assigned a **Scope Distance**. Scope distance represents how far out from the main scope that data was discovered.
+Since BBOT is recursive, it would quickly resort to scannning the entire internet without some kind of restraining mechanism. To solve this problem, every [event](./events/) discovered by BBOT is assigned a **Scope Distance**. Scope distance represents how far out from the main scope that data was discovered.
 
 For example, if your target is `evilcorp.com`, `www.evilcorp.com` would have a scope distance of `0` (i.e. in-scope). If BBOT discovers that `www.evilcorp.com` resolves to `1.2.3.4`, `1.2.3.4` is one hop away, which means it would have a scope distance of `1`. If `1.2.3.4` has a PTR record that points to `ecorp.blob.core.windows.net`, `ecorp.blob.core.windows.net` is two hops away, so its scope distance is `2`.
 
-Scope distance continues to increase the further out you get. Most modules (e.g. `nuclei` and `nmap`) only consume in-scope events. Certain other passive modules such as `asn` accept out to distance `1`. By default, DNS resolution happens out to a distance of `2`. Upon its discovery, any [event](./events) that's determined to be in-scope (e.g. `www.evilcorp.com`) immediately becomes distance `0`, and the cycle starts over.
+Scope distance continues to increase the further out you get. Most modules (e.g. `nuclei` and `nmap`) only consume in-scope events. Certain other passive modules such as `asn` accept out to distance `1`. By default, DNS resolution happens out to a distance of `2`. Upon its discovery, any [event](./events/) that's determined to be in-scope (e.g. `www.evilcorp.com`) immediately becomes distance `0`, and the cycle starts over.
 
 #### Displaying Out-of-scope Events
 
-By default, BBOT only displayed in-scope events (with a few exceptions such as `STORAGE_BUCKET`s). If you want to see more, you must increase the [config](./configuration) value of `scope_report_distance`:
+By default, BBOT only displayed in-scope events (with a few exceptions such as `STORAGE_BUCKET`s). If you want to see more, you must increase the [config](./configuration/) value of `scope_report_distance`:
 
 ```bash
 # display out-of-scope events up to one hop away from the main scope
@@ -202,7 +202,7 @@ Wildcard hosts are collapsed into a single host beginning with `_wildcard`:
                 ^^^^^^^^^
 ```
 
-If you don't want this, you can disable wildcard detection on a domain-to-domain basis in the [config](./configuration):
+If you don't want this, you can disable wildcard detection on a domain-to-domain basis in the [config](./configuration/):
 
 ```yaml title="~/.bbot/config/bbot.yml"
 dns_wildcard_ignore:

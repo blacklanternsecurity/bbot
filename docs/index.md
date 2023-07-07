@@ -10,7 +10,7 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 
     Only **Linux** is supported at this time. **Windows** and **macOS** are *not* supported. If you use one of these platforms, consider using [Docker](#Docker).
 
-BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, see [Installation (Poetry)](https://www.blacklanternsecurity.com/bbot/contribution#installation-poetry).
+BBOT offers multiple methods of installation, including **pipx** and **Docker**. If you plan to dev on BBOT, see [Installation (Poetry)](https://www.blacklanternsecurity.com/bbot/contribution/#installation-poetry).
 
 ### [Python (pip / pipx)](https://pypi.org/project/bbot/)
 
@@ -112,6 +112,6 @@ Or on the command-line:
 bbot -t evilcorp.com -f subdomain-enum -c modules.shodan_dns.api_key=deadbeef modules.virustotal.api_key=cafebabe
 ```
 
-For more information, see [Configuration](./scanning/configuration/). For a full list of modules, including which ones require API keys, see [List of Modules](./scanning/list_of_modules).
+For more information, see [Configuration](./scanning/configuration/). For a full list of modules, including which ones require API keys, see [List of Modules](./scanning/list_of_modules/).
 
 [Next Up: Scanning -->](./scanning/){ .md-button .md-button--primary }

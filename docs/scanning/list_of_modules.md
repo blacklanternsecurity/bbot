@@ -94,4 +94,4 @@
 | speculate            | internal | No              | Derive certain event types from others by common sense                 | passive                                                                       | DNS_NAME,FINDING,IP_ADDRESS,OPEN_TCP_PORT            |
 <!-- END BBOT MODULES -->
 
-For a list of module config options, see [Module Options](../configuration/#module-config-options).
+For a list of module config options, see [Module Options](../configurations/#module-config-options).
