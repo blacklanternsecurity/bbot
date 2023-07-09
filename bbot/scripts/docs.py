@@ -113,12 +113,12 @@ def update_docs():
         mkdocs_yaml = yaml.safe_load(f)
         nav = mkdocs_yaml["nav"]
         for section in nav:
-            # print(section)
             for section_title, subsections in section.items():
                 bbot_docs_toc += f"- **{section_title}**\n"
                 for subsection in subsections:
                     for subsection_title, subsection_path in subsection.items():
-                        path = subsection_path.split(".md")[0]
+                        path = subsection_path.split("index.md")[0]
+                        path = path.split(".md")[0]
                         bbot_docs_toc += f"    - [{subsection_title}]({base_url}/{path})\n"
     bbot_docs_toc = bbot_docs_toc.strip()
     assert len(bbot_docs_toc.splitlines()) > 5

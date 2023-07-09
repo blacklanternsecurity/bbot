@@ -18,11 +18,11 @@ BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn
 
 <!-- BBOT DOCS TOC -->
 - **Basics**
-    - [Getting Started](https://www.blacklanternsecurity.com/bbot/index)
+    - [Getting Started](https://www.blacklanternsecurity.com/bbot/)
     - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
     - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
 - **Scanning**
-    - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/index)
+    - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/)
     - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
     - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
     - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
