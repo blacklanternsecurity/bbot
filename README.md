@@ -18,22 +18,22 @@ BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn
 
 <!-- BBOT DOCS TOC -->
 - **Basics**
-        - [Getting Started](https://www.blacklanternsecurity.com/bbot/index)
-        - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
-        - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
+    - [Getting Started](https://www.blacklanternsecurity.com/bbot/index)
+    - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
+    - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
 - **Scanning**
-        - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/index)
-        - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
-        - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
-        - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
-        - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
-        - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
-        - [List of Modules](https://www.blacklanternsecurity.com/bbot/scanning/list_of_modules)
+    - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/index)
+    - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
+    - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
+    - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
+    - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
+    - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
+    - [List of Modules](https://www.blacklanternsecurity.com/bbot/scanning/list_of_modules)
 - **Contribution**
-        - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
+    - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
 - **Misc**
-        - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
-        - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
+    - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
+    - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
 <!-- END BBOT DOCS TOC -->
 
 ## Installation ([pip](https://pypi.org/project/bbot/))

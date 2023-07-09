@@ -119,7 +119,7 @@ def update_docs():
                 for subsection in subsections:
                     for subsection_title, subsection_path in subsection.items():
                         path = subsection_path.split(".md")[0]
-                        bbot_docs_toc += f"        - [{subsection_title}]({base_url}/{path})\n"
+                        bbot_docs_toc += f"    - [{subsection_title}]({base_url}/{path})\n"
     bbot_docs_toc = bbot_docs_toc.strip()
     assert len(bbot_docs_toc.splitlines()) > 5
     update_md_files("BBOT DOCS TOC", bbot_docs_toc)
