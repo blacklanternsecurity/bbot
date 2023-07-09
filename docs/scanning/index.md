@@ -54,14 +54,14 @@ bbot -t www.evilcorp.com -m nmap sslcert httpx
 Modules fall into three categories:
 
 - **Scan Modules**:
-  - These make up the majority of modules. Examples are `nmap`, `sslcert`, `httpx`, etc. Enable with `-m`.
+    - These make up the majority of modules. Examples are `nmap`, `sslcert`, `httpx`, etc. Enable with `-m`.
 - **Output Modules**:
-  - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](./output/))
+    - These output scan data to different formats/destinations. `human`, `json`, and `csv` are enabled by default. Enable others with `-om`. (See: [Output](./output/))
 - **Internal Modules**:
-  - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disabled via the config (e.g. `-c speculate=false`).
-    - `aggregate`: Summarizes results at the end of a scan
-    - `excavate`: Extracts useful data such as subdomains from webpages, etc.
-    - `speculate`: Intelligently infers new events, e.g. `OPEN_TCP_PORT` from `URL` or `IP_ADDRESS` from `IP_NETWORK`.
+    - These modules perform essential, common-sense tasks. They are always enabled, unless explicitly disabled via the config (e.g. `-c speculate=false`).
+        - `aggregate`: Summarizes results at the end of a scan
+        - `excavate`: Extracts useful data such as subdomains from webpages, etc.
+        - `speculate`: Intelligently infers new events, e.g. `OPEN_TCP_PORT` from `URL` or `IP_ADDRESS` from `IP_NETWORK`.
 
 For details in the inner workings of modules, see [Creating a Module](../contribution/#creating-a-module).
 
