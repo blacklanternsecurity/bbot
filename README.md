@@ -49,7 +49,7 @@ For more installation methods including [Docker](https://hub.docker.com/r/blackl
 pipx install bbot
 
 # bleeding edge (dev branch)
-pipx install --pip-args pre bbot
+pipx install --pip-args '\--pre' bbot
 
 bbot --help
 ```
@@ -159,5 +159,3 @@ Special thanks to the following people who made BBOT possible:
 - Steve Micallef (@smicallef) for creating Spiderfoot
 - @kerrymilan for his Neo4j and Ansible expertise
 - Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
-
-See also: [Release History](https://github.com/blacklanternsecurity/bbot/wiki/Release-History)

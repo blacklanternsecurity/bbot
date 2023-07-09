@@ -155,7 +155,7 @@ Scope distance continues to increase the further out you get. Most modules (e.g.
 
 #### Displaying Out-of-scope Events
 
-By default, BBOT only displayed in-scope events (with a few exceptions such as `STORAGE_BUCKET`s). If you want to see more, you must increase the [config](./configuration/) value of `scope_report_distance`:
+By default, BBOT only displays in-scope events (with a few exceptions such as `STORAGE_BUCKET`s). If you want to see more, you must increase the [config](./configuration/) value of `scope_report_distance`:
 
 ```bash
 # display out-of-scope events up to one hop away from the main scope

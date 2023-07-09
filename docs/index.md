@@ -23,7 +23,7 @@ BBOT offers multiple methods of installation, including **pipx** and **Docker**.
 pipx install bbot
 
 # bleeding edge (dev branch)
-pipx install --pip-args pre bbot
+pipx install --pip-args '\--pre' bbot
 
 # execute bbot command
 bbot --help
