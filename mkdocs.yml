@@ -15,7 +15,7 @@ nav:
     - How it Works: how_it_works.md
     - Comparison to Other Tools: comparison.md
   - Scanning:
-    - scanning/index.md
+    - Scanning Overview: scanning/index.md
     - Events: scanning/events.md
     - Output: scanning/output.md
     - Tips and Tricks: scanning/tips_and_tricks.md
@@ -23,7 +23,7 @@ nav:
     - Configuration: scanning/configuration.md
     - List of Modules: scanning/list_of_modules.md
   - Contribution:
-      - How to Write a Module: contribution.md
+    - How to Write a Module: contribution.md
   - Misc:
     - Release History: release_history.md
     - Troubleshooting: troubleshooting.md

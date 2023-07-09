@@ -2,6 +2,7 @@
 
 import os
 import re
+import yaml
 from pathlib import Path
 
 from bbot.modules import module_loader
@@ -13,6 +14,8 @@ os.environ["BBOT_TABLE_FORMAT"] = "github"
 # Make a regex pattern which will match any group of non-space characters that include a blacklisted character
 blacklist_chars = ["<", ">"]
 blacklist_re = re.compile(r"\|([^|]*[" + re.escape("".join(blacklist_chars)) + r"][^|]*)\|")
+
+bbot_code_dir = Path(__file__).parent.parent.parent
 
 
 def enclose_tags(text):
@@ -47,7 +50,6 @@ def find_replace_file(file, keyword, replace):
 
 
 def update_docs():
-    bbot_code_dir = Path(__file__).parent.parent.parent
     md_files = [p for p in bbot_code_dir.glob("**/*.md") if p.is_file()]
 
     def update_md_files(keyword, s):
@@ -99,6 +101,28 @@ def update_docs():
     default_config_yml = f'```yaml title="defaults.yml"\n{default_config_yml}\n```'
     assert len(default_config_yml.splitlines()) > 20
     update_md_files("BBOT DEFAULT CONFIG", default_config_yml)
+
+    # Table of Contents
+    mkdocs_yml_file = bbot_code_dir / "mkdocs.yml"
+    yaml.SafeLoader.add_constructor(
+        "tag:yaml.org,2002:python/name:pymdownx.superfences.fence_code_format", lambda x, y: {}
+    )
+    bbot_docs_toc = ""
+    base_url = "https://www.blacklanternsecurity.com/bbot"
+    with open(mkdocs_yml_file, "r") as f:
+        mkdocs_yaml = yaml.safe_load(f)
+        nav = mkdocs_yaml["nav"]
+        for section in nav:
+            # print(section)
+            for section_title, subsections in section.items():
+                bbot_docs_toc += f"- **{section_title}**\n"
+                for subsection in subsections:
+                    for subsection_title, subsection_path in subsection.items():
+                        path = subsection_path.split(".md")[0]
+                        bbot_docs_toc += f"        - [{subsection_title}]({base_url}/{path})\n"
+    bbot_docs_toc = bbot_docs_toc.strip()
+    assert len(bbot_docs_toc.splitlines()) > 5
+    update_md_files("BBOT DOCS TOC", bbot_docs_toc)
 
 
 update_docs()

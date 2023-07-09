@@ -14,7 +14,27 @@ BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but ta
 
 BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/how_it_works/).
 
-## Consider checking out our [Documentation](https://www.blacklanternsecurity.com/bbot).
+## Consider checking out our [Documentation](https://www.blacklanternsecurity.com/bbot):
+
+<!-- BBOT DOCS TOC -->
+- **Basics**
+        - [Getting Started](https://www.blacklanternsecurity.com/bbot/index)
+        - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
+        - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
+- **Scanning**
+        - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/index)
+        - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
+        - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
+        - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
+        - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
+        - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
+        - [List of Modules](https://www.blacklanternsecurity.com/bbot/scanning/list_of_modules)
+- **Contribution**
+        - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
+- **Misc**
+        - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
+        - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
+<!-- END BBOT DOCS TOC -->
 
 ## Installation ([pip](https://pypi.org/project/bbot/))
 

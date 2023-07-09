@@ -2,7 +2,7 @@
 
 ## Scan Names
 
-Every BBOT scan gets a random and mildly-entertaining name like **`demonic_jimmy`**. Output for that scan, including scan stats and any web screenshots, are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed.
+Every BBOT scan gets a random, mildly-entertaining name like **`demonic_jimmy`**. Output for that scan, including scan stats and any web screenshots, are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed.
 
 If you don't want a random name, you can change it with `-n`. You can also change the location of BBOT's output with `-o`:
 
