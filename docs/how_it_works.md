@@ -10,7 +10,7 @@ BBOT's discovery process does not have "phases", or "stages"; i.e. it does not w
 
 This is a traditional OSINT process, where you start with a target and you work in stages. Each stage gets you a little more data and requires more cleaning/deduplication, until finally you reach the end. The problem with this approach is that it **misses things**. 
 
-Imagine if on the last step of this process, you discovered a new subdomain. Awesome! But wait, shouldn't you go back and check that one the same way you did the others? Shouldn't you port-scan it and SSL-mine it and so on? Maybe you're a thorough, hard-working human, and you do all that. Maybe by doing that, you find another subdomain! _Sigh._ What about this time? Should you start over again for that one? You see the dilemma.
+Imagine if on the last step of this process, you discovered a new subdomain. Awesome! But wait, shouldn't you go back and check that one the same way you did the others? Shouldn't you port-scan it and SSL-mine it and so on? Maybe you're a thorough, hard-working human, and you take the time to do that. Maybe by doing that, you find another subdomain! _Sigh._ What about this time? Should you start over again for that one? You see the dilemma.
 
 ![traditional-workflow](https://github.com/blacklanternsecurity/bbot/assets/20261699/aa7cb6ac-6f88-464a-8069-0d534cecfd2b)
 

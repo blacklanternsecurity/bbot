@@ -282,7 +282,15 @@ class ModuleLoader:
             api_key_required = "Yes" if meta.get("auth_required", False) else "No"
             description = meta.get("description", "")
             table.append(
-                [module_name, module_type, api_key_required, description, ", ".join(flags), ", ".join(consumed_events), ", ".join(produced_events)]
+                [
+                    module_name,
+                    module_type,
+                    api_key_required,
+                    description,
+                    ", ".join(flags),
+                    ", ".join(consumed_events),
+                    ", ".join(produced_events),
+                ]
             )
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
