@@ -160,10 +160,11 @@ class HttpCompare:
 
             subject_params = self.parent_helper.get_get_params(subject)
             for k, v in subject_params.items():
-                if k != cache_key and v in subject_response.text:
-                    reflection = True
-                    break
-
+                if k != cache_key:
+                    for item in v:
+                        if item in subject_response.text:
+                            reflection = True
+                            break
         try:
             subject_json = xmltodict.parse(subject_response.text)
 

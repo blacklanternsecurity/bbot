@@ -26,6 +26,7 @@ import wordninja as _wordninja
 from contextlib import suppress
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
+import xml.etree.ElementTree as ET
 from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
@@ -373,6 +374,90 @@ def rand_string(length=10, digits=True):
     if digits:
         pool = rand_pool_digits
     return "".join([random.choice(pool) for _ in range(int(length))])
+
+
+def extract_params_json(json_data):
+    try:
+        data = json.loads(json_data)
+    except json.JSONDecodeError:
+        log.debug("Invalid JSON supplied. Returning empty list.")
+        return []
+
+    keys = []
+    stack = [data]
+
+    while stack:
+        current_data = stack.pop()
+        if isinstance(current_data, dict):
+            for key, value in current_data.items():
+                keys.append(key)
+                if isinstance(value, (dict, list)):
+                    stack.append(value)
+        elif isinstance(current_data, list):
+            for item in current_data:
+                if isinstance(item, (dict, list)):
+                    stack.append(item)
+
+    return keys
+
+
+def extract_params_xml(xml_data):
+    try:
+        root = ET.fromstring(xml_data)
+    except ET.ParseError:
+        log.debug("Invalid XML supplied. Returning empty list.")
+        return []
+
+    tags = []
+    stack = [root]
+
+    while stack:
+        current_element = stack.pop()
+        tags.append(current_element.tag)
+        for child in current_element:
+            stack.append(child)
+    return tags
+
+
+def extract_params_html(html_data):
+    input_tag = regexes.input_tag_regex.findall(html_data)
+
+    for i in input_tag:
+        log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
+        yield i
+
+    # check for jquery get parameters
+    jquery_get = regexes.jquery_get_regex.findall(html_data)
+
+    for i in jquery_get:
+        log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
+        yield i
+
+    # check for jquery post parameters
+    jquery_post = regexes.jquery_post_regex.findall(html_data)
+    if jquery_post:
+        for i in jquery_post:
+            for x in i.split(","):
+                s = x.split(":")[0].rstrip()
+                log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
+                yield s
+
+    a_tag = regexes.a_tag_regex.findall(html_data)
+    if a_tag:
+        for url in a_tag:
+            if url.startswith("http"):
+                url_parsed = self.helpers.parse_url(url)
+                if not self.scan.in_scope(url_parsed.netloc):
+                    log.debug(f"Skipping checking for parameters because URL ({url}) is not in scope")
+                    continue
+                i = url_parsed.query.split("&")
+            else:
+                i = url.split("?")[1].split("&")
+            for x in i:
+                s = x.split("=")[0]
+
+                log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
+                yield s
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):

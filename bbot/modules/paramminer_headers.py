@@ -1,5 +1,6 @@
 from bbot.modules.base import BaseModule
 from bbot.core.errors import HttpCompareError
+from bbot.core.helpers.misc import extract_params_json, extract_params_xml, extract_params_html
 
 
 class paramminer_headers(BaseModule):
@@ -7,38 +8,85 @@ class paramminer_headers(BaseModule):
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
-    watched_events = ["URL"]
+    watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {"description": "Use smart brute-force to check for common HTTP header parameters"}
-    options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
-    options_desc = {"wordlist": "Define the wordlist to be used to derive headers"}
+    options = {
+        "wordlist": "",  # default is defined within setup function
+        "http_extract": True,
+        "skip_boring_words": True,
+    }
+    options_desc = {
+        "wordlist": "Define the wordlist to be used to derive headers",
+        "http_extract": "Attempt to find additional wordlist words from the HTTP Response",
+        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
+    }
     scanned_hosts = []
-    header_blacklist = [
-        "content-length",
-        "expect",
+    boringlist = [
+        "accept",
         "accept-encoding",
-        "transfer-encoding",
+        "accept-language",
+        "action",
+        "authorization",
+        "cf-connecting-ip",
         "connection",
+        "content-encoding",
+        "content-length",
+        "content-range",
+        "content-type",
+        "cookie",
+        "date",
+        "expect",
+        "host",
+        "if",
         "if-match",
         "if-modified-since",
         "if-none-match",
         "if-unmodified-since",
+        "javascript",
+        "keep-alive",
+        "label",
+        "negotiate",
+        "proxy",
+        "range",
+        "referer",
+        "start",
+        "trailer",
+        "transfer-encoding",
+        "upgrade",
+        "user-agent",
+        "vary",
+        "waf-stuff-below",
+        "x-scanner",
+        "x_alto_ajax_key",
+        "zaccess-control-request-headers",
+        "zaccess-control-request-method",
+        "zmax-forwards",
+        "zorigin",
+        "zreferrer",
+        "zvia",
+        "zx-request-id",
+        "zx-timer",
     ]
     max_event_handlers = 12
     in_scope_only = True
     compare_mode = "header"
+    default_wordlist = "paramminer_headers.txt"
 
     async def setup(self):
-        wordlist_url = self.config.get("wordlist", "")
-        self.wordlist = await self.helpers.wordlist(wordlist_url)
+        wordlist = self.config.get("wordlist", "")
+        if not wordlist:
+            wordlist = f"{self.helpers.wordlist_dir}/{self.default_wordlist}"
+        self.debug(f"Using wordlist: [{wordlist}]")
+        self.wordlist = await self.helpers.wordlist(wordlist)
         return True
 
     def rand_string(self, *args, **kwargs):
         return self.helpers.rand_string(*args, **kwargs)
 
     async def handle_event(self, event):
-        url = event.data
+        url = event.data.get("url")
         try:
             compare_helper = self.helpers.http_compare(url)
         except HttpCompareError as e:
@@ -54,14 +102,20 @@ class paramminer_headers(BaseModule):
             self.verbose(f'Aborting "{url}" due to failed canary check')
             return
 
-        fl = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
+        wl_raw = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
 
-        wordlist_cleaned = list(filter(self.clean_list, fl))
+        # clean list against the boring list, if the option is set
+        if self.config.get("skip_boring_words", True):
+            wl = list(filter(self.clean_list, wl_raw))
+        else:
+            wl = wl_raw
 
+        if self.config.get("http_extract"):
+            wl = self.load_extracted_words(wl, event.data.get("body"), event.data.get("content_type"))
         results = set()
         abort_threshold = 25
         try:
-            for group in self.helpers.grouper(wordlist_cleaned, batch_size):
+            for group in self.helpers.grouper(wl, batch_size):
                 async for result, reasons, reflection in self.binary_search(compare_helper, url, group):
                     results.add((result, ",".join(reasons), reflection))
                     if len(results) >= abort_threshold:
@@ -77,7 +131,7 @@ class paramminer_headers(BaseModule):
             tags = []
             if reflection:
                 tags = ["http_reflection"]
-            description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}]"
+            description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}] Reflection: [{str(reflection)}]"
             self.emit_event(
                 {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
@@ -108,9 +162,19 @@ class paramminer_headers(BaseModule):
             header_count -= 5
 
     def clean_list(self, header):
-        if (len(header) > 0) and ("%" not in header) and (header not in self.header_blacklist):
+        if (len(header) > 0) and ("%" not in header) and (header not in self.boringlist):
             return True
         return False
+
+    def load_extracted_words(self, wl, body, content_type):
+        if "json" in content_type.lower():
+            return wl + extract_params_json(body)
+        elif "xml" in content_type.lower():
+            return wl + extract_params_xml(body)
+        else:
+            return wl + list(extract_params_html(body))
+
+        return wl
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
