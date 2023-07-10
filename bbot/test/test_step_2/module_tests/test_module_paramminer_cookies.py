@@ -41,6 +41,6 @@ class TestParamminer_Cookies(TestParamminer_Headers):
             for e in events
         )
         assert not any(
-            e.type == "FINDING" and "[Paramminer] Cookie: [junkcookie] Reasons: [body]" in e.data["description"] 
+            e.type == "FINDING" and "[Paramminer] Cookie: [junkcookie] Reasons: [body]" in e.data["description"]
             for e in events
         )
