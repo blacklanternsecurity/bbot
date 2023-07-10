@@ -145,11 +145,8 @@ class DNSHelper:
         # skip certain queries if requested
         if rdtype in self.dns_omit_queries:
             if any(h == query or query.endswith(f".{h}") for h in self.dns_omit_queries[rdtype]):
-                log.hugesuccess(f"{rdtype}:{query} in {self.dns_omit_queries}")
                 self.debug(f"Skipping {rdtype}:{query} because it's omitted in the config")
                 return results, errors
-            else:
-                log.critical(f"{rdtype}:{query} not in {self.dns_omit_queries}")
 
         parent = self.parent_helper.parent_domain(query)
         retries = kwargs.pop("retries", self.retries)
