@@ -37,10 +37,10 @@ class TestParamminer_Cookies(TestParamminer_Headers):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING" and e.data["description"] == "[Paramminer] Cookie: [admincookie] Reasons: [body]"
+            e.type == "FINDING" and "[Paramminer] Cookie: [admincookie] Reasons: [body]" in e.data["description"]
             for e in events
         )
         assert not any(
-            e.type == "FINDING" and e.data["description"] == "[Paramminer] Cookie: [junkcookie] Reasons: [body]"
+            e.type == "FINDING" and "[Paramminer] Cookie: [junkcookie] Reasons: [body]" in e.data["description"] 
             for e in events
         )
