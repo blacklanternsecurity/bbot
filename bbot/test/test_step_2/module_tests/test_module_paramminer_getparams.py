@@ -1,5 +1,3 @@
-import re
-
 from .test_module_paramminer_headers import *
 
 
