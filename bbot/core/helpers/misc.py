@@ -380,22 +380,43 @@ def extract_params_json(json_data):
     try:
         data = json.loads(json_data)
     except json.JSONDecodeError:
-        log.debug(f"Invalid JSON supplied. Returning empty list.")
+        log.debug("Invalid JSON supplied. Returning empty list.")
         return []
 
     keys = []
+    stack = [data]
 
-    def extract_keys(data):
-        if isinstance(data, dict):
-            for key, value in data.items():
+    while stack:
+        current_data = stack.pop()
+        if isinstance(current_data, dict):
+            for key, value in current_data.items():
                 keys.append(key)
-                extract_keys(value)
-        elif isinstance(data, list):
-            for item in data:
-                extract_keys(item)
+                if isinstance(value, (dict, list)):
+                    stack.append(value)
+        elif isinstance(current_data, list):
+            for item in current_data:
+                if isinstance(item, (dict, list)):
+                    stack.append(item)
 
-    extract_keys(data)
     return keys
+
+
+# def extract_params_xml(xml_data):
+#     try:
+#         root = ET.fromstring(xml_data)
+#     except ET.ParseError:
+#         log.debug("Invalid XML supplied. Returning empty list.")
+#         return []
+
+#     tags = []
+
+#     def extract_tags(element):
+#         tags.append(element.tag)
+#         for child in element:
+#             extract_tags(child)
+
+#     extract_tags(root)
+#     return tags
 
 
 def extract_params_xml(xml_data):
@@ -406,13 +427,13 @@ def extract_params_xml(xml_data):
         return []
 
     tags = []
+    stack = [root]
 
-    def extract_tags(element):
-        tags.append(element.tag)
-        for child in element:
-            extract_tags(child)
-
-    extract_tags(root)
+    while stack:
+        current_element = stack.pop()
+        tags.append(current_element.tag)
+        for child in current_element:
+            stack.append(child)
     return tags
 
 

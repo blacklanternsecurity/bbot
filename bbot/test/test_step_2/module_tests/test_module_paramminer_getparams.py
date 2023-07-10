@@ -135,9 +135,7 @@ class TestParamminer_Getparams_Extract_Json(TestParamminer_Headers):
 
 class TestParamminer_Getparams_Extract_Xml(TestParamminer_Headers):
     modules_overrides = ["httpx", "paramminer_getparams"]
-    config_overrides = {
-        "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "id"]), "http_extract": True}}
-    }
+    config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "http_extract": True}}}
 
     getparam_extract_xml = """
 <data>
@@ -168,7 +166,7 @@ class TestParamminer_Getparams_Extract_Xml(TestParamminer_Headers):
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        expect_args = {"query_string": b"obscureParameter=AAAAAAAAAAAAAA&common=AAAAAAAAAAAAAA&AAAAAA=1"}
+        expect_args = {"query_string": b"common=AAAAAAAAAAAAAA&obscureParameter=AAAAAAAAAAAAAA&AAAAAA=1"}
         respond_args = {
             "response_data": self.getparam_extract_xml_match,
             "headers": {"Content-Type": "application/xml"},

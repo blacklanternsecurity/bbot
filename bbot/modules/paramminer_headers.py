@@ -150,6 +150,7 @@ class paramminer_headers(BaseModule):
             return wordlist_cleaned + extract_params_xml(body)
         else:
             return wordlist_cleaned + list(extract_params_html(body))
+
         return wordlist_cleaned
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
