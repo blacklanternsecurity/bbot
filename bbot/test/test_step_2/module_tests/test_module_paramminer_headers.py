@@ -40,10 +40,9 @@ class TestParamminer_Headers(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING" and e.data["description"] == "[Paramminer] Header: [tracestate] Reasons: [body]"
+            e.type == "FINDING" and "[Paramminer] Header: [tracestate] Reasons: [body]" in e.data["description"]
             for e in events
         )
         assert not any(
-            e.type == "FINDING" and e.data["description"] == "[Paramminer] Header: [junkword1] Reasons: [body]"
-            for e in events
+            e.type == "FINDING" and "[Paramminer] Header: [junkword1]" in e.data["description"] for e in events
         )

@@ -6,17 +6,17 @@ class paramminer_getparams(paramminer_headers):
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
-    watched_events = ["URL"]
+    watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {"description": "Use smart brute-force to check for common HTTP GET parameters"}
-
-    options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params"}
+    options = {"wordlist": ""}  # default is defined separately
     options_desc = {"wordlist": "Define the wordlist to be used to derive GET params"}
     scanned_hosts = []
     getparam_blacklist = []
     in_scope_only = True
     compare_mode = "getparam"
+    default_wordlist = "paramminer_parameters.txt"
 
     async def check_batch(self, compare_helper, url, getparam_list):
         test_getparams = {p: self.rand_string(14) for p in getparam_list}

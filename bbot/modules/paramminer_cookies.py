@@ -6,19 +6,20 @@ class paramminer_cookies(paramminer_headers):
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
-    watched_events = ["URL"]
+    watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {
         "description": "Smart brute-force to check for common HTTP cookie parameters",
     }
-    options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params"}
+    options = {"wordlist": ""}  # default is defined separately
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
     scanned_hosts = []
     cookie_blacklist = []
     max_event_handlers = 12
     in_scope_only = True
     compare_mode = "cookie"
+    default_wordlist = "paramminer_parameters.txt"
 
     async def check_batch(self, compare_helper, url, cookie_list):
         cookies = {p: self.rand_string(14) for p in cookie_list}

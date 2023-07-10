@@ -1,5 +1,6 @@
 from bbot.modules.base import BaseModule
 from bbot.core.errors import HttpCompareError
+from bbot.core.helpers.misc import extract_params_json, extract_params_xml, extract_params_html
 
 
 class paramminer_headers(BaseModule):
@@ -7,12 +8,20 @@ class paramminer_headers(BaseModule):
     Inspired by https://github.com/PortSwigger/param-miner
     """
 
-    watched_events = ["URL"]
+    watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {"description": "Use smart brute-force to check for common HTTP header parameters"}
-    options = {"wordlist": "https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/headers"}
-    options_desc = {"wordlist": "Define the wordlist to be used to derive headers"}
+    options = {
+        "wordlist": "",  # default is defined within setup function
+        "http_extract": True,
+        "skip_boring_words": True,
+    }
+    options_desc = {
+        "wordlist": "Define the wordlist to be used to derive headers",
+        "http_extract": "Attempt to find additional wordlist words from the HTTP Response",
+        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
+    }
     scanned_hosts = []
     header_blacklist = [
         "content-length",
@@ -28,17 +37,25 @@ class paramminer_headers(BaseModule):
     max_event_handlers = 12
     in_scope_only = True
     compare_mode = "header"
+    default_wordlist = "paramminer_headers.txt"
 
     async def setup(self):
+        wordlist = self.config.get("wordlist", "")
+        if not wordlist:
+            wordlist = f"{self.helpers.wordlist_dir}/{self.default_wordlist}"
+        self.debug(f"Using wordlist: [{wordlist}]")
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = await self.helpers.wordlist(wordlist_url)
+        self.boringlist = [
+            h.strip().lower() for h in self.helpers.read_file(f"{self.helpers.wordlist_dir}/paramminer_boring.txt")
+        ]
         return True
 
     def rand_string(self, *args, **kwargs):
         return self.helpers.rand_string(*args, **kwargs)
 
     async def handle_event(self, event):
-        url = event.data
+        url = event.data.get("url")
         try:
             compare_helper = self.helpers.http_compare(url)
         except HttpCompareError as e:
@@ -56,8 +73,17 @@ class paramminer_headers(BaseModule):
 
         fl = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
 
-        wordlist_cleaned = list(filter(self.clean_list, fl))
+        # clean list against the blacklist
+        wordlist_cleaned = list(filter(self.clean_list_blacklist, fl))
 
+        # clean list against the boring list, if the option is set
+        if self.config.get("skip_boring_words", True):
+            wordlist_cleaned = list(filter(self.clean_list_boring, fl))
+
+        if self.config.get("http_extract"):
+            wordlist_cleaned = self.load_extracted_words(
+                wordlist_cleaned, event.data.get("body"), event.data.get("content_type")
+            )
         results = set()
         abort_threshold = 25
         try:
@@ -77,7 +103,7 @@ class paramminer_headers(BaseModule):
             tags = []
             if reflection:
                 tags = ["http_reflection"]
-            description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}]"
+            description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}] Reflection: [{str(reflection)}]"
             self.emit_event(
                 {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
@@ -107,10 +133,24 @@ class paramminer_headers(BaseModule):
             yield header_count, (url,), {"headers": fake_headers}
             header_count -= 5
 
-    def clean_list(self, header):
+    def clean_list_blacklist(self, header):
         if (len(header) > 0) and ("%" not in header) and (header not in self.header_blacklist):
             return True
         return False
+
+    def clean_list_boring(self, header):
+        if (len(header) > 0) and ("%" not in header) and (header not in self.boringlist):
+            return True
+        return False
+
+    def load_extracted_words(self, wordlist_cleaned, body, content_type):
+        if "json" in content_type.lower():
+            return wordlist_cleaned + extract_params_json(body)
+        elif "xml" in content_type.lower():
+            return wordlist_cleaned + extract_params_xml(body)
+        else:
+            return wordlist_cleaned + list(extract_params_html(body))
+        return wordlist_cleaned
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
