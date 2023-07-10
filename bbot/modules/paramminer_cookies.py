@@ -23,7 +23,7 @@ class paramminer_cookies(paramminer_headers):
 
     async def check_batch(self, compare_helper, url, cookie_list):
         cookies = {p: self.rand_string(14) for p in cookie_list}
-        return await compare_helper.compare(url, cookies=cookies)
+        return await compare_helper.compare(url, cookies=cookies, check_reflection=(len(cookie_list) == 1))
 
     def gen_count_args(self, url):
         cookie_count = 40

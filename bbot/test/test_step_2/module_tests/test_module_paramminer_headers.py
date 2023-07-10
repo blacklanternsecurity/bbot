@@ -40,9 +40,28 @@ class TestParamminer_Headers(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING" and "[Paramminer] Header: [tracestate] Reasons: [body]" in e.data["description"]
+            e.type == "FINDING"
+            and "[Paramminer] Header: [tracestate] Reasons: [body] Reflection: [True]" in e.data["description"]
             for e in events
         )
         assert not any(
             e.type == "FINDING" and "[Paramminer] Header: [junkword1]" in e.data["description"] for e in events
+        )
+
+
+class TestParamminer_Headers(TestParamminer_Headers):
+    headers_body_match = """
+    <html>
+    <title>the title</title>
+    <body>
+    <p>Hello Administrator!</p>';
+    </body>
+    </html>
+    """
+
+    def check(self, module_test, events):
+        assert any(
+            e.type == "FINDING"
+            and "[Paramminer] Header: [tracestate] Reasons: [body] Reflection: [False]" in e.data["description"]
+            for e in events
         )

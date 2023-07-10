@@ -20,7 +20,9 @@ class paramminer_getparams(paramminer_headers):
 
     async def check_batch(self, compare_helper, url, getparam_list):
         test_getparams = {p: self.rand_string(14) for p in getparam_list}
-        return await compare_helper.compare(self.helpers.add_get_params(url, test_getparams).geturl())
+        return await compare_helper.compare(
+            self.helpers.add_get_params(url, test_getparams).geturl(), check_reflection=(len(getparam_list) == 1)
+        )
 
     def gen_count_args(self, url):
         getparam_count = 40

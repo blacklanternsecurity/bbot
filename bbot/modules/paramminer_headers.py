@@ -79,8 +79,7 @@ class paramminer_headers(BaseModule):
         if not wordlist:
             wordlist = f"{self.helpers.wordlist_dir}/{self.default_wordlist}"
         self.debug(f"Using wordlist: [{wordlist}]")
-        wordlist_url = self.config.get("wordlist", "")
-        self.wordlist = await self.helpers.wordlist(wordlist_url)
+        self.wordlist = await self.helpers.wordlist(wordlist)
         return True
 
     def rand_string(self, *args, **kwargs):
