@@ -78,7 +78,7 @@ class WebHelper:
     def AsyncClient(self, *args, **kwargs):
         kwargs["_bbot_scan"] = self.parent_helper.scan
         retries = kwargs.pop("retries", self.parent_helper.config.get("http_retries", 1))
-        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries)
+        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=self.ssl_verify)
         kwargs["verify"] = self.ssl_verify
         return BBOTAsyncClient(*args, **kwargs)
 

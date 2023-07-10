@@ -1,4 +1,5 @@
 import re
+from omegaconf import OmegaConf
 
 from ..bbot_fixtures import *
 
@@ -165,3 +166,48 @@ async def test_web_http_compare(httpx_mock, helpers):
     compare_helper.compare_body({"asdf": "fdsa"}, {"fdsa": "asdf"})
     for mode in ("getparam", "header", "cookie"):
         assert await compare_helper.canary_check("http://www.example.com", mode=mode) == True
+
+
+@pytest.mark.asyncio
+async def test_http_proxy(bbot_scanner, bbot_config, bbot_httpserver, proxy_server):
+    endpoint = "/test_http_proxy"
+    url = bbot_httpserver.url_for(endpoint)
+    # test user agent + custom headers
+    bbot_httpserver.expect_request(uri=endpoint).respond_with_data("test_http_proxy_yep")
+
+    proxy_address = f"http://127.0.0.1:{proxy_server.server_address[1]}"
+
+    test_config = OmegaConf.merge(bbot_config, OmegaConf.create({"http_proxy": proxy_address}))
+
+    scan = bbot_scanner("127.0.0.1", config=test_config)
+
+    assert len(proxy_server.RequestHandlerClass.urls) == 0
+
+    r = await scan.helpers.request(url)
+
+    assert (
+        len(proxy_server.RequestHandlerClass.urls) == 1
+    ), f"Request to {url} did not go through proxy {proxy_address}"
+    visited_url = proxy_server.RequestHandlerClass.urls[0]
+    assert visited_url.endswith(endpoint), f"There was a problem with request to {url}: {visited_url}"
+    assert r.status_code == 200 and r.text == "test_http_proxy_yep"
+
+
+@pytest.mark.asyncio
+async def test_http_ssl(bbot_scanner, bbot_config, bbot_httpserver_ssl):
+    endpoint = "/test_http_ssl"
+    url = bbot_httpserver_ssl.url_for(endpoint)
+    # test user agent + custom headers
+    bbot_httpserver_ssl.expect_request(uri=endpoint).respond_with_data("test_http_ssl_yep")
+
+    verify_config = OmegaConf.merge(bbot_config, OmegaConf.create({"ssl_verify": True, "http_debug": True}))
+    scan1 = bbot_scanner("127.0.0.1", config=verify_config)
+
+    not_verify_config = OmegaConf.merge(bbot_config, OmegaConf.create({"ssl_verify": False, "http_debug": True}))
+    scan2 = bbot_scanner("127.0.0.1", config=not_verify_config)
+
+    r1 = await scan1.helpers.request(url)
+    assert r1 is None, "Request to self-signed SSL server went through even with ssl_verify=True"
+    r2 = await scan2.helpers.request(url)
+    assert r2 is not None, "Request to self-signed SSL server failed even with ssl_verify=False"
+    assert r2.status_code == 200 and r2.text == "test_http_ssl_yep"

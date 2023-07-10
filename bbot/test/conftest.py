@@ -99,3 +99,53 @@ class Interactsh_mock:
         for subdomain_tag in self.interactions:
             poll_results.append({"full-id": f"{subdomain_tag}.fakedomain.fakeinteractsh.com", "protocol": "HTTP"})
         return poll_results
+
+
+import threading
+import http.server
+import socketserver
+import urllib.request
+
+
+class Proxy(http.server.SimpleHTTPRequestHandler):
+    protocol_version = "HTTP/1.0"
+    server_version = "Proxy"
+    urls = []
+
+    def do_GET(self):
+        self.urls.append(self.path)
+
+        # Extract host and port from path
+        netloc = urllib.parse.urlparse(self.path).netloc
+        host, _, port = netloc.partition(":")
+
+        # Fetch the content
+        conn = http.client.HTTPConnection(host, port if port else 80)
+        conn.request("GET", self.path, headers=self.headers)
+        response = conn.getresponse()
+
+        # Send the response back to the client
+        self.send_response(response.status)
+        for header, value in response.getheaders():
+            self.send_header(header, value)
+        self.end_headers()
+        self.copyfile(response, self.wfile)
+
+        response.close()
+        conn.close()
+
+
+@pytest.fixture
+def proxy_server():
+    # Set up an HTTP server that acts as a simple proxy.
+    server = socketserver.ThreadingTCPServer(("localhost", 0), Proxy)
+
+    # Start the server in a new thread.
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.start()
+
+    yield server
+
+    # Stop the server.
+    server.shutdown()
+    server_thread.join()
