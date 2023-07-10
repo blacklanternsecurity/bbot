@@ -124,6 +124,9 @@ class crobat(BaseModule):
             request_fn = self.request_url
         try:
             response = await request_fn(query)
+            if response is None:
+                self.info(f'Query "{query}" failed')
+                return []
             try:
                 results = list(parse_fn(response, query))
             except Exception as e:

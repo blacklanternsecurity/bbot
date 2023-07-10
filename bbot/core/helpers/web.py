@@ -25,10 +25,18 @@ class BBOTAsyncClient(httpx.AsyncClient):
         headers = kwargs.get("headers", None)
         if headers is None:
             headers = {}
+        # user agent
         user_agent = self._bbot_scan.config.get("user_agent", "BBOT")
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
         kwargs["headers"] = headers
+        # proxy
+        proxies = self._bbot_scan.config.get("http_proxy", None)
+        kwargs["proxies"] = proxies
+
+        http_debug = self._bbot_scan.config.get("http_debug", None)
+        if http_debug:
+            log.debug(f"Creating AsyncClient: {args}, {kwargs}")
 
         super().__init__(*args, **kwargs)
 
@@ -62,6 +70,7 @@ class WebHelper:
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
+        self.http_debug = self.parent_helper.config.get("http_debug", False)
         self.ssl_verify = self.parent_helper.config.get("ssl_verify", False)
         self.web_requests_per_second = self.parent_helper.config.get("web_requests_per_second", 50)
         self.web_rate_limiter = RateLimiter(self.web_requests_per_second, "Web")
@@ -69,7 +78,8 @@ class WebHelper:
     def AsyncClient(self, *args, **kwargs):
         kwargs["_bbot_scan"] = self.parent_helper.scan
         retries = kwargs.pop("retries", self.parent_helper.config.get("http_retries", 1))
-        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=self.ssl_verify)
+        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries)
+        kwargs["verify"] = self.ssl_verify
         return BBOTAsyncClient(*args, **kwargs)
 
     async def request(self, *args, **kwargs):
@@ -90,8 +100,6 @@ class WebHelper:
         if not args and "method" not in kwargs:
             kwargs["method"] = "GET"
 
-        http_debug = self.parent_helper.config.get("http_debug", False)
-
         client_kwargs = {}
         for k in list(kwargs):
             if k in self.client_options:
@@ -99,22 +107,24 @@ class WebHelper:
                 client_kwargs[k] = v
         async with self.AsyncClient(**client_kwargs) as client:
             try:
-                if http_debug:
+                if self.http_debug:
                     logstr = f"Web request: {str(args)}, {str(kwargs)}"
                     log.debug(logstr)
                 async with self.web_rate_limiter:
                     response = await client.request(*args, **kwargs)
-                if http_debug:
+                if self.http_debug:
                     log.debug(
                         f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}"
                     )
                 return response
             except httpx.RequestError as e:
                 log.debug(f"Error with request: {e}")
+                log.trace(traceback.format_exc())
                 if raise_error:
                     raise
             except ssl.SSLError as e:
                 log.debug(f"SSL error with request: {e}")
+                log.trace(traceback.format_exc())
 
     async def download(self, url, **kwargs):
         """
