@@ -116,7 +116,7 @@ url_extension_httpx_only:
 omit_event_types:
     - HTTP_RESPONSE
     - URL_UNVERIFIED
-    # - DNS_NAME_UNRESOLVED
+    - DNS_NAME_UNRESOLVED
     # - IP_ADDRESS
 # URL of BBOT server
 agent_url: ''
