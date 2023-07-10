@@ -1,6 +1,5 @@
 # adapted from https://github.com/bugcrowd/HUNT
 
-import re
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.misc import extract_params_html
 
