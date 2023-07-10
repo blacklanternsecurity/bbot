@@ -401,24 +401,6 @@ def extract_params_json(json_data):
     return keys
 
 
-# def extract_params_xml(xml_data):
-#     try:
-#         root = ET.fromstring(xml_data)
-#     except ET.ParseError:
-#         log.debug("Invalid XML supplied. Returning empty list.")
-#         return []
-
-#     tags = []
-
-#     def extract_tags(element):
-#         tags.append(element.tag)
-#         for child in element:
-#             extract_tags(child)
-
-#     extract_tags(root)
-#     return tags
-
-
 def extract_params_xml(xml_data):
     try:
         root = ET.fromstring(xml_data)

@@ -23,16 +23,51 @@ class paramminer_headers(BaseModule):
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
     }
     scanned_hosts = []
-    header_blacklist = [
-        "content-length",
-        "expect",
+    boringlist = [
+        "accept",
         "accept-encoding",
-        "transfer-encoding",
+        "accept-language",
+        "action",
+        "authorization",
+        "cf-connecting-ip",
         "connection",
+        "content-encoding",
+        "content-length",
+        "content-range",
+        "content-type",
+        "cookie",
+        "date",
+        "expect",
+        "host",
+        "if",
         "if-match",
         "if-modified-since",
         "if-none-match",
         "if-unmodified-since",
+        "javascript",
+        "keep-alive",
+        "label",
+        "negotiate",
+        "proxy",
+        "range",
+        "referer",
+        "start",
+        "trailer",
+        "transfer-encoding",
+        "upgrade",
+        "user-agent",
+        "vary",
+        "waf-stuff-below",
+        "x-scanner",
+        "x_alto_ajax_key",
+        "zaccess-control-request-headers",
+        "zaccess-control-request-method",
+        "zmax-forwards",
+        "zorigin",
+        "zreferrer",
+        "zvia",
+        "zx-request-id",
+        "zx-timer",
     ]
     max_event_handlers = 12
     in_scope_only = True
@@ -46,9 +81,6 @@ class paramminer_headers(BaseModule):
         self.debug(f"Using wordlist: [{wordlist}]")
         wordlist_url = self.config.get("wordlist", "")
         self.wordlist = await self.helpers.wordlist(wordlist_url)
-        self.boringlist = [
-            h.strip().lower() for h in self.helpers.read_file(f"{self.helpers.wordlist_dir}/paramminer_boring.txt")
-        ]
         return True
 
     def rand_string(self, *args, **kwargs):
@@ -71,23 +103,20 @@ class paramminer_headers(BaseModule):
             self.verbose(f'Aborting "{url}" due to failed canary check')
             return
 
-        fl = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
-
-        # clean list against the blacklist
-        wordlist_cleaned = list(filter(self.clean_list_blacklist, fl))
+        wl_raw = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
 
         # clean list against the boring list, if the option is set
         if self.config.get("skip_boring_words", True):
-            wordlist_cleaned = list(filter(self.clean_list_boring, fl))
+            wl = list(filter(self.clean_list, wl_raw))
+        else:
+            wl = wl_raw
 
         if self.config.get("http_extract"):
-            wordlist_cleaned = self.load_extracted_words(
-                wordlist_cleaned, event.data.get("body"), event.data.get("content_type")
-            )
+            wl = self.load_extracted_words(wl, event.data.get("body"), event.data.get("content_type"))
         results = set()
         abort_threshold = 25
         try:
-            for group in self.helpers.grouper(wordlist_cleaned, batch_size):
+            for group in self.helpers.grouper(wl, batch_size):
                 async for result, reasons, reflection in self.binary_search(compare_helper, url, group):
                     results.add((result, ",".join(reasons), reflection))
                     if len(results) >= abort_threshold:
@@ -133,25 +162,20 @@ class paramminer_headers(BaseModule):
             yield header_count, (url,), {"headers": fake_headers}
             header_count -= 5
 
-    def clean_list_blacklist(self, header):
-        if (len(header) > 0) and ("%" not in header) and (header not in self.header_blacklist):
-            return True
-        return False
-
-    def clean_list_boring(self, header):
+    def clean_list(self, header):
         if (len(header) > 0) and ("%" not in header) and (header not in self.boringlist):
             return True
         return False
 
-    def load_extracted_words(self, wordlist_cleaned, body, content_type):
+    def load_extracted_words(self, wl, body, content_type):
         if "json" in content_type.lower():
-            return wordlist_cleaned + extract_params_json(body)
+            return wl + extract_params_json(body)
         elif "xml" in content_type.lower():
-            return wordlist_cleaned + extract_params_xml(body)
+            return wl + extract_params_xml(body)
         else:
-            return wordlist_cleaned + list(extract_params_html(body))
+            return wl + list(extract_params_html(body))
 
-        return wordlist_cleaned
+        return wl
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:

@@ -48,15 +48,18 @@ class TestParamminer_Getparams(TestParamminer_Headers):
 
 class TestParamminer_Getparams_boring_off(TestParamminer_Getparams):
     config_overrides = {
-        "modules": {"paramminer_getparams": {"skip_boring_words": False, "wordlist": tempwordlist(["canary", "host"])}}
+        "modules": {
+            "paramminer_getparams": {"skip_boring_words": False, "wordlist": tempwordlist(["canary", "boring"])}
+        }
     }
 
     async def setup_after_prep(self, module_test):
         module_test.scan.modules["paramminer_getparams"].rand_string = lambda *args, **kwargs: "AAAAAAAAAAAAAA"
+        module_test.scan.modules["paramminer_getparams"].boringlist = ["boring"]
         module_test.monkeypatch.setattr(
             helper.HttpCompare, "gen_cache_buster", lambda *args, **kwargs: {"AAAAAA": "1"}
         )
-        expect_args = {"query_string": b"host=AAAAAAAAAAAAAA&AAAAAA=1"}
+        expect_args = {"query_string": b"boring=AAAAAAAAAAAAAA&AAAAAA=1"}
         respond_args = {"response_data": self.getparam_body_match}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -65,19 +68,21 @@ class TestParamminer_Getparams_boring_off(TestParamminer_Getparams):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [host] Reasons: [body]" in e.data["description"]
+            e.type == "FINDING" and "[Paramminer] Getparam: [boring] Reasons: [body]" in e.data["description"]
             for e in events
         )
 
 
 class TestParamminer_Getparams_boring_on(TestParamminer_Getparams_boring_off):
     config_overrides = {
-        "modules": {"paramminer_getparams": {"skip_boring_words": True, "wordlist": tempwordlist(["canary", "host"])}}
+        "modules": {
+            "paramminer_getparams": {"skip_boring_words": True, "wordlist": tempwordlist(["canary", "boring"])}
+        }
     }
 
     def check(self, module_test, events):
         assert not any(
-            e.type == "FINDING" and "[Paramminer] Getparam: [host] Reasons: [body]" in e.data["description"]
+            e.type == "FINDING" and "[Paramminer] Getparam: [boring] Reasons: [body]" in e.data["description"]
             for e in events
         )
 

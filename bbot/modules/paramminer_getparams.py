@@ -13,7 +13,7 @@ class paramminer_getparams(paramminer_headers):
     options = {"wordlist": ""}  # default is defined separately
     options_desc = {"wordlist": "Define the wordlist to be used to derive GET params"}
     scanned_hosts = []
-    getparam_blacklist = []
+    boringlist = []
     in_scope_only = True
     compare_mode = "getparam"
     default_wordlist = "paramminer_parameters.txt"
@@ -30,8 +30,3 @@ class paramminer_getparams(paramminer_headers):
             fake_getparams = {self.rand_string(14): self.rand_string(14) for _ in range(0, getparam_count)}
             yield getparam_count, (self.helpers.add_get_params(url, fake_getparams).geturl(),), {}
             getparam_count -= 5
-
-    def clean_list(self, getparam):
-        if (len(getparam) > 0) and (getparam.strip() not in self.getparam_blacklist):
-            return True
-        return False
