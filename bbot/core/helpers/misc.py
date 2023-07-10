@@ -417,11 +417,6 @@ def extract_params_xml(xml_data):
 
 
 def extract_params_html(html_data):
-    input_tag_regex = re.compile(r"<input.+?name=[\"\'](\w+)[\"\']")
-    jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
-    jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
-    a_tag_regex = re.compile(r"<a\s+(?:[^>]*?\s+)?href=(?:[\"\'](.+\?.+?))[\"\'].+[>\s]")
-
     input_tag = regexes.input_tag_regex.findall(html_data)
 
     for i in input_tag:
