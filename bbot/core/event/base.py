@@ -500,6 +500,7 @@ class BaseEvent:
                 self._priority = (timestamp,)
             else:
                 self._priority = getattr(self.source, "priority", ()) + (timestamp,)
+
         return self._priority
 
     @property

@@ -398,6 +398,8 @@ class DNSHelper:
                     start, end = match.span()
                     host = s[start:end]
                     results.add((rdtype, host))
+        elif rdtype == "NSEC":
+            results.add((rdtype, self._clean_dns_record(record.next)))
         else:
             log.warning(f'Unknown DNS record type "{rdtype}"')
         return results
@@ -418,8 +420,9 @@ class DNSHelper:
             raise
         except dns.exception.DNSException as e:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
-        except Exception:
-            log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}")
+        except Exception as e:
+            log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}: {e}")
+            log.trace(traceback.format_exc())
         return []
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
