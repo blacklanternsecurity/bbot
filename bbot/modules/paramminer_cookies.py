@@ -12,10 +12,19 @@ class paramminer_cookies(paramminer_headers):
     meta = {
         "description": "Smart brute-force to check for common HTTP cookie parameters",
     }
-    options = {"wordlist": ""}  # default is defined separately
+    options = {
+        "wordlist": "",  # default is defined within setup function
+        "http_extract": True,
+        "skip_boring_words": True,
+    }
+    options_desc = {
+        "wordlist": "Define the wordlist to be used to derive headers",
+        "http_extract": "Attempt to find additional wordlist words from the HTTP Response",
+        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
+    }
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
     scanned_hosts = []
-    boringlist = []
+    boring_words = set()
     max_event_handlers = 12
     in_scope_only = True
     compare_mode = "cookie"

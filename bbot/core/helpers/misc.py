@@ -381,16 +381,16 @@ def extract_params_json(json_data):
         data = json.loads(json_data)
     except json.JSONDecodeError:
         log.debug("Invalid JSON supplied. Returning empty list.")
-        return []
+        return set()
 
-    keys = []
+    keys = set()
     stack = [data]
 
     while stack:
         current_data = stack.pop()
         if isinstance(current_data, dict):
             for key, value in current_data.items():
-                keys.append(key)
+                keys.add(key)
                 if isinstance(value, (dict, list)):
                     stack.append(value)
         elif isinstance(current_data, list):
@@ -406,14 +406,14 @@ def extract_params_xml(xml_data):
         root = ET.fromstring(xml_data)
     except ET.ParseError:
         log.debug("Invalid XML supplied. Returning empty list.")
-        return []
+        return set()
 
-    tags = []
+    tags = set()
     stack = [root]
 
     while stack:
         current_element = stack.pop()
-        tags.append(current_element.tag)
+        tags.add(current_element.tag)
         for child in current_element:
             stack.append(child)
     return tags
