@@ -180,9 +180,9 @@ class paramminer_headers(BaseModule):
             header_count -= 5
 
     def load_extracted_words(self, body, content_type):
-        if "json" in content_type.lower():
+        if content_type and "json" in content_type.lower():
             return extract_params_json(body)
-        elif "xml" in content_type.lower():
+        elif content_type and "xml" in content_type.lower():
             return extract_params_xml(body)
         else:
             return set(extract_params_html(body))

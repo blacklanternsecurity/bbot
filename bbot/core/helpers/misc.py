@@ -447,6 +447,7 @@ def extract_params_html(html_data):
         log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
         yield s
 
+
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
     """
     Intelligently extract words from given data
