@@ -910,10 +910,18 @@ def make_table(*args, **kwargs):
     # fix IndexError: list index out of range
     if args and not args[0]:
         args = ([[]],) + args[1:]
-    defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": 40}
+    tablefmt = os.environ.get("BBOT_TABLE_FORMAT", None)
+    defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": None}
+    if tablefmt is None:
+        defaults.update({"maxcolwidths": 40})
+    else:
+        defaults.update({"tablefmt": tablefmt})
     for k, v in defaults.items():
         if k not in kwargs:
             kwargs[k] = v
+    # don't wrap columns in markdown
+    if tablefmt in ("github", "markdown"):
+        kwargs.pop("maxcolwidths")
     return tabulate(*args, **kwargs)
 
 

@@ -22,12 +22,12 @@ async def test_manager(bbot_config, bbot_scanner):
         event_children.append(e)
 
     success_callback = lambda e: results.append("success")
-    scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["human"], config=dns_config)
+    scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor"], output_modules=["json"], config=dns_config)
     await scan1.load_modules()
     module = scan1.modules["ipneighbor"]
     module.scope_distance_modifier = 0
     module.queue_event = results_append
-    output_module = scan1.modules["human"]
+    output_module = scan1.modules["json"]
     output_module.queue_event = output_append
     scan1.status = "RUNNING"
     manager = scan1.manager

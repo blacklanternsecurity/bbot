@@ -10,6 +10,7 @@ class Human(BaseOutputModule):
     options = {"output_file": "", "console": True}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
     vuln_severity_map = {"LOW": "HUGEWARNING", "MEDIUM": "HUGEWARNING", "HIGH": "CRITICAL", "CRITICAL": "CRITICAL"}
+    accept_dupes = False
 
     async def setup(self):
         self._prep_output_dir("output.txt")

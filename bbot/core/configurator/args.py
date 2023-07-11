@@ -25,6 +25,9 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         For targets, also allow input files containing additional targets
         """
         ret = super().parse_args(*args, **kwargs)
+        # silent implies -y
+        if ret.silent:
+            ret.yes = True
         ret.modules = chain_lists(ret.modules)
         ret.output_modules = chain_lists(ret.output_modules)
         ret.targets = chain_lists(ret.targets, try_files=True, msg="Reading targets from file: {filename}")
@@ -55,30 +58,57 @@ class DummyArgumentParser(BBOTArgumentParser):
         pass
 
 
-epilog = """EXAMPLES
+scan_examples = [
+    (
+        "Subdomains",
+        "Perform a full subdomain enumeration on evilcorp.com",
+        "bbot -t evilcorp.com -f subdomain-enum",
+    ),
+    (
+        "Subdomains (passive only)",
+        "Perform a passive-only subdomain enumeration on evilcorp.com",
+        "bbot -t evilcorp.com -f subdomain-enum -rf passive",
+    ),
+    (
+        "Subdomains + port scan + web screenshots",
+        "Port-scan every subdomain, screenshot every webpage, output to current directory",
+        "bbot -t evilcorp.com -f subdomain-enum -m nmap gowitness -n my_scan -o .",
+    ),
+    (
+        "Subdomains + basic web scan",
+        "A basic web scan includes wappalyzer, robots.txt, and other non-intrusive web modules",
+        "bbot -t evilcorp.com -f subdomain-enum web-basic",
+    ),
+    (
+        "Web spider",
+        "Crawl www.evilcorp.com up to a max depth of 2, automatically extracting emails, secrets, etc.",
+        "bbot -t www.evilcorp.com -m httpx robots badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2",
+    ),
+    (
+        "Everything everywhere all at once",
+        "Subdomains, emails, cloud buckets, port scan, basic web, web screenshots, nuclei",
+        "bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly",
+    ),
+]
 
-    Subdomains:
-        bbot -t evilcorp.com -f subdomain-enum
+usage_examples = [
+    (
+        "List modules",
+        "",
+        "bbot -l",
+    ),
+    (
+        "List flags",
+        "",
+        "bbot -lf",
+    ),
+]
 
-    Subdomains (passive only):
-        bbot -t evilcorp.com -f subdomain-enum -rf passive
 
-    Subdomains + port scan + web screenshots:
-        bbot -t evilcorp.com -f subdomain-enum -m naabu gowitness -n my_scan -o .
-
-    Subdomains + basic web scan (wappalyzer, robots.txt, iis shortnames, etc.):
-        bbot -t evilcorp.com -f subdomain-enum web-basic
-
-    Subdomains + web spider (search for emails, etc.):
-        bbot -t evilcorp.com -f subdomain-enum -c web_spider_distance=2 web_spider_depth=2
-
-    Subdomains + emails + cloud + port scan + non-intrusive web + web screenshots + nuclei:
-        bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m naabu gowitness nuclei --allow-deadly
-
-    List modules:
-        bbot -l
-
-"""
+epilog = "EXAMPLES\n"
+for example in (scan_examples, usage_examples):
+    for title, description, command in example:
+        epilog += f"\n    {title}:\n        {command}\n"
 
 
 parser = BBOTArgumentParser(
@@ -125,6 +155,7 @@ for p in (parser, dummy_parser):
         help=f'Enable modules by flag. Choices: {",".join(sorted(flag_choices))}',
         metavar="FLAG",
     )
+    modules.add_argument("-lf", "--list-flags", action="store_true", help=f"List available flags.")
     modules.add_argument(
         "-rf",
         "--require-flags",

@@ -147,18 +147,10 @@ def log_listener_setup(logging_queue):
     )
 
     def stderr_filter(record):
-        config_silent = config.get("silent", False)
         log_level = get_log_level()
-        excluded_levels = [logging.STDOUT]
-        if log_level > logging.DEBUG:
-            excluded_levels.append(logging.TRACE)
-        if record.levelno in excluded_levels:
+        if record.levelno == logging.STDOUT or (record.levelno == logging.TRACE and log_level > logging.DEBUG):
             return False
-        if record.levelno >= logging.ERROR:
-            return True
         if record.levelno < log_level:
-            return False
-        if config_silent and not record.levelname.startswith("HUGE"):
             return False
         return True
 

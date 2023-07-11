@@ -1,9 +1,9 @@
 ---
 name: Feature Request
 about: Request a new feature
-title: ''
+title: ""
 labels: enhancement
-assignees: ''
+assignees: ""
 ---
 
 **Description**
