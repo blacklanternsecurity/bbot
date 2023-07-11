@@ -62,7 +62,7 @@ class builtwith(shodan_dns):
         """
         results_set = set()
         json = r.json()
-        if json:
+        if json and isinstance(json, dict):
             results = json.get("Results", [])
             if results:
                 for result in results:
@@ -74,8 +74,9 @@ class builtwith(shodan_dns):
                                 domain = f"{subdomain}.{domain}"
                             results_set.add(domain)
             else:
-                error = json.get("Errors", [{}])[0].get("Message", "Unknown Error")
-                if error:
+                errors = json.get("Errors", [{}])
+                if errors:
+                    error = errors[0].get("Message", "Unknown Error")
                     self.verbose(f"No results for {query}: {error}")
         return results_set
 
@@ -95,7 +96,7 @@ class builtwith(shodan_dns):
         """
         results = set()
         json = r.json()
-        if json:
+        if json and isinstance(json, dict):
             inbound = json.get("Inbound", [])
             outbound = json.get("Outbound", [])
             if inbound:

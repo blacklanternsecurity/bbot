@@ -29,8 +29,6 @@ class TestGit(ModuleTestBase):
         module_test.set_expect_requests(expect_args={"uri": "/test2/.git/config"}, respond_args={"response_data": ""})
 
     def check(self, module_test, events):
-        for e in events:
-            module_test.log.critical(e.data)
         assert any(
             e.type == "FINDING" and "http://127.0.0.1:8888/.git/config" in e.data["description"] for e in events
         )

@@ -132,8 +132,10 @@ class httpx(BaseModule):
                 continue
 
             # main URL
-            httpx_ip = j.get("host", "unknown")
-            tags = [f"status-{status_code}", f"ip-{httpx_ip}"]
+            tags = [f"status-{status_code}"]
+            httpx_ip = j.get("host", "")
+            if httpx_ip:
+                tags.append(f"ip-{httpx_ip}")
             # detect login pages
             if is_login_page(j.get("body", "")):
                 tags.append("login-page")

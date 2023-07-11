@@ -130,6 +130,9 @@ def prepare_environment(bbot_config):
     if http_proxy:
         os.environ["HTTP_PROXY"] = http_proxy
         os.environ["HTTPS_PROXY"] = http_proxy
+    else:
+        os.environ.pop("HTTP_PROXY", None)
+        os.environ.pop("HTTPS_PROXY", None)
 
     # replace environment variables in preloaded modules
     module_loader.find_and_replace(**os.environ)

@@ -36,6 +36,22 @@ class DNSHelper:
         self.resolver.lifetime = self.timeout
         self._resolver_list = None
 
+        # skip certain queries
+        dns_omit_queries = self.parent_helper.config.get("dns_omit_queries", None)
+        if not dns_omit_queries:
+            dns_omit_queries = []
+        self.dns_omit_queries = dict()
+        for d in dns_omit_queries:
+            d = d.split(":")
+            if len(d) == 2:
+                rdtype, query = d
+                rdtype = rdtype.upper()
+                query = query.lower()
+                try:
+                    self.dns_omit_queries[rdtype].add(query)
+                except KeyError:
+                    self.dns_omit_queries[rdtype] = {query}
+
         self.wildcard_ignore = self.parent_helper.config.get("dns_wildcard_ignore", None)
         if not self.wildcard_ignore:
             self.wildcard_ignore = []
@@ -124,8 +140,15 @@ class DNSHelper:
         self.debug(f"Resolving {query} with kwargs={kwargs}")
         results = []
         errors = []
-        parent = self.parent_helper.parent_domain(query)
         rdtype = kwargs.get("rdtype", "A")
+
+        # skip certain queries if requested
+        if rdtype in self.dns_omit_queries:
+            if any(h == query or query.endswith(f".{h}") for h in self.dns_omit_queries[rdtype]):
+                self.debug(f"Skipping {rdtype}:{query} because it's omitted in the config")
+                return results, errors
+
+        parent = self.parent_helper.parent_domain(query)
         retries = kwargs.pop("retries", self.retries)
         cache_result = kwargs.pop("cache_result", False)
         tries_left = int(retries) + 1
