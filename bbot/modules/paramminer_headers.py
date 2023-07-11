@@ -105,7 +105,7 @@ class paramminer_headers(BaseModule):
                     results.add((result, ",".join(reasons), reflection))
                     if len(results) >= abort_threshold:
                         self.warning(
-                            f"Abort threshold ({abort_threshold}) reached, too many {self.compare_mode}s found"
+                            f"Abort threshold ({abort_threshold}) reached, too many {self.compare_mode}s found for url: {url}"
                         )
                         results.clear()
                         assert False
