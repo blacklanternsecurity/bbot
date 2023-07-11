@@ -218,6 +218,8 @@ class paramminer_headers(BaseModule):
                 if k != url:
                     untested_matches.update(s)
 
+            untested_matches -= self.wl
+
             if self.config.get("skip_boring_words", True):
                 untested_matches -= self.boring_words
 
