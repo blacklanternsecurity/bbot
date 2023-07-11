@@ -150,10 +150,11 @@ class paramminer_headers(BaseModule):
         wl = set(self.wl)
         if self.config.get("http_extract"):
             extracted_words = self.load_extracted_words(event.data.get("body"), event.data.get("content_type"))
-            self.matched_words[url] = extracted_words
-            wl |= extracted_words
-            if self.config.get("skip_boring_words", True):
-                wl -= self.boring_words
+            if extracted_words:
+                self.matched_words[url] = extracted_words
+                wl |= extracted_words
+        if self.config.get("skip_boring_words", True):
+            wl -= self.boring_words
         results = await self.do_mining(wl, url, batch_size, compare_helper)
         self.process_results(event, results)
 
@@ -180,6 +181,8 @@ class paramminer_headers(BaseModule):
             header_count -= 5
 
     def load_extracted_words(self, body, content_type):
+        if not body:
+            return None
         if content_type and "json" in content_type.lower():
             return extract_params_json(body)
         elif content_type and "xml" in content_type.lower():
