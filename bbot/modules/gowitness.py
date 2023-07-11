@@ -13,7 +13,7 @@ class gowitness(BaseModule):
     meta = {"description": "Take screenshots of webpages"}
     batch_size = 100
     options = {
-        "version": "2.4.2",
+        "version": "2.5.0",
         "threads": 4,
         "timeout": 10,
         "resolution_x": 1440,

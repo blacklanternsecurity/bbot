@@ -8,7 +8,7 @@ class fingerprintx(BaseModule):
     produced_events = ["PROTOCOL"]
     flags = ["active", "safe", "service-enum", "slow"]
     meta = {"description": "Fingerprint exposed services like RDP, SSH, MySQL, etc."}
-    options = {"version": "1.1.4"}
+    options = {"version": "1.1.9"}
     options_desc = {"version": "fingerprintx version"}
     batch_size = 10
     max_event_handlers = 2

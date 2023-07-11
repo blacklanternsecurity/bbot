@@ -11,7 +11,7 @@ class httpx(BaseModule):
     meta = {"description": "Visit webpages. Many other modules rely on httpx"}
 
     batch_size = 500
-    options = {"threads": 50, "in_scope_only": True, "version": "1.2.5", "max_response_size": 5242880}
+    options = {"threads": 50, "in_scope_only": True, "version": "1.3.3", "max_response_size": 5242880}
     options_desc = {
         "threads": "Number of httpx threads to use",
         "in_scope_only": "Only visit web resources that are in scope.",

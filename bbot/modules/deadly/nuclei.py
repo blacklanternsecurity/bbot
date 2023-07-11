@@ -13,7 +13,7 @@ class nuclei(BaseModule):
     batch_size = 25
 
     options = {
-        "version": "2.9.4",
+        "version": "2.9.8",
         "tags": "",
         "templates": "",
         "severity": "",
