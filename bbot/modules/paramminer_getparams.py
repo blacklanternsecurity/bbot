@@ -10,10 +10,18 @@ class paramminer_getparams(paramminer_headers):
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {"description": "Use smart brute-force to check for common HTTP GET parameters"}
-    options = {"wordlist": ""}  # default is defined separately
-    options_desc = {"wordlist": "Define the wordlist to be used to derive GET params"}
     scanned_hosts = []
-    boringlist = []
+    options = {
+        "wordlist": "",  # default is defined within setup function
+        "http_extract": True,
+        "skip_boring_words": True,
+    }
+    options_desc = {
+        "wordlist": "Define the wordlist to be used to derive headers",
+        "http_extract": "Attempt to find additional wordlist words from the HTTP Response",
+        "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
+    }
+    boring_words = set()
     in_scope_only = True
     compare_mode = "getparam"
     default_wordlist = "paramminer_parameters.txt"

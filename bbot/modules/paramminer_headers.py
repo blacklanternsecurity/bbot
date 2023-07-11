@@ -23,7 +23,7 @@ class paramminer_headers(BaseModule):
         "skip_boring_words": "Remove commonly uninteresting words from the wordlist",
     }
     scanned_hosts = []
-    boringlist = [
+    boring_words = {
         "accept",
         "accept-encoding",
         "accept-language",
@@ -68,50 +68,35 @@ class paramminer_headers(BaseModule):
         "zvia",
         "zx-request-id",
         "zx-timer",
-    ]
+    }
     max_event_handlers = 12
     in_scope_only = True
     compare_mode = "header"
     default_wordlist = "paramminer_headers.txt"
 
     async def setup(self):
+        self.event_dict = {}
         wordlist = self.config.get("wordlist", "")
         if not wordlist:
             wordlist = f"{self.helpers.wordlist_dir}/{self.default_wordlist}"
         self.debug(f"Using wordlist: [{wordlist}]")
-        self.wordlist = await self.helpers.wordlist(wordlist)
+        self.wl = set(
+            h.strip().lower()
+            for h in self.helpers.read_file(await self.helpers.wordlist(wordlist))
+            if len(h) > 0 and "%" not in h
+        )
+
+        # check against the boring list (if the option is set)
+
+        if self.config.get("skip_boring_words", True):
+            self.wl -= self.boring_words
+        self.matched_words = {}
         return True
 
     def rand_string(self, *args, **kwargs):
         return self.helpers.rand_string(*args, **kwargs)
 
-    async def handle_event(self, event):
-        url = event.data.get("url")
-        try:
-            compare_helper = self.helpers.http_compare(url)
-        except HttpCompareError as e:
-            self.debug(e)
-            return
-        batch_size = await self.count_test(url)
-        if batch_size == None or batch_size <= 0:
-            self.debug(f"Failed to get baseline max {self.compare_mode} count, aborting")
-            return
-        self.debug(f"Resolved batch_size at {str(batch_size)}")
-
-        if await compare_helper.canary_check(url, mode=self.compare_mode) == False:
-            self.verbose(f'Aborting "{url}" due to failed canary check')
-            return
-
-        wl_raw = [h.strip().lower() for h in self.helpers.read_file(self.wordlist)]
-
-        # clean list against the boring list, if the option is set
-        if self.config.get("skip_boring_words", True):
-            wl = list(filter(self.clean_list, wl_raw))
-        else:
-            wl = wl_raw
-
-        if self.config.get("http_extract"):
-            wl = self.load_extracted_words(wl, event.data.get("body"), event.data.get("content_type"))
+    async def do_mining(self, wl, url, batch_size, compare_helper):
         results = set()
         abort_threshold = 25
         try:
@@ -126,7 +111,10 @@ class paramminer_headers(BaseModule):
                         assert False
         except AssertionError:
             pass
+        return results
 
+    def process_results(self, event, results):
+        url = event.data.get("url")
         for result, reasons, reflection in results:
             tags = []
             if reflection:
@@ -138,6 +126,36 @@ class paramminer_headers(BaseModule):
                 event,
                 tags=tags,
             )
+
+    async def handle_event(self, event):
+        url = event.data.get("url")
+
+        try:
+            compare_helper = self.helpers.http_compare(url)
+        except HttpCompareError as e:
+            self.debug(e)
+            return
+        batch_size = await self.count_test(url)
+        if batch_size == None or batch_size <= 0:
+            self.debug(f"Failed to get baseline max {self.compare_mode} count, aborting")
+            return
+        self.debug(f"Resolved batch_size at {str(batch_size)}")
+
+        self.event_dict[url] = (event, batch_size)
+
+        if await compare_helper.canary_check(url, mode=self.compare_mode) == False:
+            self.verbose(f'Aborting "{url}" due to failed canary check')
+            return
+
+        wl = set(self.wl)
+        if self.config.get("http_extract"):
+            extracted_words = self.load_extracted_words(event.data.get("body"), event.data.get("content_type"))
+            self.matched_words[url] = extracted_words
+            wl |= extracted_words
+            if self.config.get("skip_boring_words", True):
+                wl -= self.boring_words
+        results = await self.do_mining(wl, url, batch_size, compare_helper)
+        self.process_results(event, results)
 
     async def count_test(self, url):
         baseline = await self.helpers.request(url)
@@ -161,29 +179,22 @@ class paramminer_headers(BaseModule):
             yield header_count, (url,), {"headers": fake_headers}
             header_count -= 5
 
-    def clean_list(self, header):
-        if (len(header) > 0) and ("%" not in header) and (header not in self.boringlist):
-            return True
-        return False
-
-    def load_extracted_words(self, wl, body, content_type):
+    def load_extracted_words(self, body, content_type):
         if "json" in content_type.lower():
-            return wl + extract_params_json(body)
+            return extract_params_json(body)
         elif "xml" in content_type.lower():
-            return wl + extract_params_xml(body)
+            return extract_params_xml(body)
         else:
-            return wl + list(extract_params_html(body))
+            return set(extract_params_html(body))
 
-        return wl
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
             reasons = []
         self.debug(f"Entering recursive binary_search with {len(group):,} sized group")
-        if len(group) == 1:
-            if reasons:
-                yield group[0], reasons, reflection
-        elif len(group) > 1:
+        if len(group) == 1 and len(reasons) > 0:
+            yield group[0], reasons, reflection
+        elif len(group) > 1 or (len(group) == 1 and len(reasons) == 0):
             for group_slice in self.helpers.split_list(group):
                 match, reasons, reflection, subject_response = await self.check_batch(compare_helper, url, group_slice)
                 if match == False:
@@ -198,3 +209,18 @@ class paramminer_headers(BaseModule):
         for header in header_list:
             test_headers[header] = rand
         return await compare_helper.compare(url, headers=test_headers, check_reflection=(len(header_list) == 1))
+
+    async def finish(self):
+        for url, (event, batch_size) in self.event_dict.items():
+            compare_helper = self.helpers.http_compare(url)
+
+            untested_matches = set()
+            for k, s in self.matched_words.items():
+                if k != url:
+                    untested_matches.update(s)
+
+            if self.config.get("skip_boring_words", True):
+                untested_matches -= self.boring_words
+
+            results = await self.do_mining(untested_matches, url, batch_size, compare_helper)
+            self.process_results(event, results)
