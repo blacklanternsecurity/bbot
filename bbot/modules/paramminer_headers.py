@@ -187,7 +187,6 @@ class paramminer_headers(BaseModule):
         else:
             return set(extract_params_html(body))
 
-
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
             reasons = []
