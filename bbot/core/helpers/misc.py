@@ -443,21 +443,9 @@ def extract_params_html(html_data):
                 yield s
 
     a_tag = regexes.a_tag_regex.findall(html_data)
-    if a_tag:
-        for url in a_tag:
-            if url.startswith("http"):
-                url_parsed = self.helpers.parse_url(url)
-                if not self.scan.in_scope(url_parsed.netloc):
-                    log.debug(f"Skipping checking for parameters because URL ({url}) is not in scope")
-                    continue
-                i = url_parsed.query.split("&")
-            else:
-                i = url.split("?")[1].split("&")
-            for x in i:
-                s = x.split("=")[0]
-
-                log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
-                yield s
+    for s in a_tag:
+        log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
+        yield s
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
