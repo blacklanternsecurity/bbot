@@ -151,6 +151,7 @@ class paramminer_headers(BaseModule):
         if self.config.get("http_extract"):
             extracted_words = self.load_extracted_words(event.data.get("body"), event.data.get("content_type"))
             if extracted_words:
+                self.debug(f"Extracted {str(len(extracted_words))} words from {url}")
                 self.matched_words[url] = extracted_words
                 wl |= extracted_words
         if self.config.get("skip_boring_words", True):
