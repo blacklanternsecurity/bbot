@@ -78,7 +78,7 @@ class ffuf(BaseModule):
 
         exts = ["", "/"]
         if self.extensions:
-            for ext in self.extensions.split(","):
+            for ext in self.extensions:
                 exts.append(f".{ext}")
 
         filters = await self.baseline_ffuf(fixed_url, exts=exts)
