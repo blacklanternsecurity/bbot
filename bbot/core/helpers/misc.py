@@ -699,16 +699,21 @@ def search_dict_values(d, *regexes):
 
     search_dict_values(dict_to_search, url_regexes) --> "https://www.evilcorp.com"
     """
-    for r in regexes:
-        if isinstance(d, str):
+    results = set()
+    if isinstance(d, str):
+        for r in regexes:
             for match in r.finditer(d):
-                yield match.group()
-        elif isinstance(d, dict):
-            for _, v in d.items():
-                yield from search_dict_values(v, *regexes)
-        elif isinstance(d, list):
-            for v in d:
-                yield from search_dict_values(v, *regexes)
+                result = match.group()
+                h = hash(result)
+                if not h in results:
+                    results.add(h)
+                    yield result
+    elif isinstance(d, dict):
+        for _, v in d.items():
+            yield from search_dict_values(v, *regexes)
+    elif isinstance(d, list):
+        for v in d:
+            yield from search_dict_values(v, *regexes)
 
 
 def filter_dict(d, *key_names, fuzzy=False, invert=False, exclude_keys=None, prev_key=None):
