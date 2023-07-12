@@ -1,8 +1,6 @@
 import re
 from .base import ModuleTestBase
 
-from bbot.modules.telerik import telerik
-
 
 class TestTelerik(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
