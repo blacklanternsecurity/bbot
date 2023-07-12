@@ -3,6 +3,7 @@ import random
 import string
 
 from bbot.modules.deadly.ffuf import ffuf
+from bbot.core.helpers.misc import parse_list_string
 
 
 def find_common_prefixes(strings, minimum_set_length=4):
