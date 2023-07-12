@@ -2,7 +2,6 @@ name: docs
 on:
   push:
     branches:
-      - material-docs
       - dev
 permissions:
   contents: write
@@ -24,6 +23,7 @@ jobs:
           poetry run bbot/scripts/docs.py
       - name: Commit docs
         uses: EndBug/add-and-commit@v9
+        continue-on-error: true
         with:
           add: "*.md"
           default_author: github_actions

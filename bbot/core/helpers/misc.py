@@ -190,7 +190,13 @@ def split_domain(hostname):
     "www.internal.evilcorp.co.uk" --> ("www.internal", "evilcorp.co.uk")
     """
     parsed = tldextract(hostname)
-    return (parsed.subdomain, parsed.registered_domain)
+    subdomain = parsed.subdomain
+    domain = parsed.registered_domain
+    if not domain:
+        split = hostname.split(".")
+        subdomain = ".".join(split[:-2])
+        domain = ".".join(split[-2:])
+    return (subdomain, domain)
 
 
 def domain_stem(domain):
@@ -675,6 +681,34 @@ def search_format_dict(d, **kwargs):
             find = "#{" + str(find) + "}"
             d = d.replace(find, replace)
     return d
+
+
+def search_dict_values(d, *regexes):
+    """
+    Recursively search a dictionary's values based on regexes
+
+    dict_to_search = {
+        "key1": {
+            "key2": [
+                {
+                    "key3": "A URL: https://www.evilcorp.com"
+                }
+            ]
+        }
+    })
+
+    search_dict_values(dict_to_search, url_regexes) --> "https://www.evilcorp.com"
+    """
+    for r in regexes:
+        if isinstance(d, str):
+            for match in r.finditer(d):
+                yield match.group()
+        elif isinstance(d, dict):
+            for _, v in d.items():
+                yield from search_dict_values(v, *regexes)
+        elif isinstance(d, list):
+            for v in d:
+                yield from search_dict_values(v, *regexes)
 
 
 def filter_dict(d, *key_names, fuzzy=False, invert=False, exclude_keys=None, prev_key=None):

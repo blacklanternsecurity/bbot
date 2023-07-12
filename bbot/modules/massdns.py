@@ -194,8 +194,6 @@ class massdns(crobat):
             self.max_resolvers,
             "-t",
             "A",
-            "-t",
-            "AAAA",
             "-o",
             "J",
             "-q",

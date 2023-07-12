@@ -5,7 +5,7 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
+async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
     ### URL ###
     bad_urls = (
         "http://e.co/index.html",
@@ -106,6 +106,12 @@ async def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver
         "b@b.com",
     )
 
+    assert helpers.split_domain("www.evilcorp.co.uk") == ("www", "evilcorp.co.uk")
+    assert helpers.split_domain("asdf.www.test.notreal") == ("asdf.www", "test.notreal")
+    assert helpers.split_domain("www.test.notreal") == ("www", "test.notreal")
+    assert helpers.split_domain("test.notreal") == ("", "test.notreal")
+    assert helpers.split_domain("notreal") == ("", "notreal")
+
     assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
@@ -153,6 +159,11 @@ async def test_helpers(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver
     assert list(helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"asdf": "fdsa"}]}])) == ["fdsa"]
     assert not list(helpers.search_dict_by_key("asdf", [{"wat": {"nope": 1}}, {"wat": [{"fdsa": "asdf"}]}]))
     assert not list(helpers.search_dict_by_key("asdf", "asdf"))
+
+    from bbot.core.helpers.regexes import url_regexes
+
+    dict_to_search = {"key1": {"key2": [{"key3": "A url of some kind: https://www.evilcorp.com/asdf"}]}}
+    assert list(helpers.search_dict_values(dict_to_search, *url_regexes)) == ["https://www.evilcorp.com/asdf"]
 
     filtered_dict = helpers.filter_dict(
         {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
