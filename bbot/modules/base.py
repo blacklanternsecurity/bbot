@@ -32,6 +32,8 @@ class BaseModule:
     accept_dupes = False
     # Whether to block outgoing duplicate events
     suppress_dupes = True
+    # Limit the module to only scanning once per host. By default, defined by event.host, but can be customized by overriding
+    per_host_only = False
 
     # Scope distance modifier - accept/deny events based on scope distance
     # None == accept all events
@@ -101,6 +103,9 @@ class BaseModule:
         self._event_received = asyncio.Condition()
         self._event_queued = asyncio.Condition()
         self._event_dequeued = asyncio.Condition()
+
+        # used for optional "per host" tracking
+        self._per_host_tracker = set()
 
     async def setup(self):
         """
@@ -427,6 +432,16 @@ class BaseModule:
             if not filter_result:
                 return False, msg
 
+        if self.per_host_only:
+            self.critical("IN PER HOST ONLY")
+            self.hugewarning(event.data)
+            if self.get_per_host_hash(event) in self._per_host_tracker:
+                self.critical("ALREADY DID THIS HOST BLOCK IT")
+                return False, "per_host_only enabled and already seen host"
+            else:
+                self.critical("THIS IS A NEW HOST, ADD IT AND ALLOW IT")
+                self._per_host_tracker.add(self.get_per_host_hash(event))
+
         if self._type == "output" and not event._stats_recorded:
             event._stats_recorded = True
             self.scan.stats.event_produced(event)
@@ -500,6 +515,10 @@ class BaseModule:
                 # set queue to None to prevent its use
                 # if there are leftover objects in the queue, the scan will hang.
                 self._incoming_event_queue = False
+
+    # override in the module to define different values to comprise the hash
+    def get_per_host_hash(self, event):
+        return hash(f"{event.parsed.scheme}://{event.parsed.netloc}/")
 
     @property
     def name(self):

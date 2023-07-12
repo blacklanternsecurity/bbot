@@ -15,6 +15,7 @@ class smuggler(BaseModule):
     meta = {"description": "Check for HTTP smuggling"}
 
     in_scope_only = True
+    per_host_only = True
 
     deps_ansible = [
         {
@@ -23,19 +24,7 @@ class smuggler(BaseModule):
         }
     ]
 
-    async def setup(self):
-        self.scanned_hosts = set()
-        return True
-
     async def handle_event(self, event):
-        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
-        host_hash = hash(host)
-        if host_hash in self.scanned_hosts:
-            self.debug(f"Host {host} was already scanned, exiting")
-            return
-        else:
-            self.scanned_hosts.add(host_hash)
-
         command = [
             sys.executable,
             f"{self.scan.helpers.tools_dir}/smuggler/smuggler.py",

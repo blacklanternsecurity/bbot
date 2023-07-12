@@ -9,12 +9,11 @@ class host_header(BaseModule):
     meta = {"description": "Try common HTTP Host header spoofing techniques"}
 
     in_scope_only = True
+    per_host_only = True
 
     deps_apt = ["curl"]
 
     async def setup(self):
-        self.scanned_hosts = set()
-
         self.subdomain_tags = {}
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
@@ -74,14 +73,6 @@ class host_header(BaseModule):
                 self.warning(f"Interactsh failure: {e}")
 
     async def handle_event(self, event):
-        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
-        host_hash = hash(host)
-        if host_hash in self.scanned_hosts:
-            self.debug(f"Host {host} was already scanned, exiting")
-            return
-        else:
-            self.scanned_hosts.add(host_hash)
-
         # get any set-cookie responses from the response and add them to the request
 
         added_cookies = {}

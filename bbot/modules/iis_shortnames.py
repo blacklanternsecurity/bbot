@@ -1,5 +1,4 @@
 import re
-from threading import Lock
 
 from bbot.modules.base import BaseModule
 
@@ -47,7 +46,6 @@ class iis_shortnames(BaseModule):
         return detections
 
     async def setup(self):
-        self.scanned_tracker_lock = Lock()
         self.scanned_tracker = set()
         return True
 
@@ -145,8 +143,7 @@ class iis_shortnames(BaseModule):
 
     async def handle_event(self, event):
         normalized_url = self.normalize_url(event.data)
-        with self.scanned_tracker_lock:
-            self.scanned_tracker.add(normalized_url)
+        self.scanned_tracker.add(normalized_url)
 
         detections = await self.detect(normalized_url)
 
@@ -213,8 +210,7 @@ class iis_shortnames(BaseModule):
 
     async def filter_event(self, event):
         if "dir" in event.tags:
-            with self.scanned_tracker_lock:
-                if self.normalize_url(event.data) not in self.scanned_tracker:
-                    return True
-                return False
+            if self.normalize_url(event.data) not in self.scanned_tracker:
+                return True
+            return False
         return False
