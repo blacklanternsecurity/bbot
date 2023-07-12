@@ -1200,3 +1200,39 @@ def weighted_shuffle(items, weights):
         shuffled_items.append(chosen_item)
 
     return shuffled_items
+
+
+def parse_port_string(port_string):
+    elements = port_string.split(",")
+    ports = []
+
+    for element in elements:
+        if element.isdigit():
+            port = int(element)
+            if 1 <= port <= 65535:
+                ports.append(port)
+            else:
+                raise ValueError(f"Invalid port: {element}")
+        elif "-" in element:
+            range_parts = element.split("-")
+            if len(range_parts) != 2 or not all(part.isdigit() for part in range_parts):
+                raise ValueError(f"Invalid port or port range: {element}")
+            start, end = map(int, range_parts)
+            if not (1 <= start < end <= 65535):
+                raise ValueError(f"Invalid port range: {element}")
+            ports.extend(range(start, end + 1))
+        else:
+            raise ValueError(f"Invalid port or port range: {element}")
+
+    return ports
+
+
+def parse_list_string(list_string):
+    elements = list_string.split(",")
+    result = []
+
+    for element in elements:
+        if any((c in '<>:"/\\|?*') or (ord(c) < 32 and c != " ") for c in element):
+            raise ValueError(f"Invalid character in string: {element}")
+        result.append(element)
+    return result

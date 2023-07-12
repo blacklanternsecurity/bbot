@@ -580,3 +580,67 @@ def test_async_helpers():
         except StopIteration:
             break
     assert l == [0, 1, 2, 3, 4]
+
+
+# test parse_port_string helper
+
+
+def test_portparse_singleports(helpers):
+    assert helpers.parse_port_string("80,443,22") == [80, 443, 22]
+
+
+def test_portparse_range_valid(helpers):
+    assert helpers.parse_port_string("80,443,22,1000-1002") == [80, 443, 22, 1000, 1001, 1002]
+
+
+def test_portparse_invalidport(helpers):
+    with pytest.raises(ValueError) as e:
+        helpers.parse_port_string("80,443,22,70000")
+    assert str(e.value) == "Invalid port: 70000"
+
+
+def test_portparse_range_invalid(helpers):
+    with pytest.raises(ValueError) as e:
+        helpers.parse_port_string("80,443,22,1000-70000")
+    assert str(e.value) == "Invalid port range: 1000-70000"
+
+
+def test_portparse_range_morethantwoparts(helpers):
+    with pytest.raises(ValueError) as e:
+        helpers.parse_port_string("80,443,22,1000-1001-1002")
+    assert str(e.value) == "Invalid port or port range: 1000-1001-1002"
+
+
+def test_portparse_range_startgreaterthanend(helpers):
+    with pytest.raises(ValueError) as e:
+        helpers.parse_port_string("80,443,22,1002-1000")
+    assert str(e.value) == "Invalid port range: 1002-1000"
+
+
+def test_portparse_nonnumericinput(helpers):
+    with pytest.raises(ValueError) as e:
+        helpers.parse_port_string("80,443,22,foo")
+    assert str(e.value) == "Invalid port or port range: foo"
+
+
+# test parse_list_string helper
+
+
+def test_liststring_valid_strings(helpers):
+    assert helpers.parse_list_string("hello,world,bbot") == ["hello", "world", "bbot"]
+
+
+def test_liststring_invalid_string(helpers):
+    with pytest.raises(ValueError) as e:
+        helpers.parse_list_string("hello,world,\x01")
+    assert str(e.value) == "Invalid character in string: \x01"
+
+
+def test_liststring_singleitem(helpers):
+    assert helpers.parse_list_string("hello") == ["hello"]
+
+
+def test_liststring_invalidfnchars(helpers):
+    with pytest.raises(ValueError) as e:
+        helpers.parse_list_string("hello,world,bbot|test")
+    assert str(e.value) == "Invalid character in string: bbot|test"

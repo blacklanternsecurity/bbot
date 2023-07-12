@@ -3,6 +3,7 @@ import random
 import string
 
 from bbot.modules.deadly.ffuf import ffuf
+from bbot.core.helpers.misc import parse_list_string
 
 
 def find_common_prefixes(strings, minimum_set_length=4):
@@ -86,7 +87,14 @@ class ffuf_shortnames(ffuf):
             wordlist_extensions = f"{self.helpers.wordlist_dir}/raft-small-extensions-lowercase_CLEANED.txt"
         self.debug(f"Using [{wordlist_extensions}] for shortname candidate extension list")
         self.wordlist_extensions = await self.helpers.wordlist(wordlist_extensions)
-        self.extensions = self.config.get("extensions")
+
+        try:
+            self.extensions = parse_list_string(self.config.get("extensions", ""))
+            self.critical(f"Using custom extensions: [{','.join(self.extensions)}]")
+        except ValueError as e:
+            self.warning(f"Error parsing extensions: {e}")
+            return False
+
         self.ignore_redirects = self.config.get("ignore_redirects")
 
         self.per_host_collection = {}

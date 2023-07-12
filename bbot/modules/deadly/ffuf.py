@@ -1,4 +1,5 @@
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.misc import parse_list_string
 
 import random
 import string
@@ -54,7 +55,12 @@ class ffuf(BaseModule):
         self.wordlist_lines = list(self.helpers.read_file(self.wordlist))
         self.tempfile, tempfile_len = self.generate_templist()
         self.verbose(f"Generated dynamic wordlist with length [{str(tempfile_len)}]")
-        self.extensions = self.config.get("extensions", "")
+        try:
+            self.extensions = parse_list_string(self.config.get("extensions", ""))
+            self.critical(f"Using custom extensions: [{','.join(self.extensions)}]")
+        except ValueError as e:
+            self.warning(f"Error parsing extensions: {e}")
+            return False
         return True
 
     async def handle_event(self, event):
@@ -72,7 +78,7 @@ class ffuf(BaseModule):
 
         exts = ["", "/"]
         if self.extensions:
-            for ext in self.extensions.split(","):
+            for ext in self.extensions:
                 exts.append(f".{ext}")
 
         filters = await self.baseline_ffuf(fixed_url, exts=exts)
