@@ -21,6 +21,7 @@ class wafw00f(BaseModule):
     per_host_only = True
 
     async def handle_event(self, event):
+        host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
         WW = await self.scan.run_in_executor(wafw00f_main.WAFW00F, host)
         waf_detections = await self.scan.run_in_executor(WW.identwaf)
         if waf_detections:
