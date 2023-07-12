@@ -146,7 +146,7 @@ class HttpCompare:
             url, headers=headers, cookies=cookies, follow_redirects=allow_redirects, method=method
         )
 
-        if not subject_response:
+        if subject_response is None:
             # this can be caused by a WAF not liking the header, so we really arent interested in it
             return (True, "403", reflection, subject_response)
 
