@@ -134,8 +134,8 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
             dns_1 = per_host_scan.make_event("evilcorp.com", source=scan2.root_event)
             dns_2 = per_host_scan.make_event("evilcorp.com", source=scan2.root_event)
-            dns_valid_1, dns_reason_1 = await base_module._event_postcheck(url_1)
-            dns_valid_2, dns_reason_2 = await base_module._event_postcheck(url_2)
+            dns_valid_1, dns_reason_1 = await base_module._event_postcheck(dns_1)
+            dns_valid_2, dns_reason_2 = await base_module._event_postcheck(dns_2)
 
             assert dns_valid_1 == True
             assert dns_valid_2 == True
@@ -144,8 +144,8 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
             dns_1 = per_host_scan.make_event("evilcorp.com", source=scan2.root_event)
             dns_2 = per_host_scan.make_event("evilcorp.com", source=scan2.root_event)
-            dns_valid_1, dns_reason_1 = await base_module._event_postcheck(url_1)
-            dns_valid_2, dns_reason_2 = await base_module._event_postcheck(url_2)
+            dns_valid_1, dns_reason_1 = await base_module._event_postcheck(dns_1)
+            dns_valid_2, dns_reason_2 = await base_module._event_postcheck(dns_2)
 
             assert dns_valid_1 == True
             assert dns_valid_2 == False
