@@ -703,7 +703,9 @@ def search_dict_values(d, *regexes):
     log.critical(f"TYPE: {type(d)}: {d}")
     if isinstance(d, str):
         log.critical(f"IS STR: {d}")
+        log.critical(f"REGEXES: {regexes}")
         for r in regexes:
+            log.critical(f"REGEX: {r}")
             for match in r.finditer(d):
                 result = match.group()
                 log.critical(f"RESULT: {result}")
