@@ -76,6 +76,8 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         valid, reason = await base_module._event_postcheck(events.localhost)
         assert valid
 
+
+
     base_output_module = BaseOutputModule(scan)
     base_output_module.watched_events = ["IP_ADDRESS"]
 
@@ -101,6 +103,61 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
                 log.error(f"{f.__qualname__}() is not async")
                 not_async.append(f)
     assert not any(not_async)
+
+
+
+    # per host only
+
+    per_host_scan = bbot_scanner("evilcorp.com",
+        modules=list(set(available_modules + available_internal_modules)),
+        output_modules=list(available_output_modules),
+        config=bbot_config,
+    )
+
+    # ensure that multiple events to the same "host" (schema + host) are blocked and check the per host tracker
+    for module_name, module in sorted(per_host_scan.modules.items()):
+
+        if "URL" in module.watched_events:
+            
+            url_1 = per_host_scan.make_event("http://evilcorp.com/1", source=scan2.root_event)
+            url_2 = per_host_scan.make_event("http://evilcorp.com/2", source=scan2.root_event)
+            valid_1, reason_1 = await base_module._event_postcheck(url_1)
+            valid_2, reason_2 = await base_module._event_postcheck(url_2)
+
+            if module.per_host_only == True:
+                assert valid_1 == True
+                assert valid_2 == False
+                assert "http://evilcorp.com/" in module._per_host_tracker
+
+            else:
+                assert valid_1 == True
+                assert valid_2 == False
+
+        elif "DNS_NAME" in module.watched_events:
+            # no dns-based modules currently use per_host_only, so we have to simulate it
+            module.per_host_only = False
+
+            dns_1 = per_host_scan.make_event("evilcorp.com", source=scan2.root_event)
+            dns_2 = per_host_scan.make_event("evilcorp.com", source=scan2.root_event)
+            dns_valid_1, dns_reason_1 = await base_module._event_postcheck(url_1)
+            dns_valid_2, dns_reason_2 = await base_module._event_postcheck(url_2)
+
+            assert dns_valid_1 == True
+            assert dns_valid_2 == True
+
+            module.per_host_only = True
+
+            dns_1 = per_host_scan.make_event("evilcorp.com", source=scan2.root_event)
+            dns_2 = per_host_scan.make_event("evilcorp.com", source=scan2.root_event)
+            dns_valid_1, dns_reason_1 = await base_module._event_postcheck(url_1)
+            dns_valid_2, dns_reason_2 = await base_module._event_postcheck(url_2)
+
+            assert dns_valid_1 == True
+            assert dns_valid_2 == False
+
+            assert "evilcorp.com" in module._per_host_tracker
+
+
 
     # module preloading
     all_preloaded = module_loader.preloaded()
