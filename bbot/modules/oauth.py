@@ -107,7 +107,9 @@ class OAUTH(BaseModule):
                 return url, token_endpoint, results
             if json and isinstance(json, dict):
                 token_endpoint = json.get("token_endpoint", "")
+                self.critical(f"JSON: {json}")
                 for found in self.helpers.search_dict_values(json, *self.regexes):
+                    self.critical(f"FOUND: {found}")
                     results.add(found)
         results -= {token_endpoint}
         return url, token_endpoint, results
