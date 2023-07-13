@@ -69,8 +69,10 @@ jobs:
         continue-on-error: true
         with:
           add: "*.md"
-          default_author: github_actions
+          author_name: "BBOT Docs Autopublish"
+          author_email: info@blacklanternsecurity.com
           message: "Refresh module docs"
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
 
   publish_docs:
     needs: update_docs
