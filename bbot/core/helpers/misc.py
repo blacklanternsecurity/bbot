@@ -705,9 +705,11 @@ def search_dict_values(d, *regexes):
         for r in regexes:
             for match in r.finditer(d):
                 result = match.group()
+                log.critical(f"RESULT: {result}")
                 h = hash(result)
-                if not h in results:
+                if h not in results:
                     results.add(h)
+                    log.critical(f"YIELD: {result}")
                     yield result
     elif isinstance(d, dict):
         for _, v in d.items():
