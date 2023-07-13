@@ -514,7 +514,12 @@ class BaseModule:
 
     # override in the module to define different values to comprise the hash
     def get_per_host_hash(self, event):
-        return hash(f"{event.parsed.scheme}://{event.parsed.netloc}/")
+        parsed = getattr(event, "parsed", None)
+        if parsed is None:
+            to_hash = self.helpers.make_netloc(event.host, event.port)
+        else:
+            to_hash = hash(f"{parsed.scheme}://{parsed.netloc}/")
+        return hash(to_hash)
 
     @property
     def name(self):
