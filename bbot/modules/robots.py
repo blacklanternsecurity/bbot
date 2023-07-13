@@ -15,21 +15,13 @@ class robots(BaseModule):
     }
 
     in_scope_only = True
+    per_host_only = True
 
     async def setup(self):
-        self.scanned_hosts = set()
         return True
 
     async def handle_event(self, event):
-        parsed_host = event.parsed
-        host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
-        host_hash = hash(host)
-        if host_hash in self.scanned_hosts:
-            self.debug(f"Host {host} was already scanned, exiting")
-            return
-        else:
-            self.scanned_hosts.add(host_hash)
-
+        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
         result = None
         url = f"{host}robots.txt"
         result = await self.helpers.request(url)

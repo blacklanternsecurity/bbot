@@ -139,6 +139,7 @@ class telerik(BaseModule):
     options_desc = {"exploit_RAU_crypto": "Attempt to confirm any RAU AXD detections are vulnerable"}
 
     in_scope_only = True
+    per_host_only = True
 
     deps_pip = ["pycryptodome~=3.17"]
 
@@ -159,19 +160,10 @@ class telerik(BaseModule):
     max_event_handlers = 5
 
     async def setup(self):
-        self.scanned_hosts = set()
         self.timeout = self.scan.config.get("httpx_timeout", 5)
         return True
 
     async def handle_event(self, event):
-        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
-        host_hash = hash(host)
-        if host_hash in self.scanned_hosts:
-            self.debug(f"Host {host} was already scanned, exiting")
-            return
-        else:
-            self.scanned_hosts.add(host_hash)
-
         webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
         result, _ = await self.test_detector(event.data, webresource)
         if result:
