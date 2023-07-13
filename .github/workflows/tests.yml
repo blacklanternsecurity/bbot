@@ -7,6 +7,7 @@ on:
       - closed
 
 jobs:
+  
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -17,7 +18,7 @@ jobs:
       - name: Install Python 3
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: "3.x"
       - name: Install dependencies
         run: |
           pip install flake8
@@ -33,7 +34,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.x"
       - name: Install dependencies
         run: |
           pip install poetry
@@ -56,7 +57,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.x"
       - name: Install dependencies
         run: |
           pip install poetry
@@ -82,7 +83,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.x
+          python-version: "3.x"
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
       - uses: actions/cache@v3
         with:
@@ -105,7 +106,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.x"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
