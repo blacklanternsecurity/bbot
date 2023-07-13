@@ -6,7 +6,7 @@ from .test_module_azure_realm import TestAzure_Realm
 class TestOAUTH(ModuleTestBase):
     targets = ["evilcorp.com"]
     config_overrides = {"scope_report_distance": 1}
-    modules_overrides = ["azure_realm", "oauth"]
+    modules_overrides = ["azure_realm", "oauth", "speculate"]
     openid_config_azure = {
         "token_endpoint": "https://login.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/oauth2/token",
         "token_endpoint_auth_methods_supported": ["client_secret_post", "private_key_jwt", "client_secret_basic"],
