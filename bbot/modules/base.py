@@ -518,7 +518,7 @@ class BaseModule:
         if parsed is None:
             to_hash = self.helpers.make_netloc(event.host, event.port)
         else:
-            to_hash = hash(f"{parsed.scheme}://{parsed.netloc}/")
+            to_hash = f"{parsed.scheme}://{parsed.netloc}/"
         return hash(to_hash)
 
     @property
