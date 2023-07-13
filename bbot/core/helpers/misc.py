@@ -700,6 +700,7 @@ def search_dict_values(d, *regexes):
     search_dict_values(dict_to_search, url_regexes) --> "https://www.evilcorp.com"
     """
     results = set()
+    log.critical(f"TYPE: {type(d)}: {d}")
     if isinstance(d, str):
         for r in regexes:
             for match in r.finditer(d):
