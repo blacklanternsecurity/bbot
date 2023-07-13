@@ -76,8 +76,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         valid, reason = await base_module._event_postcheck(events.localhost)
         assert valid
 
-
-
     base_output_module = BaseOutputModule(scan)
     base_output_module.watched_events = ["IP_ADDRESS"]
 
@@ -104,11 +102,10 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
                 not_async.append(f)
     assert not any(not_async)
 
-
-
     # per host only
 
-    per_host_scan = bbot_scanner("evilcorp.com",
+    per_host_scan = bbot_scanner(
+        "evilcorp.com",
         modules=list(set(available_modules + available_internal_modules)),
         output_modules=list(available_output_modules),
         config=bbot_config,
@@ -116,9 +113,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
     # ensure that multiple events to the same "host" (schema + host) are blocked and check the per host tracker
     for module_name, module in sorted(per_host_scan.modules.items()):
-
         if "URL" in module.watched_events:
-            
             url_1 = per_host_scan.make_event("http://evilcorp.com/1", source=scan2.root_event)
             url_2 = per_host_scan.make_event("http://evilcorp.com/2", source=scan2.root_event)
             valid_1, reason_1 = await base_module._event_postcheck(url_1)
@@ -156,8 +151,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
             assert dns_valid_2 == False
 
             assert "evilcorp.com" in module._per_host_tracker
-
-
 
     # module preloading
     all_preloaded = module_loader.preloaded()
