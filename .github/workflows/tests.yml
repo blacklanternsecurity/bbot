@@ -72,7 +72,7 @@ jobs:
           default_author: github_actions
           message: "Refresh module docs"
 
-  deploy_docs:
+  publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'
@@ -91,7 +91,7 @@ jobs:
       - run: pip install mkdocs-material mkdocs-extra-sass-plugin livereload
       - run: mkdocs gh-deploy --force
 
-  publish:
+  publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'dev' || github.event.pull_request.base.ref == 'stable')
