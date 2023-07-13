@@ -9,7 +9,7 @@ from bbot.modules.internal.base import BaseInternalModule
 
 
 @pytest.mark.asyncio
-async def test_modules_basic(scan, helpers, bbot_config, bbot_scanner, monkeypatch):
+async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock):
     fallback_nameservers = scan.helpers.temp_dir / "nameservers.txt"
     with open(fallback_nameservers, "w") as f:
         f.write("8.8.8.8\n")
