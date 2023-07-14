@@ -220,7 +220,7 @@ class BaseModule:
                 if events:
                     submitted = True
                     async with self.scan.acatch(context=f"{self.name}.handle_batch"):
-                        with self._task_counter:
+                        async with self._task_counter:
                             await self.handle_batch(*events)
                 if finish:
                     async with self.scan.acatch(context=f"{self.name}.finish"):
@@ -346,12 +346,12 @@ class BaseModule:
                     if acceptable:
                         if event.type == "FINISHED":
                             async with self.scan.acatch(context=f"{self.name}.finish"):
-                                with self._task_counter:
+                                async with self._task_counter:
                                     await self.finish()
                         else:
                             self.scan.stats.event_consumed(event, self)
                             async with self.scan.acatch(context=f"{self.name}.handle_event"):
-                                with self._task_counter:
+                                async with self._task_counter:
                                     await self.handle_event(event)
 
     @property
@@ -451,7 +451,7 @@ class BaseModule:
             for callback in [self.cleanup] + self.cleanup_callbacks:
                 if callable(callback):
                     async with self.scan.acatch(context=self.name):
-                        with self._task_counter:
+                        async with self._task_counter:
                             await self.helpers.execute_sync_or_async(callback)
 
     async def queue_event(self, event):

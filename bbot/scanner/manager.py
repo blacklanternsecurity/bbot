@@ -35,7 +35,7 @@ class ScanManager:
         seed scanner with target events
         """
         async with self.scan.acatch(context=self.init_events):
-            with self._task_counter:
+            async with self._task_counter:
                 await self.distribute_event(self.scan.root_event)
                 sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
                 for event in sorted_events:
@@ -51,7 +51,7 @@ class ScanManager:
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         """
-        with self._task_counter:
+        async with self._task_counter:
             # skip event if it fails precheck
             if not self._event_precheck(event):
                 event._resolved.set()
@@ -316,7 +316,7 @@ class ScanManager:
         return True
 
     async def _register_running(self, callback, *args, **kwargs):
-        with self._task_counter:
+        async with self._task_counter:
             return await callback(*args, **kwargs)
 
     async def distribute_event(self, *args, **kwargs):
