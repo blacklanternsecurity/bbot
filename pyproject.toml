@@ -32,7 +32,6 @@ pyjwt = "^2.7.0"
 beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"
 httpx = "^0.24.1"
-pytest-httpx = "^0.22.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
@@ -46,6 +45,7 @@ urllib3 = "^2.0.2"
 werkzeug = "^2.3.4"
 pytest-httpserver = "^1.0.8"
 pytest-env = "^0.8.2"
+pytest-httpx = "^0.22.0"
 
 [tool.pytest.ini_options]
 env = [
