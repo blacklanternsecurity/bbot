@@ -26,8 +26,10 @@ async def run(self, *command, check=False, text=True, **kwargs):
 
         # surface stderr
         if text:
-            stderr = smart_decode(stderr)
-            stdout = smart_decode(stdout)
+            if stderr is not None:
+                stderr = smart_decode(stderr)
+            if stdout is not None:
+                stdout = smart_decode(stdout)
         if proc.returncode:
             if check:
                 raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
@@ -70,8 +72,10 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
         if proc.returncode:
             stdout, stderr = await proc.communicate()
             if text:
-                stderr = smart_decode(stderr)
-                stdout = smart_decode(stdout)
+                if stderr is not None:
+                    stderr = smart_decode(stderr)
+                if stdout is not None:
+                    stdout = smart_decode(stdout)
             if check:
                 raise CalledProcessError(proc.returncode, command, output=stdout, stderr=stderr)
             # surface stderr
