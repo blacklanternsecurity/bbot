@@ -41,10 +41,11 @@ class TaskCounter:
     def __init__(self):
         self.value = 0
 
-    def __aenter__(self):
+    async def __aenter__(self):
         self.value += 1
+        return self
 
-    def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.value -= 1
 
 
