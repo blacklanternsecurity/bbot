@@ -1,7 +1,6 @@
 import os
 import logging
 from pathlib import Path
-from threading import Lock
 
 from . import misc
 from .dns import DNSHelper
@@ -42,8 +41,6 @@ class ConfigAwareHelper:
         self.mkdir(self.temp_dir)
         self.mkdir(self.tools_dir)
         self.mkdir(self.lib_dir)
-        self._futures = set()
-        self._future_lock = Lock()
 
         self.dns = DNSHelper(self)
         self.web = WebHelper(self)

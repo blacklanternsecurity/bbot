@@ -94,7 +94,7 @@ class asset_inventory(CSV):
             ips = sorted([str(i) for i in getattr(asset, "ip_addresses", [])])
             host = getattr(asset, "host", "")
             if host:
-                domain = self.helpers.tldextract(host).registered_domain
+                _, domain = self.helpers.split_domain(host)
                 if domain:
                     increment_stat("Domains", domain)
             for ip in ips:
