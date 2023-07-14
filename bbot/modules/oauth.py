@@ -85,7 +85,7 @@ class OAUTH(BaseModule):
     def url_and_base(self, url):
         yield url
         parsed = self.helpers.urlparse(url)
-        baseurl = f"{parsed.scheme}://{parsed.netloc}"
+        baseurl = f"{parsed.scheme}://{parsed.netloc}/"
         if baseurl != url:
             yield baseurl
 
