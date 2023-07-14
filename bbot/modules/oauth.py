@@ -44,10 +44,10 @@ class OAUTH(BaseModule):
 
         oauth_tasks = []
         if self.try_all or any(t in event.tags for t in ("oauth-token-endpoint",)):
-            for u in self.url_and_base(url):
-                oauth_tasks.append(self.helpers.create_task(self.getoauth(u)))
+            oauth_tasks.append(self.helpers.create_task(self.getoauth(url)))
         if self.try_all or any(t in event.tags for t in ("ms-auth-url",)):
-            oidc_tasks.append(self.helpers.create_task(self.getoidc(url)))
+            for u in self.url_and_base(url):
+                oidc_tasks.append(self.helpers.create_task(self.getoidc(u)))
 
         for oidc_task in oidc_tasks:
             url, token_endpoint, oidc_results = await oidc_task

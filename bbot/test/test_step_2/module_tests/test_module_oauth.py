@@ -203,8 +203,6 @@ class TestOAUTH(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        for e in events:
-            module_test.log.critical(f"{e.type}:{e.scope_distance}:{e.data}")
         assert any(
             e.type == "FINDING"
             and e.data["description"]
