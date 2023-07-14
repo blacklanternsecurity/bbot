@@ -33,10 +33,10 @@ from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 from asyncio import as_completed, create_task, sleep, wait_for  # noqa
 
 from .url import *  # noqa F401
-from . import regexes
 from .. import errors
 from .punycode import *  # noqa F401
 from .logger import log_to_stderr
+from . import regexes as bbot_regexes
 from .names_generator import random_name, names, adjectives  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -71,12 +71,12 @@ def is_ptr(d):
     "wsc-11-22-33-44.evilcorp.com" --> True
     "www2.evilcorp.com" --> False
     """
-    return bool(regexes.ptr_regex.search(str(d)))
+    return bool(bbot_regexes.ptr_regex.search(str(d)))
 
 
 def is_url(u):
     u = str(u)
-    for r in regexes.event_type_regexes["URL"]:
+    for r in bbot_regexes.event_type_regexes["URL"]:
         if r.match(u):
             return True
     return False
@@ -226,9 +226,9 @@ def is_dns_name(d):
     if is_ip(d):
         return False
     d = smart_decode(d)
-    if regexes.hostname_regex.match(d):
+    if bbot_regexes.hostname_regex.match(d):
         return True
-    if regexes.dns_name_regex.match(d):
+    if bbot_regexes.dns_name_regex.match(d):
         return True
     return False
 
@@ -426,21 +426,21 @@ def extract_params_xml(xml_data):
 
 
 def extract_params_html(html_data):
-    input_tag = regexes.input_tag_regex.findall(html_data)
+    input_tag = bbot_regexes.input_tag_regex.findall(html_data)
 
     for i in input_tag:
         log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
         yield i
 
     # check for jquery get parameters
-    jquery_get = regexes.jquery_get_regex.findall(html_data)
+    jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
 
     for i in jquery_get:
         log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
         yield i
 
     # check for jquery post parameters
-    jquery_post = regexes.jquery_post_regex.findall(html_data)
+    jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
     if jquery_post:
         for i in jquery_post:
             for x in i.split(","):
@@ -448,7 +448,7 @@ def extract_params_html(html_data):
                 log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
                 yield s
 
-    a_tag = regexes.a_tag_regex.findall(html_data)
+    a_tag = bbot_regexes.a_tag_regex.findall(html_data)
     for s in a_tag:
         log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
         yield s
@@ -460,7 +460,7 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
     Returns set() of extracted words
     """
     if word_regexes is None:
-        word_regexes = regexes.word_regexes
+        word_regexes = bbot_regexes.word_regexes
     words = set()
     data = smart_decode(data)
     for r in word_regexes:
@@ -904,7 +904,7 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
 
 
 def extract_emails(s):
-    for email in regexes.email_regex.findall(smart_decode(s)):
+    for email in bbot_regexes.email_regex.findall(smart_decode(s)):
         yield email.lower()
 
 

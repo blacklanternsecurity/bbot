@@ -162,8 +162,16 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
 
     from bbot.core.helpers.regexes import url_regexes
 
-    dict_to_search = {"key1": {"key2": [{"key3": "A url of some kind: https://www.evilcorp.com/asdf"}]}}
-    assert list(helpers.search_dict_values(dict_to_search, *url_regexes)) == ["https://www.evilcorp.com/asdf"]
+    dict_to_search = {
+        "key1": {
+            "key2": [{"key3": "A url of some kind: https://www.evilcorp.com/asdf"}],
+            "key4": "A url of some kind: https://www.evilcorp.com/fdsa",
+        }
+    }
+    assert set(helpers.search_dict_values(dict_to_search, *url_regexes)) == {
+        "https://www.evilcorp.com/asdf",
+        "https://www.evilcorp.com/fdsa",
+    }
 
     filtered_dict = helpers.filter_dict(
         {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"

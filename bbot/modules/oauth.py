@@ -17,7 +17,9 @@ class OAUTH(BaseModule):
 
     async def setup(self):
         self.processed = set()
+        self.critical(f"IMPORTED URL REGEXES: {url_regexes}")
         self.regexes = list(url_regexes) + list(self.scan.dns_regexes)
+        self.critical(f"COMBINED REGEXES: {self.regexes}")
         self.try_all = self.config.get("try_all", False)
         return True
 
