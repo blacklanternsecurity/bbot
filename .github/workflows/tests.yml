@@ -1,6 +1,9 @@
 name: tests
 on:
   push:
+    branches:
+      - stable
+      - dev
   pull_request:
   pull_request_target:
     types:
@@ -74,7 +77,7 @@ jobs:
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev'
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'dev'
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
