@@ -98,7 +98,6 @@ class paramminer_headers(BaseModule):
         return self.helpers.rand_string(*args, **kwargs)
 
     async def do_mining(self, wl, url, batch_size, compare_helper):
-
         for i in wl:
             h = hash(i + url)
             self.already_checked.add(h)
@@ -224,7 +223,6 @@ class paramminer_headers(BaseModule):
 
     async def finish(self):
         for url, (event, batch_size) in list(self.event_dict.items()):
-
             try:
                 compare_helper = self.helpers.http_compare(url)
             except HttpCompareError as e:
