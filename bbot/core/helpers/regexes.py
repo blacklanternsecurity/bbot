@@ -31,7 +31,7 @@ _url_regexes = (
     r"https?://((?:\w|\w[\w\-]*\w)[\.]?)+(?:\w[\w\-]*\w|\w)(?::[0-9]{1,5})?.*$",
     r"https?://\[" + _ipv6_regex + r"\](?::[0-9]{1,5})?.*$",
 )
-url_regexes = (re.compile(r, re.I) for r in _url_regexes)
+url_regexes = list(re.compile(r, re.I) for r in _url_regexes)
 
 event_type_regexes = OrderedDict(
     (
