@@ -1,3 +1,5 @@
+import pytest
+
 from bbot.core.event.helpers import get_event_type
 from bbot.core.helpers import regexes
 from bbot.core.errors import ValidationError
