@@ -12,4 +12,6 @@ COPY . .
 
 RUN pip install .
 
+WORKDIR /root
+
 ENTRYPOINT [ "bbot" ]
