@@ -2,6 +2,11 @@ import re
 
 from ..bbot_fixtures import *
 
+from bbot.modules.base import BaseModule
+from bbot.modules.output.base import BaseOutputModule
+from bbot.modules.report.base import BaseReportModule
+from bbot.modules.internal.base import BaseInternalModule
+
 
 @pytest.mark.asyncio
 async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock):
@@ -11,12 +16,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
     for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
-
-    # event filtering
-    from bbot.modules.base import BaseModule
-    from bbot.modules.output.base import BaseOutputModule
-    from bbot.modules.report.base import BaseReportModule
-    from bbot.modules.internal.base import BaseInternalModule
 
     # output module specific event filtering tests
     base_output_module = BaseOutputModule(scan)
@@ -167,3 +166,42 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         assert flag in flag_descriptions, f'Flag "{flag}" not listed in bbot/core/flags.py'
         description = flag_descriptions.get(flag, "")
         assert description, f'Flag "{flag}" has no description in bbot/core/flags.py'
+
+
+@pytest.mark.asyncio
+async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+    per_host_scan = bbot_scanner(
+        "evilcorp.com",
+        modules=list(set(available_modules + available_internal_modules)),
+        config=bbot_config,
+    )
+
+    await per_host_scan.load_modules()
+    await per_host_scan.setup_modules()
+    per_host_scan.status = "RUNNING"
+
+    # ensure that multiple events to the same "host" (schema + host) are blocked and check the per host tracker
+    for module_name, module in sorted(per_host_scan.modules.items()):
+        #    module.filter_event = base_module.filter_event
+        monkeypatch.setattr(module, "filter_event", BaseModule(per_host_scan).filter_event)
+
+        if "URL" in module.watched_events:
+            url_1 = per_host_scan.make_event(
+                "http://evilcorp.com/1", event_type="URL", source=per_host_scan.root_event, tags=["status-200"]
+            )
+            url_1.set_scope_distance(0)
+            url_2 = per_host_scan.make_event(
+                "http://evilcorp.com/2", event_type="URL", source=per_host_scan.root_event, tags=["status-200"]
+            )
+            url_2.set_scope_distance(0)
+            valid_1, reason_1 = await module._event_postcheck(url_1)
+            valid_2, reason_2 = await module._event_postcheck(url_2)
+
+            if module.per_host_only == True:
+                assert valid_1 == True
+                assert valid_2 == False
+                assert hash("http://evilcorp.com/") in module._per_host_tracker
+
+            else:
+                assert valid_1 == True
+                assert valid_2 == True

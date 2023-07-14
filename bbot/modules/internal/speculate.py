@@ -1,6 +1,7 @@
 import random
 import ipaddress
 
+from bbot.core.helpers.misc import parse_port_string
 from bbot.modules.internal.base import BaseInternalModule
 
 
@@ -24,7 +25,7 @@ class speculate(BaseInternalModule):
     flags = ["passive"]
     meta = {"description": "Derive certain event types from others by common sense"}
 
-    options = {"max_hosts": 65536, "ports": [80, 443]}
+    options = {"max_hosts": 65536, "ports": "80,443"}
     options_desc = {
         "max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events",
         "ports": "The set of ports to speculate on",
@@ -40,9 +41,14 @@ class speculate(BaseInternalModule):
         self.range_to_ip = True
         self.dns_resolution = self.scan.config.get("dns_resolution", True)
 
-        self.ports = self.config.get("ports", [80, 443])
-        if isinstance(self.ports, int):
-            self.ports = [self.ports]
+        port_string = self.config.get("ports", "80,443")
+
+        try:
+            self.ports = parse_port_string(port_string)
+        except ValueError as e:
+            self.warning(f"Error parsing ports: {e}")
+            return False
+
         if not self.portscanner_enabled:
             self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")
 

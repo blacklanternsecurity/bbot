@@ -98,7 +98,7 @@ class paramminer_headers(BaseModule):
 
     async def do_mining(self, wl, url, batch_size, compare_helper):
         results = set()
-        abort_threshold = 25
+        abort_threshold = 15
         try:
             for group in self.helpers.grouper(wl, batch_size):
                 async for result, reasons, reflection in self.binary_search(compare_helper, url, group):
@@ -133,7 +133,7 @@ class paramminer_headers(BaseModule):
         try:
             compare_helper = self.helpers.http_compare(url)
         except HttpCompareError as e:
-            self.debug(e)
+            self.debug(f"Error initializing compare helper: {e}")
             return
         batch_size = await self.count_test(url)
         if batch_size == None or batch_size <= 0:
@@ -143,8 +143,11 @@ class paramminer_headers(BaseModule):
 
         self.event_dict[url] = (event, batch_size)
 
-        if await compare_helper.canary_check(url, mode=self.compare_mode) == False:
-            self.verbose(f'Aborting "{url}" due to failed canary check')
+        try:
+            if not await compare_helper.canary_check(url, mode=self.compare_mode):
+                raise HttpCompareError("failed canary check")
+        except HttpCompareError as e:
+            self.verbose(f'Aborting "{url}" ({e})')
             return
 
         wl = set(self.wl)
@@ -215,8 +218,11 @@ class paramminer_headers(BaseModule):
 
     async def finish(self):
         for url, (event, batch_size) in self.event_dict.items():
-            compare_helper = self.helpers.http_compare(url)
-
+            try:
+                compare_helper = self.helpers.http_compare(url)
+            except HttpCompareError as e:
+                self.debug(f"Error initializing compare helper: {e}")
+                return
             untested_matches = set()
             for k, s in self.matched_words.items():
                 if k != url:

@@ -21,14 +21,6 @@ class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
 
 pytest_httpserver.httpserver.RequestMatcher = SubstringRequestMatcher
 
-from bbot.modules.telerik import telerik
-
-telerik.telerikVersions = ["2014.2.724", "2014.3.1024", "2015.1.204"]
-telerik.DialogHandlerUrls = [
-    "Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
-    "App_Master/Telerik.Web.UI.DialogHandler.aspx",
-    "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx",
-]
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):

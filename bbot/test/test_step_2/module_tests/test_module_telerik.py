@@ -45,6 +45,14 @@ class TestTelerik(ModuleTestBase):
         respond_args = {"status": 200}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
+    async def setup_after_prep(self, module_test):
+        module_test.scan.modules["telerik"].telerikVersions = ["2014.2.724", "2014.3.1024", "2015.1.204"]
+        module_test.scan.modules["telerik"].DialogHandlerUrls = [
+            "Admin/ServerSide/Telerik.Web.UI.DialogHandler.aspx",
+            "App_Master/Telerik.Web.UI.DialogHandler.aspx",
+            "AsiCommon/Controls/ContentManagement/ContentDesigner/Telerik.Web.UI.DialogHandler.aspx",
+        ]
+
     def check(self, module_test, events):
         telerik_axd_detection = False
         telerik_axd_vulnerable = False
