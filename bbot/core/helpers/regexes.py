@@ -21,15 +21,15 @@ word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
 _ipv6_regex = r"[A-F0-9:]*:[A-F0-9:]*:[A-F0-9:]*"
 ipv6_regex = re.compile(_ipv6_regex, re.I)
-_dns_name_regex = r"(?:(?:[\w-]+)\.)+(?:[^\W_0-9]{2,20})"
+_dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+\w{1,63}"
 _hostname_regex = r"^[\w-]+$"
 _email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@(?:\w[\w\-\._]{,100})\.(?:[^\W_0-9]{2,8})"
 email_regex = re.compile(_email_regex, re.I)
 _ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"
 ptr_regex = re.compile(_ptr_regex)
 _url_regexes = (
-    r"https?://((?:\w|\w[\w\-]*\w)[\.]?)+(?:\w[\w\-]*\w|\w)(?::[0-9]{1,5})?.*$",
-    r"https?://\[" + _ipv6_regex + r"\](?::[0-9]{1,5})?.*$",
+    r"https?://" + _dns_name_regex + r"(?::[0-9]{1,5})?(?:(?:/|\?).*)?",
+    r"https?://\[" + _ipv6_regex + r"\](?::[0-9]{1,5})?(?:(?:/|\?).*)?",
 )
 url_regexes = list(re.compile(r, re.I) for r in _url_regexes)
 
@@ -48,13 +48,13 @@ event_type_regexes = OrderedDict(
             (
                 "OPEN_TCP_PORT",
                 (
-                    r"^((?:\w|\w[\w\-]*\w)[\.]?)+(?:\w[\w\-]*\w|\w):[0-9]{1,5}$",
+                    r"^" + _dns_name_regex + r":[0-9]{1,5}$",
                     r"^\[" + _ipv6_regex + r"\]:[0-9]{1,5}$",
                 ),
             ),
             (
                 "URL",
-                _url_regexes,
+                tuple(r"^" + r + r"$" for r in _url_regexes),
             ),
         )
     )

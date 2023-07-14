@@ -14,7 +14,6 @@ def get_event_type(data):
     """
     Attempt to divine event type from data
     """
-
     data = smart_decode_punycode(smart_decode(data).strip())
 
     # IP address
