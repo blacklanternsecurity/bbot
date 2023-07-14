@@ -700,19 +700,13 @@ def search_dict_values(d, *regexes):
     search_dict_values(dict_to_search, url_regexes) --> "https://www.evilcorp.com"
     """
     results = set()
-    log.critical(f"TYPE: {type(d)}: {d}")
     if isinstance(d, str):
-        log.critical(f"IS STR: {d}")
-        log.critical(f"REGEXES: {regexes}")
         for r in regexes:
-            log.critical(f"REGEX: {r}")
             for match in r.finditer(d):
                 result = match.group()
-                log.critical(f"RESULT: {result}")
                 h = hash(result)
                 if h not in results:
                     results.add(h)
-                    log.critical(f"YIELD: {result}")
                     yield result
     elif isinstance(d, dict):
         for _, v in d.items():

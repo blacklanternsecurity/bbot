@@ -17,9 +17,7 @@ class OAUTH(BaseModule):
 
     async def setup(self):
         self.processed = set()
-        self.critical(f"IMPORTED URL REGEXES: {url_regexes}")
         self.regexes = list(url_regexes) + list(self.scan.dns_regexes)
-        self.critical(f"COMBINED REGEXES: {self.regexes}")
         self.try_all = self.config.get("try_all", False)
         return True
 
@@ -49,8 +47,7 @@ class OAUTH(BaseModule):
             for u in self.url_and_base(url):
                 oauth_tasks.append(self.helpers.create_task(self.getoauth(u)))
         if self.try_all or any(t in event.tags for t in ("ms-auth-url",)):
-            for u in self.url_and_base(url):
-                oidc_tasks.append(self.helpers.create_task(self.getoidc(u)))
+            oidc_tasks.append(self.helpers.create_task(self.getoidc(url)))
 
         for oidc_task in oidc_tasks:
             url, token_endpoint, oidc_results = await oidc_task
@@ -109,9 +106,7 @@ class OAUTH(BaseModule):
                 return url, token_endpoint, results
             if json and isinstance(json, dict):
                 token_endpoint = json.get("token_endpoint", "")
-                self.critical(f"JSON: {json}")
                 for found in self.helpers.search_dict_values(json, *self.regexes):
-                    self.critical(f"FOUND: {found}")
                     results.add(found)
         results -= {token_endpoint}
         return url, token_endpoint, results
