@@ -7,7 +7,6 @@ on:
       - closed
 
 jobs:
-  
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -25,7 +24,6 @@ jobs:
       - name: flake8
         run: |
           flake8 --select F,E722 --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
-
   test:
     needs: lint
     runs-on: ubuntu-latest
@@ -48,7 +46,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
           verbose: true
-
   update_docs:
     needs: test
     runs-on: ubuntu-latest
@@ -74,7 +71,6 @@ jobs:
           author_email: info@blacklanternsecurity.com
           message: "Refresh module docs"
           token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
-
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
@@ -93,7 +89,6 @@ jobs:
             mkdocs-material-
       - run: pip install mkdocs-material mkdocs-extra-sass-plugin livereload
       - run: mkdocs gh-deploy --force
-
   publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
