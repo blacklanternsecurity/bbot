@@ -27,11 +27,16 @@ _email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@(?:\w[\w\-\._]{,100})\.(?:[^\W_0-9]{
 email_regex = re.compile(_email_regex, re.I)
 _ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"
 ptr_regex = re.compile(_ptr_regex)
+_url_regexes = (
+    r"https?://((?:\w|\w[\w\-]*\w)[\.]?)+(?:\w[\w\-]*\w|\w)(?::[0-9]{1,5})?.*$",
+    r"https?://\[" + _ipv6_regex + r"\](?::[0-9]{1,5})?.*$",
+)
+url_regexes = list(re.compile(r, re.I) for r in _url_regexes)
 
 event_type_regexes = OrderedDict(
-    [
+    (
         (k, tuple(re.compile(r, re.I) for r in regexes))
-        for k, regexes in [
+        for k, regexes in (
             (
                 "DNS_NAME",
                 (r"^" + _dns_name_regex + r"$",),
@@ -49,13 +54,10 @@ event_type_regexes = OrderedDict(
             ),
             (
                 "URL",
-                (
-                    r"https?://((?:\w|\w[\w\-]*\w)[\.]?)+(?:\w[\w\-]*\w|\w)(?::[0-9]{1,5})?.*$",
-                    r"https?://\[" + _ipv6_regex + r"\](?::[0-9]{1,5})?.*$",
-                ),
+                _url_regexes,
             ),
-        ]
-    ]
+        )
+    )
 )
 
 event_id_regex = re.compile(r"[0-9a-f]{40}:[A-Z0-9_]+")

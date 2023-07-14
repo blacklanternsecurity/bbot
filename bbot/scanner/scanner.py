@@ -1,3 +1,4 @@
+import re
 import asyncio
 import logging
 import traceback
@@ -178,6 +179,8 @@ class Scanner:
         self.process_pool = ProcessPoolExecutor()
 
         self._stopping = False
+
+        self._dns_regexes = None
 
     def _on_keyboard_interrupt(self, loop, event):
         self.stop()
@@ -741,6 +744,26 @@ class Scanner:
         """
         callback = partial(callback, **kwargs)
         return self._loop.run_in_executor(self.process_pool, callback, *args)
+
+    @property
+    def dns_regexes(self):
+        """
+        Return a list of regexes for extracting target hostnames
+        """
+        if self._dns_regexes is None:
+            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
+            dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
+            dns_targets.update(dns_whitelist)
+            dns_targets = sorted(dns_targets, key=len)
+            dns_targets_set = set()
+            dns_regexes = []
+            for t in dns_targets:
+                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
+                    dns_targets_set.add(t)
+                    dns_regexes.append(re.compile(r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")", re.I))
+            self._dns_regexes = dns_regexes
+
+        return self._dns_regexes
 
     def _handle_exception(self, e, context="scan", finally_callback=None):
         if callable(context):
