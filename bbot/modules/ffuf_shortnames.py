@@ -90,7 +90,7 @@ class ffuf_shortnames(ffuf):
 
         try:
             self.extensions = parse_list_string(self.config.get("extensions", ""))
-            self.critical(f"Using custom extensions: [{','.join(self.extensions)}]")
+            self.debug(f"Using custom extensions: [{','.join(self.extensions)}]")
         except ValueError as e:
             self.warning(f"Error parsing extensions: {e}")
             return False
