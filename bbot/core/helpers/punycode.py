@@ -1,6 +1,5 @@
 import re
 import idna
-from contextlib import suppress
 
 
 def split_text(text):
