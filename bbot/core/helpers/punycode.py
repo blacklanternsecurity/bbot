@@ -12,6 +12,9 @@ def split_text(text):
 
 
 def smart_encode_punycode(text: str) -> str:
+    """
+    ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
+    """
     segments = split_text(text)
     result_segments = []
 
@@ -28,6 +31,9 @@ def smart_encode_punycode(text: str) -> str:
 
 
 def smart_decode_punycode(text: str) -> str:
+    """
+    xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
+    """
     segments = split_text(text)
     result_segments = []
 
