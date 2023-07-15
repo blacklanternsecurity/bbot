@@ -17,8 +17,7 @@ def smart_encode_punycode(text: str) -> str:
 
     for segment in segments:
         try:
-            if re.match(r"^[\w-]+$", segment):  # Only encode alphanumeric segments
-                # segment = segment.encode('idna').decode('ascii')
+            if re.match(r"^[a-z0-9-]+$", segment):  # Only encode alphanumeric segments
                 segment = idna.encode(segment).decode(errors="ignore")
         except UnicodeError:
             pass  # If encoding fails, leave the segment as it is
@@ -34,8 +33,7 @@ def smart_decode_punycode(text: str) -> str:
 
     for segment in segments:
         try:
-            if re.match(r"^[\w-]+$", segment):  # Only decode alphanumeric segments
-                # segment = segment.encode('ascii').decode('idna')
+            if re.match(r"^[a-z0-9-]+$", segment):  # Only decode alphanumeric segments
                 segment = idna.decode(segment)
         except UnicodeError:
             pass  # If decoding fails, leave the segment as it is
