@@ -2,12 +2,16 @@ import re
 import idna
 
 
+alphanum_regex = re.compile(r"([\w-]+)")
+alphanum_anchored = re.compile(r"^[\w-]+$")
+
+
 def split_text(text):
     # Split text into segments by special characters
     # We assume that only alphanumeric segments should be encoded
     if not isinstance(text, str):
         raise ValueError(f"data must be a string, not {type(text)}")
-    segments = re.split(r"([a-z0-9-]+)", text)
+    segments = alphanum_regex.split(text)
     return segments
 
 
@@ -20,7 +24,7 @@ def smart_encode_punycode(text: str) -> str:
 
     for segment in segments:
         try:
-            if re.match(r"^[a-z0-9-]+$", segment):  # Only encode alphanumeric segments
+            if alphanum_anchored.match(segment):  # Only encode alphanumeric segments
                 segment = idna.encode(segment).decode(errors="ignore")
         except UnicodeError:
             pass  # If encoding fails, leave the segment as it is
@@ -39,7 +43,7 @@ def smart_decode_punycode(text: str) -> str:
 
     for segment in segments:
         try:
-            if re.match(r"^[a-z0-9-]+$", segment):  # Only decode alphanumeric segments
+            if alphanum_anchored.match(segment):  # Only decode alphanumeric segments
                 segment = idna.decode(segment)
         except UnicodeError:
             pass  # If decoding fails, leave the segment as it is
