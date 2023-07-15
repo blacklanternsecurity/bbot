@@ -3,6 +3,7 @@ import csv
 import string
 import logging
 import wordninja
+import openai
 from pathlib import Path
 from contextlib import suppress
 from collections import OrderedDict
@@ -10,7 +11,6 @@ from collections import OrderedDict
 from .misc import tldextract, extract_words
 
 log = logging.getLogger("bbot.core.helpers.wordcloud")
-
 
 class WordCloud(dict):
     def __init__(self, parent_helper, *args, **kwargs):
@@ -21,6 +21,9 @@ class WordCloud(dict):
         self.devops_mutations = set(self.parent_helper.read_file(devops_filename))
 
         self.dns_mutator = DNSMutator()
+        self.ai_mutations_enabled=self.parent_helper.config.get("ai_mutations_enabled", False)
+        if (self.ai_mutations_enabled):
+            openai.api_key= self.parent_helper.config.get('openai_api_key',"INVALID")
 
         super().__init__(*args, **kwargs)
 
@@ -35,6 +38,9 @@ class WordCloud(dict):
             if not h in results:
                 results.add(h)
                 yield (word,)
+        if (self.ai_mutations_enabled):
+            for ai_mutation in self.get_ai_mutations(words):
+                yield (ai_mutation,)
         if numbers > 0:
             if substitute_numbers:
                 for word in words:
@@ -133,6 +139,14 @@ class WordCloud(dict):
             results.add(f"{base}{s}")
             results.add(base)
 
+        return results
+
+    def get_ai_mutations(self,words):
+        prompt = "Generate a long list of words related to the following:"+', '.join(words)+'.'
+        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo",messages=[{"role":"user","content":prompt}])
+        content = completion.choices[0].message.content
+        results = re.sub(r'[^a-zA-Z\s]','',content).split()
+        print("AI mutations generated the following:",results)
         return results
 
     def truncate(self, limit):
