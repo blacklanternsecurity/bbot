@@ -6,7 +6,7 @@ def split_text(text):
     # Split text into segments by special characters
     # We assume that only alphanumeric segments should be encoded
     if not isinstance(text, str):
-        raise ValueError(f"data must be a string, not {type(data)}")
+        raise ValueError(f"data must be a string, not {type(text)}")
     segments = re.split(r"([a-z0-9-]+)", text)
     return segments
 
