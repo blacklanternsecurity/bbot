@@ -5,7 +5,9 @@ import idna
 def split_text(text):
     # Split text into segments by special characters
     # We assume that only alphanumeric segments should be encoded
-    segments = re.split(r"([^\w-]+)", text)
+    if not isinstance(text, str):
+        raise ValueError(f"data must be a string, not {type(data)}")
+    segments = re.split(r"([a-z0-9-]+)", text)
     return segments
 
 
