@@ -146,7 +146,6 @@ class WordCloud(dict):
         completion = openai.ChatCompletion.create(model="gpt-3.5-turbo",messages=[{"role":"user","content":prompt}])
         content = completion.choices[0].message.content
         results = re.sub(r'[^a-zA-Z\s]','',content).split()
-        print("AI mutations generated the following:",results)
         return results
 
     def truncate(self, limit):
