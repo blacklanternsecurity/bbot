@@ -21,14 +21,25 @@ word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
 _ipv6_regex = r"[A-F0-9:]*:[A-F0-9:]*:[A-F0-9:]*"
 ipv6_regex = re.compile(_ipv6_regex, re.I)
+# dns names with periods
 _dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+\w{1,63}"
-_hostname_regex = r"^[\w-]+$"
+# dns names without periods
+_hostname_regex = r"(?!\w*\.\w+)\w(?:[\w-]{0,100}\w)?"
 _email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@(?:\w[\w\-\._]{,100})\.(?:[^\W_0-9]{2,8})"
 email_regex = re.compile(_email_regex, re.I)
 _ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"
 ptr_regex = re.compile(_ptr_regex)
+
+_open_port_regexes = (
+    _dns_name_regex + r":[0-9]{1,5}",
+    _hostname_regex + r":[0-9]{1,5}",
+    r"\[" + _ipv6_regex + r"\]:[0-9]{1,5}",
+)
+open_port_regexes = list(re.compile(r, re.I) for r in _open_port_regexes)
+
 _url_regexes = (
     r"https?://" + _dns_name_regex + r"(?::[0-9]{1,5})?(?:(?:/|\?).*)?",
+    r"https?://" + _hostname_regex + r"(?::[0-9]{1,5})?(?:(?:/|\?).*)?",
     r"https?://\[" + _ipv6_regex + r"\](?::[0-9]{1,5})?(?:(?:/|\?).*)?",
 )
 url_regexes = list(re.compile(r, re.I) for r in _url_regexes)
@@ -39,7 +50,10 @@ event_type_regexes = OrderedDict(
         for k, regexes in (
             (
                 "DNS_NAME",
-                (r"^" + _dns_name_regex + r"$",),
+                (
+                    r"^" + _dns_name_regex + r"$",
+                    r"^" + _hostname_regex + r"$",
+                ),
             ),
             (
                 "EMAIL_ADDRESS",
@@ -47,10 +61,7 @@ event_type_regexes = OrderedDict(
             ),
             (
                 "OPEN_TCP_PORT",
-                (
-                    r"^" + _dns_name_regex + r":[0-9]{1,5}$",
-                    r"^\[" + _ipv6_regex + r"\]:[0-9]{1,5}$",
-                ),
+                tuple(r"^" + r + r"$" for r in _open_port_regexes),
             ),
             (
                 "URL",
@@ -63,7 +74,7 @@ event_type_regexes = OrderedDict(
 event_id_regex = re.compile(r"[0-9a-f]{40}:[A-Z0-9_]+")
 dns_name_regex = re.compile(_dns_name_regex, re.I)
 scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
-hostname_regex = re.compile(_hostname_regex, re.I)
+hostname_regex = re.compile(r"^" + _hostname_regex + r"$", re.I)
 
 # For use with extract_params_html helper
 input_tag_regex = re.compile(r"<input[^>]+?name=[\"\'](\w+)[\"\']")

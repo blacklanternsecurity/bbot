@@ -56,8 +56,7 @@ def test_dns_name_regexes():
 
     for dns in good_dns:
         matches = list(r.match(dns) for r in dns_name_regexes)
-        if not any(matches):
-            assert dns in ("evilcorp_com", "evilcorpcom"), f"Good DNS_NAME {dns} did not match regexes"
+        assert any(matches), f"Good DNS_NAME {dns} did not match regexes"
         event_type = get_event_type(dns)
         if not event_type == "DNS_NAME":
             assert (
@@ -89,6 +88,7 @@ def test_open_port_regexes():
         "192.0.2.1:80",
         "192.0.2.1:8080",
         "192.0.2.1:65535",
+        "localhost:8888",
         "evilcorp.com:8080",
         "asdfasdfasdfasdfasdfasdf.asdfasdfasdfasdfasdfasdf.asdfasdfasdfsadf.evilcorp.com:8080",
         "[2001:db8::1]:80",
