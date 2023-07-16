@@ -1,7 +1,7 @@
-from .test_module_paramminer_headers import *
+from .test_module_paramminer_headers import Paramminer_Headers, tempwordlist, helper
 
 
-class TestParamminer_Getparams(TestParamminer_Headers):
+class TestParamminer_Getparams(Paramminer_Headers):
     modules_overrides = ["httpx", "paramminer_getparams"]
     config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "id"])}}}
 
@@ -110,7 +110,7 @@ class TestParamminer_Getparams_boring_on(TestParamminer_Getparams_boring_off):
         )
 
 
-class TestParamminer_Getparams_Extract_Json(TestParamminer_Headers):
+class TestParamminer_Getparams_Extract_Json(Paramminer_Headers):
     modules_overrides = ["httpx", "paramminer_getparams"]
     config_overrides = {"modules": {"paramminer_getparams": {"wordlist": tempwordlist([]), "http_extract": True}}}
 
@@ -152,7 +152,7 @@ class TestParamminer_Getparams_Extract_Json(TestParamminer_Headers):
         )
 
 
-class TestParamminer_Getparams_Extract_Xml(TestParamminer_Headers):
+class TestParamminer_Getparams_Extract_Xml(Paramminer_Headers):
     modules_overrides = ["httpx", "paramminer_getparams"]
     config_overrides = {
         "modules": {
@@ -199,7 +199,7 @@ class TestParamminer_Getparams_Extract_Xml(TestParamminer_Headers):
         )
 
 
-class TestParamminer_Getparams_Extract_Html(TestParamminer_Headers):
+class TestParamminer_Getparams_Extract_Html(Paramminer_Headers):
     modules_overrides = ["httpx", "paramminer_getparams"]
     config_overrides = {
         "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary"]), "http_extract": True}}
@@ -237,7 +237,7 @@ class TestParamminer_Getparams_Extract_Html(TestParamminer_Headers):
         )
 
 
-class TestParamminer_Getparams_finish(TestParamminer_Headers):
+class TestParamminer_Getparams_finish(Paramminer_Headers):
     modules_overrides = ["httpx", "excavate", "paramminer_getparams"]
     config_overrides = {
         "modules": {"paramminer_getparams": {"wordlist": tempwordlist(["canary", "canary2"]), "http_extract": True}}

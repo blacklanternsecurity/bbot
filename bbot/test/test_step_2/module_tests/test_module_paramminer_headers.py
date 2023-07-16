@@ -3,7 +3,7 @@ from bbot.core.helpers import helper
 from .base import ModuleTestBase, tempwordlist
 
 
-class TestParamminer_Headers(ModuleTestBase):
+class Paramminer_Headers(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "paramminer_headers"]
     config_overrides = {"modules": {"paramminer_headers": {"wordlist": tempwordlist(["junkword1", "tracestate"])}}}
@@ -49,7 +49,11 @@ class TestParamminer_Headers(ModuleTestBase):
         )
 
 
-class TestParamminer_Headers(TestParamminer_Headers):
+class TestParamminer_Headers(Paramminer_Headers):
+    pass
+
+
+class TestParamminer_Headers_noreflection(Paramminer_Headers):
     headers_body_match = """
     <html>
     <title>the title</title>

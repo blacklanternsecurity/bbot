@@ -1,6 +1,6 @@
 from .base import ModuleTestBase
 
-from .test_module_azure_realm import TestAzure_Realm
+from .test_module_azure_realm import TestAzure_Realm as Azure_Realm
 
 
 class TestOAUTH(ModuleTestBase):
@@ -167,7 +167,7 @@ class TestOAUTH(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url=f"https://login.microsoftonline.com/getuserrealm.srf?login=test@evilcorp.com",
-            json=TestAzure_Realm.response_json,
+            json=Azure_Realm.response_json,
         )
         module_test.httpx_mock.add_response(
             url="https://login.windows.net/evilcorp.com/.well-known/openid-configuration",
