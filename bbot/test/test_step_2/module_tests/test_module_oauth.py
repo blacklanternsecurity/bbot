@@ -206,25 +206,25 @@ class TestOAUTH(ModuleTestBase):
         assert any(
             e.type == "FINDING"
             and e.data["description"]
-            == "OpenID Connect Endpoint found at https://login.windows.net/evilcorp.com/.well-known/openid-configuration"
+            == "OpenID Connect Endpoint (domain: evilcorp.com) found at https://login.windows.net/evilcorp.com/.well-known/openid-configuration"
             for e in events
         )
         assert any(
             e.type == "FINDING"
             and e.data["description"]
-            == "OpenID Connect Endpoint found at https://evilcorp.okta.com/.well-known/openid-configuration"
+            == "OpenID Connect Endpoint (domain: evilcorp.com) found at https://evilcorp.okta.com/.well-known/openid-configuration"
             for e in events
         )
         assert any(
             e.type == "FINDING"
             and e.data["description"]
-            == "Potentially Sprayable OAUTH Endpoint at https://login.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/oauth2/token"
+            == "Potentially Sprayable OAUTH Endpoint (domain: evilcorp.com) at https://login.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/oauth2/token"
             for e in events
         )
         assert any(
             e.type == "FINDING"
             and e.data["description"]
-            == "Potentially Sprayable OAUTH Endpoint at https://evilcorp.okta.com/oauth2/v1/token"
+            == "Potentially Sprayable OAUTH Endpoint (domain: evilcorp.com) at https://evilcorp.okta.com/oauth2/v1/token"
             for e in events
         )
         assert any(e.data == "sts.windows.net" for e in events)

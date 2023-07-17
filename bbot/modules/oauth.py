@@ -49,21 +49,27 @@ class OAUTH(BaseModule):
             for u in self.url_and_base(url):
                 oidc_tasks.append(self.helpers.create_task(self.getoidc(u)))
 
+        source_domain = getattr(event, "source_domain", domain)
+
         for oidc_task in oidc_tasks:
             url, token_endpoint, oidc_results = await oidc_task
             if token_endpoint:
-                self.emit_event(
+                finding_event = self.make_event(
                     {
-                        "description": f"OpenID Connect Endpoint found at {url}",
+                        "description": f"OpenID Connect Endpoint (domain: {source_domain}) found at {url}",
                         "host": event.host,
                         "url": url,
                     },
                     "FINDING",
                     source=event,
                 )
-                self.emit_event(
+                finding_event.source_domain = source_domain
+                self.emit_event(finding_event)
+                url_event = self.make_event(
                     token_endpoint, "URL_UNVERIFIED", source=event, tags=["affiliate", "oauth-token-endpoint"]
                 )
+                url_event.source_domain = source_domain
+                self.emit_event(url_event)
             for result in oidc_results:
                 if result not in (domain, event.data):
                     event_type = "URL_UNVERIFIED" if self.helpers.is_url(result) else "DNS_NAME"
@@ -72,15 +78,17 @@ class OAUTH(BaseModule):
         for oauth_task in oauth_tasks:
             url = await oauth_task
             if url:
-                self.emit_event(
+                oauth_finding = self.make_event(
                     {
-                        "description": f"Potentially Sprayable OAUTH Endpoint at {url}",
+                        "description": f"Potentially Sprayable OAUTH Endpoint (domain: {source_domain}) at {url}",
                         "host": event.host,
                         "url": url,
                     },
                     "FINDING",
                     source=event,
                 )
+                oauth_finding.source_domain = source_domain
+                self.emit_event(oauth_finding)
 
     def url_and_base(self, url):
         yield url
