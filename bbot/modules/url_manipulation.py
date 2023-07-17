@@ -53,9 +53,12 @@ class url_manipulation(BaseModule):
 
         for sig in self.signatures:
             sig = self.format_signature(sig, event)
-            match, reasons, reflection, subject_response = await compare_helper.compare(
-                sig[1], method=sig[0], allow_redirects=self.allow_redirects
-            )
+            try:
+                match, reasons, reflection, subject_response = await compare_helper.compare(
+                    sig[1], method=sig[0], allow_redirects=self.allow_redirects
+                )
+            except HttpCompareError as e:
+                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
 
             if subject_response:
                 subject_content = "".join([str(x) for x in subject_response.headers])

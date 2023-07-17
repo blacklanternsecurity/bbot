@@ -166,7 +166,11 @@ class paramminer_headers(BaseModule):
 
         if self.config.get("skip_boring_words", True):
             wl -= self.boring_words
-        results = await self.do_mining(wl, url, batch_size, compare_helper)
+
+        try:
+            results = await self.do_mining(wl, url, batch_size, compare_helper)
+        except HttpCompareError as e:
+            self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
         self.process_results(event, results)
 
     async def count_test(self, url):
@@ -239,6 +243,8 @@ class paramminer_headers(BaseModule):
                 h = hash(i + url)
                 if h in self.already_checked:
                     untested_matches_copy.remove(i)
-
-            results = await self.do_mining(untested_matches_copy, url, batch_size, compare_helper)
+            try:
+                results = await self.do_mining(untested_matches_copy, url, batch_size, compare_helper)
+            except HttpCompareError:
+                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
             self.process_results(event, results)
