@@ -67,7 +67,7 @@ class TestBypass403_collapsethreshold(ModuleTestBase):
         findings = [e for e in events if e.type == "FINDING"]
         assert len(findings) == 1
         finding = findings[0]
-        assert "403 Bypass MULTIPLE SIGNATURES (exceeded threshold)" in finding.data["description"]
+        assert "403 Bypass MULTIPLE SIGNATURES (exceeded threshold" in finding.data["description"]
 
 
 class TestBypass403_aspnetcookieless(ModuleTestBase):
