@@ -93,7 +93,7 @@ class asset_inventory(CSV):
             ports = [str(p) for p in sorted([int(p) for p in asset.ports])]
             ips = sorted([str(i) for i in getattr(asset, "ip_addresses", [])])
             host = getattr(asset, "host", "")
-            if host:
+            if host and isinstance(host, str):
                 _, domain = self.helpers.split_domain(host)
                 if domain:
                     increment_stat("Domains", domain)
