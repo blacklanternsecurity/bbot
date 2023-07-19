@@ -57,7 +57,7 @@ class TaskCounter:
             self.task_name = task_name
 
         async def __aenter__(self):
-            self.task_id = str(uuid.uuid4())  # generate a unique ID for the task
+            self.task_id = uuid.uuid4()  # generate a unique ID for the task
             self.manager.tasks[self.task_id] = self.task_name
             return self.task_id  # this will be passed as 'task_id' to __aexit__
 
