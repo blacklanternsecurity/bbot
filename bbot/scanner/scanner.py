@@ -417,9 +417,9 @@ class Scanner:
 
     async def report(self):
         for mod in self.modules.values():
-            async with self.acatch(context=mod.report):
-                async with mod._task_counter:
-                    await mod.report()
+            context = f"{mod.name}.report()"
+            async with self.acatch(context), mod._task_counter.count(context):
+                await mod.report()
 
     async def cleanup(self):
         # clean up modules

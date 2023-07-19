@@ -34,15 +34,15 @@ class ScanManager:
         """
         seed scanner with target events
         """
-        async with self.scan.acatch(context=self.init_events):
-            async with self._task_counter:
-                await self.distribute_event(self.scan.root_event)
-                sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
-                for event in sorted_events:
-                    self.scan.verbose(f"Target: {event}")
-                    self.queue_event(event)
-                await asyncio.sleep(0.1)
-                self.scan._finished_init = True
+        context = f"manager.init_events()"
+        async with self.scan.acatch(context), self._task_counter.count(context):
+            await self.distribute_event(self.scan.root_event)
+            sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
+            for event in sorted_events:
+                self.scan.verbose(f"Target: {event}")
+                self.queue_event(event)
+            await asyncio.sleep(0.1)
+            self.scan._finished_init = True
 
     async def emit_event(self, event, *args, **kwargs):
         """
@@ -51,7 +51,7 @@ class ScanManager:
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         """
-        async with self._task_counter:
+        async with self._task_counter.count(f"emit_event({event})"):
             # skip event if it fails precheck
             if not self._event_precheck(event):
                 event._resolved.set()
@@ -315,10 +315,6 @@ class ScanManager:
             return False
         return True
 
-    async def _register_running(self, callback, *args, **kwargs):
-        async with self._task_counter:
-            return await callback(*args, **kwargs)
-
     async def distribute_event(self, *args, **kwargs):
         """
         Queue event with modules
@@ -493,13 +489,21 @@ class ScanManager:
                 scan_active_status.append(f"manager.active: {self.active}")
                 scan_active_status.append(f"    manager.running: {self.running}")
                 scan_active_status.append(f"        manager._task_counter.value: {self._task_counter.value}")
+                scan_active_status.append(f"        manager._task_counter.tasks:")
+                for task in self._task_counter.tasks.values():
+                    scan_active_status.append(f"            - {task}:")
                 scan_active_status.append(
                     f"        manager.incoming_event_queue.qsize(): {self.incoming_event_queue.qsize()}"
                 )
                 scan_active_status.append(f"    manager.modules_finished: {self.modules_finished}")
                 for m in self.scan.modules.values():
+                    running = m.running
                     scan_active_status.append(f"        {m}.finished: {m.finished}")
-                    scan_active_status.append(f"            running: {m.running}")
+                    scan_active_status.append(f"            running: {running}")
+                    if running:
+                        scan_active_status.append(f"            tasks:")
+                        for task in m._task_counter.tasks.values():
+                            scan_active_status.append(f"                - {task}:")
                     scan_active_status.append(f"            num_incoming_events: {m.num_incoming_events}")
                     scan_active_status.append(
                         f"            outgoing_event_queue.qsize(): {m.outgoing_event_queue.qsize()}"

@@ -97,6 +97,8 @@ class WebHelper:
             kwargs["url"] = args[0]
             args = []
 
+        url = kwargs.get("url", "")
+
         if not args and "method" not in kwargs:
             kwargs["method"] = "GET"
 
@@ -118,12 +120,12 @@ class WebHelper:
                     )
                 return response
             except httpx.RequestError as e:
-                log.debug(f"Error with request: {e}")
+                log.debug(f"Error with request to {url}: {e}")
                 log.trace(traceback.format_exc())
                 if raise_error:
                     raise
             except ssl.SSLError as e:
-                log.debug(f"SSL error with request: {e}")
+                log.debug(f"SSL error with request to {url}: {e}")
                 log.trace(traceback.format_exc())
 
     async def download(self, url, **kwargs):

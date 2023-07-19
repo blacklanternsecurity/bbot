@@ -1,3 +1,4 @@
+import uuid
 import asyncio
 import logging
 import threading
@@ -39,14 +40,29 @@ class NamedLock:
 
 class TaskCounter:
     def __init__(self):
-        self.value = 0
+        self.tasks = {}
 
-    async def __aenter__(self):
-        self.value += 1
-        return self
+    @property
+    def value(self):
+        return len(self.tasks)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        self.value -= 1
+    def count(self, task_name):
+        if callable(task_name):
+            task_name = f"{task_name.__qualname__}()"
+        return self.Task(self, task_name)
+
+    class Task:
+        def __init__(self, manager, task_name):
+            self.manager = manager
+            self.task_name = task_name
+
+        async def __aenter__(self):
+            self.task_id = str(uuid.uuid4())  # generate a unique ID for the task
+            self.manager.tasks[self.task_id] = self.task_name
+            return self.task_id  # this will be passed as 'task_id' to __aexit__
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            del self.manager.tasks[self.task_id]  # remove only current task
 
 
 def async_to_sync_gen(async_gen):

@@ -214,20 +214,18 @@ class BaseModule:
         if self.batch_size <= 1:
             return
         if self.num_incoming_events > 0:
-            events, finish, report = await self.events_waiting()
+            events, finish = await self.events_waiting()
             if not self.errored:
                 self.debug(f"Handling batch of {len(events):,} events")
                 if events:
                     submitted = True
-                    async with self.scan.acatch(context=f"{self.name}.handle_batch"):
-                        async with self._task_counter:
-                            await self.handle_batch(*events)
+                    context = f"{self.name}.handle_batch"
+                    async with self.scan.acatch(context), self._task_counter.count(context):
+                        await self.handle_batch(*events)
                 if finish:
-                    async with self.scan.acatch(context=f"{self.name}.finish"):
+                    context = f"{self.name}.finish()"
+                    async with self.scan.acatch(context), self._task_counter.count(context):
                         await self.finish()
-                elif report:
-                    async with self.scan.acatch(context=f"{self.name}.report"):
-                        await self.report()
         return submitted
 
     def make_event(self, *args, **kwargs):
@@ -260,7 +258,6 @@ class BaseModule:
         """
         events = []
         finish = False
-        report = False
         while self.incoming_event_queue:
             if len(events) > self.batch_size:
                 break
@@ -278,7 +275,7 @@ class BaseModule:
                     self.debug(f"Not accepting {event} because {reason}")
             except asyncio.queues.QueueEmpty:
                 break
-        return events, finish, report
+        return events, finish
 
     @property
     def num_incoming_events(self):
@@ -345,14 +342,14 @@ class BaseModule:
                         self.debug(f"Not accepting {event} because {reason}")
                     if acceptable:
                         if event.type == "FINISHED":
-                            async with self.scan.acatch(context=f"{self.name}.finish"):
-                                async with self._task_counter:
-                                    await self.finish()
+                            context = f"{self.name}.finish"
+                            async with self.scan.acatch(context), self._task_counter.count(context):
+                                await self.finish()
                         else:
+                            context = f"{self.name}.handle_event({event})"
                             self.scan.stats.event_consumed(event, self)
-                            async with self.scan.acatch(context=f"{self.name}.handle_event"):
-                                async with self._task_counter:
-                                    await self.handle_event(event)
+                            async with self.scan.acatch(context), self._task_counter.count(context):
+                                await self.handle_event(event)
 
     @property
     def max_scope_distance(self):
@@ -449,10 +446,10 @@ class BaseModule:
         if not self._cleanedup:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
+                context = f"{self.name}.cleanup()"
                 if callable(callback):
-                    async with self.scan.acatch(context=self.name):
-                        async with self._task_counter:
-                            await self.helpers.execute_sync_or_async(callback)
+                    async with self.scan.acatch(context), self._task_counter.count(context):
+                        await self.helpers.execute_sync_or_async(callback)
 
     async def queue_event(self, event):
         """
