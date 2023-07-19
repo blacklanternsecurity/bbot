@@ -219,11 +219,11 @@ class BaseModule:
                 self.debug(f"Handling batch of {len(events):,} events")
                 if events:
                     submitted = True
-                    context = f"{self.name}.handle_batch"
+                    context = "handle_batch()"
                     async with self.scan.acatch(context), self._task_counter.count(context):
                         await self.handle_batch(*events)
                 if finish:
-                    context = f"{self.name}.finish()"
+                    context = "finish()"
                     async with self.scan.acatch(context), self._task_counter.count(context):
                         await self.finish()
         return submitted
@@ -342,11 +342,11 @@ class BaseModule:
                         self.debug(f"Not accepting {event} because {reason}")
                     if acceptable:
                         if event.type == "FINISHED":
-                            context = f"{self.name}.finish"
+                            context = "finish()"
                             async with self.scan.acatch(context), self._task_counter.count(context):
                                 await self.finish()
                         else:
-                            context = f"{self.name}.handle_event({event})"
+                            context = f"handle_event({event})"
                             self.scan.stats.event_consumed(event, self)
                             async with self.scan.acatch(context), self._task_counter.count(context):
                                 await self.handle_event(event)
@@ -446,7 +446,7 @@ class BaseModule:
         if not self._cleanedup:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
-                context = f"{self.name}.cleanup()"
+                context = f"cleanup()"
                 if callable(callback):
                     async with self.scan.acatch(context), self._task_counter.count(context):
                         await self.helpers.execute_sync_or_async(callback)

@@ -119,13 +119,17 @@ class WebHelper:
                         f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}"
                     )
                 return response
+            except httpx.ReadTimeout:
+                log.verbose(f"HTTP timeout to URL: {url}")
+                if raise_error:
+                    raise
             except httpx.RequestError as e:
-                log.debug(f"Error with request to {url}: {e}")
+                log.debug(f"Error with request to URL: {url}: {e}")
                 log.trace(traceback.format_exc())
                 if raise_error:
                     raise
             except ssl.SSLError as e:
-                log.debug(f"SSL error with request to {url}: {e}")
+                log.debug(f"SSL error with request to URL: {url}: {e}")
                 log.trace(traceback.format_exc())
 
     async def download(self, url, **kwargs):
