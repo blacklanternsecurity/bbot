@@ -437,6 +437,15 @@ class ScanManager:
 
         modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
 
+        max_mem_percent = 90
+        mem_status = self.scan.helpers.memory_status()
+        # abort if we don't have the memory
+        mem_percent = mem_status.percent
+        if mem_percent > max_mem_percent:
+            free_memory = mem_status.available
+            free_memory_human = self.scan.helpers.bytes_to_human(free_memory)
+            self.scan.warning(f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining)")
+
         if _log:
             modules_status = []
             for m, s in status["modules"].items():
