@@ -119,7 +119,7 @@ class WebHelper:
                         f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}"
                     )
                 return response
-            except httpx.ReadTimeout:
+            except httpx.TimeoutException:
                 log.verbose(f"HTTP timeout to URL: {url}")
                 if raise_error:
                     raise

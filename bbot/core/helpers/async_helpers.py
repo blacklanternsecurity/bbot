@@ -67,7 +67,7 @@ class TaskCounter:
             return self.task_id  # this will be passed as 'task_id' to __aexit__
 
         async def __aexit__(self, exc_type, exc_val, exc_tb):
-            del self.manager.tasks[self.task_id]  # remove only current task
+            self.manager.tasks.pop(self.task_id, None)  # remove only current task
 
         def __str__(self):
             running_for = human_timedelta(datetime.now() - self.start_time)

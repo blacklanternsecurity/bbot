@@ -280,7 +280,7 @@ class BaseModule:
     @property
     def num_incoming_events(self):
         ret = 0
-        if self.incoming_event_queue:
+        if self.incoming_event_queue is not False:
             ret = self.incoming_event_queue.qsize()
         return ret
 
@@ -329,7 +329,7 @@ class BaseModule:
 
                 else:
                     try:
-                        if self.incoming_event_queue:
+                        if self.incoming_event_queue is not False:
                             event = await self.incoming_event_queue.get()
                         else:
                             self.debug(f"Event queue is in bad state")
@@ -455,7 +455,7 @@ class BaseModule:
         """
         Queue (incoming) event with module
         """
-        if self.incoming_event_queue in (None, False):
+        if self.incoming_event_queue is False:
             self.debug(f"Not in an acceptable state to queue incoming event")
             return
         acceptable, reason = self._event_precheck(event)
@@ -495,12 +495,13 @@ class BaseModule:
 
     def set_error_state(self, message=None):
         if not self.errored:
+            log_msg = f"Setting error state for module {self.name}"
             if message is not None:
-                self.warning(str(message))
-            self.debug(f"Setting error state for module {self.name}")
+                log_msg += f": {message}"
+            self.warning(log_msg)
             self.errored = True
             # clear incoming queue
-            if self.incoming_event_queue:
+            if self.incoming_event_queue is not False:
                 self.debug(f"Emptying event_queue")
                 with suppress(asyncio.queues.QueueEmpty):
                     while 1:

@@ -82,7 +82,7 @@ class ScanManager:
         if event == event.get_source():
             log.debug(f"Skipping event with self as source: {event}")
             return False
-        if not event._force_output and self.is_duplicate_event(event):
+        if self.is_duplicate_event(event) and not event._force_output:
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
         return True
@@ -161,7 +161,7 @@ class ScanManager:
             event_is_duplicate = self.is_duplicate_event(event)
 
             # Scope shepherding
-            # here, we buff or nerf an event based on its attributes and certain scan settings
+            # here, we buff or nerf the scope distance of an event based on its attributes and certain scan settings
             event_is_duplicate = self.is_duplicate_event(event)
             event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
             set_scope_distance = event.scope_distance
@@ -179,7 +179,7 @@ class ScanManager:
                     source_trail = event.set_scope_distance(set_scope_distance)
                     # force re-emit internal source events
                     for s in source_trail:
-                        await self.emit_event(s, _block=False, _force_submit=True)
+                        self.queue_event(s)
                 else:
                     if event.scope_distance > self.scan.scope_report_distance:
                         log.debug(

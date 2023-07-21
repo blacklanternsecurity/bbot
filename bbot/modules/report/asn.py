@@ -25,6 +25,8 @@ class asn(BaseReportModule):
         return True
 
     async def filter_event(self, event):
+        if str(event.module) == "ipneighbor":
+            return False
         if getattr(event.host, "is_private", False):
             return False
         return True

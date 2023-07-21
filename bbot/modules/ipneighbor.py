@@ -32,4 +32,7 @@ class ipneighbor(BaseModule):
             self.processed.add(subnet_hash)
             for ip in network:
                 if ip != main_ip:
-                    self.emit_event(str(ip), "IP_ADDRESS", event, internal=True)
+                    ip_event = self.make_event(str(ip), "IP_ADDRESS", event, internal=True)
+                    # keep the scope distance low to give it one more hop for DNS resolution
+                    ip_event.scope_distance = max(1, event.scope_distance)
+                    self.emit_event(ip_event)

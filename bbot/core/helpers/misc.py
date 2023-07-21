@@ -239,7 +239,7 @@ def is_ip(d, version=None):
     "bad::c0de" --> True
     "evilcorp.com" --> False
     """
-    if type(d) in (ipaddress.IPv4Address, ipaddress.IPv6Address):
+    if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
         if version is None or version == d.version:
             return True
     try:
@@ -977,7 +977,10 @@ def human_timedelta(d):
         result.append(f"{minutes:,} minute" + ("s" if minutes > 1 else ""))
     if seconds:
         result.append(f"{seconds:,} second" + ("s" if seconds > 1 else ""))
-    return ", ".join(result)
+    ret = ", ".join(result)
+    if not ret:
+        ret = "0 seconds"
+    return ret
 
 
 def bytes_to_human(_bytes):
