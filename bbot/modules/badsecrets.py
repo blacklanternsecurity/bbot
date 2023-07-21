@@ -11,7 +11,7 @@ class badsecrets(BaseModule):
     flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
     max_event_handlers = 2
-    deps_pip = ["badsecrets~=0.3.351"]
+    deps_pip = ["badsecrets~=0.4"]
 
     @property
     def _max_event_handlers(self):
@@ -40,7 +40,7 @@ class badsecrets(BaseModule):
                 for r in r_list:
                     if r["type"] == "SecretFound":
                         data = {
-                            "severity": "HIGH",
+                            "severity": r["description"]["severity"],
                             "description": f"Known Secret Found. Secret Type: [{r['description']['secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['product']}] Product: [{r['product']}] Detecting Module: [{r['detecting_module']}] Details: [{r['details']}]",
                             "url": event.data["url"],
                             "host": str(event.host),
