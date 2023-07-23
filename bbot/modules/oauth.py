@@ -123,7 +123,7 @@ class OAUTH(BaseModule):
         data = {
             "grant_type": "authorization_code",
             "client_id": "xxx",
-            "redirect_uri": "https://www.blacklanternsecurity.com",
+            "redirect_uri": "https://example.com",
             "code": "xxx",
             "client_secret": "xxx",
         }

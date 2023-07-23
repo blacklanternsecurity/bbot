@@ -315,41 +315,46 @@ class BaseModule:
 
     async def _worker(self):
         async with self.scan.acatch(context=self._worker):
-            while not self.scan.stopping:
-                # hold the reigns if our outgoing queue is full
-                if self._qsize > 0 and self.outgoing_event_queue.qsize() >= self._qsize:
-                    await asyncio.sleep(0.1)
-                    continue
-
-                if self.batch_size > 1:
-                    submitted = await self._handle_batch()
-                    if not submitted:
-                        async with self._event_received:
-                            await self._event_received.wait()
-
-                else:
-                    try:
-                        if self.incoming_event_queue is not False:
-                            event = await self.incoming_event_queue.get()
-                        else:
-                            self.debug(f"Event queue is in bad state")
-                            return
-                    except asyncio.queues.QueueEmpty:
+            try:
+                while not self.scan.stopping:
+                    # hold the reigns if our outgoing queue is full
+                    if self._qsize > 0 and self.outgoing_event_queue.qsize() >= self._qsize:
+                        await asyncio.sleep(0.1)
                         continue
-                    self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                    acceptable, reason = await self._event_postcheck(event)
-                    if not acceptable:
-                        self.debug(f"Not accepting {event} because {reason}")
-                    if acceptable:
-                        if event.type == "FINISHED":
-                            context = "finish()"
-                            async with self.scan.acatch(context), self._task_counter.count(context):
-                                await self.finish()
-                        else:
-                            context = f"handle_event({event})"
-                            self.scan.stats.event_consumed(event, self)
-                            async with self.scan.acatch(context), self._task_counter.count(context):
-                                await self.handle_event(event)
+
+                    if self.batch_size > 1:
+                        submitted = await self._handle_batch()
+                        if not submitted:
+                            async with self._event_received:
+                                await self._event_received.wait()
+
+                    else:
+                        try:
+                            if self.incoming_event_queue is not False:
+                                event = await self.incoming_event_queue.get()
+                            else:
+                                self.debug(f"Event queue is in bad state")
+                                break
+                        except asyncio.queues.QueueEmpty:
+                            continue
+                        self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
+                        acceptable, reason = await self._event_postcheck(event)
+                        if not acceptable:
+                            self.debug(f"Not accepting {event} because {reason}")
+                        if acceptable:
+                            if event.type == "FINISHED":
+                                context = "finish()"
+                                async with self.scan.acatch(context), self._task_counter.count(context):
+                                    await self.finish()
+                            else:
+                                context = f"handle_event({event})"
+                                self.scan.stats.event_consumed(event, self)
+                                async with self.scan.acatch(context), self._task_counter.count(context):
+                                    await self.handle_event(event)
+            except asyncio.CancelledError:
+                self.log.trace("Worker cancelled")
+                raise
+        self.log.trace(f"Worker stopped")
 
     @property
     def max_scope_distance(self):
