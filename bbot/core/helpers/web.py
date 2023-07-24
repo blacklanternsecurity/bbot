@@ -123,6 +123,10 @@ class WebHelper:
                 log.verbose(f"HTTP timeout to URL: {url}")
                 if raise_error:
                     raise
+            except httpx.ConnectError:
+                log.verbose(f"HTTP connect failed to URL: {url}")
+                if raise_error:
+                    raise
             except httpx.RequestError as e:
                 log.debug(f"Error with request to URL: {url}: {e}")
                 log.trace(traceback.format_exc())

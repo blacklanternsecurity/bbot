@@ -65,7 +65,8 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
         if input_task is not None:
             try:
                 await input_task
-            except BrokenPipeError:
+            except ConnectionError:
+                log.trace(f"ConnectionError in command: {command}, kwargs={kwargs}")
                 log.trace(traceback.format_exc())
         await proc.wait()
 
