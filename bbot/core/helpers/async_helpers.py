@@ -71,7 +71,7 @@ class TaskCounter:
 
         def __str__(self):
             running_for = human_timedelta(datetime.now() - self.start_time)
-            return f"{self.task_name} (running for {running_for})"
+            return f"{self.task_name} running for {running_for}"
 
 
 def async_to_sync_gen(async_gen):
