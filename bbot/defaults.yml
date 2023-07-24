@@ -132,7 +132,7 @@ interactsh_token: null
 interactsh_disable: false
 
 # For performance reasons, always skip these DNS queries
-# Microsoft's DNS infrastructure is misconfigured so that some queries to mail.protection.outlook.com always time out
+# Microsoft's DNS infrastructure is misconfigured so that certain queries to mail.protection.outlook.com always time out
 dns_omit_queries:
   - SRV:mail.protection.outlook.com
   - CNAME:mail.protection.outlook.com

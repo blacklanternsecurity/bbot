@@ -150,8 +150,16 @@ class sslcert(BaseModule):
                 return [], [], (host, port)
 
             # Get the certificate
-            der = ssl_object.getpeercert(binary_form=True)
-            cert = crypto.load_certificate(crypto.FILETYPE_ASN1, der)
+            try:
+                der = ssl_object.getpeercert(binary_form=True)
+            except Exception as e:
+                self.verbose(f"Error getting peer cert: {e}", trace=True)
+                return [], [], (host, port)
+            try:
+                cert = crypto.load_certificate(crypto.FILETYPE_ASN1, der)
+            except Exception as e:
+                self.verbose(f"Error loading certificate: {e}", trace=True)
+                return [], [], (host, port)
             issuer = cert.get_issuer()
             if issuer.emailAddress and self.helpers.regexes.email_regex.match(issuer.emailAddress):
                 emails.add(issuer.emailAddress)
