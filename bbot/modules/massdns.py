@@ -130,7 +130,7 @@ class massdns(crobat):
                 return []
         self.verbose(f"Resolving batch of {len(results):,} results")
         resolved = dict(
-            [l async for l in self.helpers.resolve_batch(results, type=("A", "AAAA", "CNAME"), cache_result=True)]
+            [l async for l in self.helpers.resolve_batch(results, type=("A", "CNAME"), cache_result=True)]
         )
         resolved = {k: v for k, v in resolved.items() if v}
         for hostname in resolved:
