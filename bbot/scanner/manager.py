@@ -507,7 +507,7 @@ class ScanManager:
                     f"        manager.incoming_event_queue.qsize: {self.incoming_event_queue.qsize()}"
                 )
                 scan_active_status.append(f"    manager.modules_finished: {self.modules_finished}")
-                for m in self.scan.modules.values():
+                for m in sorted(self.scan.modules.values(), key=lambda m: m.name):
                     running = m.running
                     scan_active_status.append(f"        {m}.finished: {m.finished}")
                     scan_active_status.append(f"            running: {running}")
