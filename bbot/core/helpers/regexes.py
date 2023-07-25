@@ -25,7 +25,7 @@ ipv6_regex = re.compile(_ipv6_regex, re.I)
 _dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+\w{1,63}"
 # dns names without periods
 _hostname_regex = r"(?!\w*\.\w+)\w(?:[\w-]{0,100}\w)?"
-_email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@(?:\w[\w\-\._]{,100})\.(?:[^\W_0-9]{2,8})"
+_email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@" + _dns_name_regex
 email_regex = re.compile(_email_regex, re.I)
 _ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"
 ptr_regex = re.compile(_ptr_regex)
