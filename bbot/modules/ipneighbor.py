@@ -34,5 +34,5 @@ class ipneighbor(BaseModule):
                 if ip != main_ip:
                     ip_event = self.make_event(str(ip), "IP_ADDRESS", event, internal=True)
                     # keep the scope distance low to give it one more hop for DNS resolution
-                    ip_event.scope_distance = max(1, event.scope_distance)
+                    # ip_event.scope_distance = max(1, event.scope_distance)
                     self.emit_event(ip_event)
