@@ -1,3 +1,5 @@
+import re
+
 from .crobat import crobat
 
 
@@ -16,10 +18,10 @@ class digitorus(crobat):
     def parse_results(self, r, query):
         results = set()
         content = getattr(r, "text", "")
+        extract_regex = re.compile(r"[\w.-]+\." + query, re.I)
         if content:
-            for regex in self.scan.dns_regexes:
-                for match in regex.finditer(content):
-                    subdomain = match.group().lower()
-                    if subdomain:
-                        results.add(subdomain)
+            for match in extract_regex.finditer(content):
+                subdomain = match.group().lower()
+                if subdomain and subdomain.endswith(f".{query}"):
+                    results.add(subdomain)
         return results
