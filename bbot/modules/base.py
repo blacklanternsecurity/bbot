@@ -353,6 +353,7 @@ class BaseModule:
                                     await self.handle_event(event)
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")
+                self.trace()
                 raise
         self.log.trace(f"Worker stopped")
 
