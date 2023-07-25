@@ -9,6 +9,15 @@ Press enter during a BBOT scan to change the log level. This will allow you to s
 
 ## Common Config Changes
 
+### Boost Massdns Thread Count
+
+If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for `massdns`. The default is `1000`, which is about 1MB/s of DNS traffic:
+
+```bash
+# massdns with 5x default thread count
+bbot -t evilcorp.com -f subdomain-enum -c modules.massdns.max_resolvers=5000
+```
+
 ### Web Spider
 
 The web spider is great for finding juicy data like subdomains, email addresses, and javascript secrets buried in webpages. However since it can lengthen the duration of a scan, it's disabled by default. To enable the web spider, you must increase the value of `web_spider_distance`.
