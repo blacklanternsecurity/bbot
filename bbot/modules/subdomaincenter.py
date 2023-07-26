@@ -34,5 +34,4 @@ class subdomaincenter(crobat):
         json = r.json()
         if json and isinstance(json, list):
             results = set(json)
-            return results
         return results
