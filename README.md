@@ -14,8 +14,6 @@ BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but ta
 
 BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
 
-Consider checking out our [Documentation](https://www.blacklanternsecurity.com/bbot).
-
 ## Installation ([pip](https://pypi.org/project/bbot/))
 
 For more installation methods including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Installation](https://www.blacklanternsecurity.com/bbot/#installation).
