@@ -14,7 +14,7 @@ Press enter during a BBOT scan to change the log level. This will allow you to s
 If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for `massdns`. The default is `1000`, which is about 1MB/s of DNS traffic:
 
 ```bash
-# massdns with 5x default thread count
+# massdns with 5000 resolvers, about 5MB/s
 bbot -t evilcorp.com -f subdomain-enum -c modules.massdns.max_resolvers=5000
 ```
 
