@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import ipaddress
 
@@ -584,8 +585,11 @@ async def test_ratelimiter(helpers):
     assert 45 <= len(results) <= 55
 
 
-def test_async_helpers():
+@pytest.mark.asyncio
+async def test_async_helpers():
+    import random
     from bbot.core.helpers.async_helpers import async_to_sync_gen
+    from bbot.core.helpers.misc import as_completed
 
     # async to sync generator converter
     async def async_gen():
@@ -601,6 +605,18 @@ def test_async_helpers():
         except StopIteration:
             break
     assert l == [0, 1, 2, 3, 4]
+
+    async def do_stuff(r):
+        await asyncio.sleep(r)
+        return r
+
+    random_ints = [random.random() for _ in range(1000)]
+    tasks = [do_stuff(r) for r in random_ints]
+    results = set()
+    async for t in as_completed(tasks):
+        results.add(await t)
+    assert len(results) == 1000
+    assert sorted(random_ints) == sorted(results)
 
 
 # test parse_port_string helper

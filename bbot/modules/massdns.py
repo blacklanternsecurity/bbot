@@ -119,24 +119,16 @@ class massdns(crobat):
         return False
 
     async def massdns(self, domain, subdomains):
-        abort_msg = f"Aborting massdns on {domain} due to false positives"
-        canary_results = await self._canary_check(domain)
-        if canary_results:
-            self.log.trace(f"{len(canary_results):,} false positives on {domain}:")
-            for r in canary_results:
-                self.log.trace(f"    - {r}")
-        if len(canary_results) > 5:
-            self.info(abort_msg)
+        abort_msg = f"Aborting massdns on {domain} due to false positive"
+        canary_result = await self._canary_check(domain)
+        if canary_result:
+            self.info(abort_msg + f": {canary_result}")
             return []
         results = [l async for l in self._massdns(domain, subdomains)]
         if len(results) > 50:
-            canary_results = await self._canary_check(domain)
-            if canary_results:
-                self.log.trace(f"{len(canary_results):,} false positives on {domain}:")
-                for r in canary_results:
-                    self.log.trace(f"    - {r}")
-            if len(canary_results) > 5:
-                self.info(abort_msg)
+            canary_result = await self._canary_check(domain)
+            if canary_result:
+                self.info(abort_msg + f": {canary_result}")
                 return []
         self.verbose(f"Resolving batch of {len(results):,} results")
         resolved = dict([l async for l in self.helpers.resolve_batch(results, type=("A", "CNAME"), cache_result=True)])
@@ -145,14 +137,16 @@ class massdns(crobat):
             self.add_found(hostname)
         return list(resolved)
 
-    async def _canary_check(self, domain, num_checks=50):
+    async def _canary_check(self, domain, num_checks=100):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
         self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
         canary_results = [l async for l in self._massdns(domain, random_subdomains)]
-        results = []
-        async for result in self.helpers.resolve_batch(canary_results):
-            results.append(result)
-        return results
+        resolved_canaries = self.helpers.resolve_batch(canary_results)
+        async for query, result in resolved_canaries:
+            if result:
+                await resolved_canaries.aclose()
+                return f"{query}:{result}"
+        return False
 
     async def _massdns(self, domain, subdomains):
         """

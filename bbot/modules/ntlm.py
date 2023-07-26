@@ -125,7 +125,8 @@ class ntlm(BaseModule):
             self.processed.add(url_hash)
             tasks.append(self.helpers.create_task(self.check_ntlm(url)))
 
-        async for task in self.helpers.as_completed(tasks):
+        gen = self.helpers.as_completed(tasks)
+        async for task in gen:
             try:
                 result, url = await task
                 if result:
@@ -136,7 +137,7 @@ class ntlm(BaseModule):
                     self.warning(str(e))
                 # cancel all the tasks if there's an error
                 await self.helpers.cancel_tasks(tasks)
-                break
+                await gen.aclose()
 
         return None, None
 
