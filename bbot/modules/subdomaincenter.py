@@ -20,11 +20,10 @@ class subdomaincenter(crobat):
         status_code = 0
         for i, _ in enumerate(range(self.retries + 1)):
             if i > 0:
-                self.info(f"Retry #{i} for {query} after response code {status_code}")
-            self.hugeinfo(url)
+                self.verbose(f"Retry #{i} for {query} after response code {status_code}")
             response = await self.helpers.request(url)
             status_code = getattr(response, "status_code", 0)
-            if status_code in (429, 0):
+            if status_code == 429:
                 await self.sleep(20)
             else:
                 break
@@ -35,6 +34,5 @@ class subdomaincenter(crobat):
         json = r.json()
         if json and isinstance(json, list):
             results = set(json)
-            self.hugesuccess(f"{query}: {results}")
             return results
         return results
