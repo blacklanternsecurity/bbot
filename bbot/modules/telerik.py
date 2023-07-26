@@ -213,7 +213,7 @@ class telerik(BaseModule):
             tasks.append(self.helpers.create_task(self.test_detector(event.data, f"{dh}?dp=1")))
 
         fail_count = 0
-        for task in self.helpers.as_completed(tasks):
+        async for task in self.helpers.as_completed(tasks):
             try:
                 result, dh = await task
             except asyncio.CancelledError:

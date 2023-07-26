@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import ipaddress
 import traceback
@@ -10,7 +9,7 @@ from .regexes import dns_name_regex
 from bbot.core.helpers.ratelimiter import RateLimiter
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.errors import ValidationError, DNSError
-from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck
+from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck, as_completed
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
@@ -307,8 +306,8 @@ class DNSHelper:
                     types = ("A", "AAAA")
 
             if types:
-                tasks = [asyncio.create_task(self.resolve_raw(event_host, type=t, cache_result=True)) for t in types]
-                for task in asyncio.as_completed(tasks):
+                tasks = [self.resolve_raw(event_host, type=t, cache_result=True) for t in types]
+                async for task in as_completed(tasks):
                     resolved_raw, errors = await task
                     for rdtype, e in errors:
                         if rdtype not in resolved_raw:
@@ -395,9 +394,7 @@ class DNSHelper:
         ]
         """
 
-        for task in asyncio.as_completed(
-            [asyncio.create_task(self._resolve_batch_coro_wrapper(q, **kwargs)) for q in queries]
-        ):
+        async for task in as_completed([self._resolve_batch_coro_wrapper(q, **kwargs) for q in queries]):
             yield await task
 
     def extract_targets(self, record):
@@ -495,12 +492,10 @@ class DNSHelper:
             # then resolve the query for all rdtypes
             for _rdtype in self.all_rdtypes:
                 # resolve the base query
-                wildcard_tasks[_rdtype].append(
-                    asyncio.create_task(self.resolve_raw(query, type=_rdtype, cache_result=True))
-                )
+                wildcard_tasks[_rdtype].append(self.resolve_raw(query, type=_rdtype, cache_result=True))
 
             for _rdtype, tasks in wildcard_tasks.items():
-                for task in asyncio.as_completed(tasks):
+                async for task in as_completed(tasks):
                     raw_results, errors = await task
                     if errors and not raw_results:
                         self.debug(f"Failed to resolve {query} ({_rdtype}) during wildcard detection")
@@ -584,15 +579,13 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_tasks[rdtype].append(
-                            asyncio.create_task(self.resolve(rand_query, type=rdtype, cache_result=False))
-                        )
+                        wildcard_tasks[rdtype].append(self.resolve(rand_query, type=rdtype, cache_result=False))
 
                 # combine the random results
                 is_wildcard = False
                 wildcard_results = dict()
                 for rdtype, tasks in wildcard_tasks.items():
-                    for task in asyncio.as_completed(tasks):
+                    async for task in as_completed(tasks):
                         results = await task
                         if results:
                             is_wildcard = True

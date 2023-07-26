@@ -123,10 +123,9 @@ class ntlm(BaseModule):
             if url_hash in self.processed:
                 continue
             self.processed.add(url_hash)
-            task = self.helpers.create_task(self.check_ntlm(url))
-            tasks.append(task)
+            tasks.append(self.helpers.create_task(self.check_ntlm(url)))
 
-        for task in self.helpers.as_completed(tasks):
+        async for task in self.helpers.as_completed(tasks):
             try:
                 result, url = await task
                 if result:

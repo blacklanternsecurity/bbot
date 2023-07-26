@@ -29,8 +29,8 @@ import tldextract as _tldextract
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
+from asyncio import create_task, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
-from asyncio import as_completed, create_task, sleep, wait_for  # noqa
 
 from .url import *  # noqa F401
 from .. import errors
@@ -1278,3 +1278,12 @@ def parse_list_string(list_string):
             raise ValueError(f"Invalid character in string: {element}")
         result.append(element)
     return result
+
+
+async def as_completed(coros):
+    tasks = {coro if isinstance(coro, asyncio.Task) else asyncio.create_task(coro): coro for coro in coros}
+    while tasks:
+        done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            tasks.pop(task)
+            yield task

@@ -63,12 +63,8 @@ class sslcert(BaseModule):
             abort_threshold = self.out_of_scope_abort_threshold
             log_fn = self.verbose
 
-        tasks = []
-        for host in hosts:
-            task = self.helpers.create_task(self.visit_host(host, port))
-            tasks.append(task)
-
-        for task in self.helpers.as_completed(tasks):
+        tasks = [self.visit_host(host, port) for host in hosts]
+        async for task in self.helpers.as_completed(tasks):
             result = await task
             if not isinstance(result, tuple) or not len(result) == 3:
                 continue

@@ -327,7 +327,7 @@ class Scanner:
         hard_failed = []
         soft_failed = []
 
-        for task in asyncio.as_completed([asyncio.create_task(m._setup()) for m in self.modules.values()]):
+        async for task in self.helpers.as_completed([m._setup() for m in self.modules.values()]):
             module_name, status, msg = await task
             if status == True:
                 self.debug(f"Setup succeeded for {module_name} ({msg})")

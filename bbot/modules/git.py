@@ -22,7 +22,7 @@ class git(BaseModule):
             urljoin(f"{base_url}/", ".git/config"),
         }
         tasks = [self.get_url(u) for u in urls]
-        for task in self.helpers.as_completed(tasks):
+        async for task in self.helpers.as_completed(tasks):
             result, url = await task
             text = getattr(result, "text", "")
             if not text:
