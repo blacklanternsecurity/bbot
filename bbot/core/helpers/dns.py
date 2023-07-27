@@ -393,9 +393,14 @@ class DNSHelper:
             ("evilcorp.com", {"2.2.2.2"})
         ]
         """
-
-        async for task in as_completed([self._resolve_batch_coro_wrapper(q, **kwargs) for q in queries]):
-            yield await task
+        queries = list(queries)
+        batch_size = 250
+        for i in range(0, len(queries), batch_size):
+            batch = queries[i : i + batch_size]
+            print(batch)
+            tasks = [self._resolve_batch_coro_wrapper(q, **kwargs) for q in batch]
+            async for task in as_completed(tasks):
+                yield await task
 
     def extract_targets(self, record):
         """
