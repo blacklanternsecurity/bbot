@@ -145,7 +145,9 @@ class massdns(crobat):
         async for query, result in resolved_canaries:
             if result:
                 await resolved_canaries.aclose()
-                return f"{query}:{result}"
+                result = f"{query}:{result}"
+                self.log.trace(f"Found false positive: {result}")
+                return result
         return False
 
     async def _massdns(self, domain, subdomains):
