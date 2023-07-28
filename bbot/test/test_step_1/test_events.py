@@ -249,15 +249,15 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("ドメイン.テスト:80", dummy=True).type == "OPEN_TCP_PORT"
     assert scan.make_event("http://ドメイン.テスト:80", dummy=True).type == "URL_UNVERIFIED"
 
-    assert scan.make_event("xn--eckwd4c7c.xn--zckzah", dummy=True).type == "DNS_NAME"
-    assert scan.make_event("bob@xn--eckwd4c7c.xn--zckzah", dummy=True).type == "EMAIL_ADDRESS"
-    assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).type == "OPEN_TCP_PORT"
-    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).type == "URL_UNVERIFIED"
-
     assert scan.make_event("xn--eckwd4c7c.xn--zckzah", dummy=True).data == "ドメイン.テスト"
     assert scan.make_event("bob@xn--eckwd4c7c.xn--zckzah", dummy=True).data == "bob@ドメイン.テスト"
     assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "ドメイン.テスト:80"
     assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "http://ドメイン.テスト/"
+
+    assert scan.make_event("xn--eckwd4c7c.xn--zckzah", dummy=True).type == "DNS_NAME"
+    assert scan.make_event("bob@xn--eckwd4c7c.xn--zckzah", dummy=True).type == "EMAIL_ADDRESS"
+    assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).type == "OPEN_TCP_PORT"
+    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).type == "URL_UNVERIFIED"
 
     # test event serialization
     from bbot.core.event import event_from_json

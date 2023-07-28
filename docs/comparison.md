@@ -1,9 +1,15 @@
 # Comparison to Other Tools
 
-BBOT isn't exclusively a subdomain enumeration tool. However since there's so many of them, subdomain enumeration tools are the easiest class of tool to compare it to.
+BBOT does a lot more than just subdomain enumeration. However, subdomain enumeration is arguably the most important part of OSINT, and since there's so many subdomain enumeration tools out there, they're the easiest class of tool to compare it to.
 
-Thanks to BBOT's recursive nature (and `massdns`' fancy subdomain mutations), it typically finds about 20-25% more than other tools such as `Amass` or `theHarvester`.
+Thanks to BBOT's recursive nature (and its `massdns` module with its NLP-powered subdomain mutations), it typically finds about 20-25% more than other tools such as `Amass` or `theHarvester`. This holds true even for larger targets like `delta.com` (1000+ subdomains):
 
-This holds true even for larger targets like `boeing.com` (1000+ subdomains):
+### Subdomains Found
 
-![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
+![subdomains](https://github.com/blacklanternsecurity/bbot/assets/20261699/0d7eb982-e68a-4a33-b33c-7c8ba8c7d6ad)
+
+### Runtimes (Lower is Better)
+
+![runtimes](https://github.com/blacklanternsecurity/bbot/assets/20261699/66cafb5f-045b-4d88-9ffa-7542b3dada4f)
+
+For a detailed analysis of this data, please see [Subdomain Enumeration Tool Face-Off](https://blog.blacklanternsecurity.com/p/subdomain-enumeration-tool-face-off-2023-edition)

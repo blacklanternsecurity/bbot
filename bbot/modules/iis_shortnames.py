@@ -109,10 +109,10 @@ class iis_shortnames(BaseModule):
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
             url = f"{target}{payload}{suffix}"
-            task = self.helpers.create_task(self.threaded_request(method, url, affirmative_status_code, c))
+            task = self.threaded_request(method, url, affirmative_status_code, c)
             tasks.append(task)
 
-        for task in self.helpers.as_completed(tasks):
+        async for task in self.helpers.as_completed(tasks):
             result, c = await task
             if result:
                 found_results = True

@@ -1,3 +1,5 @@
+![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)
+
 # BEE·bot
 
 ### OSINT automation for hackers.
@@ -6,34 +8,11 @@
 
 BBOT is a modular, recursive OSINT framework that can execute the entire OSINT workflow in a single command.
 
-![bbot_banner](https://github.com/blacklanternsecurity/bbot/assets/20261699/af2e822c-d7d6-40e7-bcba-2ce52faa6c4c)
-
 BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but takes it to the next level with features like multi-target scans, lightning-fast asyncio performance, and NLP-powered subdomain mutations. It offers a wide range of functionality, including subdomain enumeration, port scanning, web screenshots, vulnerability scanning, and much more. 
 
 ![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
 
 BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
-
-## Consider checking out our [Documentation](https://www.blacklanternsecurity.com/bbot):
-
-<!-- BBOT DOCS TOC -->
-- **Basics**
-    - [Getting Started](https://www.blacklanternsecurity.com/bbot/)
-    - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
-    - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
-- **Scanning**
-    - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/)
-    - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
-    - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
-    - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
-    - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
-    - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
-    - [List of Modules](https://www.blacklanternsecurity.com/bbot/scanning/list_of_modules)
-- **Contribution**
-    - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
-- **Misc**
-    - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
-<!-- END BBOT DOCS TOC -->
 
 ## Installation ([pip](https://pypi.org/project/bbot/))
 
@@ -138,6 +117,27 @@ async def main():
 import asyncio
 asyncio.run(main())
 ```
+
+## Documentation
+
+<!-- BBOT DOCS TOC -->
+- **Basics**
+    - [Getting Started](https://www.blacklanternsecurity.com/bbot/)
+    - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
+    - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
+- **Scanning**
+    - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/)
+    - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
+    - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
+    - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
+    - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
+    - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
+    - [List of Modules](https://www.blacklanternsecurity.com/bbot/scanning/list_of_modules)
+- **Contribution**
+    - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
+- **Misc**
+    - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
+<!-- END BBOT DOCS TOC -->
 
 ## Acknowledgements
 

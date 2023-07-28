@@ -13,7 +13,7 @@ class nuclei(BaseModule):
     batch_size = 25
 
     options = {
-        "version": "2.9.4",
+        "version": "2.9.9",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -115,7 +115,7 @@ class nuclei(BaseModule):
 
             self.info("Processing nuclei templates to perform budget calculations...")
 
-            self.nucleibudget = NucleiBudget(self.budget, self.nuclei_templates_dir)
+            self.nucleibudget = NucleiBudget(self)
             self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
 
             self.info(
@@ -273,11 +273,12 @@ class nuclei(BaseModule):
 
 
 class NucleiBudget:
-    def __init__(self, budget, templates_dir):
+    def __init__(self, nuclei_module):
+        self.parent = nuclei_module
         self._yaml_files = {}
-        self.templates_dir = templates_dir
+        self.templates_dir = nuclei_module.nuclei_templates_dir
         self.yaml_list = self.get_yaml_list()
-        self.budget_paths = self.find_budget_paths(budget)
+        self.budget_paths = self.find_budget_paths(nuclei_module.budget)
         self.collapsable_templates, self.severity_stats = self.find_collapsable_templates()
 
     def get_yaml_list(self):
@@ -364,6 +365,6 @@ class NucleiBudget:
                     y = yaml.safe_load(stream)
                     self._yaml_files[yamlfile] = y
                 except yaml.YAMLError as e:
-                    self.warning(f"failed to load yaml file: {e}")
+                    self.parent.warning(f"failed to load yaml file: {e}")
                     return {}
         return self._yaml_files[yamlfile]

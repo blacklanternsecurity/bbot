@@ -6,10 +6,12 @@ ENV PIP_NO_CACHE_DIR=off
 
 WORKDIR /usr/src/bbot
 
-RUN apt-get update && apt-get install -y openssl gcc git make unzip curl wget nano sudo
+RUN apt-get update && apt-get install -y openssl gcc git make unzip curl wget vim nano sudo
 
 COPY . .
 
 RUN pip install .
+
+WORKDIR /root
 
 ENTRYPOINT [ "bbot" ]

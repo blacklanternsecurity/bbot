@@ -63,12 +63,8 @@ class sslcert(BaseModule):
             abort_threshold = self.out_of_scope_abort_threshold
             log_fn = self.verbose
 
-        tasks = []
-        for host in hosts:
-            task = self.helpers.create_task(self.visit_host(host, port))
-            tasks.append(task)
-
-        for task in self.helpers.as_completed(tasks):
+        tasks = [self.visit_host(host, port) for host in hosts]
+        async for task in self.helpers.as_completed(tasks):
             result = await task
             if not isinstance(result, tuple) or not len(result) == 3:
                 continue
@@ -150,8 +146,16 @@ class sslcert(BaseModule):
                 return [], [], (host, port)
 
             # Get the certificate
-            der = ssl_object.getpeercert(binary_form=True)
-            cert = crypto.load_certificate(crypto.FILETYPE_ASN1, der)
+            try:
+                der = ssl_object.getpeercert(binary_form=True)
+            except Exception as e:
+                self.verbose(f"Error getting peer cert: {e}", trace=True)
+                return [], [], (host, port)
+            try:
+                cert = crypto.load_certificate(crypto.FILETYPE_ASN1, der)
+            except Exception as e:
+                self.verbose(f"Error loading certificate: {e}", trace=True)
+                return [], [], (host, port)
             issuer = cert.get_issuer()
             if issuer.emailAddress and self.helpers.regexes.email_regex.match(issuer.emailAddress):
                 emails.add(issuer.emailAddress)

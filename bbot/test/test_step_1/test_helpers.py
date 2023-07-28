@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import ipaddress
 
@@ -340,8 +341,10 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah") == "ドメイン.テスト"
     assert helpers.smart_encode_punycode("evilcorp.com") == "evilcorp.com"
     assert helpers.smart_decode_punycode("evilcorp.com") == "evilcorp.com"
-    assert helpers.smart_encode_punycode("bob@ドメイン.テスト") == "bob@xn--eckwd4c7c.xn--zckzah"
-    assert helpers.smart_decode_punycode("bob@xn--eckwd4c7c.xn--zckzah") == "bob@ドメイン.テスト"
+    assert helpers.smart_encode_punycode("bob_smith@ドメイン.テスト") == "bob_smith@xn--eckwd4c7c.xn--zckzah"
+    assert helpers.smart_decode_punycode("bob_smith@xn--eckwd4c7c.xn--zckzah") == "bob_smith@ドメイン.テスト"
+    assert helpers.smart_encode_punycode("ドメイン.テスト:80") == "xn--eckwd4c7c.xn--zckzah:80"
+    assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah:80") == "ドメイン.テスト:80"
     with pytest.raises(ValueError):
         helpers.smart_decode_punycode(b"asdf")
     with pytest.raises(ValueError):
@@ -582,8 +585,11 @@ async def test_ratelimiter(helpers):
     assert 45 <= len(results) <= 55
 
 
-def test_async_helpers():
+@pytest.mark.asyncio
+async def test_async_helpers():
+    import random
     from bbot.core.helpers.async_helpers import async_to_sync_gen
+    from bbot.core.helpers.misc import as_completed
 
     # async to sync generator converter
     async def async_gen():
@@ -599,6 +605,18 @@ def test_async_helpers():
         except StopIteration:
             break
     assert l == [0, 1, 2, 3, 4]
+
+    async def do_stuff(r):
+        await asyncio.sleep(r)
+        return r
+
+    random_ints = [random.random() for _ in range(1000)]
+    tasks = [do_stuff(r) for r in random_ints]
+    results = set()
+    async for t in as_completed(tasks):
+        results.add(await t)
+    assert len(results) == 1000
+    assert sorted(random_ints) == sorted(results)
 
 
 # test parse_port_string helper

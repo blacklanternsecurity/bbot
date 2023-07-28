@@ -213,7 +213,8 @@ class telerik(BaseModule):
             tasks.append(self.helpers.create_task(self.test_detector(event.data, f"{dh}?dp=1")))
 
         fail_count = 0
-        for task in self.helpers.as_completed(tasks):
+        gen = self.helpers.as_completed(tasks)
+        async for task in gen:
             try:
                 result, dh = await task
             except asyncio.CancelledError:
@@ -240,7 +241,7 @@ class telerik(BaseModule):
                         event,
                     )
                     # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
-                    break
+                    await gen.aclose()
 
         await self.helpers.cancel_tasks(tasks)
 

@@ -76,6 +76,7 @@ class paramminer_headers(BaseModule):
 
     async def setup(self):
         self.event_dict = {}
+        self.already_checked = set()
         wordlist = self.config.get("wordlist", "")
         if not wordlist:
             wordlist = f"{self.helpers.wordlist_dir}/{self.default_wordlist}"
@@ -90,13 +91,18 @@ class paramminer_headers(BaseModule):
 
         if self.config.get("skip_boring_words", True):
             self.wl -= self.boring_words
-        self.matched_words = {}
+        self.extracted_words_master = set()
         return True
 
     def rand_string(self, *args, **kwargs):
         return self.helpers.rand_string(*args, **kwargs)
 
     async def do_mining(self, wl, url, batch_size, compare_helper):
+        for i in wl:
+            if i not in self.wl:
+                h = hash(i + url)
+                self.already_checked.add(h)
+
         results = set()
         abort_threshold = 15
         try:
@@ -155,11 +161,16 @@ class paramminer_headers(BaseModule):
             extracted_words = self.load_extracted_words(event.data.get("body"), event.data.get("content_type"))
             if extracted_words:
                 self.debug(f"Extracted {str(len(extracted_words))} words from {url}")
-                self.matched_words[url] = extracted_words
+                self.extracted_words_master.update(extracted_words - wl)
                 wl |= extracted_words
+
         if self.config.get("skip_boring_words", True):
             wl -= self.boring_words
-        results = await self.do_mining(wl, url, batch_size, compare_helper)
+
+        try:
+            results = await self.do_mining(wl, url, batch_size, compare_helper)
+        except HttpCompareError as e:
+            self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
         self.process_results(event, results)
 
     async def count_test(self, url):
@@ -217,21 +228,23 @@ class paramminer_headers(BaseModule):
         return await compare_helper.compare(url, headers=test_headers, check_reflection=(len(header_list) == 1))
 
     async def finish(self):
-        for url, (event, batch_size) in self.event_dict.items():
+        untested_matches = self.extracted_words_master.copy()
+        if self.config.get("skip_boring_words", True):
+            untested_matches -= self.boring_words
+
+        for url, (event, batch_size) in list(self.event_dict.items()):
             try:
                 compare_helper = self.helpers.http_compare(url)
             except HttpCompareError as e:
                 self.debug(f"Error initializing compare helper: {e}")
                 return
-            untested_matches = set()
-            for k, s in self.matched_words.items():
-                if k != url:
-                    untested_matches.update(s)
-
-            untested_matches -= self.wl
-
-            if self.config.get("skip_boring_words", True):
-                untested_matches -= self.boring_words
-
-            results = await self.do_mining(untested_matches, url, batch_size, compare_helper)
+            untested_matches_copy = untested_matches.copy()
+            for i in untested_matches:
+                h = hash(i + url)
+                if h in self.already_checked:
+                    untested_matches_copy.remove(i)
+            try:
+                results = await self.do_mining(untested_matches_copy, url, batch_size, compare_helper)
+            except HttpCompareError as e:
+                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
             self.process_results(event, results)

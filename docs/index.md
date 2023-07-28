@@ -14,7 +14,8 @@ BBOT offers multiple methods of installation, including **pipx** and **Docker**.
 
 ### [Python (pip / pipx)](https://pypi.org/project/bbot/)
 
-???+ note
+
+???+ note inline end
 
     `pipx` installs BBOT inside its own virtual environment.
 

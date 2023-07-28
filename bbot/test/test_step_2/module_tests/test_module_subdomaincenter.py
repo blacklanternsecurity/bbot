@@ -1,11 +1,11 @@
 from .base import ModuleTestBase
 
 
-class TestColumbus(ModuleTestBase):
+class TestSubdomainCenter(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://columbus.elmasy.com/api/lookup/blacklanternsecurity.com?days=365",
-            json=["asdf", "zzzz"],
+            url=f"https://api.subdomain.center/?domain=blacklanternsecurity.com",
+            json=["asdf.blacklanternsecurity.com", "zzzz.blacklanternsecurity.com"],
         )
 
     def check(self, module_test, events):

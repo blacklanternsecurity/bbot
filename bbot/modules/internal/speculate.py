@@ -58,7 +58,7 @@ class speculate(BaseInternalModule):
                 self.hugewarning(
                     f"Selected target ({target_len:,} hosts) is too large, skipping IP_RANGE --> IP_ADDRESS speculation"
                 )
-                self.hugewarning(f"Enabling a port scanner (naabu or masscan) module is highly recommended")
+                self.hugewarning(f"Enabling a port scanner (nmap or masscan) module is highly recommended")
             self.range_to_ip = False
 
         return True

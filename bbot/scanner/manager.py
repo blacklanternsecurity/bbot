@@ -34,15 +34,15 @@ class ScanManager:
         """
         seed scanner with target events
         """
-        async with self.scan.acatch(context=self.init_events):
-            with self._task_counter:
-                await self.distribute_event(self.scan.root_event)
-                sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
-                for event in sorted_events:
-                    self.scan.verbose(f"Target: {event}")
-                    self.queue_event(event)
-                await asyncio.sleep(0.1)
-                self.scan._finished_init = True
+        context = f"manager.init_events()"
+        async with self.scan.acatch(context), self._task_counter.count(context):
+            await self.distribute_event(self.scan.root_event)
+            sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
+            for event in sorted_events:
+                self.scan.verbose(f"Target: {event}")
+                self.queue_event(event)
+            await asyncio.sleep(0.1)
+            self.scan._finished_init = True
 
     async def emit_event(self, event, *args, **kwargs):
         """
@@ -51,7 +51,7 @@ class ScanManager:
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         """
-        with self._task_counter:
+        async with self._task_counter.count(f"emit_event({event})"):
             # skip event if it fails precheck
             if not self._event_precheck(event):
                 event._resolved.set()
@@ -82,7 +82,7 @@ class ScanManager:
         if event == event.get_source():
             log.debug(f"Skipping event with self as source: {event}")
             return False
-        if not event._force_output and self.is_duplicate_event(event):
+        if self.is_duplicate_event(event) and not event._force_output:
             log.debug(f"Skipping {event} because it is a duplicate")
             return False
         return True
@@ -161,7 +161,7 @@ class ScanManager:
             event_is_duplicate = self.is_duplicate_event(event)
 
             # Scope shepherding
-            # here, we buff or nerf an event based on its attributes and certain scan settings
+            # here, we buff or nerf the scope distance of an event based on its attributes and certain scan settings
             event_is_duplicate = self.is_duplicate_event(event)
             event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
             set_scope_distance = event.scope_distance
@@ -179,7 +179,7 @@ class ScanManager:
                     source_trail = event.set_scope_distance(set_scope_distance)
                     # force re-emit internal source events
                     for s in source_trail:
-                        await self.emit_event(s, _block=False, _force_submit=True)
+                        self.queue_event(s)
                 else:
                     if event.scope_distance > self.scan.scope_report_distance:
                         log.debug(
@@ -315,10 +315,6 @@ class ScanManager:
             return False
         return True
 
-    async def _register_running(self, callback, *args, **kwargs):
-        with self._task_counter:
-            return await callback(*args, **kwargs)
-
     async def distribute_event(self, *args, **kwargs):
         """
         Queue event with modules
@@ -441,6 +437,15 @@ class ScanManager:
 
         modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
 
+        max_mem_percent = 90
+        mem_status = self.scan.helpers.memory_status()
+        # abort if we don't have the memory
+        mem_percent = mem_status.percent
+        if mem_percent > max_mem_percent:
+            free_memory = mem_status.available
+            free_memory_human = self.scan.helpers.bytes_to_human(free_memory)
+            self.scan.warning(f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining)")
+
         if _log:
             modules_status = []
             for m, s in status["modules"].items():
@@ -456,6 +461,8 @@ class ScanManager:
             if modules_status:
                 modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, r, i, o, t, _ in modules_status])
                 running_modules_str = ", ".join([m[0] for m in modules_status if m[1]])
+                if not running_modules_str:
+                    running_modules_str = "None"
                 self.scan.info(f"{self.scan.name}: Modules running: {running_modules_str}")
                 self.scan.verbose(
                     f"{self.scan.name}: Modules status (incoming:processing:outgoing) {modules_status_str}"
@@ -493,16 +500,24 @@ class ScanManager:
                 scan_active_status.append(f"manager.active: {self.active}")
                 scan_active_status.append(f"    manager.running: {self.running}")
                 scan_active_status.append(f"        manager._task_counter.value: {self._task_counter.value}")
+                scan_active_status.append(f"        manager._task_counter.tasks:")
+                for task in self._task_counter.tasks.values():
+                    scan_active_status.append(f"            - {task}:")
                 scan_active_status.append(
-                    f"        manager.incoming_event_queue.qsize(): {self.incoming_event_queue.qsize()}"
+                    f"        manager.incoming_event_queue.qsize: {self.incoming_event_queue.qsize()}"
                 )
                 scan_active_status.append(f"    manager.modules_finished: {self.modules_finished}")
-                for m in self.scan.modules.values():
+                for m in sorted(self.scan.modules.values(), key=lambda m: m.name):
+                    running = m.running
                     scan_active_status.append(f"        {m}.finished: {m.finished}")
-                    scan_active_status.append(f"            running: {m.running}")
+                    scan_active_status.append(f"            running: {running}")
+                    if running:
+                        scan_active_status.append(f"            tasks:")
+                        for task in m._task_counter.tasks.values():
+                            scan_active_status.append(f"                - {task}:")
                     scan_active_status.append(f"            num_incoming_events: {m.num_incoming_events}")
                     scan_active_status.append(
-                        f"            outgoing_event_queue.qsize(): {m.outgoing_event_queue.qsize()}"
+                        f"            outgoing_event_queue.qsize: {m.outgoing_event_queue.qsize()}"
                     )
                 for line in scan_active_status:
                     self.scan.debug(line)

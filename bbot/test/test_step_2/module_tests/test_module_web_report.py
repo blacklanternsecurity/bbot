@@ -24,7 +24,7 @@ class TestWebReport(ModuleTestBase):
         report_file = module_test.scan.home / "web_report.html"
         with open(report_file) as f:
             report_content = f.read()
-        assert "<li>[HIGH] Known Secret Found" in report_content
+        assert "<li>[CRITICAL] Known Secret Found" in report_content
         assert (
             """<h3>URL</h3>
 <ul>

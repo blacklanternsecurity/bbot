@@ -33,13 +33,13 @@ class wayback(crobat):
         r = await self.helpers.request(waybackurl, timeout=self.http_timeout + 10)
         if not r:
             self.warning(f'Error connecting to archive.org for query "{query}"')
-            return
+            return results
         try:
             j = r.json()
             assert type(j) == list
         except Exception:
             self.warning(f'Error JSON-decoding archive.org response for query "{query}"')
-            return
+            return results
 
         urls = []
         for result in j[1:]:

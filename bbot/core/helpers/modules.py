@@ -208,7 +208,7 @@ class ModuleLoader:
         """
         resolve_choices = {}
         # step 1: build a dictionary containing event types and their associated modules
-        # {"IP_ADDRESS": set("naabu", "ipneighbor", ...)}
+        # {"IP_ADDRESS": set("nmap", "ipneighbor", ...)}
         watched = {}
         produced = {}
         for modname in modules:

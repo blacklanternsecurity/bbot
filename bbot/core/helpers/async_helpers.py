@@ -1,7 +1,10 @@
+import uuid
 import asyncio
 import logging
 import threading
+from datetime import datetime
 from queue import Queue, Empty
+from .misc import human_timedelta
 from contextlib import asynccontextmanager
 
 log = logging.getLogger("bbot.core.helpers.async_helpers")
@@ -39,13 +42,36 @@ class NamedLock:
 
 class TaskCounter:
     def __init__(self):
-        self.value = 0
+        self.tasks = {}
 
-    def __enter__(self):
-        self.value += 1
+    @property
+    def value(self):
+        return len(self.tasks)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.value -= 1
+    def count(self, task_name):
+        if callable(task_name):
+            task_name = f"{task_name.__qualname__}()"
+        return self.Task(self, task_name)
+
+    class Task:
+        def __init__(self, manager, task_name):
+            self.manager = manager
+            self.task_name = task_name
+            self.task_id = None
+            self.start_time = None
+
+        async def __aenter__(self):
+            self.task_id = uuid.uuid4()  # generate a unique ID for the task
+            self.start_time = datetime.now()
+            self.manager.tasks[self.task_id] = self
+            return self.task_id  # this will be passed as 'task_id' to __aexit__
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            self.manager.tasks.pop(self.task_id, None)  # remove only current task
+
+        def __str__(self):
+            running_for = human_timedelta(datetime.now() - self.start_time)
+            return f"{self.task_name} running for {running_for}"
 
 
 def async_to_sync_gen(async_gen):

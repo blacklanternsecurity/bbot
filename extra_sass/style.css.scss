@@ -47,6 +47,9 @@ article.md-content__inner {
   h5 {
     font-weight: 300;
   }
+  div.highlight {
+    background-color: unset !important;
+  }
 }
 
 table {

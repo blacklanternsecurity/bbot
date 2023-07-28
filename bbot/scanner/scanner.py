@@ -264,7 +264,7 @@ class Scanner:
                     break
 
                 if "python" in self.modules:
-                    events, finish, report = await self.modules["python"].events_waiting()
+                    events, finish = await self.modules["python"].events_waiting()
                     for e in events:
                         yield e
 
@@ -327,7 +327,7 @@ class Scanner:
         hard_failed = []
         soft_failed = []
 
-        for task in asyncio.as_completed([asyncio.create_task(m._setup()) for m in self.modules.values()]):
+        async for task in self.helpers.as_completed([m._setup() for m in self.modules.values()]):
             module_name, status, msg = await task
             if status == True:
                 self.debug(f"Setup succeeded for {module_name} ({msg})")
@@ -417,9 +417,9 @@ class Scanner:
 
     async def report(self):
         for mod in self.modules.values():
-            async with self.acatch(context=mod.report):
-                with mod._task_counter:
-                    await mod.report()
+            context = f"{mod.name}.report()"
+            async with self.acatch(context), mod._task_counter.count(context):
+                await mod.report()
 
     async def cleanup(self):
         # clean up modules

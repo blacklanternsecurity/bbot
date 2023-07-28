@@ -18,7 +18,11 @@ class azure_realm(BaseModule):
             self.processed.add(domain_hash)
             auth_url = await self.getuserrealm(domain)
             if auth_url:
-                self.emit_event(auth_url, "URL_UNVERIFIED", source=event, tags=["affiliate", "ms-auth-url"])
+                url_event = self.make_event(
+                    auth_url, "URL_UNVERIFIED", source=event, tags=["affiliate", "ms-auth-url"]
+                )
+                url_event.source_domain = domain
+                self.emit_event(url_event)
 
     async def getuserrealm(self, domain):
         url = f"https://login.microsoftonline.com/getuserrealm.srf?login=test@{domain}"

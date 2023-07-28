@@ -21,4 +21,5 @@ class hackertarget(crobat):
                 self.helpers.validators.validate_host(host)
                 yield host
             except ValueError:
-                self.set_error_state(host)
+                self.debug(f"Error validating API result: {line}")
+                continue

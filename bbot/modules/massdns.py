@@ -119,34 +119,51 @@ class massdns(crobat):
         return False
 
     async def massdns(self, domain, subdomains):
-        abort_msg = f"Aborting massdns on {domain} due to false positives"
-        if await self._canary_check(domain):
-            self.info(abort_msg)
+        subdomains = list(subdomains)
+
+        # before we start, do a canary check for wildcards
+        abort_msg = f"Aborting massdns on {domain} due to false positive"
+        canary_result = await self._canary_check(domain)
+        if canary_result:
+            self.info(abort_msg + f": {canary_result}")
             return []
+
         results = [l async for l in self._massdns(domain, subdomains)]
+
+        # do another canary check for good measure
         if len(results) > 50:
-            if await self._canary_check(domain):
-                self.info(abort_msg)
+            canary_result = await self._canary_check(domain)
+            if canary_result:
+                self.info(abort_msg + f": {canary_result}")
                 return []
+
+        # abort if there are a suspiciously high number of results
+        # (the results are over 2000, and this is more than 20 percent of the input size)
+        if len(results) > 2000 and len(results) / len(subdomains) > 0.2:
+            self.info(
+                f"Aborting because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
+            )
+            return []
+
+        # everything checks out
         self.verbose(f"Resolving batch of {len(results):,} results")
-        resolved = dict(
-            [l async for l in self.helpers.resolve_batch(results, type=("A", "AAAA", "CNAME"), cache_result=True)]
-        )
+        resolved = dict([l async for l in self.helpers.resolve_batch(results, type=("A", "CNAME"), cache_result=True)])
         resolved = {k: v for k, v in resolved.items() if v}
         for hostname in resolved:
             self.add_found(hostname)
         return list(resolved)
 
-    async def _canary_check(self, domain, num_checks=50):
+    async def _canary_check(self, domain, num_checks=100):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
         self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
         canary_results = [l async for l in self._massdns(domain, random_subdomains)]
-        async for result in self.helpers.resolve_batch(canary_results):
+        resolved_canaries = self.helpers.resolve_batch(canary_results)
+        async for query, result in resolved_canaries:
             if result:
-                return True
-        # for result in canary_results:
-        #     if await self.helpers.resolve(result):
-        #         return True
+                await resolved_canaries.aclose()
+                result = f"{query}:{result}"
+                self.log.trace(f"Found false positive: {result}")
+                return result
         return False
 
     async def _massdns(self, domain, subdomains):
@@ -349,8 +366,9 @@ class massdns(crobat):
             d = delimeters[i % len(delimeters)]
             l = lengths[i % len(lengths)]
             segments = list(random.choice(self.devops_mutations) for _ in range(l))
-            subdomains = d.join(segments)
-            yield subdomains
+            segments.append(self.helpers.rand_string(length=8, digits=False))
+            subdomain = d.join(segments)
+            yield subdomain
 
     def get_source_event(self, hostname):
         for p in self.helpers.domain_parents(hostname):

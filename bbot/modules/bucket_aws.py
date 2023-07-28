@@ -79,8 +79,8 @@ class bucket_aws(BaseModule):
             for region in self.regions:
                 for bucket_name in new_buckets:
                     url = self.build_url(bucket_name, base_domain, region)
-                    tasks.append(self.helpers.create_task(self._check_bucket_exists(bucket_name, url)))
-        for task in self.helpers.as_completed(tasks):
+                    tasks.append(self._check_bucket_exists(bucket_name, url))
+        async for task in self.helpers.as_completed(tasks):
             existent_bucket, tags, bucket_name, url = await task
             if existent_bucket:
                 yield bucket_name, url, tags
