@@ -1,5 +1,6 @@
 import re
 import ssl
+import anyio
 import httpx
 import logging
 import traceback
@@ -128,13 +129,26 @@ class WebHelper:
                 if raise_error:
                     raise
             except httpx.RequestError as e:
-                log.debug(f"Error with request to URL: {url}: {e}")
+                log.trace(f"Error with request to URL: {url}: {e}")
                 log.trace(traceback.format_exc())
                 if raise_error:
                     raise
             except ssl.SSLError as e:
-                log.debug(f"SSL error with request to URL: {url}: {e}")
+                msg = f"SSL error with request to URL: {url}: {e}"
+                log.trace(msg)
                 log.trace(traceback.format_exc())
+                if raise_error:
+                    raise httpx.RequestError(msg)
+            except anyio.EndOfStream as e:
+                msg = f"AnyIO error with request to URL: {url}: {e}"
+                log.trace(msg)
+                log.trace(traceback.format_exc())
+                if raise_error:
+                    raise httpx.RequestError(msg)
+            except BaseException as e:
+                log.trace(f"Unhandled exception with request to URL: {url}: {e}")
+                log.trace(traceback.format_exc())
+                raise
 
     async def download(self, url, **kwargs):
         """
