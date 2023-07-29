@@ -141,7 +141,7 @@ class massdns(crobat):
         # (the results are over 2000, and this is more than 20 percent of the input size)
         if len(results) > 2000 and len(results) / len(subdomains) > 0.2:
             self.info(
-                f"Aborting because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
+                f"Aborting massdns on {domain} because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
             )
             return []
 
@@ -204,7 +204,8 @@ class massdns(crobat):
                     domain_wildcard_rdtypes.add(rdtype)
 
         if "A" in domain_wildcard_rdtypes:
-            self.info(f"Aborting run on {domain} because it's a wildcard domain")
+            self.info(f"Aborting massdns on {domain} because it's a wildcard domain")
+            self.found.pop(domain, None)
 
         command = (
             "massdns",
