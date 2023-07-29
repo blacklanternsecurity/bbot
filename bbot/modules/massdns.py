@@ -203,10 +203,10 @@ class massdns(crobat):
                 if results:
                     domain_wildcard_rdtypes.add(rdtype)
 
-        if "A" in domain_wildcard_rdtypes:
-            self.info(f"Aborting massdns on {domain} because it's a wildcard domain")
-            self.found.pop(domain, None)
-            return
+        # if "A" in domain_wildcard_rdtypes:
+        #     self.info(f"Aborting massdns on {domain} because it's a wildcard domain")
+        #     self.found.pop(domain, None)
+        #     return
 
         command = (
             "massdns",
