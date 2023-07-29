@@ -7,10 +7,17 @@ import traceback
 from pathlib import Path
 from bs4 import BeautifulSoup
 
+from httpx._models import Cookies
+
 from bbot.core.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
 
 log = logging.getLogger("bbot.core.helpers.web")
+
+
+class DummyCookies(Cookies):
+    def extract_cookies(self, *args, **kwargs):
+        pass
 
 
 class BBOTAsyncClient(httpx.AsyncClient):
@@ -42,6 +49,8 @@ class BBOTAsyncClient(httpx.AsyncClient):
         kwargs["proxies"] = proxies
 
         super().__init__(*args, **kwargs)
+        if not self._persist_cookies:
+            self._cookies = DummyCookies()
 
     def build_request(self, *args, **kwargs):
         request = super().build_request(*args, **kwargs)

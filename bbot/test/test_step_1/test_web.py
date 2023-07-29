@@ -228,6 +228,7 @@ async def test_web_cookies(bbot_scanner, bbot_config, httpx_mock):
     # make sure we can manually send cookies
     httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test2", match_headers={"cookie": "asdf=wat"})
     r = await scan.helpers.request(url="http://www.evilcorp.com/cookies/test2", cookies={"asdf": "wat"})
+    assert client.cookies["wat"] == "asdf"
 
     # make sure they don't when they're not
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies", headers=[("set-cookie", "wats=fdsa; path=/")])
@@ -243,3 +244,4 @@ async def test_web_cookies(bbot_scanner, bbot_config, httpx_mock):
     # make sure we can manually send cookies
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test2", match_headers={"cookie": "fdsa=wats"})
     r = await client2.get(url="http://www2.evilcorp.com/cookies/test2", cookies={"fdsa": "wats"})
+    assert not client2.cookies
