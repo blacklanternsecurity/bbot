@@ -25,6 +25,7 @@ adjectives = [
     "childish",
     "chiseled",
     "cold",
+    "condescending",
     "considerate",
     "constipated",
     "contentious",

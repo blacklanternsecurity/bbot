@@ -20,6 +20,4 @@ class TestNTLM(ModuleTestBase):
         module_test.set_expect_requests(request_args, respond_args)
 
     def check(self, module_test, events):
-        for e in events:
-            module_test.log.critical(e)
         assert any(e.type == "FINDING" and "EXC01.vno.local" in e.data["description"] for e in events)
