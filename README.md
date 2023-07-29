@@ -14,6 +14,8 @@ BBOT is inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot) but ta
 
 BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
 
+## [Documenation](https://www.blacklanternsecurity.com/bbot/)
+
 ## Installation ([pip](https://pypi.org/project/bbot/))
 
 For more installation methods including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Installation](https://www.blacklanternsecurity.com/bbot/#installation).
@@ -34,7 +36,7 @@ bbot --help
 
 ## Example Commands
 
-Scan output, logs, etc. are saved to `~/.bbot`. For more detailed examples and explanations, see [Scanning](https://www.blacklanternsecurity.com/scanning).
+Scan output, logs, etc. are saved to `~/.bbot`. For more detailed examples and explanations, see [Scanning](https://www.blacklanternsecurity.com/bbot/scanning).
 
 <!-- BBOT EXAMPLE COMMANDS -->
 **Subdomains:**
@@ -82,14 +84,14 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 
 ## Targets
 
-BBOT accepts an unlimited number of targets which you can specify either directly on the command line or in files (or both!). Targets can be any of the following:
+BBOT accepts an unlimited number of targets. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
 
 - DNS_NAME (`evilcorp.com`)
 - IP_ADDRESS (`1.2.3.4`)
 - IP_RANGE (`1.2.3.0/24`)
 - URL (`https://www.evilcorp.com`)
 
-For more information, see [Targets](https://www.blacklanternsecurity.com/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/scanning/#scope).
+For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/scanning/#scope).
 
 ## BBOT as a Python library
 
