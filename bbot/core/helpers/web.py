@@ -73,15 +73,8 @@ class WebHelper:
     For making HTTP requests
     """
 
-    client_options = (
-        "auth",
-        "params",
-        "headers",
+    client_only_options = (
         "retries",
-        "cookies",
-        "verify",
-        "timeout",
-        "follow_redirects",
         "max_redirects",
     )
 
@@ -121,6 +114,14 @@ class WebHelper:
 
         if not args and "method" not in kwargs:
             kwargs["method"] = "GET"
+
+        client_kwargs = {}
+        for k in list(kwargs):
+            if k in self.client_only_options:
+                v = kwargs.pop(k)
+                client_kwargs[k] = v
+        if client_kwargs:
+            client = self.AsyncClient(**client_kwargs)
 
         try:
             if self.http_debug:
