@@ -19,13 +19,13 @@ class DummyCookies(Cookies):
     """
     Class to disable cookie parsing
     """
+
     def extract_cookies(self, *args, **kwargs):
         pass
 
 
 class BBOTAsyncClient(httpx.AsyncClient):
     def __init__(self, *args, **kwargs):
-
         self._bbot_scan = kwargs.pop("_bbot_scan")
 
         http_debug = self._bbot_scan.config.get("http_debug", None)
@@ -128,9 +128,7 @@ class WebHelper:
             async with self.web_rate_limiter:
                 response = await client.request(*args, **kwargs)
             if self.http_debug:
-                log.debug(
-                    f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}"
-                )
+                log.debug(f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}")
             return response
         except httpx.TimeoutException:
             log.verbose(f"HTTP timeout to URL: {url}")
