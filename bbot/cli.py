@@ -292,7 +292,7 @@ async def _main():
                         log.hugeinfo("This is a passive scan. No connections will be made to target")
                     if slow_modules:
                         log.warning(
-                            f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take longer than usual"
+                            f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take a while"
                         )
 
                 scanner.helpers.word_cloud.load()
