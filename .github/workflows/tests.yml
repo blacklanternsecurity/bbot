@@ -81,7 +81,7 @@ jobs:
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'dev'
+    if: github.event_name == 'push' && github.event.pull_request.base.ref == 'dev'
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
