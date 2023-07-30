@@ -7,15 +7,28 @@ import traceback
 from pathlib import Path
 from bs4 import BeautifulSoup
 
+from httpx._models import Cookies
+
 from bbot.core.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
 
 log = logging.getLogger("bbot.core.helpers.web")
 
 
+class DummyCookies(Cookies):
+    def extract_cookies(self, *args, **kwargs):
+        pass
+
+
 class BBOTAsyncClient(httpx.AsyncClient):
     def __init__(self, *args, **kwargs):
         self._bbot_scan = kwargs.pop("_bbot_scan")
+
+        http_debug = self._bbot_scan.config.get("http_debug", None)
+        if http_debug:
+            log.debug(f"Creating AsyncClient: {args}, {kwargs}")
+
+        self._persist_cookies = kwargs.pop("persist_cookies", True)
 
         # timeout
         http_timeout = self._bbot_scan.config.get("http_timeout", 20)
@@ -35,11 +48,9 @@ class BBOTAsyncClient(httpx.AsyncClient):
         proxies = self._bbot_scan.config.get("http_proxy", None)
         kwargs["proxies"] = proxies
 
-        http_debug = self._bbot_scan.config.get("http_debug", None)
-        if http_debug:
-            log.debug(f"Creating AsyncClient: {args}, {kwargs}")
-
         super().__init__(*args, **kwargs)
+        if not self._persist_cookies:
+            self._cookies = DummyCookies()
 
     def build_request(self, *args, **kwargs):
         request = super().build_request(*args, **kwargs)
@@ -51,21 +62,19 @@ class BBOTAsyncClient(httpx.AsyncClient):
                     request.headers[hk] = hv
         return request
 
+    def _merge_cookies(self, cookies):
+        if self._persist_cookies:
+            return super()._merge_cookies(cookies)
+        return cookies
+
 
 class WebHelper:
     """
     For making HTTP requests
     """
 
-    client_options = (
-        "auth",
-        "params",
-        "headers",
+    client_only_options = (
         "retries",
-        "cookies",
-        "verify",
-        "timeout",
-        "follow_redirects",
         "max_redirects",
     )
 
@@ -75,6 +84,7 @@ class WebHelper:
         self.ssl_verify = self.parent_helper.config.get("ssl_verify", False)
         self.web_requests_per_second = self.parent_helper.config.get("web_requests_per_second", 50)
         self.web_rate_limiter = RateLimiter(self.web_requests_per_second, "Web")
+        self.web_client = self.AsyncClient(persist_cookies=False)
 
     def AsyncClient(self, *args, **kwargs):
         kwargs["_bbot_scan"] = self.parent_helper.scan
@@ -87,6 +97,8 @@ class WebHelper:
         raise_error = kwargs.pop("raise_error", False)
         # TODO: use this
         cache_for = kwargs.pop("cache_for", None)  # noqa
+
+        client = kwargs.get("client", self.web_client)
 
         # allow vs follow, httpx why??
         allow_redirects = kwargs.pop("allow_redirects", None)
@@ -105,50 +117,50 @@ class WebHelper:
 
         client_kwargs = {}
         for k in list(kwargs):
-            if k in self.client_options:
+            if k in self.client_only_options:
                 v = kwargs.pop(k)
                 client_kwargs[k] = v
-        async with self.AsyncClient(**client_kwargs) as client:
-            try:
-                if self.http_debug:
-                    logstr = f"Web request: {str(args)}, {str(kwargs)}"
-                    log.debug(logstr)
-                async with self.web_rate_limiter:
-                    response = await client.request(*args, **kwargs)
-                if self.http_debug:
-                    log.debug(
-                        f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}"
-                    )
-                return response
-            except httpx.TimeoutException:
-                log.verbose(f"HTTP timeout to URL: {url}")
-                if raise_error:
-                    raise
-            except httpx.ConnectError:
-                log.verbose(f"HTTP connect failed to URL: {url}")
-                if raise_error:
-                    raise
-            except httpx.RequestError as e:
-                log.trace(f"Error with request to URL: {url}: {e}")
-                log.trace(traceback.format_exc())
-                if raise_error:
-                    raise
-            except ssl.SSLError as e:
-                msg = f"SSL error with request to URL: {url}: {e}"
-                log.trace(msg)
-                log.trace(traceback.format_exc())
-                if raise_error:
-                    raise httpx.RequestError(msg)
-            except anyio.EndOfStream as e:
-                msg = f"AnyIO error with request to URL: {url}: {e}"
-                log.trace(msg)
-                log.trace(traceback.format_exc())
-                if raise_error:
-                    raise httpx.RequestError(msg)
-            except BaseException as e:
-                log.trace(f"Unhandled exception with request to URL: {url}: {e}")
-                log.trace(traceback.format_exc())
+        if client_kwargs:
+            client = self.AsyncClient(**client_kwargs)
+
+        try:
+            if self.http_debug:
+                logstr = f"Web request: {str(args)}, {str(kwargs)}"
+                log.debug(logstr)
+            async with self.web_rate_limiter:
+                response = await client.request(*args, **kwargs)
+            if self.http_debug:
+                log.debug(f"Web response: {response} (Length: {len(response.content)}) headers: {response.headers}")
+            return response
+        except httpx.TimeoutException:
+            log.verbose(f"HTTP timeout to URL: {url}")
+            if raise_error:
                 raise
+        except httpx.ConnectError:
+            log.verbose(f"HTTP connect failed to URL: {url}")
+            if raise_error:
+                raise
+        except httpx.RequestError as e:
+            log.trace(f"Error with request to URL: {url}: {e}")
+            log.trace(traceback.format_exc())
+            if raise_error:
+                raise
+        except ssl.SSLError as e:
+            msg = f"SSL error with request to URL: {url}: {e}"
+            log.trace(msg)
+            log.trace(traceback.format_exc())
+            if raise_error:
+                raise httpx.RequestError(msg)
+        except anyio.EndOfStream as e:
+            msg = f"AnyIO error with request to URL: {url}: {e}"
+            log.trace(msg)
+            log.trace(traceback.format_exc())
+            if raise_error:
+                raise httpx.RequestError(msg)
+        except BaseException as e:
+            log.trace(f"Unhandled exception with request to URL: {url}: {e}")
+            log.trace(traceback.format_exc())
+            raise
 
     async def download(self, url, **kwargs):
         """
