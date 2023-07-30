@@ -139,6 +139,7 @@ asyncio.run(main())
     - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
 - **Misc**
     - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
+    - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
 <!-- END BBOT DOCS TOC -->
 
 ## Acknowledgements
