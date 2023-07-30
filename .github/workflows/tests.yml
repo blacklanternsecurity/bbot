@@ -58,6 +58,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -77,7 +79,6 @@ jobs:
           author_name: "BBOT Docs Autopublish"
           author_email: info@blacklanternsecurity.com
           message: "Refresh module docs"
-          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
