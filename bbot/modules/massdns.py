@@ -377,7 +377,6 @@ class massdns(crobat):
             segments = list(random.choice(self.devops_mutations) for _ in range(l))
             segments.append(self.helpers.rand_string(length=8, digits=False))
             subdomain = d.join(segments)
-            self.hugesuccess(subdomain)
             yield subdomain
         for _ in range(5):
             yield self.helpers.rand_string(length=8, digits=False)
