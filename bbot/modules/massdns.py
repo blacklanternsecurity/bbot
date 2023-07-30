@@ -181,7 +181,7 @@ class massdns(crobat):
     async def _canary_check(self, domain, num_checks=50):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
         self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
-        canary_results = [l async for l,i in self._massdns(domain, random_subdomains)]
+        canary_results = [l async for l, i in self._massdns(domain, random_subdomains)]
         self.log.trace(f"canary results for {domain}: {canary_results}")
         resolved_canaries = self.helpers.resolve_batch(canary_results)
         self.log.trace(f"resolved canary results for {domain}: {canary_results}")
