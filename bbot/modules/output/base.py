@@ -33,7 +33,7 @@ class BaseOutputModule(BaseModule):
 
     @property
     def file(self):
-        if self._file is None:
+        if getattr(self, "_file", None) is None:
             self._file = open(self.output_file, mode="a")
         return self._file
 
