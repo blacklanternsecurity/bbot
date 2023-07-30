@@ -57,7 +57,7 @@ class massdns(crobat):
             "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
-    reject_wildcards = "strict"
+    reject_wildcards = "cloud_only"
     _qsize = 100
 
     digit_regex = re.compile(r"\d+")
@@ -127,48 +127,49 @@ class massdns(crobat):
                 if results:
                     domain_wildcard_rdtypes.add(rdtype)
 
-        if "A" in domain_wildcard_rdtypes:
-            self.info(f"Aborting massdns on {domain} because it's a wildcard domain")
-            self.found.pop(domain, None)
-            return []
+        # if "A" in domain_wildcard_rdtypes:
+        #     self.info(f"Aborting massdns on {domain} because it's a wildcard domain")
+        #     self.found.pop(domain, None)
+        #     return []
 
         # before we start, do a canary check for wildcards
-        abort_msg = f"Aborting massdns on {domain} due to false positive"
-        canary_result = await self._canary_check(domain)
-        if canary_result:
-            self.info(abort_msg + f": {canary_result}")
-            return []
+        # abort_msg = f"Aborting massdns on {domain} due to false positive"
+        # canary_result = await self._canary_check(domain)
+        # if canary_result:
+        #     self.info(abort_msg + f": {canary_result}")
+        #     return []
 
         results = []
-        async for hostname, ip in self._massdns(domain, subdomains):
+        async for hostname, ip, rdtype in self._massdns(domain, subdomains):
             # allow brute-forcing of wildcard domains
             # this is dead code but it's kinda cool so it can live here
-            if "A" in domain_wildcard_rdtypes:
+            if rdtype in domain_wildcard_rdtypes:
                 # skip wildcard checking on multi-level subdomains for performance reasons
-                stem = hostname.split(domain)[0].strip(".")
-                if "." in stem:
-                    self.debug(f"Skipping {hostname}:A because it may be a wildcard (reason: performance)")
+                # stem = hostname.split(domain)[0].strip(".")
+                # if "." in stem:
+                #     self.debug(f"Skipping {hostname}:A because it may be a wildcard (reason: performance)")
+                #     continue
+                wildcard_rdtypes = await self.helpers.is_wildcard(hostname, ips=(ip,), rdtype=rdtype)
+                if rdtype in wildcard_rdtypes:
+                    self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
                     continue
-                wildcard_rdtypes = await self.helpers.is_wildcard(hostname, ips=(ip,))
-                if "A" in wildcard_rdtypes:
-                    self.debug(f"Skipping {hostname}:A because it's a wildcard")
-                    continue
+            # self.hugesuccess(f"{hostname}:wildcard_rdtypes:{wildcard_rdtypes}, domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
             results.append(hostname)
 
         # do another canary check for good measure
-        if len(results) > 50:
-            canary_result = await self._canary_check(domain)
-            if canary_result:
-                self.info(abort_msg + f": {canary_result}")
-                return []
+        # if len(results) > 50:
+        #     canary_result = await self._canary_check(domain)
+        #     if canary_result:
+        #         self.info(abort_msg + f": {canary_result}")
+        #         return []
 
         # abort if there are a suspiciously high number of results
         # (the results are over 2000, and this is more than 20 percent of the input size)
-        if len(results) > 2000 and len(results) / len(subdomains) > 0.2:
-            self.info(
-                f"Aborting massdns on {domain} because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
-            )
-            return []
+        # if len(results) > 2000 and len(results) / len(subdomains) > 0.2:
+        #     self.info(
+        #         f"Aborting massdns on {domain} because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
+        #     )
+        #     return []
 
         # everything checks out
         self.verbose(f"Resolving batch of {len(results):,} results")
@@ -181,7 +182,7 @@ class massdns(crobat):
     async def _canary_check(self, domain, num_checks=50):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
         self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
-        canary_results = [l async for l, i in self._massdns(domain, random_subdomains)]
+        canary_results = [h async for h, d, r in self._massdns(domain, random_subdomains)]
         self.log.trace(f"canary results for {domain}: {canary_results}")
         resolved_canaries = self.helpers.resolve_batch(canary_results)
         self.log.trace(f"resolved canary results for {domain}: {canary_results}")
@@ -258,7 +259,7 @@ class massdns(crobat):
                         hostname_hash = hash(hostname)
                         if hostname_hash not in hosts_yielded:
                             hosts_yielded.add(hostname_hash)
-                            yield hostname, data
+                            yield hostname, data, rdtype
 
     async def finish(self):
         found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
@@ -344,7 +345,7 @@ class massdns(crobat):
                             source_event = self.get_source_event(hostname)
                             if source_event is None:
                                 self.warning(f"Could not correlate source event from: {hostname}")
-                                continue
+                                source_event = self.scan.root_event
                             self.emit_result(hostname, source_event, query)
                         if results:
                             continue
@@ -357,7 +358,9 @@ class massdns(crobat):
             host = host.data
         if self.helpers.is_subdomain(host):
             subdomain, domain = host.split(".", 1)
-            if not self.helpers.is_ptr(subdomain):
+            is_ptr = self.helpers.is_ptr(subdomain)
+            in_scope = self.scan.in_scope(domain)
+            if in_scope and not is_ptr:
                 try:
                     self.found[domain].add(subdomain)
                 except KeyError:
