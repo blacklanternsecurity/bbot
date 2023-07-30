@@ -1,5 +1,6 @@
 from contextlib import suppress
 
+from bbot.modules.base import BaseModule
 from bbot.modules.output.human import Human
 
 
@@ -22,6 +23,9 @@ class Subdomains(Human):
         if event.type == "DNS_NAME_UNRESOLVED" and not self.include_unresolved:
             return False, "Not accepting unresolved subdomain (include_unresolved=False)"
         return True
+
+    def _scope_distance_check(self, event):
+        return BaseModule._scope_distance_check(self, event)
 
     async def handle_event(self, event):
         if self.file is not None:

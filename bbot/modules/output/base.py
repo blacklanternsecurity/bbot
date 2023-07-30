@@ -31,6 +31,9 @@ class BaseOutputModule(BaseModule):
         self.helpers.mkdir(self.output_file.parent)
         self._file = None
 
+    def _scope_distance_check(self, event):
+        return True, ""
+
     @property
     def file(self):
         if getattr(self, "_file", None) is None:
