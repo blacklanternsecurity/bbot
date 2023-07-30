@@ -229,10 +229,11 @@ class DNSHelper:
         event_host = str(event.host)
         # wildcard checks
         if not is_ip(event.host):
+            parent = parent_domain(event_host)
             # check if this domain is using wildcard dns
             event_target = "target" in event.tags
             for hostname, wildcard_domain_rdtypes in (
-                await self.is_wildcard_domain(event_host, log_info=event_target)
+                await self.is_wildcard_domain(parent, log_info=event_target)
             ).items():
                 if wildcard_domain_rdtypes:
                     event.add_tag("wildcard-domain")
