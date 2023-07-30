@@ -211,3 +211,37 @@ async def test_http_ssl(bbot_scanner, bbot_config, bbot_httpserver_ssl):
     r2 = await scan2.helpers.request(url)
     assert r2 is not None, "Request to self-signed SSL server failed even with ssl_verify=False"
     assert r2.status_code == 200 and r2.text == "test_http_ssl_yep"
+
+
+@pytest.mark.asyncio
+async def test_web_cookies(bbot_scanner, bbot_config, httpx_mock):
+    import httpx
+
+    # make sure cookies work when enabled
+    httpx_mock.add_response(url="http://www.evilcorp.com/cookies", headers=[("set-cookie", "wat=asdf; path=/")])
+    scan = bbot_scanner(config=bbot_config)
+    client = scan.helpers.AsyncClient(persist_cookies=True)
+    r = await client.get(url="http://www.evilcorp.com/cookies")
+    assert r.cookies["wat"] == "asdf"
+    httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test", match_headers={"cookie": "wat=asdf"})
+    r = await client.get(url="http://www.evilcorp.com/cookies/test")
+    # make sure we can manually send cookies
+    httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test2", match_headers={"cookie": "asdf=wat"})
+    r = await scan.helpers.request(url="http://www.evilcorp.com/cookies/test2", cookies={"asdf": "wat"})
+    assert client.cookies["wat"] == "asdf"
+
+    # make sure they don't when they're not
+    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies", headers=[("set-cookie", "wats=fdsa; path=/")])
+    scan = bbot_scanner(config=bbot_config)
+    client2 = scan.helpers.AsyncClient(persist_cookies=False)
+    r = await client2.get(url="http://www2.evilcorp.com/cookies")
+    # make sure we can access the cookies
+    assert "wats" in r.cookies
+    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test", match_headers={"cookie": "wats=fdsa"})
+    # but that they're not sent in the response
+    with pytest.raises(httpx.TimeoutException):
+        r = await client2.get(url="http://www2.evilcorp.com/cookies/test")
+    # make sure we can manually send cookies
+    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test2", match_headers={"cookie": "fdsa=wats"})
+    r = await client2.get(url="http://www2.evilcorp.com/cookies/test2", cookies={"fdsa": "wats"})
+    assert not client2.cookies
