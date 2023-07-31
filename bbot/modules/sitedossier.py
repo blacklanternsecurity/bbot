@@ -28,7 +28,7 @@ class sitedossier(crobat):
                 for match in regex.finditer(response.text):
                     hostname = match.group().lower()
                     results.add(hostname)
-            if "Show next 100 items" not in response.text:
+            if '<a href="/parentdomain/' not in response.text:
                 break
 
         return results
