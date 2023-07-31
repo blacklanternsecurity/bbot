@@ -128,9 +128,11 @@ class massdns(crobat):
                     domain_wildcard_rdtypes.add(rdtype)
 
         if "A" in domain_wildcard_rdtypes:
-            self.info(f"Aborting massdns on {domain} because it's a wildcard domain")
+            self.info(f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(domain_wildcard_rdtypes)})")
             self.found.pop(domain, None)
             return []
+        else:
+            self.trace(f"{domain}: A is not in domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
 
         # before we start, do a canary check for wildcards
         abort_msg = f"Aborting massdns on {domain} due to false positive"
@@ -138,6 +140,8 @@ class massdns(crobat):
         if canary_result:
             self.info(abort_msg + f": {canary_result}")
             return []
+        else:
+            self.trace(f"Canary result for {domain}: {canary_result}")
 
         results = []
         async for hostname, ip, rdtype in self._massdns(domain, subdomains):
@@ -162,6 +166,8 @@ class massdns(crobat):
             if canary_result:
                 self.info(abort_msg + f": {canary_result}")
                 return []
+            else:
+                self.trace(f"Canary result for {domain}: {canary_result}")
 
         # abort if there are a suspiciously high number of results
         # (the results are over 2000, and this is more than 20 percent of the input size)
