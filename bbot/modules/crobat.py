@@ -125,7 +125,7 @@ class crobat(BaseModule):
         try:
             response = await request_fn(query)
             if response is None:
-                self.info(f'Query "{query}" failed')
+                self.info(f'Query "{query}" failed (no response)')
                 return []
             try:
                 results = list(parse_fn(response, query))
