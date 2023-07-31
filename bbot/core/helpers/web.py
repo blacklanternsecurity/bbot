@@ -3,6 +3,7 @@ import ssl
 import anyio
 import httpx
 import logging
+import warnings
 import traceback
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -11,6 +12,12 @@ from httpx._models import Cookies
 
 from bbot.core.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
+
+from bs4 import MarkupResemblesLocatorWarning
+from bs4.builder import XMLParsedAsHTMLWarning
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 log = logging.getLogger("bbot.core.helpers.web")
 
