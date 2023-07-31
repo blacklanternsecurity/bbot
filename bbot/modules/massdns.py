@@ -57,7 +57,7 @@ class massdns(crobat):
             "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
-    reject_wildcards = "cloud_only"
+    reject_wildcards = "strict"
     _qsize = 100
 
     digit_regex = re.compile(r"\d+")
@@ -127,17 +127,17 @@ class massdns(crobat):
                 if results:
                     domain_wildcard_rdtypes.add(rdtype)
 
-        # if "A" in domain_wildcard_rdtypes:
-        #     self.info(f"Aborting massdns on {domain} because it's a wildcard domain")
-        #     self.found.pop(domain, None)
-        #     return []
+        if "A" in domain_wildcard_rdtypes:
+            self.info(f"Aborting massdns on {domain} because it's a wildcard domain")
+            self.found.pop(domain, None)
+            return []
 
         # before we start, do a canary check for wildcards
-        # abort_msg = f"Aborting massdns on {domain} due to false positive"
-        # canary_result = await self._canary_check(domain)
-        # if canary_result:
-        #     self.info(abort_msg + f": {canary_result}")
-        #     return []
+        abort_msg = f"Aborting massdns on {domain} due to false positive"
+        canary_result = await self._canary_check(domain)
+        if canary_result:
+            self.info(abort_msg + f": {canary_result}")
+            return []
 
         results = []
         async for hostname, ip, rdtype in self._massdns(domain, subdomains):
@@ -145,10 +145,10 @@ class massdns(crobat):
             # this is dead code but it's kinda cool so it can live here
             if rdtype in domain_wildcard_rdtypes:
                 # skip wildcard checking on multi-level subdomains for performance reasons
-                # stem = hostname.split(domain)[0].strip(".")
-                # if "." in stem:
-                #     self.debug(f"Skipping {hostname}:A because it may be a wildcard (reason: performance)")
-                #     continue
+                stem = hostname.split(domain)[0].strip(".")
+                if "." in stem:
+                    self.debug(f"Skipping {hostname}:A because it may be a wildcard (reason: performance)")
+                    continue
                 wildcard_rdtypes = await self.helpers.is_wildcard(hostname, ips=(ip,), rdtype=rdtype)
                 if rdtype in wildcard_rdtypes:
                     self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
@@ -157,19 +157,24 @@ class massdns(crobat):
             results.append(hostname)
 
         # do another canary check for good measure
-        # if len(results) > 50:
-        #     canary_result = await self._canary_check(domain)
-        #     if canary_result:
-        #         self.info(abort_msg + f": {canary_result}")
-        #         return []
+        if len(results) > 50:
+            canary_result = await self._canary_check(domain)
+            if canary_result:
+                self.info(abort_msg + f": {canary_result}")
+                return []
 
         # abort if there are a suspiciously high number of results
         # (the results are over 2000, and this is more than 20 percent of the input size)
-        # if len(results) > 2000 and len(results) / len(subdomains) > 0.2:
-        #     self.info(
-        #         f"Aborting massdns on {domain} because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
-        #     )
-        #     return []
+        if len(results) > 2000:
+            if len(results) / len(subdomains) > 0.2:
+                self.info(
+                    f"Aborting because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
+                )
+                return []
+            else:
+                self.info(
+                    f"{len(results):,} results returned from massdns against {domain} (wordlist size = {len(subdomains):,})"
+                )
 
         # everything checks out
         self.verbose(f"Resolving batch of {len(results):,} results")
