@@ -414,18 +414,9 @@ class BaseModule:
             return False, "it is not in whitelist and module has active flag"
 
         # check scope distance
-        if self._type != "output":
-            if self.in_scope_only:
-                if event.scope_distance > 0:
-                    return False, "it did not meet in_scope_only filter criteria"
-            if self.scope_distance_modifier is not None:
-                if event.scope_distance < 0:
-                    return False, f"its scope_distance ({event.scope_distance}) is invalid."
-                elif event.scope_distance > self.max_scope_distance:
-                    return (
-                        False,
-                        f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
-                    )
+        filter_result, reason = self._scope_distance_check(event)
+        if not filter_result:
+            return filter_result, reason
 
         # custom filtering
         async with self.scan.acatch(context=self.filter_event):
@@ -448,6 +439,20 @@ class BaseModule:
             self.scan.stats.event_produced(event)
 
         self.debug(f"{event} passed post-check")
+        return True, ""
+
+    def _scope_distance_check(self, event):
+        if self.in_scope_only:
+            if event.scope_distance > 0:
+                return False, "it did not meet in_scope_only filter criteria"
+        if self.scope_distance_modifier is not None:
+            if event.scope_distance < 0:
+                return False, f"its scope_distance ({event.scope_distance}) is invalid."
+            elif event.scope_distance > self.max_scope_distance:
+                return (
+                    False,
+                    f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
+                )
         return True, ""
 
     async def _cleanup(self):
