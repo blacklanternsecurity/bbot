@@ -102,7 +102,6 @@ class BaseModule:
         self._tasks = []
         self._event_received = asyncio.Condition()
         self._event_queued = asyncio.Condition()
-        self._event_dequeued = asyncio.Condition()
 
         # used for optional "per host" tracking
         self._per_host_tracker = set()
@@ -251,6 +250,14 @@ class BaseModule:
         event = self.make_event(*args, **event_kwargs)
         if event:
             self.queue_outgoing_event(event, **emit_kwargs)
+
+    async def emit_event_wait(self, *args, **kwargs):
+        """
+        Same as emit_event except we wait on the outgoing queue
+        """
+        while self.outgoing_event_queue.qsize() > self._qsize:
+            await self.helpers.sleep(0.2)
+        return self.emit_event(*args, **kwargs)
 
     async def events_waiting(self):
         """
@@ -488,16 +495,6 @@ class BaseModule:
             self.outgoing_event_queue.put_nowait((event, kwargs))
         except AttributeError:
             self.debug(f"Not in an acceptable state to queue outgoing event")
-
-    async def dequeue_outgoing_event(self):
-        await self.outgoing_event_queue.get()
-        with self._event_dequeued:
-            self._event_dequeued.notify()
-
-    def dequeue_outgoing_event_nowait(self):
-        return self.outgoing_event_queue.get_nowait()
-        with self._event_dequeued:
-            self._event_dequeued.notify()
 
     def set_error_state(self, message=None):
         if not self.errored:
