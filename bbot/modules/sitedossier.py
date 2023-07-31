@@ -17,7 +17,7 @@ class sitedossier(crobat):
         for page in range(1, 100 * self.max_pages + 2, 100):
             if page > 1:
                 url = f"{base_url}/{page}"
-            response = await self.request(url)
+            response = await self.helpers.request(url)
             if response is None:
                 self.info(f'Query "{query}" failed (no response)')
                 return results
