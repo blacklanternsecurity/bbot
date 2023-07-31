@@ -101,6 +101,7 @@ async def _main():
             from bbot.scanner import Scanner
 
             try:
+                output_modules = set(options.output_modules)
                 module_filtering = False
                 if (options.list_modules or options.help_all) and not any([options.flags, options.modules]):
                     module_filtering = True
@@ -109,6 +110,7 @@ async def _main():
                     modules = set(options.modules)
                     # enable modules by flags
                     for m, c in module_loader.preloaded().items():
+                        module_type = c.get("type", "scan")
                         if m not in modules:
                             flags = c.get("flags", [])
                             if "deadly" in flags:
@@ -116,7 +118,10 @@ async def _main():
                             for f in options.flags:
                                 if f in flags:
                                     log.verbose(f'Enabling {m} because it has flag "{f}"')
-                                    modules.add(m)
+                                    if module_type == "output":
+                                        output_modules.add(m)
+                                    else:
+                                        modules.add(m)
 
                 default_output_modules = ["human", "json", "csv"]
 
@@ -132,7 +137,7 @@ async def _main():
                 scanner = Scanner(
                     *options.targets,
                     modules=list(modules),
-                    output_modules=options.output_modules,
+                    output_modules=list(output_modules),
                     config=config,
                     name=options.name,
                     whitelist=options.whitelist,

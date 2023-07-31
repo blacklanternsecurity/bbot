@@ -210,22 +210,23 @@ class BaseModule:
         return self._watched_events
 
     async def _handle_batch(self):
-        submitted = False
-        if self.batch_size <= 1:
-            return
-        if self.num_incoming_events > 0:
-            events, finish = await self.events_waiting()
-            if not self.errored:
-                self.debug(f"Handling batch of {len(events):,} events")
-                if events:
-                    submitted = True
-                    context = "handle_batch()"
-                    async with self.scan.acatch(context), self._task_counter.count(context):
-                        await self.handle_batch(*events)
-                if finish:
-                    context = "finish()"
-                    async with self.scan.acatch(context), self._task_counter.count(context):
-                        await self.finish()
+        finish = False
+        async with self._task_counter.count("handle_batch()"):
+            submitted = False
+            if self.batch_size <= 1:
+                return
+            if self.num_incoming_events > 0:
+                events, finish = await self.events_waiting()
+                if not self.errored:
+                    self.debug(f"Handling batch of {len(events):,} events")
+                    if events:
+                        submitted = True
+                        async with self.scan.acatch("handle_batch()"):
+                            await self.handle_batch(*events)
+        if finish:
+            context = "finish()"
+            async with self.scan.acatch(context), self._task_counter.count(context):
+                await self.finish()
         return submitted
 
     def make_event(self, *args, **kwargs):
@@ -338,7 +339,8 @@ class BaseModule:
                         except asyncio.queues.QueueEmpty:
                             continue
                         self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
-                        acceptable, reason = await self._event_postcheck(event)
+                        async with self._task_counter.count(f"event_postcheck({event})"):
+                            acceptable, reason = await self._event_postcheck(event)
                         if not acceptable:
                             self.debug(f"Not accepting {event} because {reason}")
                         if acceptable:
@@ -412,18 +414,9 @@ class BaseModule:
             return False, "it is not in whitelist and module has active flag"
 
         # check scope distance
-        if self._type != "output":
-            if self.in_scope_only:
-                if event.scope_distance > 0:
-                    return False, "it did not meet in_scope_only filter criteria"
-            if self.scope_distance_modifier is not None:
-                if event.scope_distance < 0:
-                    return False, f"its scope_distance ({event.scope_distance}) is invalid."
-                elif event.scope_distance > self.max_scope_distance:
-                    return (
-                        False,
-                        f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
-                    )
+        filter_result, reason = self._scope_distance_check(event)
+        if not filter_result:
+            return filter_result, reason
 
         # custom filtering
         async with self.scan.acatch(context=self.filter_event):
@@ -448,6 +441,20 @@ class BaseModule:
         self.debug(f"{event} passed post-check")
         return True, ""
 
+    def _scope_distance_check(self, event):
+        if self.in_scope_only:
+            if event.scope_distance > 0:
+                return False, "it did not meet in_scope_only filter criteria"
+        if self.scope_distance_modifier is not None:
+            if event.scope_distance < 0:
+                return False, f"its scope_distance ({event.scope_distance}) is invalid."
+            elif event.scope_distance > self.max_scope_distance:
+                return (
+                    False,
+                    f"its scope_distance ({event.scope_distance}) exceeds the maximum allowed by the scan ({self.scan.scope_search_distance}) + the module ({self.scope_distance_modifier}) == {self.max_scope_distance}",
+                )
+        return True, ""
+
     async def _cleanup(self):
         if not self._cleanedup:
             self._cleanedup = True
@@ -461,24 +468,25 @@ class BaseModule:
         """
         Queue (incoming) event with module
         """
-        if self.incoming_event_queue is False:
-            self.debug(f"Not in an acceptable state to queue incoming event")
-            return
-        acceptable, reason = self._event_precheck(event)
-        if not acceptable:
-            if reason and reason != "its type is not in watched_events":
-                self.debug(f"Not accepting {event} because {reason}")
-            return
-        else:
-            self.debug(f"Accepting {event} because {reason}")
-        try:
-            self.incoming_event_queue.put_nowait(event)
-            async with self._event_received:
-                self._event_received.notify()
-            if event.type != "FINISHED":
-                self.scan.manager._new_activity = True
-        except AttributeError:
-            self.debug(f"Not in an acceptable state to queue incoming event")
+        async with self._task_counter.count("queue_event()"):
+            if self.incoming_event_queue is False:
+                self.debug(f"Not in an acceptable state to queue incoming event")
+                return
+            acceptable, reason = self._event_precheck(event)
+            if not acceptable:
+                if reason and reason != "its type is not in watched_events":
+                    self.debug(f"Not accepting {event} because {reason}")
+                return
+            else:
+                self.debug(f"Accepting {event} because {reason}")
+            try:
+                self.incoming_event_queue.put_nowait(event)
+                async with self._event_received:
+                    self._event_received.notify()
+                if event.type != "FINISHED":
+                    self.scan.manager._new_activity = True
+            except AttributeError:
+                self.debug(f"Not in an acceptable state to queue incoming event")
 
     def queue_outgoing_event(self, event, **kwargs):
         """

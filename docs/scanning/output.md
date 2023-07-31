@@ -103,6 +103,17 @@ The `asset_inventory` module produces a CSV like this:
 | www.evilcorp.com   | cdn-github  | 2.3.4.5 | Active | 22,80,443  |
 | admin.evilcorp.com | cloud-azure | 5.6.7.8 | N/A    |            |
 
+### Subdomains
+
+The `subdomains` output module produces simple text file containing only in-scope and resolved subdomains:
+
+```text title="subdomains.txt"
+evilcorp.com
+www.evilcorp.com
+mail.evilcorp.com
+portal.evilcorp.com
+```
+
 ## Neo4j
 
 Neo4j is the funnest (and prettiest) way to view and interact with BBOT data.
