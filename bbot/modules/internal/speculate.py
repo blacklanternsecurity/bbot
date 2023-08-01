@@ -30,7 +30,6 @@ class speculate(BaseInternalModule):
         "max_hosts": "Max number of IP_RANGE hosts to convert into IP_ADDRESS events",
         "ports": "The set of ports to speculate on",
     }
-    max_event_handlers = 5
     scope_distance_modifier = 1
     _scope_shepherding = False
     _priority = 4

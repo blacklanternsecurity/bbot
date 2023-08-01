@@ -3,6 +3,7 @@ import ssl
 import anyio
 import httpx
 import logging
+import warnings
 import traceback
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -11,6 +12,12 @@ from httpx._models import Cookies
 
 from bbot.core.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
+
+from bs4 import MarkupResemblesLocatorWarning
+from bs4.builder import XMLParsedAsHTMLWarning
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 log = logging.getLogger("bbot.core.helpers.web")
 
@@ -120,6 +127,7 @@ class WebHelper:
             if k in self.client_only_options:
                 v = kwargs.pop(k)
                 client_kwargs[k] = v
+
         if client_kwargs:
             client = self.AsyncClient(**client_kwargs)
 
@@ -181,8 +189,9 @@ class WebHelper:
             # kwargs["stream"] = True
             if not "method" in kwargs:
                 kwargs["method"] = "GET"
+            client = kwargs.get("client", self.web_client)
             try:
-                async with self.AsyncClient().stream(url=url, **kwargs) as response:
+                async with client.stream(url=url, **kwargs) as response:
                     status_code = getattr(response, "status_code", 0)
                     log.debug(f"Download result: HTTP {status_code}")
                     if status_code != 0:

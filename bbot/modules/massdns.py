@@ -121,14 +121,46 @@ class massdns(crobat):
     async def massdns(self, domain, subdomains):
         subdomains = list(subdomains)
 
+        domain_wildcard_rdtypes = set()
+        for domain, rdtypes in (await self.helpers.is_wildcard_domain(domain)).items():
+            for rdtype, results in rdtypes.items():
+                if results:
+                    domain_wildcard_rdtypes.add(rdtype)
+
+        if "A" in domain_wildcard_rdtypes:
+            self.info(
+                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(domain_wildcard_rdtypes)})"
+            )
+            self.found.pop(domain, None)
+            return []
+        else:
+            self.log.trace(f"{domain}: A is not in domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
+
         # before we start, do a canary check for wildcards
         abort_msg = f"Aborting massdns on {domain} due to false positive"
         canary_result = await self._canary_check(domain)
         if canary_result:
             self.info(abort_msg + f": {canary_result}")
             return []
+        else:
+            self.log.trace(f"Canary result for {domain}: {canary_result}")
 
-        results = [l async for l in self._massdns(domain, subdomains)]
+        results = []
+        async for hostname, ip, rdtype in self._massdns(domain, subdomains):
+            # allow brute-forcing of wildcard domains
+            # this is dead code but it's kinda cool so it can live here
+            if rdtype in domain_wildcard_rdtypes:
+                # skip wildcard checking on multi-level subdomains for performance reasons
+                stem = hostname.split(domain)[0].strip(".")
+                if "." in stem:
+                    self.debug(f"Skipping {hostname}:A because it may be a wildcard (reason: performance)")
+                    continue
+                wildcard_rdtypes = await self.helpers.is_wildcard(hostname, ips=(ip,), rdtype=rdtype)
+                if rdtype in wildcard_rdtypes:
+                    self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
+                    continue
+            # self.hugesuccess(f"{hostname}:wildcard_rdtypes:{wildcard_rdtypes}, domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
+            results.append(hostname)
 
         # do another canary check for good measure
         if len(results) > 50:
@@ -136,14 +168,21 @@ class massdns(crobat):
             if canary_result:
                 self.info(abort_msg + f": {canary_result}")
                 return []
+            else:
+                self.log.trace(f"Canary result for {domain}: {canary_result}")
 
         # abort if there are a suspiciously high number of results
         # (the results are over 2000, and this is more than 20 percent of the input size)
-        if len(results) > 2000 and len(results) / len(subdomains) > 0.2:
-            self.info(
-                f"Aborting because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
-            )
-            return []
+        if len(results) > 2000:
+            if len(results) / len(subdomains) > 0.2:
+                self.info(
+                    f"Aborting because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
+                )
+                return []
+            else:
+                self.info(
+                    f"{len(results):,} results returned from massdns against {domain} (wordlist size = {len(subdomains):,})"
+                )
 
         # everything checks out
         self.verbose(f"Resolving batch of {len(results):,} results")
@@ -153,17 +192,20 @@ class massdns(crobat):
             self.add_found(hostname)
         return list(resolved)
 
-    async def _canary_check(self, domain, num_checks=100):
+    async def _canary_check(self, domain, num_checks=50):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
         self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
-        canary_results = [l async for l in self._massdns(domain, random_subdomains)]
+        canary_results = [h async for h, d, r in self._massdns(domain, random_subdomains)]
+        self.log.trace(f"canary results for {domain}: {canary_results}")
         resolved_canaries = self.helpers.resolve_batch(canary_results)
+        self.log.trace(f"resolved canary results for {domain}: {canary_results}")
         async for query, result in resolved_canaries:
             if result:
                 await resolved_canaries.aclose()
                 result = f"{query}:{result}"
                 self.log.trace(f"Found false positive: {result}")
                 return result
+        self.log.trace(f"Passed canary check for {domain}")
         return False
 
     async def _massdns(self, domain, subdomains):
@@ -197,12 +239,6 @@ class massdns(crobat):
         if self.scan.stopping:
             return
 
-        domain_wildcard_rdtypes = set()
-        for domain, rdtypes in (await self.helpers.is_wildcard_domain(domain)).items():
-            for rdtype, results in rdtypes.items():
-                if results:
-                    domain_wildcard_rdtypes.add(rdtype)
-
         command = (
             "massdns",
             "-r",
@@ -233,23 +269,10 @@ class massdns(crobat):
                     # avoid garbage answers like this:
                     # 8AAAA queries have been locally blocked by dnscrypt-proxy/Set block_ipv6 to false to disable this feature
                     if data and rdtype and not " " in data:
-                        # skip wildcards
-                        if rdtype in domain_wildcard_rdtypes:
-                            # skip wildcard checking on multi-level subdomains for performance reasons
-                            stem = hostname.split(domain)[0].strip(".")
-                            if "." in stem:
-                                self.debug(
-                                    f"Skipping {hostname}:{rdtype} because it may be a wildcard (reason: performance)"
-                                )
-                                continue
-                            wildcard_rdtypes = await self.helpers.is_wildcard(hostname, ips=(data,))
-                            if rdtype in wildcard_rdtypes:
-                                self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
-                                continue
                         hostname_hash = hash(hostname)
                         if hostname_hash not in hosts_yielded:
                             hosts_yielded.add(hostname_hash)
-                            yield hostname
+                            yield hostname, data, rdtype
 
     async def finish(self):
         found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
@@ -335,7 +358,7 @@ class massdns(crobat):
                             source_event = self.get_source_event(hostname)
                             if source_event is None:
                                 self.warning(f"Could not correlate source event from: {hostname}")
-                                continue
+                                source_event = self.scan.root_event
                             self.emit_result(hostname, source_event, query)
                         if results:
                             continue
@@ -348,7 +371,9 @@ class massdns(crobat):
             host = host.data
         if self.helpers.is_subdomain(host):
             subdomain, domain = host.split(".", 1)
-            if not self.helpers.is_ptr(subdomain):
+            is_ptr = self.helpers.is_ptr(subdomain)
+            in_scope = self.scan.in_scope(domain)
+            if in_scope and not is_ptr:
                 try:
                     self.found[domain].add(subdomain)
                 except KeyError:
@@ -361,14 +386,16 @@ class massdns(crobat):
 
     def gen_random_subdomains(self, n=50):
         delimeters = (".", "-")
-        lengths = list(range(10, 20))
-        for i in range(0, n):
+        lengths = list(range(3, 8))
+        for i in range(0, max(0, n - 5)):
             d = delimeters[i % len(delimeters)]
             l = lengths[i % len(lengths)]
             segments = list(random.choice(self.devops_mutations) for _ in range(l))
             segments.append(self.helpers.rand_string(length=8, digits=False))
             subdomain = d.join(segments)
             yield subdomain
+        for _ in range(5):
+            yield self.helpers.rand_string(length=8, digits=False)
 
     def get_source_event(self, hostname):
         for p in self.helpers.domain_parents(hostname):

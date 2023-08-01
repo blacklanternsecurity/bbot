@@ -12,8 +12,10 @@ class Human(BaseOutputModule):
     vuln_severity_map = {"LOW": "HUGEWARNING", "MEDIUM": "HUGEWARNING", "HIGH": "CRITICAL", "CRITICAL": "CRITICAL"}
     accept_dupes = False
 
+    output_filename = "output.txt"
+
     async def setup(self):
-        self._prep_output_dir("output.txt")
+        self._prep_output_dir(self.output_filename)
         return True
 
     async def handle_event(self, event):
@@ -43,5 +45,5 @@ class Human(BaseOutputModule):
                 self.file.close()
 
     async def report(self):
-        if self._file is not None:
+        if getattr(self, "_file", None) is not None:
             self.info(f"Saved TXT output to {self.output_file}")

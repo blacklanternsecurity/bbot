@@ -45,5 +45,9 @@ class DNSError(BBOTError):
     pass
 
 
+class DNSWildcardBreak(DNSError):
+    pass
+
+
 class CurlError(BBOTError):
     pass

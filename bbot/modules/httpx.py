@@ -10,7 +10,7 @@ class httpx(BaseModule):
     flags = ["active", "safe", "web-basic", "web-thorough", "social-enum", "subdomain-enum", "cloud-enum"]
     meta = {"description": "Visit webpages. Many other modules rely on httpx"}
 
-    batch_size = 500
+    batch_size = 100
     options = {"threads": 50, "in_scope_only": True, "version": "1.2.5", "max_response_size": 5242880}
     options_desc = {
         "threads": "Number of httpx threads to use",
@@ -30,6 +30,7 @@ class httpx(BaseModule):
         }
     ]
 
+    max_event_handlers = 2
     scope_distance_modifier = 1
     _priority = 2
 
@@ -59,8 +60,7 @@ class httpx(BaseModule):
         safe_to_visit = "httpx-safe" in event.tags
         if not safe_to_visit and (in_scope_only and not self.scan.in_scope(event)):
             return False, "event is not in scope"
-        # reject base URLs to avoid visiting a resource twice
-        # note: speculate makes open ports from
+
         return True
 
     async def handle_batch(self, *events):

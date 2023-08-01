@@ -1,14 +1,16 @@
+import asyncio
 import logging
 import ipaddress
 import traceback
 import contextlib
 import dns.exception
 import dns.asyncresolver
+from contextlib import suppress
 
 from .regexes import dns_name_regex
 from bbot.core.helpers.ratelimiter import RateLimiter
 from bbot.core.helpers.async_helpers import NamedLock
-from bbot.core.errors import ValidationError, DNSError
+from bbot.core.errors import ValidationError, DNSError, DNSWildcardBreak
 from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck, as_completed
 
 log = logging.getLogger("bbot.core.helpers.dns")
@@ -160,10 +162,13 @@ class DNSHelper:
                 except KeyError:
                     error_count = self._errors.get(parent_hash, 0)
                     if error_count >= self.abort_threshold:
-                        log.verbose(
-                            f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
-                        )
-                        return results, errors
+                        query_in_scope = self.parent_helper.scan.in_scope(query)
+                        # don't abort if the query is in scope
+                        if not query_in_scope:
+                            log.verbose(
+                                f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                            )
+                            return results, errors
                     async with self.dns_rate_limiter:
                         results = await self._catch(self.resolver.resolve, query, **kwargs)
                     if cache_result:
@@ -229,15 +234,6 @@ class DNSHelper:
         event_host = str(event.host)
         # wildcard checks
         if not is_ip(event.host):
-            # check if this domain is using wildcard dns
-            event_target = "target" in event.tags
-            for hostname, wildcard_domain_rdtypes in (
-                await self.is_wildcard_domain(event_host, log_info=event_target)
-            ).items():
-                if wildcard_domain_rdtypes:
-                    event.add_tag("wildcard-domain")
-                    for rdtype, ips in wildcard_domain_rdtypes.items():
-                        event.add_tag(f"{rdtype.lower()}-wildcard-domain")
             # check if the dns name itself is a wildcard entry
             wildcard_rdtypes = await self.is_wildcard(event_host)
             for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
@@ -248,27 +244,37 @@ class DNSHelper:
                 event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
 
         # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-        if not is_ip(event.host) and wildcard_rdtypes and children:
-            # these are the rdtypes that successfully resolve
-            resolved_rdtypes = set([c.upper() for c in children])
-            # these are the rdtypes that have wildcards
-            wildcard_rdtypes_set = set(wildcard_rdtypes)
-            # consider the event a full wildcard if all its records are wildcards
-            event_is_wildcard = False
-            if resolved_rdtypes:
-                event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
-            # if event_is_wildcard and event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
-            if event_is_wildcard:
-                if event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
-                    wildcard_parent = self.parent_helper.parent_domain(event_host)
-                    for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
-                        if _is_wildcard:
-                            wildcard_parent = _parent_domain
-                            break
-                    wildcard_data = f"_wildcard.{wildcard_parent}"
-                    if wildcard_data != event.data:
-                        log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
-                        event.data = wildcard_data
+        if not is_ip(event.host) and children:
+            if wildcard_rdtypes:
+                # these are the rdtypes that successfully resolve
+                resolved_rdtypes = set([c.upper() for c in children])
+                # these are the rdtypes that have wildcards
+                wildcard_rdtypes_set = set(wildcard_rdtypes)
+                # consider the event a full wildcard if all its records are wildcards
+                event_is_wildcard = False
+                if resolved_rdtypes:
+                    event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
+
+                if event_is_wildcard:
+                    if event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
+                        wildcard_parent = self.parent_helper.parent_domain(event_host)
+                        for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
+                            if _is_wildcard:
+                                wildcard_parent = _parent_domain
+                                break
+                        wildcard_data = f"_wildcard.{wildcard_parent}"
+                        if wildcard_data != event.data:
+                            log.debug(f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"')
+                            event.data = wildcard_data
+            else:
+                # check if this domain is using wildcard dns
+                event_target = "target" in event.tags
+                wildcard_domain_results = await self.is_wildcard_domain(event_host, log_info=event_target)
+                for hostname, wildcard_domain_rdtypes in wildcard_domain_results.items():
+                    if wildcard_domain_rdtypes:
+                        event.add_tag("wildcard-domain")
+                        for rdtype, ips in wildcard_domain_rdtypes.items():
+                            event.add_tag(f"{rdtype.lower()}-wildcard-domain")
 
     async def resolve_event(self, event, minimal=False):
         """
@@ -466,6 +472,9 @@ class DNSHelper:
         """
         result = {}
 
+        if [ips, rdtype].count(None) == 1:
+            raise ValueError("Both ips and rdtype must be specified")
+
         if not is_dns_name(query):
             return {}
 
@@ -474,9 +483,6 @@ class DNSHelper:
             if self.parent_helper.host_in_host(query, d):
                 log.debug(f"Skipping wildcard detection on {query} because it is excluded in the config")
                 return {}
-
-        if rdtype is None:
-            rdtype = "ANY"
 
         query = self._clean_dns_record(query)
         # skip check if it's an IP
@@ -489,57 +495,74 @@ class DNSHelper:
         parent = parent_domain(query)
         parents = list(domain_parents(query))
 
-        wildcard_tasks = {t: [] for t in self.all_rdtypes}
+        rdtypes_to_check = [rdtype] if rdtype is not None else self.all_rdtypes
+
         base_query_ips = dict()
         # if the caller hasn't already done the work of resolving the IPs
         if ips is None:
             # then resolve the query for all rdtypes
-            for _rdtype in self.all_rdtypes:
-                # resolve the base query
-                wildcard_tasks[_rdtype].append(self.resolve_raw(query, type=_rdtype, cache_result=True))
-
-            for _rdtype, tasks in wildcard_tasks.items():
-                async for task in as_completed(tasks):
-                    raw_results, errors = await task
-                    if errors and not raw_results:
-                        self.debug(f"Failed to resolve {query} ({_rdtype}) during wildcard detection")
-                        result[_rdtype] = (None, parent)
-                        continue
-                    for __rdtype, answers in raw_results:
-                        base_query_ips[__rdtype] = set()
-                        for answer in answers:
-                            for _, t in self.extract_targets(answer):
-                                base_query_ips[__rdtype].add(t)
+            base_query_tasks = {
+                t: asyncio.create_task(self.resolve_raw(query, type=t, cache_result=True)) for t in rdtypes_to_check
+            }
+            for _rdtype, task in base_query_tasks.items():
+                raw_results, errors = await task
+                if errors and not raw_results:
+                    self.debug(f"Failed to resolve {query} ({_rdtype}) during wildcard detection")
+                    result[_rdtype] = (None, parent)
+                    continue
+                for __rdtype, answers in raw_results:
+                    base_query_results = set()
+                    for answer in answers:
+                        for _, t in self.extract_targets(answer):
+                            base_query_results.add(t)
+                    if base_query_results:
+                        base_query_ips[__rdtype] = base_query_results
         else:
             # otherwise, we can skip all that
-            base_query_ips[rdtype] = set([self._clean_dns_record(ip) for ip in ips])
+            cleaned_ips = set([self._clean_dns_record(ip) for ip in ips])
+            if not cleaned_ips:
+                raise ValueError("Valid IPs must be specified")
+            base_query_ips[rdtype] = cleaned_ips
         if not base_query_ips:
             return result
 
         # once we've resolved the base query and have IP addresses to work with
         # we can compare the IPs to the ones we have on file for wildcards
-        # for every rdtype
-        for _rdtype in self.all_rdtypes:
-            # get the IPs from above
-            query_ips = base_query_ips.get("ANY", base_query_ips.get(_rdtype, set()))
-            if not query_ips:
-                continue
-            # for every parent domain, starting with the longest
+
+        # for every parent domain, starting with the shortest
+        try:
             for host in parents[::-1]:
-                host_hash = hash(host)
-                # make sure we've checked that domain for wildcards
-                await self.is_wildcard_domain(host)
-                if host_hash in self._wildcard_cache:
-                    # then get its IPs from our wildcard cache
-                    wildcard_rdtypes = self._wildcard_cache[host_hash]
-                    # then check to see if our IPs match the wildcard ones
-                    if _rdtype in wildcard_rdtypes:
-                        wildcard_ips = wildcard_rdtypes[_rdtype]
-                        # if our IPs match the wildcard ones, then ladies and gentlemen we have a wildcard
-                        is_wildcard = any(r in wildcard_ips for r in query_ips)
-                        if is_wildcard:
-                            result[_rdtype] = (True, host)
-                            break
+                # for every rdtype
+                for _rdtype in list(base_query_ips):
+                    # get the IPs from above
+                    query_ips = base_query_ips.get(_rdtype, set())
+                    # make sure we've checked that domain for wildcards
+                    await self.is_wildcard_domain(host)
+                    host_hash = hash(host)
+
+                    if host_hash in self._wildcard_cache:
+                        # then get its IPs from our wildcard cache
+                        wildcard_rdtypes = self._wildcard_cache[host_hash]
+
+                        # then check to see if our IPs match the wildcard ones
+                        if _rdtype in wildcard_rdtypes:
+                            wildcard_ips = wildcard_rdtypes[_rdtype]
+                            # if our IPs match the wildcard ones, then ladies and gentlemen we have a wildcard
+                            is_wildcard = any(r in wildcard_ips for r in query_ips)
+
+                            if is_wildcard and not result.get(_rdtype, (None, None))[0] is True:
+                                result[_rdtype] = (True, host)
+
+                    # if we've reached a point where the dns name is a complete wildcard, class can be dismissed early
+                    base_query_rdtypes = set(base_query_ips)
+                    wildcard_rdtypes_set = set([k for k, v in result.items() if v[0] is True])
+                    if base_query_rdtypes and wildcard_rdtypes_set and base_query_rdtypes == wildcard_rdtypes_set:
+                        log.debug(
+                            f"Breaking from wildcard detection for {query} at {host} because base query rdtypes ({base_query_rdtypes}) == wildcard rdtypes ({wildcard_rdtypes_set})"
+                        )
+                        raise DNSWildcardBreak()
+        except DNSWildcardBreak:
+            pass
 
         return result
 
@@ -550,6 +573,7 @@ class DNSHelper:
         Returns a dictionary containing any DNS record types that are wildcards, and their associated IPs
             is_wildcard_domain("github.io") --> {"A": {"1.2.3.4",}, "AAAA": {"dead::beef",}}
         """
+
         wildcard_domain_results = {}
         domain = self._clean_dns_record(domain)
 
@@ -561,6 +585,8 @@ class DNSHelper:
             if self.parent_helper.host_in_host(domain, d):
                 log.debug(f"Skipping wildcard detection on {domain} because it is excluded in the config")
                 return {}
+
+        rdtypes_to_check = set(self.all_rdtypes)
 
         # make a list of its parents
         parents = list(domain_parents(domain, include_self=True))
@@ -575,9 +601,9 @@ class DNSHelper:
                     continue
 
                 # determine if this is a wildcard domain
-                wildcard_tasks = {t: [] for t in self.all_rdtypes}
+                wildcard_tasks = {t: [] for t in rdtypes_to_check}
                 # resolve a bunch of random subdomains of the same parent
-                for rdtype in self.all_rdtypes:
+                for rdtype in rdtypes_to_check:
                     # continue if a wildcard was already found for this rdtype
                     # if rdtype in self._wildcard_cache[host_hash]:
                     #     continue
@@ -596,6 +622,10 @@ class DNSHelper:
                             if not rdtype in wildcard_results:
                                 wildcard_results[rdtype] = set()
                             wildcard_results[rdtype].update(results)
+                            # we know this rdtype is a wildcard
+                            # so we don't need to check it anymore
+                            with suppress(KeyError):
+                                rdtypes_to_check.remove(rdtype)
 
                 self._wildcard_cache.update({host_hash: wildcard_results})
                 wildcard_domain_results.update({host: wildcard_results})
