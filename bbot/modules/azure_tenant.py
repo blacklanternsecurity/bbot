@@ -56,10 +56,10 @@ class azure_tenant(viewdns):
 
         self.debug(f"Retrieving tenant domains at {url}")
 
-        r = await self.request_with_fail_count(url, method="POST", headers=headers, data=data)
+        r = await self.helpers.request(url, method="POST", headers=headers, data=data)
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200, 421):
-            self.warning(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
+            self.verbose(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
             return set(), set()
         found_domains = list(set(self.d_xml_regex.findall(r.text)))
         domains = set()

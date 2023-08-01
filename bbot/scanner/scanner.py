@@ -781,4 +781,4 @@ class Scanner:
             log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
             log.trace(traceback.format_exc())
         if callable(finally_callback):
-            self.helpers.execute_sync_or_async(finally_callback, e)
+            finally_callback(e)
