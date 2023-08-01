@@ -162,10 +162,13 @@ class DNSHelper:
                 except KeyError:
                     error_count = self._errors.get(parent_hash, 0)
                     if error_count >= self.abort_threshold:
-                        log.verbose(
-                            f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
-                        )
-                        return results, errors
+                        query_in_scope = self.parent_helper.scan.in_scope(query)
+                        # don't abort if the query is in scope
+                        if not query_in_scope:
+                            log.verbose(
+                                f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                            )
+                            return results, errors
                     async with self.dns_rate_limiter:
                         results = await self._catch(self.resolver.resolve, query, **kwargs)
                     if cache_result:

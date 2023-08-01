@@ -217,12 +217,12 @@ class BaseModule:
                 return
             if self.num_incoming_events > 0:
                 events, finish = await self.events_waiting()
-                if not self.errored:
+                if events and not self.errored:
                     self.debug(f"Handling batch of {len(events):,} events")
-                    if events:
-                        submitted = True
-                        async with self.scan.acatch("handle_batch()"):
-                            await self.handle_batch(*events)
+                    submitted = True
+                    async with self.scan.acatch("handle_batch()"):
+                        await self.handle_batch(*events)
+                    self.debug(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = "finish()"
             async with self.scan.acatch(context), self._task_counter.count(context):
