@@ -91,13 +91,19 @@ class DNSHelper:
         }
         """
         results = set()
-        r = await self.resolve_raw(query, **kwargs)
-        if r:
-            raw_results, errors = r
-            for rdtype, answers in raw_results:
-                for answer in answers:
-                    for _, t in self.extract_targets(answer):
-                        results.add(t)
+        try:
+            r = await self.resolve_raw(query, **kwargs)
+            if r:
+                raw_results, errors = r
+                for rdtype, answers in raw_results:
+                    for answer in answers:
+                        for _, t in self.extract_targets(answer):
+                            results.add(t)
+        except BaseException:
+            log.trace(f"Caught exception in resolve({query}, {kwargs}):")
+            log.trace(traceback.format_exc())
+            raise
+
         return results
 
     async def resolve_raw(self, query, **kwargs):
@@ -106,8 +112,8 @@ class DNSHelper:
         # kwargs["tcp"] = True
         results = []
         errors = []
-        query = str(query).strip()
         try:
+            query = str(query).strip()
             if is_ip(query):
                 kwargs.pop("type", None)
                 kwargs.pop("rdtype", None)
@@ -131,9 +137,10 @@ class DNSHelper:
                         results.append((t, r))
                     for error in e:
                         errors.append((t, error))
-        except RuntimeError as e:
-            log.debug(f"Error in resolve_raw({query}, kwargs={kwargs}): {e}")
+        except BaseException:
+            log.trace(f"Caught exception in resolve_raw({query}, {kwargs}):")
             log.trace(traceback.format_exc())
+            raise
 
         return (results, errors)
 

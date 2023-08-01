@@ -122,13 +122,15 @@ def log_worker_setup(logging_queue):
     This needs to be run whenever a new multiprocessing.Process() is spawned
     """
     log_level = get_log_level()
-    log = logging.getLogger("bbot")
+    bbot_log = logging.getLogger("bbot")
+    asyncio_log = logging.getLogger("asyncio")
     # Don't do this more than once
-    if len(log.handlers) == 0:
-        log.setLevel(log_level)
+    if len(bbot_log.handlers) == 0:
         queue_handler = QueueHandler(logging_queue)
-        log.addHandler(queue_handler)
-    return log
+        for log in (bbot_log, asyncio_log):
+            log.setLevel(log_level)
+            log.addHandler(queue_handler)
+    return bbot_log
 
 
 def log_listener_setup(logging_queue):
@@ -222,9 +224,8 @@ def set_log_level(level, logger=None):
         logger.hugeinfo(f"Setting log level to {logging.getLevelName(level)}")
     config["silent"] = False
     _log_level_override = level
-    log = logging.getLogger("bbot")
-    log.setLevel(level)
-    logging.getLogger("asyncio").setLevel(level)
+    for logname in ("bbot", "asyncio"):
+        logging.getLogger(logname).setLevel(level)
 
 
 def toggle_log_level(logger=None):
