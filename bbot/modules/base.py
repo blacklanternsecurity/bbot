@@ -4,7 +4,7 @@ import traceback
 from sys import exc_info
 from contextlib import suppress
 
-from ..core.helpers.misc import get_size
+from ..core.helpers.misc import get_size  # noqa
 from ..core.helpers.async_helpers import TaskCounter
 from ..core.errors import ValidationError, WordlistError
 
@@ -210,7 +210,7 @@ class BaseModule:
 
     async def _handle_batch(self):
         finish = False
-        async with self._task_counter.count("handle_batch()"):
+        async with self._task_counter.count(f"{self.name}.handle_batch()"):
             submitted = False
             if self.batch_size <= 1:
                 return
@@ -219,11 +219,11 @@ class BaseModule:
                 if events and not self.errored:
                     self.debug(f"Handling batch of {len(events):,} events")
                     submitted = True
-                    async with self.scan.acatch("handle_batch()"):
+                    async with self.scan.acatch(f"{self.name}.handle_batch()"):
                         await self.handle_batch(*events)
                     self.debug(f"Finished handling batch of {len(events):,} events")
         if finish:
-            context = "finish()"
+            context = f"{self.name}.finish()"
             async with self.scan.acatch(context), self._task_counter.count(context):
                 await self.finish()
         return submitted
@@ -352,14 +352,16 @@ class BaseModule:
                             self.debug(f"Not accepting {event} because {reason}")
                         if acceptable:
                             if event.type == "FINISHED":
-                                context = "finish()"
+                                context = f"{self.name}.finish()"
                                 async with self.scan.acatch(context), self._task_counter.count(context):
                                     await self.finish()
                             else:
-                                context = f"handle_event({event})"
+                                context = f"{self.name}.handle_event({event})"
                                 self.scan.stats.event_consumed(event, self)
+                                self.debug(f"Handling {event}")
                                 async with self.scan.acatch(context), self._task_counter.count(context):
                                     await self.handle_event(event)
+                                self.debug(f"Finished handling {event}")
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")
                 self.trace()
@@ -466,7 +468,7 @@ class BaseModule:
         if not self._cleanedup:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
-                context = f"cleanup()"
+                context = f"{self.name}.cleanup()"
                 if callable(callback):
                     async with self.scan.acatch(context), self._task_counter.count(context):
                         await self.helpers.execute_sync_or_async(callback)
@@ -475,7 +477,7 @@ class BaseModule:
         """
         Queue (incoming) event with module
         """
-        async with self._task_counter.count("queue_event()"):
+        async with self._task_counter.count("queue_event()", _log=False):
             if self.incoming_event_queue is False:
                 self.debug(f"Not in an acceptable state to queue incoming event")
                 return
@@ -619,8 +621,9 @@ class BaseModule:
         """
         Return how much memory the module is currently using in bytes
         """
-        seen = {self.scan, self.helpers, self.log}
-        return get_size(self, max_depth=3, seen=seen)
+        seen = {self.scan, self.helpers, self.log}  # noqa
+        # return get_size(self, max_depth=3, seen=seen)
+        return 0
 
     def __str__(self):
         return self.name
