@@ -149,7 +149,6 @@ class DNSHelper:
         results = []
         errors = []
         rdtype = kwargs.get("rdtype", "A")
-        allow_abort = kwargs.pop("allow_abort", True)
 
         # skip certain queries if requested
         if rdtype in self.dns_omit_queries:
@@ -168,25 +167,35 @@ class DNSHelper:
                 try:
                     results = self._dns_cache[dns_cache_hash]
                 except KeyError:
-                    if allow_abort:
-                        error_count = self._errors.get(parent_hash, 0)
-                        if error_count >= self.abort_threshold:
-                            dns_server_working = await self.resolve("www.google.com", type="A", allow_abort=False)
-                            if not dns_server_working:
-                                log.warning(f"DNS queries are failing, you may be blasting a little too hard")
-                                self._errors.clear()
-                            else:
-                                log.info(
-                                    f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                    error_count = self._errors.get(parent_hash, 0)
+                    if error_count >= self.abort_threshold:
+                        try:
+                            dns_server_working = list(
+                                await asyncio.wait_for(
+                                    self.resolver.resolve("www.google.com", rdtype="A"), self.timeout + 0.1
                                 )
-                                if parent_hash not in self._dns_warnings:
-                                    log.warning(
-                                        f'Aborting future {rdtype} queries to "{parent}" because error count ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
-                                    )
-                                self._dns_warnings.add(parent_hash)
-                                return results, errors
+                            )
+                        except Exception:
+                            dns_server_working = []
+                        if not dns_server_working:
+                            log.warning(f"DNS queries are failing, you may be blasting a little too hard")
+                            self._errors.clear()
+                        else:
+                            log.info(
+                                f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                            )
+                            if parent_hash not in self._dns_warnings:
+                                log.warning(
+                                    f'Aborting future {rdtype} queries to "{parent}" because error count ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                                )
+                            self._dns_warnings.add(parent_hash)
+                            return results, errors
                     async with self.dns_rate_limiter:
-                        results = await self._catch(self.resolver.resolve, query, **kwargs)
+                        # wait_for exists here because of this:
+                        #  https://github.com/rthalley/dnspython/issues/976
+                        results = await asyncio.wait_for(
+                            self._catch(self.resolver.resolve, query, **kwargs), self.timeout + 0.1
+                        )
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = results
                     if parent_hash in self._errors:
@@ -196,7 +205,7 @@ class DNSHelper:
                 dns.resolver.NoNameservers,
                 dns.exception.Timeout,
                 dns.resolver.LifetimeTimeout,
-                asyncio.TimeoutError,
+                TimeoutError,
             ) as e:
                 try:
                     self._errors[parent_hash] += 1
@@ -233,11 +242,18 @@ class DNSHelper:
                     results = self._dns_cache[dns_cache_hash]
                 except KeyError:
                     async with self.dns_rate_limiter:
-                        results = await self._catch(self.resolver.resolve_address, query, **kwargs)
+                        results = await asyncio.wait_for(
+                            self._catch(self.resolver.resolve_address, query, **kwargs), self.timeout + 0.1
+                        )
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = results
                 break
-            except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, dns.resolver.NoNameservers) as e:
+            except (
+                dns.exception.Timeout,
+                dns.resolver.LifetimeTimeout,
+                dns.resolver.NoNameservers,
+                TimeoutError,
+            ) as e:
                 errors.append(e)
                 # don't retry if we get a SERVFAIL
                 if isinstance(e, dns.resolver.NoNameservers):
@@ -473,12 +489,10 @@ class DNSHelper:
 
     async def _catch(self, callback, *args, **kwargs):
         try:
-            # wait_for exists here because of this:
-            #  https://github.com/rthalley/dnspython/issues/976
-            return await asyncio.wait_for(callback(*args, **kwargs), self.timeout + 0.1)
+            return await callback(*args, **kwargs)
         except dns.resolver.NoNameservers:
             raise
-        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, asyncio.TimeoutError):
+        except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, TimeoutError):
             log.verbose(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
             raise
         except dns.exception.DNSException as e:
