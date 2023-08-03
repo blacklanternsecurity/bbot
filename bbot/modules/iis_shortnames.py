@@ -78,6 +78,11 @@ class iis_shortnames(BaseModule):
             duplicate_check_results = await self.helpers.request(
                 method=method, url=url, allow_redirects=False, retries=2, timeout=10
             )
+
+            if not duplicate_check_results:
+                self.debug("Deplucate check produced NoneType sample")
+                break
+
             if duplicate_check_results.status_code != affirmative_status_code:
                 break
             else:
