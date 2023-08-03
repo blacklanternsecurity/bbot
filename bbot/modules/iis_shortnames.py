@@ -80,7 +80,7 @@ class iis_shortnames(BaseModule):
             )
 
             if not duplicate_check_results:
-                self.debug("Deplucate check produced NoneType sample")
+                self.debug("duplicate check produced NoneType sample")
                 break
 
             if duplicate_check_results.status_code != affirmative_status_code:
