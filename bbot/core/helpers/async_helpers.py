@@ -49,7 +49,7 @@ class TaskCounter:
     def value(self):
         return len(self.tasks)
 
-    def count(self, task_name, _log):
+    def count(self, task_name, _log=True):
         if callable(task_name):
             task_name = f"{task_name.__qualname__}()"
         return self.Task(self, task_name, _log)
