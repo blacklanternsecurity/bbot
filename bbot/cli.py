@@ -131,8 +131,8 @@ async def _main():
                 ]
 
                 # if none of the output modules provided on the command line are consoleable, don't turn off the defaults. Instead, just add the one specified to the defaults.
-                if not any(o in consoleable_output_modules for o in options.output_modules):
-                    options.output_modules += default_output_modules
+                if not any(o in consoleable_output_modules for o in output_modules):
+                    output_modules += default_output_modules
 
                 scanner = Scanner(
                     *options.targets,

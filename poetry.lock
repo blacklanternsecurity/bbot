@@ -1780,4 +1780,4 @@ xmltodict = ">=0.12.0,<0.13.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "8e25d12ea22d24b6a153cab314f8df0c3e30c37a098aae2863b92db932a4bb1f"
+content-hash = "4e1c3bdd376ba5b7b626e58adb54624fe46c37763304aff23881f97a3524936c"

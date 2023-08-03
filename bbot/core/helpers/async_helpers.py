@@ -49,21 +49,23 @@ class TaskCounter:
     def value(self):
         return len(self.tasks)
 
-    def count(self, task_name):
+    def count(self, task_name, _log):
         if callable(task_name):
             task_name = f"{task_name.__qualname__}()"
-        return self.Task(self, task_name)
+        return self.Task(self, task_name, _log)
 
     class Task:
-        def __init__(self, manager, task_name):
+        def __init__(self, manager, task_name, _log=True):
             self.manager = manager
             self.task_name = task_name
             self.task_id = None
             self.start_time = None
+            self.log = _log
 
         async def __aenter__(self):
             self.task_id = uuid.uuid4()  # generate a unique ID for the task
-            log.trace(f"Starting task {self.task_name} ({self.task_id})")
+            if self.log:
+                log.trace(f"Starting task {self.task_name} ({self.task_id})")
             async with self.manager.lock:  # acquire the lock
                 self.start_time = datetime.now()
                 self.manager.tasks[self.task_id] = self
@@ -72,7 +74,8 @@ class TaskCounter:
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             async with self.manager.lock:  # acquire the lock
                 self.manager.tasks.pop(self.task_id, None)  # remove only current task
-            log.trace(f"Finished task {self.task_name} ({self.task_id})")
+            if self.log:
+                log.trace(f"Finished task {self.task_name} ({self.task_id})")
 
         def __str__(self):
             running_for = human_timedelta(datetime.now() - self.start_time)

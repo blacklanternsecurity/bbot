@@ -499,7 +499,7 @@ class ScanManager:
                 scan_active_status.append(f"    manager.running: {self.running}")
                 scan_active_status.append(f"        manager._task_counter.value: {self._task_counter.value}")
                 scan_active_status.append(f"        manager._task_counter.tasks:")
-                for task in self._task_counter.tasks.values():
+                for task in list(self._task_counter.tasks.values()):
                     scan_active_status.append(f"            - {task}:")
                 scan_active_status.append(
                     f"        manager.incoming_event_queue.qsize: {self.incoming_event_queue.qsize()}"
@@ -511,7 +511,7 @@ class ScanManager:
                     scan_active_status.append(f"            running: {running}")
                     if running:
                         scan_active_status.append(f"            tasks:")
-                        for task in m._task_counter.tasks.values():
+                        for task in list(m._task_counter.tasks.values()):
                             scan_active_status.append(f"                - {task}:")
                     scan_active_status.append(f"            num_incoming_events: {m.num_incoming_events}")
                     scan_active_status.append(
