@@ -21,7 +21,7 @@ class azure_tenant(viewdns):
         _, query = self.helpers.split_domain(event.data)
         domains, _ = await self.query(query)
         if domains:
-            self.success(f'Found {len(domains):,} domains under tenant for "{query}"')
+            self.success(f'Found {len(domains):,} domains under tenant for "{query}": {", ".join(sorted(domains))}')
         for domain in domains:
             if domain != query:
                 self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])

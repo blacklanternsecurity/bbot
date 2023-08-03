@@ -461,7 +461,7 @@ class BaseModule:
         if not self._cleanedup:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
-                context = f"cleanup()"
+                context = f"{self.name}.cleanup()"
                 if callable(callback):
                     async with self.scan.acatch(context), self._task_counter.count(context):
                         await self.helpers.execute_sync_or_async(callback)
@@ -470,7 +470,7 @@ class BaseModule:
         """
         Queue (incoming) event with module
         """
-        async with self._task_counter.count("queue_event()"):
+        async with self._task_counter.count("queue_event()", _log=False):
             if self.incoming_event_queue is False:
                 self.debug(f"Not in an acceptable state to queue incoming event")
                 return

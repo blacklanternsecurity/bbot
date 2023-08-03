@@ -169,13 +169,18 @@ class DNSHelper:
                 except KeyError:
                     error_count = self._errors.get(parent_hash, 0)
                     if error_count >= self.abort_threshold:
-                        query_in_scope = self.parent_helper.scan.in_scope(query)
+                        # query_in_scope = self.parent_helper.scan.in_scope(query)
                         # don't abort if the query is in scope
-                        if not query_in_scope:
-                            log.verbose(
-                                f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                        # if not query_in_scope:
+                        log.info(
+                            f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
+                        )
+                        if parent_hash not in self._dns_warnings:
+                            log.warning(
+                                f'Aborting future {rdtype} queries to "{parent}" because error count ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                             )
-                            return results, errors
+                        self._dns_warnings.add(parent_hash)
+                        return results, errors
                     async with self.dns_rate_limiter:
                         results = await self._catch(self.resolver.resolve, query, **kwargs)
                     if cache_result:
@@ -453,7 +458,7 @@ class DNSHelper:
         except dns.resolver.NoNameservers:
             raise
         except (dns.exception.Timeout, dns.resolver.LifetimeTimeout):
-            log.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
+            log.verbose(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
             raise
         except dns.exception.DNSException as e:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
