@@ -3,7 +3,7 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_dns(bbot_scanner, bbot_config):
-    scan = bbot_scanner("8.8.8.8")
+    scan = bbot_scanner("8.8.8.8", config=bbot_config)
     helpers = scan.helpers
 
     # lowest level functions
@@ -62,12 +62,34 @@ async def test_dns(bbot_scanner, bbot_config):
     assert hash(f"dns.google:A") in helpers.dns._dns_cache
     assert hash(f"dns.google:AAAA") in helpers.dns._dns_cache
 
+    # Ensure events with hosts have resolved_hosts attribute populated
+    resolved_hosts_event1 = scan.make_event("dns.google", "DNS_NAME", dummy=True)
+    resolved_hosts_event2 = scan.make_event("http://dns.google/", "URL_UNVERIFIED", dummy=True)
+    event_tags1, event_whitelisted1, event_blacklisted1, children1 = await scan.helpers.resolve_event(
+        resolved_hosts_event1
+    )
+    event_tags2, event_whitelisted2, event_blacklisted2, children2 = await scan.helpers.resolve_event(
+        resolved_hosts_event2
+    )
+    assert "8.8.8.8" in [str(x) for x in children1["A"]]
+    assert "8.8.8.8" in [str(x) for x in children2["A"]]
+    assert set(children1.keys()) == set(children2.keys())
+
+
+@pytest.mark.asyncio
+async def test_wildcards(bbot_scanner, bbot_config):
+    scan = bbot_scanner("8.8.8.8", config=bbot_config)
+    helpers = scan.helpers
+
     # wildcards
     wildcard_domains = await helpers.is_wildcard_domain("asdf.github.io")
+    assert hash("github.io") in helpers.dns._wildcard_cache
+    assert hash("asdf.github.io") in helpers.dns._wildcard_cache
     assert "github.io" in wildcard_domains
     assert "A" in wildcard_domains["github.io"]
     assert "SRV" not in wildcard_domains["github.io"]
     assert wildcard_domains["github.io"]["A"] and all(helpers.is_ip(r) for r in wildcard_domains["github.io"]["A"])
+    helpers.dns._wildcard_cache.clear()
 
     wildcard_rdtypes = await helpers.is_wildcard("blacklanternsecurity.github.io")
     assert "A" in wildcard_rdtypes
@@ -82,6 +104,9 @@ async def test_dns(bbot_scanner, bbot_config):
     assert "SRV" not in wildcard_rdtypes
     assert wildcard_rdtypes["A"] == (True, "github.io")
     assert hash("github.io") in helpers.dns._wildcard_cache
+    assert not hash("asdf.github.io") in helpers.dns._wildcard_cache
+    assert not hash("asdf.asdf.github.io") in helpers.dns._wildcard_cache
+    assert not hash("asdf.asdf.asdf.github.io") in helpers.dns._wildcard_cache
     assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)
@@ -106,16 +131,3 @@ async def test_dns(bbot_scanner, bbot_config):
     assert "wildcard-domain" in wildcard_event3.tags
     assert "a-wildcard-domain" in wildcard_event3.tags
     assert "srv-wildcard-domain" not in wildcard_event3.tags
-
-    # Ensure events with hosts have resolved_hosts attribute populated
-    resolved_hosts_event1 = scan.make_event("dns.google", "DNS_NAME", dummy=True)
-    resolved_hosts_event2 = scan.make_event("http://dns.google/", "URL_UNVERIFIED", dummy=True)
-    event_tags1, event_whitelisted1, event_blacklisted1, children1 = await scan.helpers.resolve_event(
-        resolved_hosts_event1
-    )
-    event_tags2, event_whitelisted2, event_blacklisted2, children2 = await scan.helpers.resolve_event(
-        resolved_hosts_event2
-    )
-    assert "8.8.8.8" in [str(x) for x in children1["A"]]
-    assert "8.8.8.8" in [str(x) for x in children2["A"]]
-    assert set(children1.keys()) == set(children2.keys())

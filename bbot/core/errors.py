@@ -1,4 +1,4 @@
-from httpx import RequestError, ReadTimeout  # noqa
+from httpx import HTTPError, RequestError  # noqa
 
 
 class BBOTError(Exception):
@@ -42,6 +42,10 @@ class WordlistError(BBOTError):
 
 
 class DNSError(BBOTError):
+    pass
+
+
+class DNSWildcardBreak(DNSError):
     pass
 
 

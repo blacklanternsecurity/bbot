@@ -460,13 +460,11 @@ class ScanManager:
 
             if modules_status:
                 modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, r, i, o, t, _ in modules_status])
-                running_modules_str = ", ".join([m[0] for m in modules_status if m[1]])
-                if not running_modules_str:
-                    running_modules_str = "None"
-                self.scan.info(f"{self.scan.name}: Modules running: {running_modules_str}")
-                self.scan.verbose(
-                    f"{self.scan.name}: Modules status (incoming:processing:outgoing) {modules_status_str}"
+                self.scan.info(
+                    f"{self.scan.name}: Modules running (incoming:processing:outgoing) {modules_status_str}"
                 )
+            else:
+                self.scan.info(f"{self.scan.name}: No modules running")
             event_type_summary = sorted(
                 self.scan.stats.events_emitted_by_type.items(), key=lambda x: x[-1], reverse=True
             )
@@ -501,7 +499,7 @@ class ScanManager:
                 scan_active_status.append(f"    manager.running: {self.running}")
                 scan_active_status.append(f"        manager._task_counter.value: {self._task_counter.value}")
                 scan_active_status.append(f"        manager._task_counter.tasks:")
-                for task in self._task_counter.tasks.values():
+                for task in list(self._task_counter.tasks.values()):
                     scan_active_status.append(f"            - {task}:")
                 scan_active_status.append(
                     f"        manager.incoming_event_queue.qsize: {self.incoming_event_queue.qsize()}"
@@ -513,7 +511,7 @@ class ScanManager:
                     scan_active_status.append(f"            running: {running}")
                     if running:
                         scan_active_status.append(f"            tasks:")
-                        for task in m._task_counter.tasks.values():
+                        for task in list(m._task_counter.tasks.values()):
                             scan_active_status.append(f"                - {task}:")
                     scan_active_status.append(f"            num_incoming_events: {m.num_incoming_events}")
                     scan_active_status.append(

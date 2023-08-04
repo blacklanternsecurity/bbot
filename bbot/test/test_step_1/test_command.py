@@ -18,6 +18,28 @@ async def test_command(bbot_scanner, bbot_config):
     result = (await scan1.helpers.run(["cat"], input=[b"some", b"random", b"stdin"], text=False)).stdout
     assert result.splitlines() == [b"some", b"random", b"stdin"]
 
+    # test overflow - run
+    tmpfile_path = Path("/tmp/test_bigfile")
+    with open(tmpfile_path, "w") as f:
+        # write 2MB
+        f.write("A" * 1024 * 1024 * 2)
+    result = (await scan1.helpers.run(["cat", str(tmpfile_path)], limit=1024 * 64, text=False)).stdout
+    assert len(result) == 1024 * 1024 * 2
+    tmpfile_path.unlink(missing_ok=True)
+    # test overflow - run_live
+    tmpfile_path = Path("/tmp/test_bigfile")
+    with open(tmpfile_path, "w") as f:
+        # write 2MB
+        f.write("A" * 10 + "\n")
+        f.write("B" * 1024 * 1024 * 2 + "\n")
+        f.write("C" * 10 + "\n")
+    lines = []
+    async for line in scan1.helpers.run_live(["cat", str(tmpfile_path)], limit=1024 * 64):
+        lines.append(line)
+    # only a small bit of the overflowed line survives, that's okay.
+    assert lines == ["AAAAAAAAAA", "BBBBBBBBBBB", "CCCCCCCCCC"]
+    tmpfile_path.unlink(missing_ok=True)
+
     # run_live
     lines = []
     async for line in scan1.helpers.run_live(["echo", "plumbus"]):

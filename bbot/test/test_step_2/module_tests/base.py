@@ -102,6 +102,7 @@ class ModuleTestBase:
     @pytest_asyncio.fixture
     async def module_test(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request):
         module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request)
+        module_test.log.info(f"Starting {self.name} module test")
         await self.setup_before_prep(module_test)
         await module_test.scan.prep()
         await self.setup_after_prep(module_test)
@@ -111,6 +112,7 @@ class ModuleTestBase:
     @pytest.mark.asyncio
     async def test_module_run(self, module_test):
         self.check(module_test, module_test.events)
+        module_test.log.info(f"Finished {self.name} module test")
 
     def check(self, module_test, events):
         assert False, f"Must override {self.name}.check()"

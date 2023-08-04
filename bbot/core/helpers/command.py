@@ -53,7 +53,13 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
             input_task = asyncio.create_task(_write_stdin(proc, _input))
 
         while 1:
-            line = await proc.stdout.readline()
+            try:
+                line = await proc.stdout.readline()
+            except ValueError as e:
+                command_str = " ".join([str(c) for c in command])
+                log.warning(f"Error executing command {command_str}: {e}")
+                log.trace(traceback.format_exc())
+                continue
             if not line:
                 break
             if text:
@@ -118,8 +124,9 @@ async def _write_stdin(proc, _input):
 
 
 def _prepare_command_kwargs(self, command, kwargs):
-    # limit = 10MB (this is needed for cases like httpx that are sending large JSON blobs over stdout)
-    kwargs["limit"] = 1024 * 1024 * 10
+    # limit = 100MB (this is needed for cases like httpx that are sending large JSON blobs over stdout)
+    if not "limit" in kwargs:
+        kwargs["limit"] = 1024 * 1024 * 100
     if not "stdout" in kwargs:
         kwargs["stdout"] = asyncio.subprocess.PIPE
     if not "stderr" in kwargs:

@@ -7,8 +7,8 @@ class censys(shodan_dns):
     """
 
     watched_events = ["DNS_NAME"]
-    produced_events = ["DNS_NAME", "EMAIL_ADDRESS", "IP_ADDRESS", "OPEN_PORT", "PROTOCOL"]
-    flags = ["subdomain-enum", "email-enum", "passive", "safe"]
+    produced_events = ["DNS_NAME"]
+    flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Query the Censys API", "auth_required": True}
     options = {"api_id": "", "api_secret": "", "max_pages": 5}
     options_desc = {

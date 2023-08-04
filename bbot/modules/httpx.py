@@ -59,8 +59,7 @@ class httpx(BaseModule):
         safe_to_visit = "httpx-safe" in event.tags
         if not safe_to_visit and (in_scope_only and not self.scan.in_scope(event)):
             return False, "event is not in scope"
-        # reject base URLs to avoid visiting a resource twice
-        # note: speculate makes open ports from
+
         return True
 
     async def handle_batch(self, *events):

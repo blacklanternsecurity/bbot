@@ -131,8 +131,8 @@ async def _main():
                 ]
 
                 # if none of the output modules provided on the command line are consoleable, don't turn off the defaults. Instead, just add the one specified to the defaults.
-                if not any(o in consoleable_output_modules for o in options.output_modules):
-                    options.output_modules += default_output_modules
+                if not any(o in consoleable_output_modules for o in output_modules):
+                    output_modules += default_output_modules
 
                 scanner = Scanner(
                     *options.targets,
@@ -292,7 +292,7 @@ async def _main():
                         log.hugeinfo("This is a passive scan. No connections will be made to target")
                     if slow_modules:
                         log.warning(
-                            f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take longer than usual"
+                            f"You have enabled the following slow modules: {','.join(slow_modules)}. Scan may take a while"
                         )
 
                 scanner.helpers.word_cloud.load()
