@@ -172,7 +172,7 @@ class DNSHelper:
                         try:
                             dns_server_working = list(
                                 await asyncio.wait_for(
-                                    self.resolver.resolve("www.google.com", rdtype="A"), self.timeout + 0.1
+                                    self.resolver.resolve("www.google.com", rdtype="A"), self.timeout + 10
                                 )
                             )
                         except Exception:
@@ -194,7 +194,7 @@ class DNSHelper:
                         # wait_for exists here because of this:
                         #  https://github.com/rthalley/dnspython/issues/976
                         results = await asyncio.wait_for(
-                            self._catch(self.resolver.resolve, query, **kwargs), self.timeout + 0.1
+                            self._catch(self.resolver.resolve, query, **kwargs), self.timeout + 10
                         )
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = results
