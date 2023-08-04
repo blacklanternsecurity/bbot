@@ -16,10 +16,22 @@ from ..helpers.logger import colorize, loglevel_mapping
 _log_level_override = None
 
 
+# Log to stderr
+stderr_handler = logging.StreamHandler(sys.stderr)
+
+# Log to stdout
+stdout_handler = logging.StreamHandler(sys.stdout)
+
+log_listener = None
+
+
 class ColoredFormatter(logging.Formatter):
     """
     Pretty colors for terminal
     """
+
+    formatter = logging.Formatter("%(levelname)s %(message)s")
+    module_formatter = logging.Formatter("%(levelname)s %(name)s: %(message)s")
 
     def format(self, record):
         colored_record = copy(record)
@@ -28,7 +40,11 @@ class ColoredFormatter(logging.Formatter):
         colored_record.levelname = colorize(f"[{levelshort}]", level=levelname)
         if levelname == "CRITICAL" or levelname.startswith("HUGE"):
             colored_record.msg = colorize(colored_record.msg, level=levelname)
-        return logging.Formatter.format(self, colored_record)
+        # remove name
+        if colored_record.name.startswith("bbot.modules."):
+            colored_record.name = colored_record.name.split("bbot.modules.")[-1]
+            return self.module_formatter.format(colored_record)
+        return self.formatter.format(colored_record)
 
 
 def addLoggingLevel(levelName, levelNum, methodName=None):
@@ -106,25 +122,21 @@ def log_worker_setup(logging_queue):
     This needs to be run whenever a new multiprocessing.Process() is spawned
     """
     log_level = get_log_level()
-    log = logging.getLogger("bbot")
+    bbot_log = logging.getLogger("bbot")
+    asyncio_log = logging.getLogger("asyncio")
     # Don't do this more than once
-    if len(log.handlers) == 0:
-        log.setLevel(log_level)
+    if len(bbot_log.handlers) == 0:
         queue_handler = QueueHandler(logging_queue)
-        log.addHandler(queue_handler)
-    return log
+        for log in (bbot_log, asyncio_log):
+            log.setLevel(log_level)
+            log.addHandler(queue_handler)
+    return bbot_log
 
 
 def log_listener_setup(logging_queue):
     log_dir = Path(config["home"]) / "logs"
     if not mkdir(log_dir, raise_error=False):
         error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
-
-    # Log to stderr
-    stderr_handler = logging.StreamHandler(sys.stderr)
-
-    # Log to stdout
-    stdout_handler = logging.StreamHandler(sys.stdout)
 
     # Main log file
     main_handler = logging.handlers.TimedRotatingFileHandler(
@@ -137,18 +149,10 @@ def log_listener_setup(logging_queue):
     )
 
     def stderr_filter(record):
-        config_silent = config.get("silent", False)
         log_level = get_log_level()
-        excluded_levels = [logging.STDOUT]
-        if log_level > logging.DEBUG:
-            excluded_levels.append(logging.TRACE)
-        if record.levelno in excluded_levels:
+        if record.levelno == logging.STDOUT or (record.levelno == logging.TRACE and log_level > logging.DEBUG):
             return False
-        if record.levelno >= logging.ERROR:
-            return True
         if record.levelno < log_level:
-            return False
-        if config_silent and not record.levelname.startswith("HUGE"):
             return False
         return True
 
@@ -166,6 +170,7 @@ def log_listener_setup(logging_queue):
 
     handlers = [stdout_handler, stderr_handler, main_handler, debug_handler]
 
+    global log_listener
     log_listener = QueueListener(logging_queue, *handlers)
     log_listener.start()
     atexit.register(stop_listener, log_listener)
@@ -219,8 +224,8 @@ def set_log_level(level, logger=None):
         logger.hugeinfo(f"Setting log level to {logging.getLevelName(level)}")
     config["silent"] = False
     _log_level_override = level
-    log = logging.getLogger("bbot")
-    log.setLevel(level)
+    for logname in ("bbot", "asyncio"):
+        logging.getLogger(logname).setLevel(level)
 
 
 def toggle_log_level(logger=None):

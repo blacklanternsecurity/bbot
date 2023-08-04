@@ -8,6 +8,28 @@ from ...modules import module_loader
 from ..helpers.misc import cpu_architecture, os_platform, os_platform_friendly
 
 
+# keep track of whether BBOT is being executed via the CLI
+cli_execution = False
+
+
+def increase_limit(new_limit):
+    try:
+        import resource
+
+        # Get current limit
+        soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+
+        new_limit = min(new_limit, hard_limit)
+
+        # Attempt to set new limit
+        resource.setrlimit(resource.RLIMIT_NOFILE, (new_limit, hard_limit))
+    except Exception as e:
+        sys.stderr.write(f"Failed to set new ulimit: {e}\n")
+
+
+increase_limit(65535)
+
+
 def flatten_config(config, base="bbot"):
     """
     Flatten a JSON-like config into a list of environment variables:
@@ -76,7 +98,7 @@ def prepare_environment(bbot_config):
     os.environ["BBOT_CPU_ARCH"] = cpu_architecture()
 
     # exchange certain options between CLI args and config
-    if args.cli_options is not None:
+    if cli_execution and args.cli_options is not None:
         # deps
         bbot_config["retry_deps"] = args.cli_options.retry_deps
         bbot_config["force_deps"] = args.cli_options.force_deps
@@ -88,6 +110,18 @@ def prepare_environment(bbot_config):
         if args.cli_options.output_dir:
             bbot_config["output_dir"] = args.cli_options.output_dir
 
+    import logging
+
+    log = logging.getLogger()
+    if bbot_config.get("debug", False):
+        bbot_config["silent"] = False
+        log = logging.getLogger("bbot")
+        log.setLevel(logging.DEBUG)
+        logging.getLogger("asyncio").setLevel(logging.DEBUG)
+    elif bbot_config.get("silent", False):
+        log = logging.getLogger("bbot")
+        log.setLevel(logging.CRITICAL)
+
     # copy config to environment
     bbot_environ = flatten_config(bbot_config)
     os.environ.update(bbot_environ)
@@ -97,6 +131,9 @@ def prepare_environment(bbot_config):
     if http_proxy:
         os.environ["HTTP_PROXY"] = http_proxy
         os.environ["HTTPS_PROXY"] = http_proxy
+    else:
+        os.environ.pop("HTTP_PROXY", None)
+        os.environ.pop("HTTPS_PROXY", None)
 
     # replace environment variables in preloaded modules
     module_loader.find_and_replace(**os.environ)

@@ -6,9 +6,8 @@ class bucket_digitalocean(bucket_aws):
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "slow", "cloud-enum", "web-thorough"]
     meta = {"description": "Check for DigitalOcean spaces related to target"}
-    options = {"max_threads": 10, "permutations": False}
+    options = {"permutations": False}
     options_desc = {
-        "max_threads": "Maximum number of threads for HTTP requests",
         "permutations": "Whether to try permutations",
     }
 

@@ -14,7 +14,7 @@ class url_manipulation(BaseModule):
         "allow_redirects": "Allowing redirects will sometimes create false positives. Disallowing will sometimes create false negatives. Allowed by default."
     }
 
-    def setup(self):
+    async def setup(self):
         # ([string]method,[string]path,[bool]strip trailing slash)
         self.signatures = []
 
@@ -38,7 +38,7 @@ class url_manipulation(BaseModule):
         self.allow_redirects = self.config.get("allow_redirects", True)
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         try:
             compare_helper = self.helpers.http_compare(
                 event.data, allow_redirects=self.allow_redirects, include_cache_buster=False
@@ -47,15 +47,18 @@ class url_manipulation(BaseModule):
             self.debug(e)
             return
 
-        if compare_helper.canary_check(event.data, mode="getparam") == False:
+        if await compare_helper.canary_check(event.data, mode="getparam") == False:
             self.verbose(f'Aborting "{event.data}" due to failed canary check')
             return
 
         for sig in self.signatures:
             sig = self.format_signature(sig, event)
-            match, reasons, reflection, subject_response = compare_helper.compare(
-                sig[1], method=sig[0], allow_redirects=self.allow_redirects
-            )
+            try:
+                match, reasons, reflection, subject_response = await compare_helper.compare(
+                    sig[1], method=sig[0], allow_redirects=self.allow_redirects
+                )
+            except HttpCompareError as e:
+                self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
 
             if subject_response:
                 subject_content = "".join([str(x) for x in subject_response.headers])
@@ -78,7 +81,7 @@ class url_manipulation(BaseModule):
                 else:
                     self.debug("Ignoring positive result due to presence of parameter name in result")
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         accepted_status_codes = ["200", "301", "302"]
 
         for c in accepted_status_codes:

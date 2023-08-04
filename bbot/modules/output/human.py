@@ -10,17 +10,20 @@ class Human(BaseOutputModule):
     options = {"output_file": "", "console": True}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
     vuln_severity_map = {"LOW": "HUGEWARNING", "MEDIUM": "HUGEWARNING", "HIGH": "CRITICAL", "CRITICAL": "CRITICAL"}
+    accept_dupes = False
 
-    def setup(self):
-        self._prep_output_dir("output.txt")
+    output_filename = "output.txt"
+
+    async def setup(self):
+        self._prep_output_dir(self.output_filename)
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         event_type = f"[{event.type}]"
         event_tags = ""
         if getattr(event, "tags", []):
             event_tags = f'\t({", ".join(sorted(getattr(event, "tags", [])))})'
-        event_str = f"{event_type:<20}\t{event.data_human}\t{event.module}{event_tags}"
+        event_str = f"{event_type:<20}\t{event.data_human}\t{event.module_sequence}{event_tags}"
         # log vulnerabilities in vivid colors
         if event.type == "VULNERABILITY":
             severity = event.data.get("severity", "INFO")
@@ -36,12 +39,11 @@ class Human(BaseOutputModule):
         if self.config.get("console", True):
             self.stdout(event_str)
 
-    def cleanup(self):
+    async def cleanup(self):
         if getattr(self, "_file", None) is not None:
             with suppress(Exception):
                 self.file.close()
 
-    def report(self):
-        if self._file is not None:
-            with self._report_lock:
-                self.info(f"Saved TXT output to {self.output_file}")
+    async def report(self):
+        if getattr(self, "_file", None) is not None:
+            self.info(f"Saved TXT output to {self.output_file}")

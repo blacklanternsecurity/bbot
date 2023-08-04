@@ -1,17 +1,37 @@
 from .crobat import crobat
+from .shodan_dns import shodan_dns
 
 
-class leakix(crobat):
+class leakix(shodan_dns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
+    options = {"api_key": ""}
+    # NOTE: API key is not required (but having one will get you more results)
+    options_desc = {"api_key": "LeakIX API Key"}
     meta = {"description": "Query leakix.net for subdomains"}
 
     base_url = "https://leakix.net"
 
-    def request_url(self, query):
+    async def setup(self):
+        ret = await crobat.setup(self)
+        self.headers = {"Accept": "application/json"}
+        self.api_key = self.config.get("api_key", "")
+        if self.api_key:
+            self.headers["api-key"] = self.api_key
+            return await self.require_api_key()
+        return ret
+
+    async def ping(self):
+        url = f"{self.base_url}/host/1.2.3.4.5"
+        r = await self.helpers.request(url, headers=self.headers)
+        resp_content = getattr(r, "text", "")
+        assert getattr(r, "status_code", 0) != 401, resp_content
+
+    async def request_url(self, query):
         url = f"{self.base_url}/api/subdomains/{self.helpers.quote(query)}"
-        return self.request_with_fail_count(url, headers={"Accept": "application/json"})
+        response = await self.request_with_fail_count(url, headers=self.headers)
+        return response
 
     def parse_results(self, r, query=None):
         json = r.json()

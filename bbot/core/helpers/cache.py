@@ -1,7 +1,6 @@
 import os
 import time
 import logging
-import threading
 from contextlib import suppress
 from collections import OrderedDict
 
@@ -66,32 +65,29 @@ class CacheDict:
 
     def __init__(self, max_size=1000):
         self._cache = OrderedDict()
-        self._lock = threading.Lock()
         self._max_size = int(max_size)
 
     def get(self, name, fallback=_sentinel):
         name_hash = self._hash(name)
-        with self._lock:
-            try:
-                return self._cache[name_hash]
-            except KeyError:
-                if fallback is not _sentinel:
-                    return fallback
-                raise
-            finally:
-                with suppress(KeyError):
-                    self._cache.move_to_end(name_hash)
-                self._truncate()
+        try:
+            return self._cache[name_hash]
+        except KeyError:
+            if fallback is not _sentinel:
+                return fallback
+            raise
+        finally:
+            with suppress(KeyError):
+                self._cache.move_to_end(name_hash)
+            self._truncate()
 
     def put(self, name, value):
         name_hash = self._hash(name)
-        with self._lock:
-            try:
-                self._cache[name_hash] = value
-            finally:
-                with suppress(KeyError):
-                    self._cache.move_to_end(name_hash)
-                self._truncate()
+        try:
+            self._cache[name_hash] = value
+        finally:
+            with suppress(KeyError):
+                self._cache.move_to_end(name_hash)
+            self._truncate()
 
     def _truncate(self):
         if not self or len(self) <= self._max_size:

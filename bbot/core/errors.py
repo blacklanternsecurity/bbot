@@ -1,4 +1,4 @@
-from requests.exceptions import RequestException  # noqa F401
+from httpx import HTTPError, RequestError  # noqa
 
 
 class BBOTError(Exception):
@@ -6,10 +6,6 @@ class BBOTError(Exception):
 
 
 class ScanError(BBOTError):
-    pass
-
-
-class ScanCancelledError(BBOTError):
     pass
 
 
@@ -46,6 +42,10 @@ class WordlistError(BBOTError):
 
 
 class DNSError(BBOTError):
+    pass
+
+
+class DNSWildcardBreak(DNSError):
     pass
 
 

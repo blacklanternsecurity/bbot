@@ -9,17 +9,16 @@ class host_header(BaseModule):
     meta = {"description": "Try common HTTP Host header spoofing techniques"}
 
     in_scope_only = True
+    per_host_only = True
 
     deps_apt = ["curl"]
 
-    def setup(self):
-        self.scanned_hosts = set()
-
+    async def setup(self):
         self.subdomain_tags = {}
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
                 self.interactsh_instance = self.helpers.interactsh()
-                self.domain = self.interactsh_instance.register(callback=self.interactsh_callback)
+                self.domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
                 return False
@@ -54,33 +53,26 @@ class host_header(BaseModule):
                 # this is likely caused by something trying to resolve the base domain first and can be ignored
                 self.debug("skipping results because subdomain tag was missing")
 
-    def finish(self):
+    async def finish(self):
         if self.scan.config.get("interactsh_disable", False) == False:
+            await self.helpers.sleep(5)
             try:
-                for r in self.interactsh_instance.poll():
+                for r in await self.interactsh_instance.poll():
                     self.interactsh_callback(r)
             except InteractshError as e:
                 self.debug(f"Error in interact.sh: {e}")
 
-    def cleanup(self):
+    async def cleanup(self):
         if self.scan.config.get("interactsh_disable", False) == False:
             try:
-                self.interactsh_instance.deregister()
+                await self.interactsh_instance.deregister()
                 self.debug(
                     f"successfully deregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
                 )
             except InteractshError as e:
                 self.warning(f"Interactsh failure: {e}")
 
-    def handle_event(self, event):
-        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
-        host_hash = hash(host)
-        if host_hash in self.scanned_hosts:
-            self.debug(f"Host {host} was already scanned, exiting")
-            return
-        else:
-            self.scanned_hosts.add(host_hash)
-
+    async def handle_event(self, event):
         # get any set-cookie responses from the response and add them to the request
 
         added_cookies = {}
@@ -100,7 +92,7 @@ class host_header(BaseModule):
         self.debug(f"Performing {technique_description} case")
         subdomain_tag = self.rand_string(4, digits=False)
         self.subdomain_tags[subdomain_tag] = (event, technique_description)
-        output = self.helpers.curl(
+        output = await self.helpers.curl(
             url=event.data["url"],
             headers={"Host": f"{subdomain_tag}.{self.domain}"},
             ignore_bbot_global_settings=True,
@@ -114,9 +106,8 @@ class host_header(BaseModule):
         self.debug(f"Performing {technique_description} case")
         subdomain_tag = self.rand_string(4, digits=False)
         self.subdomain_tags[subdomain_tag] = (event, technique_description)
-        output = self.helpers.curl(
+        output = await self.helpers.curl(
             url=event.data["url"],
-            headers={"Host": f"{subdomain_tag}.{self.domain}"},
             path_override=event.data["url"],
             cookies=added_cookies,
         )
@@ -126,7 +117,7 @@ class host_header(BaseModule):
 
         # duplicate host header tolerance
         technique_description = "duplicate host header tolerance"
-        output = self.helpers.curl(
+        output = await self.helpers.curl(
             url=event.data["url"],
             # Sending a blank HOST first as a hack to trick curl. This makes it no longer an "internal header", thereby allowing for duplicates
             # The fact that it's accepting two host headers is rare enough to note on its own, and not too noisy. Having the 3rd header be an interactsh would result in false negatives for the slightly less interesting cases.
@@ -167,7 +158,7 @@ class host_header(BaseModule):
         for oh in override_headers_list:
             override_headers[oh] = f"{subdomain_tag}.{self.domain}"
 
-        output = self.helpers.curl(
+        output = await self.helpers.curl(
             url=event.data["url"],
             headers=override_headers,
             cookies=added_cookies,

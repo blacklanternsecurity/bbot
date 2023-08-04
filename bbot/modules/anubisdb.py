@@ -10,9 +10,9 @@ class anubisdb(crobat):
     base_url = "https://jldc.me/anubis/subdomains"
     dns_abort_depth = 5
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/{self.helpers.quote(query)}"
-        return self.request_with_fail_count(url)
+        return await self.request_with_fail_count(url)
 
     def abort_if_pre(self, hostname):
         """
@@ -24,11 +24,11 @@ class anubisdb(crobat):
             return True
         return False
 
-    def abort_if(self, event):
+    async def abort_if(self, event):
         # abort if dns name is unresolved
         if not "resolved" in event.tags:
             return True, "DNS name is unresolved"
-        return super().abort_if(event)
+        return await super().abort_if(event)
 
     def parse_results(self, r, query):
         results = set()

@@ -10,10 +10,14 @@ class BaseOutputModule(BaseModule):
     _stats_exclude = True
 
     def _event_precheck(self, event):
+        # omitted events such as HTTP_RESPONSE etc.
         if event._omit:
             return False, "_omit is True"
+        # forced events like intermediary links in a DNS resolution chain
         if event._force_output:
             return True, "_force_output is True"
+        # internal events like those from speculate, ipneighbor
+        # or events that are over our report distance
         if event._internal:
             return False, "_internal is True"
         return super()._event_precheck(event)
@@ -27,9 +31,12 @@ class BaseOutputModule(BaseModule):
         self.helpers.mkdir(self.output_file.parent)
         self._file = None
 
+    def _scope_distance_check(self, event):
+        return True, ""
+
     @property
     def file(self):
-        if self._file is None:
+        if getattr(self, "_file", None) is None:
             self._file = open(self.output_file, mode="a")
         return self._file
 

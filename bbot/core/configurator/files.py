@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from omegaconf import OmegaConf
 
@@ -13,7 +14,10 @@ secrets_filename = (config_dir / "secrets.yml").resolve()
 default_config = None
 
 
-def _get_config(filename, name="config", notify=True):
+def _get_config(filename, name="config"):
+    notify = False
+    if sys.argv and sys.argv[0].endswith("bbot") and not any(x in sys.argv for x in ("-s", "--silent")):
+        notify = True
     filename = Path(filename).resolve()
     try:
         conf = OmegaConf.load(str(filename))

@@ -25,6 +25,9 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         For targets, also allow input files containing additional targets
         """
         ret = super().parse_args(*args, **kwargs)
+        # silent implies -y
+        if ret.silent:
+            ret.yes = True
         ret.modules = chain_lists(ret.modules)
         ret.output_modules = chain_lists(ret.output_modules)
         ret.targets = chain_lists(ret.targets, try_files=True, msg="Reading targets from file: {filename}")
@@ -55,30 +58,57 @@ class DummyArgumentParser(BBOTArgumentParser):
         pass
 
 
-epilog = """EXAMPLES
+scan_examples = [
+    (
+        "Subdomains",
+        "Perform a full subdomain enumeration on evilcorp.com",
+        "bbot -t evilcorp.com -f subdomain-enum",
+    ),
+    (
+        "Subdomains (passive only)",
+        "Perform a passive-only subdomain enumeration on evilcorp.com",
+        "bbot -t evilcorp.com -f subdomain-enum -rf passive",
+    ),
+    (
+        "Subdomains + port scan + web screenshots",
+        "Port-scan every subdomain, screenshot every webpage, output to current directory",
+        "bbot -t evilcorp.com -f subdomain-enum -m nmap gowitness -n my_scan -o .",
+    ),
+    (
+        "Subdomains + basic web scan",
+        "A basic web scan includes wappalyzer, robots.txt, and other non-intrusive web modules",
+        "bbot -t evilcorp.com -f subdomain-enum web-basic",
+    ),
+    (
+        "Web spider",
+        "Crawl www.evilcorp.com up to a max depth of 2, automatically extracting emails, secrets, etc.",
+        "bbot -t www.evilcorp.com -m httpx robots badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2",
+    ),
+    (
+        "Everything everywhere all at once",
+        "Subdomains, emails, cloud buckets, port scan, basic web, web screenshots, nuclei",
+        "bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly",
+    ),
+]
 
-    Subdomains:
-        bbot -t evilcorp.com -f subdomain-enum
+usage_examples = [
+    (
+        "List modules",
+        "",
+        "bbot -l",
+    ),
+    (
+        "List flags",
+        "",
+        "bbot -lf",
+    ),
+]
 
-    Subdomains (passive only):
-        bbot -t evilcorp.com -f subdomain-enum -rf passive
 
-    Subdomains + port scan + web screenshots:
-        bbot -t evilcorp.com -f subdomain-enum -m naabu gowitness -n my_scan -o .
-
-    Subdomains + basic web scan (wappalyzer, robots.txt, iis shortnames, etc.):
-        bbot -t evilcorp.com -f subdomain-enum web-basic
-
-    Subdomains + web spider (search for emails, etc.):
-        bbot -t evilcorp.com -f subdomain-enum -c web_spider_distance=2 web_spider_depth=2
-
-    Subdomains + emails + cloud + port scan + non-intrusive web + web screenshots + nuclei:
-        bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m naabu gowitness nuclei --allow-deadly
-
-    List modules:
-        bbot -l
-
-"""
+epilog = "EXAMPLES\n"
+for example in (scan_examples, usage_examples):
+    for title, description, command in example:
+        epilog += f"\n    {title}:\n        {command}\n"
 
 
 parser = BBOTArgumentParser(
@@ -104,8 +134,8 @@ for p in (parser, dummy_parser):
         action="store_true",
         help="Don't consider subdomains of target/whitelist to be in-scope",
     )
-    p.add_argument("-n", "--name", help="Name of scan (default: random)", metavar="SCAN_NAME")
-    p.add_argument(
+    modules = p.add_argument_group(title="Modules")
+    modules.add_argument(
         "-m",
         "--modules",
         nargs="+",
@@ -113,9 +143,11 @@ for p in (parser, dummy_parser):
         help=f'Modules to enable. Choices: {",".join(module_choices)}',
         metavar="MODULE",
     )
-    p.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
-    p.add_argument("-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE")
-    p.add_argument(
+    modules.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
+    modules.add_argument(
+        "-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE"
+    )
+    modules.add_argument(
         "-f",
         "--flags",
         nargs="+",
@@ -123,7 +155,8 @@ for p in (parser, dummy_parser):
         help=f'Enable modules by flag. Choices: {",".join(sorted(flag_choices))}',
         metavar="FLAG",
     )
-    p.add_argument(
+    modules.add_argument("-lf", "--list-flags", action="store_true", help=f"List available flags.")
+    modules.add_argument(
         "-rf",
         "--require-flags",
         nargs="+",
@@ -131,7 +164,7 @@ for p in (parser, dummy_parser):
         help=f"Only enable modules with these flags (e.g. -rf passive)",
         metavar="FLAG",
     )
-    p.add_argument(
+    modules.add_argument(
         "-ef",
         "--exclude-flags",
         nargs="+",
@@ -139,7 +172,7 @@ for p in (parser, dummy_parser):
         help=f"Disable modules with these flags. (e.g. -ef aggressive)",
         metavar="FLAG",
     )
-    p.add_argument(
+    modules.add_argument(
         "-om",
         "--output-modules",
         nargs="+",
@@ -147,37 +180,32 @@ for p in (parser, dummy_parser):
         help=f'Output module(s). Choices: {",".join(output_module_choices)}',
         metavar="MODULE",
     )
-    p.add_argument(
+    modules.add_argument("--allow-deadly", action="store_true", help="Enable the use of highly aggressive modules")
+    scan = p.add_argument_group(title="Scan")
+    scan.add_argument("-n", "--name", help="Name of scan (default: random)", metavar="SCAN_NAME")
+    scan.add_argument(
         "-o",
         "--output-dir",
         metavar="DIR",
     )
-    p.add_argument(
+    scan.add_argument(
         "-c",
         "--config",
         nargs="*",
         help="custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'",
         metavar="CONFIG",
     )
-    p.add_argument("--allow-deadly", action="store_true", help="Enable the use of highly aggressive modules")
-    p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
-    p.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
-    p.add_argument("-s", "--silent", action="store_true", help="Be quiet")
-    p.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
-    p.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
-    p.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
-    p.add_argument(
+    scan.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
+    scan.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
+    scan.add_argument("-s", "--silent", action="store_true", help="Be quiet")
+    scan.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
+    scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
+    scan.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
+    scan.add_argument(
         "--current-config",
         action="store_true",
         help="Show current config in YAML format",
     )
-    wordcloud = p.add_argument_group(
-        title="Word cloud", description="Save/load wordlist of common words gathered during a scan"
-    )
-    wordcloud.add_argument(
-        "--save-wordcloud", help="Output wordcloud to custom file when the scan completes", metavar="FILE"
-    )
-    wordcloud.add_argument("--load-wordcloud", help="Load wordcloud from a custom file", metavar="FILE")
     deps = p.add_argument_group(
         title="Module dependencies", description="Control how modules install their dependencies"
     )

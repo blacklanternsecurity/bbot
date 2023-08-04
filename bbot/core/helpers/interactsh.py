@@ -2,11 +2,10 @@
 import json
 import base64
 import random
+import asyncio
 import logging
 import traceback
-from time import sleep
 from uuid import uuid4
-from threading import Thread
 
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
@@ -26,9 +25,9 @@ class Interactsh:
         self.correlation_id = None
         self.custom_server = self.parent_helper.config.get("interactsh_server", None)
         self.token = self.parent_helper.config.get("interactsh_token", None)
-        self._thread = None
+        self._poll_task = None
 
-    def register(self, callback=None):
+    async def register(self, callback=None):
         rsa = RSA.generate(1024)
 
         self.public_key = rsa.publickey().exportKey()
@@ -57,7 +56,9 @@ class Interactsh:
                 "secret-key": self.secret,
                 "correlation-id": self.correlation_id,
             }
-            r = self.parent_helper.request(f"https://{server}/register", headers=headers, json=data, method="POST")
+            r = await self.parent_helper.request(
+                f"https://{server}/register", headers=headers, json=data, method="POST"
+            )
             if r is None:
                 continue
             try:
@@ -78,12 +79,11 @@ class Interactsh:
         )
 
         if callable(callback):
-            self._thread = Thread(target=self.poll_loop, args=(callback,), daemon=True)
-            self._thread.start()
+            self._poll_task = asyncio.create_task(self.poll_loop(callback))
 
         return self.domain
 
-    def deregister(self):
+    async def deregister(self):
         if not self.server or not self.correlation_id or not self.secret:
             raise InteractshError(f"Missing required information to deregister")
 
@@ -93,11 +93,17 @@ class Interactsh:
 
         data = {"secret-key": self.secret, "correlation-id": self.correlation_id}
 
-        r = self.parent_helper.request(f"https://{self.server}/deregister", headers=headers, json=data, method="POST")
+        r = await self.parent_helper.request(
+            f"https://{self.server}/deregister", headers=headers, json=data, method="POST"
+        )
+
+        if self._poll_task is not None:
+            self._poll_task.cancel()
+
         if "success" not in getattr(r, "text", ""):
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")
 
-    def poll(self):
+    async def poll(self):
         if not self.server or not self.correlation_id or not self.secret:
             raise InteractshError(f"Missing required information to poll")
 
@@ -105,38 +111,41 @@ class Interactsh:
         if self.token:
             headers["Authorization"] = self.token
 
-        r = self.parent_helper.request(
+        r = await self.parent_helper.request(
             f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
         )
 
+        ret = []
         data_list = r.json().get("data", None)
         if data_list:
             aes_key = r.json()["aes_key"]
 
             for data in data_list:
                 decrypted_data = self.decrypt(aes_key, data)
-                yield decrypted_data
+                ret.append(decrypted_data)
+        return ret
 
-    def poll_loop(self, callback):
-        return self.parent_helper.scan.manager.catch(self._poll_loop, callback, _force=True)
+    async def poll_loop(self, callback):
+        async with self.parent_helper.scan.acatch(context=self._poll_loop):
+            return await self._poll_loop(callback)
 
-    def _poll_loop(self, callback):
+    async def _poll_loop(self, callback):
         while 1:
             if self.parent_helper.scan.stopping:
-                sleep(1)
+                await asyncio.sleep(1)
                 continue
             data_list = []
             try:
-                data_list = list(self.poll())
+                data_list = await self.poll()
             except InteractshError as e:
                 log.warning(e)
                 log.trace(traceback.format_exc())
             if not data_list:
-                sleep(10)
+                await asyncio.sleep(10)
                 continue
             for data in data_list:
                 if data:
-                    callback(data)
+                    await self.parent_helper.execute_sync_or_async(callback, data)
 
     def decrypt(self, aes_key, data):
         private_key = RSA.importKey(self.private_key)

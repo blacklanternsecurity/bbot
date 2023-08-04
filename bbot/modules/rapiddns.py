@@ -9,9 +9,10 @@ class rapiddns(crobat):
 
     base_url = "https://rapiddns.io"
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/subdomain/{self.helpers.quote(query)}?full=1#result"
-        return self.request_with_fail_count(url)
+        response = await self.request_with_fail_count(url)
+        return response
 
     def parse_results(self, r, query):
         results = set()

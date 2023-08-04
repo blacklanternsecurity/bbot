@@ -22,37 +22,37 @@ class builtwith(shodan_dns):
     options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
     base_url = "https://api.builtwith.com"
 
-    def ping(self):
+    async def ping(self):
         # builtwith does not have a ping feature, so we skip it to save API credits
         return
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
         # domains
-        subdomains = self.query(query, parse_fn=self.parse_domains, request_fn=self.request_domains)
+        subdomains = await self.query(query, parse_fn=self.parse_domains, request_fn=self.request_domains)
         if subdomains:
             for s in subdomains:
                 if s != event:
                     self.emit_event(s, "DNS_NAME", source=event)
         # redirects
         if self.config.get("redirects", True):
-            redirects = self.query(query, parse_fn=self.parse_redirects, request_fn=self.request_redirects)
+            redirects = await self.query(query, parse_fn=self.parse_redirects, request_fn=self.request_redirects)
             if redirects:
                 for r in redirects:
                     if r != event:
                         self.emit_event(r, "DNS_NAME", source=event, tags=["affiliate"])
 
-    def request_domains(self, query):
+    async def request_domains(self, query):
         url = f"{self.base_url}/v20/api.json?KEY={self.api_key}&LOOKUP={query}&NOMETA=yes&NOATTR=yes&HIDETEXT=yes&HIDEDL=yes"
-        return self.request_with_fail_count(url)
+        return await self.request_with_fail_count(url)
 
-    def request_redirects(self, query):
+    async def request_redirects(self, query):
         url = f"{self.base_url}/redirect1/api.json?KEY={self.api_key}&LOOKUP={query}"
-        return self.request_with_fail_count(url)
+        return await self.request_with_fail_count(url)
 
     def parse_domains(self, r, query):
         """
-        This method yields subdomains.
+        This method returns a set of subdomains.
         Each subdomain is an "FQDN" that was reported in the "Detailed Technology Profile" page on builtwith.com
 
         Parameters
@@ -60,20 +60,25 @@ class builtwith(shodan_dns):
         r (requests Response): The raw requests response from the API
         query (string): The query used against the API
         """
+        results_set = set()
         json = r.json()
-        if json:
-            for result in json.get("Results", []):
-                for chunk in result.get("Result", {}).get("Paths", []):
-                    domain = chunk.get("Domain", "")
-                    subdomain = chunk.get("SubDomain", "")
-                    if domain:
-                        if subdomain:
-                            domain = f"{subdomain}.{domain}"
-                        yield domain
+        if json and isinstance(json, dict):
+            results = json.get("Results", [])
+            if results:
+                for result in results:
+                    for chunk in result.get("Result", {}).get("Paths", []):
+                        domain = chunk.get("Domain", "")
+                        subdomain = chunk.get("SubDomain", "")
+                        if domain:
+                            if subdomain:
+                                domain = f"{subdomain}.{domain}"
+                            results_set.add(domain)
             else:
-                error = json.get("Errors", [{}])[0].get("Message", "Unknown Error")
-                if error:
+                errors = json.get("Errors", [{}])
+                if errors:
+                    error = errors[0].get("Message", "Unknown Error")
                     self.verbose(f"No results for {query}: {error}")
+        return results_set
 
     def parse_redirects(self, r, query):
         """
@@ -91,7 +96,7 @@ class builtwith(shodan_dns):
         """
         results = set()
         json = r.json()
-        if json:
+        if json and isinstance(json, dict):
             inbound = json.get("Inbound", [])
             outbound = json.get("Outbound", [])
             if inbound:

@@ -13,7 +13,7 @@ class massdns(crobat):
     meta = {"description": "Brute-force subdomains with massdns (highly effective)"}
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
-        "max_resolvers": 500,
+        "max_resolvers": 1000,
         "max_mutations": 500,
     }
     options_desc = {
@@ -57,31 +57,31 @@ class massdns(crobat):
             "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
         },
     ]
-    reject_wildcards = "cloud_only"
+    reject_wildcards = "strict"
     _qsize = 100
 
     digit_regex = re.compile(r"\d+")
 
-    def setup(self):
+    async def setup(self):
         self.found = dict()
         self.mutations_tried = set()
         self.source_events = dict()
-        self.subdomain_file = self.helpers.wordlist(self.config.get("wordlist"))
-        self.max_resolvers = self.config.get("max_resolvers", 500)
+        self.subdomain_file = await self.helpers.wordlist(self.config.get("wordlist"))
+        self.max_resolvers = self.config.get("max_resolvers", 1000)
         self.max_mutations = self.config.get("max_mutations", 500)
         nameservers_url = (
             "https://raw.githubusercontent.com/blacklanternsecurity/public-dns-servers/master/nameservers.txt"
         )
-        self.resolver_file = self.helpers.wordlist(
+        self.resolver_file = await self.helpers.wordlist(
             nameservers_url,
             cache_hrs=24 * 7,
         )
         self.devops_mutations = list(self.helpers.word_cloud.devops_mutations)
-        return super().setup()
+        return await super().setup()
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         query = self.make_query(event)
-        eligible, reason = self.eligible_for_enumeration(event)
+        eligible, reason = await self.eligible_for_enumeration(event)
         if eligible:
             self.add_found(event)
         # reject if already processed
@@ -92,14 +92,14 @@ class massdns(crobat):
             return True, reason
         return False, reason
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
         h = hash(query)
         if not h in self.source_events:
             self.source_events[h] = event
 
-        self.info(f"Brute-forcing subdomains for {query}")
-        for hostname in self.massdns(query, self.helpers.read_file(self.subdomain_file)):
+        self.info(f"Brute-forcing subdomains for {query} (source: {event.data})")
+        for hostname in await self.massdns(query, self.helpers.read_file(self.subdomain_file)):
             self.emit_result(hostname, event, query)
 
     def abort_if(self, event):
@@ -118,33 +118,96 @@ class massdns(crobat):
             return True
         return False
 
-    def massdns(self, domain, subdomains):
-        abort_msg = f"Aborting massdns on {domain} due to false positives"
-        if self._canary_check(domain):
-            self.info(abort_msg)
+    async def massdns(self, domain, subdomains):
+        subdomains = list(subdomains)
+
+        domain_wildcard_rdtypes = set()
+        for domain, rdtypes in (await self.helpers.is_wildcard_domain(domain)).items():
+            for rdtype, results in rdtypes.items():
+                if results:
+                    domain_wildcard_rdtypes.add(rdtype)
+
+        if "A" in domain_wildcard_rdtypes:
+            self.info(
+                f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(domain_wildcard_rdtypes)})"
+            )
+            self.found.pop(domain, None)
             return []
-        results = list(self._massdns(domain, subdomains))
+        else:
+            self.log.trace(f"{domain}: A is not in domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
+
+        # before we start, do a canary check for wildcards
+        abort_msg = f"Aborting massdns on {domain} due to false positive"
+        canary_result = await self._canary_check(domain)
+        if canary_result:
+            self.info(abort_msg + f": {canary_result}")
+            return []
+        else:
+            self.log.trace(f"Canary result for {domain}: {canary_result}")
+
+        results = []
+        async for hostname, ip, rdtype in self._massdns(domain, subdomains):
+            # allow brute-forcing of wildcard domains
+            # this is dead code but it's kinda cool so it can live here
+            if rdtype in domain_wildcard_rdtypes:
+                # skip wildcard checking on multi-level subdomains for performance reasons
+                stem = hostname.split(domain)[0].strip(".")
+                if "." in stem:
+                    self.debug(f"Skipping {hostname}:A because it may be a wildcard (reason: performance)")
+                    continue
+                wildcard_rdtypes = await self.helpers.is_wildcard(hostname, ips=(ip,), rdtype=rdtype)
+                if rdtype in wildcard_rdtypes:
+                    self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
+                    continue
+            results.append(hostname)
+
+        # do another canary check for good measure
         if len(results) > 50:
-            if self._canary_check(domain):
-                self.info(abort_msg)
+            canary_result = await self._canary_check(domain)
+            if canary_result:
+                self.info(abort_msg + f": {canary_result}")
                 return []
+            else:
+                self.log.trace(f"Canary result for {domain}: {canary_result}")
+
+        # abort if there are a suspiciously high number of results
+        # (the results are over 2000, and this is more than 20 percent of the input size)
+        if len(results) > 2000:
+            if len(results) / len(subdomains) > 0.2:
+                self.info(
+                    f"Aborting because the number of results ({len(results):,}) is suspiciously high for the length of the wordlist ({len(subdomains):,})"
+                )
+                return []
+            else:
+                self.info(
+                    f"{len(results):,} results returned from massdns against {domain} (wordlist size = {len(subdomains):,})"
+                )
+
+        # everything checks out
         self.verbose(f"Resolving batch of {len(results):,} results")
-        resolved = dict(self.helpers.resolve_batch(results, type=("A", "AAAA", "CNAME"), cache_result=True))
+        resolved = dict([l async for l in self.helpers.resolve_batch(results, type=("A", "CNAME"), cache_result=True)])
         resolved = {k: v for k, v in resolved.items() if v}
         for hostname in resolved:
             self.add_found(hostname)
         return list(resolved)
 
-    def _canary_check(self, domain, num_checks=50):
+    async def _canary_check(self, domain, num_checks=50):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
         self.verbose(f"Testing {len(random_subdomains):,} canaries against {domain}")
-        canary_results = list(self._massdns(domain, random_subdomains))
-        for result in canary_results:
-            if self.helpers.resolve(result):
-                return True
+        canary_results = [h async for h, d, r in self._massdns(domain, random_subdomains)]
+        self.log.trace(f"canary results for {domain}: {canary_results}")
+        resolved_canaries = self.helpers.resolve_batch(canary_results)
+        self.log.trace(f"resolved canary results for {domain}: {canary_results}")
+        async for query, result in resolved_canaries:
+            if result:
+                await resolved_canaries.aclose()
+                result = f"{query}:{result}"
+                self.log.trace(f"Found false positive: {result}")
+                return result
+        self.log.trace(f"Passed canary check for {domain}")
         return False
 
-    def _massdns(self, domain, subdomains):
+    async def _massdns(self, domain, subdomains):
         """
         {
           "name": "www.blacklanternsecurity.com.",
@@ -175,12 +238,6 @@ class massdns(crobat):
         if self.scan.stopping:
             return
 
-        domain_wildcard_rdtypes = set()
-        for domain, rdtypes in self.helpers.is_wildcard_domain(domain).items():
-            for rdtype, results in rdtypes.items():
-                if results:
-                    domain_wildcard_rdtypes.add(rdtype)
-
         command = (
             "massdns",
             "-r",
@@ -189,15 +246,13 @@ class massdns(crobat):
             self.max_resolvers,
             "-t",
             "A",
-            "-t",
-            "AAAA",
             "-o",
             "J",
             "-q",
         )
         subdomains = self.gen_subdomains(subdomains, domain)
         hosts_yielded = set()
-        for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL, input=subdomains):
+        async for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL, input=subdomains):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:
@@ -213,126 +268,133 @@ class massdns(crobat):
                     # avoid garbage answers like this:
                     # 8AAAA queries have been locally blocked by dnscrypt-proxy/Set block_ipv6 to false to disable this feature
                     if data and rdtype and not " " in data:
-                        # skip wildcards
-                        if rdtype in domain_wildcard_rdtypes:
-                            # skip wildcard checking on multi-level subdomains for performance reasons
-                            stem = hostname.split(domain)[0].strip(".")
-                            if "." in stem:
-                                self.debug(
-                                    f"Skipping {hostname}:{rdtype} because it may be a wildcard (reason: performance)"
-                                )
-                                continue
-                            wildcard_rdtypes = self.helpers.is_wildcard(hostname, ips=(data,))
-                            if rdtype in wildcard_rdtypes:
-                                self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
-                                continue
                         hostname_hash = hash(hostname)
                         if hostname_hash not in hosts_yielded:
                             hosts_yielded.add(hostname_hash)
-                            yield hostname
+                            yield hostname, data, rdtype
 
-    def finish(self):
+    async def finish(self):
         found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
+        # if we have a lot of rounds to make, don't try mutations on less-populated domains
+        trimmed_found = []
+        if found:
+            avg_subdomains = sum([len(subdomains) for domain, subdomains in found[:50]]) / len(found[:50])
+            for i, (domain, subdomains) in enumerate(found):
+                # accept domains that are in the top 50 or have more than 5 percent of the average number of subdomains
+                if i < 50 or (len(subdomains) > 1 and len(subdomains) >= (avg_subdomains * 0.05)):
+                    trimmed_found.append((domain, subdomains))
+                else:
+                    self.verbose(
+                        f"Skipping mutations on {domain} because it only has {len(subdomains):,} subdomain(s) (avg: {avg_subdomains:,})"
+                    )
 
         base_mutations = set()
-        for i, (domain, subdomains) in enumerate(found):
-            # keep looping as long as we're finding things
-            while 1:
-                max_mem_percent = 90
-                mem_status = self.helpers.memory_status()
-                # abort if we don't have the memory
-                mem_percent = mem_status.percent
-                if mem_percent > max_mem_percent:
-                    free_memory = mem_status.available
-                    free_memory_human = self.helpers.bytes_to_human(free_memory)
-                    self.hugewarning(
-                        f"Cannot proceed with DNS mutations because system memory is at {mem_percent:.1f}% ({free_memory_human} remaining)"
-                    )
+        try:
+            for i, (domain, subdomains) in enumerate(trimmed_found):
+                self.verbose(f"{domain} has {len(subdomains):,} subdomains")
+                # keep looping as long as we're finding things
+                while 1:
+                    max_mem_percent = 90
+                    mem_status = self.helpers.memory_status()
+                    # abort if we don't have the memory
+                    mem_percent = mem_status.percent
+                    if mem_percent > max_mem_percent:
+                        free_memory = mem_status.available
+                        free_memory_human = self.helpers.bytes_to_human(free_memory)
+                        assert (
+                            False
+                        ), f"Cannot proceed with DNS mutations because system memory is at {mem_percent:.1f}% ({free_memory_human} remaining)"
+
+                    query = domain
+                    domain_hash = hash(domain)
+                    if self.scan.stopping:
+                        return
+
+                    mutations = set(base_mutations)
+
+                    def add_mutation(_domain_hash, m):
+                        h = hash((_domain_hash, m))
+                        if h not in self.mutations_tried:
+                            self.mutations_tried.add(h)
+                            mutations.add(m)
+
+                    # try every subdomain everywhere else
+                    for _domain, _subdomains in found:
+                        if _domain == domain:
+                            continue
+                        for s in _subdomains:
+                            first_segment = s.split(".")[0]
+                            # skip stuff with lots of numbers (e.g. PTRs)
+                            digits = self.digit_regex.findall(first_segment)
+                            excessive_digits = len(digits) > 2
+                            long_digits = any(len(d) > 3 for d in digits)
+                            if excessive_digits or long_digits:
+                                continue
+                            add_mutation(domain_hash, first_segment)
+                            for word in self.helpers.extract_words(
+                                first_segment, word_regexes=self.helpers.word_cloud.dns_mutator.extract_word_regexes
+                            ):
+                                add_mutation(domain_hash, word)
+
+                    # numbers + devops mutations
+                    for mutation in self.helpers.word_cloud.mutations(
+                        subdomains, cloud=False, numbers=3, number_padding=1
+                    ):
+                        for delimiter in ("", ".", "-"):
+                            m = delimiter.join(mutation).lower()
+                            add_mutation(domain_hash, m)
+
+                    # special dns mutator
+                    for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
+                        subdomains, max_mutations=self.max_mutations
+                    ):
+                        add_mutation(domain_hash, subdomain)
+
+                    if mutations:
+                        self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
+                        results = list(await self.massdns(query, mutations))
+                        for hostname in results:
+                            source_event = self.get_source_event(hostname)
+                            if source_event is None:
+                                self.warning(f"Could not correlate source event from: {hostname}")
+                                source_event = self.scan.root_event
+                            self.emit_result(hostname, source_event, query)
+                        if results:
+                            continue
                     break
-
-                query = domain
-                domain_hash = hash(domain)
-                if self.scan.stopping:
-                    return
-
-                mutations = set(base_mutations)
-
-                def add_mutation(_domain_hash, m):
-                    h = hash((_domain_hash, m))
-                    if h not in self.mutations_tried:
-                        self.mutations_tried.add(h)
-                        mutations.add(m)
-
-                # try every subdomain everywhere else
-                for _domain, _subdomains in found:
-                    if _domain == domain:
-                        continue
-                    for s in _subdomains:
-                        first_segment = s.split(".")[0]
-                        # skip stuff with lots of numbers (e.g. PTRs)
-                        digits = self.digit_regex.findall(first_segment)
-                        excessive_digits = len(digits) > 2
-                        long_digits = any(len(d) > 3 for d in digits)
-                        if excessive_digits or long_digits:
-                            continue
-                        add_mutation(domain_hash, first_segment)
-                        for word in self.helpers.extract_words(
-                            first_segment, word_regexes=self.helpers.word_cloud.dns_mutator.extract_word_regexes
-                        ):
-                            add_mutation(domain_hash, word)
-
-                # word cloud
-                for mutation in self.helpers.word_cloud.mutations(
-                    subdomains, cloud=False, numbers=3, number_padding=1
-                ):
-                    for delimiter in ("", ".", "-"):
-                        m = delimiter.join(mutation).lower()
-                        add_mutation(domain_hash, m)
-
-                # special dns mutator
-                for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
-                    subdomains, max_mutations=self.max_mutations
-                ):
-                    add_mutation(domain_hash, subdomain)
-
-                if mutations:
-                    self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
-                    results = list(self.massdns(query, mutations))
-                    for hostname in results:
-                        source_event = self.get_source_event(hostname)
-                        if source_event is None:
-                            self.warning(f"Could not correlate source event from: {hostname}")
-                            continue
-                        self.emit_result(hostname, source_event, query)
-                    if results:
-                        continue
-                break
+        except AssertionError as e:
+            self.warning(e)
 
     def add_found(self, host):
         if not isinstance(host, str):
             host = host.data
         if self.helpers.is_subdomain(host):
             subdomain, domain = host.split(".", 1)
-            if not self.helpers.is_ptr(subdomain):
+            is_ptr = self.helpers.is_ptr(subdomain)
+            in_scope = self.scan.in_scope(domain)
+            if in_scope and not is_ptr:
                 try:
                     self.found[domain].add(subdomain)
                 except KeyError:
                     self.found[domain] = set((subdomain,))
 
-    def gen_subdomains(self, prefixes, domain):
+    async def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
             d = f"{p}.{domain}"
             yield d
 
     def gen_random_subdomains(self, n=50):
         delimeters = (".", "-")
-        lengths = list(range(10, 20))
-        for i in range(0, n):
+        lengths = list(range(3, 8))
+        for i in range(0, max(0, n - 5)):
             d = delimeters[i % len(delimeters)]
             l = lengths[i % len(lengths)]
             segments = list(random.choice(self.devops_mutations) for _ in range(l))
-            subdomains = d.join(segments)
-            yield subdomains
+            segments.append(self.helpers.rand_string(length=8, digits=False))
+            subdomain = d.join(segments)
+            yield subdomain
+        for _ in range(5):
+            yield self.helpers.rand_string(length=8, digits=False)
 
     def get_source_event(self, hostname):
         for p in self.helpers.domain_parents(hostname):

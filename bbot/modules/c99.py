@@ -11,14 +11,14 @@ class c99(shodan_dns):
 
     base_url = "https://api.c99.nl"
 
-    def ping(self):
+    async def ping(self):
         url = f"{self.base_url}/randomnumber?key={self.api_key}&between=1,100&json"
-        response = self.request_with_fail_count(url)
+        response = await self.request_with_fail_count(url)
         assert response.json()["success"] == True
 
-    def request_url(self, query):
+    async def request_url(self, query):
         url = f"{self.base_url}/subdomainfinder?key={self.api_key}&domain={self.helpers.quote(query)}&json"
-        return self.request_with_fail_count(url)
+        return await self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
         j = r.json()

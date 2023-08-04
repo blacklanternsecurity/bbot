@@ -13,7 +13,7 @@ class nuclei(BaseModule):
     batch_size = 25
 
     options = {
-        "version": "2.8.9",
+        "version": "2.9.9",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -50,11 +50,11 @@ class nuclei(BaseModule):
     deps_pip = ["pyyaml~=6.0"]
     in_scope_only = True
 
-    def setup(self):
+    async def setup(self):
         # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
         self.info("Updating Nuclei templates")
-        update_results = self.helpers.run(
+        update_results = await self.helpers.run(
             ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"]
         )
         if update_results.stderr:
@@ -87,7 +87,7 @@ class nuclei(BaseModule):
         self.itoken = self.scan.config.get("interactsh_token", None)
 
         if self.mode not in ("technology", "severe", "manual", "budget"):
-            self.warning(f"Unable to intialize nuclei: invalid mode selected: [{self.mode}]")
+            self.warning(f"Unable to initialize nuclei: invalid mode selected: [{self.mode}]")
             return False
 
         if self.mode == "technology":
@@ -115,7 +115,7 @@ class nuclei(BaseModule):
 
             self.info("Processing nuclei templates to perform budget calculations...")
 
-            self.nucleibudget = NucleiBudget(self.budget, self.nuclei_templates_dir)
+            self.nucleibudget = NucleiBudget(self)
             self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
 
             self.info(
@@ -127,10 +127,10 @@ class nuclei(BaseModule):
 
         return True
 
-    def handle_batch(self, *events):
+    async def handle_batch(self, *events):
         temp_target = self.helpers.make_target(events)
         nuclei_input = [str(e.data) for e in events]
-        for severity, template, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
+        async for severity, template, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
             cleaned_host = temp_target.get(host)
             source_event = self.correlate_event(events, cleaned_host)
@@ -170,10 +170,10 @@ class nuclei(BaseModule):
                 return event
         self.warning("Failed to correlate nuclei result with event")
 
-    def execute_nuclei(self, nuclei_input):
+    async def execute_nuclei(self, nuclei_input):
         command = [
             "nuclei",
-            "-json",
+            "-jsonl",
             "-update-template-dir",
             self.nuclei_templates_dir,
             "-rate-limit",
@@ -207,7 +207,7 @@ class nuclei(BaseModule):
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
             with open(stats_file, "w") as stats_fh:
-                for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_fh):
+                async for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_fh):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
@@ -258,11 +258,11 @@ class nuclei(BaseModule):
         status = f"[{duration}] | Templates: {templates} | Hosts: {hosts} | RPS: {rps} | Matched: {matched} | Errors: {errors} | Requests: {requests}/{total} ({percent}%)"
         self.info(status)
 
-    def cleanup(self):
+    async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"
         resume_file.unlink(missing_ok=True)
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         if self.config.get("directory_only", True):
             if "endpoint" in event.tags:
                 self.debug(
@@ -273,10 +273,12 @@ class nuclei(BaseModule):
 
 
 class NucleiBudget:
-    def __init__(self, budget, templates_dir):
-        self.templates_dir = templates_dir
+    def __init__(self, nuclei_module):
+        self.parent = nuclei_module
+        self._yaml_files = {}
+        self.templates_dir = nuclei_module.nuclei_templates_dir
         self.yaml_list = self.get_yaml_list()
-        self.budget_paths = self.find_budget_paths(budget)
+        self.budget_paths = self.find_budget_paths(nuclei_module.budget)
         self.collapsable_templates, self.severity_stats = self.find_collapsable_templates()
 
     def get_yaml_list(self):
@@ -299,7 +301,7 @@ class NucleiBudget:
 
     def get_yaml_request_attr(self, yf, attr):
         p = self.parse_yaml(yf)
-        requests = p.get("requests", [])
+        requests = p.get("http", [])
         for r in requests:
             raw = r.get("raw")
             if not raw:
@@ -357,9 +359,12 @@ class NucleiBudget:
         return collapsable_templates, severity_dict
 
     def parse_yaml(self, yamlfile):
-        with open(yamlfile, "r") as stream:
-            try:
-                y = yaml.safe_load(stream)
-                return y
-            except yaml.YAMLError as e:
-                self.debug(f"failed to read yaml file: {e}")
+        if yamlfile not in self._yaml_files:
+            with open(yamlfile, "r") as stream:
+                try:
+                    y = yaml.safe_load(stream)
+                    self._yaml_files[yamlfile] = y
+                except yaml.YAMLError as e:
+                    self.parent.warning(f"failed to load yaml file: {e}")
+                    return {}
+        return self._yaml_files[yamlfile]

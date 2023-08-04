@@ -1,10 +1,12 @@
 import ast
 import sys
 import importlib
+import traceback
 from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
+from ..flags import flag_descriptions
 from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
 
 
@@ -41,8 +43,6 @@ class ModuleLoader:
                 self._configs[module_file.stem] = config
                 self._preloaded[module_file.stem] = preloaded
             except Exception:
-                import traceback
-
                 print(f"[CRIT] Error preloading {module_file}\n\n{traceback.format_exc()}")
                 print(f"[CRIT] Error in {module_file.name}")
                 sys.exit(1)
@@ -208,7 +208,7 @@ class ModuleLoader:
         """
         resolve_choices = {}
         # step 1: build a dictionary containing event types and their associated modules
-        # {"IP_ADDRESS": set("naabu", "ipneighbor", ...)}
+        # {"IP_ADDRESS": set("nmap", "ipneighbor", ...)}
         watched = {}
         produced = {}
         for modname in modules:
@@ -270,19 +270,27 @@ class ModuleLoader:
 
     def modules_table(self, modules=None, mod_type=None):
         table = []
-        header = ["Module", "Type", "Needs\nAPI\nKey", "Description", "Flags", "Produced Events"]
-        maxcolwidths = [20, 20, 5, 40, 40, 40]
+        header = ["Module", "Type", "Needs API Key", "Description", "Flags", "Consumed Events", "Produced Events"]
+        maxcolwidths = [20, 10, 5, 30, 30, 20, 20]
         for module_name, preloaded in self.filter_modules(modules, mod_type):
             module_type = preloaded["type"]
+            consumed_events = sorted(preloaded.get("watched_events", []))
             produced_events = sorted(preloaded.get("produced_events", []))
             flags = sorted(preloaded.get("flags", []))
             api_key_required = ""
             meta = preloaded.get("meta", {})
-            if meta.get("auth_required", False):
-                api_key_required = "X"
+            api_key_required = "Yes" if meta.get("auth_required", False) else "No"
             description = meta.get("description", "")
             table.append(
-                [module_name, module_type, api_key_required, description, ",".join(flags), ",".join(produced_events)]
+                [
+                    module_name,
+                    module_type,
+                    api_key_required,
+                    description,
+                    ", ".join(flags),
+                    ", ".join(consumed_events),
+                    ", ".join(produced_events),
+                ]
             )
         return make_table(table, header, maxcolwidths=maxcolwidths)
 
@@ -303,14 +311,67 @@ class ModuleLoader:
                 option_name = f"{module_key}.{module_name}.{k}"
                 option_type = type(v).__name__
                 option_description = module_options_desc[k]
-                modules_options[module_name].append((option_name, option_type, str(v), option_description))
+                modules_options[module_name].append((option_name, option_type, option_description, str(v)))
         return modules_options
 
     def modules_options_table(self, modules=None, mod_type=None):
         table = []
-        header = ["Option", "Type", "Default", "Description"]
+        header = ["Config Option", "Type", "Description", "Default"]
         for module_name, module_options in self.modules_options(modules, mod_type).items():
             table += module_options
+        return make_table(table, header)
+
+    def flags(self, flags=None):
+        _flags = {}
+        for module_name, preloaded in self.preloaded().items():
+            for flag in preloaded.get("flags", []):
+                if not flags or flag in flags:
+                    try:
+                        _flags[flag].add(module_name)
+                    except KeyError:
+                        _flags[flag] = {module_name}
+
+        _flags = sorted(_flags.items(), key=lambda x: x[0])
+        _flags = sorted(_flags, key=lambda x: len(x[-1]), reverse=True)
+        return _flags
+
+    def flags_table(self, flags=None):
+        table = []
+        header = ["Flag", "# Modules", "Description", "Modules"]
+        maxcolwidths = [20, 5, 40, 80]
+        _flags = self.flags(flags=flags)
+        for flag, modules in _flags:
+            description = flag_descriptions.get(flag, "")
+            table.append([flag, f"{len(modules)}", description, ", ".join(sorted(modules))])
+        return make_table(table, header, maxcolwidths=maxcolwidths)
+
+    def events(self):
+        consuming_events = {}
+        producing_events = {}
+        for module_name, preloaded in self.preloaded().items():
+            consumed = preloaded.get("watched_events", [])
+            produced = preloaded.get("produced_events", [])
+            for c in consumed:
+                try:
+                    consuming_events[c].add(module_name)
+                except KeyError:
+                    consuming_events[c] = {module_name}
+            for c in produced:
+                try:
+                    producing_events[c].add(module_name)
+                except KeyError:
+                    producing_events[c] = {module_name}
+        return consuming_events, producing_events
+
+    def events_table(self):
+        table = []
+        header = ["Event Type", "# Consuming Modules", "# Producing Modules", "Consuming Modules", "Producing Modules"]
+        consuming_events, producing_events = self.events()
+        all_event_types = sorted(set(consuming_events).union(set(producing_events)))
+        for e in all_event_types:
+            consuming = sorted(consuming_events.get(e, []))
+            producing = sorted(producing_events.get(e, []))
+            table.append([e, len(consuming), len(producing), ", ".join(consuming), ", ".join(producing)])
         return make_table(table, header)
 
     def filter_modules(self, modules=None, mod_type=None):

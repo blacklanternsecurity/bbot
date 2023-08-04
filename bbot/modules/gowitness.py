@@ -80,7 +80,7 @@ class gowitness(BaseModule):
     # this is one hop further than the default
     scope_distance_modifier = 1
 
-    def setup(self):
+    async def setup(self):
         self.timeout = self.config.get("timeout", 10)
         self.threads = self.config.get("threads", 4)
         self.proxy = self.scan.config.get("http_proxy", "")
@@ -113,7 +113,7 @@ class gowitness(BaseModule):
                 copymode(self.helpers.tools_dir / "gowitness", self.base_path / "gowitness")
             self.prepped = True
 
-    def filter_event(self, event):
+    async def filter_event(self, event):
         # Ignore URLs that are redirects
         if any(t.startswith("status-30") for t in event.tags):
             return False, "URL is a redirect"
@@ -122,12 +122,12 @@ class gowitness(BaseModule):
             return False, "event is from self"
         return True
 
-    def handle_batch(self, *events):
+    async def handle_batch(self, *events):
         self.prep()
         stdin = "\n".join([str(e.data) for e in events])
         events = {e.data: e for e in events}
 
-        for line in self.helpers.run_live(self.command, input=stdin):
+        async for line in self.helpers.run_live(self.command, input=stdin):
             self.debug(line)
 
         # emit web screenshots
@@ -239,15 +239,13 @@ class gowitness(BaseModule):
             return cur.execute(query)
         except sqlite3.OperationalError as e:
             self.warning(f"Error executing query: {query}: {e}")
-            self.trace()
             return []
 
-    def report(self):
-        with self._report_lock:
-            if self.screenshots_taken:
-                self.success(f"{len(self.screenshots_taken):,} web screenshots captured. To view:")
-                self.success(f"    - Start gowitness")
-                self.success(f"        - cd {self.base_path} && ./gowitness server")
-                self.success(f"    - Browse to http://localhost:7171")
-            else:
-                self.info(f"No web screenshots captured")
+    async def report(self):
+        if self.screenshots_taken:
+            self.success(f"{len(self.screenshots_taken):,} web screenshots captured. To view:")
+            self.success(f"    - Start gowitness")
+            self.success(f"        - cd {self.base_path} && ./gowitness server")
+            self.success(f"    - Browse to http://localhost:7171")
+        else:
+            self.info(f"No web screenshots captured")

@@ -1,27 +1,53 @@
+import re
 import idna
-from contextlib import suppress
 
 
-def smart_decode_punycode(data):
-    """
-    xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
-    """
-    if not isinstance(data, str):
-        raise ValueError(f"data must be a string, not {type(data)}")
-    if "xn--" in data:
-        with suppress(UnicodeError):
-            parts = data.split("@")
-            return "@".join(idna.decode(p) for p in parts)
-    return data
+alphanum_regex = re.compile(r"([\w-]+)")
+alphanum_anchored = re.compile(r"^[\w-]+$")
 
 
-def smart_encode_punycode(data):
+def split_text(text):
+    # Split text into segments by special characters
+    # We assume that only alphanumeric segments should be encoded
+    if not isinstance(text, str):
+        raise ValueError(f"data must be a string, not {type(text)}")
+    segments = alphanum_regex.split(text)
+    return segments
+
+
+def smart_encode_punycode(text: str) -> str:
     """
     ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
     """
-    if not isinstance(data, str):
-        raise ValueError(f"data must be a string, not {type(data)}")
-    with suppress(UnicodeError):
-        parts = data.split("@")
-        return "@".join(idna.encode(p).decode(errors="ignore") for p in parts)
-    return data
+    segments = split_text(text)
+    result_segments = []
+
+    for segment in segments:
+        try:
+            if alphanum_anchored.match(segment):  # Only encode alphanumeric segments
+                segment = idna.encode(segment).decode(errors="ignore")
+        except UnicodeError:
+            pass  # If encoding fails, leave the segment as it is
+
+        result_segments.append(segment)
+
+    return "".join(result_segments)
+
+
+def smart_decode_punycode(text: str) -> str:
+    """
+    xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
+    """
+    segments = split_text(text)
+    result_segments = []
+
+    for segment in segments:
+        try:
+            if alphanum_anchored.match(segment):  # Only decode alphanumeric segments
+                segment = idna.decode(segment)
+        except UnicodeError:
+            pass  # If decoding fails, leave the segment as it is
+
+        result_segments.append(segment)
+
+    return "".join(result_segments)

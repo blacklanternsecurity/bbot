@@ -18,29 +18,19 @@ class wafw00f(BaseModule):
     options_desc = {"generic_detect": "When no specific WAF detections are made, try to peform a generic detect"}
 
     in_scope_only = True
+    per_host_only = True
 
-    def setup(self):
-        self.scanned_hosts = set()
-        return True
-
-    def handle_event(self, event):
-        parsed_host = event.parsed
-        host = f"{parsed_host.scheme}://{parsed_host.netloc}/"
-        host_hash = hash(host)
-        if host_hash in self.scanned_hosts:
-            self.debug(f"Host {host} was already scanned, exiting")
-            return
-        else:
-            self.scanned_hosts.add(host_hash)
-
-        WW = wafw00f_main.WAFW00F(host)
-        waf_detections = WW.identwaf()
+    async def handle_event(self, event):
+        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        WW = await self.scan.run_in_executor(wafw00f_main.WAFW00F, host)
+        waf_detections = await self.scan.run_in_executor(WW.identwaf)
         if waf_detections:
-            for waf in WW.identwaf():
+            for waf in waf_detections:
                 self.emit_event({"host": host, "WAF": waf}, "WAF", source=event)
         else:
             if self.config.get("generic_detect") == True:
-                if WW.genericdetect():
+                generic = await self.scan.run_in_executor(WW.genericdetect)
+                if generic:
                     self.emit_event(
                         {"host": host, "WAF": "generic detection", "info": WW.knowledge["generic"]["reason"]},
                         "WAF",

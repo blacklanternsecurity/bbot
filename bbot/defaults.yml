@@ -10,12 +10,25 @@ scope_report_distance: 0
 dns_resolution: true
 # Limit the number of BBOT threads
 max_threads: 25
-# Limit the number of DNS threads (this should be approximately 4x max_threads)
-max_dns_threads: 100
+# Rate-limit DNS
+dns_queries_per_second: 1000
+# Rate-limit HTTP
+web_requests_per_second: 100
+# Interval for displaying status messages
+status_frequency: 15
 # HTTP proxy
 http_proxy: 
 # Web user-agent
-user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36
+user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36
+
+### WEB SPIDER ###
+
+# Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
+web_spider_distance: 0
+# Set the maximum directory depth for the web spider
+web_spider_depth: 1
+# Set the maximum number of links that can be followed per page
+web_spider_links_per_page: 25
 
 
 ### ADVANCED OPTIONS ###
@@ -24,7 +37,7 @@ user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 scope_search_distance: 0
 # How far out from the main scope to resolve DNS names / IPs
 scope_dns_search_distance: 2
-# Limit how many DNS records can be followed in a row (for malicious/misconfigured DNS records)
+# Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)
 dns_resolve_distance: 5
 
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
@@ -51,12 +64,6 @@ httpx_retries: 1
 http_debug: false
 # Maximum number of HTTP redirects to follow
 http_max_redirects: 5
-# Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
-web_spider_distance: 0
-# Set the maximum directory depth for the web spider
-web_spider_depth: 1
-# Set the maximum number of links that can be followed per page
-web_spider_links_per_page: 25
 # DNS query timeout
 dns_timeout: 5
 # How many times to retry DNS queries
@@ -112,7 +119,7 @@ url_extension_httpx_only:
 omit_event_types:
     - HTTP_RESPONSE
     - URL_UNVERIFIED
-    # - DNS_NAME_UNRESOLVED
+    - DNS_NAME_UNRESOLVED
     # - IP_ADDRESS
 # URL of BBOT server
 agent_url: ''
@@ -123,3 +130,10 @@ agent_token: ''
 interactsh_server: null
 interactsh_token: null
 interactsh_disable: false
+
+# For performance reasons, always skip these DNS queries
+# Microsoft's DNS infrastructure is misconfigured so that certain queries to mail.protection.outlook.com always time out
+dns_omit_queries:
+  - SRV:mail.protection.outlook.com
+  - CNAME:mail.protection.outlook.com
+  - TXT:mail.protection.outlook.com

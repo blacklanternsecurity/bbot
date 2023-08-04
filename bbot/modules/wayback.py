@@ -17,28 +17,29 @@ class wayback(crobat):
 
     base_url = "http://web.archive.org"
 
-    def setup(self):
+    async def setup(self):
         self.urls = self.config.get("urls", False)
         self.garbage_threshold = self.config.get("garbage_threshold", 10)
-        return super().setup()
+        return await super().setup()
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         query = self.make_query(event)
-        for result, event_type in self.query(query):
+        for result, event_type in await self.query(query):
             self.emit_event(result, event_type, event, abort_if=self.abort_if)
 
-    def query(self, query):
+    async def query(self, query):
+        results = set()
         waybackurl = f"{self.base_url}/cdx/search/cdx?url={self.helpers.quote(query)}&matchType=domain&output=json&fl=original&collapse=original"
-        r = self.helpers.request(waybackurl, timeout=self.http_timeout + 10)
+        r = await self.helpers.request(waybackurl, timeout=self.http_timeout + 10)
         if not r:
             self.warning(f'Error connecting to archive.org for query "{query}"')
-            return
+            return results
         try:
             j = r.json()
             assert type(j) == list
         except Exception:
             self.warning(f'Error JSON-decoding archive.org response for query "{query}"')
-            return
+            return results
 
         urls = []
         for result in j[1:]:
@@ -55,6 +56,7 @@ class wayback(crobat):
                 h = hash(dns_name)
                 if h not in dns_names:
                     dns_names.add(h)
-                    yield dns_name, "DNS_NAME"
+                    results.add((dns_name, "DNS_NAME"))
             else:
-                yield parsed_url.geturl(), "URL_UNVERIFIED"
+                results.add((parsed_url.geturl(), "URL_UNVERIFIED"))
+        return results

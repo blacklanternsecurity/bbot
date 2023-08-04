@@ -10,6 +10,7 @@ import random
 import shutil
 import signal
 import string
+import asyncio
 import difflib
 import inspect
 import logging
@@ -25,14 +26,17 @@ import wordninja as _wordninja
 from contextlib import suppress
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
+import xml.etree.ElementTree as ET
+from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
+from asyncio import create_task, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
-from . import regexes
 from .. import errors
 from .punycode import *  # noqa F401
 from .logger import log_to_stderr
+from . import regexes as bbot_regexes
 from .names_generator import random_name, names, adjectives  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
@@ -43,6 +47,7 @@ def is_domain(d):
     "evilcorp.co.uk" --> True
     "www.evilcorp.co.uk" --> False
     """
+    d, _ = split_host_port(d)
     extracted = tldextract(d)
     if extracted.domain and not extracted.subdomain:
         return True
@@ -54,6 +59,7 @@ def is_subdomain(d):
     "www.evilcorp.co.uk" --> True
     "evilcorp.co.uk" --> False
     """
+    d, _ = split_host_port(d)
     extracted = tldextract(d)
     if extracted.domain and extracted.subdomain:
         return True
@@ -65,12 +71,12 @@ def is_ptr(d):
     "wsc-11-22-33-44.evilcorp.com" --> True
     "www2.evilcorp.com" --> False
     """
-    return bool(regexes.ptr_regex.search(str(d)))
+    return bool(bbot_regexes.ptr_regex.search(str(d)))
 
 
 def is_url(u):
     u = str(u)
-    for r in regexes.event_type_regexes["URL"]:
+    for r in bbot_regexes.event_type_regexes["URL"]:
         if r.match(u):
             return True
     return False
@@ -107,9 +113,9 @@ def split_host_port(d):
     host = None
     with suppress(ValueError):
         if parsed.port is None:
-            if parsed.scheme == "https":
+            if parsed.scheme in ("https", "wss"):
                 port = 443
-            elif parsed.scheme == "http":
+            elif parsed.scheme in ("http", "ws"):
                 port = 80
         else:
             port = int(parsed.port)
@@ -121,11 +127,13 @@ def split_host_port(d):
 def parent_domain(d):
     """
     "www.internal.evilcorp.co.uk" --> "internal.evilcorp.co.uk"
+    "www.internal.evilcorp.co.uk:8080" --> "internal.evilcorp.co.uk:8080"
     "www.evilcorp.co.uk" --> "evilcorp.co.uk"
     "evilcorp.co.uk" --> "evilcorp.co.uk"
     """
+    host, port = split_host_port(d)
     if is_subdomain(d):
-        return ".".join(str(d).split(".")[1:])
+        return make_netloc(".".join(str(host).split(".")[1:]), port)
     return d
 
 
@@ -182,7 +190,13 @@ def split_domain(hostname):
     "www.internal.evilcorp.co.uk" --> ("www.internal", "evilcorp.co.uk")
     """
     parsed = tldextract(hostname)
-    return (parsed.subdomain, parsed.registered_domain)
+    subdomain = parsed.subdomain
+    domain = parsed.registered_domain
+    if not domain:
+        split = hostname.split(".")
+        subdomain = ".".join(split[:-2])
+        domain = ".".join(split[-2:])
+    return (subdomain, domain)
 
 
 def domain_stem(domain):
@@ -208,13 +222,24 @@ def is_port(p):
     return p and p.isdigit() and 0 <= int(p) <= 65535
 
 
+def is_dns_name(d):
+    if is_ip(d):
+        return False
+    d = smart_decode(d)
+    if bbot_regexes.hostname_regex.match(d):
+        return True
+    if bbot_regexes.dns_name_regex.match(d):
+        return True
+    return False
+
+
 def is_ip(d, version=None):
     """
     "192.168.1.1" --> True
     "bad::c0de" --> True
     "evilcorp.com" --> False
     """
-    if type(d) in (ipaddress.IPv4Address, ipaddress.IPv6Address):
+    if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
         if version is None or version == d.version:
             return True
     try:
@@ -357,13 +382,85 @@ def rand_string(length=10, digits=True):
     return "".join([random.choice(pool) for _ in range(int(length))])
 
 
+def extract_params_json(json_data):
+    try:
+        data = json.loads(json_data)
+    except json.JSONDecodeError:
+        log.debug("Invalid JSON supplied. Returning empty list.")
+        return set()
+
+    keys = set()
+    stack = [data]
+
+    while stack:
+        current_data = stack.pop()
+        if isinstance(current_data, dict):
+            for key, value in current_data.items():
+                keys.add(key)
+                if isinstance(value, (dict, list)):
+                    stack.append(value)
+        elif isinstance(current_data, list):
+            for item in current_data:
+                if isinstance(item, (dict, list)):
+                    stack.append(item)
+
+    return keys
+
+
+def extract_params_xml(xml_data):
+    try:
+        root = ET.fromstring(xml_data)
+    except ET.ParseError:
+        log.debug("Invalid XML supplied. Returning empty list.")
+        return set()
+
+    tags = set()
+    stack = [root]
+
+    while stack:
+        current_element = stack.pop()
+        tags.add(current_element.tag)
+        for child in current_element:
+            stack.append(child)
+    return tags
+
+
+def extract_params_html(html_data):
+    input_tag = bbot_regexes.input_tag_regex.findall(html_data)
+
+    for i in input_tag:
+        log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
+        yield i
+
+    # check for jquery get parameters
+    jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
+
+    for i in jquery_get:
+        log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
+        yield i
+
+    # check for jquery post parameters
+    jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
+    if jquery_post:
+        for i in jquery_post:
+            for x in i.split(","):
+                s = x.split(":")[0].rstrip()
+                log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
+                yield s
+
+    a_tag = bbot_regexes.a_tag_regex.findall(html_data)
+    for s in a_tag:
+        log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
+        yield s
+
+
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
     """
     Intelligently extract words from given data
     Returns set() of extracted words
     """
     if word_regexes is None:
-        word_regexes = regexes.word_regexes
+        word_regexes = bbot_regexes.word_regexes
     words = set()
     data = smart_decode(data)
     for r in word_regexes:
@@ -532,10 +629,13 @@ def gen_numbers(n, padding=2):
 
 def make_netloc(host, port):
     """
+    ("192.168.1.1", None) --> "192.168.1.1"
     ("192.168.1.1", 443) --> "192.168.1.1:443"
     ("evilcorp.com", 80) --> "evilcorp.com:80"
     ("dead::beef", 443) --> "[dead::beef]:443"
     """
+    if port is None:
+        return host
     if is_ip(host, version=6):
         host = f"[{host}]"
     return f"{host}:{port}"
@@ -568,8 +668,8 @@ def search_dict_by_key(key, d):
 
 def search_format_dict(d, **kwargs):
     """
-    Recursively .format() string values in dictionary keys
-    search_format_dict({"test": "{name} is awesome"}, name="keanu")
+    Recursively .format() string values in dictionary values
+    search_format_dict({"test": "#{name} is awesome"}, name="keanu")
         --> {"test": "keanu is awesome"}
     """
     if isinstance(d, dict):
@@ -577,9 +677,43 @@ def search_format_dict(d, **kwargs):
     elif isinstance(d, list):
         return [search_format_dict(v, **kwargs) for v in d]
     elif isinstance(d, str):
-        for k, v in kwargs.items():
-            d = d.replace("#{" + str(k) + "}", v)
+        for find, replace in kwargs.items():
+            find = "#{" + str(find) + "}"
+            d = d.replace(find, replace)
     return d
+
+
+def search_dict_values(d, *regexes):
+    """
+    Recursively search a dictionary's values based on regexes
+
+    dict_to_search = {
+        "key1": {
+            "key2": [
+                {
+                    "key3": "A URL: https://www.evilcorp.com"
+                }
+            ]
+        }
+    })
+
+    search_dict_values(dict_to_search, url_regexes) --> "https://www.evilcorp.com"
+    """
+    results = set()
+    if isinstance(d, str):
+        for r in regexes:
+            for match in r.finditer(d):
+                result = match.group()
+                h = hash(result)
+                if h not in results:
+                    results.add(h)
+                    yield result
+    elif isinstance(d, dict):
+        for _, v in d.items():
+            yield from search_dict_values(v, *regexes)
+    elif isinstance(d, list):
+        for v in d:
+            yield from search_dict_values(v, *regexes)
 
 
 def filter_dict(d, *key_names, fuzzy=False, invert=False, exclude_keys=None, prev_key=None):
@@ -764,7 +898,7 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
 
 
 def extract_emails(s):
-    for email in regexes.email_regex.findall(smart_decode(s)):
+    for email in bbot_regexes.email_regex.findall(smart_decode(s)):
         yield email.lower()
 
 
@@ -815,10 +949,18 @@ def make_table(*args, **kwargs):
     # fix IndexError: list index out of range
     if args and not args[0]:
         args = ([[]],) + args[1:]
-    defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": 40}
+    tablefmt = os.environ.get("BBOT_TABLE_FORMAT", None)
+    defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": None}
+    if tablefmt is None:
+        defaults.update({"maxcolwidths": 40})
+    else:
+        defaults.update({"tablefmt": tablefmt})
     for k, v in defaults.items():
         if k not in kwargs:
             kwargs[k] = v
+    # don't wrap columns in markdown
+    if tablefmt in ("github", "markdown"):
+        kwargs.pop("maxcolwidths")
     return tabulate(*args, **kwargs)
 
 
@@ -835,7 +977,10 @@ def human_timedelta(d):
         result.append(f"{minutes:,} minute" + ("s" if minutes > 1 else ""))
     if seconds:
         result.append(f"{seconds:,} second" + ("s" if seconds > 1 else ""))
-    return ", ".join(result)
+    ret = ", ".join(result)
+    if not ret:
+        ret = "0 seconds"
+    return ret
 
 
 def bytes_to_human(_bytes):
@@ -920,14 +1065,14 @@ def os_platform_friendly():
 tag_filter_regex = re.compile(r"[^a-z0-9]+")
 
 
-def tagify(s):
+def tagify(s, maxlen=None):
     """
     Sanitize a string into a tag-friendly format
 
     tagify("HTTP Web Title") --> "http-web-title"
     """
     ret = str(s).lower()
-    return tag_filter_regex.sub("-", ret).strip("-")
+    return tag_filter_regex.sub("-", ret)[:maxlen].strip("-")
 
 
 def memory_status():
@@ -958,42 +1103,44 @@ def swap_status():
 
 def get_size(obj, max_depth=5, seen=None):
     """
-    Recursively get size of object in bytes
+    Rough recursive measurement of a python object's memory footprint
     """
-    size = 0
-    if max_depth <= 0:
-        return size
+    # If seen is not provided, initialize an empty set
+    if seen is None:
+        seen = set()
+    # Get the id of the object
+    obj_id = id(obj)
+    # Decrease the maximum depth for the next recursion
     new_max_depth = max_depth - 1
-    try:
-        size = sys.getsizeof(obj)
-        if seen is None:
-            seen = set()
-        obj_id = id(obj)
-        if obj_id in seen:
-            return 0
-        # Important mark as seen *before* entering recursion to gracefully handle
-        # self-referential objects
-        seen.add(obj_id)
-        if hasattr(obj, "__dict__"):
-            for _cls in obj.__class__.__mro__:
-                if "__dict__" in _cls.__dict__:
-                    d = _cls.__dict__["__dict__"]
-                    if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
-                        size += get_size(obj.__dict__, max_depth=new_max_depth, seen=seen)
-                    break
-        if isinstance(obj, dict):
-            size += sum((get_size(v, max_depth=new_max_depth, seen=seen) for v in obj.values()))
-            size += sum((get_size(k, max_depth=new_max_depth, seen=seen) for k in obj.keys()))
-        # elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
-        #     size += sum((get_size(i, seen) for i in obj))
-        if hasattr(obj, "__slots__"):  # can have __slots__ with __dict__
-            size += sum(
-                get_size(getattr(obj, s), max_depth=new_max_depth, seen=seen) for s in obj.__slots__ if hasattr(obj, s)
-            )
-    except Exception as e:
-        log.debug(f"Error getting size of {obj}: {e}")
-        log.trace(traceback.format_exc())
-
+    # If the object has already been seen or we've reached the maximum recursion depth, return 0
+    if obj_id in seen or new_max_depth <= 0:
+        return 0
+    # Get the size of the object
+    size = sys.getsizeof(obj)
+    # Add the object's id to the set of seen objects
+    seen.add(obj_id)
+    # If the object has a __dict__ attribute, we want to measure its size
+    if hasattr(obj, "__dict__"):
+        # Iterate over the Method Resolution Order (MRO) of the class of the object
+        for cls in obj.__class__.__mro__:
+            # If the class's __dict__ contains a __dict__ key
+            if "__dict__" in cls.__dict__:
+                for k, v in obj.__dict__.items():
+                    size += get_size(k, new_max_depth, seen)
+                    size += get_size(v, new_max_depth, seen)
+                break
+    # If the object is a mapping (like a dictionary), we want to measure the size of its items
+    if isinstance(obj, Mapping):
+        with suppress(StopIteration):
+            k, v = next(iter(obj.items()))
+            size += (get_size(k, new_max_depth, seen) + get_size(v, new_max_depth, seen)) * len(obj)
+    # If the object is a container (like a list or tuple) but not a string or bytes-like object
+    elif isinstance(obj, (list, tuple, set)):
+        with suppress(StopIteration):
+            size += get_size(next(iter(obj)), new_max_depth, seen) * len(obj)
+    # If the object has __slots__, we want to measure the size of the attributes in __slots__
+    if hasattr(obj, "__slots__"):
+        size += sum(get_size(getattr(obj, s), new_max_depth, seen) for s in obj.__slots__ if hasattr(obj, s))
     return size
 
 
@@ -1020,3 +1167,123 @@ def cloudcheck(ip):
         with suppress(KeyError):
             provider = provider_map[provider.lower()]
     return provider, provider_type, subnet
+
+
+def is_async_function(f):
+    return inspect.iscoroutinefunction(f)
+
+
+async def execute_sync_or_async(callback, *args, **kwargs):
+    if is_async_function(callback):
+        return await callback(*args, **kwargs)
+    else:
+        return callback(*args, **kwargs)
+
+
+def get_exception_chain(e):
+    """
+    Get the full chain of exceptions that led to the current one
+    """
+    exception_chain = []
+    current_exception = e
+    while current_exception is not None:
+        exception_chain.append(current_exception)
+        current_exception = getattr(current_exception, "__context__", None)
+    return exception_chain
+
+
+def get_traceback_details(e):
+    tb = traceback.extract_tb(e.__traceback__)
+    last_frame = tb[-1]  # Get the last frame in the traceback (the one where the exception was raised)
+    filename = last_frame.filename
+    lineno = last_frame.lineno
+    funcname = last_frame.name
+    return filename, lineno, funcname
+
+
+async def cancel_tasks(tasks):
+    current_task = asyncio.current_task()
+    tasks = [t for t in tasks if t != current_task]
+    for task in tasks:
+        log.debug(f"Cancelling task: {task}")
+        task.cancel()
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            log.trace(traceback.format_exc())
+
+
+def cancel_tasks_sync(tasks):
+    current_task = asyncio.current_task()
+    for task in tasks:
+        if task != current_task:
+            log.debug(f"Cancelling task: {task}")
+            task.cancel()
+
+
+def weighted_shuffle(items, weights):
+    # Create a list of tuples where each tuple is (item, weight)
+    pool = list(zip(items, weights))
+
+    shuffled_items = []
+
+    # While there are still items to be chosen...
+    while pool:
+        # Normalize weights
+        total = sum(weight for item, weight in pool)
+        weights = [weight / total for item, weight in pool]
+
+        # Choose an index based on weight
+        chosen_index = random.choices(range(len(pool)), weights=weights, k=1)[0]
+
+        # Add the chosen item to the shuffled list
+        chosen_item, chosen_weight = pool.pop(chosen_index)
+        shuffled_items.append(chosen_item)
+
+    return shuffled_items
+
+
+def parse_port_string(port_string):
+    elements = port_string.split(",")
+    ports = []
+
+    for element in elements:
+        if element.isdigit():
+            port = int(element)
+            if 1 <= port <= 65535:
+                ports.append(port)
+            else:
+                raise ValueError(f"Invalid port: {element}")
+        elif "-" in element:
+            range_parts = element.split("-")
+            if len(range_parts) != 2 or not all(part.isdigit() for part in range_parts):
+                raise ValueError(f"Invalid port or port range: {element}")
+            start, end = map(int, range_parts)
+            if not (1 <= start < end <= 65535):
+                raise ValueError(f"Invalid port range: {element}")
+            ports.extend(range(start, end + 1))
+        else:
+            raise ValueError(f"Invalid port or port range: {element}")
+
+    return ports
+
+
+def parse_list_string(list_string):
+    elements = list_string.split(",")
+    result = []
+
+    for element in elements:
+        if any((c in '<>:"/\\|?*') or (ord(c) < 32 and c != " ") for c in element):
+            raise ValueError(f"Invalid character in string: {element}")
+        result.append(element)
+    return result
+
+
+async def as_completed(coros):
+    tasks = {coro if isinstance(coro, asyncio.Task) else asyncio.create_task(coro): coro for coro in coros}
+    while tasks:
+        done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            tasks.pop(task)
+            yield task

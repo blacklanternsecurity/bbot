@@ -19,15 +19,19 @@ class Ipstack(shodan_dns):
 
     base_url = "http://api.ipstack.com/"
 
-    def ping(self):
-        r = self.request_with_fail_count(f"{self.base_url}/check?access_key={self.api_key}")
+    async def filter_event(self, event):
+        return True
+
+    async def ping(self):
+        url = f"{self.base_url}/check?access_key={self.api_key}"
+        r = await self.request_with_fail_count(url)
         resp_content = getattr(r, "text", "")
         assert getattr(r, "status_code", 0) == 200, resp_content
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         try:
             url = f"{self.base_url}/{event.data}?access_key={self.api_key}"
-            result = self.request_with_fail_count(url)
+            result = await self.request_with_fail_count(url)
             if result:
                 j = result.json()
                 if not j:
@@ -35,8 +39,7 @@ class Ipstack(shodan_dns):
             else:
                 self.verbose(f"No response from {url}")
         except Exception:
-            self.verbose(f"Error retrieving results for {event.data}")
-            self.trace()
+            self.verbose(f"Error retrieving results for {event.data}", trace=True)
             return
         geo_data = {
             "ip": j.get("ip"),

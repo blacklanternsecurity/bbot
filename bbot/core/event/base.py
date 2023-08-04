@@ -1,4 +1,5 @@
 import json
+import asyncio
 import logging
 import ipaddress
 import traceback
@@ -6,7 +7,6 @@ from typing import Optional
 from datetime import datetime
 from contextlib import suppress
 from pydantic import BaseModel, validator
-from threading import Event as ThreadingEvent
 
 from .helpers import *
 from bbot.core.errors import *
@@ -125,8 +125,8 @@ class BaseEvent:
             if _internal:  # or source._internal:
                 self.make_internal()
 
-        # a threading event indicating whether the event has undergone DNS resolution yet
-        self._resolved = ThreadingEvent()
+        # an event indicating whether the event has undergone DNS resolution
+        self._resolved = asyncio.Event()
 
     @property
     def data(self):
@@ -309,6 +309,7 @@ class BaseEvent:
         if force_output == "trail_only":
             force_output = True
 
+        # if our source event is internal, unmake it too
         if getattr(self.source, "_internal", False):
             source_scope_distance = None
             if set_scope_distance is not None:
@@ -320,13 +321,16 @@ class BaseEvent:
 
         return source_trail
 
-    def make_in_scope(self, set_scope_distance=0):
+    def set_scope_distance(self, d=0):
+        """
+        Set the scope of an event and its parents
+        """
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
         if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=set_scope_distance, force_output="trail_only")
-        self.scope_distance = set_scope_distance
-        if set_scope_distance == 0:
+            source_trail = self.unmake_internal(set_scope_distance=d, force_output="trail_only")
+        self.scope_distance = d
+        if d == 0:
             self.add_tag("in-scope")
         return source_trail
 
@@ -447,6 +451,8 @@ class BaseEvent:
             j.update({"tags": list(self.tags)})
         if self.module:
             j.update({"module": str(self.module)})
+        if self.module_sequence:
+            j.update({"module_sequence": str(self.module_sequence)})
 
         # normalize non-primitive python objects
         for k, v in list(j.items()):
@@ -462,6 +468,18 @@ class BaseEvent:
     @staticmethod
     def from_json(j):
         return event_from_json(j)
+
+    @property
+    def module_sequence(self):
+        """
+        A human-friendly representation of the module name that includes modules from omitted source events
+
+        Helpful in identifying where a URL came from
+        """
+        module_name = getattr(self.module, "name", "")
+        if getattr(self.source, "_omit", False):
+            module_name = f"{self.source.module_sequence}->{module_name}"
+        return module_name
 
     @property
     def module_priority(self):
@@ -482,6 +500,7 @@ class BaseEvent:
                 self._priority = (timestamp,)
             else:
                 self._priority = getattr(self.source, "priority", ()) + (timestamp,)
+
         return self._priority
 
     @property
@@ -573,7 +592,12 @@ class DictEvent(BaseEvent):
 
 class DictHostEvent(DictEvent):
     def _host(self):
-        return make_ip_type(self.data["host"])
+        if isinstance(self.data, dict) and "host" in self.data:
+            return make_ip_type(self.data["host"])
+        else:
+            parsed = getattr(self, "parsed")
+            if parsed is not None:
+                return make_ip_type(parsed.hostname)
 
 
 class ASN(DictEvent):
@@ -584,10 +608,6 @@ class CODE_REPOSITORY(DictHostEvent):
     class _data_validator(BaseModel):
         url: str
         _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
-
-    def _host(self):
-        self.parsed = validators.validate_url_parsed(self.data["url"])
-        return make_ip_type(self.parsed.hostname)
 
     def _pretty_string(self):
         return self.data["url"]
@@ -792,6 +812,7 @@ class EMAIL_ADDRESS(BaseEvent):
 class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # count number of consecutive redirects
         self.num_redirects = getattr(self.source, "num_redirects", 0)
         if str(self.data.get("status_code", 0)).startswith("3"):
             self.num_redirects += 1
@@ -812,6 +833,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         data = dict(data)
         new_data = {"url": data.pop("url")}
         new_data.update(data)
+
         return new_data
 
     def _words(self):
@@ -910,7 +932,7 @@ class SOCIAL(DictEvent):
     _always_emit = True
 
 
-class WEBSCREENSHOT(BaseEvent):
+class WEBSCREENSHOT(DictHostEvent):
     _always_emit = True
 
 

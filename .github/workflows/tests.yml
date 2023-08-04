@@ -1,19 +1,45 @@
 name: tests
 on:
   push:
+    branches:
+      - stable
+      - dev
   pull_request:
   pull_request_target:
     types:
       - closed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: psf/black@stable
+        with:
+          options: "--check"
+      - name: Install Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: |
+          pip install flake8
+      - name: flake8
+        run: |
+          flake8 --select F,E722 --ignore F403,F405,F541 --per-file-ignores="*/__init__.py:F401,F403"
   test:
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.x"
       - name: Install dependencies
         run: |
           pip install poetry
@@ -22,13 +48,57 @@ jobs:
         run: |
           poetry run pytest --exitfirst --reruns 2 --disable-warnings --log-cli-level=DEBUG --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov.xml
           verbose: true
-  publish:
+  update_docs:
     needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.BBOT_DOCS_UPDATER_PAT }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+      - name: Generate docs
+        run: |
+          poetry run bbot/scripts/docs.py
+      - name: Commit docs
+        uses: EndBug/add-and-commit@v9
+        continue-on-error: true
+        with:
+          add: "*.md"
+          author_name: "BBOT Docs Autopublish"
+          author_email: info@blacklanternsecurity.com
+          message: "Refresh module docs"
+  publish_docs:
+    needs: update_docs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.event.pull_request.base.ref == 'dev'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+      - uses: actions/cache@v3
+        with:
+          key: mkdocs-material-${{ env.cache_id }}
+          path: .cache
+          restore-keys: |
+            mkdocs-material-
+      - run: pip install mkdocs-material mkdocs-extra-sass-plugin livereload
+      - run: mkdocs gh-deploy --force
+  publish_code:
+    needs: update_docs
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'dev' || github.event.pull_request.base.ref == 'stable')
     continue-on-error: true
@@ -39,7 +109,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.x"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

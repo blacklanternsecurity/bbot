@@ -1,15 +1,14 @@
 import os
 import logging
 from pathlib import Path
-from threading import Lock
 
 from . import misc
 from .dns import DNSHelper
+from .web import WebHelper
 from .diff import HttpCompare
 from .wordcloud import WordCloud
 from .cloud import CloudProviders
 from .interactsh import Interactsh
-from .threadpool import as_completed
 from ...scanner.target import Target
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
@@ -19,12 +18,12 @@ log = logging.getLogger("bbot.core.helpers")
 
 
 class ConfigAwareHelper:
-    from .web import wordlist, request, download, api_page_iter, curl
-    from .cache import cache_get, cache_put, cache_filename, is_cached, CacheDict
-    from .command import run, run_live, _prepare_command_kwargs, tempfile, feed_pipe, _feed_pipe, tempfile_tail
     from . import ntlm
     from . import regexes
     from . import validators
+    from .files import tempfile, feed_pipe, _feed_pipe, tempfile_tail
+    from .command import run, run_live, _spawn_proc, _prepare_command_kwargs
+    from .cache import cache_get, cache_put, cache_filename, is_cached, CacheDict
 
     def __init__(self, config, scan=None):
         self.config = config
@@ -42,10 +41,9 @@ class ConfigAwareHelper:
         self.mkdir(self.temp_dir)
         self.mkdir(self.tools_dir)
         self.mkdir(self.lib_dir)
-        self._futures = set()
-        self._future_lock = Lock()
 
         self.dns = DNSHelper(self)
+        self.web = WebHelper(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
@@ -59,11 +57,14 @@ class ConfigAwareHelper:
     def http_compare(self, url, allow_redirects=False, include_cache_buster=True):
         return HttpCompare(url, self, allow_redirects=allow_redirects, include_cache_buster=include_cache_buster)
 
-    def temp_filename(self):
+    def temp_filename(self, extension=None):
         """
         temp_filename() --> Path("/home/user/.bbot/temp/pgxml13bov87oqrvjz7a")
         """
-        return self.temp_dir / self.rand_string(20)
+        filename = self.rand_string(20)
+        if extension is not None:
+            filename = f"{filename}.{extension}"
+        return self.temp_dir / filename
 
     def clean_old_scans(self):
         _filter = lambda x: x.is_dir() and self.regexes.scan_name_regex.match(x.name)
@@ -81,16 +82,8 @@ class ConfigAwareHelper:
         return self._scan
 
     @property
-    def scan_stopping(self):
-        return getattr(self.scan, "stopping", False)
-
-    @property
     def in_tests(self):
         return os.environ.get("BBOT_TESTING", "") == "True"
-
-    @staticmethod
-    def as_completed(*args, **kwargs):
-        return as_completed(*args, **kwargs)
 
     def _make_dummy_module(self, name, _type="scan"):
         """
@@ -119,8 +112,12 @@ class ConfigAwareHelper:
                     # then try dns
                     return getattr(self.dns, attr)
                 except AttributeError:
-                    # then die
-                    raise AttributeError(f'Helper has no attribute "{attr}"')
+                    try:
+                        # then try web
+                        return getattr(self.web, attr)
+                    except AttributeError:
+                        # then die
+                        raise AttributeError(f'Helper has no attribute "{attr}"')
 
 
 class DummyModule(BaseModule):

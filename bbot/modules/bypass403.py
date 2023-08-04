@@ -81,12 +81,8 @@ class bypass403(BaseModule):
     meta = {"description": "Check 403 pages for common bypasses"}
     in_scope_only = True
 
-    def handle_event(self, event):
-        try:
-            compare_helper = self.helpers.http_compare(event.data, allow_redirects=True)
-        except HttpCompareError as e:
-            self.debug(e)
-            return
+    async def do_checks(self, compare_helper, event, collapse_threshold):
+        results = set()
 
         for sig in signatures:
             sig = self.format_signature(sig, event)
@@ -94,7 +90,7 @@ class bypass403(BaseModule):
                 headers = dict(sig[2])
             else:
                 headers = None
-            match, reasons, reflection, subject_response = compare_helper.compare(
+            match, reasons, reflection, subject_response = await compare_helper.compare(
                 sig[1], headers=headers, method=sig[0], allow_redirects=True
             )
 
@@ -113,15 +109,41 @@ class bypass403(BaseModule):
                     else:
                         reported_signature = f"Modified URL: {sig[0]} {sig[1]}"
                     description = f"403 Bypass Reasons: [{','.join(reasons)}] Sig: [{reported_signature}]"
-                    self.emit_event(
-                        {"description": description, "host": str(event.host), "url": event.data},
-                        "FINDING",
-                        source=event,
-                    )
+                    results.add(description)
+                    if len(results) > collapse_threshold:
+                        return results
                 else:
                     self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")
+        return results
 
-    def filter_event(self, event):
+    async def handle_event(self, event):
+        try:
+            compare_helper = self.helpers.http_compare(event.data, allow_redirects=True)
+        except HttpCompareError as e:
+            self.debug(e)
+            return
+
+        collapse_threshold = 10
+        results = await self.do_checks(compare_helper, event, collapse_threshold)
+        if len(results) > collapse_threshold:
+            self.emit_event(
+                {
+                    "description": f"403 Bypass MULTIPLE SIGNATURES (exceeded threshold {str(collapse_threshold)})",
+                    "host": str(event.host),
+                    "url": event.data,
+                },
+                "FINDING",
+                source=event,
+            )
+        else:
+            for description in results:
+                self.emit_event(
+                    {"description": description, "host": str(event.host), "url": event.data},
+                    "FINDING",
+                    source=event,
+                )
+
+    async def filter_event(self, event):
         if ("status-403" in event.tags) or ("status-401" in event.tags):
             return True
         return False

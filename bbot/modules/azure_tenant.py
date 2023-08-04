@@ -6,28 +6,28 @@ from .viewdns import viewdns
 class azure_tenant(viewdns):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "subdomain-enum", "passive", "safe"]
+    flags = ["affiliates", "subdomain-enum", "cloud-enum", "passive", "safe"]
     meta = {"description": "Query Azure for tenant sister domains"}
 
     base_url = "https://autodiscover-s.outlook.com"
     in_scope_only = True
 
-    def setup(self):
+    async def setup(self):
         self.processed = set()
         self.d_xml_regex = re.compile(r"<Domain>([^<>/]*)</Domain>", re.I)
         return True
 
-    def handle_event(self, event):
+    async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
-        domains, _ = self.query(query)
+        domains, _ = await self.query(query)
         if domains:
-            self.success(f'Found {len(domains):,} domains under tenant for "{query}"')
+            self.success(f'Found {len(domains):,} domains under tenant for "{query}": {", ".join(sorted(domains))}')
         for domain in domains:
             if domain != query:
                 self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
         # todo: tenants?
 
-    def query(self, domain):
+    async def query(self, domain):
         url = f"{self.base_url}/autodiscover/autodiscover.svc"
         data = f"""<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:exm="http://schemas.microsoft.com/exchange/services/2006/messages" xmlns:ext="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:a="http://www.w3.org/2005/08/addressing" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
@@ -56,10 +56,10 @@ class azure_tenant(viewdns):
 
         self.debug(f"Retrieving tenant domains at {url}")
 
-        r = self.request_with_fail_count(url, method="POST", headers=headers, data=data)
+        r = await self.helpers.request(url, method="POST", headers=headers, data=data)
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200, 421):
-            self.warning(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
+            self.verbose(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
             return set(), set()
         found_domains = list(set(self.d_xml_regex.findall(r.text)))
         domains = set()
