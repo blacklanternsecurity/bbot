@@ -1,4 +1,4 @@
-from httpx import HTTPError  # noqa
+from httpx import HTTPError, RequestError  # noqa
 
 
 class BBOTError(Exception):
