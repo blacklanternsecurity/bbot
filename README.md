@@ -89,6 +89,7 @@ BBOT accepts an unlimited number of targets. You can specify targets either dire
 - DNS_NAME (`evilcorp.com`)
 - IP_ADDRESS (`1.2.3.4`)
 - IP_RANGE (`1.2.3.0/24`)
+- `OPEN_PORT` (`192.168.0.1:80`)
 - URL (`https://www.evilcorp.com`)
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/scanning/#scope).
