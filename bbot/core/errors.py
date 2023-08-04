@@ -1,4 +1,4 @@
-from httpx import RequestError, ReadTimeout  # noqa
+from httpx import HTTPError  # noqa
 
 
 class BBOTError(Exception):

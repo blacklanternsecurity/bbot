@@ -622,8 +622,7 @@ class BaseModule:
         Return how much memory the module is currently using in bytes
         """
         seen = {self.scan, self.helpers, self.log}  # noqa
-        # return get_size(self, max_depth=3, seen=seen)
-        return 0
+        return get_size(self, max_depth=3, seen=seen)
 
     def __str__(self):
         return self.name

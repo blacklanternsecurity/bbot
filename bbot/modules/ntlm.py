@@ -1,5 +1,5 @@
 from bbot.modules.base import BaseModule
-from bbot.core.errors import NTLMError, RequestError, ReadTimeout
+from bbot.core.errors import NTLMError, HTTPError
 
 ntlm_discovery_endpoints = [
     "",
@@ -125,21 +125,23 @@ class ntlm(BaseModule):
             self.processed.add(url_hash)
             tasks.append(self.helpers.create_task(self.check_ntlm(url)))
 
+        result, url = None, None
+
         gen = self.helpers.as_completed(tasks)
         async for task in gen:
             try:
                 result, url = await task
                 if result:
                     await self.helpers.cancel_tasks(tasks)
-                    return result, url
-            except (RequestError, ReadTimeout) as e:
+                    await gen.aclose()
+            except HTTPError as e:
                 if str(e):
                     self.warning(str(e))
                 # cancel all the tasks if there's an error
                 await self.helpers.cancel_tasks(tasks)
                 await gen.aclose()
 
-        return None, None
+        return result, url
 
     async def check_ntlm(self, test_url):
         # use lower timeout value
