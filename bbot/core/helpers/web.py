@@ -138,7 +138,9 @@ class WebHelper:
             async with self.web_rate_limiter:
                 response = await client.request(*args, **kwargs)
             if self.http_debug:
-                log.debug(f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}")
+                log.debug(
+                    f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
+                )
             return response
         except httpx.TimeoutException:
             log.verbose(f"HTTP timeout to URL: {url}")
