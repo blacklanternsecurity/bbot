@@ -159,7 +159,6 @@ class massdns(crobat):
                 if rdtype in wildcard_rdtypes:
                     self.debug(f"Skipping {hostname}:{rdtype} because it's a wildcard")
                     continue
-            # self.hugesuccess(f"{hostname}:wildcard_rdtypes:{wildcard_rdtypes}, domain_wildcard_rdtypes:{domain_wildcard_rdtypes}")
             results.append(hostname)
 
         # do another canary check for good measure

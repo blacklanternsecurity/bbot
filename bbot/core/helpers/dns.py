@@ -243,7 +243,7 @@ class DNSHelper:
                 except KeyError:
                     async with self.dns_rate_limiter:
                         results = await asyncio.wait_for(
-                            self._catch(self.resolver.resolve_address, query, **kwargs), self.timeout + 0.1
+                            self._catch(self.resolver.resolve_address, query, **kwargs), self.timeout + 10
                         )
                     if cache_result:
                         self._dns_cache[dns_cache_hash] = results
