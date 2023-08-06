@@ -1,5 +1,4 @@
 from baddns.lib import baddns as BadDNS
-
 from .base import BaseModule
 
 
@@ -12,7 +11,9 @@ class baddns(BaseModule):
     deps_pip = ["baddns"]
 
     async def handle_event(self, event):
-        baddns_cname = BadDNS.BadDNS_cname(event.data)
+        baddns_cname = BadDNS.BadDNS_cname(
+            event.data, http_client=self.scan.helpers.web.web_client, dns_client=self.scan.helpers.dns.resolver
+        )
         if await baddns_cname.dispatch():
             r = baddns_cname.analyze()
             if r:
