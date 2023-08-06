@@ -2,8 +2,9 @@ from baddns.lib import baddns as BadDNS
 
 from .base import BaseModule
 
+
 class baddns(BaseModule):
-    watched_events = ["DNS_NAME","DNS_NAME_UNRESOLVED"]
+    watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "web-basic"]
     meta = {"description": "Check subdomains for for subdomain takeovers and other DNS tomfoolery"}
