@@ -14,10 +14,11 @@ class baddns(BaseModule):
         baddns_cname = BadDNS.BadDNS_cname(event.data)
         if await baddns_cname.dispatch():
             r = baddns_cname.analyze()
+            self.critical(r)
             if r:
                 data = {
                     "severity": "MEDIUM",
-                    "description": f"Probable Subdomain Takeover. CNAME: [{r['cname']}] Signature Name: [{r['signature_name']}] Matching Domain: [{r['matching_domain']}] Technique: [{r['Technique']}]",
+                    "description": f"Probable Subdomain Takeover. CNAME: [{r['cname']}] Signature Name: [{r['signature_name']}] Matching Domain: [{r['matching_domain']}] Technique: [{r['technique']}]",
                     "host": str(event.host),
                 }
                 self.emit_event(data, "VULNERABILITY", event)
