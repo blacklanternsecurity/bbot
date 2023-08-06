@@ -17,7 +17,6 @@ class baddns(BaseModule):
         if await baddns_cname.dispatch():
             r = baddns_cname.analyze()
             if r:
-                self.critical(r)
                 data = {
                     "severity": "MEDIUM",
                     "description": f"Probable Subdomain Takeover. CNAME: [{r['cname']}] Signature Name: [{r.get('signature_name', 'N/A')}] Matching Domain: [{r.get('matching_domain', 'N/A')}] Technique: [{r['technique']}]",
