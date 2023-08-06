@@ -19,7 +19,7 @@ class baddns(BaseModule):
                 self.critical(r)
                 data = {
                     "severity": "MEDIUM",
-                    "description": f"Probable Subdomain Takeover. CNAME: [{r['cname']}] Signature Name: [{r['signature_name']}] Matching Domain: [{r['matching_domain']}] Technique: [{r['technique']}]",
+                    "description": f"Probable Subdomain Takeover. CNAME: [{r['cname']}] Signature Name: [{r.get('signature_name', 'N/A')}] Matching Domain: [{r.get('matching_domain', 'N/A')}] Technique: [{r['technique']}]",
                     "host": str(event.host),
                 }
                 self.emit_event(data, "VULNERABILITY", event)
