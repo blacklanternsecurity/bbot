@@ -91,6 +91,7 @@ adjectives = [
     "gay",
     "gentle",
     "giddy",
+    "glowering",
     "glutinous",
     "gothic",
     "grievous",
