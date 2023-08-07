@@ -23,8 +23,7 @@ nav:
     - Configuration: scanning/configuration.md
   - Modules: 
     - List of Modules: modules/list_of_modules.md
-    - Module Docs:
-      - Nuclei: modules/nuclei.md
+    - Nuclei: modules/nuclei.md
   - Contribution:
     - How to Write a Module: contribution.md
   - Misc:
