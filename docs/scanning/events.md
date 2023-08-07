@@ -73,3 +73,19 @@ Below is a full list of event types along with which modules produce/consume the
 | WAF                 | 0                     | 1                     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | wafw00f                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | WEBSCREENSHOT       | 0                     | 1                     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | gowitness                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 <!-- END BBOT EVENTS -->
+
+## Findings Vs. Vulnerabilties
+
+BBOT has a sharp distinction between Findings and Vulnerabilities:
+
+**Vulnerability**
+
+* There's a higher standard for what is allowed to be a vulnerability. They should be considered **confirmed** and **actionable​** - no additional confirmation required
+* They are always assigned a severity. The possible severities are: LOW, MEDIUM, HIGH, or CRITICAL​
+
+**FINDING​**
+
+* Findings can range anywhere from "slightly interesting behavior" to "likely, but unconfirmed vulnerability"​
+* Are often false positives
+
+By making this separation, actionable vulnerabilities can be identified quickly in the midst of a large scan
