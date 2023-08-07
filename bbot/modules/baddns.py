@@ -12,7 +12,7 @@ class baddns(BaseModule):
 
     async def handle_event(self, event):
         baddns_cname = BadDNS.BadDNS_cname(
-            event.data, http_client=self.scan.helpers.web.web_client, dns_client=self.scan.helpers.dns.resolver
+            event.data, http_client=self.scan.helpers.web.AsyncClient, dns_client=self.scan.helpers.dns.resolver
         )
         if await baddns_cname.dispatch():
             r = baddns_cname.analyze()
