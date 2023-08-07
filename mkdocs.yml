@@ -24,7 +24,7 @@ nav:
   - Modules: 
     - List of Modules: modules/list_of_modules.md
     - Module Docs:
-      modules/nuclei.md
+      - Nuclei: modules/nuclei.md
   - Contribution:
     - How to Write a Module: contribution.md
   - Misc:
