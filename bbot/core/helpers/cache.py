@@ -109,6 +109,9 @@ class CacheDict:
     def items(self):
         return self._cache.items()
 
+    def clear(self):
+        return self._cache.clear()
+
     def _hash(self, v):
         if type(v) == int:
             return v
