@@ -503,8 +503,6 @@ class DNSHelper:
         except Exception as e:
             log.warning(f"Error in {callback.__qualname__}() with args={args}, kwargs={kwargs}: {e}")
             log.trace(traceback.format_exc())
-        except asyncio.CancelledError:
-            return []
         return []
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
