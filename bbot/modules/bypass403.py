@@ -125,6 +125,8 @@ class bypass403(BaseModule):
 
         collapse_threshold = 10
         results = await self.do_checks(compare_helper, event, collapse_threshold)
+        if results is None:
+            return
         if len(results) > collapse_threshold:
             self.emit_event(
                 {
