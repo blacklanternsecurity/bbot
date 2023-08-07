@@ -17,7 +17,6 @@ omegaconf = "^2.3.0"
 tldextract = "^3.4.0"
 psutil = "^5.9.4"
 wordninja = "^2.0.0"
-dnspython = "^2.3.0"
 pydantic = "^1.10.6"
 ansible-runner = "^2.3.2"
 deepdiff = "^6.2.3"
@@ -33,6 +32,7 @@ beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"
 httpx = {extras = ["http2"], version = "^0.24.1"}
 anyio = "==4.0.0rc1"
+dnspython = {git = "https://github.com/rthalley/dnspython", rev = "9d0262a92c0cf105d12f524f4f103abe913458ae"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"

@@ -1,3 +1,4 @@
+import time
 import asyncio
 import logging
 import ipaddress
@@ -16,9 +17,21 @@ from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, 
 log = logging.getLogger("bbot.core.helpers.dns")
 
 
+class BBOTAsyncResolver(dns.asyncresolver.Resolver):
+    def __init__(self, *args, **kwargs):
+        self._parent_helper = kwargs.pop("_parent_helper")
+        dns_queries_per_second = self._parent_helper.config.get("dns_queries_per_second", 100)
+        self._dns_rate_limiter = RateLimiter(dns_queries_per_second, "DNS")
+        super().__init__(*args, **kwargs)
+
+    async def resolve(self, *args, **kwargs):
+        async with self._dns_rate_limiter:
+            return await super().resolve(*args, **kwargs)
+
+
 class DNSHelper:
     """
-    For automatic wildcard detection, nameserver validation, etc.
+    For host resolution, automatic wildcard detection, etc.
     """
 
     all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
@@ -26,7 +39,7 @@ class DNSHelper:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         try:
-            self.resolver = dns.asyncresolver.Resolver()
+            self.resolver = BBOTAsyncResolver(_parent_helper=self.parent_helper)
         except Exception as e:
             raise DNSError(f"Failed to create BBOT DNS resolver: {e}")
         self.timeout = self.parent_helper.config.get("dns_timeout", 5)
@@ -62,12 +75,13 @@ class DNSHelper:
         # since wildcard detection takes some time, This is to prevent multiple
         # modules from kicking off wildcard detection for the same domain at the same time
         self._wildcard_lock = NamedLock()
+        self._dns_connectivity_lock = asyncio.Lock()
+        self._last_dns_success = None
+        self._last_connectivity_warning = time.time()
         # keeps track of warnings issued for wildcard detection to prevent duplicate warnings
         self._dns_warnings = set()
         self._errors = dict()
         self.fallback_nameservers_file = self.parent_helper.wordlist_dir / "nameservers.txt"
-        self.dns_queries_per_second = self.parent_helper.config.get("dns_queries_per_second", 100)
-        self.dns_rate_limiter = RateLimiter(self.dns_queries_per_second, "DNS")
         self._debug = self.parent_helper.config.get("dns_debug", False)
         self._dummy_modules = dict()
         self._dns_cache = self.parent_helper.CacheDict(max_size=100000)
@@ -158,45 +172,30 @@ class DNSHelper:
 
         parent = self.parent_helper.parent_domain(query)
         retries = kwargs.pop("retries", self.retries)
-        cache_result = kwargs.pop("cache_result", False)
+        use_cache = kwargs.pop("use_cache", True)
         tries_left = int(retries) + 1
         parent_hash = hash(f"{parent}:{rdtype}")
         dns_cache_hash = hash(f"{query}:{rdtype}")
         while tries_left > 0:
             try:
-                try:
-                    results = self._dns_cache[dns_cache_hash]
-                except KeyError:
+                if use_cache:
+                    results = self._dns_cache.get(dns_cache_hash, [])
+                if not results:
                     error_count = self._errors.get(parent_hash, 0)
                     if error_count >= self.abort_threshold:
-                        try:
-                            dns_server_working = list(
-                                await asyncio.wait_for(
-                                    self.resolver.resolve("www.google.com", rdtype="A"), self.timeout + 10
-                                )
-                            )
-                        except Exception:
-                            dns_server_working = []
-                        if not dns_server_working:
-                            log.warning(f"DNS queries are failing, you may be blasting a little too hard")
-                            self._errors.clear()
-                        else:
-                            log.info(
+                        connectivity = await self._connectivity_check()
+                        if connectivity:
+                            log.verbose(
                                 f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                             )
                             if parent_hash not in self._dns_warnings:
-                                log.warning(
+                                log.info(
                                     f'Aborting future {rdtype} queries to "{parent}" because error count ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                                 )
                             self._dns_warnings.add(parent_hash)
                             return results, errors
-                    async with self.dns_rate_limiter:
-                        # wait_for exists here because of this:
-                        #  https://github.com/rthalley/dnspython/issues/976
-                        results = await asyncio.wait_for(
-                            self._catch(self.resolver.resolve, query, **kwargs), self.timeout + 10
-                        )
-                    if cache_result:
+                    results = await self._catch(self.resolver.resolve, query, **kwargs)
+                    if use_cache:
                         self._dns_cache[dns_cache_hash] = results
                     if parent_hash in self._errors:
                         self._errors[parent_hash] = 0
@@ -226,26 +225,26 @@ class DNSHelper:
                 else:
                     log.verbose(err_msg)
 
+        if results:
+            self._last_dns_success = time.time()
+
         return results, errors
 
     async def _resolve_ip(self, query, **kwargs):
         self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
         retries = kwargs.pop("retries", 0)
-        cache_result = kwargs.pop("cache_result", False)
+        use_cache = kwargs.pop("use_cache", True)
         tries_left = int(retries) + 1
         results = []
         errors = []
         dns_cache_hash = hash(f"{query}:PTR")
         while tries_left > 0:
             try:
-                try:
-                    results = self._dns_cache[dns_cache_hash]
-                except KeyError:
-                    async with self.dns_rate_limiter:
-                        results = await asyncio.wait_for(
-                            self._catch(self.resolver.resolve_address, query, **kwargs), self.timeout + 10
-                        )
-                    if cache_result:
+                if use_cache:
+                    results = self._dns_cache.get(dns_cache_hash, [])
+                if not results:
+                    results = await self._catch(self.resolver.resolve_address, query, **kwargs)
+                    if use_cache:
                         self._dns_cache[dns_cache_hash] = results
                 break
             except (
@@ -264,6 +263,10 @@ class DNSHelper:
                     if tries_left > 0:
                         retry_num = (retries + 2) - tries_left
                         self.debug(f"Retrying (#{retry_num}) {query} with kwargs={kwargs}")
+
+        if results:
+            self._last_dns_success = time.time()
+
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors
 
@@ -356,7 +359,7 @@ class DNSHelper:
                         types = ("A", "AAAA")
 
                 if types:
-                    tasks = [self.resolve_raw(event_host, type=t, cache_result=True) for t in types]
+                    tasks = [self.resolve_raw(event_host, type=t, use_cache=True) for t in types]
                     async for task in as_completed(tasks):
                         resolved_raw, errors = await task
                         for rdtype, e in errors:
@@ -493,7 +496,7 @@ class DNSHelper:
         except dns.resolver.NoNameservers:
             raise
         except (dns.exception.Timeout, dns.resolver.LifetimeTimeout, TimeoutError):
-            log.verbose(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
+            log.debug(f"DNS query with args={args}, kwargs={kwargs} timed out after {self.timeout} seconds")
             raise
         except dns.exception.DNSException as e:
             self.debug(f"{e} (args={args}, kwargs={kwargs})")
@@ -549,7 +552,7 @@ class DNSHelper:
         if ips is None:
             # then resolve the query for all rdtypes
             base_query_tasks = {
-                t: asyncio.create_task(self.resolve_raw(query, type=t, cache_result=True)) for t in rdtypes_to_check
+                t: asyncio.create_task(self.resolve_raw(query, type=t, use_cache=True)) for t in rdtypes_to_check
             }
             for _rdtype, task in base_query_tasks.items():
                 raw_results, errors = await task
@@ -656,7 +659,7 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_tasks[rdtype].append(self.resolve(rand_query, type=rdtype, cache_result=False))
+                        wildcard_tasks[rdtype].append(self.resolve(rand_query, type=rdtype, use_cache=False))
 
                 # combine the random results
                 is_wildcard = False
@@ -684,6 +687,26 @@ class DNSHelper:
                     log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
 
         return wildcard_domain_results
+
+    async def _connectivity_check(self, interval=5):
+        """
+        Used to periodically check whether the scan has an internet connection
+        """
+        if self._last_dns_success is not None:
+            if time.time() - self._last_dns_success < interval:
+                return True
+        dns_server_working = []
+        async with self._dns_connectivity_lock:
+            with suppress(Exception):
+                dns_server_working = await self._catch(self.resolver.resolve, "www.google.com", rdtype="A")
+                if dns_server_working:
+                    self._last_dns_success = time.time()
+                    return True
+        if time.time() - self._last_connectivity_warning > interval:
+            log.warning(f"DNS queries are failing, please check your internet connection")
+            self._last_connectivity_warning = time.time()
+        self._errors.clear()
+        return False
 
     def debug(self, *args, **kwargs):
         if self._debug:
