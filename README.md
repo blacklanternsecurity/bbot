@@ -157,8 +157,8 @@ If you're interested in contributing to BBOT, or just curious how it works under
 
 Special thanks to the following people who made BBOT possible:
 
-- @TheTechromancer for creating BBOT
-- @liquidsec for his extensive work on BBOT's web hacking features
+- @TheTechromancer for creating [BBOT](https://github.com/blacklanternsecurity/bbot)
+- @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets)
 - Steve Micallef (@smicallef) for creating Spiderfoot
 - @kerrymilan for his Neo4j and Ansible expertise
 - Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
