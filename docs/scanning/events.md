@@ -78,7 +78,7 @@ Below is a full list of event types along with which modules produce/consume the
 
 BBOT has a sharp distinction between Findings and Vulnerabilities:
 
-**Vulnerability**
+**VULNERABILITY**
 
 * There's a higher standard for what is allowed to be a vulnerability. They should be considered **confirmed** and **actionable​** - no additional confirmation required
 * They are always assigned a severity. The possible severities are: LOW, MEDIUM, HIGH, or CRITICAL​
