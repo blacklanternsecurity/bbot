@@ -35,7 +35,7 @@ The Nuclei module has many configuration options:
 
 Most of these you probably will **NOT** want to change. In particular, we strongly advise against changing the version of Nuclei, as it's very likely the latest version won't work right with BBOT.
 
-We also do not recommend change **directory_only** mode. Because BBOT is recursive, feeding Nuclei every URL can get very out-of-hand very quickly, depending on what other modules are in use.
+We also do not recommend changing **directory_only** mode. Because BBOT is recursive, feeding Nuclei every URL can get very out-of-hand very quickly, depending on what other modules are in use.
 
 ### Mode ###
 
