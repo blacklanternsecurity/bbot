@@ -17,6 +17,10 @@ classifiers = [
     "Topic :: Security",
 ]
 
+[tool.poetry.urls]
+"Discord" = "https://discord.com/invite/PZqkgxu5SA"
+"Docker Hub" = "https://hub.docker.com/r/blacklanternsecurity/bbot"
+
 [tool.poetry.scripts]
 bbot = 'bbot.cli:main'
 
