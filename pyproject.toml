@@ -2,7 +2,10 @@
 name = "bbot"
 version = "1.0.3"
 description = "OSINT automation for hackers."
-authors = ["TheTechromancer"]
+authors = [
+    "TheTechromancer",
+    "Paul Mueller",
+]
 license = "GPL-3.0"
 readme = "README.md"
 repository = "https://github.com/blacklanternsecurity/bbot"
