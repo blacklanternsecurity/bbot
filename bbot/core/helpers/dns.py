@@ -118,6 +118,7 @@ class DNSHelper:
             log.trace(traceback.format_exc())
             raise
 
+        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results
 
     async def resolve_raw(self, query, **kwargs):
@@ -267,7 +268,6 @@ class DNSHelper:
         if results:
             self._last_dns_success = time.time()
 
-        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors
 
     async def handle_wildcard_event(self, event, children):
