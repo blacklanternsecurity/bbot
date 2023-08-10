@@ -118,6 +118,7 @@ class DNSHelper:
             log.trace(traceback.format_exc())
             raise
 
+        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results
 
     async def resolve_raw(self, query, **kwargs):
@@ -189,7 +190,7 @@ class DNSHelper:
                                 f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                             )
                             if parent_hash not in self._dns_warnings:
-                                log.info(
+                                log.verbose(
                                     f'Aborting future {rdtype} queries to "{parent}" because error count ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                                 )
                             self._dns_warnings.add(parent_hash)
@@ -267,7 +268,6 @@ class DNSHelper:
         if results:
             self._last_dns_success = time.time()
 
-        self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
         return results, errors
 
     async def handle_wildcard_event(self, event, children):

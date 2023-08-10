@@ -2,11 +2,24 @@
 name = "bbot"
 version = "1.0.3"
 description = "OSINT automation for hackers."
-authors = ["TheTechromancer"]
+authors = [
+    "TheTechromancer",
+    "Paul Mueller",
+]
 license = "GPL-3.0"
 readme = "README.md"
 repository = "https://github.com/blacklanternsecurity/bbot"
 homepage = "https://github.com/blacklanternsecurity/bbot"
+documentation = "https://www.blacklanternsecurity.com/bbot/"
+keywords = ["python", "cli", "automation", "osint", "neo4j", "scanner", "python-library", "hacking", "recursion", "pentesting", "recon", "command-line-tool", "bugbounty", "subdomains", "security-tools", "subdomain-scanner", "osint-framework", "attack-surface", "subdomain-enumeration", "osint-tool"]
+classifiers = [
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Security",
+]
+
+[tool.poetry.urls]
+"Discord" = "https://discord.com/invite/PZqkgxu5SA"
+"Docker Hub" = "https://hub.docker.com/r/blacklanternsecurity/bbot"
 
 [tool.poetry.scripts]
 bbot = 'bbot.cli:main'
@@ -32,7 +45,7 @@ beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"
 httpx = {extras = ["http2"], version = "^0.24.1"}
 anyio = "==4.0.0rc1"
-dnspython = {git = "https://github.com/rthalley/dnspython", rev = "9d0262a92c0cf105d12f524f4f103abe913458ae"}
+dnspython = "^2.4.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
