@@ -135,7 +135,9 @@ asyncio.run(main())
     - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
     - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
     - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
-    - [List of Modules](https://www.blacklanternsecurity.com/bbot/scanning/list_of_modules)
+- **Modules**
+    - [List of Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules)
+    - [Nuclei](https://www.blacklanternsecurity.com/bbot/modules/nuclei)
 - **Contribution**
     - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
 - **Misc**
