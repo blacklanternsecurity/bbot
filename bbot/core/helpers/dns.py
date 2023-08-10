@@ -190,7 +190,7 @@ class DNSHelper:
                                 f'Aborting query "{query}" because failed {rdtype} queries for "{parent}" ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                             )
                             if parent_hash not in self._dns_warnings:
-                                log.info(
+                                log.verbose(
                                     f'Aborting future {rdtype} queries to "{parent}" because error count ({error_count:,}) exceeded abort threshold ({self.abort_threshold:,})'
                                 )
                             self._dns_warnings.add(parent_hash)
