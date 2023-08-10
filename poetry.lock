@@ -530,12 +530,14 @@ optimize = ["orjson"]
 
 [[package]]
 name = "dnspython"
-version = "2.5.0"
+version = "2.4.2"
 description = "DNS toolkit"
 optional = false
-python-versions = "^3.8"
-files = []
-develop = false
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "dnspython-2.4.2-py3-none-any.whl", hash = "sha256:57c6fbaaeaaf39c891292012060beb141791735dbb4004798328fc2c467402d8"},
+    {file = "dnspython-2.4.2.tar.gz", hash = "sha256:8dcfae8c7460a2f84b4072e26f1c9f4101ca20c071649cb7c34e8b6a93d58984"},
+]
 
 [package.extras]
 dnssec = ["cryptography (>=2.6,<42.0)"]
@@ -544,12 +546,6 @@ doq = ["aioquic (>=0.9.20)"]
 idna = ["idna (>=2.1,<4.0)"]
 trio = ["trio (>=0.14,<0.23)"]
 wmi = ["wmi (>=1.5.1,<2.0.0)"]
-
-[package.source]
-type = "git"
-url = "https://github.com/rthalley/dnspython"
-reference = "9d0262a92c0cf105d12f524f4f103abe913458ae"
-resolved_reference = "9d0262a92c0cf105d12f524f4f103abe913458ae"
 
 [[package]]
 name = "docutils"
@@ -1783,4 +1779,4 @@ xmltodict = ">=0.12.0,<0.13.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "6407989e2f7626a030836937e51601d79594d3396a2590e41d6dca9ce8473735"
+content-hash = "f466d106f02b1d01755bc0caa87eaeb20c3ccb9ef598bc0cb15a90c2738340c0"
