@@ -53,12 +53,19 @@ async def test_dns(bbot_scanner, bbot_config):
     assert any([helpers.is_subdomain(h) for h in resolved])
 
     # dns cache
+    helpers.dns._dns_cache.clear()
     assert hash(f"8.8.8.8:PTR") not in helpers.dns._dns_cache
     assert hash(f"dns.google:A") not in helpers.dns._dns_cache
     assert hash(f"dns.google:AAAA") not in helpers.dns._dns_cache
-    await helpers.resolve("8.8.8.8", cache_result=True)
+    await helpers.resolve("8.8.8.8", use_cache=False)
+    await helpers.resolve("dns.google", use_cache=False)
+    assert hash(f"8.8.8.8:PTR") not in helpers.dns._dns_cache
+    assert hash(f"dns.google:A") not in helpers.dns._dns_cache
+    assert hash(f"dns.google:AAAA") not in helpers.dns._dns_cache
+
+    await helpers.resolve("8.8.8.8")
     assert hash(f"8.8.8.8:PTR") in helpers.dns._dns_cache
-    await helpers.resolve("dns.google", cache_result=True)
+    await helpers.resolve("dns.google")
     assert hash(f"dns.google:A") in helpers.dns._dns_cache
     assert hash(f"dns.google:AAAA") in helpers.dns._dns_cache
 

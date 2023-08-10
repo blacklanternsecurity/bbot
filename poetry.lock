@@ -530,13 +530,13 @@ optimize = ["orjson"]
 
 [[package]]
 name = "dnspython"
-version = "2.4.1"
+version = "2.4.2"
 description = "DNS toolkit"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "dnspython-2.4.1-py3-none-any.whl", hash = "sha256:5b7488477388b8c0b70a8ce93b227c5603bc7b77f1565afe8e729c36c51447d7"},
-    {file = "dnspython-2.4.1.tar.gz", hash = "sha256:c33971c79af5be968bb897e95c2448e11a645ee84d93b265ce0b7aabe5dfdca8"},
+    {file = "dnspython-2.4.2-py3-none-any.whl", hash = "sha256:57c6fbaaeaaf39c891292012060beb141791735dbb4004798328fc2c467402d8"},
+    {file = "dnspython-2.4.2.tar.gz", hash = "sha256:8dcfae8c7460a2f84b4072e26f1c9f4101ca20c071649cb7c34e8b6a93d58984"},
 ]
 
 [package.extras]
@@ -1779,4 +1779,4 @@ xmltodict = ">=0.12.0,<0.13.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "4e1c3bdd376ba5b7b626e58adb54624fe46c37763304aff23881f97a3524936c"
+content-hash = "f466d106f02b1d01755bc0caa87eaeb20c3ccb9ef598bc0cb15a90c2738340c0"
