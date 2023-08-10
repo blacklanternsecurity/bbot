@@ -45,7 +45,7 @@ beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"
 httpx = {extras = ["http2"], version = "^0.24.1"}
 anyio = "==4.0.0rc1"
-dnspython = {git = "https://github.com/rthalley/dnspython", rev = "9d0262a92c0cf105d12f524f4f103abe913458ae"}
+dnspython = "^2.4.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
