@@ -132,7 +132,7 @@ dns_wildcard_ignore: []
 dns_wildcard_tests: 10
 # Skip DNS requests for a certain domain and rdtype after encountering this many timeouts or SERVFAILs
 # This helps prevent faulty DNS servers from hanging up the scan
-dns_abort_threshold: 10
+dns_abort_threshold: 50
 # Don't show PTR records containing IP addresses
 dns_filter_ptrs: true
 # Enable/disable debug messages for dns queries
