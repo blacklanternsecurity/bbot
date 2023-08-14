@@ -5,9 +5,6 @@ on:
       - stable
       - dev
   pull_request:
-  pull_request_target:
-    types:
-      - closed
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
@@ -100,7 +97,7 @@ jobs:
   publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'dev' || github.event.pull_request.base.ref == 'stable')
+    if: github.event_name == 'push' && (github.event.pull_request.base.ref == 'dev' || github.event.pull_request.base.ref == 'stable')
     continue-on-error: true
     steps:
       - uses: actions/checkout@v3
