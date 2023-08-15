@@ -5,14 +5,14 @@ from .base import ModuleTestBase
 
 class TestDiscord(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/cookie.aspx", "http://127.0.0.1:8888/cookie2.aspx"]
-    modules_overrides = ["discord", "badsecrets", "httpx"]
+    modules_overrides = ["discord", "excavate", "badsecrets", "httpx"]
 
     webhook_url = "output_modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef-P-uF-asdf"
     config_overrides = {"output_modules": {"discord": {"webhook_url": webhook_url}}}
 
     def custom_setup(self, module_test):
         respond_args = {
-            "response_data": "<html><body><p>Express Cookie Test</p></body></html>",
+            "response_data": '<html><body><p>Express Cookie Test<a href="ftp://127.0.0.1/asdf.txt"/></p></body></html>',
             "headers": {
                 "set-cookie": "connect.sid=s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc; Path=/; Expires=Wed, 05 Apr 2023 04:47:29 GMT; HttpOnly"
             },
@@ -35,5 +35,7 @@ class TestDiscord(ModuleTestBase):
 
     def check(self, module_test, events):
         vulns = [e for e in events if e.type == "VULNERABILITY"]
+        findings = [e for e in events if e.type == "FINDING"]
+        assert len(findings) == 2
         assert len(vulns) == 2
-        assert module_test.request_count == 3
+        assert module_test.request_count == 5

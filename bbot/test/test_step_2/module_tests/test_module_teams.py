@@ -5,7 +5,7 @@ from .test_module_discord import TestDiscord as DiscordBase
 
 class TestTeams(DiscordBase):
     targets = ["http://127.0.0.1:8888/cookie.aspx", "http://127.0.0.1:8888/cookie2.aspx"]
-    modules_overrides = ["teams", "badsecrets", "httpx"]
+    modules_overrides = ["teams", "excavate", "badsecrets", "httpx"]
 
     webhook_url = "https://evilcorp.webhook.office.com/webhookb2/deadbeef@deadbeef/IncomingWebhook/deadbeef/deadbeef"
     config_overrides = {"output_modules": {"teams": {"webhook_url": webhook_url}}}
