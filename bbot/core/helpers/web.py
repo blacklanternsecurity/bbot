@@ -30,6 +30,8 @@ class DummyCookies(Cookies):
 class BBOTAsyncClient(httpx.AsyncClient):
     def __init__(self, *args, **kwargs):
         self._bbot_scan = kwargs.pop("_bbot_scan")
+        web_requests_per_second = self._bbot_scan.config.get("web_requests_per_second", 100)
+        self._rate_limiter = RateLimiter(web_requests_per_second, "Web")
 
         http_debug = self._bbot_scan.config.get("http_debug", None)
         if http_debug:
@@ -58,6 +60,10 @@ class BBOTAsyncClient(httpx.AsyncClient):
         super().__init__(*args, **kwargs)
         if not self._persist_cookies:
             self._cookies = DummyCookies()
+
+    async def request(self, *args, **kwargs):
+        async with self._rate_limiter:
+            return await super().request(*args, **kwargs)
 
     def build_request(self, *args, **kwargs):
         request = super().build_request(*args, **kwargs)
@@ -89,8 +95,6 @@ class WebHelper:
         self.parent_helper = parent_helper
         self.http_debug = self.parent_helper.config.get("http_debug", False)
         self.ssl_verify = self.parent_helper.config.get("ssl_verify", False)
-        self.web_requests_per_second = self.parent_helper.config.get("web_requests_per_second", 50)
-        self.web_rate_limiter = RateLimiter(self.web_requests_per_second, "Web")
         self.web_client = self.AsyncClient(persist_cookies=False)
 
     def AsyncClient(self, *args, **kwargs):
@@ -135,8 +139,7 @@ class WebHelper:
             if self.http_debug:
                 logstr = f"Web request: {str(args)}, {str(kwargs)}"
                 log.debug(logstr)
-            async with self.web_rate_limiter:
-                response = await client.request(*args, **kwargs)
+            response = await client.request(*args, **kwargs)
             if self.http_debug:
                 log.debug(
                     f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"

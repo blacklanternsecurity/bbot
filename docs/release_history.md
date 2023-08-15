@@ -1,3 +1,35 @@
+## v1.1.0
+August 4, 2023
+
+**New Features**:
+
+- Complete Asyncification
+- Documentation + auto-updating pipelines
+- Ability to list flags and their descriptions with `-lf`
+- Fine-grained rate-limiting for HTTP and DNS
+
+**Improvements / Fixes**:
+
+- Better tests (one for each individual module, 91% test coverage)
+- New and improved paramminer modules
+- Misc bugfixes
+
+**New Modules**:
+
+- Git (detects exposed .git folder on websites)
+- [Subdomain Center](https://www.subdomain.center/) (subdomain enumeration)
+- [Columbus API](https://columbus.elmasy.com/) (subdomain enumeration)
+- MySSL (subdomain enumeration)
+- Sitedossier (subdomain enumeration)
+- Digitorus (subdomain enumeration)
+- Nmap (port scanner, more reliable than naabu)
+    - Naabu has been removed due to reliability issues
+- NSEC (DNSSEC zone-walking for subdomain enumeration)
+- OAUTH (Enumerates OAUTH / OpenID-Connect, detects sprayable endpoints)
+- Azure Realm (Detects Managed/Federated Azure Tenants)
+- Subdomains output module
+
+
 ## v1.0.5
 March 10, 2023
 
