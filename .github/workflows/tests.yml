@@ -79,7 +79,7 @@ jobs:
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.event.pull_request.base.ref == 'dev'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -97,7 +97,7 @@ jobs:
   publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.event.pull_request.base.ref == 'dev' || github.event.pull_request.base.ref == 'stable')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
     steps:
       - uses: actions/checkout@v3
@@ -125,7 +125,7 @@ jobs:
         run: |
           echo "::set-output name=BBOT_VERSION::$(poetry version | cut -d' ' -f2 | tr -d v)"
       - name: Publish to Docker Hub (dev)
-        if: github.ref == 'refs/heads/dev'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: blacklanternsecurity/bbot
@@ -133,7 +133,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: "latest,dev,${{ steps.version.outputs.BBOT_VERSION }}"
       - name: Publish to Docker Hub (stable)
-        if: github.ref == 'refs/heads/stable'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: blacklanternsecurity/bbot
@@ -141,7 +141,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: "stable,${{ steps.version.outputs.BBOT_VERSION }}"
       - name: Docker Hub Description
-        if: github.ref == 'refs/heads/dev'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
