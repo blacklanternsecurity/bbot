@@ -6,8 +6,12 @@ from .discord import Discord
 class Slack(Discord):
     watched_events = ["*"]
     meta = {"description": "Message a Slack channel when certain events are encountered"}
-    options = {"webhook_url": "", "event_types": ["VULNERABILITY"]}
-    options_desc = {"webhook_url": "Discord webhook URL", "event_types": "Types of events to send"}
+    options = {"webhook_url": "", "event_types": ["VULNERABILITY", "FINDING"], "min_severity": "LOW"}
+    options_desc = {
+        "webhook_url": "Discord webhook URL",
+        "event_types": "Types of events to send",
+        "min_severity": "Only allow VULNERABILITY events of this severity or highter",
+    }
     good_status_code = 200
     content_key = "text"
 
@@ -18,8 +22,7 @@ class Slack(Discord):
     def format_message_other(self, event):
         event_yaml = yaml.dump(event.data)
         event_type = f"*`[{event.type}]`*"
-        if event.type == "VULNERABILITY":
-            severity = event.data.get("severity", "UNKNOWN")
-            severity_color = event.severity_colors[severity]
-            event_type = f"{severity_color} `{event.type} ({severity})` {severity_color}"
-        return f"""*{event_type}*\n```\n{event_yaml}\n```"""
+        if event.type in ("VULNERABILITY", "FINDING"):
+            event_str, color = self.get_severity_color(event)
+            event_type = f"{color} `{event_str}` {color}"
+        return f"""*{event_type}*\n```\n{event_yaml}```"""
