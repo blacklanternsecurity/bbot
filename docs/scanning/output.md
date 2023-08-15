@@ -70,6 +70,39 @@ www.evilcorp.com
 mail.evilcorp.com
 ```
 
+### Discord / Slack / Teams
+
+![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/6d88045c-8eac-43b6-8de9-c621ecf60c2d)
+
+BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use them, you must specify a webhook URL either in the config:
+
+```yaml title="~/.bbot/config/bbot.yml"
+output_modules:
+  discord:
+    webhook_url: output_modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
+```
+
+...or on the command line:
+```bash
+bbot -t evilcorp.com -om discord -c output_modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
+```
+
+By default, only `VULNERABILITY` events are sent. You can customize this by setting `event_types`:
+
+```yaml title="~/.bbot/config/bbot.yml"
+output_modules:
+  discord:
+    event_types:
+      - STORAGE_BUCKET
+      - FINDING
+      - VULNERABILITY
+```
+
+...or on the command line:
+```bash
+bbot -t evilcorp.com -om discord -c output_modules.discord.event_types=["STORAGE_BUCKET","FINDING","VULNERABILITY"]
+```
+
 ### HTTP
 
 The `http` output module sends [events](./events) in JSON format to a desired HTTP endpoint.
