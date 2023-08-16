@@ -1201,17 +1201,18 @@ def get_traceback_details(e):
     return filename, lineno, funcname
 
 
-async def cancel_tasks(tasks):
+async def cancel_tasks(tasks, ignore_errors=True):
     current_task = asyncio.current_task()
     tasks = [t for t in tasks if t != current_task]
     for task in tasks:
         log.debug(f"Cancelling task: {task}")
         task.cancel()
-    for task in tasks:
-        try:
-            await task
-        except asyncio.CancelledError:
-            log.trace(traceback.format_exc())
+    if ignore_errors:
+        for task in tasks:
+            try:
+                await task
+            except BaseException:
+                log.trace(traceback.format_exc())
 
 
 def cancel_tasks_sync(tasks):

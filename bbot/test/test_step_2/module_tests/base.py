@@ -110,9 +110,13 @@ class ModuleTestBase:
         yield module_test
 
     @pytest.mark.asyncio
-    async def test_module_run(self, module_test):
+    async def test_module_run(self, module_test, x):
         self.check(module_test, module_test.events)
         module_test.log.info(f"Finished {self.name} module test")
+        current_task = asyncio.current_task()
+        tasks = [t for t in asyncio.all_tasks() if t != current_task]
+        if len(tasks) > 0:
+            module_test.log.info(f"Unfinished tasks detected: {tasks}")
 
     def check(self, module_test, events):
         assert False, f"Must override {self.name}.check()"

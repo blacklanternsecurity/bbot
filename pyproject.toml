@@ -63,7 +63,8 @@ pytest-httpx = "^0.22.0"
 
 [tool.pytest.ini_options]
 env = [
-    "BBOT_TESTING = True"
+    "BBOT_TESTING = True",
+    "PYTHONASYNCIODEBUG = 1"
 ]    
 
 [build-system]
