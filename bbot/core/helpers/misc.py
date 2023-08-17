@@ -1211,8 +1211,9 @@ async def cancel_tasks(tasks, ignore_errors=True):
         for task in tasks:
             try:
                 await task
-            except BaseException:
-                log.trace(traceback.format_exc())
+            except BaseException as e:
+                if not isinstance(e, asyncio.CancelledError):
+                    log.trace(traceback.format_exc())
 
 
 def cancel_tasks_sync(tasks):
