@@ -145,6 +145,12 @@ class WebHelper:
                     f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
                 )
             return response
+        except httpx.PoolTimeout:
+            # this block exists because of this:
+            #  https://github.com/encode/httpcore/discussions/783
+            log.verbose(f"PoolTimeout to URL: {url}")
+            self.web_client = self.AsyncClient(persist_cookies=False)
+            return await self.request(*args, **kwargs)
         except httpx.TimeoutException:
             log.verbose(f"HTTP timeout to URL: {url}")
             if raise_error:
