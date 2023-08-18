@@ -15,11 +15,12 @@ class baddns(BaseModule):
             event.data, http_client_class=self.scan.helpers.web.AsyncClient, dns_client=self.scan.helpers.dns.resolver
         )
         if await baddns_cname.dispatch():
-            r = baddns_cname.analyze()
-            if r:
-                data = {
-                    "severity": "MEDIUM",
-                    "description": f"Probable Subdomain Takeover. CNAME: [{r['cnames']}] Signature Name: [{r.get('signature_name', 'N/A')}] Matching Domain: [{r.get('matching_domain', 'N/A')}] Technique: [{r['technique']}]",
-                    "host": str(event.host),
-                }
-                self.emit_event(data, "VULNERABILITY", event)
+            results = baddns_cname.analyze()
+            if results and len(results) > 0:
+                for r in results:
+                    data = {
+                        "severity": "MEDIUM",
+                        "description": f"Probable Subdomain Takeover. CNAME: [{r['cnames']}] Signature Name: [{r.get('signature_name', 'N/A')}] Matching Domain: [{r.get('matching_domain', 'N/A')}] Technique: [{r['technique']}]",
+                        "host": str(event.host),
+                    }
+                    self.emit_event(data, "VULNERABILITY", event)
