@@ -84,7 +84,7 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 
 ## Targets
 
-BBOT accepts an unlimited number of targets. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
+BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
 
 - `DNS_NAME` (`evilcorp.com`)
 - `IP_ADDRESS` (`1.2.3.4`)
@@ -93,6 +93,30 @@ BBOT accepts an unlimited number of targets. You can specify targets either dire
 - `URL` (`https://www.evilcorp.com`)
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/scanning/#scope).
+
+## API Keys
+
+Similar to Amass or Subfinder, BBOT supports API keys for various third-party services such as SecurityTrails, etc.
+
+The standard way to do this is to enter your API keys in **`~/.config/bbot/secrets.yml`**:
+```yaml
+modules:
+  shodan_dns:
+    api_key: 4f41243847da693a4f356c0486114bc6
+  c99:
+    api_key: 21a270d5f59c9b05813a72bb41707266
+  virustotal:
+    api_key: dd5f0eee2e4a99b71a939bded450b246
+  securitytrails:
+    api_key: d9a05c3fd9a514497713c54b4455d0b0
+```
+
+If you like, you can also specify them on the command line:
+```bash
+bbot -c modules.virustotal.api_key=dd5f0eee2e4a99b71a939bded450b246
+```
+
+For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/)
 
 ## BBOT as a Python library
 
