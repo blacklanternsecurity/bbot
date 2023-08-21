@@ -44,8 +44,9 @@ pyjwt = "^2.7.0"
 beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"
 httpx = {extras = ["http2"], version = "^0.24.1"}
-anyio = "==4.0.0rc1"
 dnspython = "^2.4.2"
+httpcore = {git = "https://github.com/encode/httpcore"}
+anyio = "4.0.0rc1"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"

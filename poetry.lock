@@ -659,11 +659,9 @@ name = "httpcore"
 version = "0.17.3"
 description = "A minimal low-level HTTP client."
 optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "httpcore-0.17.3-py3-none-any.whl", hash = "sha256:c2789b767ddddfa2a5782e3199b2b7f6894540b17b16ec26b2c4d8e103510b87"},
-    {file = "httpcore-0.17.3.tar.gz", hash = "sha256:a6f30213335e34c1ade7be6ec7c47f19f50c56db36abef1a9dfa3815b1cb3888"},
-]
+python-versions = ">=3.8"
+files = []
+develop = false
 
 [package.dependencies]
 anyio = ">=3.0,<5.0"
@@ -674,6 +672,12 @@ sniffio = "==1.*"
 [package.extras]
 http2 = ["h2 (>=3,<5)"]
 socks = ["socksio (==1.*)"]
+
+[package.source]
+type = "git"
+url = "https://github.com/encode/httpcore"
+reference = "HEAD"
+resolved_reference = "b649bb0a9c3e176189b17bd10b1c929752454efe"
 
 [[package]]
 name = "httpx"
@@ -1793,4 +1797,4 @@ xmltodict = ">=0.12.0,<0.13.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "a3a06c8e09c28f7c058f58c92ec6006b3b59ea38b34e1f36e02034879458e246"
+content-hash = "8e6022e220500621d7255464e89ab93b59e6856bd9d29be80ad054012f4d5b57"
