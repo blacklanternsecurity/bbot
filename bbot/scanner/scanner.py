@@ -26,7 +26,7 @@ from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.core.configurator.environ import prepare_environment
 from bbot.core.errors import BBOTError, ScanError, ValidationError
-from bbot.core.logger import init_logging, get_log_level, set_log_level, add_log_handler
+from bbot.core.logger import init_logging, get_log_level, set_log_level, add_log_handler, remove_log_handler
 
 log = logging.getLogger("bbot.scanner")
 
@@ -320,6 +320,10 @@ class Scanner:
             log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
 
             await self.dispatcher.on_finish(self)
+
+            # remove log handlers
+            for handler in self.log_handlers:
+                remove_log_handler(handler)
 
     def start_modules(self):
         self.verbose(f"Starting module worker loops")

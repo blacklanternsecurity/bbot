@@ -123,6 +123,12 @@ def add_log_handler(handler, formatter=None):
             logger.addHandler(handler)
 
 
+def remove_log_handler(handler):
+    for logger in get_bbot_loggers():
+        if handler in logger.handlers:
+            logger.removeHandler(handler)
+
+
 def init_logging():
     # Don't do this more than once
     if len(logging.getLogger("bbot").handlers) == 0:
