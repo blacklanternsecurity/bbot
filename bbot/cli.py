@@ -138,6 +138,7 @@ async def _main():
                     *options.targets,
                     modules=list(modules),
                     output_modules=list(output_modules),
+                    output_dir=options.output_dir,
                     config=config,
                     name=options.name,
                     whitelist=options.whitelist,

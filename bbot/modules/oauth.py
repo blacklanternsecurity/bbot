@@ -29,8 +29,12 @@ class OAUTH(BaseModule):
         return False
 
     async def handle_event(self, event):
-        oidc_tasks = []
         _, domain = self.helpers.split_domain(event.data)
+        source_domain = getattr(event, "source_domain", domain)
+        if not self.scan.in_scope(source_domain):
+            return
+
+        oidc_tasks = []
         if event.scope_distance == 0:
             domain_hash = hash(domain)
             if domain_hash not in self.processed:
@@ -48,8 +52,6 @@ class OAUTH(BaseModule):
         if self.try_all or any(t in event.tags for t in ("ms-auth-url",)):
             for u in self.url_and_base(url):
                 oidc_tasks.append(self.helpers.create_task(self.getoidc(u)))
-
-        source_domain = getattr(event, "source_domain", domain)
 
         for oidc_task in oidc_tasks:
             url, token_endpoint, oidc_results = await oidc_task

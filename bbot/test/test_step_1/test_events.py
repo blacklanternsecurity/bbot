@@ -62,6 +62,7 @@ async def test_events(events, scan, helpers, bbot_config):
     assert events.emoji not in events.domain
     assert events.domain not in events.emoji
     assert "evilcorp.com" == scan.make_event(" eViLcorp.COM.:88", "DNS_NAME", dummy=True)
+    assert "evilcorp.com" == scan.make_event("evilcorp.com.", "DNS_NAME", dummy=True)
 
     # url tests
     assert scan.make_event("http://evilcorp.com", dummy=True) == scan.make_event("http://evilcorp.com/", dummy=True)
@@ -87,6 +88,7 @@ async def test_events(events, scan, helpers, bbot_config):
     assert "http://evilcorp.com:443" == scan.make_event("http://evilcorp.com:443", dummy=True)
     assert scan.make_event("https://evilcorp.com", dummy=True).with_port().geturl() == "https://evilcorp.com:443/"
     assert scan.make_event("https://evilcorp.com:666", dummy=True).with_port().geturl() == "https://evilcorp.com:666/"
+    assert scan.make_event("https://evilcorp.com.:666", dummy=True) == "https://evilcorp.com:666/"
     assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
     assert "status-200" in scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"]).tags

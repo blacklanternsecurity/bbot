@@ -11,7 +11,6 @@ def test_dns_name_regexes():
         "evilcorp-.com",  # DNS names cannot end with a dash
         "evilcorp..com",  # DNS names cannot have two consecutive dots
         ".evilcorp.com",  # DNS names cannot begin with a dot
-        "evilcorp.com.",  # DNS names cannot end with a dot (in most cases)
         "ev*lcorp.com",  # DNS names cannot have special characters (other than dash and dot)
         "evilcorp/.com",  # DNS names cannot have slashes
         "evilcorp..",  # DNS names cannot end with a dot
