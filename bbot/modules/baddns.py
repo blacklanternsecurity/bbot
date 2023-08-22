@@ -7,7 +7,7 @@ class baddns(BaseModule):
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "safe", "web-basic"]
     meta = {"description": "Check subdomains for for subdomain takeovers and other DNS tomfoolery"}
-    max_event_handlers = 2
+    max_event_handlers = 8
     deps_pip = ["baddns"]
 
     async def handle_event(self, event):
