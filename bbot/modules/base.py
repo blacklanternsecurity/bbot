@@ -364,7 +364,6 @@ class BaseModule:
                                 self.debug(f"Finished handling {event}")
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")
-                self.trace()
                 raise
         self.log.trace(f"Worker stopped")
 

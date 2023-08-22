@@ -1,12 +1,9 @@
 import os
 import sys
-import atexit
 import logging
 from copy import copy
+import logging.handlers
 from pathlib import Path
-from queue import SimpleQueue
-from contextlib import suppress
-from logging.handlers import QueueHandler, QueueListener
 
 from ..configurator import config
 from ..helpers.misc import mkdir, error_and_exit
@@ -15,14 +12,10 @@ from ..helpers.logger import colorize, loglevel_mapping
 
 _log_level_override = None
 
+bbot_loggers = None
+bbot_log_handlers = None
 
-# Log to stderr
-stderr_handler = logging.StreamHandler(sys.stderr)
-
-# Log to stdout
-stdout_handler = logging.StreamHandler(sys.stdout)
-
-log_listener = None
+debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
 
 
 class ColoredFormatter(logging.Formatter):
@@ -76,11 +69,11 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
         methodName = levelName.lower()
 
     if hasattr(logging, levelName):
-        raise AttributeError("{} already defined in logging module".format(levelName))
+        raise AttributeError(f"{levelName} already defined in logging module")
     if hasattr(logging, methodName):
-        raise AttributeError("{} already defined in logging module".format(methodName))
+        raise AttributeError(f"{methodName} already defined in logging module")
     if hasattr(logging.getLoggerClass(), methodName):
-        raise AttributeError("{} already defined in logger class".format(methodName))
+        raise AttributeError(f"{methodName} already defined in logger class")
 
     # This method was inspired by the answers to Stack Overflow post
     # http://stackoverflow.com/q/2183233/2988730, especially
@@ -112,92 +105,90 @@ addLoggingLevel("VERBOSE", 15)
 verbosity_levels_toggle = [logging.INFO, logging.VERBOSE, logging.DEBUG]
 
 
-def stop_listener(listener):
-    with suppress(Exception):
-        listener.stop()
+def get_bbot_loggers():
+    global bbot_loggers
+    if bbot_loggers is None:
+        bbot_loggers = [
+            logging.getLogger("bbot"),
+            logging.getLogger("asyncio"),
+        ]
+    return bbot_loggers
 
 
-def log_worker_setup(logging_queue):
-    """
-    This needs to be run whenever a new multiprocessing.Process() is spawned
-    """
-    log_level = get_log_level()
-    bbot_log = logging.getLogger("bbot")
-    asyncio_log = logging.getLogger("asyncio")
-    # Don't do this more than once
-    if len(bbot_log.handlers) == 0:
-        queue_handler = QueueHandler(logging_queue)
-        for log in (bbot_log, asyncio_log):
-            log.setLevel(log_level)
-            log.addHandler(queue_handler)
-    return bbot_log
-
-
-def log_listener_setup(logging_queue):
-    log_dir = Path(config["home"]) / "logs"
-    if not mkdir(log_dir, raise_error=False):
-        error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
-
-    # Main log file
-    main_handler = logging.handlers.TimedRotatingFileHandler(
-        f"{log_dir}/bbot.log", when="d", interval=1, backupCount=14
-    )
-
-    # Separate log file for debugging
-    debug_handler = logging.handlers.TimedRotatingFileHandler(
-        f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
-    )
-
-    def stderr_filter(record):
-        log_level = get_log_level()
-        if record.levelno == logging.STDOUT or (record.levelno == logging.TRACE and log_level > logging.DEBUG):
-            return False
-        if record.levelno < log_level:
-            return False
-        return True
-
-    stderr_handler.addFilter(stderr_filter)
-    stdout_handler.addFilter(lambda x: x.levelno == logging.STDOUT)
-    debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
-    main_handler.addFilter(lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE)
-
-    # Set log format
-    debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")
-    debug_handler.setFormatter(debug_format)
-    main_handler.setFormatter(debug_format)
-    stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
-    stdout_handler.setFormatter(logging.Formatter("%(message)s"))
-
-    handlers = [stdout_handler, stderr_handler, main_handler, debug_handler]
-
-    global log_listener
-    log_listener = QueueListener(logging_queue, *handlers)
-    log_listener.start()
-    atexit.register(stop_listener, log_listener)
-    return {
-        "stderr": stderr_handler,
-        "stdout": stdout_handler,
-        "file_debug": debug_handler,
-        "file_main": main_handler,
-    }
+def add_log_handler(handler, formatter=None):
+    if handler.formatter is None:
+        handler.setFormatter(debug_format)
+    for logger in get_bbot_loggers():
+        if handler not in logger.handlers:
+            logger.addHandler(handler)
 
 
 def init_logging():
-    """
-    Initializes logging, returns logging queue and dictionary containing log handlers
-    """
-
-    handlers = {}
-    logging_queue = None
-
-    log = logging.getLogger("bbot")
     # Don't do this more than once
-    if len(log.handlers) == 0:
-        logging_queue = SimpleQueue()
-        handlers = log_listener_setup(logging_queue)
-        log_worker_setup(logging_queue)
+    if len(logging.getLogger("bbot").handlers) == 0:
+        for logger in get_bbot_loggers():
+            include_logger(logger)
 
-    return logging_queue, handlers
+
+def include_logger(logger):
+    bbot_loggers = get_bbot_loggers()
+    if logger not in bbot_loggers:
+        bbot_loggers.append(logger)
+    logger.setLevel(get_log_level())
+    for handler in get_log_handlers().values():
+        logger.addHandler(handler)
+
+
+def get_log_handlers():
+    global bbot_log_handlers
+
+    if bbot_log_handlers is None:
+        log_dir = Path(config["home"]) / "logs"
+        if not mkdir(log_dir, raise_error=False):
+            error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
+
+        # Main log file
+        main_handler = logging.handlers.TimedRotatingFileHandler(
+            f"{log_dir}/bbot.log", when="d", interval=1, backupCount=14
+        )
+
+        # Separate log file for debugging
+        debug_handler = logging.handlers.TimedRotatingFileHandler(
+            f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
+        )
+
+        def stderr_filter(record):
+            log_level = get_log_level()
+            if record.levelno == logging.STDOUT or (record.levelno == logging.TRACE and log_level > logging.DEBUG):
+                return False
+            if record.levelno < log_level:
+                return False
+            return True
+
+        # Log to stderr
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        stderr_handler.addFilter(stderr_filter)
+        # Log to stdout
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.addFilter(lambda x: x.levelno == logging.STDOUT)
+        debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
+        main_handler.addFilter(
+            lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE
+        )
+
+        # Set log format
+        debug_handler.setFormatter(debug_format)
+        main_handler.setFormatter(debug_format)
+        stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
+        stdout_handler.setFormatter(logging.Formatter("%(message)s"))
+
+        bbot_log_handlers = {
+            "stderr": stderr_handler,
+            "stdout": stdout_handler,
+            "file_debug": debug_handler,
+            "file_main": main_handler,
+        }
+    return bbot_log_handlers
 
 
 def get_log_level():
@@ -224,8 +215,8 @@ def set_log_level(level, logger=None):
         logger.hugeinfo(f"Setting log level to {logging.getLevelName(level)}")
     config["silent"] = False
     _log_level_override = level
-    for logname in ("bbot", "asyncio"):
-        logging.getLogger(logname).setLevel(level)
+    for logger in bbot_loggers:
+        logger.setLevel(level)
 
 
 def toggle_log_level(logger=None):
