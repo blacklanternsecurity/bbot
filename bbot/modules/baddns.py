@@ -34,7 +34,7 @@ class baddns(BaseModule):
 
                         elif r_dict["confidence"] in ["UNLIKELY", "POSSIBLE"]:
                             data = {
-                                "description": r_dict["description"],
+                                "description": f"{r_dict['description']} Confidence: [{r_dict['confidence']}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                                 "host": str(event.host),
                             }
                             self.emit_event(data, "FINDING", event)
