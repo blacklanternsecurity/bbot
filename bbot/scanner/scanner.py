@@ -610,6 +610,7 @@ class Scanner:
     @property
     def log_handlers(self):
         if self._log_handlers is None:
+            self.helpers.mkdir(self.home)
             main_handler = logging.handlers.TimedRotatingFileHandler(
                 str(self.home / "scan.log"), when="d", interval=1, backupCount=14
             )
