@@ -16,9 +16,9 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "http://e.co/u/4444/info",
         "http://e.co/u/5555/info",
     )
-    new_urls = tuple(helpers.collapse_urls(bad_urls, threshold=4))
+    new_urls = tuple(helpers.validators.collapse_urls(bad_urls, threshold=4))
     assert len(new_urls) == 2
-    new_urls = tuple(sorted([u.geturl() for u in helpers.collapse_urls(bad_urls, threshold=5)]))
+    new_urls = tuple(sorted([u.geturl() for u in helpers.validators.collapse_urls(bad_urls, threshold=5)]))
     assert new_urls == bad_urls
 
     new_url = helpers.add_get_params("http://evilcorp.com/a?p=1&q=2", {"r": 3, "s": "asdf"}).geturl()
@@ -35,9 +35,10 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         ("q", ["2"]),
     )
 
-    assert helpers.clean_url("http://evilcorp.com:80").geturl() == "http://evilcorp.com/"
-    assert helpers.clean_url("http://evilcorp.com/asdf?a=asdf#frag").geturl() == "http://evilcorp.com/asdf"
-    assert helpers.clean_url("http://evilcorp.com//asdf").geturl() == "http://evilcorp.com/asdf"
+    assert helpers.validators.clean_url("http://evilcorp.com:80").geturl() == "http://evilcorp.com/"
+    assert helpers.validators.clean_url("http://evilcorp.com/asdf?a=asdf#frag").geturl() == "http://evilcorp.com/asdf"
+    assert helpers.validators.clean_url("http://evilcorp.com//asdf").geturl() == "http://evilcorp.com/asdf"
+    assert helpers.validators.clean_url("http://evilcorp.com.").geturl() == "http://evilcorp.com/"
 
     assert helpers.url_depth("http://evilcorp.com/asdf/user/") == 2
     assert helpers.url_depth("http://evilcorp.com/asdf/user") == 2
@@ -296,7 +297,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
 
     ### VALIDATORS ###
     # hosts
-    assert helpers.validators.validate_host(" evilCorp.COM") == "evilcorp.com"
+    assert helpers.validators.validate_host(" evilCorp.COM.") == "evilcorp.com"
     assert helpers.validators.validate_host("LOCALHOST ") == "localhost"
     assert helpers.validators.validate_host(" 192.168.1.1") == "192.168.1.1"
     assert helpers.validators.validate_host(" Dead::c0dE ") == "dead::c0de"

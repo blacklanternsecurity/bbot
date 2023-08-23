@@ -1,10 +1,11 @@
 import logging
 import ipaddress
+from contextlib import suppress
 
 from bbot.core.helpers import regexes
-from bbot.core.helpers.url import clean_url
+from bbot.core.helpers.url import parse_url, hash_url
 from bbot.core.helpers.punycode import smart_decode_punycode
-from bbot.core.helpers.misc import split_host_port, make_netloc
+from bbot.core.helpers.misc import split_host_port, make_netloc, is_ip
 
 log = logging.getLogger("bbot.core.helpers.validators")
 
@@ -92,6 +93,73 @@ def validate_email(email):
     if any(r.match(email) for r in regexes.event_type_regexes["EMAIL_ADDRESS"]):
         return email
     assert False, f'Invalid email: "{email}"'
+
+
+def clean_url(url):
+    """
+    Remove query string and fragment, lowercase netloc, remove redundant port
+
+    http://evilcorp.com:80 --> http://evilcorp.com/
+    http://eViLcORp.com/ --> http://evilcorp.com/
+    http://evilcorp.com/api?user=bob#place --> http://evilcorp.com/api
+    """
+    parsed = parse_url(url)
+    parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
+    try:
+        scheme = parsed.scheme
+    except ValueError:
+        scheme = "https"
+    with suppress(Exception):
+        port = parsed.port
+    if port is None:
+        port = 80 if scheme == "http" else 443
+    hostname = validate_host(parsed.hostname)
+    # remove ports if they're redundant
+    if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
+        port = None
+    # special case for IPv6 URLs
+    netloc = make_netloc(hostname, port)
+    # urlparse is special - it needs square brackets even if there's no port
+    if is_ip(netloc, version=6):
+        netloc = f"[{netloc}]"
+    parsed = parsed._replace(netloc=netloc)
+    # normalize double slashes
+    parsed = parsed._replace(path=regexes.double_slash_regex.sub("/", parsed.path))
+    # append / if path is empty
+    if parsed.path == "":
+        parsed = parsed._replace(path="/")
+    return parsed
+
+
+def collapse_urls(urls, threshold=10):
+    """
+    Smartly dedupe suspiciously-similar URLs like these:
+        - http://evilcorp.com/user/11111/info
+        - http://evilcorp.com/user/2222/info
+        - http://evilcorp.com/user/333/info
+        - http://evilcorp.com/user/44/info
+        - http://evilcorp.com/user/5/info
+
+    Useful for cleaning large lists of garbage-riddled URLs from sources like wayback
+    """
+    url_hashes = {}
+    for url in urls:
+        new_url = clean_url(url)
+        url_hash = hash_url(new_url)
+        try:
+            url_hashes[url_hash].add(new_url)
+        except KeyError:
+            url_hashes[url_hash] = {
+                new_url,
+            }
+
+    for url_hash, new_urls in url_hashes.items():
+        # if the number of URLs exceeds the threshold
+        if len(new_urls) > threshold:
+            # yield only one
+            yield next(iter(new_urls))
+        else:
+            yield from new_urls
 
 
 def soft_validate(s, t):

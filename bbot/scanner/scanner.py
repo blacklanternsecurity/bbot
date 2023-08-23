@@ -62,6 +62,7 @@ class Scanner:
         name=None,
         modules=None,
         output_modules=None,
+        output_dir=None,
         config=None,
         dispatcher=None,
         strict_scope=False,
@@ -98,7 +99,6 @@ class Scanner:
 
         self.max_workers = max(1, self.config.get("max_threads", 25))
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
-        output_dir = self.config.get("output_dir", "")
 
         if name is None:
             tries = 0
@@ -110,7 +110,7 @@ class Scanner:
 
                 self.name = random_name()
 
-                if output_dir:
+                if output_dir is not None:
                     home_path = Path(output_dir).resolve() / self.name
                 else:
                     home_path = self.helpers.bbot_home / "scans" / self.name
@@ -121,7 +121,7 @@ class Scanner:
         else:
             self.name = str(name)
 
-        if output_dir:
+        if output_dir is not None:
             self.home = Path(output_dir).resolve() / self.name
         else:
             self.home = self.helpers.bbot_home / "scans" / self.name

@@ -107,8 +107,6 @@ def prepare_environment(bbot_config):
         # debug
         bbot_config["debug"] = args.cli_options.debug
         bbot_config["silent"] = args.cli_options.silent
-        if args.cli_options.output_dir:
-            bbot_config["output_dir"] = args.cli_options.output_dir
 
     import logging
 
