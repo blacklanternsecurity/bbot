@@ -26,7 +26,14 @@ from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.core.configurator.environ import prepare_environment
 from bbot.core.errors import BBOTError, ScanError, ValidationError
-from bbot.core.logger import init_logging, get_log_level, set_log_level, add_log_handler, remove_log_handler
+from bbot.core.logger import (
+    init_logging,
+    get_log_level,
+    set_log_level,
+    add_log_handler,
+    get_log_handlers,
+    remove_log_handler,
+)
 
 log = logging.getLogger("bbot.scanner")
 
@@ -182,6 +189,7 @@ class Scanner:
 
         self._dns_regexes = None
         self._log_handlers = None
+        self._log_handler_backup = []
 
     def _on_keyboard_interrupt(self, loop, event):
         self.stop()
@@ -228,9 +236,7 @@ class Scanner:
         try:
             await self.prep()
 
-            # add log handlers
-            for handler in self.log_handlers:
-                add_log_handler(handler)
+            self.start_log_handlers()
 
             if not self.target:
                 self.warning(f"No scan targets specified")
@@ -321,9 +327,7 @@ class Scanner:
 
             await self.dispatcher.on_finish(self)
 
-            # remove log handlers
-            for handler in self.log_handlers:
-                remove_log_handler(handler)
+            self.stop_log_handlers()
 
     def start_modules(self):
         self.verbose(f"Starting module worker loops")
@@ -623,6 +627,25 @@ class Scanner:
             debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
             self._log_handlers = [main_handler, debug_handler]
         return self._log_handlers
+
+    def start_log_handlers(self):
+        # add log handlers
+        for handler in self.log_handlers:
+            add_log_handler(handler)
+        # temporarily disable main ones
+        for handler_name in ("file_main", "file_debug"):
+            handler = get_log_handlers().get(handler_name, None)
+            if handler is not None and handler not in self._log_handler_backup:
+                self._log_handler_backup.append(handler)
+                remove_log_handler(handler)
+
+    def stop_log_handlers(self):
+        # remove log handlers
+        for handler in self.log_handlers:
+            remove_log_handler(handler)
+        # restore main ones
+        for handler in self._log_handler_backup:
+            add_log_handler(handler)
 
     def _internal_modules(self):
         for modname in module_loader.preloaded(type="internal"):
