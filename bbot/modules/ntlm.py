@@ -132,13 +132,17 @@ class ntlm(BaseModule):
             try:
                 result, url = await task
                 if result:
-                    await self.helpers.cancel_tasks(tasks)
+                    # disabled until this is resolved
+                    #  https://github.com/encode/httpcore/discussions/783
+                    # await self.helpers.cancel_tasks(tasks)
                     await gen.aclose()
             except HTTPError as e:
                 if str(e):
                     self.warning(str(e))
                 # cancel all the tasks if there's an error
-                await self.helpers.cancel_tasks(tasks)
+                # disabled until this is resolved
+                #  https://github.com/encode/httpcore/discussions/783
+                # await self.helpers.cancel_tasks(tasks)
                 await gen.aclose()
 
         return result, url

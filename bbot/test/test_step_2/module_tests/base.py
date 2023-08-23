@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 import logging
 import pytest_asyncio
 from omegaconf import OmegaConf
@@ -113,6 +114,10 @@ class ModuleTestBase:
     async def test_module_run(self, module_test):
         self.check(module_test, module_test.events)
         module_test.log.info(f"Finished {self.name} module test")
+        current_task = asyncio.current_task()
+        tasks = [t for t in asyncio.all_tasks() if t != current_task]
+        if len(tasks) > 0:
+            module_test.log.info(f"Unfinished tasks detected: {tasks}")
 
     def check(self, module_test, events):
         assert False, f"Must override {self.name}.check()"

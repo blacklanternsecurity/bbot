@@ -50,7 +50,7 @@ class wayback(crobat):
                 continue
 
         dns_names = set()
-        for parsed_url in self.helpers.collapse_urls(urls, threshold=self.garbage_threshold):
+        for parsed_url in self.helpers.validators.collapse_urls(urls, threshold=self.garbage_threshold):
             if not self.urls:
                 dns_name = parsed_url.hostname
                 h = hash(dns_name)

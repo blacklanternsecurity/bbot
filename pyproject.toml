@@ -44,11 +44,11 @@ pyjwt = "^2.7.0"
 beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"
 httpx = {extras = ["http2"], version = "^0.24.1"}
-anyio = "==4.0.0rc1"
 dnspython = "^2.4.2"
+anyio = "4.0.0rc1"
+httpcore = "^0.17.3"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2.2"
 flake8 = "^6.0.0"
 black = "^23.1.0"
 pytest-cov = "^4.0.0"
@@ -60,10 +60,13 @@ werkzeug = "^2.3.4"
 pytest-httpserver = "^1.0.8"
 pytest-env = "^0.8.2"
 pytest-httpx = "^0.22.0"
+pytest-timeout = "^2.1.0"
+pytest = "^7.4.0"
 
 [tool.pytest.ini_options]
 env = [
-    "BBOT_TESTING = True"
+    "BBOT_TESTING = True",
+    "PYTHONASYNCIODEBUG = 1"
 ]    
 
 [build-system]

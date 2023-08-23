@@ -66,6 +66,7 @@ class nmap(BaseModule):
         command = [
             "nmap",
             "-n",
+            "--resolve-all",
             f"-{self.timing}",
             "-oX",
             temp_filename,
