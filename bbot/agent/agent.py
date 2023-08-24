@@ -49,8 +49,8 @@ class Agent:
             verbs = ("Building", "Built")
             if rebuild:
                 verbs = ("Rebuilding", "Rebuilt")
-            log.debug(f"{verbs[0]} websocket connection to {self.url}")
-            self._ws = await websockets.connect(self.url, **kwargs)
+            log.debug(f"{verbs[0]} websocket connection to {self.url}/control/")
+            self._ws = await websockets.connect(f"{self.url}/control/", **kwargs)
             log.debug(f"{verbs[1]} websocket connection to {self.url}")
         return self._ws
 
