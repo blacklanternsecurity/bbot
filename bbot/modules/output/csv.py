@@ -12,6 +12,7 @@ class CSV(BaseOutputModule):
 
     header_row = ["Event type", "Event data", "IP Address", "Source Module", "Scope Distance", "Event Tags"]
     filename = "output.csv"
+    accept_dupes = False
 
     async def setup(self):
         self.custom_headers = []
