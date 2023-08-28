@@ -943,6 +943,10 @@ class WEBSCREENSHOT(DictHostEvent):
     _always_emit = True
 
 
+class AZURE_TENANT(DictEvent):
+    _always_emit = True
+
+
 def make_event(
     data,
     event_type=None,
