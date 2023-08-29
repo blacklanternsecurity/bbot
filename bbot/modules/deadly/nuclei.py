@@ -66,7 +66,7 @@ class nuclei(BaseModule):
                 self.warning(f"Failure while updating nuclei templates: {update_results.stderr}")
         else:
             self.warning("Error running nuclei template update command")
-
+        self.proxy = self.scan.config.get("http_proxy", "")
         self.mode = self.config.get("mode", "severe")
         self.ratelimit = int(self.config.get("ratelimit", 150))
         self.concurrency = int(self.config.get("concurrency", 25))
@@ -135,8 +135,10 @@ class nuclei(BaseModule):
             cleaned_host = temp_target.get(host)
             source_event = self.correlate_event(events, cleaned_host)
 
-            if url == "":
-                url = str(source_event.data)
+        if url == "":
+            if not source_event:    
+                continue
+            url = str(source_event.data)
 
             description_string = f"template: [{template}], name: [{name}]"
             if len(extracted_results) > 0:
@@ -203,6 +205,10 @@ class nuclei(BaseModule):
         if self.mode == "budget":
             command.append("-t")
             command.append(self.budget_templates_file)
+
+        if self.proxy:
+            command.append("-proxy")
+            command.append(f"{self.proxy}")
 
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
