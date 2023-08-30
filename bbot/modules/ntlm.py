@@ -1,5 +1,5 @@
+from bbot.core.errors import NTLMError
 from bbot.modules.base import BaseModule
-from bbot.core.errors import NTLMError, HTTPError
 
 ntlm_discovery_endpoints = [
     "",
@@ -60,6 +60,11 @@ NTLM_test_header = {"Authorization": "NTLM TlRMTVNTUAABAAAAl4II4gAAAAAAAAAAAAAAA
 
 
 class ntlm(BaseModule):
+    """
+    Todo:
+        Cancel web requests and break out of loop when valid endpoint is found
+        (waiting on https://github.com/encode/httpcore/discussions/783/ to be fixed first)
+    """
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING", "DNS_NAME"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
@@ -78,21 +83,22 @@ class ntlm(BaseModule):
     async def handle_event(self, event):
         found_hash = hash(f"{event.host}:{event.port}")
         if found_hash not in self.found:
-            result, request_url = await self.handle_url(event)
-            if result and request_url:
-                self.found.add(found_hash)
-                self.emit_event(
-                    {
-                        "host": str(event.host),
-                        "url": request_url,
-                        "description": f"NTLM AUTH: {result}",
-                    },
-                    "FINDING",
-                    source=event,
-                )
-                fqdn = result.get("FQDN", "")
-                if fqdn:
-                    self.emit_event(fqdn, "DNS_NAME", source=event)
+            for result, request_url in await self.handle_url(event):
+                if result and request_url:
+                    self.found.add(found_hash)
+                    self.emit_event(
+                        {
+                            "host": str(event.host),
+                            "url": request_url,
+                            "description": f"NTLM AUTH: {result}",
+                        },
+                        "FINDING",
+                        source=event,
+                    )
+                    fqdn = result.get("FQDN", "")
+                    if fqdn:
+                        self.emit_event(fqdn, "DNS_NAME", source=event)
+                    break
 
     async def filter_event(self, event):
         if self.try_all:
@@ -125,36 +131,12 @@ class ntlm(BaseModule):
             self.processed.add(url_hash)
             tasks.append(self.helpers.create_task(self.check_ntlm(url)))
 
-        result, url = None, None
-
-        gen = self.helpers.as_completed(tasks)
-        async for task in gen:
-            try:
-                result, url = await task
-                if result:
-                    # disabled until this is resolved
-                    #  https://github.com/encode/httpcore/discussions/783
-                    # await self.helpers.cancel_tasks(tasks)
-                    # await gen.aclose()
-                    break
-            except HTTPError as e:
-                if str(e):
-                    self.warning(str(e))
-                # cancel all the tasks if there's an error
-                # disabled until this is resolved
-                #  https://github.com/encode/httpcore/discussions/783
-                # await self.helpers.cancel_tasks(tasks)
-                # await gen.aclose()
-                break
-
-        return result, url
+        return await self.helpers.gather(*tasks)
 
     async def check_ntlm(self, test_url):
         # use lower timeout value
         http_timeout = self.config.get("httpx_timeout", 5)
-        r = await self.helpers.request(
-            test_url, headers=NTLM_test_header, raise_error=True, allow_redirects=False, timeout=http_timeout
-        )
+        r = await self.helpers.request(test_url, headers=NTLM_test_header, allow_redirects=False, timeout=http_timeout)
         ntlm_resp = r.headers.get("WWW-Authenticate", "")
         if ntlm_resp:
             ntlm_resp_b64 = max(ntlm_resp.split(","), key=lambda x: len(x)).split()[-1]
