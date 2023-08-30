@@ -135,10 +135,11 @@ class nuclei(BaseModule):
             cleaned_host = temp_target.get(host)
             source_event = self.correlate_event(events, cleaned_host)
 
-        if url == "":
-            if not source_event:    
+            if not source_event:
                 continue
-            url = str(source_event.data)
+
+            if url == "":
+                url = str(source_event.data)
 
             description_string = f"template: [{template}], name: [{name}]"
             if len(extracted_results) > 0:
