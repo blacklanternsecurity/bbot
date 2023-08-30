@@ -65,6 +65,7 @@ class ntlm(BaseModule):
         Cancel web requests and break out of loop when valid endpoint is found
         (waiting on https://github.com/encode/httpcore/discussions/783/ to be fixed first)
     """
+
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING", "DNS_NAME"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
