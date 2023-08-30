@@ -166,3 +166,46 @@ class TestExcavateRedirect(TestExcavate):
     def check(self, module_test, events):
         assert any(e.data == "https://www.test.notreal/yep" for e in events)
         assert any(e.data == "http://127.0.0.1:8888/relative/owa/" for e in events)
+
+
+class TestExcavateMaxLinksPerPage(TestExcavate):
+    targets = ["http://127.0.0.1:8888/"]
+    config_overrides = {"web_spider_links_per_page": 10, "web_spider_distance": 1}
+
+    lots_of_links = """
+    <a href="http://127.0.0.1:8888/1"/>
+    <a href="http://127.0.0.1:8888/2"/>
+    <a href="http://127.0.0.1:8888/3"/>
+    <a href="http://127.0.0.1:8888/4"/>
+    <a href="http://127.0.0.1:8888/5"/>
+    <a href="http://127.0.0.1:8888/6"/>
+    <a href="http://127.0.0.1:8888/7"/>
+    <a href="http://127.0.0.1:8888/8"/>
+    <a href="http://127.0.0.1:8888/9"/>
+    <a href="http://127.0.0.1:8888/10"/>
+    <a href="http://127.0.0.1:8888/11"/>
+    <a href="http://127.0.0.1:8888/12"/>
+    <a href="http://127.0.0.1:8888/13"/>
+    <a href="http://127.0.0.1:8888/14"/>
+    <a href="http://127.0.0.1:8888/15"/>
+    <a href="http://127.0.0.1:8888/16"/>
+    <a href="http://127.0.0.1:8888/17"/>
+    <a href="http://127.0.0.1:8888/18"/>
+    <a href="http://127.0.0.1:8888/19"/>
+    <a href="http://127.0.0.1:8888/20"/>
+    <a href="http://127.0.0.1:8888/21"/>
+    <a href="http://127.0.0.1:8888/22"/>
+    <a href="http://127.0.0.1:8888/23"/>
+    <a href="http://127.0.0.1:8888/24"/>
+    <a href="http://127.0.0.1:8888/25"/>
+    """
+
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(self.lots_of_links)
+
+    def check(self, module_test, events):
+        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        assert len(url_events) == 26
+        url_data = [e.data for e in url_events if "spider-danger" not in e.tags]
+        assert "http://127.0.0.1:8888/10" in url_data
+        assert "http://127.0.0.1:8888/11" not in url_data

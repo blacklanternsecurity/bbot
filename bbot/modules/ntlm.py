@@ -62,7 +62,7 @@ NTLM_test_header = {"Authorization": "NTLM TlRMTVNTUAABAAAAl4II4gAAAAAAAAAAAAAAA
 class ntlm(BaseModule):
     """
     Todo:
-        Cancel web requests and break out of loop when valid endpoint is found
+        Cancel pending requests and break out of loop when valid endpoint is found
         (waiting on https://github.com/encode/httpcore/discussions/783/ to be fixed first)
     """
 

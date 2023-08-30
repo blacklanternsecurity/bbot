@@ -62,19 +62,38 @@ class URLExtractor(BaseExtractor):
         self.web_spider_links_per_page = self.excavate.scan.config.get("web_spider_links_per_page", 20)
 
     async def search(self, content, event, **kwargs):
+        consider_spider_danger = kwargs.get("consider_spider_danger", True)
+        web_spider_distance = getattr(event, "web_spider_distance", 0)
+
         result_hashes = set()
         results = []
         async for result in self._search(content, event, **kwargs):
-            result_hash = hash(result)
+            result_hash = hash(result[0])
             if result_hash not in result_hashes:
                 result_hashes.add(result_hash)
                 results.append(result)
-        for i, (result, name) in enumerate(results):
-            new_kwargs = dict(kwargs)
-            if i > self.web_spider_links_per_page:
-                # self.excavate.critical(f"SPIDER DANGER: {result}")
-                new_kwargs["exceeded_max_links"] = True
-            self.report(result, name, event, **new_kwargs)
+
+        urls_found = 0
+        for result, name in results:
+            url_event = self.report(result, name, event, **kwargs)
+            if url_event is not None:
+                url_in_scope = self.excavate.scan.in_scope(url_event)
+                is_spider_danger = self.excavate.is_spider_danger(event, result)
+                if (
+                    (
+                        urls_found >= self.web_spider_links_per_page and url_in_scope
+                    )  # if we exceeded the max number of links
+                    or (consider_spider_danger and is_spider_danger)  # or if there's spider danger
+                    or (
+                        (not consider_spider_danger) and (web_spider_distance > self.excavate.max_redirects)
+                    )  # or if the spider distance is way out of control (greater than max_redirects)
+                ):
+                    url_event.add_tag("spider-danger")
+
+                self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
+                self.excavate.emit_event(url_event)
+                if url_in_scope:
+                    urls_found += 1
 
     async def _search(self, content, event, **kwargs):
         parsed = getattr(event, "parsed", None)
@@ -108,10 +127,6 @@ class URLExtractor(BaseExtractor):
                 yield result, name
 
     def report(self, result, name, event, **kwargs):
-        consider_spider_danger = kwargs.get("consider_spider_danger", True)
-        web_spider_distance = getattr(event, "web_spider_distance", 0)
-        exceeded_max_links = kwargs.get("exceeded_max_links", False)
-
         parsed_uri = self.excavate.helpers.urlparse(result)
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
         # Handle non-HTTP URIs (ftp, s3, etc.)
@@ -132,21 +147,7 @@ class URLExtractor(BaseExtractor):
             )
             return
 
-        url_event = self.excavate.make_event(result, "URL_UNVERIFIED", source=event)
-        url_in_scope = self.excavate.scan.in_scope(url_event)
-
-        is_spider_danger = self.excavate.is_spider_danger(event, result)
-        if (
-            (exceeded_max_links and url_in_scope)  # if we exceeded the max number of links
-            or (consider_spider_danger and is_spider_danger)  # or if there's spider danger
-            or (
-                (not consider_spider_danger) and (web_spider_distance > self.excavate.max_redirects)
-            )  # or if the spider distance is way out of control (greater than max_redirects)
-        ):
-            url_event.add_tag("spider-danger")
-
-        self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
-        self.excavate.emit_event(url_event)
+        return self.excavate.make_event(result, "URL_UNVERIFIED", source=event)
 
 
 class EmailExtractor(BaseExtractor):
