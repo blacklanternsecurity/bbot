@@ -112,8 +112,6 @@ class URLExtractor(BaseExtractor):
         web_spider_distance = getattr(event, "web_spider_distance", 0)
         exceeded_max_links = kwargs.get("exceeded_max_links", False)
 
-        tags = []
-
         parsed_uri = self.excavate.helpers.urlparse(result)
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
         # Handle non-HTTP URIs (ftp, s3, etc.)
@@ -134,9 +132,12 @@ class URLExtractor(BaseExtractor):
             )
             return
 
+        url_event = self.excavate.make_event(result, "URL_UNVERIFIED", source=event)
+        url_in_scope = self.excavate.scan.in_scope(url_event)
+
         is_spider_danger = self.excavate.is_spider_danger(event, result)
         if (
-            exceeded_max_links  # if we exceeded the max number of links
+            (exceeded_max_links and url_in_scope)  # if we exceeded the max number of links
             or (consider_spider_danger and is_spider_danger)  # or if there's spider danger
             or (
                 (not consider_spider_danger) and (web_spider_distance > self.excavate.max_redirects)
@@ -145,7 +146,7 @@ class URLExtractor(BaseExtractor):
             tags.append("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
-        self.excavate.emit_event(result, "URL_UNVERIFIED", source=event, tags=tags)
+        self.excavate.emit_event(url_event)
 
 
 class EmailExtractor(BaseExtractor):

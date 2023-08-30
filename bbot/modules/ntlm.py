@@ -135,7 +135,8 @@ class ntlm(BaseModule):
                     # disabled until this is resolved
                     #  https://github.com/encode/httpcore/discussions/783
                     # await self.helpers.cancel_tasks(tasks)
-                    await gen.aclose()
+                    # await gen.aclose()
+                    break
             except HTTPError as e:
                 if str(e):
                     self.warning(str(e))
@@ -143,7 +144,8 @@ class ntlm(BaseModule):
                 # disabled until this is resolved
                 #  https://github.com/encode/httpcore/discussions/783
                 # await self.helpers.cancel_tasks(tasks)
-                await gen.aclose()
+                # await gen.aclose()
+                break
 
         return result, url
 
