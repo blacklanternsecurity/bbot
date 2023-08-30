@@ -143,7 +143,7 @@ class URLExtractor(BaseExtractor):
                 (not consider_spider_danger) and (web_spider_distance > self.excavate.max_redirects)
             )  # or if the spider distance is way out of control (greater than max_redirects)
         ):
-            tags.append("spider-danger")
+            url_event.add_tag("spider-danger")
 
         self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
         self.excavate.emit_event(url_event)
