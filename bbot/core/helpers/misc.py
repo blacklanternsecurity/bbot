@@ -29,7 +29,7 @@ import tldextract as _tldextract
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
-from asyncio import create_task, sleep, wait_for  # noqa
+from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
