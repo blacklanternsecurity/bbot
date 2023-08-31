@@ -20,7 +20,7 @@ async def websocket_handler(websocket, path, scan_done=None):
     # control channel or event channel?
     control = True
 
-    if path == "/" and first_run:
+    if path == "/control/" and first_run:
         # test ping
         await websocket.send(json.dumps({"conversation": "90196cc1-299f-4555-82a0-bc22a4247590", "command": "ping"}))
         _first_run = False
