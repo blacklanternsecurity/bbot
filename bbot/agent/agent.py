@@ -49,9 +49,10 @@ class Agent:
             verbs = ("Building", "Built")
             if rebuild:
                 verbs = ("Rebuilding", "Rebuilt")
-            log.debug(f"{verbs[0]} websocket connection to {self.url}")
-            self._ws = await websockets.connect(self.url, **kwargs)
-            log.debug(f"{verbs[1]} websocket connection to {self.url}")
+            url = f"{self.url}/control/"
+            log.debug(f"{verbs[0]} websocket connection to {url}")
+            self._ws = await websockets.connect(url, **kwargs)
+            log.debug(f"{verbs[1]} websocket connection to {url}")
         return self._ws
 
     async def start(self):
@@ -114,7 +115,11 @@ class Agent:
                     f"Starting scan with targets={targets}, modules={modules}, output_modules={output_modules}"
                 )
                 output_module_config = OmegaConf.create(
-                    {"output_modules": {"websocket": {"url": f"{self.url}/scan/{scan_id}/", "token": self.token}}}
+                    {
+                        "output_modules": {
+                            "websocket": {"url": f"{self.url}/control/scan/{scan_id}/", "token": self.token}
+                        }
+                    }
                 )
                 config = OmegaConf.create(config)
                 config = OmegaConf.merge(self.config, config, output_module_config)
