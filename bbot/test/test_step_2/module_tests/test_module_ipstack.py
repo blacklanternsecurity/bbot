@@ -7,7 +7,7 @@ class TestIPStack(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url="http://api.ipstack.com//check?access_key=asdf",
+            url="http://api.ipstack.com/check?access_key=asdf",
             json={
                 "ip": "1.2.3.4",
                 "type": "ipv4",
@@ -34,7 +34,7 @@ class TestIPStack(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="http://api.ipstack.com//8.8.8.8?access_key=asdf",
+            url="http://api.ipstack.com/8.8.8.8?access_key=asdf",
             json={
                 "ip": "8.8.8.8",
                 "type": "ipv4",
@@ -63,8 +63,5 @@ class TestIPStack(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(
-            e.type == "GEOLOCATION"
-            and e.data
-            == "Ip: 8.8.8.8, Country: United States, City: Glenmont, Zip_code: 44628, Region: Ohio, Latitude: 40.5369987487793, Longitude: -82.12859344482422"
-            for e in events
+            e.type == "GEOLOCATION" and e.data["ip"] == "8.8.8.8" and e.data["city"] == "Glenmont" for e in events
         ), "Failed to geolocate IP"
