@@ -3,7 +3,7 @@ from .base import BaseModule
 
 class azure_realm(BaseModule):
     watched_events = ["DNS_NAME"]
-    produced_events = ["DNS_NAME"]
+    produced_events = ["URL_UNVERIFIED"]
     flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "passive", "safe"]
     meta = {"description": 'Retrieves the "AuthURL" from login.microsoftonline.com/getuserrealm'}
 
