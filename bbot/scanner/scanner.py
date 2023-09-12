@@ -51,19 +51,19 @@ class Scanner:
         >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"nmap": {"top_ports": 2000}}}
         >>> my_scan = Scanner("www.evilcorp.com", modules=["nmap", "httpx"], config=config)
 
-        Synchronous, iterating over events as they're discovered:
+        Start the scan, iterating over events as they're discovered (synchronous):
         >>> for event in my_scan.start():
         >>>     print(event)
 
-        Asynchronous, iterating over events as they're discovered:
+        Start the scan, iterating over events as they're discovered (asynchronous):
         >>> async for event in my_scan.async_start():
         >>>     print(event)
 
-        Synchronous, without consuming events:
+        Start the scan without consuming events (synchronous):
         >>> my_scan.start_without_generator()
 
-        Asynchronous, without consuming events:
-        >>> await my_scan.start_without_generator()
+        Start the scan without consuming events (asynchronous):
+        >>> await my_scan.async_start_without_generator()
 
     Attributes:
         status (str): Status of scan, representing its current state. It can take on the following string values, each of which is mapped to an integer code in `_status_codes`:
