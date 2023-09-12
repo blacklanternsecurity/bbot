@@ -32,6 +32,9 @@ nav:
     - How to Write a Module: contribution.md
     - Developer Reference:
       - Scanner: dev/scanner.md
+      - Helpers: 
+        # dev/helpers/index.md
+        - Miscellaneous: dev/helpers/misc.md
   - Misc:
     - Release History: release_history.md
     - Troubleshooting: troubleshooting.md
@@ -59,6 +62,8 @@ plugins:
           options:
             show_signature_annotations: true
             show_root_toc_entry: false
+            show_root_heading: true
+            show_root_full_path: false
             separate_signature: true
             docstring_section_style: "list"
           import:

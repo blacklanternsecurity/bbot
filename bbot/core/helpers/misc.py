@@ -44,8 +44,26 @@ log = logging.getLogger("bbot.core.helpers.misc")
 
 def is_domain(d):
     """
-    "evilcorp.co.uk" --> True
-    "www.evilcorp.co.uk" --> False
+    Check if the given input represents a domain without subdomains.
+
+    This function takes an input string `d` and returns True if it represents a domain without any subdomains.
+    Otherwise, it returns False.
+
+    Args:
+        d (str): The input string containing the domain.
+
+    Returns:
+        bool: True if the input is a domain without subdomains, False otherwise.
+
+    Examples:
+        >>> is_domain("evilcorp.co.uk")
+        True
+
+        >>> is_domain("www.evilcorp.co.uk")
+        False
+
+    Notes:
+        - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
     extracted = tldextract(d)
@@ -56,8 +74,26 @@ def is_domain(d):
 
 def is_subdomain(d):
     """
-    "www.evilcorp.co.uk" --> True
-    "evilcorp.co.uk" --> False
+    Check if the given input represents a subdomain.
+
+    This function takes an input string `d` and returns True if it represents a subdomain.
+    Otherwise, it returns False.
+
+    Args:
+        d (str): The input string containing the domain or subdomain.
+
+    Returns:
+        bool: True if the input is a subdomain, False otherwise.
+
+    Examples:
+        >>> is_subdomain("www.evilcorp.co.uk")
+        True
+
+        >>> is_subdomain("evilcorp.co.uk")
+        False
+
+    Notes:
+        - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
     extracted = tldextract(d)
@@ -68,13 +104,47 @@ def is_subdomain(d):
 
 def is_ptr(d):
     """
-    "wsc-11-22-33-44.evilcorp.com" --> True
-    "www2.evilcorp.com" --> False
+    Check if the given input represents a PTR record domain.
+
+    This function takes an input string `d` and returns True if it matches the PTR record format.
+    Otherwise, it returns False.
+
+    Args:
+        d (str): The input string potentially representing a PTR record domain.
+
+    Returns:
+        bool: True if the input matches PTR record format, False otherwise.
+
+    Examples:
+        >>> is_ptr("wsc-11-22-33-44.evilcorp.com")
+        True
+
+        >>> is_ptr("www2.evilcorp.com")
+        False
     """
     return bool(bbot_regexes.ptr_regex.search(str(d)))
 
 
 def is_url(u):
+    """
+    Check if the given input represents a valid URL.
+
+    This function takes an input string `u` and returns True if it matches any of the predefined URL formats.
+    Otherwise, it returns False.
+
+    Args:
+        u (str): The input string potentially representing a URL.
+
+    Returns:
+        bool: True if the input matches a valid URL format, False otherwise.
+
+    Examples:
+        >>> is_url("https://evilcorp.com")
+        True
+
+        >>> is_url("not-a-url")
+        False
+    """
     u = str(u)
     for r in bbot_regexes.event_type_regexes["URL"]:
         if r.match(u):
@@ -87,10 +157,30 @@ uri_regex = re.compile(r"^([a-z0-9]{2,20})://", re.I)
 
 def is_uri(u, return_scheme=False):
     """
-    is_uri("http://evilcorp.com") --> True
-    is_uri("ftp://evilcorp.com") --> True
-    is_uri("evilcorp.com") --> False
-    is_uri("ftp://evilcorp.com", return_scheme=True) --> "ftp"
+    Check if the given input represents a URI and optionally return its scheme.
+
+    This function takes an input string `u` and returns True if it matches a URI format.
+    When `return_scheme` is True, it returns the URI scheme instead of a boolean.
+
+    Args:
+        u (str): The input string potentially representing a URI.
+        return_scheme (bool, optional): Whether to return the URI scheme. Defaults to False.
+
+    Returns:
+        Union[bool, str]: True if the input matches a URI format; the URI scheme if `return_scheme` is True.
+
+    Examples:
+        >>> is_uri("http://evilcorp.com")
+        True
+
+        >>> is_uri("ftp://evilcorp.com")
+        True
+
+        >>> is_uri("evilcorp.com")
+        False
+
+        >>> is_uri("ftp://evilcorp.com", return_scheme=True)
+        "ftp"
     """
     match = uri_regex.match(u)
     if return_scheme:
@@ -102,9 +192,32 @@ def is_uri(u, return_scheme=False):
 
 def split_host_port(d):
     """
-    "evilcorp.com:443" --> ("evilcorp.com", 443)
-    "192.168.1.1:443" --> (IPv4Address('192.168.1.1'), 443)
-    "[dead::beef]:443" --> (IPv6Address('dead::beef'), 443)
+    Parse a string containing a host and port into a tuple.
+
+    This function takes an input string `d` and returns a tuple containing the host and port.
+    The host is converted to its appropriate IP address type if possible. The port is inferred
+    based on the scheme if not provided.
+
+    Args:
+        d (str): The input string containing the host and possibly the port.
+
+    Returns:
+        Tuple[Union[IPv4Address, IPv6Address, str], Optional[int]]: Tuple containing the host and port.
+
+    Examples:
+        >>> split_host_port("evilcorp.com:443")
+        ("evilcorp.com", 443)
+
+        >>> split_host_port("192.168.1.1:443")
+        (IPv4Address('192.168.1.1'), 443)
+
+        >>> split_host_port("[dead::beef]:443")
+        (IPv6Address('dead::beef'), 443)
+
+    Notes:
+        - If port is not provided, it is inferred based on the scheme:
+            - For "https" and "wss", port 443 is used.
+            - For "http" and "ws", port 80 is used.
     """
     if not "://" in d:
         d = f"d://{d}"
@@ -126,10 +239,32 @@ def split_host_port(d):
 
 def parent_domain(d):
     """
-    "www.internal.evilcorp.co.uk" --> "internal.evilcorp.co.uk"
-    "www.internal.evilcorp.co.uk:8080" --> "internal.evilcorp.co.uk:8080"
-    "www.evilcorp.co.uk" --> "evilcorp.co.uk"
-    "evilcorp.co.uk" --> "evilcorp.co.uk"
+    Retrieve the parent domain of a given subdomain string.
+
+    This function takes an input string `d` representing a subdomain and returns its parent domain.
+    If the input does not represent a subdomain, it returns the input as is.
+
+    Args:
+        d (str): The input string representing a subdomain or domain.
+
+    Returns:
+        str: The parent domain of the subdomain, or the original input if it is not a subdomain.
+
+    Examples:
+        >>> parent_domain("www.internal.evilcorp.co.uk")
+        "internal.evilcorp.co.uk"
+
+        >>> parent_domain("www.internal.evilcorp.co.uk:8080")
+        "internal.evilcorp.co.uk:8080"
+
+        >>> parent_domain("www.evilcorp.co.uk")
+        "evilcorp.co.uk"
+
+        >>> parent_domain("evilcorp.co.uk")
+        "evilcorp.co.uk"
+
+    Notes:
+        - Port, if present in input, is preserved in the output.
     """
     host, port = split_host_port(d)
     if is_subdomain(d):
@@ -139,8 +274,26 @@ def parent_domain(d):
 
 def domain_parents(d, include_self=False):
     """
-    "test.www.evilcorp.co.uk" --> ["www.evilcorp.co.uk", "evilcorp.co.uk"]
+    Generate a list of parent domains for a given domain string.
+
+    This function takes an input string `d` and generates a list of parent domains in decreasing order of specificity.
+    If `include_self` is set to True, the list will also include the input domain if it is not a top-level domain.
+
+    Args:
+        d (str): The input string representing a domain or subdomain.
+        include_self (bool, optional): Whether to include the input domain itself. Defaults to False.
+
+    Yields:
+        str: Parent domains of the input string in decreasing order of specificity.
+
+    Examples:
+        >>> list(domain_parents("test.www.evilcorp.co.uk"))
+        ["www.evilcorp.co.uk", "evilcorp.co.uk"]
+
+    Notes:
+        - Port, if present in input, is preserved in the output.
     """
+
     parent = str(d)
     if include_self and not is_domain(parent):
         yield parent
@@ -155,6 +308,29 @@ def domain_parents(d, include_self=False):
 
 
 def parent_url(u):
+    """
+    Retrieve the parent URL of a given URL.
+
+    This function takes an input string `u` representing a URL and returns its parent URL.
+    If the input URL does not have a parent (i.e., it's already the top-level), it returns None.
+
+    Args:
+        u (str): The input string representing a URL.
+
+    Returns:
+        Union[str, None]: The parent URL of the input URL, or None if it has no parent.
+
+    Examples:
+        >>> parent_url("https://evilcorp.com/sub/path/")
+        "https://evilcorp.com/sub/"
+
+        >>> parent_url("https://evilcorp.com/")
+        None
+
+    Notes:
+        - Only the path component of the URL is modified.
+        - All other components like scheme, netloc, query, and fragment are preserved.
+    """
     parsed = urlparse(u)
     path = Path(parsed.path)
     if path.parent == path:
@@ -165,16 +341,31 @@ def parent_url(u):
 
 def url_parents(u):
     """
-    "http://www.evilcorp.co.uk/admin/tools/cmd.php" --> ["http://www.evilcorp.co.uk/admin/tools/","http://www.evilcorp.co.uk/admin/", "http://www.evilcorp.co.uk/"]
-    """
+    Generate a list of parent URLs for a given URL string.
 
-    parent_list = set()
+    This function takes an input string `u` representing a URL and generates a list of its parent URLs in decreasing order of specificity.
+
+    Args:
+        u (str): The input string representing a URL.
+
+    Returns:
+        List[str]: A list of parent URLs of the input URL in decreasing order of specificity.
+
+    Examples:
+        >>> url_parents("http://www.evilcorp.co.uk/admin/tools/cmd.php")
+        ["http://www.evilcorp.co.uk/admin/tools/", "http://www.evilcorp.co.uk/admin/", "http://www.evilcorp.co.uk/"]
+
+    Notes:
+        - The list is generated by continuously calling `parent_url` until it returns None.
+        - All components of the URL except for the path are preserved.
+    """
+    parent_list = []
     while 1:
         parent = parent_url(u)
         if parent == None:
-            return list(parent_list)
-        else:
-            parent_list.add(parent)
+            return parent_list
+        elif parent not in parent_list:
+            parent_list.append(parent)
             u = parent
 
 
@@ -262,9 +453,26 @@ def is_ip_type(i):
 
 def make_ip_type(s):
     """
-    "dead::beef" --> IPv6Address('dead::beef')
-    "192.168.1.0/24" --> IPv4Network('192.168.1.0/24')
-    "evilcorp.com" --> "evilcorp.com"
+    Convert a string to its corresponding IP address or network type.
+
+    This function attempts to convert the input string `s` into either an IPv4 or IPv6 address object,
+    or an IPv4 or IPv6 network object. If none of these conversions are possible, the original string is returned.
+
+    Args:
+        s (str): The input string to be converted.
+
+    Returns:
+        Union[IPv4Address, IPv6Address, IPv4Network, IPv6Network, str]: The converted object or original string.
+
+    Examples:
+        >>> make_ip_type("dead::beef")
+        IPv6Address('dead::beef')
+
+        >>> make_ip_type("192.168.1.0/24")
+        IPv4Network('192.168.1.0/24')
+
+        >>> make_ip_type("evilcorp.com")
+        'evilcorp.com'
     """
     # IP address
     with suppress(Exception):
