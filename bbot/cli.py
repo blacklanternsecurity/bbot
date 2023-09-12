@@ -298,7 +298,7 @@ async def _main():
 
                 scanner.helpers.word_cloud.load()
 
-                await scanner.prep()
+                await scanner._prep()
 
                 if not options.dry_run:
                     if not options.agent_mode and not options.yes and sys.stdin.isatty():
