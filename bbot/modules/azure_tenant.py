@@ -84,7 +84,7 @@ class azure_tenant(viewdns):
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200, 421):
             self.verbose(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
-            return set(), set()
+            return set(), dict()
         found_domains = list(set(self.d_xml_regex.findall(r.text)))
         domains = set()
 
