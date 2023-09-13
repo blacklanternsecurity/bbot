@@ -19,7 +19,7 @@ class ModuleLoader:
 
     def file_filter(self, file):
         file = file.resolve()
-        if "mixins" in file.parts:
+        if "templates" in file.parts:
             return False
         return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
 
