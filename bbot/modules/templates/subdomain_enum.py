@@ -24,8 +24,6 @@ class subdomain_enum(BaseModule):
 
     async def setup(self):
         self.processed = set()
-        self.http_timeout = self.scan.config.get("http_timeout", 10)
-        self._failures = 0
         return True
 
     async def handle_event(self, event):

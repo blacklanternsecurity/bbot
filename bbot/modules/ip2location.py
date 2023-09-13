@@ -1,7 +1,7 @@
-from .shodan_dns import shodan_dns
+from bbot.modules.base import BaseModule
 
 
-class IP2Location(shodan_dns):
+class IP2Location(BaseModule):
     """
     IP2Location.io Geolocation API.
     """
@@ -21,12 +21,10 @@ class IP2Location(shodan_dns):
 
     base_url = "http://api.ip2location.io"
 
-    async def filter_event(self, event):
-        return True
-
     async def setup(self):
+        await self.require_api_key()
         self.lang = self.config.get("lang", "")
-        return await super().setup()
+        return True
 
     async def ping(self):
         url = self.build_url("8.8.8.8")
