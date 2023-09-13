@@ -1,7 +1,7 @@
-from bbot.modules.shodan_dns import shodan_dns
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
 
-class bevigil(shodan_dns):
+class bevigil(subdomain_enum_apikey):
     """
     Retrieve OSINT data from mobile applications using BeVigil
     """

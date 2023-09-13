@@ -1,7 +1,7 @@
-from bbot.modules.crobat import crobat
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class threatminer(crobat):
+class threatminer(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]

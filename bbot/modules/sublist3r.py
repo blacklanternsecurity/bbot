@@ -1,7 +1,7 @@
-from .crobat import crobat
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class sublist3r(crobat):
+class sublist3r(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     # tag "subdomain-enum" removed 2023-02-24 because API is offline

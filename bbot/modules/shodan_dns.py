@@ -1,12 +1,7 @@
-from .crobat import crobat
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
 
-class shodan_dns(crobat):
-    """
-    A typical module for authenticated, API-based subdomain enumeration
-    Inherited by several other modules including securitytrails, c99.nl, etc.
-    """
-
+class shodan_dns(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
@@ -15,10 +10,6 @@ class shodan_dns(crobat):
     options_desc = {"api_key": "Shodan API key"}
 
     base_url = "https://api.shodan.io"
-
-    async def setup(self):
-        await super().setup()
-        return await self.require_api_key()
 
     async def ping(self):
         url = f"{self.base_url}/api-info?key={self.api_key}"

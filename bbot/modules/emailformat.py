@@ -1,7 +1,7 @@
-from .viewdns import viewdns
+from bbot.modules.templates.root_domains import root_domains
 
 
-class emailformat(viewdns):
+class emailformat(root_domains):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
     flags = ["passive", "email-enum", "safe"]
