@@ -138,7 +138,7 @@ class Scanner:
             config (dict, optional): Configuration settings. Merged with BBOT config.
             dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.
             strict_scope (bool, optional): If True, only targets explicitly in whitelist are scanned. Defaults to False.
-            force_start (bool, optional): If True, forces the scan to start even with warnings. Defaults to False.
+            force_start (bool, optional): If True, allows the scan to start even when module setups hard-fail. Defaults to False.
         """
         if modules is None:
             modules = []
