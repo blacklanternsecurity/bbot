@@ -615,6 +615,13 @@ class BaseModule:
         return self.meta.get("auth_required", False)
 
     @property
+    def http_timeout(self):
+        """
+        Convenience shortcut to `http_timeout` in the config
+        """
+        return self.scan.config.get("http_timeout", 10)
+
+    @property
     def log(self):
         if getattr(self, "_log", None) is None:
             self._log = logging.getLogger(f"bbot.modules.{self.name}")

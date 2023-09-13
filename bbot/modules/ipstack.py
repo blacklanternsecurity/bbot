@@ -1,7 +1,7 @@
-from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.modules.base import BaseModule
 
 
-class Ipstack(subdomain_enum_apikey):
+class Ipstack(BaseModule):
     """
     Ipstack GeoIP
     Leverages the ipstack.com API to geolocate a host by IP address.
@@ -10,7 +10,7 @@ class Ipstack(subdomain_enum_apikey):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
     flags = ["passive", "safe"]
-    meta = {"description": "Query IPStack's API for GeoIP ", "auth_required": True}
+    meta = {"description": "Query IPStack's GeoIP API", "auth_required": True}
     options = {"api_key": ""}
     options_desc = {"api_key": "IPStack GeoIP API Key"}
     scope_distance_modifier = 1
@@ -19,7 +19,8 @@ class Ipstack(subdomain_enum_apikey):
 
     base_url = "http://api.ipstack.com"
 
-    async def filter_event(self, event):
+    async def setup(self):
+        await self.require_api_key()
         return True
 
     async def ping(self):
