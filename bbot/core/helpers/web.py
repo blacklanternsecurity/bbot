@@ -393,6 +393,18 @@ class WebHelper:
         output = (await self.parent_helper.run(curl_command)).stdout
         return output
 
+    def is_spider_danger(self, source_event, url):
+        """
+        Todo: write tests for this
+        """
+        url_depth = self.parent_helper.url_depth(url)
+        web_spider_depth = self.parent_helper.scan.config.get("web_spider_depth", 1)
+        spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
+        web_spider_distance = self.parent_helper.scan.config.get("web_spider_distance", 0)
+        if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
+            return True
+        return False
+
 
 user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
 pass_keywords = [re.compile(r, re.I) for r in ["pass"]]
