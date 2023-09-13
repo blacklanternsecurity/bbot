@@ -1,10 +1,10 @@
 import re
 from contextlib import suppress
 
-from .viewdns import viewdns
+from bbot.modules.templates.root_domains import root_domains
 
 
-class azure_tenant(viewdns):
+class azure_tenant(root_domains):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "cloud-enum", "passive", "safe"]

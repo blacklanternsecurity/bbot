@@ -117,9 +117,10 @@ def update_docs():
                 bbot_docs_toc += f"- **{section_title}**\n"
                 for subsection in subsections:
                     for subsection_title, subsection_path in subsection.items():
-                        path = subsection_path.split("index.md")[0]
-                        path = path.split(".md")[0]
-                        bbot_docs_toc += f"    - [{subsection_title}]({base_url}/{path})\n"
+                        if isinstance(subsection_path, str):
+                            path = subsection_path.split("index.md")[0]
+                            path = path.split(".md")[0]
+                            bbot_docs_toc += f"    - [{subsection_title}]({base_url}/{path})\n"
     bbot_docs_toc = bbot_docs_toc.strip()
     assert len(bbot_docs_toc.splitlines()) > 5
     update_md_files("BBOT DOCS TOC", bbot_docs_toc)

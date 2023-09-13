@@ -1,7 +1,7 @@
-from .crobat import crobat
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class wayback(crobat):
+class wayback(subdomain_enum):
     flags = ["passive", "subdomain-enum", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED", "DNS_NAME"]

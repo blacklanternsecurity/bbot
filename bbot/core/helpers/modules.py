@@ -18,6 +18,9 @@ class ModuleLoader:
         self._configs = {}
 
     def file_filter(self, file):
+        file = file.resolve()
+        if "mixins" in file.parts:
+            return False
         return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
 
     def preload(self, module_dir):

@@ -1,7 +1,7 @@
-from .shodan_dns import shodan_dns
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
 
-class Ipstack(shodan_dns):
+class Ipstack(subdomain_enum_apikey):
     """
     Ipstack GeoIP
     Leverages the ipstack.com API to geolocate a host by IP address.
