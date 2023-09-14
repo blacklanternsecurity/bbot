@@ -11,10 +11,32 @@ log = logging.getLogger("bbot.scanner.manager")
 
 class ScanManager:
     """
-    Manages modules and events during a scan
+    Manages the modules, event queues, and overall event flow during a scan.
+
+    Simultaneously serves as a shepherd, policeman, judge, jury, and executioner for events.
+    It is responsible for managing the incoming event queue and distributing events to modules.
+
+    Attributes:
+        scan (Scan): Reference to the Scan object that instantiated the ScanManager.
+        incoming_event_queue (asyncio.PriorityQueue): Queue storing incoming events for processing.
+        events_distributed (set): Set tracking globally unique events.
+        events_accepted (set): Set tracking events accepted by individual modules.
+        dns_resolution (bool): Flag to enable or disable DNS resolution.
+        _task_counter (TaskCounter): Counter for ongoing tasks.
+        _new_activity (bool): Flag indicating new activity.
+        _modules_by_priority (dict): Modules sorted by their priorities.
+        _incoming_queues (list): List of incoming event queues from each module.
+        _module_priority_weights (list): Weight values for each module based on priority.
     """
 
     def __init__(self, scan):
+        """
+        Initializes the ScanManager object, setting up essential attributes for scan management.
+
+        Args:
+            scan (Scan): Reference to the Scan object that instantiated the ScanManager.
+        """
+
         self.scan = scan
 
         self.incoming_event_queue = asyncio.PriorityQueue()
@@ -32,8 +54,13 @@ class ScanManager:
 
     async def init_events(self):
         """
-        seed scanner with target events
+        Initializes events by seeding the scanner with target events and distributing them for further processing.
+
+        Notes:
+            - This method populates the event queue with initial target events.
+            - It also marks the Scan object as finished with initialization by setting `_finished_init` to True.
         """
+
         context = f"manager.init_events()"
         async with self.scan._acatch(context), self._task_counter.count(context):
             await self.distribute_event(self.scan.root_event)
@@ -87,7 +114,41 @@ class ScanManager:
             return False
         return True
 
-    async def _emit_event(self, event, *args, **kwargs):
+    async def _emit_event(self, event, **kwargs):
+        """
+        Handles the emission, tagging, and distribution of a events during a scan.
+
+        A lot of really important stuff happens here. Actually this is probably the most
+        important method in all of BBOT. It is basically the central intersection that
+        every event passes through.
+
+        Probably it is also needless to say that it exists in a delicate balance.
+        Close to half of my debugging time has been spent in this function.
+        I have slain many dragons here and there may still be more yet to slay.
+
+        Tread carefully, friend. -TheTechromancer
+
+        Notes:
+            - Central function for decision-making in BBOT.
+            - Conducts DNS resolution, tagging, and scope calculations.
+            - Checks against whitelists and blacklists.
+            - Calls custom callbacks.
+            - Handles DNS wildcard events.
+            - Decides on event acceptance and distribution.
+
+        Parameters:
+            event (Event): The event object to be emitted.
+            **kwargs: Arbitrary keyword arguments (e.g., `on_success_callback`, `abort_if`).
+
+        Side Effects:
+            - Event tagging.
+            - Populating DNS data.
+            - Emitting new events.
+            - Queueing events for further processing.
+            - Adjusting event scopes.
+            - Running callbacks.
+            - Updating scan statistics.
+        """
         log.debug(f"Emitting {event}")
         distribute_event = True
         event_distributed = False
@@ -272,7 +333,7 @@ class ScanManager:
                         self.queue_event(child_event)
 
         except ValidationError as e:
-            log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
+            log.warning(f"Event validation failed with kwargs={kwargs}: {e}")
             log.trace(traceback.format_exc())
 
         finally:

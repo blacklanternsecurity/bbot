@@ -32,6 +32,7 @@ nav:
     - How to Write a Module: contribution.md
     - Developer Reference:
       - Scanner: dev/scanner.md
+      - Event: dev/event.md
       - Target: dev/target.md
       - BaseModule: dev/basemodule.md
       - Helpers: 
@@ -69,6 +70,9 @@ plugins:
             show_root_full_path: false
             separate_signature: true
             docstring_section_style: "list"
+            filters:
+              - "!^_"
+              - "^__init__$"
           import:
             - https://docs.python.org/3.11/objects.inv
             - https://omegaconf.readthedocs.io/en/latest/objects.inv
