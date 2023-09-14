@@ -205,7 +205,7 @@ class BaseModule:
         This method can be overridden to execute any necessary finalization logic. For example, if the module relies on a word cloud, you might wait for the scan to finish to ensure the word cloud is most complete before running an operation.
 
         Returns:
-            None by default, but can return additional data if overridden.
+            None
 
         Warnings:
             This method may be called multiple times since it can raise events, which may re-trigger the "finish" phase of the scan. Optional to override.
@@ -218,7 +218,7 @@ class BaseModule:
         This method can be overridden to aggregate data and raise summary events at the end of the scan.
 
         Returns:
-            None by default, but can return additional data if overridden.
+            None
 
         Note:
             This method is called only once per scan.
@@ -231,7 +231,7 @@ class BaseModule:
         This method can be overridden to implement custom cleanup logic. It is called only once per scan and may not raise events.
 
         Returns:
-            None by default, but can return additional data if overridden.
+            None
 
         Note:
             This method is called only once per scan and may not raise events.
@@ -239,19 +239,20 @@ class BaseModule:
         return
 
     async def require_api_key(self):
-        """Asynchronously checks if the module is configured with a valid API key.
+        """
+        Asynchronously checks if an API key is required and valid.
 
-        This method is typically used within the setup() method to ensure that an API key is provided in the module configuration. Your module must define an 'api_key' in its config options for this method to work properly.
-
-        Example Usage:
-            def setup(self):
-                return await self.require_api_key()
+        Args:
+            None
 
         Returns:
-            Tuple (bool, str): The first element is a boolean indicating whether the API is ready to use. The second element is a string message, either indicating that the API is ready or describing the error.
+            bool or tuple: Returns True if API key is valid and ready.
+                          Returns a tuple (None, "error message") otherwise.
 
-        Raises:
-            Exception: Any exceptions raised by the self.ping() method will propagate.
+        Notes:
+            - Fetches the API key from the configuration.
+            - Calls the 'ping()' method to test API accessibility.
+            - Sets the API key readiness status accordingly.
         """
         self.api_key = self.config.get("api_key", "")
         if self.auth_secret:
@@ -308,6 +309,22 @@ class BaseModule:
         return self._watched_events
 
     async def _handle_batch(self):
+        """
+        Asynchronously handles a batch of events in the module.
+
+        Args:
+            None
+
+        Returns:
+            bool: True if events were submitted for processing, False otherwise.
+
+        Notes:
+            - The method is wrapped in a task counter to monitor asynchronous operations.
+            - Checks if there are any events in the incoming queue and module is not in an error state.
+            - Invokes '_events_waiting()' to fetch a batch of events.
+            - Calls the module's 'handle_batch()' method to process these events.
+            - If a "FINISHED" event is found, invokes 'finish()' method of the module.
+        """
         finish = False
         async with self._task_counter.count(f"{self.name}.handle_batch()"):
             submitted = False
