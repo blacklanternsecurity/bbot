@@ -89,6 +89,10 @@ class Scanner:
         modules (dict): Holds all loaded modules in this format: `{"module_name": Module()}`
         stats (ScanStats): Holds high-level scan statistics such as how many events have been produced and consumed by each module
         home (pathlib.Path): Base output directory of the scan (default: `~/.bbot/scans/<scan_name>`)
+        running (bool): Whether the scan is currently running.
+        stopping (bool): Whether the scan is currently stopping.
+        stopped (bool): Whether the scan is currently stopped.
+        aborting (bool): Whether the scan is aborted or currently aborting.
 
     Notes:
         - The status is read-only once set to "ABORTING" until it transitions to "ABORTED."
@@ -525,8 +529,12 @@ class Scanner:
             self._modules_loaded = True
 
     def stop(self):
-        """
-        Forcefully stop an in-progress scan
+        """Stops the in-progress scan and performs necessary cleanup.
+
+        This method sets the scan's status to "ABORTING," cancels any pending tasks, and drains event queues. It also kills child processes spawned during the scan.
+
+        Returns:
+            None
         """
         if not self._stopping:
             self._stopping = True
@@ -567,7 +575,13 @@ class Scanner:
         return False
 
     def _drain_queues(self):
-        # Empty event queues
+        """Empties all the event queues for each loaded module and the manager's incoming event queue.
+
+        This method iteratively empties both the incoming and outgoing event queues of each module, as well as the incoming event queue of the scan manager.
+
+        Returns:
+            None
+        """
         self.debug("Draining queues")
         for module in self.modules.values():
             with contextlib.suppress(asyncio.queues.QueueEmpty):
@@ -584,6 +598,16 @@ class Scanner:
         self.debug("Finished draining queues")
 
     def _cancel_tasks(self):
+        """Cancels all asynchronous tasks and shuts down the process pool.
+
+        This method collects all pending tasks from each module, the dispatcher,
+        and the scan manager. After collecting these tasks, it cancels them synchronously
+        using a helper function. Finally, it shuts down the process pool, canceling any
+        pending futures.
+
+        Returns:
+            None
+        """
         tasks = []
         # module workers
         for m in self.modules.values():
@@ -603,13 +627,35 @@ class Scanner:
         self.process_pool.shutdown(cancel_futures=True)
 
     async def _report(self):
+        """Asynchronously executes the `report()` method for each module in the scan.
+
+        This method is called once at the end of each scan and is responsible for
+        triggering the `report()` function for each module. It executes irrespective
+        of whether the scan was aborted or completed successfully. The method makes
+        use of an asynchronous context manager (`_acatch`) to handle exceptions and
+        a task counter to keep track of the task's context.
+
+        Returns:
+            None
+        """
         for mod in self.modules.values():
             context = f"{mod.name}.report()"
             async with self._acatch(context), mod._task_counter.count(context):
                 await mod.report()
 
     async def _cleanup(self):
-        # clean up modules
+        """Asynchronously executes the `cleanup()` method for each module in the scan.
+
+        This method is called once at the end of the scan to perform resource cleanup
+        tasks. It is executed regardless of whether the scan was aborted or completed
+        successfully. The scan status is set to "CLEANING_UP" during the execution.
+        After calling the `cleanup()` method for each module, it performs additional
+        cleanup tasks such as removing the scan's home directory if empty and cleaning
+        old scans.
+
+        Returns:
+            None
+        """
         self.status = "CLEANING_UP"
         for mod in self.modules.values():
             await mod._cleanup()
@@ -659,9 +705,6 @@ class Scanner:
 
     @property
     def stopping(self):
-        """
-        Returns True if the scan is not running
-        """
         return not self.running
 
     @property
