@@ -1,6 +1,5 @@
 import logging
 import ipaddress
-from copy import deepcopy
 from contextlib import suppress
 
 from bbot.core.errors import *
@@ -159,11 +158,11 @@ class Target:
 
     def copy(self):
         """
-        Creates and returns a copy of the Target object, including a deep copy of the `_events` attribute.
+        Creates and returns a copy of the Target object, including a shallow copy of the `_events` attribute.
 
         Returns:
             Target: A new Target object with the same `scan` and `strict_scope` attributes as the original.
-                    A deep copy of the `_events` dictionary is made.
+                    A shallow copy of the `_events` dictionary is made.
 
         Examples:
             >>> original_target = Target(scan, "example.com")
@@ -181,7 +180,7 @@ class Target:
             - The `scan` object reference is kept intact in the copied Target object.
         """
         self_copy = self.__class__(self.scan, strict_scope=self.strict_scope)
-        self_copy._events = deepcopy(self._events)
+        self_copy._events = dict(self._events)
         return self_copy
 
     def get(self, host):

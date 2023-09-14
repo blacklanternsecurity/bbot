@@ -1,4 +1,4 @@
-This is a developer reference. For a high-level description of BBOT events, plus a full list of event types, see [Events](../../scanning/events)
+This is a developer reference. For a high-level description of BBOT events including a full list of event types, see [Events](../../scanning/events)
 
 ::: bbot.core.event.base.make_event
 ::: bbot.core.event.base.event_from_json
