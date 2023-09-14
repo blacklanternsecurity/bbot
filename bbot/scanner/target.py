@@ -63,9 +63,7 @@ class Target:
         - If you do not want to include child subdomains, use `strict_scope=True`
     """
 
-    make_in_scope = False
-
-    def __init__(self, scan, *targets, strict_scope=False):
+    def __init__(self, scan, *targets, strict_scope=False, make_in_scope=False):
         """
         Initialize a Target object.
 
@@ -74,6 +72,8 @@ class Target:
             *targets: One or more targets (e.g., domain names, IP ranges) to be included in this Target.
             strict_scope (bool, optional): Flag to control whether only the exact hosts are considered in-scope.
                                            Defaults to False.
+            make_in_scope (bool, optional): Flag to control whether contained events are marked as in-scope.
+                                            Defaults to False.
 
         Attributes:
             scan (Scan): Reference to the Scan object.
@@ -85,14 +85,16 @@ class Target:
             - Each target is processed and stored as an `Event` in the '_events' dictionary.
         """
         self.scan = scan
-        self._dummy_module = ScanTargetDummyModule(scan)
+        self.strict_scope = strict_scope
+        self.make_in_scope = make_in_scope
+
+        self._dummy_module = TargetDummyModule(scan)
         self._events = dict()
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
             self.add_target(t)
 
-        self.strict_scope = strict_scope
         self._hash = None
 
     def add_target(self, t):
@@ -232,7 +234,7 @@ class Target:
         yield from self.events
 
     def __contains__(self, other):
-        # if "other" is a ScanTarget
+        # if "other" is a Target
         if type(other) == self.__class__:
             contained_in_self = [self._contains(e) for e in other.events]
             return all(contained_in_self)
@@ -276,11 +278,7 @@ class Target:
         return num_hosts
 
 
-class ScanTarget(Target):
-    make_in_scope = True
-
-
-class ScanTargetDummyModule(BaseModule):
+class TargetDummyModule(BaseModule):
     _type = "TARGET"
     name = "TARGET"
 

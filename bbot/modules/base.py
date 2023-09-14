@@ -354,6 +354,10 @@ class BaseModule:
             **kwargs: Keyword arguments to be passed to the scan's make_event method.
             raise_error (bool, optional): Whether to raise a validation error if the event could not be created. Defaults to False.
 
+        Examples:
+            >>> new_event = self.make_event("1.2.3.4", source=event)
+            >>> self.emit_event(new_event)
+
         Returns:
             Event or None: The created event, or None if a validation error occurred and raise_error was False.
 
@@ -375,6 +379,8 @@ class BaseModule:
     def emit_event(self, *args, **kwargs):
         """Emit an event to the event queue and distribute it to interested modules.
 
+        This is how modules "return" data.
+
         The method first creates an event object by calling `self.make_event()` with the provided arguments.
         Then, the event is queued for outgoing distribution using `self.queue_outgoing_event()`.
 
@@ -386,6 +392,12 @@ class BaseModule:
                 - abort_if: Optional condition under which the event emission should be aborted.
                 - quick: Optional flag to indicate whether the event should be processed quickly.
                 ```
+
+        Examples:
+            >>> self.emit_event("www.evilcorp.com", source=event, tags=["affiliate"])
+
+            >>> new_event = self.make_event("1.2.3.4", source=event)
+            >>> self.emit_event(new_event)
 
         Returns:
             None

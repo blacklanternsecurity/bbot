@@ -14,8 +14,8 @@ from concurrent.futures import ProcessPoolExecutor
 
 from bbot import config as bbot_config
 
+from .target import Target
 from .stats import ScanStats
-from .target import ScanTarget
 from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.modules import module_loader
@@ -79,10 +79,10 @@ class Scanner:
             - "FINISHED" (8): Status when the scan has successfully completed.
             ```
         _status_code (int): The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in `_status_codes`.
-        target (ScanTarget): Target of scan
+        target (Target): Target of scan
         config (omegaconf.dictconfig.DictConfig): BBOT config
-        whitelist (ScanTarget): Scan whitelist (by default this is the same as `target`)
-        blacklist (ScanTarget): Scan blacklist (this takes ultimate precedence)
+        whitelist (Target): Scan whitelist (by default this is the same as `target`)
+        blacklist (Target): Scan blacklist (this takes ultimate precedence)
         helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc.
         manager (ScanManager): Coordinates and monitors the flow of events between modules during a scan
         dispatcher (Dispatcher): Triggers certain events when the scan `status` changes
@@ -128,8 +128,8 @@ class Scanner:
 
         Args:
             *targets (str): Target(s) to scan.
-            whitelist (ScanTarget, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.
-            blacklist (ScanTarget, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
+            whitelist (list, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.
+            blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
             scan_id (str, optional): Unique identifier for the scan. Auto-generates if None.
             name (str, optional): Human-readable name of the scan. Auto-generates if None.
             modules (list[str], optional): List of module names to use during the scan. Defaults to empty list.
@@ -194,7 +194,7 @@ class Scanner:
         else:
             self.home = self.helpers.bbot_home / "scans" / self.name
 
-        self.target = ScanTarget(self, *targets, strict_scope=strict_scope)
+        self.target = Target(self, *targets, strict_scope=strict_scope, make_in_scope=True)
 
         self.modules = OrderedDict({})
         self._scan_modules = modules
@@ -205,10 +205,10 @@ class Scanner:
         if not whitelist:
             self.whitelist = self.target.copy()
         else:
-            self.whitelist = ScanTarget(self, *whitelist, strict_scope=strict_scope)
+            self.whitelist = Target(self, *whitelist, strict_scope=strict_scope)
         if not blacklist:
             blacklist = []
-        self.blacklist = ScanTarget(self, *blacklist)
+        self.blacklist = Target(self, *blacklist)
 
         if dispatcher is None:
             self.dispatcher = Dispatcher()

@@ -1,0 +1,1 @@
+::: bbot.modules.base.BaseModule
