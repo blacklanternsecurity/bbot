@@ -474,14 +474,14 @@ class Scanner:
         3. Load internal modules and updates the `modules` dictionary.
         4. Load output modules and updates the `modules` dictionary.
         5. Sorts modules based on their `_priority` attribute.
-        
+
         If any modules fail to load or their dependencies fail to install, a ScanError will be raised (unless `self.force_start` is set to True).
 
         Attributes:
             succeeded, failed (tuple): A tuple containing lists of modules that succeeded or failed during the dependency installation.
             loaded_modules, loaded_internal_modules, loaded_output_modules (dict): Dictionaries of successfully loaded modules.
             failed, failed_internal, failed_output (list): Lists of module names that failed to load.
-        
+
         Raises:
             ScanError: If any module dependencies fail to install or modules fail to load, and if self.force_start is False.
 
