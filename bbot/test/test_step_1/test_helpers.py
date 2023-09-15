@@ -338,7 +338,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     with pytest.raises(DirectoryCreationError, match="Failed to create.*"):
         helpers.mkdir(test_file)
 
-    helpers._rm_at_exit(test_file)
+    helpers.delete_file(test_file)
     assert not test_file.exists()
 
     timedelta = datetime.timedelta(hours=1, minutes=2, seconds=3)

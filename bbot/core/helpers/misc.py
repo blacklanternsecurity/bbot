@@ -1914,8 +1914,25 @@ def make_table(*args, **kwargs):
 
 
 def human_timedelta(d):
-    """
-    Format a TimeDelta object in human-readable form
+    """Convert a TimeDelta object into a human-readable string.
+
+    This function takes a datetime.timedelta object and converts it into a string format that
+    is easier to read and understand.
+
+    Args:
+        d (datetime.timedelta): The TimeDelta object to convert.
+
+    Returns:
+        str: A string representation of the TimeDelta object in human-readable form.
+
+    Examples:
+        >>> from datetime import datetime
+        >>>
+        >>> start_time = datetime.now()
+        >>> end_time = datetime.now()
+        >>> elapsed_time = end_time - start_time
+        >>> human_timedelta(elapsed_time)
+        '2 hours, 30 minutes, 15 seconds'
     """
     hours, remainder = divmod(d.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -1933,9 +1950,21 @@ def human_timedelta(d):
 
 
 def bytes_to_human(_bytes):
-    """
-    Converts bytes to human-readable filesize
-        bytes_to_human(1234129384) --> "1.15GB"
+    """Convert a bytes size to a human-readable string.
+
+    This function converts a numeric bytes value into a human-readable string format, complete
+    with the appropriate unit symbol (B, KB, MB, GB, etc.).
+
+    Args:
+        _bytes (int): The number of bytes to convert.
+
+    Returns:
+        str: A string representing the number of bytes in a more readable format, rounded to two
+             decimal places.
+
+    Examples:
+        >>> bytes_to_human(1234129384)
+        '1.15GB'
     """
     sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
     units = {}
@@ -1956,9 +1985,23 @@ filesize_regex = re.compile(r"(?P<num>[0-9\.]+)[\s]*(?P<char>[a-z])", re.I)
 
 
 def human_to_bytes(filesize):
-    """
-    Converts human-readable filesize to bytes
-        human_to_bytes("23.23gb") --> 24943022571
+    """Convert a human-readable file size string to its bytes equivalent.
+
+    This function takes a human-readable file size string, such as "2.5GB", and converts it
+    to its equivalent number of bytes.
+
+    Args:
+        filesize (str or int): The human-readable file size string or integer bytes value to convert.
+
+    Returns:
+        int: The number of bytes equivalent to the input human-readable file size.
+
+    Raises:
+        ValueError: If the input string cannot be converted to bytes.
+
+    Examples:
+        >>> human_to_bytes("23.23gb")
+        24943022571
     """
     if isinstance(filesize, int):
         return filesize
@@ -1982,8 +2025,17 @@ def human_to_bytes(filesize):
 
 
 def cpu_architecture():
-    """
-    Returns the CPU architecture, e.g. "amd64, "armv7", "arm64", etc.
+    """Return the CPU architecture of the current system.
+
+    This function fetches and returns the architecture type of the CPU where the code is being executed.
+    It maps common identifiers like "x86_64" to more general types like "amd64".
+
+    Returns:
+        str: A string representing the CPU architecture, such as "amd64", "armv7", or "arm64".
+
+    Examples:
+        >>> cpu_architecture()
+        'amd64'
     """
     uname = platform.uname()
     arch = uname.machine.lower()
@@ -1995,15 +2047,33 @@ def cpu_architecture():
 
 
 def os_platform():
-    """
-    Returns the OS platform, e.g. "linux", "darwin", "windows", etc.
+    """Return the OS platform of the current system.
+
+    This function fetches and returns the OS type where the code is being executed.
+    It converts the platform identifier to lowercase.
+
+    Returns:
+        str: A string representing the OS platform, such as "linux", "darwin", or "windows".
+
+    Examples:
+        >>> os_platform()
+        'linux'
     """
     return platform.system().lower()
 
 
 def os_platform_friendly():
-    """
-    Returns the OS platform in a more human-friendly format, because apple is indecisive
+    """Return a human-friendly OS platform string, suitable for golang release binaries.
+
+    This function fetches the OS platform and modifies it to a more human-readable format if necessary.
+    Specifically, it changes "darwin" to "macOS".
+
+    Returns:
+        str: A string representing the human-friendly OS platform, such as "macOS", "linux", or "windows".
+
+    Examples:
+        >>> os_platform_friendly()
+        'macOS'
     """
     p = os_platform()
     if p == "darwin":
@@ -2015,44 +2085,91 @@ tag_filter_regex = re.compile(r"[^a-z0-9]+")
 
 
 def tagify(s, maxlen=None):
-    """
-    Sanitize a string into a tag-friendly format
+    """Sanitize a string into a tag-friendly format.
 
-    tagify("HTTP Web Title") --> "http-web-title"
+    Converts a given string to lowercase and replaces all characters not matching
+    [a-z0-9] with hyphens. Optionally truncates the result to 'maxlen' characters.
+
+    Args:
+        s (str): The input string to sanitize.
+        maxlen (int, optional): The maximum length for the tag. Defaults to None.
+
+    Returns:
+        str: A sanitized, tag-friendly string.
+
+    Examples:
+        >>> tagify("HTTP Web Title")
+        'http-web-title'
+        >>> tagify("HTTP Web Title", maxlen=8)
+        'http-web'
     """
     ret = str(s).lower()
     return tag_filter_regex.sub("-", ret)[:maxlen].strip("-")
 
 
 def memory_status():
-    """
-    Return statistics on system memory consumption
+    """Return statistics on system memory consumption.
 
-    Example: to get available memory (not including swap):
-        memory_status().available
+    The function returns a `psutil` named tuple that contains statistics on
+    system virtual memory usage, such as total memory, used memory, available
+    memory, and more.
 
-    Example: to get percent memory used:
-        memory_status().percent
+    Returns:
+        psutil._pslinux.svmem: A named tuple representing various statistics
+            about system virtual memory usage.
+
+    Examples:
+        >>> mem = memory_status()
+        >>> mem.available
+        13195399168
+
+        >>> mem = memory_status()
+        >>> mem.percent
+        79.0
     """
     return psutil.virtual_memory()
 
 
 def swap_status():
-    """
-    Return statistics on swap memory consumption
+    """Return statistics on swap memory consumption.
 
-    Example: to get total swap:
-        swap_status().total
+    The function returns a `psutil` named tuple that contains statistics on
+    system swap memory usage, such as total swap, used swap, free swap, and more.
 
-    Example: to get in-use swap:
-        swap_status().used
+    Returns:
+        psutil._common.sswap: A named tuple representing various statistics
+            about system swap memory usage.
+
+    Examples:
+        >>> swap = swap_status()
+        >>> swap.total
+        4294967296
+
+        >>> swap = swap_status()
+        >>> swap.used
+        2097152
     """
     return psutil.swap_memory()
 
 
 def get_size(obj, max_depth=5, seen=None):
     """
-    Rough recursive measurement of a python object's memory footprint
+    Roughly estimate the memory footprint of a Python object using recursion.
+
+    Parameters:
+        obj (any): The object whose size is to be determined.
+        max_depth (int, optional): Maximum depth to which nested objects will be inspected. Defaults to 5.
+        seen (set, optional): Objects that have already been accounted for, to avoid loops.
+
+    Returns:
+        int: Approximate memory footprint of the object in bytes.
+
+    Examples:
+        >>> get_size(my_list)
+        4200
+
+        >>> get_size(my_dict, max_depth=3)
+        8400
     """
     # If seen is not provided, initialize an empty set
     if seen is None:
@@ -2094,6 +2211,22 @@ def get_size(obj, max_depth=5, seen=None):
 
 
 def is_file(f):
+    """
+    Check if a path points to a file.
+
+    Parameters:
+        f (str): Path to the file.
+
+    Returns:
+        bool: True if the path is a file, False otherwise.
+
+    Examples:
+        >>> is_file("/etc/passwd")
+        True
+
+        >>> is_file("/nonexistent")
+        False
+    """
     with suppress(Exception):
         return Path(f).is_file()
     return False
@@ -2104,12 +2237,17 @@ provider_map = {"amazon": "aws", "google": "gcp"}
 
 def cloudcheck(ip):
     """
-    Check whether an IP address belongs to a cloud provider
+    Check whether an IP address belongs to a cloud provider and returns the provider name, type, and subnet.
 
-        provider, provider_type, subnet = cloudcheck("168.62.20.37")
-        print(provider) # "Azure"
-        print(provider_type) # "cloud"
-        print(subnet) # IPv4Network('168.62.0.0/19')
+    Args:
+        ip (str): The IP address to check.
+
+    Returns:
+        tuple: A tuple containing provider name (str), provider type (str), and subnet (IPv4Network).
+
+    Examples:
+        >>> cloudcheck("168.62.20.37")
+        ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
     """
     provider, provider_type, subnet = _cloudcheck.check(ip)
     if provider:
@@ -2119,10 +2257,48 @@ def cloudcheck(ip):
 
 
 def is_async_function(f):
+    """
+    Check if a given function is an asynchronous function.
+
+    Args:
+        f (function): The function to check.
+
+    Returns:
+        bool: True if the function is asynchronous, False otherwise.
+
+    Examples:
+        >>> async def foo():
+        ...     pass
+        >>> is_async_function(foo)
+        True
+    """
     return inspect.iscoroutinefunction(f)
 
 
 async def execute_sync_or_async(callback, *args, **kwargs):
+    """
+    Execute a function or coroutine, handling either synchronous or asynchronous invocation.
+
+    Args:
+        callback (Union[Callable, Coroutine]): The function or coroutine to execute.
+        *args: Variable-length argument list to pass to the callback.
+        **kwargs: Arbitrary keyword arguments to pass to the callback.
+
+    Returns:
+        Any: The return value from the executed function or coroutine.
+
+    Examples:
+        >>> async def foo_async(x):
+        ...     return x + 1
+        >>> def foo_sync(x):
+        ...     return x + 1
+
+        >>> asyncio.run(execute_sync_or_async(foo_async, 1))
+        2
+
+        >>> asyncio.run(execute_sync_or_async(foo_sync, 1))
+        2
+    """
     if is_async_function(callback):
         return await callback(*args, **kwargs)
     else:
@@ -2131,7 +2307,22 @@ async def execute_sync_or_async(callback, *args, **kwargs):
 
 def get_exception_chain(e):
     """
-    Get the full chain of exceptions that led to the current one
+    Retrieves the full chain of exceptions leading to the given exception.
+
+    Args:
+        e (BaseException): The exception for which to get the chain.
+
+    Returns:
+        list[BaseException]: List of exceptions in the chain, from the given exception back to the root cause.
+
+    Examples:
+        >>> try:
+        ...     raise ValueError("This is a value error")
+        ... except ValueError as e:
+        ...     exc_chain = get_exception_chain(e)
+        ...     for exc in exc_chain:
+        ...         print(exc)
+        This is a value error
     """
     exception_chain = []
     current_exception = e
@@ -2142,6 +2333,23 @@ def get_exception_chain(e):
 
 
 def get_traceback_details(e):
+    """
+    Retrieves detailed information from the traceback of an exception.
+
+    Args:
+        e (BaseException): The exception for which to get traceback details.
+
+    Returns:
+        tuple: A tuple containing filename (str), line number (int), and function name (str) where the exception was raised.
+
+    Examples:
+        >>> try:
+        ...     raise ValueError("This is a value error")
+        ... except ValueError as e:
+        ...     filename, lineno, funcname = get_traceback_details(e)
+        ...     print(f"File: {filename}, Line: {lineno}, Function: {funcname}")
+        File: <stdin>, Line: 2, Function: <module>
+    """
     tb = traceback.extract_tb(e.__traceback__)
     last_frame = tb[-1]  # Get the last frame in the traceback (the one where the exception was raised)
     filename = last_frame.filename
@@ -2151,6 +2359,24 @@ def get_traceback_details(e):
 
 
 async def cancel_tasks(tasks, ignore_errors=True):
+    """
+    Asynchronously cancels a list of asyncio tasks.
+
+    Args:
+        tasks (list[Task]): A list of asyncio Task objects to cancel.
+        ignore_errors (bool, optional): Whether to ignore errors other than asyncio.CancelledError. Defaults to True.
+
+    Examples:
+        >>> async def main():
+        ...     task1 = asyncio.create_task(async_function1())
+        ...     task2 = asyncio.create_task(async_function2())
+        ...     await cancel_tasks([task1, task2])
+        ...
+        >>> asyncio.run(main())
+
+    Note:
+        This function will not cancel the current task that it is called from.
+    """
     current_task = asyncio.current_task()
     tasks = [t for t in tasks if t != current_task]
     for task in tasks:
@@ -2166,6 +2392,21 @@ async def cancel_tasks(tasks, ignore_errors=True):
 
 
 def cancel_tasks_sync(tasks):
+    """
+    Synchronously cancels a list of asyncio tasks.
+
+    Args:
+        tasks (list[Task]): A list of asyncio Task objects to cancel.
+
+    Examples:
+        >>> loop = asyncio.get_event_loop()
+        >>> task1 = loop.create_task(some_async_function1())
+        >>> task2 = loop.create_task(some_async_function2())
+        >>> cancel_tasks_sync([task1, task2])
+
+    Note:
+        This function will not cancel the current task from which it is called.
+    """
     current_task = asyncio.current_task()
     for task in tasks:
         if task != current_task:
@@ -2174,6 +2415,31 @@ def cancel_tasks_sync(tasks):
 
 
 def weighted_shuffle(items, weights):
+    """
+    Shuffles a list of items based on their corresponding weights.
+
+    Args:
+        items (list): The list of items to shuffle.
+        weights (list): The list of weights corresponding to each item.
+
+    Returns:
+        list: A new list containing the shuffled items.
+
+    Examples:
+        >>> items = ['apple', 'banana', 'cherry']
+        >>> weights = [0.4, 0.5, 0.1]
+        >>> weighted_shuffle(items, weights)
+        ['banana', 'apple', 'cherry']
+        >>> weighted_shuffle(items, weights)
+        ['apple', 'banana', 'cherry']
+        >>> weighted_shuffle(items, weights)
+        ['apple', 'banana', 'cherry']
+        >>> weighted_shuffle(items, weights)
+        ['banana', 'apple', 'cherry']
+
+    Note:
+        The sum of all weights does not have to be 1. They will be normalized internally.
+    """
     # Create a list of tuples where each tuple is (item, weight)
     pool = list(zip(items, weights))
 
@@ -2196,6 +2462,28 @@ def weighted_shuffle(items, weights):
 
 
 def parse_port_string(port_string):
+    """
+    Parses a string containing ports and port ranges into a list of individual ports.
+
+    Args:
+        port_string (str): The string containing individual ports and port ranges separated by commas.
+
+    Returns:
+        list: A list of individual ports parsed from the input string.
+
+    Raises:
+        ValueError: If the input string contains invalid ports or port ranges.
+
+    Examples:
+        >>> parse_port_string("22,80,1000-1002")
+        [22, 80, 1000, 1001, 1002]
+
+        >>> parse_port_string("1-2,3-5")
+        [1, 2, 3, 4, 5]
+
+        >>> parse_port_string("invalid")
+        ValueError: Invalid port or port range: invalid
+    """
     elements = port_string.split(",")
     ports = []
 
@@ -2221,6 +2509,28 @@ def parse_port_string(port_string):
 
 
 def parse_list_string(list_string):
+    """
+    Parses a comma-separated string into a list, removing invalid characters.
+
+    Args:
+        list_string (str): The string containing elements separated by commas.
+
+    Returns:
+        list: A list of individual elements parsed from the input string.
+
+    Raises:
+        ValueError: If the input string contains invalid characters.
+
+    Examples:
+        >>> parse_list_string("html,js,css")
+        ['html', 'js', 'css']
+
+        >>> parse_list_string("png,jpg,gif")
+        ['png', 'jpg', 'gif']
+
+        >>> parse_list_string("invalid<>char")
+        ValueError: Invalid character in string: invalid<>char
+    """
     elements = list_string.split(",")
     result = []
 
@@ -2232,6 +2542,23 @@ def parse_list_string(list_string):
 
 
 async def as_completed(coros):
+    """
+    Async generator that yields completed Tasks as they are completed.
+
+    Args:
+        coros (iterable): An iterable of coroutine objects or asyncio Tasks.
+
+    Yields:
+        asyncio.Task: A Task object that has completed its execution.
+
+    Examples:
+        >>> async def main():
+        ...     async for task in as_completed([coro1(), coro2(), coro3()]):
+        ...         result = task.result()
+        ...         print(f'Task completed with result: {result}')
+
+        >>> asyncio.run(main())
+    """
     tasks = {coro if isinstance(coro, asyncio.Task) else asyncio.create_task(coro): coro for coro in coros}
     while tasks:
         done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
