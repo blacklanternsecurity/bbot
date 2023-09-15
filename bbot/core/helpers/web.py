@@ -265,8 +265,7 @@ class WebHelper:
         Note:
             You MUST break out of the loop when you stop getting useful results! Otherwise it will loop forever.
 
-        Example:
-            Here's a quick example of how to use this:
+        Examples:
             ```
             agen = api_page_iter('https://api.example.com/data?page={page}&page_size={page_size}')
             try:
