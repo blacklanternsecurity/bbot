@@ -19,6 +19,65 @@ server_list = ["oast.pro", "oast.live", "oast.site", "oast.online", "oast.fun", 
 
 
 class Interactsh:
+    """
+    A pure python implementation of ProjectDiscovery's interact.sh.
+
+    *"Interactsh is an open-source tool for detecting out-of-band interactions. It is a tool designed to detect vulnerabilities that cause external interactions."*
+
+    - https://app.interactsh.com
+    - https://github.com/projectdiscovery/interactsh
+
+    This class facilitates interactions with the interact.sh service for
+    out-of-band data exfiltration and vulnerability confirmation. It allows
+    for customization by accepting server and token parameters from the
+    configuration provided by `parent_helper`.
+
+    Attributes:
+        parent_helper (ConfigAwareHelper): An instance of a helper class containing configuration data.
+        server (str): The server to be used. If None (the default), a random server will be chosen from a predetermined list.
+        correlation_id (str): An identifier to correlate requests and responses. Default is None.
+        custom_server (str): Optional. A custom interact.sh server. Loaded from configuration.
+        token (str): Optional. A token for interact.sh API. Loaded from configuration.
+        _poll_task (AsyncTask): The task responsible for polling the interact.sh server. Default is None.
+
+    Examples:
+        ```python
+        # instantiate interact.sh client (no requests are sent yet)
+        >>> interactsh_client = s.helpers.interactsh()
+        # register with an interact.sh server
+        >>> interactsh_domain = await interactsh_client.register()
+        [INFO] Registering with interact.sh server: oast.me
+        [INFO] Successfully registered to interactsh server oast.me with correlation_id rg99x2f860h5466ou3so [rg99x2f860h5466ou3so86i07n1m3013k.oast.me]
+        # simulate an out-of-band interaction
+        >>> await s.helpers.request(f"https://{interactsh_domain}/test")
+        # wait for out-of-band interaction to be registered
+        >>> await asyncio.sleep(10)
+        >>> data_list = await interactsh_client.poll()
+        >>> print(data_list)
+        [
+            {
+                "protocol": "dns",
+                "unique-id": "rg99x2f860h5466ou3so86i07n1m3013k",
+                "full-id": "rg99x2f860h5466ou3so86i07n1m3013k",
+                "q-type": "A",
+                "raw-request": "...",
+                "remote-address": "1.2.3.4",
+                "timestamp": "2023-09-15T21:09:23.187226851Z"
+            },
+            {
+                "protocol": "http",
+                "unique-id": "rg99x2f860h5466ou3so86i07n1m3013k",
+                "full-id": "rg99x2f860h5466ou3so86i07n1m3013k",
+                "raw-request": "GET /test HTTP/1.1 ...",
+                "remote-address": "1.2.3.4",
+                "timestamp": "2023-09-15T21:09:24.155677967Z"
+            }
+        ]
+        # finally, shut down the client
+        >>> await interactsh_client.deregister()
+        ```
+    """
+
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.server = None
