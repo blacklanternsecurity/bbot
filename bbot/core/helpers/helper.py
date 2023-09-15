@@ -18,6 +18,14 @@ log = logging.getLogger("bbot.core.helpers")
 
 
 class ConfigAwareHelper:
+    """
+    A central class designed to provide easy access to helpers.
+
+    Since certain helper functions rely on configuration-specific parameters
+    (such as dns and http which rely on rate-limits etc.,) it also provides
+    certain helpers with access to the config and the current BBOT scan instance.
+    """
+
     from . import ntlm
     from . import regexes
     from . import validators

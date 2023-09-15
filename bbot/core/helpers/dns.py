@@ -18,6 +18,21 @@ log = logging.getLogger("bbot.core.helpers.dns")
 
 
 class BBOTAsyncResolver(dns.asyncresolver.Resolver):
+    """Custom asynchronous resolver for BBOT with rate limiting.
+
+    This class extends dnspython's async resolver and provides additional support for rate-limiting DNS queries.
+    The maximum number of queries allowed per second can be customized via BBOT's config.
+
+    Attributes:
+        _parent_helper: A reference to the instantiated `ConfigAwareHelper` (typically `scan.helpers`).
+        _dns_rate_limiter (RateLimiter): An instance of the RateLimiter class for DNS query rate-limiting.
+
+    Args:
+        *args: Positional arguments passed to the base resolver.
+        **kwargs: Keyword arguments. '_parent_helper' is expected among these to provide configuration data for
+                  rate-limiting. All other keyword arguments are passed to the base resolver.
+    """
+
     def __init__(self, *args, **kwargs):
         self._parent_helper = kwargs.pop("_parent_helper")
         dns_queries_per_second = self._parent_helper.config.get("dns_queries_per_second", 100)
@@ -30,8 +45,37 @@ class BBOTAsyncResolver(dns.asyncresolver.Resolver):
 
 
 class DNSHelper:
-    """
-    For host resolution, automatic wildcard detection, etc.
+    """Helper class for DNS-related operations within BBOT.
+
+    This class provides mechanisms for host resolution, wildcard domain detection, event tagging, and more.
+    It centralizes all DNS-related activities in BBOT, offering both synchronous and asynchronous methods
+    for DNS resolution, as well as various utilities for batch resolution and DNS query filtering.
+
+    Attributes:
+        parent_helper: A reference to the instantiated `ConfigAwareHelper` (typically `scan.helpers`).
+        resolver (BBOTAsyncResolver): An asynchronous DNS resolver tailored for BBOT with rate-limiting capabilities.
+        timeout (int): The timeout value for DNS queries. Defaults to 5 seconds.
+        retries (int): The number of retries for failed DNS queries. Defaults to 1.
+        abort_threshold (int): The threshold for aborting after consecutive failed queries. Defaults to 50.
+        max_dns_resolve_distance (int): Maximum allowed distance for DNS resolution. Defaults to 4.
+        all_rdtypes (list): A list of DNS record types to be considered during operations.
+        wildcard_ignore (tuple): Domains to be ignored during wildcard detection.
+        wildcard_tests (int): Number of tests to be run for wildcard detection. Defaults to 5.
+        _wildcard_cache (dict): Cache for wildcard detection results.
+        _dns_cache (CacheDict): Cache for DNS resolution results, limited in size.
+        _event_cache (CacheDict): Cache for event resolution results, tags. Limited in size.
+        resolver_file (Path): File containing system's current resolver nameservers.
+        filter_bad_ptrs (bool): Whether to filter out DNS names that appear to be auto-generated PTR records. Defaults to True.
+
+    Args:
+        parent_helper: The parent helper object with configuration details and utilities.
+
+    Raises:
+        DNSError: If an issue arises when creating the BBOTAsyncResolver instance.
+
+    Examples:
+        >>> dns_helper = DNSHelper(parent_config)
+        >>> resolved_host = dns_helper.resolver.resolve("example.com")
     """
 
     all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
@@ -44,7 +88,7 @@ class DNSHelper:
             raise DNSError(f"Failed to create BBOT DNS resolver: {e}")
         self.timeout = self.parent_helper.config.get("dns_timeout", 5)
         self.retries = self.parent_helper.config.get("dns_retries", 1)
-        self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 5)
+        self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 50)
         self.max_dns_resolve_distance = self.parent_helper.config.get("max_dns_resolve_distance", 4)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
@@ -95,14 +139,25 @@ class DNSHelper:
         self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
 
     async def resolve(self, query, **kwargs):
-        """
-        "1.2.3.4" --> {
-            "evilcorp.com",
-        }
-        "evilcorp.com" --> {
-            "1.2.3.4",
-            "dead::beef"
-        }
+        """Resolve DNS names and IP addresses to their corresponding results.
+
+        This is a high-level function that can translate a given domain name to its associated IP addresses
+        or an IP address to its corresponding domain names. It's structured for ease of use within modules
+        and will abstract away most of the complexity of DNS resolution, returning a simple set of results.
+
+        Args:
+            query (str): The domain name or IP address to resolve.
+            **kwargs: Additional arguments to be passed to the resolution process.
+
+        Returns:
+            set: A set containing resolved domain names or IP addresses.
+
+        Examples:
+            >>> results = await resolve("1.2.3.4")
+            {"evilcorp.com"}
+
+            >>> results = await resolve("evilcorp.com")
+            {"1.2.3.4", "dead::beef"}
         """
         results = set()
         try:
@@ -122,6 +177,32 @@ class DNSHelper:
         return results
 
     async def resolve_raw(self, query, **kwargs):
+        """Resolves the given query to its associated DNS records.
+
+        This function is a foundational method for DNS resolution in this class. It understands both IP addresses and
+        hostnames and returns their associated records in a raw format provided by the dnspython library.
+
+        Args:
+            query (str): The IP address or hostname to resolve.
+            type (str or list[str], optional): Specifies the DNS record type(s) to fetch. Can be a single type like 'A'
+                or a list like ['A', 'AAAA']. If set to 'any', 'all', or '*', it fetches all supported types. If not
+                specified, the function defaults to fetching 'A' and 'AAAA' records.
+            **kwargs: Additional arguments that might be passed to the resolver.
+
+        Returns:
+            tuple: A tuple containing two lists:
+                - list: A list of tuples where each tuple consists of a record type string (like 'A') and the associated
+                  raw dnspython answer.
+                - list: A list of tuples where each tuple consists of a record type string and the associated error if
+                  there was an issue fetching the record.
+
+        Examples:
+            >>> await resolve_raw("8.8.8.8")
+            ([('PTR', <dns.resolver.Answer object at 0x7f4a47cdb1d0>)], [])
+
+            >>> await resolve_raw("dns.google")
+            ([('A', <dns.resolver.Answer object at 0x7f4a47ce46d0>), ('AAAA', <dns.resolver.Answer object at 0x7f4a47ce4710>)], [])
+        """
         # DNS over TCP is more reliable
         # But setting this breaks DNS resolution on Ubuntu because systemd-resolve doesn't support TCP
         # kwargs["tcp"] = True
@@ -160,6 +241,29 @@ class DNSHelper:
         return (results, errors)
 
     async def _resolve_hostname(self, query, **kwargs):
+        """Translate a hostname into its corresponding IP addresses.
+
+        This is the foundational function for converting a domain name into its associated IP addresses. It's designed
+        for internal use within the class and handles retries, caching, and a variety of error/timeout scenarios.
+        It also respects certain configurations that might ask to skip certain types of queries. Results are returned
+        in the default dnspython answer object format.
+
+        Args:
+            query (str): The hostname to resolve.
+            rdtype (str, optional): The type of DNS record to query (e.g., 'A', 'AAAA'). Defaults to 'A'.
+            retries (int, optional): The number of times to retry on failure. Defaults to class-wide `retries`.
+            use_cache (bool, optional): Whether to check the cache before trying a fresh resolution. Defaults to True.
+            **kwargs: Additional arguments that might be passed to the resolver.
+
+        Returns:
+            tuple: A tuple containing:
+                - list: A list of resolved IP addresses.
+                - list: A list of errors encountered during the resolution process.
+
+        Examples:
+            >>> results, errors = await _resolve_hostname("google.com")
+            (<dns.resolver.Answer object at 0x7f4a4b2caf50>, [])
+        """
         self.debug(f"Resolving {query} with kwargs={kwargs}")
         results = []
         errors = []
@@ -232,6 +336,27 @@ class DNSHelper:
         return results, errors
 
     async def _resolve_ip(self, query, **kwargs):
+        """Translate an IP address into a corresponding DNS name.
+
+        This is the most basic function that will convert an IP address into its associated domain name. It handles
+        retries, caching, and multiple types of timeout/error scenarios internally. The function is intended for
+        internal use and should not be directly called by modules without understanding its intricacies.
+
+        Args:
+            query (str): The IP address to be reverse-resolved.
+            retries (int, optional): The number of times to retry on failure. Defaults to 0.
+            use_cache (bool, optional): Whether to check the cache for the result before attempting resolution. Defaults to True.
+            **kwargs: Additional arguments to be passed to the resolution process.
+
+        Returns:
+            tuple: A tuple containing:
+                - list: A list of resolved domain names (in default dnspython answer format).
+                - list: A list of errors encountered during resolution.
+
+        Examples:
+            >>> results, errors = await _resolve_ip("8.8.8.8")
+            (<dns.resolver.Answer object at 0x7f4a47cdb1d0>, [])
+        """
         self.debug(f"Reverse-resolving {query} with kwargs={kwargs}")
         retries = kwargs.pop("retries", 0)
         use_cache = kwargs.pop("use_cache", True)
@@ -271,6 +396,25 @@ class DNSHelper:
         return results, errors
 
     async def handle_wildcard_event(self, event, children):
+        """
+        Used within BBOT's scan manager to detect and tag DNS wildcard events.
+
+        Wildcards are detected for every major record type. If a wildcard is detected, its data
+        is overwritten, for example: `_wildcard.evilcorp.com`.
+
+        Args:
+            event (object): The event to check for wildcards.
+            children (list): A list of the event's resulting DNS children after resolution.
+
+        Returns:
+            None: This method modifies the `event` in place and does not return a value.
+
+        Examples:
+            >>> handle_wildcard_event(event, children)
+            # The `event` might now have tags like ["wildcard", "a-wildcard", "aaaa-wildcard"] and
+            # its `data` attribute might be modified to "_wildcard.evilcorp.com" if it was detected
+            # as a wildcard.
+        """
         log.debug(f"Entering handle_wildcard_event({event}, children={children})")
         try:
             event_host = str(event.host)
@@ -324,8 +468,29 @@ class DNSHelper:
 
     async def resolve_event(self, event, minimal=False):
         """
-        Tag event with appropriate dns record types
-        Optionally create child events from dns resolutions
+        Tag the given event with the appropriate DNS record types and optionally create child
+        events based on DNS resolutions.
+
+        Args:
+            event (object): The event to be resolved and tagged.
+            minimal (bool, optional): If set to True, the function will perform minimal DNS
+                resolution. Defaults to False.
+
+        Returns:
+            tuple: A 4-tuple containing the following items:
+                - event_tags (set): Set of tags for the event.
+                - event_whitelisted (bool): Whether the event is whitelisted.
+                - event_blacklisted (bool): Whether the event is blacklisted.
+                - dns_children (dict): Dictionary containing child events from DNS resolutions.
+
+        Examples:
+            >>> event = make_event("evilcorp.com")
+            >>> resolve_event(event)
+            ({'resolved', 'ns-record', 'a-record',}, False, False, {'A': {IPv4Address('1.2.3.4'), IPv4Address('1.2.3.5')}, 'NS': {'ns1.evilcorp.com'}})
+
+        Note:
+            This method does not modify the passed in `event`. Instead, it returns data
+            that can be used to modify or act upon the `event`.
         """
         log.debug(f"Resolving {event}")
         event_host = str(event.host)
@@ -430,8 +595,33 @@ class DNSHelper:
             log.debug(f"Finished resolving {event}")
 
     def event_cache_get(self, host):
+        """
+        Retrieves cached event data based on the given host.
+
+        Args:
+            host (str): The host for which the event data is to be retrieved.
+
+        Returns:
+            tuple: A 4-tuple containing the following items:
+                - event_tags (set): Set of tags for the event.
+                - event_whitelisted (bool or None): Whether the event is whitelisted. Returns None if not found.
+                - event_blacklisted (bool or None): Whether the event is blacklisted. Returns None if not found.
+                - dns_children (set): Set containing child events from DNS resolutions.
+
+        Examples:
+            Assuming an event with host "www.evilcorp.com" has been cached:
+
+            >>> event_cache_get("www.evilcorp.com")
+            ({"resolved", "a-record"}, False, False, {'1.2.3.4'})
+
+            Assuming no event with host "www.notincache.com" has been cached:
+
+            >>> event_cache_get("www.notincache.com")
+            (set(), None, None, set())
+        """
         try:
-            return self._event_cache[host]
+            event_tags, event_whitelisted, event_blacklisted, dns_children = self._event_cache[host]
+            return (event_tags, event_whitelisted, event_blacklisted, dns_children)
         except KeyError:
             return set(), None, None, set()
 
@@ -444,10 +634,27 @@ class DNSHelper:
 
     async def resolve_batch(self, queries, **kwargs):
         """
-        await resolve_batch(["www.evilcorp.com", "evilcorp.com"]) --> [
-            ("www.evilcorp.com", {"1.1.1.1"}),
-            ("evilcorp.com", {"2.2.2.2"})
-        ]
+        Asynchronously resolves a batch of queries in parallel and yields the results as they are completed.
+
+        This method wraps around `_resolve_batch_coro_wrapper` to resolve a list of queries in parallel.
+        It batches the queries to a manageable size and executes them asynchronously, respecting
+        global rate limits.
+
+        Args:
+            queries (list): List of queries to resolve.
+            **kwargs: Additional keyword arguments to pass to `_resolve_batch_coro_wrapper`.
+
+        Yields:
+            tuple: A tuple containing the original query and its resolved value.
+
+        Examples:
+            >>> import asyncio
+            >>> async def example_usage():
+            ...     async for result in resolve_batch(['www.evilcorp.com', 'evilcorp.com']):
+            ...         print(result)
+            ('www.evilcorp.com', {'1.1.1.1'})
+            ('evilcorp.com', {'2.2.2.2'})
+
         """
         queries = list(queries)
         batch_size = 250
@@ -459,7 +666,28 @@ class DNSHelper:
 
     def extract_targets(self, record):
         """
-        Extract whatever hostnames/IPs a DNS records points to
+        Extracts hostnames or IP addresses from a given DNS record.
+
+        This method reads the DNS record's type and based on that, extracts the target
+        hostnames or IP addresses it points to. The type of DNS record
+        (e.g., "A", "MX", "CNAME", etc.) determines which fields are used for extraction.
+
+        Args:
+            record (dns.rdata.Rdata): The DNS record to extract information from.
+
+        Returns:
+            set: A set of tuples, each containing the DNS record type and the extracted value.
+
+        Examples:
+            >>> from dns.rrset import from_text
+            >>> record = from_text('www.example.com', 3600, 'IN', 'A', '192.0.2.1')
+            >>> extract_targets(record[0])
+            {('A', '192.0.2.1')}
+
+            >>> record = from_text('example.com', 3600, 'IN', 'MX', '10 mail.example.com.')
+            >>> extract_targets(record[0])
+            {('MX', 'mail.example.com')}
+
         """
         results = set()
         rdtype = str(record.rdtype.name).upper()
@@ -486,11 +714,50 @@ class DNSHelper:
 
     @staticmethod
     def _clean_dns_record(record):
+        """
+        Cleans and formats a given DNS record for further processing.
+
+        This static method converts the DNS record to text format if it's not already a string.
+        It also removes any trailing dots and converts the record to lowercase.
+
+        Args:
+            record (str or dns.rdata.Rdata): The DNS record to clean.
+
+        Returns:
+            str: The cleaned and formatted DNS record.
+
+        Examples:
+            >>> _clean_dns_record('www.evilcorp.com.')
+            'www.evilcorp.com'
+
+            >>> from dns.rrset import from_text
+            >>> record = from_text('www.evilcorp.com', 3600, 'IN', 'A', '1.2.3.4')[0]
+            >>> _clean_dns_record(record)
+            '1.2.3.4'
+        """
         if not isinstance(record, str):
             record = str(record.to_text())
         return str(record).rstrip(".").lower()
 
     async def _catch(self, callback, *args, **kwargs):
+        """
+        Asynchronously catches exceptions thrown during DNS resolution and logs them.
+
+        This method wraps around a given asynchronous callback function to handle different
+        types of DNS exceptions and general exceptions. It logs the exceptions for debugging
+        and, in some cases, re-raises them.
+
+        Args:
+            callback (callable): The asynchronous function to be executed.
+            *args: Positional arguments to pass to the callback.
+            **kwargs: Keyword arguments to pass to the callback.
+
+        Returns:
+            Any: The return value of the callback function, or an empty list if an exception is caught.
+
+        Raises:
+            dns.resolver.NoNameservers: When no nameservers could be reached.
+        """
         try:
             return await callback(*args, **kwargs)
         except dns.resolver.NoNameservers:
@@ -509,16 +776,33 @@ class DNSHelper:
         """
         Use this method to check whether a *host* is a wildcard entry
 
-        This can reliably tell the difference between a valid DNS record and a wildcard inside a wildcard domain.
+        This can reliably tell the difference between a valid DNS record and a wildcard within a wildcard domain.
 
-        If you want to know whether a domain is using wildcard DNS, use is_wildcard_domain() instead.
+        If you want to know whether a domain is using wildcard DNS, use `is_wildcard_domain()` instead.
 
-        Returns a dictionary in the following format:
-            {rdtype: (is_wildcard, wildcard_parent)}
+        Args:
+            query (str): The hostname to check for a wildcard entry.
+            ips (list, optional): List of IPs to compare against, typically obtained from a previous DNS resolution of the query.
+            rdtype (str, optional): The DNS record type (e.g., "A", "AAAA") to consider during the check.
 
-            is_wildcard("www.github.io") --> {"A": (True, "github.io"), "AAAA": (True, "github.io")}
+        Returns:
+            dict: A dictionary indicating if the query is a wildcard for each checked DNS record type.
+                Keys are DNS record types like "A", "AAAA", etc.
+                Values are tuples where the first element is a boolean indicating if the query is a wildcard,
+                and the second element is the wildcard parent if it's a wildcard.
 
-        Note that is_wildcard can be True, False, or None (indicating that wildcard detection was inconclusive)
+        Raises:
+            ValueError: If only one of `ips` or `rdtype` is specified or if no valid IPs are specified.
+
+        Examples:
+            >>> is_wildcard("www.github.io")
+            {"A": (True, "github.io"), "AAAA": (True, "github.io")}
+
+            >>> is_wildcard("www.evilcorp.com", ips=["93.184.216.34"], rdtype="A")
+            {"A": (False, "evilcorp.com")}
+
+        Note:
+            `is_wildcard` can be True, False, or None (indicating that wildcard detection was inconclusive)
         """
         result = {}
 
@@ -618,12 +902,25 @@ class DNSHelper:
 
     async def is_wildcard_domain(self, domain, log_info=False):
         """
-        Check whether a domain is using wildcard DNS
+        Check whether a given host or its children make use of wildcard DNS entries. Wildcard DNS can have
+        various implications, particularly in subdomain enumeration and subdomain takeovers.
 
-        Returns a dictionary containing any DNS record types that are wildcards, and their associated IPs
-            is_wildcard_domain("github.io") --> {"A": {"1.2.3.4",}, "AAAA": {"dead::beef",}}
+        Args:
+            domain (str): The domain to check for wildcard DNS entries.
+            log_info (bool, optional): Whether to log the result of the check. Defaults to False.
+
+        Returns:
+            dict: A dictionary where the keys are the parent domains that have wildcard DNS entries,
+            and the values are another dictionary of DNS record types ("A", "AAAA", etc.) mapped to
+            sets of their resolved IP addresses.
+
+        Examples:
+            >>> is_wildcard_domain("github.io")
+            {"github.io": {"A": {"1.2.3.4"}, "AAAA": {"dead::beef"}}}
+
+            >>> is_wildcard_domain("example.com")
+            {}
         """
-
         wildcard_domain_results = {}
         domain = self._clean_dns_record(domain)
 
@@ -690,7 +987,18 @@ class DNSHelper:
 
     async def _connectivity_check(self, interval=5):
         """
-        Used to periodically check whether the scan has an internet connection
+        Periodically checks for an active internet connection by attempting DNS resolution.
+
+        Args:
+            interval (int, optional): The time interval, in seconds, at which to perform the check.
+            Defaults to 5 seconds.
+
+        Returns:
+            bool: True if there is an active internet connection, False otherwise.
+
+        Examples:
+            >>> await _connectivity_check()
+            True
         """
         if self._last_dns_success is not None:
             if time.time() - self._last_dns_success < interval:
