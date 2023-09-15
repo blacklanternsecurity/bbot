@@ -127,7 +127,7 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
                 log.warning(f"Stderr for run_live({command_str}):\n\t{stderr}")
 
 
-def _spawn_proc(self, *command, **kwargs):
+async def _spawn_proc(self, *command, **kwargs):
     """Spawns an asynchronous subprocess.
 
     Prepares the command and associated keyword arguments. If the `input` argument is provided,

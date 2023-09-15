@@ -39,6 +39,7 @@ nav:
         # dev/helpers/index.md
         - Command: dev/helpers/command.md
         - DNS: dev/helpers/dns.md
+        - Interactsh: dev/helpers/interactsh.md
         - Miscellaneous: dev/helpers/misc.md
   - Misc:
     - Release History: release_history.md
