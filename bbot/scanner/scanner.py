@@ -836,11 +836,10 @@ class Scanner:
         For the purpose of extracting hostnames
 
         Examples:
-
             Extract hostnames from text:
             >>> for regex in scan.dns_regexes:
-            >>>     for match in regex.finditer(response.text):
-            >>>         hostname = match.group().lower()
+            ...     for match in regex.finditer(response.text):
+            ...         hostname = match.group().lower()
         """
         if self._dns_regexes is None:
             dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
