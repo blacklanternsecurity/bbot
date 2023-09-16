@@ -38,18 +38,18 @@ class Interactsh:
         correlation_id (str): An identifier to correlate requests and responses. Default is None.
         custom_server (str): Optional. A custom interact.sh server. Loaded from configuration.
         token (str): Optional. A token for interact.sh API. Loaded from configuration.
-        _poll_task (AsyncTask): The task responsible for polling the interact.sh server. Default is None.
+        _poll_task (AsyncTask): The task responsible for polling the interact.sh server.
 
     Examples:
         ```python
         # instantiate interact.sh client (no requests are sent yet)
-        >>> interactsh_client = s.helpers.interactsh()
+        >>> interactsh_client = self.helpers.interactsh()
         # register with an interact.sh server
         >>> interactsh_domain = await interactsh_client.register()
         [INFO] Registering with interact.sh server: oast.me
         [INFO] Successfully registered to interactsh server oast.me with correlation_id rg99x2f860h5466ou3so [rg99x2f860h5466ou3so86i07n1m3013k.oast.me]
         # simulate an out-of-band interaction
-        >>> await s.helpers.request(f"https://{interactsh_domain}/test")
+        >>> await self.helpers.request(f"https://{interactsh_domain}/test")
         # wait for out-of-band interaction to be registered
         >>> await asyncio.sleep(10)
         >>> data_list = await interactsh_client.poll()
@@ -87,6 +87,28 @@ class Interactsh:
         self._poll_task = None
 
     async def register(self, callback=None):
+        """
+        Registers the instance with an interact.sh server and sets up polling.
+
+        Generates RSA keys for secure communication, builds a correlation ID,
+        and sends a POST request to an interact.sh server to register. Optionally,
+        starts an asynchronous polling task to listen for interactions.
+
+        Args:
+            callback (callable, optional): A function to be called each time new interactions are received.
+
+        Returns:
+            str: The registered domain for out-of-band interactions.
+
+        Raises:
+            InteractshError: If registration with an interact.sh server fails.
+
+        Examples:
+            >>> interactsh_client = self.helpers.interactsh()
+            >>> registered_domain = await interactsh_client.register()
+            [INFO] Registering with interact.sh server: oast.me
+            [INFO] Successfully registered to interactsh server oast.me with correlation_id rg99x2f860h5466ou3so [rg99x2f860h5466ou3so86i07n1m3013k.oast.me]
+        """
         rsa = RSA.generate(1024)
 
         self.public_key = rsa.publickey().exportKey()
@@ -143,6 +165,19 @@ class Interactsh:
         return self.domain
 
     async def deregister(self):
+        """
+        Deregisters the instance from the interact.sh server and cancels the polling task.
+
+        Sends a POST request to the server to deregister, using the correlation ID
+        and secret key generated during registration. Optionally, if a polling
+        task was started, it is cancelled.
+
+        Raises:
+            InteractshError: If required information is missing or if deregistration fails.
+
+        Examples:
+            >>> await interactsh_client.deregister()
+        """
         if not self.server or not self.correlation_id or not self.secret:
             raise InteractshError(f"Missing required information to deregister")
 
@@ -163,6 +198,31 @@ class Interactsh:
             raise InteractshError(f"Failed to de-register with interactsh server {self.server}")
 
     async def poll(self):
+        """
+        Polls the interact.sh server for interactions tied to the current instance.
+
+        Sends a GET request to the server to fetch interactions associated with the
+        current correlation_id and secret key. Returned interactions are decrypted
+        using an AES key provided by the server response.
+
+        Raises:
+            InteractshError: If required information for polling is missing.
+
+        Returns:
+            list: A list of decrypted interaction data dictionaries.
+
+        Examples:
+            >>> data_list = await interactsh_client.poll()
+            >>> print(data_list)
+            [
+                {
+                    "protocol": "dns",
+                    "unique-id": "rg99x2f860h5466ou3so86i07n1m3013k",
+                    ...
+                },
+                ...
+            ]
+        """
         if not self.server or not self.correlation_id or not self.secret:
             raise InteractshError(f"Missing required information to poll")
 
@@ -180,11 +240,27 @@ class Interactsh:
             aes_key = r.json()["aes_key"]
 
             for data in data_list:
-                decrypted_data = self.decrypt(aes_key, data)
+                decrypted_data = self._decrypt(aes_key, data)
                 ret.append(decrypted_data)
         return ret
 
     async def poll_loop(self, callback):
+        """
+        Starts a polling loop to continuously check for interactions with the interact.sh server.
+
+        Continuously polls the interact.sh server for interactions tied to the current instance,
+        using the `poll` method. When interactions are received, it executes the given callback
+        function with each interaction data.
+
+        Parameters:
+            callback (callable): The function to be called for every interaction received from the server.
+
+        Returns:
+            awaitable: An awaitable object that executes the internal `_poll_loop` method.
+
+        Examples:
+            >>> await interactsh_client.poll_loop(my_callback)
+        """
         async with self.parent_helper.scan._acatch(context=self._poll_loop):
             return await self._poll_loop(callback)
 
@@ -206,7 +282,23 @@ class Interactsh:
                 if data:
                     await self.parent_helper.execute_sync_or_async(callback, data)
 
-    def decrypt(self, aes_key, data):
+    def _decrypt(self, aes_key, data):
+        """
+        Decrypts and returns the data received from the interact.sh server.
+
+        Uses RSA and AES for decrypting the data. RSA with PKCS1_OAEP and SHA256 is used to decrypt the AES key,
+        and then AES (CFB mode) is used to decrypt the actual data payload.
+
+        Parameters:
+            aes_key (str): The AES key for decryption, encrypted with RSA and base64 encoded.
+            data (str): The data payload to decrypt, which is base64 encoded and AES encrypted.
+
+        Returns:
+            dict: The decrypted data, loaded as a JSON object.
+
+        Examples:
+            >>> decrypted_data = self._decrypt(aes_key, data)
+        """
         private_key = RSA.importKey(self.private_key)
         cipher = PKCS1_OAEP.new(private_key, hashAlgo=SHA256)
         aes_plain_key = cipher.decrypt(base64.b64decode(aes_key))
