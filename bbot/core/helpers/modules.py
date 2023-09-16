@@ -11,6 +11,14 @@ from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make
 
 
 class ModuleLoader:
+    """
+    Main class responsible for loading BBOT modules.
+
+    This class is in charge of preloading modules to determine their dependencies.
+    Once dependencies are identified, they are installed before the actual module is imported.
+    This ensures that all requisite libraries and components are available for the module to function correctly.
+    """
+
     def __init__(self):
         self._preloaded = {}
         self._preloaded_orig = None
@@ -24,8 +32,25 @@ class ModuleLoader:
         return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
 
     def preload(self, module_dir):
-        """
-        Preload modules from a specified directory
+        """Preloads all modules within a directory.
+
+        This function recursively iterates through each file in the specified directory
+        and preloads the BBOT module to gather its meta-information and dependencies.
+
+        Args:
+            module_dir (str or Path): Directory containing BBOT modules to be preloaded.
+
+        Returns:
+            dict: A dictionary where keys are the names of the preloaded modules and
+            values are their respective preloaded data.
+
+        Examples:
+            >>> preload("/path/to/bbot_modules/")
+            {
+                "module1": {...},
+                "module2": {...},
+                ...
+            }
         """
         module_dir = Path(module_dir)
         for module_file in list_files(module_dir, filter=self.file_filter):
@@ -50,7 +75,7 @@ class ModuleLoader:
                 print(f"[CRIT] Error in {module_file.name}")
                 sys.exit(1)
 
-        return self.preloaded
+        return self._preloaded
 
     def preloaded(self, type=None):
         preloaded = {}
@@ -77,6 +102,51 @@ class ModuleLoader:
         return self._preloaded[module]["type"] == type
 
     def preload_module(self, module_file):
+        """
+        Preloads a BBOT module to gather its meta-information and dependencies.
+
+        This function reads a BBOT module file, extracts its attributes such as
+        events watched and produced, flags, meta-information, and dependencies.
+
+        Args:
+            module_file (str): Path to the BBOT module file.
+
+        Returns:
+            dict: A dictionary containing meta-information and dependencies for the module.
+
+        Examples:
+            >>> preload_module("bbot/modules/wappalyzer.py")
+            {
+                "watched_events": [
+                    "HTTP_RESPONSE"
+                ],
+                "produced_events": [
+                    "TECHNOLOGY"
+                ],
+                "flags": [
+                    "active",
+                    "safe",
+                    "web-basic",
+                    "web-thorough"
+                ],
+                "meta": {
+                    "description": "Extract technologies from web responses"
+                },
+                "config": {},
+                "options_desc": {},
+                "hash": "d5a88dd3866c876b81939c920bf4959716e2a374",
+                "deps": {
+                    "pip": [
+                        "python-Wappalyzer~=0.3.1"
+                    ],
+                    "pip_constraints": [],
+                    "shell": [],
+                    "apt": [],
+                    "ansible": []
+                },
+                "sudo": false
+            }
+        """
         watched_events = []
         produced_events = []
         flags = []
@@ -185,6 +255,22 @@ class ModuleLoader:
         return modules
 
     def load_module(self, module_name):
+        """Loads a BBOT module by its name.
+
+        Imports the module from its namespace, locates its class, and returns it.
+        Identifies modules based on the presence of `watched_events` and `produced_events` attributes.
+
+        Args:
+            module_name (str): The name of the module to load.
+
+        Returns:
+            object: The loaded module class object.
+
+        Examples:
+            >>> module = load_module("example_module")
+            >>> isinstance(module, object)
+            True
+        """
         namespace = self._preloaded[module_name]["namespace"]
         import_path = f"{namespace}.{module_name}"
         module_variables = importlib.import_module(import_path, "bbot")
@@ -208,6 +294,8 @@ class ModuleLoader:
     def recommend_dependencies(self, modules):
         """
         Returns a dictionary containing missing dependencies and their suggested resolutions
+
+        Needs work. For this we should probably be building a dependency graph
         """
         resolve_choices = {}
         # step 1: build a dictionary containing event types and their associated modules
@@ -272,6 +360,27 @@ class ModuleLoader:
             d[k] = set(items)
 
     def modules_table(self, modules=None, mod_type=None):
+        """Generates a table of module information.
+
+        Constructs a table to display information such as module name, type, and event details.
+
+        Args:
+            modules (list, optional): List of module names to include in the table.
+            mod_type (str, optional): Type of modules to include ('scan', 'output', 'internal').
+
+        Returns:
+            str: A formatted table string.
+
+        Examples:
+            >>> print(modules_table(["nmap"]))
+            +----------+--------+-----------------+------------------------------+-------------------------------+----------------------+-------------------+
+            | Module   | Type   | Needs API Key   | Description                  | Flags                         | Consumed Events      | Produced Events   |
+            +==========+========+=================+==============================+===============================+======================+===================+
+            | nmap     | scan   | No              | Execute port scans with nmap | active, aggressive, portscan, | DNS_NAME, IP_ADDRESS | OPEN_TCP_PORT     |
+            |          |        |                 |                              | web-thorough                  |                      |                   |
+            +----------+--------+-----------------+------------------------------+-------------------------------+----------------------+-------------------+
+        """
+
         table = []
         header = ["Module", "Type", "Needs API Key", "Description", "Flags", "Consumed Events", "Produced Events"]
         maxcolwidths = [20, 10, 5, 30, 30, 20, 20]

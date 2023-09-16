@@ -17,7 +17,17 @@ def split_text(text):
 
 def smart_encode_punycode(text: str) -> str:
     """
-    ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
+    Encodes a given string using Punycode, while leaving non-alphanumeric segments untouched.
+
+    Args:
+        text (str): The string to be encoded.
+
+    Returns:
+        str: The Punycode encoded string.
+
+    Examples:
+        >>> smart_encode_punycode("ドメイン.テスト")
+        "xn--eckwd4c7c.xn--zckzah"
     """
     segments = split_text(text)
     result_segments = []
@@ -36,7 +46,17 @@ def smart_encode_punycode(text: str) -> str:
 
 def smart_decode_punycode(text: str) -> str:
     """
-    xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
+    Decodes a given Punycode encoded string, while leaving non-alphanumeric segments untouched.
+
+    Args:
+        text (str): The Punycode encoded string to be decoded.
+
+    Returns:
+        str: The decoded string.
+
+    Examples:
+        >>> smart_decode_punycode("xn--eckwd4c7c.xn--zckzah")
+        "ドメイン.テスト"
     """
     segments = split_text(text)
     result_segments = []

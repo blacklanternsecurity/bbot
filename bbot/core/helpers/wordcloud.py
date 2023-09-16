@@ -13,9 +13,65 @@ log = logging.getLogger("bbot.core.helpers.wordcloud")
 
 
 class WordCloud(dict):
+    """
+    WordCloud is a specialized dictionary-like class for storing and aggregating
+    words extracted from various data sources such as DNS names and URLs. The class
+    is intended to facilitate the generation of target-specific wordlists and mutations.
+
+    The WordCloud class can be accessed and manipulated like a standard Python dictionary.
+    It also offers additional methods for generating mutations based on the words it contains.
+
+    Attributes:
+        parent_helper: The parent helper object that provides necessary utilities.
+        devops_mutations: A set containing common devops-related mutations, loaded from a file.
+        dns_mutator: An instance of the DNSMutator class for generating DNS-based mutations.
+
+    Examples:
+        >>> s = Scanner("www1.evilcorp.com", "www-test.evilcorp.com")
+        >>> s.start_without_generator()
+        >>> print(s.helpers.word_cloud)
+        {
+            "blacklanternsecurity": 1,
+            "security": 1,
+            "bls": 1,
+            "black": 1,
+            "lantern": 1
+        }
+
+        >>> s.helpers.word_cloud.mutations(["word"], cloud=True, numbers=0, devops=False, letters=False)
+        [
+            [
+                "1",
+                "word"
+            ],
+            [
+                "corp",
+                "word"
+            ],
+            [
+                "ec",
+                "word"
+            ],
+            [
+                "evil",
+                "word"
+            ],
+            ...
+        ]
+
+        >>> s.helpers.word_cloud.dns_mutator.mutations("word")
+        [
+            "word",
+            "word-test",
+            "word1",
+            "wordtest",
+            "www-word",
+            "wwwword"
+        ]
+    """
+
     def __init__(self, parent_helper, *args, **kwargs):
         self.parent_helper = parent_helper
-        self.max_backups = 20
 
         devops_filename = self.parent_helper.wordlist_dir / "devops_mutations.txt"
         self.devops_mutations = set(self.parent_helper.read_file(devops_filename))
@@ -27,6 +83,23 @@ class WordCloud(dict):
     def mutations(
         self, words, devops=True, cloud=True, letters=True, numbers=5, number_padding=2, substitute_numbers=True
     ):
+        """
+        Generate various mutations for the given list of words based on different criteria.
+
+        Yields tuples of strings which can be joined on the desired delimiter, e.g. "-" or "_".
+
+        Args:
+            words (Union[str, Iterable[str]]): A single word or list of words to mutate.
+            devops (bool): Whether to include devops-related mutations.
+            cloud (bool): Whether to include mutations from the word cloud.
+            letters (bool): Whether to include letter-based mutations.
+            numbers (int): The maximum numeric mutations to include.
+            number_padding (int): Padding for numeric mutations.
+            substitute_numbers (bool): Whether to substitute numbers in mutations.
+
+        Yields:
+            tuple: A tuple containing each of the mutation segments.
+        """
         if isinstance(words, str):
             words = (words,)
         results = set()
@@ -68,6 +141,15 @@ class WordCloud(dict):
         return modifiers
 
     def absorb_event(self, event):
+        """
+        Absorbs an event from a BBOT scan into the word cloud.
+
+        This method updates the word cloud by extracting words from the given event. It aims to avoid including PTR
+        (Pointer) records, as they tend to produce unhelpful mutations in the word cloud.
+
+        Args:
+            event (Event): The event object containing the words to be absorbed into the word cloud.
+        """
         for word in event.words:
             self.add_word(word)
         if event.scope_distance == 0 and event.type.startswith("DNS_NAME"):
@@ -78,13 +160,45 @@ class WordCloud(dict):
 
     def absorb_word(self, word, ninja=True):
         """
-        Use word ninja to smartly split the word,
-        e.g. "blacklantern" --> "black", "lantern"
+        Absorbs a word into the word cloud after splitting it using a word extraction algorithm.
+
+        This method splits the input word into smaller meaningful words using word extraction, and then adds each
+        of them to the word cloud. The splitting is done using a predefined algorithm in the parent helper.
+
+        Args:
+            word (str): The word to be split and absorbed into the word cloud.
+            ninja (bool, optional): If True, word extraction is enabled. Defaults to True.
+
+        Examples:
+            >>> self.helpers.word_cloud.absorb_word("blacklantern")
+            >>> print(self.helpers.word_cloud)
+            {
+                "blacklantern": 1,
+                "black": 1,
+                "bl": 1,
+                "lantern": 1
+            }
         """
         for w in self.parent_helper.extract_words(word):
             self.add_word(w)
 
     def add_word(self, word, lowercase=True):
+        """
+        Adds a word to the word cloud.
+
+        This method updates the word cloud by adding a given word. If the word already exists in the cloud,
+        its frequency count is incremented by 1. Optionally, the word can be converted to lowercase before adding.
+
+        Args:
+            word (str): The word to be added to the word cloud.
+            lowercase (bool, optional): If True, the word will be converted to lowercase before adding. Defaults to True.
+
+        Examples:
+            >>> self.helpers.word_cloud.add_word("Example")
+            >>> self.helpers.word_cloud.add_word("example")
+            >>> print(self.helpers.word_cloud)
+            {'example': 2}
+        """
         if lowercase:
             word = word.lower()
         try:
@@ -93,6 +207,34 @@ class WordCloud(dict):
             self[word] = 1
 
     def get_number_mutations(self, base, n=5, padding=2):
+        """
+        Generates mutations of a base string by modifying the numerical parts or appending numbers.
+
+        This method detects existing numbers in the base string and tries incrementing and decrementing them within a
+        specified range. It also appends numbers at the end or after each word to generate more mutations.
+
+        Args:
+            base (str): The base string to generate mutations from.
+            n (int, optional): The range of numbers to use for incrementing/decrementing. Defaults to 5.
+            padding (int, optional): Zero-pad numbers up to this length. Defaults to 2.
+
+        Returns:
+            set: A set of mutated strings based on the base input.
+
+        Examples:
+            >>> self.helpers.word_cloud.get_number_mutations("www2-test", n=2)
+            {
+                "www0-test",
+                "www1-test",
+                "www2-test",
+                "www2-test0",
+                "www2-test00",
+                "www2-test01",
+                "www2-test1",
+                "www3-test",
+                "www4-test"
+            }
+        """
         results = set()
 
         # detects numbers and increments/decrements them
@@ -136,11 +278,37 @@ class WordCloud(dict):
         return results
 
     def truncate(self, limit):
+        """
+        Truncates the word cloud dictionary to retain only the top `limit` entries based on their occurrence frequencies.
+
+        Args:
+            limit (int): The maximum number of entries to retain in the word cloud.
+
+        Examples:
+            >>> self.helpers.word_cloud.update({"apple": 5, "banana": 2, "cherry": 8})
+            >>> self.helpers.word_cloud.truncate(2)
+            >>> self.helpers.word_cloud
+            {'cherry': 8, 'apple': 5}
+        """
         new_self = dict(self.json(limit=limit))
         self.clear()
         self.update(new_self)
 
     def json(self, limit=None):
+        """
+        Returns the word cloud as a sorted OrderedDict, optionally truncated to the top `limit` entries.
+
+        Args:
+            limit (int, optional): The maximum number of entries to include in the returned OrderedDict. If None, all entries are included.
+
+        Returns:
+            OrderedDict: A dictionary sorted by word frequencies, potentially truncated to the top `limit` entries.
+
+        Examples:
+            >>> self.helpers.word_cloud.update({"apple": 5, "banana": 2, "cherry": 8})
+            >>> self.helpers.word_cloud.json(limit=2)
+            OrderedDict([('cherry', 8), ('apple', 5)])
+        """
         cloud_sorted = sorted(self.items(), key=lambda x: x[-1], reverse=True)
         if limit is not None:
             cloud_sorted = cloud_sorted[:limit]
@@ -151,6 +319,21 @@ class WordCloud(dict):
         return self.parent_helper.scan.home / f"wordcloud.tsv"
 
     def save(self, filename=None, limit=None):
+        """
+        Saves the word cloud to a file. The cloud can optionally be truncated to the top `limit` entries.
+
+        Args:
+            filename (str, optional): The path to the file where the word cloud will be saved. If None, uses a default filename.
+            limit (int, optional): The maximum number of entries to save to the file. If None, all entries are saved.
+
+        Returns:
+            tuple: A tuple containing a boolean indicating success or failure, and the resolved filename.
+
+        Examples:
+            >>> self.helpers.word_cloud.update({"apple": 5, "banana": 2, "cherry": 8})
+            >>> self.helpers.word_cloud.save(filename="word_cloud.txt", limit=2)
+            (True, Path('word_cloud.txt'))
+        """
         if filename is None:
             filename = self.default_filename
         else:
@@ -177,6 +360,13 @@ class WordCloud(dict):
         return False, filename
 
     def load(self, filename=None):
+        """
+        Loads a word cloud from a file. The file can be either a standard wordlist with one entry per line
+        or a .tsv (tab-separated) file where the first row is the count and the second row is the associated entry.
+
+        Args:
+            filename (str, optional): The path to the file from which to load the word cloud. If None, uses a default filename.
+        """
         if filename is None:
             wordcloud_path = self.default_filename
         else:
