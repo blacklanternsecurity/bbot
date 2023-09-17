@@ -64,7 +64,7 @@ You can filter on the JSON output with `jq`:
 
 ```bash
 # pull out only the .data attribute of every DNS_NAME
-$ jq -r 'select(.type=="DNS_NAME") | .data' ~/.bbot/scans/extreme_johnny/output.json
+$ jq -r 'select(.type=="DNS_NAME") | .data' ~/.bbot/scans/extreme_johnny/output.ndjson
 evilcorp.com
 www.evilcorp.com
 mail.evilcorp.com
