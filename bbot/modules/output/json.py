@@ -6,12 +6,12 @@ from bbot.modules.output.base import BaseOutputModule
 
 class JSON(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Output to JSON"}
+    meta = {"description": "Output to NDJSON"}
     options = {"output_file": "", "console": False}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
 
     async def setup(self):
-        self._prep_output_dir("output.json")
+        self._prep_output_dir("output.ndjson")
         return True
 
     async def handle_event(self, event):
@@ -29,4 +29,4 @@ class JSON(BaseOutputModule):
 
     async def report(self):
         if self._file is not None:
-            self.info(f"Saved JSON output to {self.output_file}")
+            self.info(f"Saved NDJSON output to {self.output_file}")
