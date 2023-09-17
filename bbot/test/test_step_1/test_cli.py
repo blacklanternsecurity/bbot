@@ -18,35 +18,19 @@ async def test_cli(monkeypatch, bbot_config):
     monkeypatch.setattr(
         sys,
         "argv",
-        [
-            "bbot",
-            "-y",
-            "-t",
-            "127.0.0.1",
-            "www.example.com",
-            "-om",
-            "human",
-            "csv",
-            "json",
-            "-n",
-            "test_cli_scan",
-            "-c",
-            "dns_resolution=False",
-            "-o",
-            "/tmp",
-        ],
+        ["bbot", "-y", "-t", "127.0.0.1", "www.example.com", "-n", "test_cli_scan", "-c", "dns_resolution=False"],
     )
     await cli._main()
 
     scan_home = scans_home / "test_cli_scan"
-    assert (scan_home / "wordcloud.tsv").is_file()
-    assert (scan_home / "output.txt").is_file()
-    assert (scan_home / "output.csv").is_file()
-    assert (scan_home / "output.ndjson").is_file()
+    assert (scan_home / "wordcloud.tsv").is_file(), "wordcloud.tsv not found"
+    assert (scan_home / "output.txt").is_file(), "output.txt not found"
+    assert (scan_home / "output.csv").is_file(), "output.csv not found"
+    assert (scan_home / "output.ndjson").is_file(), "output.ndjson not found"
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
         assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
-        assert len(lines) > 1
+        assert len(lines) > 1, "output.csv is not long enough"
 
     ip_success = False
     dns_success = False
@@ -58,7 +42,7 @@ async def test_cli(monkeypatch, bbot_config):
                 ip_success = True
             if "[DNS_NAME]          \twww.example.com\tTARGET" in line:
                 dns_success = True
-    assert ip_success and dns_success
+    assert ip_success and dns_success, "IP_ADDRESS and/or DNS_NAME are not present in output.txt"
 
     # show version
     monkeypatch.setattr("sys.argv", ["bbot", "--version"])
@@ -111,12 +95,12 @@ async def test_cli(monkeypatch, bbot_config):
     # deadly modules
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei"])
     result = await cli._main()
-    assert result == False
+    assert result == False, "-m nuclei ran without --allow-deadly"
 
     # --allow-deadly
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei", "--allow-deadly"])
     result = await cli._main()
-    assert result != False
+    assert result != False, "-m nuclei failed to run with --allow-deadly"
 
     # show current config
     monkeypatch.setattr("sys.argv", ["bbot", "-y", "--current-config"])

@@ -845,6 +845,13 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 class VULNERABILITY(DictHostEvent):
     _always_emit = True
+    severity_colors = {
+        "CRITICAL": "🟪",
+        "HIGH": "🟥",
+        "MEDIUM": "🟧",
+        "LOW": "🟨",
+        "UNKNOWN": "⬜",
+    }
 
     def sanitize_data(self, data):
         self.add_tag(data["severity"].lower())
@@ -933,6 +940,10 @@ class SOCIAL(DictEvent):
 
 
 class WEBSCREENSHOT(DictHostEvent):
+    _always_emit = True
+
+
+class AZURE_TENANT(DictEvent):
     _always_emit = True
 
 

@@ -26,7 +26,14 @@ from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.core.configurator.environ import prepare_environment
 from bbot.core.errors import BBOTError, ScanError, ValidationError
-from bbot.core.logger import init_logging, get_log_level, set_log_level
+from bbot.core.logger import (
+    init_logging,
+    get_log_level,
+    set_log_level,
+    add_log_handler,
+    get_log_handlers,
+    remove_log_handler,
+)
 
 log = logging.getLogger("bbot.scanner")
 
@@ -55,6 +62,7 @@ class Scanner:
         name=None,
         modules=None,
         output_modules=None,
+        output_dir=None,
         config=None,
         dispatcher=None,
         strict_scope=False,
@@ -91,7 +99,6 @@ class Scanner:
 
         self.max_workers = max(1, self.config.get("max_threads", 25))
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
-        output_dir = self.config.get("output_dir", "")
 
         if name is None:
             tries = 0
@@ -103,7 +110,7 @@ class Scanner:
 
                 self.name = random_name()
 
-                if output_dir:
+                if output_dir is not None:
                     home_path = Path(output_dir).resolve() / self.name
                 else:
                     home_path = self.helpers.bbot_home / "scans" / self.name
@@ -114,7 +121,7 @@ class Scanner:
         else:
             self.name = str(name)
 
-        if output_dir:
+        if output_dir is not None:
             self.home = Path(output_dir).resolve() / self.name
         else:
             self.home = self.helpers.bbot_home / "scans" / self.name
@@ -181,6 +188,8 @@ class Scanner:
         self._stopping = False
 
         self._dns_regexes = None
+        self._log_handlers = None
+        self._log_handler_backup = []
 
     def _on_keyboard_interrupt(self, loop, event):
         self.stop()
@@ -226,6 +235,8 @@ class Scanner:
         scan_start_time = datetime.now()
         try:
             await self.prep()
+
+            self.start_log_handlers()
 
             if not self.target:
                 self.warning(f"No scan targets specified")
@@ -315,6 +326,8 @@ class Scanner:
             log_fn(f"Scan {self.name} completed in {scan_run_time} with status {self.status}")
 
             await self.dispatcher.on_finish(self)
+
+            self.stop_log_handlers()
 
     def start_modules(self):
         self.verbose(f"Starting module worker loops")
@@ -597,6 +610,42 @@ class Scanner:
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)
         if trace:
             self.trace()
+
+    @property
+    def log_handlers(self):
+        if self._log_handlers is None:
+            self.helpers.mkdir(self.home)
+            main_handler = logging.handlers.TimedRotatingFileHandler(
+                str(self.home / "scan.log"), when="d", interval=1, backupCount=14
+            )
+            main_handler.addFilter(
+                lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE
+            )
+            debug_handler = logging.handlers.TimedRotatingFileHandler(
+                str(self.home / "debug.log"), when="d", interval=1, backupCount=14
+            )
+            debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
+            self._log_handlers = [main_handler, debug_handler]
+        return self._log_handlers
+
+    def start_log_handlers(self):
+        # add log handlers
+        for handler in self.log_handlers:
+            add_log_handler(handler)
+        # temporarily disable main ones
+        for handler_name in ("file_main", "file_debug"):
+            handler = get_log_handlers().get(handler_name, None)
+            if handler is not None and handler not in self._log_handler_backup:
+                self._log_handler_backup.append(handler)
+                remove_log_handler(handler)
+
+    def stop_log_handlers(self):
+        # remove log handlers
+        for handler in self.log_handlers:
+            remove_log_handler(handler)
+        # restore main ones
+        for handler in self._log_handler_backup:
+            add_log_handler(handler)
 
     def _internal_modules(self):
         for modname in module_loader.preloaded(type="internal"):

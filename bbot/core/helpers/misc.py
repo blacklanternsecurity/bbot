@@ -29,7 +29,7 @@ import tldextract as _tldextract
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
-from asyncio import create_task, sleep, wait_for  # noqa
+from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
@@ -1201,17 +1201,19 @@ def get_traceback_details(e):
     return filename, lineno, funcname
 
 
-async def cancel_tasks(tasks):
+async def cancel_tasks(tasks, ignore_errors=True):
     current_task = asyncio.current_task()
     tasks = [t for t in tasks if t != current_task]
     for task in tasks:
         log.debug(f"Cancelling task: {task}")
         task.cancel()
-    for task in tasks:
-        try:
-            await task
-        except asyncio.CancelledError:
-            log.trace(traceback.format_exc())
+    if ignore_errors:
+        for task in tasks:
+            try:
+                await task
+            except BaseException as e:
+                if not isinstance(e, asyncio.CancelledError):
+                    log.trace(traceback.format_exc())
 
 
 def cancel_tasks_sync(tasks):

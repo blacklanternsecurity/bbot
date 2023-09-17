@@ -348,8 +348,6 @@ class BaseModule:
                         self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
                         async with self._task_counter.count(f"event_postcheck({event})"):
                             acceptable, reason = await self._event_postcheck(event)
-                        if not acceptable:
-                            self.debug(f"Not accepting {event} because {reason}")
                         if acceptable:
                             if event.type == "FINISHED":
                                 context = f"{self.name}.finish()"
@@ -362,9 +360,10 @@ class BaseModule:
                                 async with self.scan.acatch(context), self._task_counter.count(context):
                                     await self.handle_event(event)
                                 self.debug(f"Finished handling {event}")
+                        else:
+                            self.debug(f"Not accepting {event} because {reason}")
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")
-                self.trace()
                 raise
         self.log.trace(f"Worker stopped")
 

@@ -47,7 +47,10 @@ class url_manipulation(BaseModule):
             self.debug(e)
             return
 
-        if await compare_helper.canary_check(event.data, mode="getparam") == False:
+        try:
+            if not await compare_helper.canary_check(event.data, mode="getparam"):
+                raise HttpCompareError()
+        except HttpCompareError:
             self.verbose(f'Aborting "{event.data}" due to failed canary check')
             return
 

@@ -1,4 +1,5 @@
 import re
+from contextlib import suppress
 
 from .viewdns import viewdns
 
@@ -19,13 +20,30 @@ class azure_tenant(viewdns):
 
     async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
-        domains, _ = await self.query(query)
+        domains, openid_config = await self.query(query)
+
+        tenant_id = None
+        authorization_endpoint = openid_config.get("authorization_endpoint", "")
+        matches = self.helpers.regexes.uuid_regex.findall(authorization_endpoint)
+        if matches:
+            tenant_id = matches[0]
+
+        tenant_names = set()
         if domains:
-            self.success(f'Found {len(domains):,} domains under tenant for "{query}": {", ".join(sorted(domains))}')
+            self.verbose(f'Found {len(domains):,} domains under tenant for "{query}": {", ".join(sorted(domains))}')
         for domain in domains:
             if domain != query:
-                self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
-        # todo: tenants?
+                self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate", "azure-tenant"])
+                # tenant names
+                if domain.lower().endswith(".onmicrosoft.com"):
+                    tenantname = domain.split(".")[0].lower()
+                    if tenantname:
+                        tenant_names.add(tenantname)
+
+        event_data = {"tenant-names": sorted(tenant_names), "domains": sorted(domains)}
+        if tenant_id is not None:
+            event_data["tenant-id"] = tenant_id
+        self.emit_event(event_data, "AZURE_TENANT", source=event)
 
     async def query(self, domain):
         url = f"{self.base_url}/autodiscover/autodiscover.svc"
@@ -56,19 +74,21 @@ class azure_tenant(viewdns):
 
         self.debug(f"Retrieving tenant domains at {url}")
 
-        r = await self.helpers.request(url, method="POST", headers=headers, data=data)
+        autodiscover_task = self.helpers.create_task(
+            self.helpers.request(url, method="POST", headers=headers, data=data)
+        )
+        openid_url = f"https://login.windows.net/{domain}/.well-known/openid-configuration"
+        openid_task = self.helpers.create_task(self.helpers.request(openid_url))
+
+        r = await autodiscover_task
         status_code = getattr(r, "status_code", 0)
         if status_code not in (200, 421):
             self.verbose(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
-            return set(), set()
+            return set(), dict()
         found_domains = list(set(self.d_xml_regex.findall(r.text)))
         domains = set()
-        tenantnames = set()
 
         for d in found_domains:
-            # tenant names
-            if d.lower().endswith(".onmicrosoft.com"):
-                tenantnames.add(d.split(".")[0].lower())
             # make sure we don't make any unnecessary api calls
             d = str(d).lower()
             _, query = self.helpers.split_domain(d)
@@ -77,4 +97,10 @@ class azure_tenant(viewdns):
             # absorb into word cloud
             self.scan.word_cloud.absorb_word(d)
 
-        return domains, tenantnames
+        r = await openid_task
+        openid_config = dict()
+        with suppress(Exception):
+            openid_config = r.json()
+
+        domains = sorted(domains)
+        return domains, openid_config

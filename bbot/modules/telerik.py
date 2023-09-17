@@ -229,7 +229,7 @@ class telerik(BaseModule):
                     continue
                 self.debug(f"Cancelling run against {event.data} due to failed request")
                 await self.helpers.cancel_tasks(tasks)
-                break
+                await gen.aclose()
             else:
                 if "Cannot deserialize dialog parameters" in result.text:
                     await self.helpers.cancel_tasks(tasks)
