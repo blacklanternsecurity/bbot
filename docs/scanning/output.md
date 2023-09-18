@@ -1,7 +1,7 @@
 # Output
 
 By default, BBOT saves its output in TXT, JSON, and CSV formats:
-![image](https://github.com/blacklanternsecurity/bbot/assets/20261699/779207f4-1c2f-4f65-a132-794ca8bd2f8a)
+![bbot output](https://github.com/blacklanternsecurity/bbot/assets/20261699/bb3da441-2682-408f-b955-19b268823b82)
 
 Every BBOT scan gets a unique and mildly-entertaining name like **`demonic_jimmy`**. Output for that scan, including scan stats and any web screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
 

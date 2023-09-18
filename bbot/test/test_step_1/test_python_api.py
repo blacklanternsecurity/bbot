@@ -31,7 +31,7 @@ async def test_python_api(bbot_config):
     assert "scan_logging_test" not in open(debug_log).read()
 
     scan_home = scan3.helpers.scans_dir / "scan_logging_test"
-    out_file = scan_home / "output.json"
+    out_file = scan_home / "output.ndjson"
     assert list(scan3.helpers.read_file(out_file))
     scan_log = scan_home / "scan.log"
     debug_log = scan_home / "debug.log"
