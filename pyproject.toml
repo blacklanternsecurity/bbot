@@ -23,6 +23,7 @@ classifiers = [
 
 [tool.poetry.scripts]
 bbot = 'bbot.cli:main'
+postinstall = "pre-commit install"
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -73,7 +74,6 @@ env = [
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
-script = "pre-commit install"
 
 [tool.black]
 line-length = 119

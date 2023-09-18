@@ -13,13 +13,16 @@ We welcome contributions! If you have an idea for a new module, or are a Python 
 
 ```bash
 # clone your forked repo and cd into it
-git clone git@github.com/<username>/bbot.git && cd bbot
+git clone git@github.com/<username>/bbot.git
+cd bbot
 
 # install poetry
 curl -sSL https://install.python-poetry.org | python3 -
 
 # install pip dependencies
 poetry install
+# install pre-commit hooks, etc.
+poetry postinstall
 
 # enter virtual environment
 poetry shell
@@ -28,12 +31,7 @@ bbot --help
 ```
 
 - Now, any changes you make in the code will be reflected in the `bbot` command.
-- Run the tests locally to ensure they pass.
-- Finally, commit and push your changes, and create a pull request to the `dev` branch of the main BBOT repo.
-
-## Running Tests
-
-BBOT makes use of pytest for its unit testing. You can run the tests simply by executing the bash script at `bbot/test/run_tests.sh`:
+- After making your changes, run the tests locally to ensure they pass.
 
 ```bash
 # auto-format code indentation, etc.
@@ -42,6 +40,9 @@ black .
 # run tests
 ./bbot/test/run_tests.sh
 ```
+
+- Finally, commit and push your changes, and create a pull request to the `dev` branch of the main BBOT repo.
+
 
 ## Creating a Module
 
