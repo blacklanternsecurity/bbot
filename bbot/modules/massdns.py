@@ -13,6 +13,7 @@ class massdns(subdomain_enum):
     It uses massdns to brute-force subdomains.
     At the end of a scan, it will leverage BBOT's word cloud to recursively discover target-specific subdomain mutations.
     """
+
     flags = ["subdomain-enum", "passive", "slow", "aggressive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]

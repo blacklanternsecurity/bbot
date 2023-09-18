@@ -407,6 +407,7 @@ class Mutator(dict):
     Base class for generating mutations from a list of words.
     It accumulates words and produces mutations from them.
     """
+
     def mutations(self, words, max_mutations=None):
         mutations = self.top_mutations(max_mutations)
         ret = set()
@@ -469,6 +470,7 @@ class DNSMutator(Mutator):
             "wwwword"
         ]
     """
+
     extract_word_regexes = [
         re.compile(r, re.I)
         for r in [
