@@ -33,11 +33,13 @@ class NSEC(BaseModule):
             self.warning(f"Error getting NSEC record for {domain}: {e}")
 
     async def nsec_walk(self, domain):
+        encountered = set()
         current_domain = domain
         while 1:
             next_domain = await self.get_nsec_record(current_domain)
-            if next_domain == domain or next_domain is None:
+            if next_domain is None or next_domain in encountered:
                 break
+            encountered.add(next_domain)
             if not next_domain.startswith("\\"):
                 yield next_domain
             current_domain = next_domain
