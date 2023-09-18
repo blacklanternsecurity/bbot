@@ -23,7 +23,6 @@ classifiers = [
 
 [tool.poetry.scripts]
 bbot = 'bbot.cli:main'
-postinstall = "pre-commit install"
 
 [tool.poetry.dependencies]
 python = "^3.9"
