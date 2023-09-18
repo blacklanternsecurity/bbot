@@ -31,11 +31,17 @@ class WordCloud(dict):
         >>> s.start_without_generator()
         >>> print(s.helpers.word_cloud)
         {
-            "blacklanternsecurity": 1,
-            "security": 1,
-            "bls": 1,
-            "black": 1,
-            "lantern": 1
+            "evilcorp": 2,
+            "ec": 2,
+            "www1": 1,
+            "evil": 2,
+            "www": 2,
+            "w1": 1,
+            "corp": 2,
+            "1": 1,
+            "wt": 1,
+            "test": 1,
+            "www-test": 1
         }
 
         >>> s.helpers.word_cloud.mutations(["word"], cloud=True, numbers=0, devops=False, letters=False)
@@ -397,6 +403,10 @@ class WordCloud(dict):
 
 
 class Mutator(dict):
+    """
+    Base class for generating mutations from a list of words.
+    It accumulates words and produces mutations from them.
+    """
     def mutations(self, words, max_mutations=None):
         mutations = self.top_mutations(max_mutations)
         ret = set()
@@ -439,6 +449,26 @@ class Mutator(dict):
 
 
 class DNSMutator(Mutator):
+    """
+    DNS-specific mutator used by the `massdns` module to generate target-specific subdomain mutations.
+
+    This class extends the Mutator base class to add DNS-specific logic for generating
+    subdomain mutations based on input words. It utilizes custom word extraction patterns
+    and a wordninja model trained on DNS-specific data.
+
+    Examples:
+        >>> s = Scanner("www1.evilcorp.com", "www-test.evilcorp.com")
+        >>> s.start_without_generator()
+        >>> s.helpers.word_cloud.dns_mutator.mutations("word")
+        [
+            "word",
+            "word-test",
+            "word1",
+            "wordtest",
+            "www-word",
+            "wwwword"
+        ]
+    """
     extract_word_regexes = [
         re.compile(r, re.I)
         for r in [
