@@ -22,7 +22,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 # install pip dependencies
 poetry install
 # install pre-commit hooks, etc.
-poetry postinstall
+poetry run postinstall
 
 # enter virtual environment
 poetry shell
