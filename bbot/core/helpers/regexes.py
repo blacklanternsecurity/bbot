@@ -22,7 +22,7 @@ num_regex = re.compile(r"\d+")
 _ipv6_regex = r"[A-F0-9:]*:[A-F0-9:]*:[A-F0-9:]*"
 ipv6_regex = re.compile(_ipv6_regex, re.I)
 # dns names with periods
-_dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+[^\W_]{1,63}\.?"
+_dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+(?:[xX][nN]--)?[^\W_]{1,63}\.?"
 # dns names without periods
 _hostname_regex = r"(?!\w*\.\w+)\w(?:[\w-]{0,100}\w)?"
 _email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@" + _dns_name_regex

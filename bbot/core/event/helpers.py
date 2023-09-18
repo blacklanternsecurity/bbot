@@ -3,7 +3,7 @@ import ipaddress
 from contextlib import suppress
 
 from bbot.core.errors import ValidationError
-from bbot.core.helpers import sha1, smart_decode, smart_decode_punycode
+from bbot.core.helpers import sha1, smart_decode, smart_encode_punycode
 from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
 
 
@@ -14,7 +14,7 @@ def get_event_type(data):
     """
     Attempt to divine event type from data
     """
-    data = smart_decode_punycode(smart_decode(data).strip())
+    data = smart_encode_punycode(smart_decode(data).strip())
 
     # IP address
     with suppress(Exception):

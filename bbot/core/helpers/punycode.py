@@ -2,16 +2,15 @@ import re
 import idna
 
 
-alphanum_regex = re.compile(r"([\w-]+)")
-alphanum_anchored = re.compile(r"^[\w-]+$")
+split_regex = re.compile(r"([/:@\[\]]+)")
 
 
 def split_text(text):
-    # Split text into segments by special characters
-    # We assume that only alphanumeric segments should be encoded
+    # We have to split this way in order to handle URLs and email addresses
+    # which the idna library is not equipped to deal with
     if not isinstance(text, str):
         raise ValueError(f"data must be a string, not {type(text)}")
-    segments = alphanum_regex.split(text)
+    segments = split_regex.split(text)
     return segments
 
 
@@ -24,7 +23,7 @@ def smart_encode_punycode(text: str) -> str:
 
     for segment in segments:
         try:
-            if alphanum_anchored.match(segment):  # Only encode alphanumeric segments
+            if not split_regex.match(segment):
                 segment = idna.encode(segment).decode(errors="ignore")
         except UnicodeError:
             pass  # If encoding fails, leave the segment as it is
@@ -43,8 +42,7 @@ def smart_decode_punycode(text: str) -> str:
 
     for segment in segments:
         try:
-            if alphanum_anchored.match(segment):  # Only decode alphanumeric segments
-                segment = idna.decode(segment)
+            segment = idna.decode(segment)
         except UnicodeError:
             pass  # If decoding fails, leave the segment as it is
 

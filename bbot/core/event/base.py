@@ -24,7 +24,7 @@ from bbot.core.helpers import (
     smart_decode,
     get_file_extension,
     validators,
-    smart_decode_punycode,
+    smart_encode_punycode,
     tagify,
 )
 
@@ -983,7 +983,7 @@ def make_event(
     else:
         if event_type is None:
             if isinstance(data, str):
-                data = smart_decode_punycode(data)
+                data = smart_encode_punycode(data)
             event_type = get_event_type(data)
             if not dummy:
                 log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
