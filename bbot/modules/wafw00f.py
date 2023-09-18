@@ -21,18 +21,23 @@ class wafw00f(BaseModule):
     per_host_only = True
 
     async def handle_event(self, event):
-        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
-        WW = await self.scan.run_in_executor(wafw00f_main.WAFW00F, host)
+        url = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        WW = await self.scan.run_in_executor(wafw00f_main.WAFW00F, url)
         waf_detections = await self.scan.run_in_executor(WW.identwaf)
         if waf_detections:
             for waf in waf_detections:
-                self.emit_event({"host": host, "WAF": waf}, "WAF", source=event)
+                self.emit_event({"host": str(event.host), "url": url, "WAF": waf}, "WAF", source=event)
         else:
             if self.config.get("generic_detect") == True:
                 generic = await self.scan.run_in_executor(WW.genericdetect)
                 if generic:
                     self.emit_event(
-                        {"host": host, "WAF": "generic detection", "info": WW.knowledge["generic"]["reason"]},
+                        {
+                            "host": str(event.host),
+                            "url": url,
+                            "WAF": "generic detection",
+                            "info": WW.knowledge["generic"]["reason"],
+                        },
                         "WAF",
                         source=event,
                     )
