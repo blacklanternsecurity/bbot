@@ -1,4 +1,5 @@
 import pytest
+import traceback
 
 from bbot.core.event.helpers import get_event_type
 from bbot.core.helpers import regexes
@@ -178,7 +179,7 @@ def test_url_regexes():
         except ValidationError:
             continue
         except Exception as e:
-            pytest.fail(f"BAD URL: {bad_url} raised unknown error: {e}")
+            pytest.fail(f"BAD URL: {bad_url} raised unknown error: {e}: {traceback.format_exc()}")
 
     for good_url in good_urls:
         matches = list(r.match(good_url) for r in url_regexes)
