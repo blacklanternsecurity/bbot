@@ -62,6 +62,7 @@ pytest-env = "^0.8.2"
 pytest-httpx = "^0.22.0"
 pytest-timeout = "^2.1.0"
 pytest = "^7.4.0"
+pre-commit = "^3.4.0"
 
 [tool.pytest.ini_options]
 env = [
