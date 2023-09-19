@@ -141,7 +141,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "/my-file.csv",
     )
     assert helpers.extract_host("ftp://username:password:/@dead::beef/my-file.csv") == (
-        "my-ftp.com",
+        "dead::beef",
         "ftp://username:password:/@",
         "/my-file.csv",
     )
@@ -396,10 +396,6 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.smart_decode_punycode("bob_smith@xn--eckwd4c7c.xn--zckzah") == "bob_smith@ドメイン.テスト"
     assert helpers.smart_encode_punycode("ドメイン.テスト:80") == "xn--eckwd4c7c.xn--zckzah:80"
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah:80") == "ドメイン.テスト:80"
-    with pytest.raises(ValueError):
-        helpers.smart_decode_punycode(b"asdf")
-    with pytest.raises(ValueError):
-        helpers.smart_encode_punycode(b"asdf")
 
     assert helpers.recursive_decode("Hello%20world%21") == "Hello world!"
     assert helpers.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"

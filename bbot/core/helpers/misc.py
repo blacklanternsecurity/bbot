@@ -106,11 +106,13 @@ def split_host_port(d):
     "192.168.1.1:443" --> (IPv4Address('192.168.1.1'), 443)
     "[dead::beef]:443" --> (IPv6Address('dead::beef'), 443)
     """
+    port = None
+    host = None
+    if is_ip(d):
+        return make_ip_type(d), port
     if not "://" in d:
         d = f"d://{d}"
     parsed = urlparse(d)
-    port = None
-    host = None
     with suppress(ValueError):
         if parsed.port is None:
             if parsed.scheme in ("https", "wss"):
@@ -938,12 +940,12 @@ def extract_host(s):
         after = s[match.end(1) :]
         host, port = split_host_port(hostname)
         if host is not None:
-            hostname = str(host)
             if port is not None:
                 after = f":{port}{after}"
-            if is_ip(hostname, version=6):
+            if is_ip(host, version=6) and hostname.startswith("["):
                 before = f"{before}["
                 after = f"]{after}"
+            hostname = str(host)
         return (hostname, before, after)
 
     return (None, s, "")
