@@ -33,7 +33,9 @@ class BaseModule:
 
         suppress_dupes (bool): Whether to suppress outgoing duplicate events. Default is True.
 
-        per_host_only (bool): Limit the module to only scanning once per host. Default is False.
+        per_host_only (bool): Limit the module to only scanning once per host:port. Default is False.
+
+        per_domain_only (bool): Limit the module to only scanning once per domain. Default is False.
 
         scope_distance_modifier (int, None): Modifies scope distance acceptance for events. Default is 0.
             ```
@@ -87,6 +89,7 @@ class BaseModule:
     accept_dupes = False
     suppress_dupes = True
     per_host_only = False
+    per_domain_only = False
     scope_distance_modifier = 0
     target_only = False
     in_scope_only = False
@@ -715,10 +718,18 @@ class BaseModule:
                 return False, msg
 
         if self.per_host_only:
-            if self.get_per_host_hash(event) in self._per_host_tracker:
+            _hash = self.get_per_host_hash(event)
+            if _hash in self._per_host_tracker:
                 return False, "per_host_only enabled and already seen host"
             else:
-                self._per_host_tracker.add(self.get_per_host_hash(event))
+                self._per_host_tracker.add(_hash)
+
+        if self.per_domain_only:
+            _hash = self.get_per_domain_hash(event)
+            if _hash in self._per_host_tracker:
+                return False, "per_domain_only enabled and already seen domain"
+            else:
+                self._per_host_tracker.add(_hash)
 
         if self._type == "output" and not event._stats_recorded:
             event._stats_recorded = True
@@ -878,6 +889,25 @@ class BaseModule:
         else:
             to_hash = f"{parsed.scheme}://{parsed.netloc}/"
         return hash(to_hash)
+
+    def get_per_domain_hash(self, event):
+        """
+        Computes a per-domain hash value for a given event. This method may be optionally overridden in subclasses.
+
+        Events with the same root domain will receive the same hash value.
+
+        Args:
+            event (Event): The event object containing host, port, or parsed URL information.
+
+        Returns:
+            int: The hash value computed for the domain.
+
+        Examples:
+            >>> event = self.make_event("https://www.example.com:8443")
+            >>> self.get_per_domain_hash(event)
+        """
+        _, domain = self.helpers.split_domain(event.host)
+        return hash(domain)
 
     @property
     def name(self):

@@ -407,6 +407,8 @@ def split_domain(hostname):
     Notes:
         - Utilizes the `tldextract` function to first break down the hostname.
     """
+    if is_ip(hostname):
+        return ("", hostname)
     parsed = tldextract(hostname)
     subdomain = parsed.subdomain
     domain = parsed.registered_domain

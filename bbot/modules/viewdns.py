@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 
 class viewdns(BaseModule):
     """
-    Used as a base for modules that only act on root domains and not individual hostnames
+    Todo: Also retrieve registrar?
     """
 
     watched_events = ["DNS_NAME"]
@@ -16,25 +16,17 @@ class viewdns(BaseModule):
     }
     base_url = "https://viewdns.info"
     in_scope_only = True
+    per_domain_only = True
     _qsize = 1
 
     async def setup(self):
-        self.processed = set()
         self.date_regex = re.compile(r"\d{4}-\d{2}-\d{2}")
-        return True
-
-    async def filter_event(self, event):
-        _, domain = self.helpers.split_domain(event.data)
-        if hash(domain) in self.processed:
-            return False
-        self.processed.add(hash(domain))
         return True
 
     async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
         for domain, _ in await self.query(query):
             self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
-            # todo: registrar?
 
     async def query(self, query):
         results = set()
