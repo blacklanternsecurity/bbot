@@ -634,12 +634,13 @@ def make_netloc(host, port):
     ("192.168.1.1", None) --> "192.168.1.1"
     ("192.168.1.1", 443) --> "192.168.1.1:443"
     ("evilcorp.com", 80) --> "evilcorp.com:80"
+    ("dead::beef", None) --> "[dead::beef]"
     ("dead::beef", 443) --> "[dead::beef]:443"
     """
-    if port is None:
-        return host
     if is_ip(host, version=6):
         host = f"[{host}]"
+    if port is None:
+        return host
     return f"{host}:{port}"
 
 
@@ -930,6 +931,13 @@ def extract_host(s):
 
         >>> extract_host("[dead::beef]:22")
         ("dead::beef", "[", "]:22")
+
+        >>> extract_host("ftp://username:password@my-ftp.com/my-file.csv")
+        (
+            "my-ftp.com",
+            "ftp://username:password@",
+            "/my-file.csv",
+        )
     """
     s = smart_decode(s)
     match = bbot_regexes.extract_host_regex.search(s)
@@ -939,6 +947,10 @@ def extract_host(s):
         before = s[: match.start(1)]
         after = s[match.end(1) :]
         host, port = split_host_port(hostname)
+        netloc = make_netloc(host, port)
+        if netloc != hostname:
+            # invalid host / port
+            return (None, s, "")
         if host is not None:
             if port is not None:
                 after = f":{port}{after}"

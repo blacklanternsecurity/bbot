@@ -141,9 +141,9 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "/my-file.csv",
     )
     assert helpers.extract_host("ftp://username:password:/@dead::beef/my-file.csv") == (
-        "dead::beef",
-        "ftp://username:password:/@",
-        "/my-file.csv",
+        None,
+        "ftp://username:password:/@dead::beef/my-file.csv",
+        "",
     )
     assert helpers.extract_host("ftp://username:password:/@[dead::beef]/my-file.csv") == (
         "dead::beef",
