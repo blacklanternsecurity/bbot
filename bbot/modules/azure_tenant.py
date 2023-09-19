@@ -1,10 +1,10 @@
 import re
 from contextlib import suppress
 
-from bbot.modules.templates.root_domains import root_domains
+from bbot.modules.base import BaseModule
 
 
-class azure_tenant(root_domains):
+class azure_tenant(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "cloud-enum", "passive", "safe"]
@@ -12,6 +12,7 @@ class azure_tenant(root_domains):
 
     base_url = "https://autodiscover-s.outlook.com"
     in_scope_only = True
+    per_domain_only = True
 
     async def setup(self):
         self.processed = set()
