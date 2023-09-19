@@ -947,6 +947,21 @@ class AZURE_TENANT(DictEvent):
     _always_emit = True
 
 
+class WAF(DictHostEvent):
+    _always_emit = True
+
+    class _data_validator(BaseModel):
+        url: str
+        host: str
+        WAF: str
+        info: Optional[str]
+        _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+
+    def _pretty_string(self):
+        return self.data["WAF"]
+
+
 def make_event(
     data,
     event_type=None,
