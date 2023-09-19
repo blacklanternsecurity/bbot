@@ -106,23 +106,41 @@ def split_host_port(d):
     "192.168.1.1:443" --> (IPv4Address('192.168.1.1'), 443)
     "[dead::beef]:443" --> (IPv6Address('dead::beef'), 443)
     """
-    port = None
+    d = str(d)
     host = None
+    port = None
+    scheme = None
     if is_ip(d):
         return make_ip_type(d), port
-    if not "://" in d:
-        d = f"d://{d}"
-    parsed = urlparse(d)
-    with suppress(ValueError):
-        if parsed.port is None:
-            if parsed.scheme in ("https", "wss"):
-                port = 443
-            elif parsed.scheme in ("http", "ws"):
-                port = 80
-        else:
-            port = int(parsed.port)
-    with suppress(ValueError):
-        host = parsed.hostname
+
+    match = bbot_regexes.split_host_port_regex.match(d)
+    if match is None:
+        raise ValueError(f'split_port() failed to parse "{d}"')
+    scheme = match.group("scheme")
+    netloc = match.group("netloc")
+    if netloc is None:
+        raise ValueError(f'split_port() failed to parse "{d}"')
+
+    match = bbot_regexes.extract_open_port_regex.match(netloc)
+    if match is None:
+        raise ValueError(f'split_port() failed to parse netloc "{netloc}"')
+
+    host = match.group(2)
+    if host is None:
+        host = match.group(1)
+    if host is None:
+        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}"')
+
+    port = match.group(3)
+    if port is None and scheme is not None:
+        if scheme in ("https", "wss"):
+            port = 443
+        elif scheme in ("http", "ws"):
+            port = 80
+    elif port is not None:
+        with suppress(ValueError):
+            port = int(port)
+
     return make_ip_type(host), port
 
 
