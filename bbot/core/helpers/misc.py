@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import copy
+import idna
 import json
 import atexit
 import codecs
@@ -34,7 +35,6 @@ from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
 from .. import errors
-from .punycode import *  # noqa F401
 from .logger import log_to_stderr
 from . import regexes as bbot_regexes
 from .names_generator import random_name, names, adjectives  # noqa F401
@@ -898,8 +898,86 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
 
 
 def extract_emails(s):
+    """
+    Extract email addresses from a body of text
+    """
     for email in bbot_regexes.email_regex.findall(smart_decode(s)):
         yield email.lower()
+
+
+def extract_host(s):
+    """
+    Attempts to find and extract the host portion of a string.
+
+    Args:
+        s (str): The string from which to extract the host.
+
+    Returns:
+        tuple: A tuple containing three strings:
+               (hostname (None if not found), string_before_hostname, string_after_hostname).
+
+    Examples:
+        >>> extract_host("evilcorp.com:80")
+        ("evilcorp.com", "", ":80")
+
+        >>> extract_host("http://evilcorp.com:80/asdf.php?a=b")
+        ("evilcorp.com", "http://", ":80/asdf.php?a=b")
+
+        >>> extract_host("bob@evilcorp.com")
+        ("evilcorp.com", "bob@", "")
+
+        >>> extract_host("[dead::beef]:22")
+        ("dead::beef", "[", "]:22")
+    """
+    match = bbot_regexes.extract_host_regex.search(s)
+
+    if match:
+        hostname = match.group(1)
+        before = s[: match.start(1)]
+        after = s[match.end(1) :]
+        host, port = split_host_port(hostname)
+        if host is not None:
+            hostname = str(host)
+            if port is not None:
+                after = f":{port}{after}"
+            if is_ip(hostname, version=6):
+                before = f"{before}["
+                after = f"]{after}"
+        return (hostname, before, after)
+
+    return (None, s, "")
+
+
+def smart_encode_punycode(text: str) -> str:
+    """
+    ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
+    """
+    host, before, after = extract_host(text)
+    if host is None:
+        return text
+
+    try:
+        host = idna.encode(host).decode(errors="ignore")
+    except UnicodeError:
+        pass  # If encoding fails, leave the host as it is
+
+    return f"{before}{host}{after}"
+
+
+def smart_decode_punycode(text: str) -> str:
+    """
+    xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
+    """
+    host, before, after = extract_host(text)
+    if host is None:
+        return text
+
+    try:
+        host = idna.decode(host)
+    except UnicodeError:
+        pass  # If decoding fails, leave the host as it is
+
+    return f"{before}{host}{after}"
 
 
 def can_sudo_without_password():

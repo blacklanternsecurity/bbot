@@ -4,8 +4,7 @@ from contextlib import suppress
 
 from bbot.core.helpers import regexes
 from bbot.core.helpers.url import parse_url, hash_url
-from bbot.core.helpers.punycode import smart_encode_punycode
-from bbot.core.helpers.misc import split_host_port, make_netloc, is_ip
+from bbot.core.helpers.misc import smart_encode_punycode, split_host_port, make_netloc, is_ip
 
 log = logging.getLogger("bbot.core.helpers.validators")
 

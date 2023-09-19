@@ -14,25 +14,26 @@ def get_event_type(data):
     """
     Attempt to divine event type from data
     """
-    data = smart_encode_punycode(smart_decode(data).strip())
 
     # IP address
     with suppress(Exception):
         ipaddress.ip_address(data)
-        return "IP_ADDRESS"
+        return "IP_ADDRESS", data
 
     # IP network
     with suppress(Exception):
         ipaddress.ip_network(data, strict=False)
-        return "IP_RANGE"
+        return "IP_RANGE", data
+
+    data = smart_encode_punycode(smart_decode(data).strip())
 
     # Strict regexes
     for t, regexes in event_type_regexes.items():
         for r in regexes:
             if r.match(data):
                 if t == "URL":
-                    return "URL_UNVERIFIED"
-                return t
+                    return "URL_UNVERIFIED", data
+                return t, data
 
     raise ValidationError(f'Unable to autodetect event type from "{data}"')
 

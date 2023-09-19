@@ -87,3 +87,6 @@ input_tag_regex = re.compile(r"<input[^>]+?name=[\"\'](\w+)[\"\']")
 jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
 jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
 a_tag_regex = re.compile(r"<a[^>]*href=[\"\'][^\"\'?>]*\?([^&\"\'=]+)")
+
+_extract_host_regex = r"(?:[a-z0-9]{1,20}://)?(?:[^?]*@)?([^\s!@#$%^&()=/?\\]+)"
+extract_host_regex = re.compile(_extract_host_regex, re.I)
