@@ -929,6 +929,7 @@ def extract_host(s):
         >>> extract_host("[dead::beef]:22")
         ("dead::beef", "[", "]:22")
     """
+    s = smart_decode(s)
     match = bbot_regexes.extract_host_regex.search(s)
 
     if match:
