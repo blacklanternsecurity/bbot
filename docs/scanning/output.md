@@ -42,7 +42,7 @@ If you manually enable the `json` output module, it will go to stdout:
 bbot -t evilcorp.com -om json | jq
 ```
 
-You will then see [events](./events) like this:
+You will then see [events](events.md) like this:
 
 ```json
 {
@@ -114,7 +114,7 @@ output_modules:
 
 ### HTTP
 
-The `http` output module sends [events](./events) in JSON format to a desired HTTP endpoint.
+The `http` output module sends [events](events.md) in JSON format to a desired HTTP endpoint.
 
 ```bash
 # POST scan results to localhost

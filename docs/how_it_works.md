@@ -40,4 +40,4 @@ This allows for some interesting chains of events. Given a single target such as
 
 This is a simple example with only a few modules, but you can being to see how if 30 or 40 modules were enabled, they could feed each other exponentially to produce an immense amount of data. This recursion is exactly how BBOT is able to outperform other tools.
 
-For a full list of event types and which modules consume/produce them, see [List of Event Types](../scanning/events/#list-of-event-types).
+For a full list of event types and which modules consume/produce them, see [List of Event Types](scanning/events.md#list-of-event-types).

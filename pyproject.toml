@@ -64,6 +64,15 @@ pytest-timeout = "^2.1.0"
 pytest = "^7.4.0"
 pre-commit = "^3.4.0"
 
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.5.2"
+mkdocs-extra-sass-plugin = "^0.1.0"
+mkdocs-material = "^9.2.5"
+mkdocs-material-extensions = "^1.1.1"
+mkdocstrings = "^0.22.0"
+mkdocstrings-python = "^1.6.0"
+
 [tool.pytest.ini_options]
 env = [
     "BBOT_TESTING = True",

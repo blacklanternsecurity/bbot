@@ -16,7 +16,7 @@ In addition to the obvious data (e.g. `www.evilcorp.com`), an event also contain
 - its `.scope_distance` (how many hops it is from the main scope, 0 == in-scope)
 - a list of `.tags` that describe the data (`mx-record`, `http-title`, etc.)
 
-These attributes allow us to construct a visual graph of events (e.g. in [Neo4j](../output#neo4j)) and query/filter/grep them more easily. Here is what a typical event looks like in JSON format:
+These attributes allow us to construct a visual graph of events (e.g. in [Neo4j](output.md#neo4j)) and query/filter/grep them more easily. Here is what a typical event looks like in JSON format:
 
 ```json
 {

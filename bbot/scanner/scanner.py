@@ -41,6 +41,44 @@ init_logging()
 
 
 class Scanner:
+    """A class representing a single BBOT scan
+
+    Examples:
+        Create scan with multiple targets:
+        >>> my_scan = Scanner("evilcorp.com", "1.2.3.0/24", modules=["nmap", "sslcert", "httpx"])
+
+        Create scan with custom config:
+        >>> config = {"http_proxy": "http://127.0.0.1:8080", "modules": {"nmap": {"top_ports": 2000}}}
+        >>> my_scan = Scanner("www.evilcorp.com", modules=["nmap", "httpx"], config=config)
+
+        Synchronous, iterating over events as they're discovered:
+        >>> for event in my_scan.start():
+        >>>     print(event)
+
+        Asynchronous, iterating over events as they're discovered:
+        >>> async for event in my_scan.async_start():
+        >>>     print(event)
+
+        Synchronous, without consuming events:
+        >>> my_scan.start_without_generator()
+
+        Asynchronous, without consuming events:
+        >>> await my_scan.start_without_generator()
+
+    Attributes:
+        status (str): Status of scan
+        target (ScanTarget): Target of scan
+        config (omegaconf.dictconfig.DictConfig): BBOT config
+        whitelist (ScanTarget): Scan whitelist (by default this is the same as `target`)
+        blacklist (ScanTarget): Scan blacklist (this takes ultimate precedence)
+        helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc.
+        manager (ScanManager): Coordinates and monitors the flow of events between modules during a scan
+        dispatcher (Dispatcher): Triggers certain events when the scan `status` changes
+        modules (dict): Holds all loaded modules in this format: `{"module_name": Module()}`
+        stats (ScanStats): Holds high-level scan statistics such as how many events have been produced and consumed by each module
+        home (pathlib.Path): Base output directory of the scan (default: `~/.bbot/scans/<scan_name>`)
+    """
+
     _status_codes = {
         "NOT_STARTED": 0,
         "STARTING": 1,
@@ -68,6 +106,23 @@ class Scanner:
         strict_scope=False,
         force_start=False,
     ):
+        """
+        Initializes the Scanner class.
+
+        Args:
+            *targets (str): Target(s) to scan.
+            whitelist (ScanTarget, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.
+            blacklist (ScanTarget, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
+            scan_id (str, optional): Unique identifier for the scan. Auto-generates if None.
+            name (str, optional): Human-readable name of the scan. Auto-generates if None.
+            modules (list[str], optional): List of module names to use during the scan. Defaults to empty list.
+            output_modules (list[str], optional): List of output modules to use. Defaults to ['python'].
+            output_dir (str or Path, optional): Directory to store scan output. Defaults to BBOT home directory (`~/.bbot`).
+            config (dict, optional): Configuration settings. Merged with BBOT config.
+            dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.
+            strict_scope (bool, optional): If True, only targets explicitly in whitelist are scanned. Defaults to False.
+            force_start (bool, optional): If True, forces the scan to start even with warnings. Defaults to False.
+        """
         if modules is None:
             modules = []
         if output_modules is None:
@@ -102,19 +157,15 @@ class Scanner:
 
         if name is None:
             tries = 0
-
             while 1:
                 if tries > 5:
                     self.name = f"{self.helpers.rand_string(4)}_{self.helpers.rand_string(4)}"
                     break
-
                 self.name = random_name()
-
                 if output_dir is not None:
                     home_path = Path(output_dir).resolve() / self.name
                 else:
                     home_path = self.helpers.bbot_home / "scans" / self.name
-
                 if not home_path.exists():
                     break
                 tries += 1
@@ -153,7 +204,7 @@ class Scanner:
 
         # scope distance
         self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 0)))
-        self.dns_search_distance = max(
+        self.scope_dns_search_distance = max(
             self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 2))
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
@@ -173,7 +224,7 @@ class Scanner:
         self._cleanedup = False
 
         self.__loop = None
-        self.manager_worker_loop_tasks = []
+        self._manager_worker_loop_tasks = []
         self.init_events_task = None
         self.ticker_task = None
         self.dispatcher_tasks = []
@@ -256,7 +307,7 @@ class Scanner:
             await self.dispatcher.on_start(self)
 
             # start manager worker loops
-            self.manager_worker_loop_tasks = [
+            self._manager_worker_loop_tasks = [
                 asyncio.create_task(self.manager._worker_loop()) for _ in range(self.max_workers)
             ]
 
@@ -423,7 +474,7 @@ class Scanner:
         # dispatcher
         tasks += self.dispatcher_tasks
         # manager worker loops
-        tasks += self.manager_worker_loop_tasks
+        tasks += self._manager_worker_loop_tasks
         self.helpers.cancel_tasks_sync(tasks)
         # process pool
         self.process_pool.shutdown(cancel_futures=True)
@@ -431,7 +482,7 @@ class Scanner:
     async def report(self):
         for mod in self.modules.values():
             context = f"{mod.name}.report()"
-            async with self.acatch(context), mod._task_counter.count(context):
+            async with self._acatch(context), mod._task_counter.count(context):
                 await mod.report()
 
     async def cleanup(self):
@@ -749,7 +800,7 @@ class Scanner:
         return loaded_modules, failed
 
     async def _status_ticker(self, interval=15):
-        async with self.acatch():
+        async with self._acatch():
             while 1:
                 await asyncio.sleep(interval)
                 self.manager.modules_status(_log=True)
@@ -768,7 +819,7 @@ class Scanner:
             self._handle_exception(e, context=context)
 
     @contextlib.asynccontextmanager
-    async def acatch(self, context="scan", finally_callback=None):
+    async def _acatch(self, context="scan", finally_callback=None):
         """
         Async version of catch()
 
