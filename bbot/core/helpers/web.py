@@ -272,6 +272,7 @@ class WebHelper:
             url (str): The URL of the file to download.
             filename (str, optional): The filename to save the downloaded file as.
                 If not provided, will generate based on URL.
+            max_size (str or int): Maximum filesize as a string ("5MB") or integer in bytes.
             cache_hrs (float, optional): The number of hours to cache the downloaded file.
                 A negative value disables caching. Defaults to -1.
             method (str, optional): The HTTP method to use for the request, defaults to 'GET'.
@@ -285,7 +286,12 @@ class WebHelper:
         """
         success = False
         filename = kwargs.pop("filename", self.parent_helper.cache_filename(url))
+        max_size = kwargs.pop("max_size", None)
+        if max_size is not None:
+            max_size = self.parent_helper.human_to_bytes(max_size)
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
+        total_size = 0
+        chunk_size = 8192
         log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
         if cache_hrs > 0 and self.parent_helper.is_cached(url):
             log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
@@ -302,7 +308,15 @@ class WebHelper:
                     if status_code != 0:
                         response.raise_for_status()
                         with open(filename, "wb") as f:
-                            async for chunk in response.aiter_bytes(chunk_size=8192):
+                            agen = response.aiter_bytes(chunk_size=chunk_size)
+                            async for chunk in agen:
+                                if max_size is not None and total_size + chunk_size > max_size:
+                                    log.verbose(
+                                        f"Filesize of {url} exceeds {self.parent_helper.bytes_to_human(max_size)}, file will be truncated"
+                                    )
+                                    agen.aclose()
+                                    break
+                                total_size += chunk_size
                                 f.write(chunk)
                         success = True
             except httpx.HTTPError as e:
