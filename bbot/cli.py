@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import sys
 import asyncio
 import logging
@@ -307,6 +308,7 @@ async def _main():
 
                     def keyboard_listen():
                         allowed_errors = 10
+                        kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
                         while 1:
                             keyboard_input = "a"
                             try:
@@ -314,7 +316,17 @@ async def _main():
                                 allowed_errors = 10
                             except Exception:
                                 allowed_errors -= 1
-                            if not keyboard_input:
+                            if keyboard_input:
+                                log.verbose(f'Got keyboard input: "{keyboard_input}"')
+                                kill_match = kill_regex.match(keyboard_input)
+                                if kill_match:
+                                    module = kill_match.group("module")
+                                    if module in scanner.modules:
+                                        log.hugewarning(f'Killing module: "{module}"')
+                                        scanner.manager.kill_module(module, message="killed by user")
+                                    else:
+                                        log.warning(f'Invalid module: "{module}"')
+                            else:
                                 toggle_log_level(logger=log)
                                 scanner.manager.modules_status(_log=True)
                             if allowed_errors <= 0:
