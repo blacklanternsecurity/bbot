@@ -35,7 +35,7 @@ class ScanManager:
         seed scanner with target events
         """
         context = f"manager.init_events()"
-        async with self.scan.acatch(context), self._task_counter.count(context):
+        async with self.scan._acatch(context), self._task_counter.count(context):
             await self.distribute_event(self.scan.root_event)
             sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
             for event in sorted_events:
@@ -66,10 +66,10 @@ class ScanManager:
                 event._resolved.set()
                 for kwarg in ["abort_if", "on_success_callback"]:
                     kwargs.pop(kwarg, None)
-                async with self.scan.acatch(context=self.distribute_event):
+                async with self.scan._acatch(context=self.distribute_event):
                     await self.distribute_event(event, *args, **kwargs)
             else:
-                async with self.scan.acatch(context=self._emit_event, finally_callback=event._resolved.set):
+                async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
                     await self._emit_event(event, *args, **kwargs)
 
     def _event_precheck(self, event, exclude=("DNS_NAME",)):
@@ -194,7 +194,7 @@ class ScanManager:
             # now that the event is properly tagged, we can finally make decisions about it
             abort_result = False
             if callable(abort_if):
-                async with self.scan.acatch(context=abort_if):
+                async with self.scan._acatch(context=abort_if):
                     abort_result = await self.scan.helpers.execute_sync_or_async(abort_if, event)
                 msg = f"{event.module}: not raising event {event} due to custom criteria in abort_if()"
                 with suppress(ValueError, TypeError):
@@ -210,7 +210,7 @@ class ScanManager:
             # run success callback before distributing event (so it can add tags, etc.)
             if distribute_event:
                 if callable(on_success_callback):
-                    async with self.scan.acatch(context=on_success_callback):
+                    async with self.scan._acatch(context=on_success_callback):
                         await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
 
             if not event.host or (event.always_emit and not event_is_duplicate):
@@ -244,7 +244,7 @@ class ScanManager:
 
             ### Emit DNS children ###
             if self.dns_resolution:
-                emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
+                emit_children = -1 < event.scope_distance < self.scan.scope_dns_search_distance
                 if emit_children:
                     # only emit DNS children once for each unique host
                     host_hash = hash(str(event.host))
@@ -317,7 +317,7 @@ class ScanManager:
         """
         Queue event with modules
         """
-        async with self.scan.acatch(context=self.distribute_event):
+        async with self.scan._acatch(context=self.distribute_event):
             event = self.scan.make_event(*args, **kwargs)
 
             event_hash = hash(event)

@@ -105,4 +105,4 @@
 | speculate            | internal | No              | Derive certain event types from others by common sense                 | passive                                                                             | DNS_NAME, DNS_NAME_UNRESOLVED, HTTP_RESPONSE, IP_ADDRESS, IP_RANGE, STORAGE_BUCKET, URL, URL_UNVERIFIED | DNS_NAME, FINDING, IP_ADDRESS, OPEN_TCP_PORT   |
 <!-- END BBOT MODULES -->
 
-For a list of module config options, see [Module Options](../configurations/#module-config-options).
+For a list of module config options, see [Module Options](../scanning/configuration.md#module-config-options).

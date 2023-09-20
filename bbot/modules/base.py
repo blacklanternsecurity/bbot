@@ -219,12 +219,12 @@ class BaseModule:
                 if events and not self.errored:
                     self.debug(f"Handling batch of {len(events):,} events")
                     submitted = True
-                    async with self.scan.acatch(f"{self.name}.handle_batch()"):
+                    async with self.scan._acatch(f"{self.name}.handle_batch()"):
                         await self.handle_batch(*events)
                     self.debug(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
-            async with self.scan.acatch(context), self._task_counter.count(context):
+            async with self.scan._acatch(context), self._task_counter.count(context):
                 await self.finish()
         return submitted
 
@@ -322,7 +322,7 @@ class BaseModule:
         return self.name, status, str(msg)
 
     async def _worker(self):
-        async with self.scan.acatch(context=self._worker):
+        async with self.scan._acatch(context=self._worker):
             try:
                 while not self.scan.stopping:
                     # hold the reigns if our outgoing queue is full
@@ -351,13 +351,13 @@ class BaseModule:
                         if acceptable:
                             if event.type == "FINISHED":
                                 context = f"{self.name}.finish()"
-                                async with self.scan.acatch(context), self._task_counter.count(context):
+                                async with self.scan._acatch(context), self._task_counter.count(context):
                                     await self.finish()
                             else:
                                 context = f"{self.name}.handle_event({event})"
                                 self.scan.stats.event_consumed(event, self)
                                 self.debug(f"Handling {event}")
-                                async with self.scan.acatch(context), self._task_counter.count(context):
+                                async with self.scan._acatch(context), self._task_counter.count(context):
                                     await self.handle_event(event)
                                 self.debug(f"Finished handling {event}")
                         else:
@@ -427,7 +427,7 @@ class BaseModule:
             return filter_result, reason
 
         # custom filtering
-        async with self.scan.acatch(context=self.filter_event):
+        async with self.scan._acatch(context=self.filter_event):
             filter_result = await self.filter_event(event)
             msg = str(self._custom_filter_criteria_msg)
             with suppress(ValueError, TypeError):
@@ -469,7 +469,7 @@ class BaseModule:
             for callback in [self.cleanup] + self.cleanup_callbacks:
                 context = f"{self.name}.cleanup()"
                 if callable(callback):
-                    async with self.scan.acatch(context), self._task_counter.count(context):
+                    async with self.scan._acatch(context), self._task_counter.count(context):
                         await self.helpers.execute_sync_or_async(callback)
 
     async def queue_event(self, event):
