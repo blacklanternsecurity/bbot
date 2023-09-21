@@ -266,7 +266,7 @@ class WebHelper:
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
         total_size = 0
         chunk_size = 8192
-        log.hugesuccess(f"Downloading file from {url} with cache_hrs={cache_hrs}")
+        log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
         if cache_hrs > 0 and self.parent_helper.is_cached(url):
             log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
             success = True
