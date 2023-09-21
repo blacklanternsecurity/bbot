@@ -46,9 +46,9 @@ git clone https://github.com/blacklanternsecurity/bbot && cd bbot
 ./bbot-docker.sh --help
 ```
 
-## Examples
+## Example Commands
 
-Below are some common scan examples.
+Below are some examples of common scans.
 
 <!-- BBOT EXAMPLE COMMANDS -->
 **Subdomains:**
