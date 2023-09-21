@@ -23,27 +23,24 @@ class filedownload(BaseModule):
             "bashrc",  #  Bash Script or Configuration
             "conf",  #  Configuration File
             "cfg",  #  Configuration File
-            "cr2",  #  Canon RAW Image
             "crt",  #  Certificate File
-            "crw",  #  Canon RAW Image (Older Format)
             "csv",  #  Comma Separated Values File
             "db",  #  SQLite Database File
             "sqlite",  #  SQLite Database File
             "doc",  #  Microsoft Word Document (Old Format)
             "docx",  #  Microsoft Word Document
+            "exe",  #  Windows PE executable
             "ica",  #  Citrix Independent Computing Architecture File
             "indd",  #  Adobe InDesign Document
             "ini",  #  Initialization File
             "jar",  #  Java Archive
-            "jpg",  #  JPEG Image
-            "jpeg",  #  JPEG Image
-            "js",  #  JavaScript File
             "json",  #  JavaScript Object Notation File
             "key",  #  Private Key File
             "pub",  #  Public Key File
             "log",  #  Log File
-            "md",  #  Markdown File
             "markdown",  #  Markdown File
+            "md",  #  Markdown File
+            "msi",  # Windows setup file
             "odg",  #  OpenDocument Graphics (LibreOffice, OpenOffice)
             "odp",  #  OpenDocument Presentation (LibreOffice, OpenOffice)
             "ods",  #  OpenDocument Spreadsheet (LibreOffice, OpenOffice)
@@ -60,8 +57,6 @@ class filedownload(BaseModule):
             "rdp",  #  Remote Desktop Protocol File
             "sh",  #  Shell Script
             "sql",  #  SQL Database Dump
-            "svg",  #  Scalable Vector Graphics
-            "svgz",  #  Compressed SVG
             "swp",  #  Swap File (temporary file, often Vim)
             "sxw",  #  OpenOffice.org Writer document
             "tar",  #  Tar Archive
@@ -154,9 +149,10 @@ class filedownload(BaseModule):
         if not extension:
             if content_type and content_type in self.mime_db:
                 extension = self.mime_db[content_type]
-            else:
-                self.debug(f'Extension "{extension}" at url "{url}" not in list of watched extensions.')
-                return None, None, None
+
+        if (not extension) or (extension not in self.extensions):
+            self.debug(f'Extension "{extension}" at url "{url}" not in list of watched extensions.')
+            return None, None, None
 
         orig_filename = Path(url_path).stem
         if extension:

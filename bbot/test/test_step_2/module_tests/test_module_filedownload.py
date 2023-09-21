@@ -2,8 +2,9 @@ from .base import ModuleTestBase
 
 
 class TestFileDownload(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/Test_PDF"]
+    targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["filedownload", "httpx", "excavate", "speculate"]
+    config_overrides = {"web_spider_distance": 2, "web_spider_depth": 2}
 
     pdf_data = """%PDF-1.
 1 0 obj<</Pages 2 0 R>>endobj
@@ -21,7 +22,10 @@ trailer <</Root 1 0 R>>"""
 
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests(
-            dict(uri="/"), dict(response_data='<a href="/Test_File.txt"/><a href="/Test_PDF"/>')
+            dict(uri="/"),
+            dict(
+                response_data='<a href="/Test_File.txt"/><a href="/Test_PDF"/><a href="/test.html"/><a href="/test2"/>'
+            ),
         )
         module_test.set_expect_requests(
             dict(uri="/Test_File.txt"),
@@ -32,6 +36,14 @@ trailer <</Root 1 0 R>>"""
         module_test.set_expect_requests(
             dict(uri="/Test_PDF"),
             dict(response_data=self.pdf_data, headers={"Content-Type": "application/pdf"}),
+        )
+        module_test.set_expect_requests(
+            dict(uri="/test.html"),
+            dict(response_data="<!DOCTYPE html>", headers={"Content-Type": "text/html"}),
+        )
+        module_test.set_expect_requests(
+            dict(uri="/test2"),
+            dict(response_data="<!DOCTYPE html>", headers={"Content-Type": "text/html"}),
         )
 
     def check(self, module_test, events):
@@ -50,3 +62,7 @@ trailer <</Root 1 0 R>>"""
         file = pdf_files[0]
         assert file.is_file(), f"File not found at {file}"
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
+
+        # we don't want html files
+        html_files = list(download_dir.glob("*.html"))
+        assert len(html_files) == 0, "HTML files were erroneously downloaded"
