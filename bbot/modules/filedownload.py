@@ -87,6 +87,15 @@ class filedownload(BaseModule):
         self.download_dir = self.scan.home / "filedownload"
         self.helpers.mkdir(self.download_dir)
         self.files_downloaded = 0
+        self.seen = set()
+        # https://raw.githubusercontent.com/jshttp/mime-db/master/db.json
+        return True
+
+    async def filter_event(self, event):
+        h = hash(event.data)
+        if h in self.seen:
+            return False, f"Already processed {event}"
+        self.seen.add(h)
         return True
 
     async def handle_event(self, event):
@@ -94,13 +103,19 @@ class filedownload(BaseModule):
         if any(url_lower.endswith(f".{e}") for e in self.extensions):
             timestamp = self.helpers.make_date(event.timestamp)
             filepath = Path(event.parsed.path)
-            filename_stem = self.helpers.tagify(filepath.stem)
-            filename = f"{timestamp}_{filename_stem}{filepath.suffix}"
+            split_url = url_lower.rsplit(".", 1)
+            url_stem = split_url[0]
+            filename = f"{timestamp}_{self.helpers.tagify(url_stem)}"
+            if len(split_url) == 2:
+                filename = f"{filename}.{split_url[-1]}"
             file_destination = self.download_dir / filename
             base_url = f"{event.parsed.scheme}://{event.parsed.netloc}"
-            self.info(f'Found "{filepath.name}" at "{base_url}", downloading to {file_destination}')
-            await self.helpers.download(event.data, filename=file_destination, max_size=self.max_filesize)
-            self.files_downloaded += 1
+            result = await self.helpers.download(
+                event.data, warn=False, filename=file_destination, max_size=self.max_filesize
+            )
+            if result:
+                self.info(f'Found "{filepath.name}" at "{base_url}", downloaded to {file_destination}')
+                self.files_downloaded += 1
 
     async def report(self):
         if self.files_downloaded > 0:
