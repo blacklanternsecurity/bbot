@@ -65,7 +65,7 @@ class massdns(crobat):
     async def setup(self):
         self.found = dict()
         self.mutations_tried = set()
-        self.source_events = dict()
+        self.source_events = self.helpers.make_target()
         self.subdomain_file = await self.helpers.wordlist(self.config.get("wordlist"))
         self.max_resolvers = self.config.get("max_resolvers", 1000)
         self.max_mutations = self.config.get("max_mutations", 500)
@@ -94,9 +94,7 @@ class massdns(crobat):
 
     async def handle_event(self, event):
         query = self.make_query(event)
-        h = hash(query)
-        if not h in self.source_events:
-            self.source_events[h] = event
+        self.source_events.add_target(event)
 
         self.info(f"Brute-forcing subdomains for {query} (source: {event.data})")
         for hostname in await self.massdns(query, self.helpers.read_file(self.subdomain_file)):
@@ -354,7 +352,7 @@ class massdns(crobat):
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
                         results = list(await self.massdns(query, mutations))
                         for hostname in results:
-                            source_event = self.get_source_event(hostname)
+                            source_event = self.source_events.get(hostname)
                             if source_event is None:
                                 self.warning(f"Could not correlate source event from: {hostname}")
                                 source_event = self.scan.root_event
@@ -395,10 +393,3 @@ class massdns(crobat):
             yield subdomain
         for _ in range(5):
             yield self.helpers.rand_string(length=8, digits=False)
-
-    def get_source_event(self, hostname):
-        for p in self.helpers.domain_parents(hostname):
-            try:
-                return self.source_events[hash(p)]
-            except KeyError:
-                continue
