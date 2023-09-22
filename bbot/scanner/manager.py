@@ -346,6 +346,10 @@ class ScanManager:
         except Exception:
             log.critical(traceback.format_exc())
 
+    def kill_module(self, module_name, message=None):
+        module = self.scan.modules[module_name]
+        module.set_error_state(message=message, clear_outgoing_queue=True)
+
     @property
     def modules_by_priority(self):
         if not self._modules_by_priority:
