@@ -18,7 +18,7 @@ from bbot.modules import module_loader
 from bbot.modules.output.discord import Discord
 
 
-# make list of BBOT modules
+# make list of BBOT modules to enable for the scan
 bbot_modules = ["excavate", "speculate", "aggregate"]
 for module_name, preloaded in module_loader.preloaded().items():
     flags = preloaded["flags"]
@@ -60,11 +60,13 @@ class BBOTDiscordBot(commands.Cog):
             self.current_scan.stop()
         await ctx.send(f"Starting scan against {target}.")
 
+        # creates scan instance
         self.current_scan = Scanner(target, modules=bbot_modules)
         discord_module = Discord(self.current_scan)
 
         seen = set()
         num_events = 0
+        # start scan and iterate through results
         async for event in self.current_scan.async_start():
             if hash(event) in seen:
                 continue
