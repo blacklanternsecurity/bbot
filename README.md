@@ -120,6 +120,8 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scann
 
 ## BBOT as a Python library
 
+BBOT exposes a Python API that allows it to be used for all kinds of fun and nefarious purposes, like a [Discord Bot that responds to `/scan evilcorp.com`](https://www.blacklanternsecurity.com/bbot/dev/#bbot-python-library-advanced-usage#discord-bot-example).
+
 **Synchronous**
 
 ```python
