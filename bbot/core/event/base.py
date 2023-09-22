@@ -377,18 +377,18 @@ class BaseEvent:
     def _json_data_key(self):
         """
         Because self.data can be either a string or a dictionary, this function is used to standardize
-        JSON serialized events so that their .data attributes are _always_ dictionaries.
+        JSON-serialized events so that their .data attributes are _always_ dictionaries.
 
         By default, simple string-based events like `IP_ADDRESS`, `DNS_NAME`, and `URL` are serialized
-        with their event type in the data.
+        so that their event type is the sole key, and their data is the value.
 
-        For example, an `IP_ADDRESS` will turn from `"192.168.0.1"' into `{"ip_address": "192.168.0.1"}`.
-        A `DNS_NAME` will turn from `evilcorp.com` into `{"dns_name": "evilcorp.com"}`.
+        For example, an `IP_ADDRESS` with .data of `"192.168.0.1"' will be `{"IP_ADDRESS": "192.168.0.1"}`.
+        A `DNS_NAME` of `evilcorp.com` will be `{"DNS_NAME": "evilcorp.com"}`, etc.
 
         Returns:
-            The key to be used when construction a dictionary of the event's data.
+            The key to be used when constructing a dictionary of the event's data.
         """
-        return self.type.lower()
+        return self.type
 
     @property
     def pretty_string(self):

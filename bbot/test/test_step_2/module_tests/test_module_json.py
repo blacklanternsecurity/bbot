@@ -11,4 +11,4 @@ class TestJSON(ModuleTestBase):
         assert lines
         e = event_from_json(json.loads(lines[0]))
         assert e.type == "SCAN"
-        assert e.data == f"{module_test.scan.name} ({module_test.scan.id})"
+        assert e.data == {"SCAN": f"{module_test.scan.name} ({module_test.scan.id})"}
