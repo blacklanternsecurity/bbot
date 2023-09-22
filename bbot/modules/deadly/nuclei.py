@@ -185,9 +185,10 @@ class nuclei(BaseModule):
             self.concurrency,
             "-disable-update-check",
             "-stats-json",
-            # "-r",
-            # self.helpers.resolver_file,
         ]
+
+        if self.helpers.system_resolvers:
+            command += ["-r", self.helpers.resolver_file]
 
         for cli_option in ("severity", "templates", "iserver", "itoken", "tags", "etags"):
             option = getattr(self, cli_option)

@@ -98,9 +98,12 @@ class httpx(BaseModule):
             f"User-Agent: {self.scan.useragent}",
             "-response-size-to-read",
             f"{self.max_response_size}",
-            # "-r",
-            # self.helpers.resolver_file,
         ]
+
+        dns_resolvers = ",".join(self.helpers.system_resolvers)
+        if dns_resolvers:
+            command += ["-r", dns_resolvers]
+
         for hk, hv in self.scan.config.get("http_headers", {}).items():
             command += ["-header", f"{hk}: {hv}"]
         proxy = self.scan.config.get("http_proxy", "")
