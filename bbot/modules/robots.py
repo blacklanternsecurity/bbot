@@ -46,6 +46,6 @@ class robots(BaseModule):
                             continue
 
                         tags = []
-                        if self.is_spider_danger(event, unverified_url):
+                        if self.helpers.is_spider_danger(event, unverified_url):
                             tags.append("spider-danger")
                         self.emit_event(unverified_url, "URL_UNVERIFIED", source=event, tags=tags)
