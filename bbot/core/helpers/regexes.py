@@ -22,7 +22,7 @@ num_regex = re.compile(r"\d+")
 _ipv6_regex = r"[A-F0-9:]*:[A-F0-9:]*:[A-F0-9:]*"
 ipv6_regex = re.compile(_ipv6_regex, re.I)
 # dns names with periods
-_dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+[^\W_]{1,63}\.?"
+_dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+(?:[xX][nN]--)?[^\W_]{1,63}\.?"
 # dns names without periods
 _hostname_regex = r"(?!\w*\.\w+)\w(?:[\w-]{0,100}\w)?"
 _email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@" + _dns_name_regex
@@ -87,3 +87,14 @@ input_tag_regex = re.compile(r"<input[^>]+?name=[\"\'](\w+)[\"\']")
 jquery_get_regex = re.compile(r"url:\s?[\"\'].+?\?(\w+)=")
 jquery_post_regex = re.compile(r"\$.post\([\'\"].+[\'\"].+\{(.+)\}")
 a_tag_regex = re.compile(r"<a[^>]*href=[\"\'][^\"\'?>]*\?([^&\"\'=]+)")
+
+valid_netloc = r"[^\s!@#$%^&()=/?\\'\";~`<>]+"
+
+_split_host_port_regex = r"(?:(?P<scheme>[a-z0-9]{1,20})://)?(?:[^?]*@)?(?P<netloc>" + valid_netloc + ")"
+split_host_port_regex = re.compile(_split_host_port_regex, re.I)
+
+_extract_open_port_regex = r"(?:(?:\[([0-9a-f:]+)\])|([^\s:]+))(?::(\d{1,5}))?"
+extract_open_port_regex = re.compile(_extract_open_port_regex)
+
+_extract_host_regex = r"(?:[a-z0-9]{1,20}://)?(?:[^?]*@)?(" + valid_netloc + ")"
+extract_host_regex = re.compile(_extract_host_regex, re.I)

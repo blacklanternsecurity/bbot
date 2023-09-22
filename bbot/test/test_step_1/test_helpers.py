@@ -108,6 +108,54 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "b@b.com",
     )
 
+    assert helpers.extract_host("evilcorp.com:80") == ("evilcorp.com", "", ":80")
+    assert helpers.extract_host("http://evilcorp.com:80/asdf.php?a=b") == (
+        "evilcorp.com",
+        "http://",
+        ":80/asdf.php?a=b",
+    )
+    assert helpers.extract_host("http://evilcorp.com:80/asdf.php?a=b@a.com") == (
+        "evilcorp.com",
+        "http://",
+        ":80/asdf.php?a=b@a.com",
+    )
+    assert helpers.extract_host("bob@evilcorp.com") == ("evilcorp.com", "bob@", "")
+    assert helpers.extract_host("[dead::beef]:22") == ("dead::beef", "[", "]:22")
+    assert helpers.extract_host("scp://[dead::beef]:22") == ("dead::beef", "scp://[", "]:22")
+    assert helpers.extract_host("https://[dead::beef]:22?a=b") == ("dead::beef", "https://[", "]:22?a=b")
+    assert helpers.extract_host("https://[dead::beef]/?a=b") == ("dead::beef", "https://[", "]/?a=b")
+    assert helpers.extract_host("https://[dead::beef]?a=b") == ("dead::beef", "https://[", "]?a=b")
+    assert helpers.extract_host("ftp://username:password@my-ftp.com/my-file.csv") == (
+        "my-ftp.com",
+        "ftp://username:password@",
+        "/my-file.csv",
+    )
+    assert helpers.extract_host("ftp://username:p@ssword@my-ftp.com/my-file.csv") == (
+        "my-ftp.com",
+        "ftp://username:p@ssword@",
+        "/my-file.csv",
+    )
+    assert helpers.extract_host("ftp://username:password:/@my-ftp.com/my-file.csv") == (
+        "my-ftp.com",
+        "ftp://username:password:/@",
+        "/my-file.csv",
+    )
+    assert helpers.extract_host("ftp://username:password:/@dead::beef/my-file.csv") == (
+        None,
+        "ftp://username:password:/@dead::beef/my-file.csv",
+        "",
+    )
+    assert helpers.extract_host("ftp://username:password:/@[dead::beef]/my-file.csv") == (
+        "dead::beef",
+        "ftp://username:password:/@[",
+        "]/my-file.csv",
+    )
+    assert helpers.extract_host("ftp://username:password:/@[dead::beef]:22/my-file.csv") == (
+        "dead::beef",
+        "ftp://username:password:/@[",
+        "]:22/my-file.csv",
+    )
+
     assert helpers.split_domain("www.evilcorp.co.uk") == ("www", "evilcorp.co.uk")
     assert helpers.split_domain("asdf.www.test.notreal") == ("asdf.www", "test.notreal")
     assert helpers.split_domain("www.test.notreal") == ("www", "test.notreal")
@@ -118,8 +166,13 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk") == ("evilcorp.co.uk", None)
+    assert helpers.split_host_port("192.168.0.1") == (ipaddress.ip_address("192.168.0.1"), None)
+    assert helpers.split_host_port("192.168.0.1:80") == (ipaddress.ip_address("192.168.0.1"), 80)
+    assert helpers.split_host_port("[e]:80") == ("e", 80)
     assert helpers.split_host_port("d://wat:wat") == ("wat", None)
     assert helpers.split_host_port("https://[dead::beef]:8338") == (ipaddress.ip_address("dead::beef"), 8338)
+    assert helpers.split_host_port("[dead::beef]") == (ipaddress.ip_address("dead::beef"), None)
+    assert helpers.split_host_port("dead::beef") == (ipaddress.ip_address("dead::beef"), None)
     extracted_words = helpers.extract_words("blacklanternsecurity")
     assert "black" in extracted_words
     # assert "blacklantern" in extracted_words
@@ -346,10 +399,6 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.smart_decode_punycode("bob_smith@xn--eckwd4c7c.xn--zckzah") == "bob_smith@ドメイン.テスト"
     assert helpers.smart_encode_punycode("ドメイン.テスト:80") == "xn--eckwd4c7c.xn--zckzah:80"
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah:80") == "ドメイン.テスト:80"
-    with pytest.raises(ValueError):
-        helpers.smart_decode_punycode(b"asdf")
-    with pytest.raises(ValueError):
-        helpers.smart_encode_punycode(b"asdf")
 
     assert helpers.recursive_decode("Hello%20world%21") == "Hello world!"
     assert helpers.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"

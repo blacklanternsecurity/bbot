@@ -4,8 +4,7 @@ from contextlib import suppress
 
 from bbot.core.helpers import regexes
 from bbot.core.helpers.url import parse_url, hash_url
-from bbot.core.helpers.punycode import smart_decode_punycode
-from bbot.core.helpers.misc import split_host_port, make_netloc, is_ip
+from bbot.core.helpers.misc import smart_encode_punycode, split_host_port, make_netloc, is_ip
 
 log = logging.getLogger("bbot.core.helpers.validators")
 
@@ -57,7 +56,7 @@ def validate_host(host):
             return str(ip)
         except Exception:
             # finally, try DNS_NAME
-            host = smart_decode_punycode(host)
+            host = smart_encode_punycode(host)
             # clean asterisks and clinging dashes
             host = host.strip("*.-").replace("*", "")
             for r in regexes.event_type_regexes["DNS_NAME"]:
@@ -89,7 +88,7 @@ def validate_severity(severity):
 
 @validator
 def validate_email(email):
-    email = smart_decode_punycode(str(email).strip().lower())
+    email = smart_encode_punycode(str(email).strip().lower())
     if any(r.match(email) for r in regexes.event_type_regexes["EMAIL_ADDRESS"]):
         return email
     assert False, f'Invalid email: "{email}"'
