@@ -379,8 +379,8 @@ class BaseEvent:
         Because self.data can be either a string or a dictionary, this function is used to standardize
         JSON-serialized events so that their .data attributes are _always_ dictionaries.
 
-        By default, simple string-based events like `IP_ADDRESS`, `DNS_NAME`, and `URL` are serialized
-        so that their event type is the sole key, and their data is the value.
+        Events are serialized so that at the top level of their .data object there is a single
+        key which is their event type, and their data is the value.
 
         For example, an `IP_ADDRESS` with .data of `"192.168.0.1"' will be `{"IP_ADDRESS": "192.168.0.1"}`.
         A `DNS_NAME` of `evilcorp.com` will be `{"DNS_NAME": "evilcorp.com"}`, etc.
