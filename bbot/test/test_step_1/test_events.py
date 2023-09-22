@@ -342,7 +342,7 @@ async def test_events(events, scan, helpers, bbot_config):
     timestamp = db_event.timestamp.timestamp()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
-    assert json_event["data"] == "127.0.0.1"
+    assert json_event["data"] == {"IP_ADDRESS": "127.0.0.1"}
     assert json_event["type"] == "IP_ADDRESS"
     assert json_event["timestamp"] == timestamp
     reconstituted_event = event_from_json(json_event)
@@ -355,7 +355,8 @@ async def test_events(events, scan, helpers, bbot_config):
     assert http_response.source_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com:80"
     json_event = http_response.json(mode="graph")
-    assert isinstance(json_event["data"], str)
+    assert isinstance(json_event["data"], dict)
+    assert isinstance(json_event["data"]["HTTP_RESPONSE"], str)
     json_event = http_response.json()
     assert isinstance(json_event["data"], dict)
     assert json_event["type"] == "HTTP_RESPONSE"

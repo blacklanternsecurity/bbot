@@ -446,12 +446,10 @@ class BaseEvent:
             if v:
                 j.update({i: v})
         data_attr = getattr(self, f"data_{mode}", None)
-        if isinstance(data_attr, str):
-            data_attr = {self._json_data_key(): data_attr}
         if data_attr is not None:
-            j["data"] = data_attr
+            j["data"] = {self._json_data_key(): data_attr}
         else:
-            j["data"] = smart_decode(self.data)
+            j["data"] = {self._json_data_key(): smart_decode(self.data)}
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:
             j["web_spider_distance"] = web_spider_distance
@@ -1055,10 +1053,11 @@ def make_event(
 
 
 def event_from_json(j):
+    event_type = j["type"]
     try:
         kwargs = {
-            "data": j["data"],
-            "event_type": j["type"],
+            "data": j["data"][event_type],
+            "event_type": event_type,
             "scans": j.get("scans", []),
             "tags": j.get("tags", []),
             "confidence": j.get("confidence", 5),

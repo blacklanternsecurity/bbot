@@ -9,6 +9,9 @@ class TestJSON(ModuleTestBase):
         txt_file = module_test.scan.home / "output.ndjson"
         lines = list(module_test.scan.helpers.read_file(txt_file))
         assert lines
-        e = event_from_json(json.loads(lines[0]))
+        json_event = json.loads(lines[0])
+        assert json_event["type"] == "SCAN"
+        assert json_event["data"] == {"SCAN": f"{module_test.scan.name} ({module_test.scan.id})"}
+        e = event_from_json(json_event)
         assert e.type == "SCAN"
-        assert e.data == {"SCAN": f"{module_test.scan.name} ({module_test.scan.id})"}
+        assert e.data == f"{module_test.scan.name} ({module_test.scan.id})"
