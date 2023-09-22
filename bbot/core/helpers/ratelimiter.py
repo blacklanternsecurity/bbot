@@ -6,6 +6,20 @@ log = logging.getLogger("bbot.helpers.ratelimiter")
 
 
 class RateLimiter:
+    """
+    An asynchronous rate limiter class designed to be used as a context manager.
+
+    Args:
+        rate (int): The number of allowed requests per second.
+        name (str): The name of the rate limiter, used for logging.
+
+    Examples:
+        >>> rate_limiter = RateLimiter(100, "web")
+        >>> async def rate_limited_request(url):
+        ...     async with rate_limiter:
+        ...         return await request(url)
+    """
+
     def __init__(self, rate, name):
         self.rate = rate / 10
         self.name = name

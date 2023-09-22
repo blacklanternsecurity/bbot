@@ -3,6 +3,7 @@ import ipaddress
 from contextlib import suppress
 
 from bbot.core.helpers import regexes
+from bbot.core.errors import ValidationError
 from bbot.core.helpers.url import parse_url, hash_url
 from bbot.core.helpers.misc import smart_encode_punycode, split_host_port, make_netloc, is_ip
 
@@ -11,7 +12,18 @@ log = logging.getLogger("bbot.core.helpers.validators")
 
 def validator(func):
     """
-    Decorator for squashing all errors into ValueError
+    Decorator that squashes all errors raised by the wrapped function into a ValueError.
+
+    Args:
+        func (Callable): The function to be decorated.
+
+    Returns:
+        Callable: The wrapped function.
+
+    Examples:
+        >>> @validator
+        ... def validate_port(port):
+        ...     return max(1, min(65535, int(str(port))))
     """
 
     def validate_wrapper(*args, **kwargs):
@@ -25,6 +37,28 @@ def validator(func):
 
 @validator
 def validate_port(port):
+    """
+    Validates and sanitizes a port number by ensuring it falls within the allowed range (1-65535).
+
+    Args:
+        port (int or str): The port number to validate.
+
+    Returns:
+        int: The sanitized port number.
+
+    Raises:
+        ValueError: If the port number cannot be converted to an integer or is out of range.
+
+    Examples:
+        >>> validate_port(22)
+        22
+
+        >>> validate_port(70000)
+        65535
+
+        >>> validate_port(-123)
+        1
+    """
     return max(1, min(65535, int(str(port))))
 
 
@@ -39,6 +73,33 @@ def validate_open_port(open_port):
 
 @validator
 def validate_host(host):
+    """
+    Validates and sanitizes a host string. This function handles IPv4, IPv6, and domain names.
+
+    It automatically strips ports, trailing periods, and clinging asterisks and dashes.
+
+    Args:
+        host (str): The host string to validate.
+
+    Returns:
+        str: The sanitized host string.
+
+    Raises:
+        ValidationError: If the host is invalid or does not conform to IPv4, IPv6, or DNS_NAME formats.
+
+    Examples:
+        >>> validate_host("2001:db8::ff00:42:8329")
+        '2001:db8::ff00:42:8329'
+
+        >>> validate_host("192.168.0.1:443")
+        '192.168.0.1'
+
+        >>> validate_host(".*.eViLCoRP.com.")
+        'evilcorp.com'
+
+        >>> validate_host("Invalid<>Host")
+        ValueError: Validation failed for ('Invalid<>Host',), {}: Invalid hostname: "invalid<>host"
+    """
     # stringify, strip and lowercase
     host = str(host).strip().lower()
     # handle IPv6 netlocs
@@ -62,7 +123,7 @@ def validate_host(host):
             for r in regexes.event_type_regexes["DNS_NAME"]:
                 if r.match(host):
                     return host
-    assert False, f'Invalid hostname: "{host}"'
+    raise ValidationError(f'Invalid hostname: "{host}"')
 
 
 @validator
@@ -74,7 +135,7 @@ def validate_url(url):
 def validate_url_parsed(url):
     url = str(url).strip()
     if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
-        assert False, f'Invalid URL: "{url}"'
+        raise ValidationError(f'Invalid URL: "{url}"')
     return clean_url(url)
 
 
@@ -91,16 +152,29 @@ def validate_email(email):
     email = smart_encode_punycode(str(email).strip().lower())
     if any(r.match(email) for r in regexes.event_type_regexes["EMAIL_ADDRESS"]):
         return email
-    assert False, f'Invalid email: "{email}"'
+    raise ValidationError(f'Invalid email: "{email}"')
 
 
 def clean_url(url):
     """
-    Remove query string and fragment, lowercase netloc, remove redundant port
+    Cleans and normalizes a URL. This function removes the query string and fragment,
+    lowercases the netloc, and removes redundant port numbers.
 
-    http://evilcorp.com:80 --> http://evilcorp.com/
-    http://eViLcORp.com/ --> http://evilcorp.com/
-    http://evilcorp.com/api?user=bob#place --> http://evilcorp.com/api
+    Args:
+        url (str): The URL string to clean.
+
+    Returns:
+        ParseResult: A ParseResult object containing the cleaned URL.
+
+    Examples:
+        >>> clean_url("http://evilcorp.com:80")
+        ParseResult(scheme='http', netloc='evilcorp.com', path='/', params='', query='', fragment='')
+
+        >>> clean_url("http://eViLcORp.com/")
+        ParseResult(scheme='http', netloc='evilcorp.com', path='/', params='', query='', fragment='')
+
+        >>> clean_url("http://evilcorp.com/api?user=bob#place")
+        ParseResult(scheme='http', netloc='evilcorp.com', path='/api', params='', query='', fragment='')
     """
     parsed = parse_url(url)
     parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
@@ -132,14 +206,20 @@ def clean_url(url):
 
 def collapse_urls(urls, threshold=10):
     """
-    Smartly dedupe suspiciously-similar URLs like these:
-        - http://evilcorp.com/user/11111/info
-        - http://evilcorp.com/user/2222/info
-        - http://evilcorp.com/user/333/info
-        - http://evilcorp.com/user/44/info
-        - http://evilcorp.com/user/5/info
+    Collapses a list of URLs by deduping similar URLs based on a hashing mechanism.
+    Useful for cleaning large lists of noisy URLs, such as those retrieved from wayback.
 
-    Useful for cleaning large lists of garbage-riddled URLs from sources like wayback
+    Args:
+        urls (list): The list of URL strings to collapse.
+        threshold (int): The number of allowed duplicate URLs before collapsing.
+
+    Yields:
+        str: A deduped URL from the input list.
+
+    Example:
+        >>> list(collapse_urls(["http://evilcorp.com/user/11111/info", "http://evilcorp.com/user/2222/info"], threshold=1))
+        ["http://evilcorp.com/user/11111/info"]
+
     """
     url_hashes = {}
     for url in urls:
@@ -163,10 +243,26 @@ def collapse_urls(urls, threshold=10):
 
 def soft_validate(s, t):
     """
-    Friendly validation wrapper that returns True/False instead of raising an error
+    Softly validates a given string against a specified type. This function returns a boolean
+    instead of raising an error.
 
-    is_valid_url = soft_validate("http://evilcorp.com", "url")
-    is_valid_host = soft_validate("http://evilcorp.com", "host")
+    Args:
+        s (str): The string to validate.
+        t (str): The type to validate against, e.g., "url" or "host".
+
+    Returns:
+        bool: True if the string is valid, False otherwise.
+
+    Raises:
+        ValueError: If no validator for the specified type is found.
+
+    Examples:
+        >>> soft_validate("http://evilcorp.com", "url")
+        True
+        >>> soft_validate("evilcorp.com", "url")
+        False
+        >>> soft_validate("http://evilcorp", "wrong_type")
+        ValueError: No validator for type "wrong_type"
     """
     try:
         validator_fn = globals()[f"validate_{t.strip().lower()}"]

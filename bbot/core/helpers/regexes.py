@@ -19,14 +19,21 @@ word_regexes = [
 word_regex = re.compile(r"[^\d\W_]+")
 word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
+
 _ipv6_regex = r"[A-F0-9:]*:[A-F0-9:]*:[A-F0-9:]*"
 ipv6_regex = re.compile(_ipv6_regex, re.I)
+
 # dns names with periods
 _dns_name_regex = r"(?:\w(?:[\w-]{0,100}\w)?\.)+(?:[xX][nN]--)?[^\W_]{1,63}\.?"
+dns_name_regex = re.compile(_dns_name_regex, re.I)
+
 # dns names without periods
 _hostname_regex = r"(?!\w*\.\w+)\w(?:[\w-]{0,100}\w)?"
+hostname_regex = re.compile(r"^" + _hostname_regex + r"$", re.I)
+
 _email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@" + _dns_name_regex
 email_regex = re.compile(_email_regex, re.I)
+
 _ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"
 ptr_regex = re.compile(_ptr_regex)
 # uuid regex
@@ -50,6 +57,7 @@ url_regexes = list(re.compile(r, re.I) for r in _url_regexes)
 _double_slash_regex = r"/{2,}"
 double_slash_regex = re.compile(_double_slash_regex)
 
+# event type regexes, used throughout BBOT for autodetection of event types, validation, and excavation.
 event_type_regexes = OrderedDict(
     (
         (k, tuple(re.compile(r, re.I) for r in regexes))
@@ -78,9 +86,8 @@ event_type_regexes = OrderedDict(
 )
 
 event_id_regex = re.compile(r"[0-9a-f]{40}:[A-Z0-9_]+")
-dns_name_regex = re.compile(_dns_name_regex, re.I)
 scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
-hostname_regex = re.compile(r"^" + _hostname_regex + r"$", re.I)
+
 
 # For use with extract_params_html helper
 input_tag_regex = re.compile(r"<input[^>]+?name=[\"\'](\w+)[\"\']")

@@ -41,6 +41,8 @@ nav:
         - DNS: dev/helpers/dns.md
         - Interactsh: dev/helpers/interactsh.md
         - Miscellaneous: dev/helpers/misc.md
+        - Web: dev/helpers/web.md
+        - Word Cloud: dev/helpers/wordcloud.md
   - Misc:
     - Release History: release_history.md
     - Troubleshooting: troubleshooting.md
