@@ -391,14 +391,41 @@ def url_parents(u):
 
 def tldextract(data):
     """
-    "www.evilcorp.co.uk" --> ExtractResult(subdomain='www', domain='evilcorp', suffix='co.uk')
+    Extracts the subdomain, domain, and suffix from a URL string.
+
+    Args:
+        data (str): The URL string to be processed.
+
+    Returns:
+        ExtractResult: A named tuple containing the subdomain, domain, and suffix.
+
+    Examples:
+        >>> tldextract("www.evilcorp.co.uk")
+        ExtractResult(subdomain='www', domain='evilcorp', suffix='co.uk')
+
+    Notes:
+        - Utilizes `smart_decode` to preprocess the data.
+        - Makes use of the `tldextract` library for extraction.
     """
     return _tldextract.extract(smart_decode(data))
 
 
 def split_domain(hostname):
     """
-    "www.internal.evilcorp.co.uk" --> ("www.internal", "evilcorp.co.uk")
+    Splits the hostname into its subdomain and registered domain components.
+
+    Args:
+        hostname (str): The full hostname to be split.
+
+    Returns:
+        tuple: A tuple containing the subdomain and registered domain.
+
+    Examples:
+        >>> split_domain("www.internal.evilcorp.co.uk")
+        ("www.internal", "evilcorp.co.uk")
+
+    Notes:
+        - Utilizes the `tldextract` function to first break down the hostname.
     """
     parsed = tldextract(hostname)
     subdomain = parsed.subdomain
@@ -412,8 +439,20 @@ def split_domain(hostname):
 
 def domain_stem(domain):
     """
-    An abbreviated representation of hostname that removes the TLD
-        www.evilcorp.com --> www.evilcorp
+    Returns an abbreviated representation of the hostname by removing the TLD (Top-Level Domain).
+
+    Args:
+        domain (str): The full domain name to be abbreviated.
+
+    Returns:
+        str: An abbreviated domain string without the TLD.
+
+    Examples:
+        >>> domain_stem("www.evilcorp.com")
+        "www.evilcorp"
+
+    Notes:
+        - Utilizes the `tldextract` function for domain parsing.
     """
     parsed = tldextract(str(domain))
     return f".".join(parsed.subdomain.split(".") + parsed.domain.split(".")).strip(".")
@@ -421,7 +460,21 @@ def domain_stem(domain):
 
 def ip_network_parents(i, include_self=False):
     """
-    "192.168.1.1" --> [192.168.1.0/31, 192.168.1.0/30 ... 128.0.0.0/1, 0.0.0.0/0]
+    Generates all parent IP networks for a given IP address or network, optionally including the network itself.
+
+    Args:
+        i (str or ipaddress.IPv4Network/ipaddress.IPv6Network): The IP address or network to find parents for.
+        include_self (bool, optional): Whether to include the network itself in the result. Default is False.
+
+    Yields:
+        ipaddress.IPv4Network or ipaddress.IPv6Network: Parent IP networks in descending order of prefix length.
+
+    Examples:
+        >>> list(ip_network_parents("192.168.1.1"))
+        [ipaddress.IPv4Network('192.168.1.0/31'), ipaddress.IPv4Network('192.168.1.0/30'), ... , ipaddress.IPv4Network('0.0.0.0/0')]
+
+    Notes:
+        - Utilizes Python's built-in `ipaddress` module for network operations.
     """
     net = ipaddress.ip_network(i, strict=False)
     for i in range(net.prefixlen - (0 if include_self else 1), -1, -1):
@@ -429,11 +482,44 @@ def ip_network_parents(i, include_self=False):
 
 
 def is_port(p):
+    """
+    Checks if the given string represents a valid port number.
+
+    Args:
+        p (str or int): The port number to check.
+
+    Returns:
+        bool: True if the port number is valid, False otherwise.
+
+    Examples:
+        >>> is_port('80')
+        True
+        >>> is_port('70000')
+        False
+    """
+
     p = str(p)
     return p and p.isdigit() and 0 <= int(p) <= 65535
 
 
 def is_dns_name(d):
+    """
+    Determines if the given string is a valid DNS name.
+
+    Args:
+        d (str): The string to be checked.
+
+    Returns:
+        bool: True if the string is a valid DNS name, False otherwise.
+
+    Examples:
+        >>> is_dns_name('www.example.com')
+        True
+        >>> is_dns_name('localhost')
+        True
+        >>> is_dns_name('192.168.1.1')
+        False
+    """
     if is_ip(d):
         return False
     d = smart_decode(d)
@@ -446,9 +532,24 @@ def is_dns_name(d):
 
 def is_ip(d, version=None):
     """
-    "192.168.1.1" --> True
-    "bad::c0de" --> True
-    "evilcorp.com" --> False
+    Checks if the given string or object represents a valid IP address.
+
+    Args:
+        d (str or ipaddress.IPvXAddress): The IP address to check.
+        version (int, optional): The IP version to validate (4 or 6). Default is None.
+
+    Returns:
+        bool: True if the string or object is a valid IP address, False otherwise.
+
+    Examples:
+        >>> is_ip('192.168.1.1')
+        True
+        >>> is_ip('bad::c0de', version=6)
+        True
+        >>> is_ip('bad::c0de', version=4)
+        False
+        >>> is_ip('evilcorp.com')
+        False
     """
     if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
         if version is None or version == d.version:
@@ -464,11 +565,23 @@ def is_ip(d, version=None):
 
 def is_ip_type(i):
     """
-    IPv6Address('dead::beef') --> True
-    IPv4Network('192.168.1.0/24') --> True
-    "192.168.1.0/24" --> False
+    Checks if the given object is an instance of an IPv4 or IPv6 type from the ipaddress module.
+
+    Args:
+        i (ipaddress._BaseV4 or ipaddress._BaseV6): The IP object to check.
+
+    Returns:
+        bool: True if the object is an instance of ipaddress._BaseV4 or ipaddress._BaseV6, False otherwise.
+
+    Examples:
+        >>> is_ip_type(ipaddress.IPv6Address('dead::beef'))
+        True
+        >>> is_ip_type(ipaddress.IPv4Network('192.168.1.0/24'))
+        True
+        >>> is_ip_type("192.168.1.0/24")
+        False
     """
-    return hasattr(i, "is_multicast")
+    return isinstance(i, ipaddress._BaseV4) or isinstance(i, ipaddress._BaseV6)
 
 
 def make_ip_type(s):
@@ -505,11 +618,42 @@ def make_ip_type(s):
 
 def host_in_host(host1, host2):
     """
+    Checks if host1 is included within host2, either as a subdomain, IP, or IP network.
+    Used for scope calculations/decisions within BBOT.
+
+    Args:
+        host1 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
+            The host to check for inclusion within host2.
+        host2 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
+            The host within which to check for the inclusion of host1.
+
+    Returns:
+        bool: True if host1 is included in host2, otherwise False.
+
+    Examples:
+        >>> host_in_host("www.evilcorp.com", "evilcorp.com")
+        True
+        >>> host_in_host("evilcorp.com", "www.evilcorp.com")
+        False
+        >>> host_in_host(ipaddress.IPv6Address('dead::beef'), ipaddress.IPv6Network('dead::/64'))
+        True
+        >>> host_in_host(ipaddress.IPv4Address('192.168.1.1'), ipaddress.IPv4Network('10.0.0.0/8'))
+        False
+
+    Notes:
+        - If checking an IP address/network, you MUST FIRST convert your IP into an ipaddress object (e.g. via `make_ip_type()`) before passing it to this function.
+    """
+
+    """
     Is host1 included in host2?
         "www.evilcorp.com" in "evilcorp.com"? --> True
         "evilcorp.com" in "www.evilcorp.com"? --> False
         IPv6Address('dead::beef') in IPv6Network('dead::/64')? --> True
         IPv4Address('192.168.1.1') in IPv4Network('10.0.0.0/8')? --> False
+
+    Very important! Used throughout BBOT for scope calculations/decisions.
+
+    Works with hostnames, IPs, and IP networks.
     """
 
     if not host1 or not host2:
@@ -537,7 +681,17 @@ def host_in_host(host1, host2):
 
 def sha1(data):
     """
-    sha1("asdf").hexdigest() --> "3da541559918a808c2402bba5012f6c60b27661c"
+    Computes the SHA-1 hash of the given data.
+
+    Args:
+        data (str or dict): The data to hash. If a dictionary, it is first converted to a JSON string with sorted keys.
+
+    Returns:
+        hashlib.Hash: SHA-1 hash object of the input data.
+
+    Examples:
+        >>> sha1("asdf").hexdigest()
+        '3da541559918a808c2402bba5012f6c60b27661c'
     """
     if isinstance(data, dict):
         data = json.dumps(data, sort_keys=True)
@@ -546,9 +700,19 @@ def sha1(data):
 
 def smart_decode(data):
     """
-    Turn data into a string without complaining about it
-        b"asdf" --> "asdf"
-        "asdf" --> "asdf"
+    Decodes the input data to a UTF-8 string, silently ignoring errors.
+
+    Args:
+        data (str or bytes): The data to decode.
+
+    Returns:
+        str: The decoded string.
+
+    Examples:
+        >>> smart_decode(b"asdf")
+        "asdf"
+        >>> smart_decode("asdf")
+        "asdf"
     """
     if isinstance(data, bytes):
         return data.decode("utf-8", errors="ignore")
@@ -558,8 +722,19 @@ def smart_decode(data):
 
 def smart_encode(data):
     """
-    Turn data into bytes without complaining about it
-        "asdf" --> b"asdf"
+    Encodes the input data to bytes using UTF-8 encoding, silently ignoring errors.
+
+    Args:
+        data (str or bytes): The data to encode.
+
+    Returns:
+        bytes: The encoded bytes.
+
+    Examples:
+        >>> smart_encode("asdf")
+        b"asdf"
+        >>> smart_encode(b"asdf")
+        b"asdf"
     """
     if isinstance(data, bytes):
         return data
@@ -572,7 +747,24 @@ backslash_regex = re.compile(r"(?P<slashes>\\+)(?P<char>[ntrvb])")
 
 def recursive_decode(data, max_depth=5):
     """
-    Encode double or triple-encoded strings
+    Recursively decodes doubly or triply-encoded strings to their original form.
+
+    Supports both URL-encoding and backslash-escapes (including unicode)
+
+    Args:
+        data (str): The data to decode.
+        max_depth (int, optional): Maximum recursion depth for decoding. Defaults to 5.
+
+    Returns:
+        str: The decoded string.
+
+    Examples:
+        >>> recursive_decode("Hello%20world%21")
+        "Hello world!"
+        >>> recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442")
+        "Hello Привет"
+        >>> recursive_dcode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021")
+        " Привет!"
     """
     # Decode newline and tab escapes
     data = backslash_regex.sub(
@@ -600,9 +792,22 @@ rand_pool_digits = rand_pool + string.digits
 
 def rand_string(length=10, digits=True):
     """
-    rand_string() --> "c4hp4i9jzx"
-    rand_string(20) --> "ap4rsdtg5iw7ey7y3oa5"
-    rand_string(30) --> "xdmyxtglqf0z3q8t46n430kesq68yu"
+    Generates a random string of specified length.
+
+    Args:
+        length (int, optional): The length of the random string. Defaults to 10.
+        digits (bool, optional): Whether to include digits in the string. Defaults to True.
+
+    Returns:
+        str: A random string of the specified length.
+
+    Examples:
+        >>> rand_string()
+        'c4hp4i9jzx'
+        >>> rand_string(20)
+        'ap4rsdtg5iw7ey7y3oa5'
+        >>> rand_string(30, digits=False)
+        'xdmyxtglqfzqktngkesyulwbfrihva'
     """
     pool = rand_pool
     if digits:
@@ -611,6 +816,22 @@ def rand_string(length=10, digits=True):
 
 
 def extract_params_json(json_data):
+    """
+    Extracts keys from a JSON object and returns them as a set. Used by the `paramminer_headers` module.
+
+    Args:
+        json_data (str): JSON-formatted string containing key-value pairs.
+
+    Returns:
+        set: A set containing the keys present in the JSON object.
+
+    Raises:
+        Logs a message if JSONDecodeError occurs.
+
+    Examples:
+        >>> extract_params_json('{"a": 1, "b": {"c": 2}}')
+        {'a', 'b', 'c'}
+    """
     try:
         data = json.loads(json_data)
     except json.JSONDecodeError:
@@ -636,6 +857,22 @@ def extract_params_json(json_data):
 
 
 def extract_params_xml(xml_data):
+    """
+    Extracts tags from an XML object and returns them as a set.
+
+    Args:
+        xml_data (str): XML-formatted string containing elements.
+
+    Returns:
+        set: A set containing the tags present in the XML object.
+
+    Raises:
+        Logs a message if ParseError occurs.
+
+    Examples:
+        >>> extract_params_xml('<root><child1><child2/></child1></root>')
+        {'child1', 'child2', 'root'}
+    """
     try:
         root = ET.fromstring(xml_data)
     except ET.ParseError:
@@ -654,6 +891,31 @@ def extract_params_xml(xml_data):
 
 
 def extract_params_html(html_data):
+    """
+    Extracts parameters from an HTML object, yielding them one at a time.
+
+    Args:
+        html_data (str): HTML-formatted string.
+
+    Yields:
+        str: A string containing the parameter found in HTML object.
+
+    Examples:
+        >>> html_data = '''
+        ... <html>
+        ...     <body>
+        ...         <input name="user">
+        ...         <a href="/page?param3=value3">Click Me</a>
+        ...         <script>
+        ...             $.get("/test", {param1: "value1"});
+        ...             $.post("/test", {param2: "value2"});
+        ...         </script>
+        ...     </body>
+        ... </html>
+        ... '''
+        >>> list(extract_params_html(html_data))
+        ['user', 'param2', 'param3']
+    """
     input_tag = bbot_regexes.input_tag_regex.findall(html_data)
 
     for i in input_tag:
@@ -683,10 +945,27 @@ def extract_params_html(html_data):
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
+    """Intelligently extracts words from given data.
+
+    This function uses regular expressions and optionally wordninja to extract words
+    from a given text string. Thanks to wordninja it can handle concatenated words intelligently.
+
+    Args:
+        data (str): The data from which words are to be extracted.
+        acronyms (bool, optional): Whether to include acronyms. Defaults to True.
+        wordninja (bool, optional): Whether to use the wordninja library to split concatenated words. Defaults to True.
+        model (object, optional): A custom wordninja model for special types of data such as DNS names.
+        max_length (int, optional): Maximum length for a word to be included. Defaults to 100.
+        word_regexes (list, optional): A list of compiled regular expression objects for word extraction. Defaults to None.
+
+    Returns:
+        set: A set of extracted words.
+
+    Examples:
+        >>> extract_words('blacklanternsecurity')
+        {'black', 'lantern', 'security', 'bls', 'blacklanternsecurity'}
     """
-    Intelligently extract words from given data
-    Returns set() of extracted words
-    """
+
     if word_regexes is None:
         word_regexes = bbot_regexes.word_regexes
     words = set()
@@ -706,6 +985,8 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
             subwords = model.split(word)
             for subword in subwords:
                 words.add(subword)
+        # this section generates compound words
+        # it is interesting but currently disabled the quality of its output doesn't quite justify its quantity
         # blacklanternsecurity --> ['black', 'lantern', 'security', 'blacklantern', 'lanternsecurity']
         # for s, e in combinations(range(len(subwords) + 1), 2):
         #    if e - s <= max_slice_length:
@@ -720,11 +1001,25 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
 
 
 def closest_match(s, choices, n=1, cutoff=0.0):
-    """
-    Given a string and a list of choices, returns the best match
+    """Finds the closest matching strings from a list of choices based on a given string.
 
-    closest_match("asdf", ["asd", "fds"]) --> "asd"
-    closest_match("asdf", ["asd", "fds", "asdff"], n=3) --> ["asd", "asdff", "fds"]
+    This function uses the difflib library to find the closest matches to a given string `s` from a list of `choices`.
+    It can return either the single best match or a list of the top `n` best matches.
+
+    Args:
+        s (str): The string for which to find the closest match.
+        choices (list): A list of strings to compare against.
+        n (int, optional): The number of best matches to return. Defaults to 1.
+        cutoff (float, optional): A float value that defines the similarity threshold. Strings with similarity below this value are not considered. Defaults to 0.0.
+
+    Returns:
+        str or list: Either the closest matching string or a list of the `n` closest matching strings.
+
+    Examples:
+        >>> closest_match("asdf", ["asd", "fds"])
+        'asd'
+        >>> closest_match("asdf", ["asd", "fds", "asdff"], n=3)
+        ['asdff', 'asd', 'fds']
     """
     matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
     if not choices or not matches:
@@ -735,8 +1030,21 @@ def closest_match(s, choices, n=1, cutoff=0.0):
 
 
 def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
-    """
-    Return the closest match, warn, and exit
+    """Finds the closest match from a list of choices for a given string, logs a warning, and exits the program.
+
+    This function is particularly useful for CLI applications where you want to validate flags or modules.
+
+    Args:
+        s (str): The string for which to find the closest match.
+        choices (list): A list of strings to compare against.
+        msg (str, optional): Additional message to prepend in the warning message. Defaults to None.
+        loglevel (str, optional): The log level to use for the warning message. Defaults to "HUGEWARNING".
+        exitcode (int, optional): The exit code to use when exiting the program. Defaults to 2.
+
+    Examples:
+        >>> match_and_exit("some_module", ["some_mod", "some_other_mod"], msg="module")
+        # Output: Could not find module "some_module". Did you mean "some_mod"?
+        # Exits with code 2
     """
     if msg is None:
         msg = ""
@@ -769,9 +1077,22 @@ def kill_children(parent_pid=None, sig=signal.SIGTERM):
 
 
 def str_or_file(s):
-    """
-    "file.txt" --> ["file_line1", "file_line2", "file_line3"]
-    "not_a_file" --> ["not_a_file"]
+    """Reads a string or file and yields its content line-by-line.
+
+    This function tries to open the given string `s` as a file and yields its lines.
+    If it fails to open `s` as a file, it treats `s` as a regular string and yields it as is.
+
+    Args:
+        s (str): The string or file path to read.
+
+    Yields:
+        str: Either lines from the file or the original string.
+
+    Examples:
+        >>> list(str_or_file("file.txt"))
+        ['file_line1', 'file_line2', 'file_line3']
+        >>> list(str_or_file("not_a_file"))
+        ['not_a_file']
     """
     try:
         with open(s, errors="ignore") as f:
@@ -782,13 +1103,26 @@ def str_or_file(s):
 
 
 def chain_lists(l, try_files=False, msg=None, remove_blank=True):
-    """
-    Chain together list, splitting entries on comma
-        - Optionally try to open entries as files and add their contents to the list
-        - Used for parsing a list of arguments that may include space and/or comma-separated values
-        - ["a", "b,c,d"] --> ["a", "b", "c", "d"]
-        - try_files=True:
-            - ["a,file.txt", "c,d"] --> ["a", "f_line1", "f_line2", "f_line3", "c", "d"]
+    """Chains together list elements, allowing for entries separated by commas.
+
+    This function takes a list `l` and flattens it by splitting its entries on commas.
+    It also allows you to optionally open entries as files and add their contents to the list.
+
+    Args:
+        l (list): The list of strings to chain together.
+        try_files (bool, optional): Whether to try to open entries as files. Defaults to False.
+        msg (str, optional): An optional message to log when reading from a file. Defaults to None.
+        remove_blank (bool, optional): Whether to remove blank entries from the list. Defaults to True.
+
+    Returns:
+        list: The list of chained elements.
+
+    Examples:
+        >>> chain_lists(["a", "b,c,d"])
+        ['a', 'b', 'c', 'd']
+
+        >>> chain_lists(["a,file.txt", "c,d"], try_files=True)
+        ['a', 'f_line1', 'f_line2', 'f_line3', 'c', 'd']
     """
     final_list = dict()
     for entry in l:
@@ -811,8 +1145,21 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
 
 
 def list_files(directory, filter=lambda x: True):
-    """
-    "/tmp/test" --> ["file1.txt", "file2.txt"]
+    """Lists files in a given directory that meet a specified filter condition.
+
+    Args:
+        directory (str): The directory where to list files.
+        filter (callable, optional): A function to filter the files. Defaults to a lambda function that returns True for all files.
+
+    Yields:
+        Path: A Path object for each file that meets the filter condition.
+
+    Examples:
+        >>> list(list_files("/tmp/test"))
+        [Path('/tmp/test/file1.py'), Path('/tmp/test/file2.txt')]
+
+        >>> list(list_files("/tmp/test"), filter=lambda f: f.suffix == ".py")
+        [Path('/tmp/test/file1.py')]
     """
     directory = Path(directory).resolve()
     if directory.is_dir():
@@ -822,20 +1169,48 @@ def list_files(directory, filter=lambda x: True):
 
 
 def rm_at_exit(path):
+    """Registers a file to be automatically deleted when the program exits.
+
+    Args:
+        path (str or Path): The path to the file to be deleted upon program exit.
+
+    Examples:
+        >>> rm_at_exit("/tmp/test/file1.txt")
     """
-    Removes a file automatically when BBOT exits
-    """
-    atexit.register(_rm_at_exit, path)
+    atexit.register(delete_file, path)
 
 
-def _rm_at_exit(path):
+def delete_file(path):
+    """Deletes a file at the given path.
+
+    Args:
+        path (str or Path): The path to the file to be deleted.
+
+    Note:
+        This function suppresses all exceptions to ensure that the program continues running even if the file could not be deleted.
+
+    Examples:
+        >>> delete_file("/tmp/test/file1.txt")
+    """
     with suppress(Exception):
         Path(path).unlink(missing_ok=True)
 
 
 def read_file(filename):
-    """
-    "/tmp/file.txt" --> ["file_line1", "file_line2", "file_line3"]
+    """Reads a file line by line and yields each line without line breaks.
+
+    Args:
+        filename (str or Path): The path to the file to read.
+
+    Yields:
+        str: A line from the file without the trailing line break.
+
+    Examples:
+        >>> for line in read_file("/tmp/file.txt"):
+        ...     print(line)
+        file_line1
+        file_line2
+        file_line3
     """
     with open(filename, errors="ignore") as f:
         for line in f:
@@ -843,10 +1218,24 @@ def read_file(filename):
 
 
 def gen_numbers(n, padding=2):
-    """
-    n=5 --> ['0', '00', '01', '02', '03', '04', '1', '2', '3', '4']
-    n=3, padding=3 --> ['0', '00', '000', '001', '002', '01', '02', '1', '2']
-    n=5, padding=1 --> ['0', '1', '2', '3', '4']
+    """Generates numbers with variable padding and returns them as a set of strings.
+
+    Args:
+        n (int): The upper limit of numbers to generate, exclusive.
+        padding (int, optional): The maximum number of digits to pad the numbers with. Defaults to 2.
+
+    Returns:
+        set: A set of string representations of numbers with varying degrees of padding.
+
+    Examples:
+        >>> gen_numbers(5)
+        {'0', '00', '01', '02', '03', '04', '1', '2', '3', '4'}
+
+        >>> gen_numbers(3, padding=3)
+        {'0', '00', '000', '001', '002', '01', '02', '1', '2'}
+
+        >>> gen_numbers(5, padding=1)
+        {'0', '1', '2', '3', '4'}
     """
     results = set()
     for i in range(n):
@@ -856,12 +1245,30 @@ def gen_numbers(n, padding=2):
 
 
 def make_netloc(host, port):
-    """
-    ("192.168.1.1", None) --> "192.168.1.1"
-    ("192.168.1.1", 443) --> "192.168.1.1:443"
-    ("evilcorp.com", 80) --> "evilcorp.com:80"
-    ("dead::beef", None) --> "[dead::beef]"
-    ("dead::beef", 443) --> "[dead::beef]:443"
+    """Constructs a network location string from a given host and port.
+
+    Args:
+        host (str): The hostname or IP address.
+        port (int, optional): The port number. If None, the port is omitted.
+
+    Returns:
+        str: A network location string in the form 'host' or 'host:port'.
+
+    Examples:
+        >>> make_netloc("192.168.1.1", None)
+        "192.168.1.1"
+
+        >>> make_netloc("192.168.1.1", 443)
+        "192.168.1.1:443"
+
+        >>> make_netloc("evilcorp.com", 80)
+        "evilcorp.com:80"
+
+        >>> make_netloc("dead::beef", None)
+        "[dead::beef]"
+
+        >>> make_netloc("dead::beef", 443)
+        "[dead::beef]:443"
     """
     if is_ip(host, version=6):
         host = f"[{host}]"
@@ -871,8 +1278,17 @@ def make_netloc(host, port):
 
 
 def which(*executables):
-    """
-    "python" --> "/usr/bin/python"
+    """Finds the full path of the first available executable from a list of executables.
+
+    Args:
+        *executables (str): One or more executable names to search for.
+
+    Returns:
+        str: The full path of the first available executable, or None if none are found.
+
+    Examples:
+        >>> which("python", "python3")
+        "/usr/bin/python"
     """
     for e in executables:
         location = shutil.which(e)
@@ -881,9 +1297,19 @@ def which(*executables):
 
 
 def search_dict_by_key(key, d):
-    """
-    Search a dictionary by key name
-    Generator, yields all values with matching keys
+    """Search a nested dictionary or list of dictionaries by a key and yield all matching values.
+
+    Args:
+        key (str): The key to search for.
+        d (Union[dict, list]): The dictionary or list of dictionaries to search.
+
+    Yields:
+        Any: Yields all values that match the provided key.
+
+    Examples:
+        >>> d = {'a': 1, 'b': {'c': 2, 'a': 3}, 'd': [{'a': 4}, {'e': 5}]}
+        >>> list(search_dict_by_key('a', d))
+        [1, 3, 4]
     """
     if isinstance(d, dict):
         if key in d:
@@ -896,10 +1322,18 @@ def search_dict_by_key(key, d):
 
 
 def search_format_dict(d, **kwargs):
-    """
-    Recursively .format() string values in dictionary values
-    search_format_dict({"test": "#{name} is awesome"}, name="keanu")
-        --> {"test": "keanu is awesome"}
+    """Recursively format string values in a dictionary or list using the provided keyword arguments.
+
+    Args:
+        d (Union[dict, list, str]): The dictionary, list, or string to format.
+        **kwargs: Arbitrary keyword arguments used for string formatting.
+
+    Returns:
+        Union[dict, list, str]: The formatted dictionary, list, or string.
+
+    Examples:
+        >>> search_format_dict({"test": "#{name} is awesome"}, name="keanu")
+        {"test": "keanu is awesome"}
     """
     if isinstance(d, dict):
         return {k: search_format_dict(v, **kwargs) for k, v in d.items()}
@@ -913,21 +1347,30 @@ def search_format_dict(d, **kwargs):
 
 
 def search_dict_values(d, *regexes):
-    """
-    Recursively search a dictionary's values based on regexes
+    """Recursively search a dictionary's values based on provided regex patterns.
 
-    dict_to_search = {
-        "key1": {
-            "key2": [
-                {
-                    "key3": "A URL: https://www.evilcorp.com"
-                }
-            ]
-        }
-    })
+    Args:
+        d (Union[dict, list, str]): The dictionary, list, or string to search.
+        *regexes: Arbitrary number of compiled regex patterns.
 
-    search_dict_values(dict_to_search, url_regexes) --> "https://www.evilcorp.com"
+    Returns:
+        Generator: Yields matching values based on the provided regex patterns.
+
+    Examples:
+        >>> dict_to_search = {
+        ...     "key1": {
+        ...         "key2": [
+        ...             {
+        ...                 "key3": "A URL: https://www.evilcorp.com"
+        ...             }
+        ...         ]
+        ...     }
+        ... }
+        >>> url_regexes = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+        >>> list(search_dict_values(dict_to_search, url_regexes))
+        ["https://www.evilcorp.com"]
     """
+
     results = set()
     if isinstance(d, str):
         for r in regexes:
@@ -945,11 +1388,25 @@ def search_dict_values(d, *regexes):
             yield from search_dict_values(v, *regexes)
 
 
-def filter_dict(d, *key_names, fuzzy=False, invert=False, exclude_keys=None, prev_key=None):
+def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
     """
-    Recursively filter a dictionary based on key names
-    filter_dict({"key1": "test", "key2": "asdf"}, "key2")
-        --> {"key2": "asdf"}
+    Recursively filter a dictionary based on key names.
+
+    Args:
+        d (dict): The input dictionary.
+        *key_names: Names of keys to filter for.
+        fuzzy (bool): Whether to perform fuzzy matching on keys.
+        exclude_keys (list, None): List of keys to be excluded from the final dict.
+        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
+
+    Returns:
+        dict: A dictionary containing only the keys specified in key_names.
+
+    Examples:
+        >>> filter_dict({"key1": "test", "key2": "asdf"}, "key2")
+        {"key2": "asdf"}
+        >>> filter_dict({"key1": "test", "key2": {"key3": "asdf"}}, "key1", "key3", exclude_keys="key2")
+        {'key1': 'test'}
     """
     if exclude_keys is None:
         exclude_keys = []
@@ -959,16 +1416,31 @@ def filter_dict(d, *key_names, fuzzy=False, invert=False, exclude_keys=None, pre
     if isinstance(d, dict):
         for key in d:
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if not prev_key in exclude_keys:
+                if not any(k in exclude_keys for k in [key, _prev_key]):
                     ret[key] = copy.deepcopy(d[key])
             elif isinstance(d[key], list) or isinstance(d[key], dict):
-                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, prev_key=key, exclude_keys=exclude_keys)
+                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
                 if child:
                     ret[key] = child
     return ret
 
 
-def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, prev_key=None):
+def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
+    """
+    Recursively clean unwanted keys from a dictionary.
+    Useful for removing secrets from a config.
+
+    Args:
+        d (dict): The input dictionary.
+        *key_names: Names of keys to remove.
+        fuzzy (bool): Whether to perform fuzzy matching on keys.
+        exclude_keys (list, None): List of keys to be excluded from removal.
+        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
+
+    Returns:
+        dict: A dictionary cleaned of the keys specified in key_names.
+
+    """
     if exclude_keys is None:
         exclude_keys = []
     if isinstance(exclude_keys, str):
@@ -977,26 +1449,47 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, prev_key=None):
     if isinstance(d, dict):
         for key, val in list(d.items()):
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if prev_key not in exclude_keys:
+                if _prev_key not in exclude_keys:
                     d.pop(key)
             else:
-                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, prev_key=key, exclude_keys=exclude_keys)
+                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
 
 
 def grouper(iterable, n):
     """
-    >>> list(grouper('ABCDEFG', 3))
-    [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
+    Grouper groups an iterable into chunks of a given size.
+
+    Args:
+        iterable (iterable): The iterable to be chunked.
+        n (int): The size of each chunk.
+
+    Returns:
+        iterator: An iterator that produces lists of elements from the original iterable, each of length `n` or less.
+
+    Examples:
+        >>> list(grouper('ABCDEFG', 3))
+        [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
     """
+
     iterable = iter(iterable)
     return iter(lambda: list(islice(iterable, n)), [])
 
 
 def split_list(alist, wanted_parts=2):
     """
-    >>> split_list([1,2,3,4,5])
-    [[1, 2], [3, 4, 5]]
+    Splits a list into a specified number of approximately equal parts.
+
+    Args:
+        alist (list): The list to be split.
+        wanted_parts (int): The number of parts to split the list into.
+
+    Returns:
+        list: A list of lists, each containing a portion of the original list.
+
+    Examples:
+        >>> split_list([1, 2, 3, 4, 5])
+        [[1, 2], [3, 4, 5]]
     """
     length = len(alist)
     return [alist[i * length // wanted_parts : (i + 1) * length // wanted_parts] for i in range(wanted_parts)]
@@ -1004,7 +1497,24 @@ def split_list(alist, wanted_parts=2):
 
 def mkdir(path, check_writable=True, raise_error=True):
     """
-    Create a directory and ensure that it's writable
+    Creates a directory and optionally checks if it's writable.
+
+    Args:
+        path (str or Path): The directory to create.
+        check_writable (bool, optional): Whether to check if the directory is writable. Default is True.
+        raise_error (bool, optional): Whether to raise an error if the directory creation fails. Default is True.
+
+    Returns:
+        bool: True if the directory is successfully created (and writable, if check_writable=True); otherwise False.
+
+    Raises:
+        DirectoryCreationError: Raised if the directory cannot be created and `raise_error=True`.
+
+    Examples:
+        >>> mkdir("/tmp/new_dir")
+        True
+        >>> mkdir("/restricted_dir", check_writable=False, raise_error=False)
+        False
     """
     path = Path(path).resolve()
     touchfile = path / f".{rand_string()}"
@@ -1023,8 +1533,20 @@ def mkdir(path, check_writable=True, raise_error=True):
 
 def make_date(d=None, microseconds=False):
     """
-    make_date() --> "20220707_1325_50"
-    make_date(microseconds=True) --> "20220707_1330_35167617"
+    Generates a string representation of the current date and time, with optional microsecond precision.
+
+    Args:
+        d (datetime, optional): A datetime object to convert. Defaults to the current date and time.
+        microseconds (bool, optional): Whether to include microseconds. Defaults to False.
+
+    Returns:
+        str: A string representation of the date and time, formatted as YYYYMMDD_HHMM_SS or YYYYMMDD_HHMM_SSFFFFFF if microseconds are included.
+
+    Examples:
+        >>> make_date()
+        "20220707_1325_50"
+        >>> make_date(microseconds=True)
+        "20220707_1330_35167617"
     """
     f = "%Y%m%d_%H%M_%S"
     if microseconds:
@@ -1041,9 +1563,21 @@ def error_and_exit(msg):
 
 def get_file_extension(s):
     """
-    https://evilcorp.com/api/test.php --> "php"
-    /etc/test.conf --> "conf"
-    /etc/passwd --> ""
+    Extracts the file extension from a given string representing a URL or file path.
+
+    Args:
+        s (str): The string from which to extract the file extension.
+
+    Returns:
+        str: The file extension, or an empty string if no extension is found.
+
+    Examples:
+        >>> get_file_extension("https://evilcorp.com/api/test.php")
+        "php"
+        >>> get_file_extension("/etc/test.conf")
+        "conf"
+        >>> get_file_extension("/etc/passwd")
+        ""
     """
     s = str(s).lower().strip()
     rightmost_section = s.rsplit("/", 1)[-1]
@@ -1055,13 +1589,23 @@ def get_file_extension(s):
 
 def backup_file(filename, max_backups=10):
     """
-    rename a file as a backup
+    Renames a file by appending an iteration number as a backup. Recursively renames
+    files up to a specified maximum number of backups.
 
-    recursively renames files up to max_backups
+    Args:
+        filename (str or pathlib.Path): The file to backup.
+        max_backups (int, optional): The maximum number of backups to keep. Defaults to 10.
 
-    backup_file("/tmp/test.txt") --> "/tmp/test.0.txt"
-    backup_file("/tmp/test.0.txt") --> "/tmp/test.1.txt"
-    backup_file("/tmp/test.1.txt") --> "/tmp/test.2.txt"
+    Returns:
+        pathlib.Path: The new backup filepath.
+
+    Examples:
+        >>> backup_file("/tmp/test.txt")
+        PosixPath("/tmp/test.0.txt")
+        >>> backup_file("/tmp/test.0.txt")
+        PosixPath("/tmp/test.1.txt")
+        >>> backup_file("/tmp/test.1.txt")
+        PosixPath("/tmp/test.2.txt")
     """
     filename = Path(filename).resolve()
     suffixes = [s.strip(".") for s in filename.suffixes]
@@ -1079,11 +1623,21 @@ def backup_file(filename, max_backups=10):
 
 
 def latest_mtime(d):
-    """
-    Given a directory, return the latest modified time of any contained file or directory (recursive)
-    Useful for sorting directories by modified time for the purpose of cleanup, etc.
+    """Get the latest modified time of any file or sub-directory in a given directory.
 
-    latest_mtime("~/.bbot/scans/mushy_susan") --> 1659016928.2848816
+    This function takes a directory path as an argument and returns the latest modified time
+    of any contained file or directory, recursively. It's useful for sorting directories by
+    modified time for cleanup or other purposes.
+
+    Args:
+        d (str or Path): The directory path to search for the latest modified time.
+
+    Returns:
+        float: The latest modified time in Unix timestamp format.
+
+    Examples:
+        >>> latest_mtime("~/.bbot/scans/mushy_susan")
+        1659016928.2848816
     """
     d = Path(d).resolve()
     mtimes = [d.lstat().st_mtime]
@@ -1097,6 +1651,21 @@ def latest_mtime(d):
 
 
 def filesize(f):
+    """Get the file size of a given file.
+
+    This function takes a file path as an argument and returns its size in bytes. If the path
+    does not point to a file, the function returns 0.
+
+    Args:
+        f (str or Path): The file path for which to get the size.
+
+    Returns:
+        int: The size of the file in bytes, or 0 if the path does not point to a file.
+
+    Examples:
+        >>> filesize("/path/to/file.txt")
+        1024
+    """
     f = Path(f)
     if f.is_file():
         return f.stat().st_size
@@ -1104,11 +1673,23 @@ def filesize(f):
 
 
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):
-    """
-    Given a directory "d", measure the number of subdirectories and files (matching "filter")
-    And remove (rm -r) the oldest ones past the threshold of "keep"
+    """Clean up old files and directories within a given directory based on various filtering and sorting options.
 
-    clean_old_dirs("~/.bbot/scans", filter=lambda x: x.is_dir() and scan_name_regex.match(x.name))
+    This function removes the oldest files and directories in the provided directory 'd' that exceed a specified
+    threshold ('keep'). The items to be deleted can be filtered using a lambda function 'filter', and they are
+    sorted by a key function, defaulting to latest modification time.
+
+    Args:
+        d (str or Path): The directory path to clean up.
+        keep (int): The number of items to keep. Ones beyond this count will be removed.
+        filter (Callable): A lambda function for filtering which files or directories to consider.
+                           Defaults to a lambda function that returns True for all.
+        key (Callable): A function to sort the files and directories. Defaults to latest modification time.
+        reverse (bool): Whether to reverse the order of sorted items before removing. Defaults to True.
+        raise_error (bool): Whether to raise an error if directory deletion fails. Defaults to False.
+
+    Examples:
+        >>> clean_old("~/.bbot/scans", filter=lambda x: x.is_dir() and scan_name_regex.match(x.name))
     """
     d = Path(d)
     if not d.is_dir():
@@ -1129,6 +1710,20 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
 def extract_emails(s):
     """
     Extract email addresses from a body of text
+
+    This function takes in a string and yields all email addresses found in it.
+    The emails are converted to lower case before yielding. It utilizes
+    regular expressions for email pattern matching.
+
+    Args:
+        s (str): The input string from which to extract email addresses.
+
+    Yields:
+        str: Yields email addresses found in the input string, in lower case.
+
+    Examples:
+        >>> list(extract_emails("Contact us at info@evilcorp.com and support@evilcorp.com"))
+        ['info@evilcorp.com', 'support@evilcorp.com']
     """
     for email in bbot_regexes.email_regex.findall(smart_decode(s)):
         yield email.lower()
@@ -1222,8 +1817,17 @@ def smart_decode_punycode(text: str) -> str:
 
 
 def can_sudo_without_password():
-    """
-    Return True if the current user can sudo without a password
+    """Check if the current user has passwordless sudo access.
+
+    This function checks whether the current user can use sudo without entering a password.
+    It runs a command with sudo and checks the return code to determine this.
+
+    Returns:
+        bool: True if the current user can use sudo without a password, False otherwise.
+
+    Examples:
+        >>> can_sudo_without_password()
+        True
     """
     if os.geteuid() != 0:
         env = dict(os.environ)
@@ -1237,8 +1841,20 @@ def can_sudo_without_password():
 
 
 def verify_sudo_password(sudo_pass):
-    """
-    Return True if the sudo password is correct
+    """Verify if the given sudo password is correct.
+
+    This function checks whether the sudo password provided is valid for the current user.
+    It runs a command with sudo, feeding in the password via stdin, and checks the return code.
+
+    Args:
+        sudo_pass (str): The sudo password to verify.
+
+    Returns:
+        bool: True if the sudo password is correct, False otherwise.
+
+    Examples:
+        >>> verify_sudo_password("mysecretpassword")
+        True
     """
     try:
         sp.run(
@@ -1254,16 +1870,30 @@ def verify_sudo_password(sudo_pass):
 
 
 def make_table(*args, **kwargs):
-    """
-    make_table([["row1", "row1"], ["row2", "row2"]], ["header1", "header2"]) -->
+    """Generate a formatted table from the given rows and headers.
 
-    +-----------+-----------+
-    | header1   | header2   |
-    +===========+===========+
-    | row1      | row1      |
-    +-----------+-----------+
-    | row2      | row2      |
-    +-----------+-----------+
+    This function uses the `tabulate` package to generate a table with formatting options.
+    It can accept various input formats and table styles, which can be customized using optional arguments.
+
+    Args:
+        *args: Positional arguments to be passed to `tabulate.tabulate`.
+        **kwargs: Keyword arguments to customize table formatting.
+            - tablefmt (str, optional): Table format. Default is 'grid'.
+            - disable_numparse (bool, optional): Disable automatic number parsing. Default is True.
+            - maxcolwidths (int, optional): Maximum column width. Default is 40.
+
+    Returns:
+        str: A string representing the formatted table.
+
+    Examples:
+        >>> print(make_table([["row1", "row1"], ["row2", "row2"]], ["header1", "header2"]))
+        +-----------+-----------+
+        | header1   | header2   |
+        +===========+===========+
+        | row1      | row1      |
+        +-----------+-----------+
+        | row2      | row2      |
+        +-----------+-----------+
     """
     # fix IndexError: list index out of range
     if args and not args[0]:
