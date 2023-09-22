@@ -26,7 +26,7 @@ async def test_cli(monkeypatch, bbot_config):
     assert (scan_home / "wordcloud.tsv").is_file(), "wordcloud.tsv not found"
     assert (scan_home / "output.txt").is_file(), "output.txt not found"
     assert (scan_home / "output.csv").is_file(), "output.csv not found"
-    assert (scan_home / "output.json").is_file(), "output.json not found"
+    assert (scan_home / "output.ndjson").is_file(), "output.ndjson not found"
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
         assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
