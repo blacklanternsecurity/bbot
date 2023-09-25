@@ -51,7 +51,14 @@ class Agent:
                 verbs = ("Rebuilding", "Rebuilt")
             url = f"{self.url}/control/"
             log.debug(f"{verbs[0]} websocket connection to {url}")
-            self._ws = await websockets.connect(url, **kwargs)
+            while 1:
+                try:
+                    self._ws = await websockets.connect(url, **kwargs)
+                    break
+                except Exception as e:
+                    log.error(f'Failed to establish websockets connection to URL "{url}": {e}')
+                    log.trace(traceback.format_exc())
+                    await asyncio.sleep(1)
             log.debug(f"{verbs[1]} websocket connection to {url}")
         return self._ws
 
@@ -70,6 +77,7 @@ class Agent:
                     if message.command == "ping":
                         if self.scan is None:
                             await self.send({"conversation": str(message.conversation), "message_type": "pong"})
+                            continue
 
                     command_type = getattr(messages, message.command, None)
                     if command_type is None:
@@ -115,11 +123,7 @@ class Agent:
                     f"Starting scan with targets={targets}, modules={modules}, output_modules={output_modules}"
                 )
                 output_module_config = OmegaConf.create(
-                    {
-                        "output_modules": {
-                            "websocket": {"url": f"{self.url}/control/scan/{scan_id}/", "token": self.token}
-                        }
-                    }
+                    {"output_modules": {"websocket": {"url": f"{self.url}/scan/{scan_id}/", "token": self.token}}}
                 )
                 config = OmegaConf.create(config)
                 config = OmegaConf.merge(self.config, config, output_module_config)
