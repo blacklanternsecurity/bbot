@@ -51,7 +51,14 @@ class Agent:
                 verbs = ("Rebuilding", "Rebuilt")
             url = f"{self.url}/control/"
             log.debug(f"{verbs[0]} websocket connection to {url}")
-            self._ws = await websockets.connect(url, **kwargs)
+            while 1:
+                try:
+                    self._ws = await websockets.connect(url, **kwargs)
+                    break
+                except Exception as e:
+                    log.error(f'Failed to establish websockets connection to URL "{url}": {e}')
+                    log.trace(traceback.format_exc())
+                    await asyncio.sleep(1)
             log.debug(f"{verbs[1]} websocket connection to {url}")
         return self._ws
 
