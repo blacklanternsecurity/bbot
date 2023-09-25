@@ -77,6 +77,7 @@ class Agent:
                     if message.command == "ping":
                         if self.scan is None:
                             await self.send({"conversation": str(message.conversation), "message_type": "pong"})
+                            continue
 
                     command_type = getattr(messages, message.command, None)
                     if command_type is None:
