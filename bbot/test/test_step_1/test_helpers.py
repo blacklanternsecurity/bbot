@@ -39,6 +39,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.validators.clean_url("http://evilcorp.com/asdf?a=asdf#frag").geturl() == "http://evilcorp.com/asdf"
     assert helpers.validators.clean_url("http://evilcorp.com//asdf").geturl() == "http://evilcorp.com/asdf"
     assert helpers.validators.clean_url("http://evilcorp.com.").geturl() == "http://evilcorp.com/"
+    with pytest.raises(ValueError):
+        helpers.validators.clean_url("http://evilcorp,com")
 
     assert helpers.url_depth("http://evilcorp.com/asdf/user/") == 2
     assert helpers.url_depth("http://evilcorp.com/asdf/user") == 2

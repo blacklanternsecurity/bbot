@@ -143,7 +143,10 @@ def collapse_urls(urls, threshold=10):
     """
     url_hashes = {}
     for url in urls:
-        new_url = clean_url(url)
+        try:
+            new_url = clean_url(url)
+        except ValueError as e:
+            log.verbose(f"Failed to clean url {url}: {e}")
         url_hash = hash_url(new_url)
         try:
             url_hashes[url_hash].add(new_url)
