@@ -144,8 +144,8 @@ class BaseEvent:
         self._resolved_hosts = set()
 
         self._made_internal = False
-        # whether to force-send to output modules
-        self._force_output = False
+        # whether to force-output this event to the graph
+        self._graph_important = False
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
 
@@ -420,7 +420,7 @@ class BaseEvent:
             self.add_tag("internal")
             self._made_internal = True
 
-    def unmake_internal(self, set_scope_distance=None, force_output=False):
+    def unmake_internal(self, set_scope_distance=None, graph_important=False):
         """
         Reverts the event from being internal, optionally forcing it to be included in output and setting its scope distance.
 
@@ -432,7 +432,7 @@ class BaseEvent:
 
         Parameters:
             set_scope_distance (int, optional): If specified, sets the scope distance to this value.
-            force_output (bool or str, optional): If True, forces the event to be included in output.
+            graph_important (bool or str, optional): If True, forces the event to be included in output.
                                                   If set to "trail_only", only its source events are modified.
 
         Returns:
@@ -445,10 +445,10 @@ class BaseEvent:
                 self.scope_distance = set_scope_distance
             self._internal = False
             self._made_internal = False
-        if force_output is True:
-            self._force_output = True
-        if force_output == "trail_only":
-            force_output = True
+        if graph_important is True:
+            self._graph_important = True
+        if graph_important == "trail_only":
+            graph_important = True
 
         # if our source event is internal, unmake it too
         if getattr(self.source, "_internal", False):
@@ -456,7 +456,7 @@ class BaseEvent:
             if set_scope_distance is not None:
                 source_scope_distance = set_scope_distance + 1
             source_trail += self.source.unmake_internal(
-                set_scope_distance=source_scope_distance, force_output=force_output
+                set_scope_distance=source_scope_distance, graph_important=graph_important
             )
             source_trail.append(self.source)
 
@@ -479,7 +479,7 @@ class BaseEvent:
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
         if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=d, force_output="trail_only")
+            source_trail = self.unmake_internal(set_scope_distance=d, graph_important="trail_only")
         self.scope_distance = d
         if d == 0:
             self.add_tag("in-scope")

@@ -9,6 +9,7 @@ class JSON(BaseOutputModule):
     meta = {"description": "Output to Newline-Delimited JSON (NDJSON)"}
     options = {"output_file": "", "console": False}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
+    _preserve_graph = True
 
     async def setup(self):
         self._prep_output_dir("output.ndjson")

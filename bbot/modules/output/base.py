@@ -30,9 +30,9 @@ class BaseOutputModule(BaseModule):
         # omitted events such as HTTP_RESPONSE etc.
         if event._omit:
             return False, "_omit is True"
-        # forced events like intermediary links in a DNS resolution chain
-        if event._force_output:
-            return True, "_force_output is True"
+        # force-output certain events to the graph
+        if self._preserve_graph and event._graph_important:
+            return True, "event is critical to the graph"
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance
         if event._internal:
