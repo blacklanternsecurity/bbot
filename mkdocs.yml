@@ -7,6 +7,10 @@ site_description: >-
 # Repository
 repo_name: blacklanternsecurity/bbot
 repo_url: https://github.com/blacklanternsecurity/bbot
+watch: 
+  - "mkdocs.yml"
+  - "bbot"
+  - "docs"
 
 # Page tree
 nav:
@@ -26,6 +30,20 @@ nav:
     - Nuclei: modules/nuclei.md
   - Contribution:
     - How to Write a Module: contribution.md
+    - Developer Reference:
+      - Overview: dev/index.md
+      - Scanner: dev/scanner.md
+      - Event: dev/event.md
+      - Target: dev/target.md
+      - BaseModule: dev/basemodule.md
+      - Helpers: 
+        - Overview: dev/helpers/index.md
+        - Command: dev/helpers/command.md
+        - DNS: dev/helpers/dns.md
+        - Interactsh: dev/helpers/interactsh.md
+        - Miscellaneous: dev/helpers/misc.md
+        - Web: dev/helpers/web.md
+        - Word Cloud: dev/helpers/wordcloud.md
   - Misc:
     - Release History: release_history.md
     - Troubleshooting: troubleshooting.md
@@ -46,6 +64,24 @@ theme:
 plugins:
   - search
   - extra-sass
+  - mkdocstrings:
+      enable_inventory: true
+      handlers:
+        python:
+          options:
+            heading_level: 1
+            show_signature_annotations: true
+            show_root_toc_entry: false
+            show_root_heading: true
+            show_root_full_path: false
+            separate_signature: true
+            docstring_section_style: "list"
+            filters:
+              - "!^_"
+              - "^__init__$"
+          import:
+            - https://docs.python.org/3.11/objects.inv
+            - https://omegaconf.readthedocs.io/en/latest/objects.inv
 
 markdown_extensions:
   - attr_list

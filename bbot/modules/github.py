@@ -1,7 +1,7 @@
-from bbot.modules.shodan_dns import shodan_dns
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
 
-class github(shodan_dns):
+class github(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe"]

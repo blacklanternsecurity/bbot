@@ -105,7 +105,7 @@ class ModuleTestBase:
         module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request)
         module_test.log.info(f"Starting {self.name} module test")
         await self.setup_before_prep(module_test)
-        await module_test.scan.prep()
+        await module_test.scan._prep()
         await self.setup_after_prep(module_test)
         module_test.events = [e async for e in module_test.scan.async_start()]
         yield module_test

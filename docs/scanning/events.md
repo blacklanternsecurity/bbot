@@ -42,6 +42,8 @@ These attributes allow us to construct a visual graph of events (e.g. in [Neo4j]
 }
 ```
 
+For a more detailed description of BBOT events, see [Developer Documentation - Event](../../dev/event).
+
 Below is a full list of event types along with which modules produce/consume them.
 
 ## List of Event Types

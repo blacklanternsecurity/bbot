@@ -3,10 +3,17 @@ import json
 import random
 import subprocess
 
-from .crobat import crobat
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class massdns(crobat):
+class massdns(subdomain_enum):
+    """
+    This is BBOT's flagship subdomain enumeration module.
+
+    It uses massdns to brute-force subdomains.
+    At the end of a scan, it will leverage BBOT's word cloud to recursively discover target-specific subdomain mutations.
+    """
+
     flags = ["subdomain-enum", "passive", "slow", "aggressive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]

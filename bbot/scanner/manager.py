@@ -11,10 +11,32 @@ log = logging.getLogger("bbot.scanner.manager")
 
 class ScanManager:
     """
-    Manages modules and events during a scan
+    Manages the modules, event queues, and overall event flow during a scan.
+
+    Simultaneously serves as a shepherd, policeman, judge, jury, and executioner for events.
+    It is responsible for managing the incoming event queue and distributing events to modules.
+
+    Attributes:
+        scan (Scan): Reference to the Scan object that instantiated the ScanManager.
+        incoming_event_queue (asyncio.PriorityQueue): Queue storing incoming events for processing.
+        events_distributed (set): Set tracking globally unique events.
+        events_accepted (set): Set tracking events accepted by individual modules.
+        dns_resolution (bool): Flag to enable or disable DNS resolution.
+        _task_counter (TaskCounter): Counter for ongoing tasks.
+        _new_activity (bool): Flag indicating new activity.
+        _modules_by_priority (dict): Modules sorted by their priorities.
+        _incoming_queues (list): List of incoming event queues from each module.
+        _module_priority_weights (list): Weight values for each module based on priority.
     """
 
     def __init__(self, scan):
+        """
+        Initializes the ScanManager object, setting up essential attributes for scan management.
+
+        Args:
+            scan (Scan): Reference to the Scan object that instantiated the ScanManager.
+        """
+
         self.scan = scan
 
         self.incoming_event_queue = asyncio.PriorityQueue()
@@ -32,10 +54,15 @@ class ScanManager:
 
     async def init_events(self):
         """
-        seed scanner with target events
+        Initializes events by seeding the scanner with target events and distributing them for further processing.
+
+        Notes:
+            - This method populates the event queue with initial target events.
+            - It also marks the Scan object as finished with initialization by setting `_finished_init` to True.
         """
+
         context = f"manager.init_events()"
-        async with self.scan.acatch(context), self._task_counter.count(context):
+        async with self.scan._acatch(context), self._task_counter.count(context):
             await self.distribute_event(self.scan.root_event)
             sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
             for event in sorted_events:
@@ -66,10 +93,10 @@ class ScanManager:
                 event._resolved.set()
                 for kwarg in ["abort_if", "on_success_callback"]:
                     kwargs.pop(kwarg, None)
-                async with self.scan.acatch(context=self.distribute_event):
+                async with self.scan._acatch(context=self.distribute_event):
                     await self.distribute_event(event, *args, **kwargs)
             else:
-                async with self.scan.acatch(context=self._emit_event, finally_callback=event._resolved.set):
+                async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
                     await self._emit_event(event, *args, **kwargs)
 
     def _event_precheck(self, event, exclude=("DNS_NAME",)):
@@ -87,7 +114,41 @@ class ScanManager:
             return False
         return True
 
-    async def _emit_event(self, event, *args, **kwargs):
+    async def _emit_event(self, event, **kwargs):
+        """
+        Handles the emission, tagging, and distribution of a events during a scan.
+
+        A lot of really important stuff happens here. Actually this is probably the most
+        important method in all of BBOT. It is basically the central intersection that
+        every event passes through.
+
+        Probably it is also needless to say that it exists in a delicate balance.
+        Close to half of my debugging time has been spent in this function.
+        I have slain many dragons here and there may still be more yet to slay.
+
+        Tread carefully, friend. -TheTechromancer
+
+        Notes:
+            - Central function for decision-making in BBOT.
+            - Conducts DNS resolution, tagging, and scope calculations.
+            - Checks against whitelists and blacklists.
+            - Calls custom callbacks.
+            - Handles DNS wildcard events.
+            - Decides on event acceptance and distribution.
+
+        Parameters:
+            event (Event): The event object to be emitted.
+            **kwargs: Arbitrary keyword arguments (e.g., `on_success_callback`, `abort_if`).
+
+        Side Effects:
+            - Event tagging.
+            - Populating DNS data.
+            - Emitting new events.
+            - Queueing events for further processing.
+            - Adjusting event scopes.
+            - Running callbacks.
+            - Updating scan statistics.
+        """
         log.debug(f"Emitting {event}")
         distribute_event = True
         event_distributed = False
@@ -194,7 +255,7 @@ class ScanManager:
             # now that the event is properly tagged, we can finally make decisions about it
             abort_result = False
             if callable(abort_if):
-                async with self.scan.acatch(context=abort_if):
+                async with self.scan._acatch(context=abort_if):
                     abort_result = await self.scan.helpers.execute_sync_or_async(abort_if, event)
                 msg = f"{event.module}: not raising event {event} due to custom criteria in abort_if()"
                 with suppress(ValueError, TypeError):
@@ -210,7 +271,7 @@ class ScanManager:
             # run success callback before distributing event (so it can add tags, etc.)
             if distribute_event:
                 if callable(on_success_callback):
-                    async with self.scan.acatch(context=on_success_callback):
+                    async with self.scan._acatch(context=on_success_callback):
                         await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
 
             if not event.host or (event.always_emit and not event_is_duplicate):
@@ -244,7 +305,7 @@ class ScanManager:
 
             ### Emit DNS children ###
             if self.dns_resolution:
-                emit_children = -1 < event.scope_distance < self.scan.dns_search_distance
+                emit_children = -1 < event.scope_distance < self.scan.scope_dns_search_distance
                 if emit_children:
                     # only emit DNS children once for each unique host
                     host_hash = hash(str(event.host))
@@ -272,7 +333,7 @@ class ScanManager:
                         self.queue_event(child_event)
 
         except ValidationError as e:
-            log.warning(f"Event validation failed with args={args}, kwargs={kwargs}: {e}")
+            log.warning(f"Event validation failed with kwargs={kwargs}: {e}")
             log.trace(traceback.format_exc())
 
         finally:
@@ -317,7 +378,7 @@ class ScanManager:
         """
         Queue event with modules
         """
-        async with self.scan.acatch(context=self.distribute_event):
+        async with self.scan._acatch(context=self.distribute_event):
             event = self.scan.make_event(*args, **kwargs)
 
             event_hash = hash(event)

@@ -1,7 +1,7 @@
-from bbot.modules.shodan_dns import shodan_dns
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
 
-class censys(shodan_dns):
+class censys(subdomain_enum_apikey):
     """
     thanks to https://github.com/owasp-amass/amass/blob/master/resources/scripts/cert/censys.ads
     """

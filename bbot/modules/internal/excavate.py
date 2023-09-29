@@ -78,7 +78,7 @@ class URLExtractor(BaseExtractor):
             url_event = self.report(result, name, event, **kwargs)
             if url_event is not None:
                 url_in_scope = self.excavate.scan.in_scope(url_event)
-                is_spider_danger = self.excavate.is_spider_danger(event, result)
+                is_spider_danger = self.excavate.helpers.is_spider_danger(event, result)
                 if (
                     (
                         urls_found >= self.web_spider_links_per_page and url_in_scope

@@ -108,7 +108,7 @@ async def test_manager(bbot_config, bbot_scanner):
     msg = "Ignore this error, it belongs here"
     exceptions = (Exception(msg), KeyboardInterrupt(msg), BrokenPipeError(msg))
     for e in exceptions:
-        with manager.scan.catch():
+        with manager.scan._catch():
             raise e
 
 
