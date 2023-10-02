@@ -54,7 +54,7 @@ jobs:
   update_docs:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable || github.ref == 'refs/heads/fix-docs-publishing')
     steps:
       - uses: actions/checkout@v3
         with:
