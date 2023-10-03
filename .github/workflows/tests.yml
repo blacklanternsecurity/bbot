@@ -4,11 +4,10 @@ on:
     branches:
       - stable
       - dev
-      - fix-docs-publishing
   pull_request:
 
-concurrency: 
-  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -54,7 +53,7 @@ jobs:
   update_docs:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/fix-docs-publishing')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     steps:
       - uses: actions/checkout@v3
         with:
@@ -81,7 +80,7 @@ jobs:
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-docs-publishing')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
