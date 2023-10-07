@@ -125,6 +125,10 @@ class BaseModule:
         self._log = None
         self._incoming_event_queue = None
         self._outgoing_event_queue = None
+        # track incoming events to prevent unwanted duplicates
+        self._incoming_dup_tracker = set()
+        # track events that are critical to the graph
+        self._graph_important_tracker = set()
         # seconds since we've submitted a batch
         self._last_submitted_batch = None
         # additional callbacks to be executed alongside self.cleanup()
@@ -681,6 +685,30 @@ class BaseModule:
 
     async def _event_postcheck(self, event):
         """
+        A simple wrapper for dup tracking and preserving event chains for graph modules
+        """
+        acceptable, reason = await self.__event_postcheck(event)
+        if acceptable:
+            is_incoming_duplicate = self.is_incoming_duplicate(event, add=True)
+            if is_incoming_duplicate and not self.accept_dupes:
+                if not self._graph_important(event):
+                    return False, f"module has already seen {event}"
+
+            if self._preserve_graph:
+                s = event
+                while 1:
+                    s = s.source
+                    if s is None or s == self.scan.root_event or s == event:
+                        break
+                    if not self.is_incoming_duplicate(s, add=True):
+                        self._graph_important_tracker.add(hash(event))
+                        self.critical(f"queueing {event}")
+                        await self.queue_event(s, precheck=False)
+
+        return acceptable, reason
+
+    async def __event_postcheck(self, event):
+        """
         Post-checks an event to determine if it should be accepted by the module for handling.
 
         This method is called when an event is dequeued from the module's incoming event queue, right before it is actually processed.
@@ -691,14 +719,6 @@ class BaseModule:
 
         Returns:
             tuple: A tuple (bool, str) where the bool indicates if the event should be accepted, and the str gives the reason.
-
-        Examples:
-            >>> async def custom_filter(event):
-            ...     if event.data not in ["evilcorp.com"]:
-            ...         return False, "it's not on the cool list"
-            ...
-            >>> self.filter_event = custom_filter
-            >>> result, reason = await self._event_postcheck(event)
 
         Notes:
             - Override the `filter_event` method for custom filtering logic.
@@ -718,6 +738,8 @@ class BaseModule:
         # check scope distance
         filter_result, reason = self._scope_distance_check(event)
         if not filter_result:
+            if self._is_graph_important(event):
+                return True, f"{reason}, but exception was made because it is graph important"
             return filter_result, reason
 
         # custom filtering
@@ -774,7 +796,7 @@ class BaseModule:
                     async with self.scan._acatch(context), self._task_counter.count(context):
                         await self.helpers.execute_sync_or_async(callback)
 
-    async def queue_event(self, event):
+    async def queue_event(self, event, precheck=True):
         """
         Asynchronously queues an incoming event to the module's event queue for further processing.
 
@@ -797,7 +819,9 @@ class BaseModule:
             if self.incoming_event_queue is False:
                 self.debug(f"Not in an acceptable state to queue incoming event")
                 return
-            acceptable, reason = self._event_precheck(event)
+            acceptable, reason = True, "no precheck was performed"
+            if precheck:
+                acceptable, reason = self._event_precheck(event)
             if not acceptable:
                 if reason and reason != "its type is not in watched_events":
                     self.debug(f"Not accepting {event} because {reason}")
@@ -879,6 +903,30 @@ class BaseModule:
                 with suppress(asyncio.queues.QueueEmpty):
                     while 1:
                         self.outgoing_event_queue.get_nowait()
+
+    def is_incoming_duplicate(self, event, add=False):
+        event_hash = self._incoming_dedup_hash(event)
+        is_dup = event_hash in self._incoming_dup_tracker
+        if add:
+            self._incoming_dup_tracker.add(event_hash)
+        if self._is_graph_important(event):
+            return False
+        return is_dup
+
+    def _is_graph_important(self, event):
+        return self._preserve_graph and hash(event) in self._graph_important_tracker
+
+    def _incoming_dedup_hash(self, event):
+        """
+        Determines the criteria for what is considered to be a duplicate event if `accept_dupes` is False.
+        """
+        return hash(event)
+
+    def _outgoing_dedup_hash(self, event):
+        """
+        Determines the criteria for what is considered to be a duplicate event if `suppress_dupes` is True.
+        """
+        return hash(event)
 
     def get_per_host_hash(self, event):
         """

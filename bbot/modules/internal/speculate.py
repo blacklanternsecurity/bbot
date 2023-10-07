@@ -1,7 +1,6 @@
 import random
 import ipaddress
 
-from bbot.core.helpers.misc import parse_port_string
 from bbot.modules.internal.base import BaseInternalModule
 
 
@@ -43,7 +42,7 @@ class speculate(BaseInternalModule):
         port_string = self.config.get("ports", "80,443")
 
         try:
-            self.ports = parse_port_string(port_string)
+            self.ports = self.helpers.parse_port_string(port_string)
         except ValueError as e:
             self.warning(f"Error parsing ports: {e}")
             return False

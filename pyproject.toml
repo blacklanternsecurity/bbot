@@ -86,6 +86,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.black]
 line-length = 119
+exclude = "bbot/test/test_step_1/test_manager_scope_shepherding.py"
 
 [tool.poetry-dynamic-versioning]
 enable = true

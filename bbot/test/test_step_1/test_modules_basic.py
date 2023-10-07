@@ -33,7 +33,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):
         base_module = module_class(scan)
         localhost2 = scan.make_event("127.0.0.2", source=events.subdomain)
-        localhost2.set_scope_distance(0)
+        localhost2.scope_distance = 0
         # base cases
         base_module._watched_events = None
         base_module.watched_events = ["*"]
@@ -54,7 +54,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
         ip_range = scan.make_event("127.0.0.0/24", dummy=True)
         localhost4 = scan.make_event("127.0.0.1", source=ip_range)
-        localhost4.set_scope_distance(0)
+        localhost4.scope_distance = 0
         localhost4.module = "plumbus"
         assert base_module._event_precheck(localhost4)[0] == True
         localhost4.module = "speculate"
@@ -190,11 +190,11 @@ async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbo
             url_1 = per_host_scan.make_event(
                 "http://evilcorp.com/1", event_type="URL", source=per_host_scan.root_event, tags=["status-200"]
             )
-            url_1.set_scope_distance(0)
+            url_1.scope_distance = 0
             url_2 = per_host_scan.make_event(
                 "http://evilcorp.com/2", event_type="URL", source=per_host_scan.root_event, tags=["status-200"]
             )
-            url_2.set_scope_distance(0)
+            url_2.scope_distance = 0
             valid_1, reason_1 = await module._event_postcheck(url_1)
             valid_2, reason_2 = await module._event_postcheck(url_2)
 
@@ -231,11 +231,11 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, b
             url_1 = per_domain_scan.make_event(
                 "http://www.evilcorp.com/1", event_type="URL", source=per_domain_scan.root_event, tags=["status-200"]
             )
-            url_1.set_scope_distance(0)
+            url_1.scope_distance = 0
             url_2 = per_domain_scan.make_event(
                 "http://mail.evilcorp.com/2", event_type="URL", source=per_domain_scan.root_event, tags=["status-200"]
             )
-            url_2.set_scope_distance(0)
+            url_2.scope_distance = 0
             valid_1, reason_1 = await module._event_postcheck(url_1)
             valid_2, reason_2 = await module._event_postcheck(url_2)
 

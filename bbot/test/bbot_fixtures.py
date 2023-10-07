@@ -210,7 +210,7 @@ def events(scan):
     ]
 
     for e in bbot_events.all:
-        e.set_scope_distance(0)
+        e.scope_distance = 0
 
     return bbot_events
 

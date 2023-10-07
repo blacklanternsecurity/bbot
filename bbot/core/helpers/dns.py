@@ -1,3 +1,4 @@
+import dns
 import time
 import asyncio
 import logging
@@ -89,7 +90,7 @@ class DNSHelper:
         self.timeout = self.parent_helper.config.get("dns_timeout", 5)
         self.retries = self.parent_helper.config.get("dns_retries", 1)
         self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 50)
-        self.max_dns_resolve_distance = self.parent_helper.config.get("max_dns_resolve_distance", 4)
+        self.max_dns_resolve_distance = self.parent_helper.config.get("max_dns_resolve_distance", 5)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
         self._resolver_list = None
@@ -131,6 +132,10 @@ class DNSHelper:
         self._dns_cache = self.parent_helper.CacheDict(max_size=100000)
         self._event_cache = self.parent_helper.CacheDict(max_size=10000)
         self._event_cache_locks = NamedLock()
+
+        # for mocking DNS queries
+        self._orig_resolve_raw = None
+        self._mock_table = {}
 
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
@@ -220,13 +225,7 @@ class DNSHelper:
                 kwargs.pop("rdtype", None)
                 if "type" in kwargs:
                     t = kwargs.pop("type")
-                    if isinstance(t, str):
-                        if t.strip().lower() in ("any", "all", "*"):
-                            types = self.all_rdtypes
-                        else:
-                            types = [t.strip().upper()]
-                    elif any([isinstance(t, x) for x in (list, tuple)]):
-                        types = [str(_).strip().upper() for _ in t]
+                    types = self._parse_rdtype(t, default=types)
                 for t in types:
                     r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
                     if r:
@@ -500,7 +499,7 @@ class DNSHelper:
         event_blacklisted = False
 
         try:
-            if not event.host or event.type in ("IP_RANGE",):
+            if (not event.host) or (event.type in ("IP_RANGE",)):
                 return event_tags, event_whitelisted, event_blacklisted, dns_children
 
             # lock to ensure resolution of the same host doesn't start while we're working here
@@ -1016,6 +1015,16 @@ class DNSHelper:
         self._errors.clear()
         return False
 
+    def _parse_rdtype(self, t, default=None):
+        if isinstance(t, str):
+            if t.strip().lower() in ("any", "all", "*"):
+                return self.all_rdtypes
+            else:
+                return [t.strip().upper()]
+        elif any([isinstance(t, x) for x in (list, tuple)]):
+            return [str(_).strip().upper() for _ in t]
+        return default
+
     def debug(self, *args, **kwargs):
         if self._debug:
             log.debug(*args, **kwargs)
@@ -1027,3 +1036,28 @@ class DNSHelper:
             dummy_module = self.parent_helper._make_dummy_module(name=name, _type="DNS")
             self._dummy_modules[name] = dummy_module
         return dummy_module
+
+    def mock_dns(self, dns_dict):
+        if self._orig_resolve_raw is None:
+            self._orig_resolve_raw = self.resolve_raw
+
+        async def mock_resolve_raw(query, **kwargs):
+            results = []
+            errors = []
+            types = self._parse_rdtype(kwargs.get("type", ["A", "AAAA"]))
+            for t in types:
+                with suppress(KeyError):
+                    results += self._mock_table[(query, t)]
+            return results, errors
+
+        for (query, rdtype), answers in dns_dict.items():
+            if isinstance(answers, str):
+                answers = [answers]
+            for answer in answers:
+                rdata = dns.rdata.from_text("IN", rdtype, answer)
+                try:
+                    self._mock_table[(query, rdtype)].append((rdtype, rdata))
+                except KeyError:
+                    self._mock_table[(query, rdtype)] = [(rdtype, [rdata])]
+
+        self.resolve_raw = mock_resolve_raw
