@@ -37,6 +37,9 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
     It performs these tests for normal modules, output modules, and their graph variants,
     ensuring that when an internal event leads to an interesting discovery, the entire event chain is preserved.
     This is important for preventing orphans in the graph.
+
+    Todo:
+        - Verify scope distance on every event
     """
 
     from bbot.modules.base import BaseModule

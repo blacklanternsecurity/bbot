@@ -931,6 +931,10 @@ class BaseModule:
         """
         Determines the criteria for what is considered to be a duplicate event if `accept_dupes` is False.
         """
+        if self.per_host_only:
+            return self.get_per_host_hash(event)
+        elif self.per_domain_only:
+            return self.get_per_domain_hash(event)
         return hash(event)
 
     def _outgoing_dedup_hash(self, event):
