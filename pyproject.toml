@@ -86,7 +86,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.black]
 line-length = 119
-extend-exclude = "test_manager_scope_accuracy.py"
+extend-exclude = "(test_step_1/test_manager_*)"
 
 [tool.poetry-dynamic-versioning]
 enable = true
