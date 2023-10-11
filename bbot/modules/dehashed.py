@@ -10,8 +10,8 @@ class dehashed(BaseModule):
     options = {"username": "", "api_key": "", "check_domains": False}
     options_desc = {
         "username": "Email Address associated with your API key",
-        "api_key": "API Key",
-        "check_domains": "Enable only if bbot should search dehashed for new email addresses - this can be significantly more expensive against the API.",
+        "api_key": "DeHashed API Key",
+        "check_domains": "Enable only if BBOT should search dehashed for new email addresses - this can be significantly more expensive against the API.",
     }
 
     base_url = "https://api.dehashed.com/search"
@@ -98,45 +98,45 @@ class dehashed(BaseModule):
                         self.result_usernames[user].append(db_name)
 
     async def handle_event(self, event):
-        # Checks if user explicitly opted in for domain checking
-        if self.check_domains:
-            if event.type == "DNS_NAME":
-                url = f"{self.base_url}?query=domain:{event.data}&size=10000&page=1"
-                result = await self.helpers.request(url, auth=self.auth, headers=self.headers)
+        if event.type == "DNS_NAME":
+            url = f"{self.base_url}?query=domain:{event.data}&size=10000&page=1"
+            result = await self.helpers.request(url, auth=self.auth, headers=self.headers)
+            self.hugesuccess(result.json())
+            return
 
-                if result:
-                    self.parse_results(result, True)
+            if result:
+                self.parse_results(result, True)
 
-                    # Check to see if multiple requests are required
-                    if self.api_count > 10000:
-                        pages = self.api_count // 10000
-                        if self.api_count % 10000:
-                            pages += 1
+                # Check to see if multiple requests are required
+                if self.api_count > 10000:
+                    pages = self.api_count // 10000
+                    if self.api_count % 10000:
+                        pages += 1
 
-                        for i in range(2, pages + 1):
-                            if i <= 3:
-                                url = f"{self.base_url}?query=domain:{event.data}&size=10000&page={i}"
-                                result = await self.helpers.request(url, auth=self.auth, headers=self.headers)
-                                self.parse_results(result, True)
-                            # Due to a limitation in the api we cannot request more thank 30k results or 3 pages of 10k - if we go beyond the 3 pages then break out and warn
-                            elif i > 3:
-                                self.api_warn = True
-                                break
+                    for i in range(2, pages + 1):
+                        if i <= 3:
+                            url = f"{self.base_url}?query=domain:{event.data}&size=10000&page={i}"
+                            result = await self.helpers.request(url, auth=self.auth, headers=self.headers)
+                            self.parse_results(result, True)
+                        # Due to a limitation in the api we cannot request more thank 30k results or 3 pages of 10k - if we go beyond the 3 pages then break out and warn
+                        elif i > 3:
+                            self.api_warn = True
+                            break
 
-                    for x in self.result_email:
-                        f = self.make_event(x, "EMAIL_ADDRESS", source=event, tags=self.result_email[x]["source"])
-                        self.emit_event(f)
-                        if self.result_email[x]["hashed"]:
-                            for y in self.result_email[x]["hashed"]:
-                                self.emit_event(y, "HASHED_PASSWORD", source=f, tags=self.result_email[x]["hashed"][y])
-                        if self.result_email[x]["passwords"]:
-                            for y in self.result_email[x]["passwords"]:
-                                self.emit_event(y, "PASSWORD", source=f, tags=self.result_email[x]["passwords"][y])
-                        if self.result_email[x]["usernames"]:
-                            for y in self.result_email[x]["usernames"]:
-                                self.emit_event(y, "USERNAME", source=f, tags=self.result_email[x]["usernames"][y])
+                for x in self.result_email:
+                    f = self.make_event(x, "EMAIL_ADDRESS", source=event, tags=self.result_email[x]["source"])
+                    self.emit_event(f)
+                    if self.result_email[x]["hashed"]:
+                        for y in self.result_email[x]["hashed"]:
+                            self.emit_event(y, "HASHED_PASSWORD", source=f, tags=self.result_email[x]["hashed"][y])
+                    if self.result_email[x]["passwords"]:
+                        for y in self.result_email[x]["passwords"]:
+                            self.emit_event(y, "PASSWORD", source=f, tags=self.result_email[x]["passwords"][y])
+                    if self.result_email[x]["usernames"]:
+                        for y in self.result_email[x]["usernames"]:
+                            self.emit_event(y, "USERNAME", source=f, tags=self.result_email[x]["usernames"][y])
 
-        if event.type == "EMAIL_ADDRESS":
+        elif event.type == "EMAIL_ADDRESS":
             url = f"{self.base_url}?query=email:{event.data}"
             result = await self.helpers.request(url, auth=self.auth, headers=self.headers)
             if result:
