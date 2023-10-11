@@ -71,6 +71,7 @@ mkdocs-material = "^9.2.5"
 mkdocs-material-extensions = "^1.1.1"
 mkdocstrings = "^0.22.0"
 mkdocstrings-python = "^1.6.0"
+livereload = "^2.6.3"
 
 [tool.pytest.ini_options]
 env = [
