@@ -18,6 +18,32 @@ log = logging.getLogger("bbot.core.helpers")
 
 
 class ConfigAwareHelper:
+    """
+    Centralized helper class that provides unified access to various helper functions.
+
+    This class serves as a convenient interface for accessing helper methods across different files.
+    It is designed to be configuration-aware, allowing helper functions to utilize scan-specific
+    configurations like rate-limits. The class leverages Python's `__getattribute__` magic method
+    to provide seamless access to helper functions across various namespaces.
+
+    Attributes:
+        config (dict): Configuration settings for the BBOT scan instance.
+        _scan (Scan): A BBOT scan instance.
+        bbot_home (Path): Home directory for BBOT.
+        cache_dir (Path): Directory for storing cache files.
+        temp_dir (Path): Directory for storing temporary files.
+        tools_dir (Path): Directory for storing tools, e.g. compiled binaries.
+        lib_dir (Path): Directory for storing libraries.
+        scans_dir (Path): Directory for storing scan results.
+        wordlist_dir (Path): Directory for storing wordlists.
+        current_dir (Path): The current working directory.
+        keep_old_scans (int): The number of old scans to keep.
+
+    Examples:
+        >>> helper = ConfigAwareHelper(config)
+        >>> ips = helper.dns.resolve("www.evilcorp.com")
+    """
+
     from . import ntlm
     from . import regexes
     from . import validators
@@ -70,7 +96,7 @@ class ConfigAwareHelper:
         _filter = lambda x: x.is_dir() and self.regexes.scan_name_regex.match(x.name)
         self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
 
-    def make_target(self, events):
+    def make_target(self, *events):
         return Target(self.scan, *events)
 
     @property
@@ -98,7 +124,22 @@ class ConfigAwareHelper:
 
     def __getattribute__(self, attr):
         """
-        Allow static functions from sub-helpers to be accessed from the main class
+        Do not be afraid, the angel said.
+
+        Overrides Python's built-in __getattribute__ to provide convenient access to helper methods.
+
+        This method first attempts to find an attribute within this class itself. If unsuccessful,
+        it then looks in the 'misc', 'dns', and 'web' helper modules, in that order. If the attribute
+        is still not found, an AttributeError is raised.
+
+        Args:
+            attr (str): The attribute name to look for.
+
+        Returns:
+            Any: The attribute value, if found.
+
+        Raises:
+            AttributeError: If the attribute is not found in any of the specified places.
         """
         try:
             # first try self

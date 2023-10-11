@@ -16,9 +16,9 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "http://e.co/u/4444/info",
         "http://e.co/u/5555/info",
     )
-    new_urls = tuple(helpers.collapse_urls(bad_urls, threshold=4))
+    new_urls = tuple(helpers.validators.collapse_urls(bad_urls, threshold=4))
     assert len(new_urls) == 2
-    new_urls = tuple(sorted([u.geturl() for u in helpers.collapse_urls(bad_urls, threshold=5)]))
+    new_urls = tuple(sorted([u.geturl() for u in helpers.validators.collapse_urls(bad_urls, threshold=5)]))
     assert new_urls == bad_urls
 
     new_url = helpers.add_get_params("http://evilcorp.com/a?p=1&q=2", {"r": 3, "s": "asdf"}).geturl()
@@ -35,9 +35,12 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         ("q", ["2"]),
     )
 
-    assert helpers.clean_url("http://evilcorp.com:80").geturl() == "http://evilcorp.com/"
-    assert helpers.clean_url("http://evilcorp.com/asdf?a=asdf#frag").geturl() == "http://evilcorp.com/asdf"
-    assert helpers.clean_url("http://evilcorp.com//asdf").geturl() == "http://evilcorp.com/asdf"
+    assert helpers.validators.clean_url("http://evilcorp.com:80").geturl() == "http://evilcorp.com/"
+    assert helpers.validators.clean_url("http://evilcorp.com/asdf?a=asdf#frag").geturl() == "http://evilcorp.com/asdf"
+    assert helpers.validators.clean_url("http://evilcorp.com//asdf").geturl() == "http://evilcorp.com/asdf"
+    assert helpers.validators.clean_url("http://evilcorp.com.").geturl() == "http://evilcorp.com/"
+    with pytest.raises(ValueError):
+        helpers.validators.clean_url("http://evilcorp,com")
 
     assert helpers.url_depth("http://evilcorp.com/asdf/user/") == 2
     assert helpers.url_depth("http://evilcorp.com/asdf/user") == 2
@@ -107,18 +110,73 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "b@b.com",
     )
 
+    assert helpers.extract_host("evilcorp.com:80") == ("evilcorp.com", "", ":80")
+    assert helpers.extract_host("http://evilcorp.com:80/asdf.php?a=b") == (
+        "evilcorp.com",
+        "http://",
+        ":80/asdf.php?a=b",
+    )
+    assert helpers.extract_host("http://evilcorp.com:80/asdf.php?a=b@a.com") == (
+        "evilcorp.com",
+        "http://",
+        ":80/asdf.php?a=b@a.com",
+    )
+    assert helpers.extract_host("bob@evilcorp.com") == ("evilcorp.com", "bob@", "")
+    assert helpers.extract_host("[dead::beef]:22") == ("dead::beef", "[", "]:22")
+    assert helpers.extract_host("scp://[dead::beef]:22") == ("dead::beef", "scp://[", "]:22")
+    assert helpers.extract_host("https://[dead::beef]:22?a=b") == ("dead::beef", "https://[", "]:22?a=b")
+    assert helpers.extract_host("https://[dead::beef]/?a=b") == ("dead::beef", "https://[", "]/?a=b")
+    assert helpers.extract_host("https://[dead::beef]?a=b") == ("dead::beef", "https://[", "]?a=b")
+    assert helpers.extract_host("ftp://username:password@my-ftp.com/my-file.csv") == (
+        "my-ftp.com",
+        "ftp://username:password@",
+        "/my-file.csv",
+    )
+    assert helpers.extract_host("ftp://username:p@ssword@my-ftp.com/my-file.csv") == (
+        "my-ftp.com",
+        "ftp://username:p@ssword@",
+        "/my-file.csv",
+    )
+    assert helpers.extract_host("ftp://username:password:/@my-ftp.com/my-file.csv") == (
+        "my-ftp.com",
+        "ftp://username:password:/@",
+        "/my-file.csv",
+    )
+    assert helpers.extract_host("ftp://username:password:/@dead::beef/my-file.csv") == (
+        None,
+        "ftp://username:password:/@dead::beef/my-file.csv",
+        "",
+    )
+    assert helpers.extract_host("ftp://username:password:/@[dead::beef]/my-file.csv") == (
+        "dead::beef",
+        "ftp://username:password:/@[",
+        "]/my-file.csv",
+    )
+    assert helpers.extract_host("ftp://username:password:/@[dead::beef]:22/my-file.csv") == (
+        "dead::beef",
+        "ftp://username:password:/@[",
+        "]:22/my-file.csv",
+    )
+
     assert helpers.split_domain("www.evilcorp.co.uk") == ("www", "evilcorp.co.uk")
     assert helpers.split_domain("asdf.www.test.notreal") == ("asdf.www", "test.notreal")
     assert helpers.split_domain("www.test.notreal") == ("www", "test.notreal")
     assert helpers.split_domain("test.notreal") == ("", "test.notreal")
     assert helpers.split_domain("notreal") == ("", "notreal")
+    assert helpers.split_domain("192.168.0.1") == ("", "192.168.0.1")
+    assert helpers.split_domain("dead::beef") == ("", "dead::beef")
 
     assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk") == ("evilcorp.co.uk", None)
+    assert helpers.split_host_port("192.168.0.1") == (ipaddress.ip_address("192.168.0.1"), None)
+    assert helpers.split_host_port("192.168.0.1:80") == (ipaddress.ip_address("192.168.0.1"), 80)
+    assert helpers.split_host_port("[e]:80") == ("e", 80)
     assert helpers.split_host_port("d://wat:wat") == ("wat", None)
     assert helpers.split_host_port("https://[dead::beef]:8338") == (ipaddress.ip_address("dead::beef"), 8338)
+    assert helpers.split_host_port("[dead::beef]") == (ipaddress.ip_address("dead::beef"), None)
+    assert helpers.split_host_port("dead::beef") == (ipaddress.ip_address("dead::beef"), None)
     extracted_words = helpers.extract_words("blacklanternsecurity")
     assert "black" in extracted_words
     # assert "blacklantern" in extracted_words
@@ -284,7 +342,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     with pytest.raises(DirectoryCreationError, match="Failed to create.*"):
         helpers.mkdir(test_file)
 
-    helpers._rm_at_exit(test_file)
+    helpers.delete_file(test_file)
     assert not test_file.exists()
 
     timedelta = datetime.timedelta(hours=1, minutes=2, seconds=3)
@@ -296,7 +354,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
 
     ### VALIDATORS ###
     # hosts
-    assert helpers.validators.validate_host(" evilCorp.COM") == "evilcorp.com"
+    assert helpers.validators.validate_host(" evilCorp.COM.") == "evilcorp.com"
     assert helpers.validators.validate_host("LOCALHOST ") == "localhost"
     assert helpers.validators.validate_host(" 192.168.1.1") == "192.168.1.1"
     assert helpers.validators.validate_host(" Dead::c0dE ") == "dead::c0de"
@@ -345,10 +403,6 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.smart_decode_punycode("bob_smith@xn--eckwd4c7c.xn--zckzah") == "bob_smith@ドメイン.テスト"
     assert helpers.smart_encode_punycode("ドメイン.テスト:80") == "xn--eckwd4c7c.xn--zckzah:80"
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah:80") == "ドメイン.テスト:80"
-    with pytest.raises(ValueError):
-        helpers.smart_decode_punycode(b"asdf")
-    with pytest.raises(ValueError):
-        helpers.smart_encode_punycode(b"asdf")
 
     assert helpers.recursive_decode("Hello%20world%21") == "Hello world!"
     assert helpers.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"

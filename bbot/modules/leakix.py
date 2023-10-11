@@ -1,8 +1,7 @@
-from .crobat import crobat
-from .shodan_dns import shodan_dns
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
 
-class leakix(shodan_dns):
+class leakix(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
@@ -14,7 +13,7 @@ class leakix(shodan_dns):
     base_url = "https://leakix.net"
 
     async def setup(self):
-        ret = await crobat.setup(self)
+        ret = await super(subdomain_enum_apikey, self).setup()
         self.headers = {"Accept": "application/json"}
         self.api_key = self.config.get("api_key", "")
         if self.api_key:

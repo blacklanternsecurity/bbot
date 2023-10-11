@@ -4,7 +4,7 @@
 
 ### OSINT automation for hackers.
 
-[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Pypi Downloads](https://img.shields.io/pypi/dm/bbot)](https://pypi.org/project/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
+[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Pypi Downloads](https://img.shields.io/pypi/dm/bbot)](https://pypistats.org/packages/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
 BBOT (Bighuge BLS OSINT Tool) is a modular, recursive OSINT framework that can execute the entire OSINT workflow in a single command.
 
@@ -18,13 +18,9 @@ BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn
 
 ## Installation ([pip](https://pypi.org/project/bbot/))
 
-For more installation methods including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Installation](https://www.blacklanternsecurity.com/bbot/#installation).
+Note: Requires Linux and Python 3.9+. For more installation methods including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Installation](https://www.blacklanternsecurity.com/bbot/#installation).
 
 ```bash
-# Prerequisites:
-# - Linux (Windows and macOS are *not* supported)
-# - Python 3.9 or newer
-
 # stable version
 pipx install bbot
 
@@ -84,7 +80,7 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 
 ## Targets
 
-BBOT accepts an unlimited number of targets. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
+BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
 
 - `DNS_NAME` (`evilcorp.com`)
 - `IP_ADDRESS` (`1.2.3.4`)
@@ -94,7 +90,33 @@ BBOT accepts an unlimited number of targets. You can specify targets either dire
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/scanning/#scope).
 
+## API Keys
+
+Similar to Amass or Subfinder, BBOT supports API keys for various third-party services such as SecurityTrails, etc.
+
+The standard way to do this is to enter your API keys in **`~/.config/bbot/secrets.yml`**:
+```yaml
+modules:
+  shodan_dns:
+    api_key: 4f41243847da693a4f356c0486114bc6
+  c99:
+    api_key: 21a270d5f59c9b05813a72bb41707266
+  virustotal:
+    api_key: dd5f0eee2e4a99b71a939bded450b246
+  securitytrails:
+    api_key: d9a05c3fd9a514497713c54b4455d0b0
+```
+
+If you like, you can also specify them on the command line:
+```bash
+bbot -c modules.virustotal.api_key=dd5f0eee2e4a99b71a939bded450b246
+```
+
+For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/)
+
 ## BBOT as a Python library
+
+BBOT exposes a Python API that allows it to be used for all kinds of fun and nefarious purposes, like a [Discord Bot that responds to `/scan evilcorp.com`](https://www.blacklanternsecurity.com/bbot/dev/#bbot-python-library-advanced-usage#discord-bot-example).
 
 **Synchronous**
 

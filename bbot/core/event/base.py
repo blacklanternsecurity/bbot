@@ -24,7 +24,6 @@ from bbot.core.helpers import (
     smart_decode,
     get_file_extension,
     validators,
-    smart_decode_punycode,
     tagify,
 )
 
@@ -33,6 +32,60 @@ log = logging.getLogger("bbot.core.event")
 
 
 class BaseEvent:
+    """
+    Represents a piece of data discovered during a BBOT scan.
+
+    An Event contains various attributes that provide metadata about the discovered data.
+    The attributes assist in understanding the context of the Event and facilitate further
+    filtering and querying. Events are integral in the construction of visual graphs and
+    are the cornerstone of data exchange between BBOT modules.
+
+    You can inherit from this class when creating a new event type. However, it's not always
+    necessary. You only need to subclass if you want to layer additional functionality on
+    top of the base class.
+
+    Attributes:
+        type (str): Specifies the type of the event, e.g., `IP_ADDRESS`, `DNS_NAME`.
+        id (str): A unique identifier for the event.
+        data (str or dict): The main data for the event, e.g., a URL or IP address.
+        data_graph (str): Representation of `self.data` for Neo4j graph nodes.
+        data_human (str): Representation of `self.data` for human output.
+        data_id (str): Representation of `self.data` used to calculate the event's ID (and ultimately its hash, which is used for deduplication)
+        data_json (str): Representation of `self.data` to be used in JSON serialization.
+        host (str, IPvXAddress, or IPvXNetwork): The associated IP address or hostname for the event
+        host_stem (str): An abbreviated representation of hostname that removes the TLD, e.g. "www.evilcorp". Used by the word cloud.
+        port (int or None): The port associated with the event, if applicable, else None.
+        words (set): A list of relevant keywords extracted from the event. Used by the word cloud.
+        scope_distance (int): Indicates how many hops the event is from the main scope; 0 means in-scope.
+        web_spider_distance (int): The spider distance from the web root, specific to web crawling.
+        scan (Scanner): The scan object that generated the event.
+        timestamp (datetime.datetime): The time at which the data was discovered.
+        resolved_hosts (list of str): List of hosts to which the event data resolves, applicable for URLs and DNS names.
+        source (BaseEvent): The source event that led to the discovery of this event.
+        source_id (str): The `id` attribute of the source event.
+        tags (set of str): Descriptive tags for the event, e.g., `mx-record`, `in-scope`.
+        module (BaseModule): The module that discovered the event.
+        module_sequence (str): The sequence of modules that participated in the discovery.
+
+    Examples:
+        ```json
+        {
+            "type": "URL",
+            "id": "URL:017ec8e5dc158c0fd46f07169f8577fb4b45e89a",
+            "data": "http://www.blacklanternsecurity.com/",
+            "web_spider_distance": 0,
+            "scope_distance": 0,
+            "scan": "SCAN:4d786912dbc97be199da13074699c318e2067a7f",
+            "timestamp": 1688526222.723366,
+            "resolved_hosts": ["185.199.108.153"],
+            "source": "OPEN_TCP_PORT:cf7e6a937b161217eaed99f0c566eae045d094c7",
+            "tags": ["in-scope", "distance-0", "dir", "ip-185-199-108-153", "status-301", "http-title-301-moved-permanently"],
+            "module": "httpx",
+            "module_sequence": "httpx"
+        }
+        ```
+    """
+
     # Always emit this event type even if it's not in scope
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
@@ -47,7 +100,7 @@ class BaseEvent:
     def __init__(
         self,
         data,
-        event_type=None,
+        event_type,
         source=None,
         module=None,
         scan=None,
@@ -58,6 +111,29 @@ class BaseEvent:
         _dummy=False,
         _internal=None,
     ):
+        """
+        Initializes an Event object with the given parameters.
+
+        In most cases, you should use `make_event()` instead of instantiating this class directly.
+        `make_event()` is much friendlier, and can auto-detect the event type for you.
+
+        Attributes:
+            data (str, dict): The primary data for the event.
+            event_type (str, optional): Type of the event, e.g., 'IP_ADDRESS'.
+            source (BaseEvent, optional): Source event that led to this event's discovery. Defaults to None.
+            module (str, optional): Module that discovered the event. Defaults to None.
+            scan (Scan, optional): BBOT Scan object. Required unless _dummy is True. Defaults to None.
+            scans (list of Scan, optional): BBOT Scan objects, used primarily when unserializing an Event from the database. Defaults to None.
+            tags (list of str, optional): Descriptive tags for the event. Defaults to None.
+            confidence (int, optional): Confidence level for the event, on a scale of 1-10. Defaults to 5.
+            timestamp (datetime, optional): Time of event discovery. Defaults to current UTC time.
+            _dummy (bool, optional): If True, disables certain data validations. Defaults to False.
+            _internal (Any, optional): If specified, makes the event internal. Defaults to None.
+
+        Raises:
+            ValidationError: If either `scan` or `source` are not specified and `_dummy` is False.
+        """
+
         self._id = None
         self._hash = None
         self.__host = None
@@ -230,6 +306,19 @@ class BaseEvent:
 
     @scope_distance.setter
     def scope_distance(self, scope_distance):
+        """
+        Setter for the scope_distance attribute, ensuring it only decreases.
+
+        The scope_distance attribute is designed to never increase; it can only be set to smaller values than
+        the current one. If a larger value is provided, it is ignored. The setter also updates the event's
+        tags to reflect the new scope distance.
+
+        Parameters:
+            scope_distance (int): The new scope distance to set, must be a non-negative integer.
+
+        Note:
+            The method will automatically update the relevant 'distance-' tags associated with the event.
+        """
         if scope_distance >= 0:
             new_scope_distance = None
             # ensure scope distance does not increase (only allow setting to smaller values)
@@ -250,6 +339,19 @@ class BaseEvent:
 
     @source.setter
     def source(self, source):
+        """
+        Setter for the source attribute, ensuring it's a valid event and updating scope distance.
+
+        Sets the source of the event and automatically adjusts the scope distance based on the source event's
+        scope distance. The scope distance is incremented by 1 if the host of the source event is different
+        from the current event's host.
+
+        Parameters:
+            source (BaseEvent): The new source event to set. Must be a valid event object.
+
+        Note:
+            If an invalid source is provided and the event is not a dummy, a warning will be logged.
+        """
         if is_event(source):
             self._source = source
             if source.scope_distance >= 0:
@@ -291,12 +393,47 @@ class BaseEvent:
         return sources
 
     def make_internal(self):
+        """
+        Marks the event as internal, excluding it from output but allowing normal exchange between scan modules.
+
+        Internal events are typically speculative and may not be interesting by themselves but can lead to
+        the discovery of interesting events. This method sets the `_internal` attribute to True, adds the
+        "internal" tag, and ensures the event is marked as made internal (useful for later reversion).
+
+        Examples of internal events include `OPEN_TCP_PORT`s from the `speculate` module,
+        `IP_ADDRESS`es from the `ipneighbor` module, or out-of-scope `DNS_NAME`s that originate
+        from DNS resolutions.
+
+        Once an event is marked as internal, all of its future children become internal as well.
+        If `ScanManager._emit_event()` determines the event is interesting, it may be reverted back to its
+        original state and forcefully re-emitted along with the whole chain of internal events.
+
+        The purpose of internal events is to enable speculative/explorative discovery without cluttering
+        the console with irrelevant or uninteresting events.
+        """
         if not self._made_internal:
             self._internal = True
             self.add_tag("internal")
             self._made_internal = True
 
     def unmake_internal(self, set_scope_distance=None, force_output=False):
+        """
+        Reverts the event from being internal, optionally forcing it to be included in output and setting its scope distance.
+
+        Removes the 'internal' tag, resets the `_internal` attribute, and adjusts scope distance if specified.
+        Optionally, forces the event to be included in the output. Also, if any source events are internal, they
+        are also reverted recursively.
+
+        This typically happens in `ScanManager._emit_event()` if the event is determined to be interesting.
+
+        Parameters:
+            set_scope_distance (int, optional): If specified, sets the scope distance to this value.
+            force_output (bool or str, optional): If True, forces the event to be included in output.
+                                                  If set to "trail_only", only its source events are modified.
+
+        Returns:
+            list: A list of source events that were also reverted from being internal.
+        """
         source_trail = []
         self.remove_tag("internal")
         if self._made_internal:
@@ -323,7 +460,17 @@ class BaseEvent:
 
     def set_scope_distance(self, d=0):
         """
-        Set the scope of an event and its parents
+        Sets the scope distance for the event and its parent events, while considering module-specific scoping rules.
+
+        Unmakes the event internal if needed and adjusts its scope distance. If the distance is set to 0,
+        adds the 'in-scope' tag to the event. Takes into account module-specific scoping preferences unless
+        the event type is "DNS_NAME".
+
+        Parameters:
+            d (int): The scope distance to set for this event.
+
+        Returns:
+            list: A list of parent events whose scope distance was also set.
         """
         source_trail = []
         # keep the event internal if the module requests so, unless it's a DNS_NAME
@@ -338,6 +485,19 @@ class BaseEvent:
         return ""
 
     def _sanitize_data(self, data):
+        """
+        Validates and sanitizes the event's data during instantiation.
+
+        By default, uses the '_data_load' method to pre-process the data and then applies the '_data_validator'
+        to validate and create a sanitized dictionary. Raises a ValidationError if any of the validations fail.
+        Subclasses can override this method to provide custom validation logic.
+
+        Returns:
+            Any: The sanitized data.
+
+        Raises:
+            ValidationError: If the data fails to validate.
+        """
         data = self._data_load(data)
         if self._data_validator is not None:
             if not isinstance(data, dict):
@@ -378,7 +538,15 @@ class BaseEvent:
     @property
     def pretty_string(self):
         """
-        Graph representation of event.data
+        A human-friendly representation of the event's data. Used for graph representation.
+
+        If the event's data is a dictionary, the function will try to return a JSON-formatted string.
+        Otherwise, it will use smart_decode to convert the data into a string representation.
+
+        Override if necessary.
+
+        Returns:
+            str: The graphical representation of the event's data.
         """
         return self._pretty_string()
 
@@ -425,6 +593,18 @@ class BaseEvent:
         return False
 
     def json(self, mode="json"):
+        """
+        Serializes the event object to a JSON-compatible dictionary.
+
+        By default, it includes attributes such as 'type', 'id', 'data', 'scope_distance', and others that are present.
+        Additional specific attributes can be serialized based on the mode specified.
+
+        Parameters:
+            mode (str): Specifies the data serialization mode. Default is "json". Other options include "graph", "human", and "id".
+
+        Returns:
+            dict: JSON-serializable dictionary representation of the event object.
+        """
         j = dict()
         for i in ("type", "id"):
             v = getattr(self, i, "")
@@ -467,14 +647,28 @@ class BaseEvent:
 
     @staticmethod
     def from_json(j):
+        """
+        Convenience shortcut to create an Event object from a JSON-compatible dictionary.
+
+        Calls the `event_from_json()` function to deserialize the event.
+
+        Parameters:
+            j (dict): The JSON-compatible dictionary containing event data.
+
+        Returns:
+            Event: The deserialized Event object.
+        """
         return event_from_json(j)
 
     @property
     def module_sequence(self):
         """
-        A human-friendly representation of the module name that includes modules from omitted source events
+        Get a human-friendly string that represents the sequence of modules responsible for generating this event.
 
-        Helpful in identifying where a URL came from
+        Includes the names of omitted source events to provide a complete view of the module sequence leading to this event.
+
+        Returns:
+            str: The module sequence in human-friendly format.
         """
         module_name = getattr(self.module, "name", "")
         if getattr(self.source, "_omit", False):
@@ -845,6 +1039,13 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 class VULNERABILITY(DictHostEvent):
     _always_emit = True
+    severity_colors = {
+        "CRITICAL": "🟪",
+        "HIGH": "🟥",
+        "MEDIUM": "🟧",
+        "LOW": "🟨",
+        "UNKNOWN": "⬜",
+    }
 
     def sanitize_data(self, data):
         self.add_tag(data["severity"].lower())
@@ -936,6 +1137,25 @@ class WEBSCREENSHOT(DictHostEvent):
     _always_emit = True
 
 
+class AZURE_TENANT(DictEvent):
+    _always_emit = True
+
+
+class WAF(DictHostEvent):
+    _always_emit = True
+
+    class _data_validator(BaseModel):
+        url: str
+        host: str
+        WAF: str
+        info: Optional[str]
+        _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
+        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+
+    def _pretty_string(self):
+        return self.data["WAF"]
+
+
 def make_event(
     data,
     event_type=None,
@@ -949,7 +1169,47 @@ def make_event(
     internal=None,
 ):
     """
-    If data is already an event, simply return it
+    Creates and returns a new event object or modifies an existing one.
+
+    This function serves as a factory for creating new event objects, either by generating a new `Event`
+    object or by updating an existing event with additional metadata. If `data` is already an event,
+    it updates the event based on the additional parameters provided.
+
+    Parameters:
+        data (Union[str, dict, BaseEvent]): The primary data for the event or an existing event object.
+        event_type (str, optional): Type of the event, e.g., 'IP_ADDRESS'. Auto-detected if not provided.
+        source (BaseEvent, optional): Source event leading to this event's discovery.
+        module (str, optional): Module that discovered the event.
+        scan (Scan, optional): BBOT Scan object associated with the event.
+        scans (List[Scan], optional): Multiple BBOT Scan objects, primarily used for unserialization.
+        tags (Union[str, List[str]], optional): Descriptive tags for the event, as a list or a single string.
+        confidence (int, optional): Confidence level for the event, on a scale of 1-10. Defaults to 5.
+        dummy (bool, optional): Disables data validations if set to True. Defaults to False.
+        internal (Any, optional): Makes the event internal if set to True. Defaults to None.
+
+    Returns:
+        BaseEvent: A new or updated event object.
+
+    Raises:
+        ValidationError: Raised when there's an error in event data or type sanitization.
+
+    Examples:
+        If inside a module, e.g. from within its `handle_event()`:
+        >>> self.make_event("1.2.3.4", source=event)
+        IP_ADDRESS("1.2.3.4", module=nmap, tags={'ipv4', 'distance-1'})
+
+        If you're outside a module but you have a scan object:
+        >>> scan.make_event("1.2.3.4", source=scan.root_event)
+        IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4', 'distance-1'})
+
+        If you're outside a scan and just messing around:
+        >>> from bbot.core.event.base import make_event
+        >>> make_event("1.2.3.4", dummy=True)
+        IP_ADDRESS("1.2.3.4", module=None, tags={'ipv4'})
+
+    Note:
+        When working within a module's `handle_event()`, use the instance method
+        `self.make_event()` instead of calling this function directly.
     """
 
     # allow tags to be either a string or an array
@@ -971,9 +1231,7 @@ def make_event(
         return data
     else:
         if event_type is None:
-            if isinstance(data, str):
-                data = smart_decode_punycode(data)
-            event_type = get_event_type(data)
+            event_type, data = get_event_type(data)
             if not dummy:
                 log.debug(f'Autodetected event type "{event_type}" based on data: "{data}"')
 
@@ -1014,6 +1272,27 @@ def make_event(
 
 
 def event_from_json(j):
+    """
+    Creates an event object from a JSON dictionary.
+
+    This function deserializes a JSON dictionary to create a new event object, using the `make_event` function
+    for the actual object creation. It sets additional attributes such as the timestamp and scope distance
+    based on the input JSON.
+
+    Parameters:
+        j (Dict): JSON dictionary containing the event attributes.
+                  Must include keys "data" and "type".
+
+    Returns:
+        BaseEvent: A new event object initialized with attributes from the JSON dictionary.
+
+    Raises:
+        ValidationError: Raised when the JSON dictionary is missing required fields.
+
+    Note:
+        The function assumes that the input JSON dictionary is valid and may raise exceptions
+        if required keys are missing. Make sure to validate the JSON input beforehand.
+    """
     try:
         kwargs = {
             "data": j["data"],

@@ -49,9 +49,17 @@ class Agent:
             verbs = ("Building", "Built")
             if rebuild:
                 verbs = ("Rebuilding", "Rebuilt")
-            log.debug(f"{verbs[0]} websocket connection to {self.url}")
-            self._ws = await websockets.connect(self.url, **kwargs)
-            log.debug(f"{verbs[1]} websocket connection to {self.url}")
+            url = f"{self.url}/control/"
+            log.debug(f"{verbs[0]} websocket connection to {url}")
+            while 1:
+                try:
+                    self._ws = await websockets.connect(url, **kwargs)
+                    break
+                except Exception as e:
+                    log.error(f'Failed to establish websockets connection to URL "{url}": {e}')
+                    log.trace(traceback.format_exc())
+                    await asyncio.sleep(1)
+            log.debug(f"{verbs[1]} websocket connection to {url}")
         return self._ws
 
     async def start(self):
@@ -69,6 +77,7 @@ class Agent:
                     if message.command == "ping":
                         if self.scan is None:
                             await self.send({"conversation": str(message.conversation), "message_type": "pong"})
+                            continue
 
                     command_type = getattr(messages, message.command, None)
                     if command_type is None:

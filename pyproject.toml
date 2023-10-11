@@ -44,11 +44,11 @@ pyjwt = "^2.7.0"
 beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"
 httpx = {extras = ["http2"], version = "^0.24.1"}
-anyio = "==4.0.0rc1"
 dnspython = "^2.4.2"
+anyio = "4.0.0rc1"
+httpcore = "^0.17.3"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2.2"
 flake8 = "^6.0.0"
 black = "^23.1.0"
 pytest-cov = "^4.0.0"
@@ -60,10 +60,23 @@ werkzeug = "^2.3.4"
 pytest-httpserver = "^1.0.8"
 pytest-env = "^0.8.2"
 pytest-httpx = "^0.22.0"
+pytest-timeout = "^2.1.0"
+pytest = "^7.4.0"
+pre-commit = "^3.4.0"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.5.2"
+mkdocs-extra-sass-plugin = "^0.1.0"
+mkdocs-material = "^9.2.5"
+mkdocs-material-extensions = "^1.1.1"
+mkdocstrings = "^0.22.0"
+mkdocstrings-python = "^1.6.0"
+livereload = "^2.6.3"
 
 [tool.pytest.ini_options]
 env = [
-    "BBOT_TESTING = True"
+    "BBOT_TESTING = True",
+    "PYTHONASYNCIODEBUG = 1"
 ]    
 
 [build-system]
@@ -76,7 +89,7 @@ line-length = 119
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v1.1.0.{{ distance }}{% if branch == "dev" %}rc{% endif %}'
+format-jinja = 'v1.1.1{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]

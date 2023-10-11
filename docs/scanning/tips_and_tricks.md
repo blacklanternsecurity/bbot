@@ -24,9 +24,9 @@ The web spider is great for finding juicy data like subdomains, email addresses,
 
 The web spider is controlled with three config values:
 
-- `web_spider_distance` (`0` == all spidering disabled, default: `0`): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where `web_spider_depth` fails (e.g. for an ecommerce website with thousands of base-level URLs).
 - `web_spider_depth` (default: `1`: the maximum directory depth allowed. This is to prevent the spider from delving too deep into a website.
-- `web_spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed. This is designed specifically for cases where a single page has hundreds or thousands of links.
+- `web_spider_distance` (`0` == all spidering disabled, default: `0`): the maximum number of links that can be followed in a row. This is designed to limit the spider in cases where `web_spider_depth` fails (e.g. for an ecommerce website with thousands of base-level URLs).
+- `web_spider_links_per_page` (default: `25`): the maximum number of links per page that can be followed. This is designed to save you in cases where a single page has hundreds or thousands of links.
 
 Here is a typical example:
 
@@ -87,7 +87,7 @@ bbot -m httpx gowitness wappalyzer -t urls.txt -c dns_resolution=false
 
 `URL_UNVERIFIED` events are URLs that haven't yet been visited by `httpx`. Once `httpx` visits them, it reraises them as `URL`s, tagged with their resulting status code.
 
-For example, when [`excavate`](../#types-of-modules) gets an `HTTP_RESPONSE` event, it extracts links from the raw HTTP response as `URL_UNVERIFIED`s and then passes them back to `httpx` to be visited.
+For example, when [`excavate`](index.md/#types-of-modules) gets an `HTTP_RESPONSE` event, it extracts links from the raw HTTP response as `URL_UNVERIFIED`s and then passes them back to `httpx` to be visited.
 
 By default, `URL_UNVERIFIED`s are hidden from output. If you want to see all of them including the out-of-scope ones, you can do it by changing `omit_event_types` and `scope_report_distance` in the config like so:
 

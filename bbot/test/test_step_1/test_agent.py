@@ -1,15 +1,15 @@
 import json
 import websockets
+from functools import partial
 
 from ..bbot_fixtures import *  # noqa: F401
 
 
 _first_run = True
 success = False
-scan_done = asyncio.Event()
 
 
-async def websocket_handler(websocket, path):
+async def websocket_handler(websocket, path, scan_done=None):
     # whether this is the first run
     global _first_run
     first_run = int(_first_run)
@@ -20,7 +20,7 @@ async def websocket_handler(websocket, path):
     # control channel or event channel?
     control = True
 
-    if path == "/" and first_run:
+    if path == "/control/" and first_run:
         # test ping
         await websocket.send(json.dumps({"conversation": "90196cc1-299f-4555-82a0-bc22a4247590", "command": "ping"}))
         _first_run = False
@@ -132,14 +132,17 @@ async def websocket_handler(websocket, path):
 
 @pytest.mark.asyncio
 async def test_agent(agent):
+    scan_done = asyncio.Event()
     scan_status = await agent.scan_status()
     assert scan_status["error"] == "Scan not in progress"
 
+    _websocket_handler = partial(websocket_handler, scan_done=scan_done)
+
     global success
-    async with websockets.serve(websocket_handler, "127.0.0.1", 8765):
+    async with websockets.serve(_websocket_handler, "127.0.0.1", 8765):
         asyncio.create_task(agent.start())
         # wait for 30 seconds
-        await asyncio.wait_for(scan_done.wait(), 10)
+        await asyncio.wait_for(scan_done.wait(), 30)
         assert success
 
         await agent.start_scan("scan_to_be_cancelled", targets=["127.0.0.1"], modules=["ipneighbor"])

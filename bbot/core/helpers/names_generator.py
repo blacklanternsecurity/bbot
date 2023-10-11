@@ -236,6 +236,7 @@ adjectives = [
     "twitchy",
     "ugly",
     "unabated",
+    "unchained",
     "unexplained",
     "unhinged",
     "unholy",
@@ -321,6 +322,7 @@ names = [
     "brittany",
     "bruce",
     "bryan",
+    "caitlyn",
     "caleb",
     "cameron",
     "carl",
@@ -452,6 +454,7 @@ names = [
     "jaskier",
     "jasmine",
     "jason",
+    "jayce",
     "jean",
     "jean-luc",
     "jeffrey",
@@ -461,6 +464,7 @@ names = [
     "jesse",
     "jessica",
     "jimmy",
+    "jinx",
     "joan",
     "joe",
     "joel",
@@ -564,6 +568,7 @@ names = [
     "phillip",
     "phyllis",
     "pippin",
+    "powder",
     "rachel",
     "radagast",
     "ralph",
@@ -601,6 +606,7 @@ names = [
     "shawn",
     "shelob",
     "shirley",
+    "silco",
     "sirius",
     "skywalker",
     "snape",
@@ -630,9 +636,12 @@ names = [
     "tyrell",
     "vader",
     "valerie",
+    "vander",
     "vanessa",
+    "vi",
     "victor",
     "victoria",
+    "viktor",
     "vincent",
     "virginia",
     "voldemort",
@@ -648,12 +657,16 @@ names = [
     "xavier",
     "yennefer",
     "yoda",
+    "zach",
     "zachary",
 ]
 
 
 def random_name():
-    name = f"{random.choice(adjectives)}_{random.choice(names)}"
-    if name == "white_lantern":
-        name = "black_lantern"
-    return name
+    name = random.choice(names)
+    adjective = random.choice(adjectives)
+    if adjective == "unchained":
+        scan_name = f"{name}_{adjective}"
+    else:
+        scan_name = f"{adjective}_{name}"
+    return scan_name

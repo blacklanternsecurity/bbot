@@ -201,6 +201,47 @@ async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbo
                 assert valid_1 == True
                 assert valid_2 == False
                 assert hash("http://evilcorp.com/") in module._per_host_tracker
+                assert reason_2 == "per_host_only enabled and already seen host"
+
+            else:
+                assert valid_1 == True
+                assert valid_2 == True
+
+
+@pytest.mark.asyncio
+async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+    per_domain_scan = bbot_scanner(
+        "evilcorp.com",
+        modules=list(set(available_modules + available_internal_modules)),
+        config=bbot_config,
+    )
+
+    await per_domain_scan.load_modules()
+    await per_domain_scan.setup_modules()
+    per_domain_scan.status = "RUNNING"
+
+    # ensure that multiple events to the same "host" (schema + host) are blocked and check the per host tracker
+
+    for module_name, module in sorted(per_domain_scan.modules.items()):
+        monkeypatch.setattr(module, "filter_event", BaseModule(per_domain_scan).filter_event)
+
+        if "URL" in module.watched_events:
+            url_1 = per_domain_scan.make_event(
+                "http://www.evilcorp.com/1", event_type="URL", source=per_domain_scan.root_event, tags=["status-200"]
+            )
+            url_1.set_scope_distance(0)
+            url_2 = per_domain_scan.make_event(
+                "http://mail.evilcorp.com/2", event_type="URL", source=per_domain_scan.root_event, tags=["status-200"]
+            )
+            url_2.set_scope_distance(0)
+            valid_1, reason_1 = await module._event_postcheck(url_1)
+            valid_2, reason_2 = await module._event_postcheck(url_2)
+
+            if module.per_domain_only == True:
+                assert valid_1 == True
+                assert valid_2 == False
+                assert hash("evilcorp.com") in module._per_host_tracker
+                assert reason_2 == "per_domain_only enabled and already seen domain"
 
             else:
                 assert valid_1 == True

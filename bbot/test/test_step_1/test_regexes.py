@@ -1,4 +1,5 @@
 import pytest
+import traceback
 
 from bbot.core.event.helpers import get_event_type
 from bbot.core.helpers import regexes
@@ -11,7 +12,6 @@ def test_dns_name_regexes():
         "evilcorp-.com",  # DNS names cannot end with a dash
         "evilcorp..com",  # DNS names cannot have two consecutive dots
         ".evilcorp.com",  # DNS names cannot begin with a dot
-        "evilcorp.com.",  # DNS names cannot end with a dot (in most cases)
         "ev*lcorp.com",  # DNS names cannot have special characters (other than dash and dot)
         "evilcorp/.com",  # DNS names cannot have slashes
         "evilcorp..",  # DNS names cannot end with a dot
@@ -41,7 +41,7 @@ def test_dns_name_regexes():
             assert not r.match(dns), f"BAD DNS NAME: {dns} matched regex: {r}"
 
         try:
-            event_type = get_event_type(dns)
+            event_type, _ = get_event_type(dns)
             if event_type == "OPEN_TCP_PORT":
                 assert dns == "evilcorp.com:80"
                 continue
@@ -57,7 +57,7 @@ def test_dns_name_regexes():
     for dns in good_dns:
         matches = list(r.match(dns) for r in dns_name_regexes)
         assert any(matches), f"Good DNS_NAME {dns} did not match regexes"
-        event_type = get_event_type(dns)
+        event_type, _ = get_event_type(dns)
         if not event_type == "DNS_NAME":
             assert (
                 dns == "1.2.3.4" and event_type == "IP_ADDRESS"
@@ -103,7 +103,7 @@ def test_open_port_regexes():
             assert not r.match(open_port), f"BAD OPEN_TCP_PORT: {open_port} matched regex: {r}"
 
         try:
-            event_type = get_event_type(open_port)
+            event_type, _ = get_event_type(open_port)
             if event_type == "IP_ADDRESS":
                 assert open_port in ("1.2.3.4", "[dead::beef]")
                 continue
@@ -119,7 +119,7 @@ def test_open_port_regexes():
     for open_port in good_ports:
         matches = list(r.match(open_port) for r in open_port_regexes)
         assert any(matches), f"Good OPEN_TCP_PORT {open_port} did not match regexes"
-        event_type = get_event_type(open_port)
+        event_type, _ = get_event_type(open_port)
         assert event_type == "OPEN_TCP_PORT"
 
 
@@ -171,7 +171,7 @@ def test_url_regexes():
 
         event_type = ""
         try:
-            event_type = get_event_type(bad_url)
+            event_type, _ = get_event_type(bad_url)
             if event_type == "DNS_NAME":
                 assert bad_url == "evilcorp.com"
                 continue
@@ -179,9 +179,11 @@ def test_url_regexes():
         except ValidationError:
             continue
         except Exception as e:
-            pytest.fail(f"BAD URL: {bad_url} raised unknown error: {e}")
+            pytest.fail(f"BAD URL: {bad_url} raised unknown error: {e}: {traceback.format_exc()}")
 
     for good_url in good_urls:
         matches = list(r.match(good_url) for r in url_regexes)
         assert any(matches), f"Good URL {good_url} did not match regexes"
-        assert get_event_type(good_url) == "URL_UNVERIFIED", f"Event type for URL {good_url} was not properly detected"
+        assert (
+            get_event_type(good_url)[0] == "URL_UNVERIFIED"
+        ), f"Event type for URL {good_url} was not properly detected"

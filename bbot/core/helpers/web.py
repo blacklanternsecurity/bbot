@@ -28,6 +28,24 @@ class DummyCookies(Cookies):
 
 
 class BBOTAsyncClient(httpx.AsyncClient):
+    """
+    A subclass of httpx.AsyncClient tailored with BBOT-specific configurations and functionalities.
+    This class provides rate limiting, logging, configurable timeouts, user-agent customization, custom
+    headers, and proxy settings. Additionally, it allows the disabling of cookies, making it suitable
+    for use across an entire scan.
+
+    Attributes:
+        _bbot_scan (object): BBOT scan object containing configuration details.
+        _rate_limiter (RateLimiter): A rate limiter object to limit web requests.
+        _persist_cookies (bool): Flag to determine whether cookies should be persisted across requests.
+
+    Examples:
+        >>> async with BBOTAsyncClient(_bbot_scan=bbot_scan_object) as client:
+        >>>     response = await client.request("GET", "https://example.com")
+        >>>     print(response.status_code)
+        200
+    """
+
     def __init__(self, *args, **kwargs):
         self._bbot_scan = kwargs.pop("_bbot_scan")
         web_requests_per_second = self._bbot_scan.config.get("web_requests_per_second", 100)
@@ -83,7 +101,26 @@ class BBOTAsyncClient(httpx.AsyncClient):
 
 class WebHelper:
     """
-    For making HTTP requests
+    Main utility class for managing HTTP operations in BBOT. It serves as a wrapper around the BBOTAsyncClient,
+    which itself is a subclass of httpx.AsyncClient. The class provides functionalities to make HTTP requests,
+    download files, and handle cached wordlists.
+
+    Attributes:
+        parent_helper (object): The parent helper object containing scan configurations.
+        http_debug (bool): Flag to indicate whether HTTP debugging is enabled.
+        ssl_verify (bool): Flag to indicate whether SSL verification is enabled.
+        web_client (BBOTAsyncClient): An instance of BBOTAsyncClient for making HTTP requests.
+        client_only_options (tuple): A tuple of options only applicable to the web client.
+
+    Examples:
+        Basic web request:
+        >>> response = await self.helpers.request("https://www.evilcorp.com")
+
+        Download file:
+        >>> filename = await self.helpers.download("https://www.evilcorp.com/passwords.docx")
+
+        Download wordlist (cached for 30 days by default):
+        >>> filename = await self.helpers.wordlist("https://www.evilcorp.com/wordlist.txt")
     """
 
     client_only_options = (
@@ -105,6 +142,50 @@ class WebHelper:
         return BBOTAsyncClient(*args, **kwargs)
 
     async def request(self, *args, **kwargs):
+        """
+        Asynchronous function for making HTTP requests, intended to be the most basic web request function
+        used widely across BBOT and within this helper class. Handles various exceptions and timeouts
+        that might occur during the request.
+
+        This function automatically respects the scan's global timeout, proxy, headers, etc.
+        Headers you specify will be merged with the scan's. Your arguments take ultimate precedence,
+        meaning you can override the scan's values if you want.
+
+        Args:
+            url (str): The URL to send the request to.
+            method (str, optional): The HTTP method to use for the request. Defaults to 'GET'.
+            headers (dict, optional): Dictionary of HTTP headers to send with the request.
+            params (dict, optional): Dictionary, list of tuples, or bytes to send in the query string.
+            cookies (dict, optional): Dictionary or CookieJar object containing cookies.
+            json (Any, optional): A JSON serializable Python object to send in the body.
+            data (dict, optional): Dictionary, list of tuples, or bytes to send in the body.
+            files (dict, optional): Dictionary of 'name': file-like-objects for multipart encoding upload.
+            auth (tuple, optional): Auth tuple to enable Basic/Digest/Custom HTTP auth.
+            timeout (float, optional): The maximum time to wait for the request to complete.
+            proxies (dict, optional): Dictionary mapping protocol schemes to proxy URLs.
+            allow_redirects (bool, optional): Enables or disables redirection. Defaults to None.
+            stream (bool, optional): Enables or disables response streaming.
+            raise_error (bool, optional): Whether to raise exceptions for HTTP connect, timeout errors. Defaults to False.
+            client (httpx.AsyncClient, optional): A specific httpx.AsyncClient to use for the request. Defaults to self.web_client.
+            cache_for (int, optional): Time in seconds to cache the request. Not used currently. Defaults to None.
+
+        Raises:
+            httpx.TimeoutException: If the request times out.
+            httpx.ConnectError: If the connection fails.
+            httpx.RequestError: For other request-related errors.
+
+        Returns:
+            httpx.Response or None: The HTTP response object returned by the httpx library.
+
+        Examples:
+            >>> response = await self.helpers.request("https://www.evilcorp.com")
+
+            >>> response = await self.helpers.request("https://api.evilcorp.com/", method="POST", data="stuff")
+
+        Note:
+            If the web request fails, it will return None unless `raise_error` is `True`.
+        """
+
         raise_error = kwargs.pop("raise_error", False)
         # TODO: use this
         cache_for = kwargs.pop("cache_for", None)  # noqa
@@ -145,6 +226,12 @@ class WebHelper:
                     f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
                 )
             return response
+        except httpx.PoolTimeout:
+            # this block exists because of this:
+            #  https://github.com/encode/httpcore/discussions/783
+            log.verbose(f"PoolTimeout to URL: {url}")
+            self.web_client = self.AsyncClient(persist_cookies=False)
+            return await self.request(*args, **kwargs)
         except httpx.TimeoutException:
             log.verbose(f"HTTP timeout to URL: {url}")
             if raise_error:
@@ -177,10 +264,24 @@ class WebHelper:
 
     async def download(self, url, **kwargs):
         """
-        Downloads file, returns full path of filename
-        If download failed, returns None
+        Asynchronous function for downloading files from a given URL. Supports caching with an optional
+        time period in hours via the "cache_hrs" keyword argument. In case of successful download,
+        returns the full path of the saved filename. If the download fails, returns None.
 
-        Caching supported via "cache_hrs"
+        Args:
+            url (str): The URL of the file to download.
+            filename (str, optional): The filename to save the downloaded file as.
+                If not provided, will generate based on URL.
+            cache_hrs (float, optional): The number of hours to cache the downloaded file.
+                A negative value disables caching. Defaults to -1.
+            method (str, optional): The HTTP method to use for the request, defaults to 'GET'.
+            **kwargs: Additional keyword arguments to pass to the httpx request.
+
+        Returns:
+            Path or None: The full path of the downloaded file as a Path object if successful, otherwise None.
+
+        Examples:
+            >>> filepath = await self.helpers.download("https://www.evilcorp.com/passwords.docx", cache_hrs=24)
         """
         success = False
         filename = kwargs.pop("filename", self.parent_helper.cache_filename(url))
@@ -212,6 +313,32 @@ class WebHelper:
             return filename.resolve()
 
     async def wordlist(self, path, lines=None, **kwargs):
+        """
+        Asynchronous function for retrieving wordlists, either from a local path or a URL.
+        Allows for optional line-based truncation and caching. Returns the full path of the wordlist
+        file or a truncated version of it.
+
+        Args:
+            path (str): The local or remote path of the wordlist.
+            lines (int, optional): Number of lines to read from the wordlist.
+                If specified, will return a truncated wordlist with this many lines.
+            cache_hrs (float, optional): Number of hours to cache the downloaded wordlist.
+                Defaults to 720 hours (30 days) for remote wordlists.
+            **kwargs: Additional keyword arguments to pass to the 'download' function for remote wordlists.
+
+        Returns:
+            Path: The full path of the wordlist (or its truncated version) as a Path object.
+
+        Raises:
+            WordlistError: If the path is invalid or the wordlist could not be retrieved or found.
+
+        Examples:
+            Fetching full wordlist
+            >>> wordlist_path = await self.helpers.wordlist("https://www.evilcorp.com/wordlist.txt")
+
+            Fetching and truncating to the first 100 lines
+            >>> wordlist_path = await self.helpers.wordlist("/root/rockyou.txt", lines=100)
+        """
         if not path:
             raise WordlistError(f"Invalid wordlist: {path}")
         if not "cache_hrs" in kwargs:
@@ -240,38 +367,35 @@ class WebHelper:
 
     async def api_page_iter(self, url, page_size=100, json=True, next_key=None, **requests_kwargs):
         """
-        An async generator to fetch and loop through API pages.
+        An asynchronous generator function for iterating through paginated API data.
 
-        This function keeps calling the API with the provided URL, increasing the page number each time, and spits out
-        the results one page at a time. It's perfect for APIs that split their data across multiple pages.
+        This function continuously makes requests to a specified API URL, incrementing the page number
+        or applying a custom pagination function, and yields the received data one page at a time.
+        It is well-suited for APIs that provide paginated results.
 
         Args:
-            url (str): The API endpoint. May contain placeholders for 'page' and 'page_size'.
-            page_size (int, optional): How many items you want per page. Defaults to 100.
-            json (bool, optional): If True, we'll try to convert the response to JSON. Defaults to True.
-            next_key (callable, optional): If your API has a weird way to get to the next page, give us a function
-                                           that takes the response and spits out the new URL. Defaults to None.
-            **requests_kwargs: Any other stuff you want to pass to the request.
+            url (str): The initial API URL. Can contain placeholders for 'page', 'page_size', and 'offset'.
+            page_size (int, optional): The number of items per page. Defaults to 100.
+            json (bool, optional): If True, attempts to deserialize the response content to a JSON object. Defaults to True.
+            next_key (callable, optional): A function that takes the last page's data and returns the URL for the next page. Defaults to None.
+            **requests_kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
 
         Yields:
-            If 'json' is True, you'll get a dict with the API's response, else you'll get the raw response.
+            dict or httpx.Response: If 'json' is True, yields a dictionary containing the parsed JSON data. Otherwise, yields the raw HTTP response.
 
         Note:
-            You MUST break out of the loop when you stop getting useful results! Otherwise it will loop forever.
+            The loop will continue indefinitely unless manually stopped. Make sure to break out of the loop once the last page has been received.
 
-        Example:
-            Here's a quick example of how to use this:
-            ```
-            agen = api_page_iter('https://api.example.com/data?page={page}&page_size={page_size}')
-            try:
-                async for page in agen:
-                    subdomains = json["subdomains"]
-                    self.hugesuccess(subdomains)
-                    if not subdomains:
-                        break
-            finally:
-                agen.aclose()
-            ```
+        Examples:
+            >>> agen = api_page_iter('https://api.example.com/data?page={page}&page_size={page_size}')
+            >>> try:
+            >>>     async for page in agen:
+            >>>         subdomains = page["subdomains"]
+            >>>         self.hugesuccess(subdomains)
+            >>>         if not subdomains:
+            >>>             break
+            >>> finally:
+            >>>     agen.aclose()
         """
         page = 1
         offset = 0
@@ -299,6 +423,36 @@ class WebHelper:
                 page += 1
 
     async def curl(self, *args, **kwargs):
+        """
+        An asynchronous function that runs a cURL command with specified arguments and options.
+
+        This function constructs and executes a cURL command based on the provided parameters.
+        It offers support for various cURL options such as headers, post data, and cookies.
+
+        Args:
+            *args: Variable length argument list for positional arguments. Unused in this function.
+            url (str): The URL for the cURL request. Mandatory.
+            raw_path (bool, optional): If True, activates '--path-as-is' in cURL. Defaults to False.
+            headers (dict, optional): A dictionary of HTTP headers to include in the request.
+            ignore_bbot_global_settings (bool, optional): If True, ignores the global settings of BBOT. Defaults to False.
+            post_data (dict, optional): A dictionary containing data to be sent in the request body.
+            method (str, optional): The HTTP method to use for the request (e.g., 'GET', 'POST').
+            cookies (dict, optional): A dictionary of cookies to include in the request.
+            path_override (str, optional): Overrides the request-target to use in the HTTP request line.
+            head_mode (bool, optional): If True, includes '-I' to fetch headers only. Defaults to None.
+            raw_body (str, optional): Raw string to be sent in the body of the request.
+            **kwargs: Arbitrary keyword arguments that will be forwarded to the HTTP request function.
+
+        Returns:
+            str: The output of the cURL command.
+
+        Raises:
+            CurlError: If 'url' is not supplied.
+
+        Examples:
+            >>> output = await curl(url="https://example.com", headers={"X-Header": "Wat"})
+            >>> print(output)
+        """
         url = kwargs.get("url", "")
 
         if not url:
@@ -387,12 +541,65 @@ class WebHelper:
         output = (await self.parent_helper.run(curl_command)).stdout
         return output
 
+    def is_spider_danger(self, source_event, url):
+        """
+        Determines whether visiting a URL could potentially trigger a web-spider-like happening.
+
+        This function assesses the depth and distance of a URL in relation to the parent helper's
+        configuration settings for web spidering. If the URL exceeds the specified depth or distance,
+        the function returns True, indicating a possible web-spider risk.
+
+        Args:
+            source_event: The source event object that discovered the URL.
+            url (str): The URL to evaluate for web-spider risk.
+
+        Returns:
+            bool: True if visiting the URL might trigger a web-spider-like event, False otherwise.
+
+        Todo:
+            - Write tests for this function
+
+        Examples:
+            >>> is_spider_danger(source_event_obj, "https://example.com/subpage")
+            True
+
+            >>> is_spider_danger(source_event_obj, "https://example.com/")
+            False
+        """
+        url_depth = self.parent_helper.url_depth(url)
+        web_spider_depth = self.parent_helper.scan.config.get("web_spider_depth", 1)
+        spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
+        web_spider_distance = self.parent_helper.scan.config.get("web_spider_distance", 0)
+        if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
+            return True
+        return False
+
 
 user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
 pass_keywords = [re.compile(r, re.I) for r in ["pass"]]
 
 
 def is_login_page(html):
+    """
+    Determines if the provided HTML content contains a login page.
+
+    This function parses the HTML to search for forms with input fields typically used for
+    authentication. If it identifies password fields or a combination of username and password
+    fields, it returns True.
+
+    Args:
+        html (str): The HTML content to analyze.
+
+    Returns:
+        bool: True if the HTML contains a login page, otherwise False.
+
+    Examples:
+        >>> is_login_page('<form><input type="text" name="username"><input type="password" name="password"></form>')
+        True
+
+        >>> is_login_page('<form><input type="text" name="search"></form>')
+        False
+    """
     try:
         soup = BeautifulSoup(html, "html.parser")
     except Exception as e:

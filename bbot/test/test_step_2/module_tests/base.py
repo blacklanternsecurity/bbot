@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 import logging
 import pytest_asyncio
 from omegaconf import OmegaConf
@@ -104,7 +105,7 @@ class ModuleTestBase:
         module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request)
         module_test.log.info(f"Starting {self.name} module test")
         await self.setup_before_prep(module_test)
-        await module_test.scan.prep()
+        await module_test.scan._prep()
         await self.setup_after_prep(module_test)
         module_test.events = [e async for e in module_test.scan.async_start()]
         yield module_test
@@ -113,6 +114,10 @@ class ModuleTestBase:
     async def test_module_run(self, module_test):
         self.check(module_test, module_test.events)
         module_test.log.info(f"Finished {self.name} module test")
+        current_task = asyncio.current_task()
+        tasks = [t for t in asyncio.all_tasks() if t != current_task]
+        if len(tasks) > 0:
+            module_test.log.info(f"Unfinished tasks detected: {tasks}")
 
     def check(self, module_test, events):
         assert False, f"Must override {self.name}.check()"

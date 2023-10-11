@@ -35,7 +35,7 @@ class nmap(BaseModule):
         return True
 
     async def handle_batch(self, *events):
-        target = self.helpers.make_target(events)
+        target = self.helpers.make_target(*events)
         targets = list(set(str(e.data) for e in events))
         command, output_file = self.construct_command(targets)
         try:
@@ -66,6 +66,7 @@ class nmap(BaseModule):
         command = [
             "nmap",
             "-n",
+            "--resolve-all",
             f"-{self.timing}",
             "-oX",
             temp_filename,

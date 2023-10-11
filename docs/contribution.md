@@ -13,13 +13,16 @@ We welcome contributions! If you have an idea for a new module, or are a Python 
 
 ```bash
 # clone your forked repo and cd into it
-git clone git@github.com/<username>/bbot.git && cd bbot
+git clone git@github.com/<username>/bbot.git
+cd bbot
 
 # install poetry
 curl -sSL https://install.python-poetry.org | python3 -
 
 # install pip dependencies
 poetry install
+# install pre-commit hooks, etc.
+poetry run pre-commit install
 
 # enter virtual environment
 poetry shell
@@ -28,12 +31,7 @@ bbot --help
 ```
 
 - Now, any changes you make in the code will be reflected in the `bbot` command.
-- Run the tests locally to ensure they pass.
-- Finally, commit and push your changes, and create a pull request to the `dev` branch of the main BBOT repo.
-
-## Running Tests
-
-BBOT makes use of pytest for its unit testing. You can run the tests simply by executing the bash script at `bbot/test/run_tests.sh`:
+- After making your changes, run the tests locally to ensure they pass.
 
 ```bash
 # auto-format code indentation, etc.
@@ -42,6 +40,9 @@ black .
 # run tests
 ./bbot/test/run_tests.sh
 ```
+
+- Finally, commit and push your changes, and create a pull request to the `dev` branch of the main BBOT repo.
+
 
 ## Creating a Module
 
@@ -93,7 +94,7 @@ This will produce the output:
 [INFO] Finishing scan
 ```
 
-But something's wrong! We're emitting `IP_ADDRESS` [events](./scanning/events/), but they're not showing up in the output. This is because by default, BBOT only shows in-scope [events](./scanning/events/). To see them, we need to increase the report distance:
+But something's wrong! We're emitting `IP_ADDRESS` [events](./scanning/events.md), but they're not showing up in the output. This is because by default, BBOT only shows in-scope [events](./scanning/events.md). To see them, we need to increase the report distance:
 
 ```bash
 # run the module again but with a higher report distance
@@ -122,9 +123,9 @@ Now, with the `report_distance=1`:
 
 ### `handle_event()` and `emit_event()`
 
-The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events/) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that [event](./scanning/events/).
+The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events.md) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that event.
 
-The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events/) and prints it to the console. It also distributes it any modules that are interested in that data type.
+The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events.md) and prints it to the console. It also distributes it any modules that are interested in that data type.
 
 ### Module Dependencies
 

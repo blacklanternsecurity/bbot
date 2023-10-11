@@ -5,9 +5,6 @@ on:
       - stable
       - dev
   pull_request:
-  pull_request_target:
-    types:
-      - closed
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
@@ -46,7 +43,7 @@ jobs:
           poetry install
       - name: Run tests
         run: |
-          poetry run pytest --exitfirst --reruns 2 --disable-warnings --log-cli-level=DEBUG --cov-report xml:cov.xml --cov=bbot .
+          poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 600 --disable-warnings --log-cli-level=DEBUG --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Code Coverage
         uses: codecov/codecov-action@v3
         with:
@@ -56,6 +53,7 @@ jobs:
   update_docs:
     needs: test
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     steps:
       - uses: actions/checkout@v3
         with:
@@ -82,7 +80,7 @@ jobs:
   publish_docs:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.event.pull_request.base.ref == 'dev'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -95,12 +93,15 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install mkdocs-material mkdocs-extra-sass-plugin livereload
-      - run: mkdocs gh-deploy --force
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install --only=docs
+      - run: poetry run mkdocs gh-deploy --force
   publish_code:
     needs: update_docs
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'dev' || github.event.pull_request.base.ref == 'stable')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
     continue-on-error: true
     steps:
       - uses: actions/checkout@v3
@@ -128,7 +129,7 @@ jobs:
         run: |
           echo "::set-output name=BBOT_VERSION::$(poetry version | cut -d' ' -f2 | tr -d v)"
       - name: Publish to Docker Hub (dev)
-        if: github.ref == 'refs/heads/dev'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: blacklanternsecurity/bbot
@@ -136,7 +137,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: "latest,dev,${{ steps.version.outputs.BBOT_VERSION }}"
       - name: Publish to Docker Hub (stable)
-        if: github.ref == 'refs/heads/stable'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: blacklanternsecurity/bbot
@@ -144,7 +145,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: "stable,${{ steps.version.outputs.BBOT_VERSION }}"
       - name: Docker Hub Description
-        if: github.ref == 'refs/heads/dev'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}

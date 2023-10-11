@@ -1,7 +1,7 @@
-from bbot.modules.crobat import crobat
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class pgp(crobat):
+class pgp(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
     flags = ["passive", "email-enum", "safe"]

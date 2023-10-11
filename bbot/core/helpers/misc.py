@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import copy
+import idna
 import json
 import atexit
 import codecs
@@ -29,12 +30,11 @@ import tldextract as _tldextract
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
-from asyncio import create_task, sleep, wait_for  # noqa
+from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
 from .. import errors
-from .punycode import *  # noqa F401
 from .logger import log_to_stderr
 from . import regexes as bbot_regexes
 from .names_generator import random_name, names, adjectives  # noqa F401
@@ -44,8 +44,26 @@ log = logging.getLogger("bbot.core.helpers.misc")
 
 def is_domain(d):
     """
-    "evilcorp.co.uk" --> True
-    "www.evilcorp.co.uk" --> False
+    Check if the given input represents a domain without subdomains.
+
+    This function takes an input string `d` and returns True if it represents a domain without any subdomains.
+    Otherwise, it returns False.
+
+    Args:
+        d (str): The input string containing the domain.
+
+    Returns:
+        bool: True if the input is a domain without subdomains, False otherwise.
+
+    Examples:
+        >>> is_domain("evilcorp.co.uk")
+        True
+
+        >>> is_domain("www.evilcorp.co.uk")
+        False
+
+    Notes:
+        - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
     extracted = tldextract(d)
@@ -56,8 +74,26 @@ def is_domain(d):
 
 def is_subdomain(d):
     """
-    "www.evilcorp.co.uk" --> True
-    "evilcorp.co.uk" --> False
+    Check if the given input represents a subdomain.
+
+    This function takes an input string `d` and returns True if it represents a subdomain.
+    Otherwise, it returns False.
+
+    Args:
+        d (str): The input string containing the domain or subdomain.
+
+    Returns:
+        bool: True if the input is a subdomain, False otherwise.
+
+    Examples:
+        >>> is_subdomain("www.evilcorp.co.uk")
+        True
+
+        >>> is_subdomain("evilcorp.co.uk")
+        False
+
+    Notes:
+        - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
     extracted = tldextract(d)
@@ -68,13 +104,47 @@ def is_subdomain(d):
 
 def is_ptr(d):
     """
-    "wsc-11-22-33-44.evilcorp.com" --> True
-    "www2.evilcorp.com" --> False
+    Check if the given input represents a PTR record domain.
+
+    This function takes an input string `d` and returns True if it matches the PTR record format.
+    Otherwise, it returns False.
+
+    Args:
+        d (str): The input string potentially representing a PTR record domain.
+
+    Returns:
+        bool: True if the input matches PTR record format, False otherwise.
+
+    Examples:
+        >>> is_ptr("wsc-11-22-33-44.evilcorp.com")
+        True
+
+        >>> is_ptr("www2.evilcorp.com")
+        False
     """
     return bool(bbot_regexes.ptr_regex.search(str(d)))
 
 
 def is_url(u):
+    """
+    Check if the given input represents a valid URL.
+
+    This function takes an input string `u` and returns True if it matches any of the predefined URL formats.
+    Otherwise, it returns False.
+
+    Args:
+        u (str): The input string potentially representing a URL.
+
+    Returns:
+        bool: True if the input matches a valid URL format, False otherwise.
+
+    Examples:
+        >>> is_url("https://evilcorp.com")
+        True
+
+        >>> is_url("not-a-url")
+        False
+    """
     u = str(u)
     for r in bbot_regexes.event_type_regexes["URL"]:
         if r.match(u):
@@ -87,10 +157,30 @@ uri_regex = re.compile(r"^([a-z0-9]{2,20})://", re.I)
 
 def is_uri(u, return_scheme=False):
     """
-    is_uri("http://evilcorp.com") --> True
-    is_uri("ftp://evilcorp.com") --> True
-    is_uri("evilcorp.com") --> False
-    is_uri("ftp://evilcorp.com", return_scheme=True) --> "ftp"
+    Check if the given input represents a URI and optionally return its scheme.
+
+    This function takes an input string `u` and returns True if it matches a URI format.
+    When `return_scheme` is True, it returns the URI scheme instead of a boolean.
+
+    Args:
+        u (str): The input string potentially representing a URI.
+        return_scheme (bool, optional): Whether to return the URI scheme. Defaults to False.
+
+    Returns:
+        Union[bool, str]: True if the input matches a URI format; the URI scheme if `return_scheme` is True.
+
+    Examples:
+        >>> is_uri("http://evilcorp.com")
+        True
+
+        >>> is_uri("ftp://evilcorp.com")
+        True
+
+        >>> is_uri("evilcorp.com")
+        False
+
+        >>> is_uri("ftp://evilcorp.com", return_scheme=True)
+        "ftp"
     """
     match = uri_regex.match(u)
     if return_scheme:
@@ -102,34 +192,99 @@ def is_uri(u, return_scheme=False):
 
 def split_host_port(d):
     """
-    "evilcorp.com:443" --> ("evilcorp.com", 443)
-    "192.168.1.1:443" --> (IPv4Address('192.168.1.1'), 443)
-    "[dead::beef]:443" --> (IPv6Address('dead::beef'), 443)
+    Parse a string containing a host and port into a tuple.
+
+    This function takes an input string `d` and returns a tuple containing the host and port.
+    The host is converted to its appropriate IP address type if possible. The port is inferred
+    based on the scheme if not provided.
+
+    Args:
+        d (str): The input string containing the host and possibly the port.
+
+    Returns:
+        Tuple[Union[IPv4Address, IPv6Address, str], Optional[int]]: Tuple containing the host and port.
+
+    Examples:
+        >>> split_host_port("evilcorp.com:443")
+        ("evilcorp.com", 443)
+
+        >>> split_host_port("192.168.1.1:443")
+        (IPv4Address('192.168.1.1'), 443)
+
+        >>> split_host_port("[dead::beef]:443")
+        (IPv6Address('dead::beef'), 443)
+
+    Notes:
+        - If port is not provided, it is inferred based on the scheme:
+            - For "https" and "wss", port 443 is used.
+            - For "http" and "ws", port 80 is used.
     """
-    if not "://" in d:
-        d = f"d://{d}"
-    parsed = urlparse(d)
-    port = None
+    d = str(d)
     host = None
-    with suppress(ValueError):
-        if parsed.port is None:
-            if parsed.scheme in ("https", "wss"):
-                port = 443
-            elif parsed.scheme in ("http", "ws"):
-                port = 80
-        else:
-            port = int(parsed.port)
-    with suppress(ValueError):
-        host = parsed.hostname
+    port = None
+    scheme = None
+    if is_ip(d):
+        return make_ip_type(d), port
+
+    match = bbot_regexes.split_host_port_regex.match(d)
+    if match is None:
+        raise ValueError(f'split_port() failed to parse "{d}"')
+    scheme = match.group("scheme")
+    netloc = match.group("netloc")
+    if netloc is None:
+        raise ValueError(f'split_port() failed to parse "{d}"')
+
+    match = bbot_regexes.extract_open_port_regex.match(netloc)
+    if match is None:
+        raise ValueError(f'split_port() failed to parse netloc "{netloc}"')
+
+    host = match.group(2)
+    if host is None:
+        host = match.group(1)
+    if host is None:
+        raise ValueError(f'split_port() failed to locate host in netloc "{netloc}"')
+
+    port = match.group(3)
+    if port is None and scheme is not None:
+        if scheme in ("https", "wss"):
+            port = 443
+        elif scheme in ("http", "ws"):
+            port = 80
+    elif port is not None:
+        with suppress(ValueError):
+            port = int(port)
+
     return make_ip_type(host), port
 
 
 def parent_domain(d):
     """
-    "www.internal.evilcorp.co.uk" --> "internal.evilcorp.co.uk"
-    "www.internal.evilcorp.co.uk:8080" --> "internal.evilcorp.co.uk:8080"
-    "www.evilcorp.co.uk" --> "evilcorp.co.uk"
-    "evilcorp.co.uk" --> "evilcorp.co.uk"
+    Retrieve the parent domain of a given subdomain string.
+
+    This function takes an input string `d` representing a subdomain and returns its parent domain.
+    If the input does not represent a subdomain, it returns the input as is.
+
+    Args:
+        d (str): The input string representing a subdomain or domain.
+
+    Returns:
+        str: The parent domain of the subdomain, or the original input if it is not a subdomain.
+
+    Examples:
+        >>> parent_domain("www.internal.evilcorp.co.uk")
+        "internal.evilcorp.co.uk"
+
+        >>> parent_domain("www.internal.evilcorp.co.uk:8080")
+        "internal.evilcorp.co.uk:8080"
+
+        >>> parent_domain("www.evilcorp.co.uk")
+        "evilcorp.co.uk"
+
+        >>> parent_domain("evilcorp.co.uk")
+        "evilcorp.co.uk"
+
+    Notes:
+        - Port, if present in input, is preserved in the output.
     """
     host, port = split_host_port(d)
     if is_subdomain(d):
@@ -139,8 +294,26 @@ def parent_domain(d):
 
 def domain_parents(d, include_self=False):
     """
-    "test.www.evilcorp.co.uk" --> ["www.evilcorp.co.uk", "evilcorp.co.uk"]
+    Generate a list of parent domains for a given domain string.
+
+    This function takes an input string `d` and generates a list of parent domains in decreasing order of specificity.
+    If `include_self` is set to True, the list will also include the input domain if it is not a top-level domain.
+
+    Args:
+        d (str): The input string representing a domain or subdomain.
+        include_self (bool, optional): Whether to include the input domain itself. Defaults to False.
+
+    Yields:
+        str: Parent domains of the input string in decreasing order of specificity.
+
+    Examples:
+        >>> list(domain_parents("test.www.evilcorp.co.uk"))
+        ["www.evilcorp.co.uk", "evilcorp.co.uk"]
+
+    Notes:
+        - Port, if present in input, is preserved in the output.
     """
+
     parent = str(d)
     if include_self and not is_domain(parent):
         yield parent
@@ -155,6 +328,29 @@ def domain_parents(d, include_self=False):
 
 
 def parent_url(u):
+    """
+    Retrieve the parent URL of a given URL.
+
+    This function takes an input string `u` representing a URL and returns its parent URL.
+    If the input URL does not have a parent (i.e., it's already the top-level), it returns None.
+
+    Args:
+        u (str): The input string representing a URL.
+
+    Returns:
+        Union[str, None]: The parent URL of the input URL, or None if it has no parent.
+
+    Examples:
+        >>> parent_url("https://evilcorp.com/sub/path/")
+        "https://evilcorp.com/sub/"
+
+        >>> parent_url("https://evilcorp.com/")
+        None
+
+    Notes:
+        - Only the path component of the URL is modified.
+        - All other components like scheme, netloc, query, and fragment are preserved.
+    """
     parsed = urlparse(u)
     path = Path(parsed.path)
     if path.parent == path:
@@ -165,30 +361,74 @@ def parent_url(u):
 
 def url_parents(u):
     """
-    "http://www.evilcorp.co.uk/admin/tools/cmd.php" --> ["http://www.evilcorp.co.uk/admin/tools/","http://www.evilcorp.co.uk/admin/", "http://www.evilcorp.co.uk/"]
-    """
+    Generate a list of parent URLs for a given URL string.
 
-    parent_list = set()
+    This function takes an input string `u` representing a URL and generates a list of its parent URLs in decreasing order of specificity.
+
+    Args:
+        u (str): The input string representing a URL.
+
+    Returns:
+        List[str]: A list of parent URLs of the input URL in decreasing order of specificity.
+
+    Examples:
+        >>> url_parents("http://www.evilcorp.co.uk/admin/tools/cmd.php")
+        ["http://www.evilcorp.co.uk/admin/tools/", "http://www.evilcorp.co.uk/admin/", "http://www.evilcorp.co.uk/"]
+
+    Notes:
+        - The list is generated by continuously calling `parent_url` until it returns None.
+        - All components of the URL except for the path are preserved.
+    """
+    parent_list = []
     while 1:
         parent = parent_url(u)
         if parent == None:
-            return list(parent_list)
-        else:
-            parent_list.add(parent)
+            return parent_list
+        elif parent not in parent_list:
+            parent_list.append(parent)
             u = parent
 
 
 def tldextract(data):
     """
-    "www.evilcorp.co.uk" --> ExtractResult(subdomain='www', domain='evilcorp', suffix='co.uk')
+    Extracts the subdomain, domain, and suffix from a URL string.
+
+    Args:
+        data (str): The URL string to be processed.
+
+    Returns:
+        ExtractResult: A named tuple containing the subdomain, domain, and suffix.
+
+    Examples:
+        >>> tldextract("www.evilcorp.co.uk")
+        ExtractResult(subdomain='www', domain='evilcorp', suffix='co.uk')
+
+    Notes:
+        - Utilizes `smart_decode` to preprocess the data.
+        - Makes use of the `tldextract` library for extraction.
     """
     return _tldextract.extract(smart_decode(data))
 
 
 def split_domain(hostname):
     """
-    "www.internal.evilcorp.co.uk" --> ("www.internal", "evilcorp.co.uk")
+    Splits the hostname into its subdomain and registered domain components.
+
+    Args:
+        hostname (str): The full hostname to be split.
+
+    Returns:
+        tuple: A tuple containing the subdomain and registered domain.
+
+    Examples:
+        >>> split_domain("www.internal.evilcorp.co.uk")
+        ("www.internal", "evilcorp.co.uk")
+
+    Notes:
+        - Utilizes the `tldextract` function to first break down the hostname.
     """
+    if is_ip(hostname):
+        return ("", hostname)
     parsed = tldextract(hostname)
     subdomain = parsed.subdomain
     domain = parsed.registered_domain
@@ -201,8 +441,20 @@ def split_domain(hostname):
 
 def domain_stem(domain):
     """
-    An abbreviated representation of hostname that removes the TLD
-        www.evilcorp.com --> www.evilcorp
+    Returns an abbreviated representation of the hostname by removing the TLD (Top-Level Domain).
+
+    Args:
+        domain (str): The full domain name to be abbreviated.
+
+    Returns:
+        str: An abbreviated domain string without the TLD.
+
+    Examples:
+        >>> domain_stem("www.evilcorp.com")
+        "www.evilcorp"
+
+    Notes:
+        - Utilizes the `tldextract` function for domain parsing.
     """
     parsed = tldextract(str(domain))
     return f".".join(parsed.subdomain.split(".") + parsed.domain.split(".")).strip(".")
@@ -210,7 +462,21 @@ def domain_stem(domain):
 
 def ip_network_parents(i, include_self=False):
     """
-    "192.168.1.1" --> [192.168.1.0/31, 192.168.1.0/30 ... 128.0.0.0/1, 0.0.0.0/0]
+    Generates all parent IP networks for a given IP address or network, optionally including the network itself.
+
+    Args:
+        i (str or ipaddress.IPv4Network/ipaddress.IPv6Network): The IP address or network to find parents for.
+        include_self (bool, optional): Whether to include the network itself in the result. Default is False.
+
+    Yields:
+        ipaddress.IPv4Network or ipaddress.IPv6Network: Parent IP networks in descending order of prefix length.
+
+    Examples:
+        >>> list(ip_network_parents("192.168.1.1"))
+        [ipaddress.IPv4Network('192.168.1.0/31'), ipaddress.IPv4Network('192.168.1.0/30'), ... , ipaddress.IPv4Network('0.0.0.0/0')]
+
+    Notes:
+        - Utilizes Python's built-in `ipaddress` module for network operations.
     """
     net = ipaddress.ip_network(i, strict=False)
     for i in range(net.prefixlen - (0 if include_self else 1), -1, -1):
@@ -218,11 +484,44 @@ def ip_network_parents(i, include_self=False):
 
 
 def is_port(p):
+    """
+    Checks if the given string represents a valid port number.
+
+    Args:
+        p (str or int): The port number to check.
+
+    Returns:
+        bool: True if the port number is valid, False otherwise.
+
+    Examples:
+        >>> is_port('80')
+        True
+        >>> is_port('70000')
+        False
+    """
+
     p = str(p)
     return p and p.isdigit() and 0 <= int(p) <= 65535
 
 
 def is_dns_name(d):
+    """
+    Determines if the given string is a valid DNS name.
+
+    Args:
+        d (str): The string to be checked.
+
+    Returns:
+        bool: True if the string is a valid DNS name, False otherwise.
+
+    Examples:
+        >>> is_dns_name('www.example.com')
+        True
+        >>> is_dns_name('localhost')
+        True
+        >>> is_dns_name('192.168.1.1')
+        False
+    """
     if is_ip(d):
         return False
     d = smart_decode(d)
@@ -235,9 +534,24 @@ def is_dns_name(d):
 
 def is_ip(d, version=None):
     """
-    "192.168.1.1" --> True
-    "bad::c0de" --> True
-    "evilcorp.com" --> False
+    Checks if the given string or object represents a valid IP address.
+
+    Args:
+        d (str or ipaddress.IPvXAddress): The IP address to check.
+        version (int, optional): The IP version to validate (4 or 6). Default is None.
+
+    Returns:
+        bool: True if the string or object is a valid IP address, False otherwise.
+
+    Examples:
+        >>> is_ip('192.168.1.1')
+        True
+        >>> is_ip('bad::c0de', version=6)
+        True
+        >>> is_ip('bad::c0de', version=4)
+        False
+        >>> is_ip('evilcorp.com')
+        False
     """
     if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
         if version is None or version == d.version:
@@ -253,18 +567,47 @@ def is_ip(d, version=None):
 
 def is_ip_type(i):
     """
-    IPv6Address('dead::beef') --> True
-    IPv4Network('192.168.1.0/24') --> True
-    "192.168.1.0/24" --> False
+    Checks if the given object is an instance of an IPv4 or IPv6 type from the ipaddress module.
+
+    Args:
+        i (ipaddress._BaseV4 or ipaddress._BaseV6): The IP object to check.
+
+    Returns:
+        bool: True if the object is an instance of ipaddress._BaseV4 or ipaddress._BaseV6, False otherwise.
+
+    Examples:
+        >>> is_ip_type(ipaddress.IPv6Address('dead::beef'))
+        True
+        >>> is_ip_type(ipaddress.IPv4Network('192.168.1.0/24'))
+        True
+        >>> is_ip_type("192.168.1.0/24")
+        False
     """
-    return hasattr(i, "is_multicast")
+    return isinstance(i, ipaddress._BaseV4) or isinstance(i, ipaddress._BaseV6)
 
 
 def make_ip_type(s):
     """
-    "dead::beef" --> IPv6Address('dead::beef')
-    "192.168.1.0/24" --> IPv4Network('192.168.1.0/24')
-    "evilcorp.com" --> "evilcorp.com"
+    Convert a string to its corresponding IP address or network type.
+
+    This function attempts to convert the input string `s` into either an IPv4 or IPv6 address object,
+    or an IPv4 or IPv6 network object. If none of these conversions are possible, the original string is returned.
+
+    Args:
+        s (str): The input string to be converted.
+
+    Returns:
+        Union[IPv4Address, IPv6Address, IPv4Network, IPv6Network, str]: The converted object or original string.
+
+    Examples:
+        >>> make_ip_type("dead::beef")
+        IPv6Address('dead::beef')
+
+        >>> make_ip_type("192.168.1.0/24")
+        IPv4Network('192.168.1.0/24')
+
+        >>> make_ip_type("evilcorp.com")
+        'evilcorp.com'
     """
     # IP address
     with suppress(Exception):
@@ -277,11 +620,42 @@ def make_ip_type(s):
 
 def host_in_host(host1, host2):
     """
+    Checks if host1 is included within host2, either as a subdomain, IP, or IP network.
+    Used for scope calculations/decisions within BBOT.
+
+    Args:
+        host1 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
+            The host to check for inclusion within host2.
+        host2 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
+            The host within which to check for the inclusion of host1.
+
+    Returns:
+        bool: True if host1 is included in host2, otherwise False.
+
+    Examples:
+        >>> host_in_host("www.evilcorp.com", "evilcorp.com")
+        True
+        >>> host_in_host("evilcorp.com", "www.evilcorp.com")
+        False
+        >>> host_in_host(ipaddress.IPv6Address('dead::beef'), ipaddress.IPv6Network('dead::/64'))
+        True
+        >>> host_in_host(ipaddress.IPv4Address('192.168.1.1'), ipaddress.IPv4Network('10.0.0.0/8'))
+        False
+
+    Notes:
+        - If checking an IP address/network, you MUST FIRST convert your IP into an ipaddress object (e.g. via `make_ip_type()`) before passing it to this function.
+    """
+
+    """
     Is host1 included in host2?
         "www.evilcorp.com" in "evilcorp.com"? --> True
         "evilcorp.com" in "www.evilcorp.com"? --> False
         IPv6Address('dead::beef') in IPv6Network('dead::/64')? --> True
         IPv4Address('192.168.1.1') in IPv4Network('10.0.0.0/8')? --> False
+
+    Very important! Used throughout BBOT for scope calculations/decisions.
+
+    Works with hostnames, IPs, and IP networks.
     """
 
     if not host1 or not host2:
@@ -309,7 +683,17 @@ def host_in_host(host1, host2):
 
 def sha1(data):
     """
-    sha1("asdf").hexdigest() --> "3da541559918a808c2402bba5012f6c60b27661c"
+    Computes the SHA-1 hash of the given data.
+
+    Args:
+        data (str or dict): The data to hash. If a dictionary, it is first converted to a JSON string with sorted keys.
+
+    Returns:
+        hashlib.Hash: SHA-1 hash object of the input data.
+
+    Examples:
+        >>> sha1("asdf").hexdigest()
+        '3da541559918a808c2402bba5012f6c60b27661c'
     """
     if isinstance(data, dict):
         data = json.dumps(data, sort_keys=True)
@@ -318,9 +702,19 @@ def sha1(data):
 
 def smart_decode(data):
     """
-    Turn data into a string without complaining about it
-        b"asdf" --> "asdf"
-        "asdf" --> "asdf"
+    Decodes the input data to a UTF-8 string, silently ignoring errors.
+
+    Args:
+        data (str or bytes): The data to decode.
+
+    Returns:
+        str: The decoded string.
+
+    Examples:
+        >>> smart_decode(b"asdf")
+        "asdf"
+        >>> smart_decode("asdf")
+        "asdf"
     """
     if isinstance(data, bytes):
         return data.decode("utf-8", errors="ignore")
@@ -330,8 +724,19 @@ def smart_decode(data):
 
 def smart_encode(data):
     """
-    Turn data into bytes without complaining about it
-        "asdf" --> b"asdf"
+    Encodes the input data to bytes using UTF-8 encoding, silently ignoring errors.
+
+    Args:
+        data (str or bytes): The data to encode.
+
+    Returns:
+        bytes: The encoded bytes.
+
+    Examples:
+        >>> smart_encode("asdf")
+        b"asdf"
+        >>> smart_encode(b"asdf")
+        b"asdf"
     """
     if isinstance(data, bytes):
         return data
@@ -344,7 +749,24 @@ backslash_regex = re.compile(r"(?P<slashes>\\+)(?P<char>[ntrvb])")
 
 def recursive_decode(data, max_depth=5):
     """
-    Encode double or triple-encoded strings
+    Recursively decodes doubly or triply-encoded strings to their original form.
+
+    Supports both URL-encoding and backslash-escapes (including unicode)
+
+    Args:
+        data (str): The data to decode.
+        max_depth (int, optional): Maximum recursion depth for decoding. Defaults to 5.
+
+    Returns:
+        str: The decoded string.
+
+    Examples:
+        >>> recursive_decode("Hello%20world%21")
+        "Hello world!"
+        >>> recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442")
+        "Hello Привет"
+        >>> recursive_dcode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021")
+        " Привет!"
     """
     # Decode newline and tab escapes
     data = backslash_regex.sub(
@@ -372,9 +794,22 @@ rand_pool_digits = rand_pool + string.digits
 
 def rand_string(length=10, digits=True):
     """
-    rand_string() --> "c4hp4i9jzx"
-    rand_string(20) --> "ap4rsdtg5iw7ey7y3oa5"
-    rand_string(30) --> "xdmyxtglqf0z3q8t46n430kesq68yu"
+    Generates a random string of specified length.
+
+    Args:
+        length (int, optional): The length of the random string. Defaults to 10.
+        digits (bool, optional): Whether to include digits in the string. Defaults to True.
+
+    Returns:
+        str: A random string of the specified length.
+
+    Examples:
+        >>> rand_string()
+        'c4hp4i9jzx'
+        >>> rand_string(20)
+        'ap4rsdtg5iw7ey7y3oa5'
+        >>> rand_string(30, digits=False)
+        'xdmyxtglqfzqktngkesyulwbfrihva'
     """
     pool = rand_pool
     if digits:
@@ -383,6 +818,22 @@ def rand_string(length=10, digits=True):
 
 
 def extract_params_json(json_data):
+    """
+    Extracts keys from a JSON object and returns them as a set. Used by the `paramminer_headers` module.
+
+    Args:
+        json_data (str): JSON-formatted string containing key-value pairs.
+
+    Returns:
+        set: A set containing the keys present in the JSON object.
+
+    Raises:
+        Logs a message if JSONDecodeError occurs.
+
+    Examples:
+        >>> extract_params_json('{"a": 1, "b": {"c": 2}}')
+        {'a', 'b', 'c'}
+    """
     try:
         data = json.loads(json_data)
     except json.JSONDecodeError:
@@ -408,6 +859,22 @@ def extract_params_json(json_data):
 
 
 def extract_params_xml(xml_data):
+    """
+    Extracts tags from an XML object and returns them as a set.
+
+    Args:
+        xml_data (str): XML-formatted string containing elements.
+
+    Returns:
+        set: A set containing the tags present in the XML object.
+
+    Raises:
+        Logs a message if ParseError occurs.
+
+    Examples:
+        >>> extract_params_xml('<root><child1><child2/></child1></root>')
+        {'child1', 'child2', 'root'}
+    """
     try:
         root = ET.fromstring(xml_data)
     except ET.ParseError:
@@ -426,6 +893,31 @@ def extract_params_xml(xml_data):
 
 
 def extract_params_html(html_data):
+    """
+    Extracts parameters from an HTML object, yielding them one at a time.
+
+    Args:
+        html_data (str): HTML-formatted string.
+
+    Yields:
+        str: A string containing the parameter found in HTML object.
+
+    Examples:
+        >>> html_data = '''
+        ... <html>
+        ...     <body>
+        ...         <input name="user">
+        ...         <a href="/page?param3=value3">Click Me</a>
+        ...         <script>
+        ...             $.get("/test", {param1: "value1"});
+        ...             $.post("/test", {param2: "value2"});
+        ...         </script>
+        ...     </body>
+        ... </html>
+        ... '''
+        >>> list(extract_params_html(html_data))
+        ['user', 'param2', 'param3']
+    """
     input_tag = bbot_regexes.input_tag_regex.findall(html_data)
 
     for i in input_tag:
@@ -455,10 +947,27 @@ def extract_params_html(html_data):
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
+    """Intelligently extracts words from given data.
+
+    This function uses regular expressions and optionally wordninja to extract words
+    from a given text string. Thanks to wordninja it can handle concatenated words intelligently.
+
+    Args:
+        data (str): The data from which words are to be extracted.
+        acronyms (bool, optional): Whether to include acronyms. Defaults to True.
+        wordninja (bool, optional): Whether to use the wordninja library to split concatenated words. Defaults to True.
+        model (object, optional): A custom wordninja model for special types of data such as DNS names.
+        max_length (int, optional): Maximum length for a word to be included. Defaults to 100.
+        word_regexes (list, optional): A list of compiled regular expression objects for word extraction. Defaults to None.
+
+    Returns:
+        set: A set of extracted words.
+
+    Examples:
+        >>> extract_words('blacklanternsecurity')
+        {'black', 'lantern', 'security', 'bls', 'blacklanternsecurity'}
     """
-    Intelligently extract words from given data
-    Returns set() of extracted words
-    """
+
     if word_regexes is None:
         word_regexes = bbot_regexes.word_regexes
     words = set()
@@ -478,6 +987,8 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
             subwords = model.split(word)
             for subword in subwords:
                 words.add(subword)
+        # this section generates compound words
+        # it is interesting but currently disabled the quality of its output doesn't quite justify its quantity
         # blacklanternsecurity --> ['black', 'lantern', 'security', 'blacklantern', 'lanternsecurity']
         # for s, e in combinations(range(len(subwords) + 1), 2):
         #    if e - s <= max_slice_length:
@@ -492,11 +1003,25 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
 
 
 def closest_match(s, choices, n=1, cutoff=0.0):
-    """
-    Given a string and a list of choices, returns the best match
+    """Finds the closest matching strings from a list of choices based on a given string.
 
-    closest_match("asdf", ["asd", "fds"]) --> "asd"
-    closest_match("asdf", ["asd", "fds", "asdff"], n=3) --> ["asd", "asdff", "fds"]
+    This function uses the difflib library to find the closest matches to a given string `s` from a list of `choices`.
+    It can return either the single best match or a list of the top `n` best matches.
+
+    Args:
+        s (str): The string for which to find the closest match.
+        choices (list): A list of strings to compare against.
+        n (int, optional): The number of best matches to return. Defaults to 1.
+        cutoff (float, optional): A float value that defines the similarity threshold. Strings with similarity below this value are not considered. Defaults to 0.0.
+
+    Returns:
+        str or list: Either the closest matching string or a list of the `n` closest matching strings.
+
+    Examples:
+        >>> closest_match("asdf", ["asd", "fds"])
+        'asd'
+        >>> closest_match("asdf", ["asd", "fds", "asdff"], n=3)
+        ['asdff', 'asd', 'fds']
     """
     matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
     if not choices or not matches:
@@ -507,8 +1032,21 @@ def closest_match(s, choices, n=1, cutoff=0.0):
 
 
 def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
-    """
-    Return the closest match, warn, and exit
+    """Finds the closest match from a list of choices for a given string, logs a warning, and exits the program.
+
+    This function is particularly useful for CLI applications where you want to validate flags or modules.
+
+    Args:
+        s (str): The string for which to find the closest match.
+        choices (list): A list of strings to compare against.
+        msg (str, optional): Additional message to prepend in the warning message. Defaults to None.
+        loglevel (str, optional): The log level to use for the warning message. Defaults to "HUGEWARNING".
+        exitcode (int, optional): The exit code to use when exiting the program. Defaults to 2.
+
+    Examples:
+        >>> match_and_exit("some_module", ["some_mod", "some_other_mod"], msg="module")
+        # Output: Could not find module "some_module". Did you mean "some_mod"?
+        # Exits with code 2
     """
     if msg is None:
         msg = ""
@@ -541,9 +1079,22 @@ def kill_children(parent_pid=None, sig=signal.SIGTERM):
 
 
 def str_or_file(s):
-    """
-    "file.txt" --> ["file_line1", "file_line2", "file_line3"]
-    "not_a_file" --> ["not_a_file"]
+    """Reads a string or file and yields its content line-by-line.
+
+    This function tries to open the given string `s` as a file and yields its lines.
+    If it fails to open `s` as a file, it treats `s` as a regular string and yields it as is.
+
+    Args:
+        s (str): The string or file path to read.
+
+    Yields:
+        str: Either lines from the file or the original string.
+
+    Examples:
+        >>> list(str_or_file("file.txt"))
+        ['file_line1', 'file_line2', 'file_line3']
+        >>> list(str_or_file("not_a_file"))
+        ['not_a_file']
     """
     try:
         with open(s, errors="ignore") as f:
@@ -554,13 +1105,26 @@ def str_or_file(s):
 
 
 def chain_lists(l, try_files=False, msg=None, remove_blank=True):
-    """
-    Chain together list, splitting entries on comma
-        - Optionally try to open entries as files and add their contents to the list
-        - Used for parsing a list of arguments that may include space and/or comma-separated values
-        - ["a", "b,c,d"] --> ["a", "b", "c", "d"]
-        - try_files=True:
-            - ["a,file.txt", "c,d"] --> ["a", "f_line1", "f_line2", "f_line3", "c", "d"]
+    """Chains together list elements, allowing for entries separated by commas.
+
+    This function takes a list `l` and flattens it by splitting its entries on commas.
+    It also allows you to optionally open entries as files and add their contents to the list.
+
+    Args:
+        l (list): The list of strings to chain together.
+        try_files (bool, optional): Whether to try to open entries as files. Defaults to False.
+        msg (str, optional): An optional message to log when reading from a file. Defaults to None.
+        remove_blank (bool, optional): Whether to remove blank entries from the list. Defaults to True.
+
+    Returns:
+        list: The list of chained elements.
+
+    Examples:
+        >>> chain_lists(["a", "b,c,d"])
+        ['a', 'b', 'c', 'd']
+
+        >>> chain_lists(["a,file.txt", "c,d"], try_files=True)
+        ['a', 'f_line1', 'f_line2', 'f_line3', 'c', 'd']
     """
     final_list = dict()
     for entry in l:
@@ -583,8 +1147,21 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
 
 
 def list_files(directory, filter=lambda x: True):
-    """
-    "/tmp/test" --> ["file1.txt", "file2.txt"]
+    """Lists files in a given directory that meet a specified filter condition.
+
+    Args:
+        directory (str): The directory where to list files.
+        filter (callable, optional): A function to filter the files. Defaults to a lambda function that returns True for all files.
+
+    Yields:
+        Path: A Path object for each file that meets the filter condition.
+
+    Examples:
+        >>> list(list_files("/tmp/test"))
+        [Path('/tmp/test/file1.py'), Path('/tmp/test/file2.txt')]
+
+        >>> list(list_files("/tmp/test"), filter=lambda f: f.suffix == ".py")
+        [Path('/tmp/test/file1.py')]
     """
     directory = Path(directory).resolve()
     if directory.is_dir():
@@ -594,20 +1171,48 @@ def list_files(directory, filter=lambda x: True):
 
 
 def rm_at_exit(path):
+    """Registers a file to be automatically deleted when the program exits.
+
+    Args:
+        path (str or Path): The path to the file to be deleted upon program exit.
+
+    Examples:
+        >>> rm_at_exit("/tmp/test/file1.txt")
     """
-    Removes a file automatically when BBOT exits
-    """
-    atexit.register(_rm_at_exit, path)
+    atexit.register(delete_file, path)
 
 
-def _rm_at_exit(path):
+def delete_file(path):
+    """Deletes a file at the given path.
+
+    Args:
+        path (str or Path): The path to the file to be deleted.
+
+    Note:
+        This function suppresses all exceptions to ensure that the program continues running even if the file could not be deleted.
+
+    Examples:
+        >>> delete_file("/tmp/test/file1.txt")
+    """
     with suppress(Exception):
         Path(path).unlink(missing_ok=True)
 
 
 def read_file(filename):
-    """
-    "/tmp/file.txt" --> ["file_line1", "file_line2", "file_line3"]
+    """Reads a file line by line and yields each line without line breaks.
+
+    Args:
+        filename (str or Path): The path to the file to read.
+
+    Yields:
+        str: A line from the file without the trailing line break.
+
+    Examples:
+        >>> for line in read_file("/tmp/file.txt"):
+        ...     print(line)
+        file_line1
+        file_line2
+        file_line3
     """
     with open(filename, errors="ignore") as f:
         for line in f:
@@ -615,10 +1220,24 @@ def read_file(filename):
 
 
 def gen_numbers(n, padding=2):
-    """
-    n=5 --> ['0', '00', '01', '02', '03', '04', '1', '2', '3', '4']
-    n=3, padding=3 --> ['0', '00', '000', '001', '002', '01', '02', '1', '2']
-    n=5, padding=1 --> ['0', '1', '2', '3', '4']
+    """Generates numbers with variable padding and returns them as a set of strings.
+
+    Args:
+        n (int): The upper limit of numbers to generate, exclusive.
+        padding (int, optional): The maximum number of digits to pad the numbers with. Defaults to 2.
+
+    Returns:
+        set: A set of string representations of numbers with varying degrees of padding.
+
+    Examples:
+        >>> gen_numbers(5)
+        {'0', '00', '01', '02', '03', '04', '1', '2', '3', '4'}
+
+        >>> gen_numbers(3, padding=3)
+        {'0', '00', '000', '001', '002', '01', '02', '1', '2'}
+
+        >>> gen_numbers(5, padding=1)
+        {'0', '1', '2', '3', '4'}
     """
     results = set()
     for i in range(n):
@@ -628,22 +1247,50 @@ def gen_numbers(n, padding=2):
 
 
 def make_netloc(host, port):
+    """Constructs a network location string from a given host and port.
+
+    Args:
+        host (str): The hostname or IP address.
+        port (int, optional): The port number. If None, the port is omitted.
+
+    Returns:
+        str: A network location string in the form 'host' or 'host:port'.
+
+    Examples:
+        >>> make_netloc("192.168.1.1", None)
+        "192.168.1.1"
+
+        >>> make_netloc("192.168.1.1", 443)
+        "192.168.1.1:443"
+
+        >>> make_netloc("evilcorp.com", 80)
+        "evilcorp.com:80"
+
+        >>> make_netloc("dead::beef", None)
+        "[dead::beef]"
+
+        >>> make_netloc("dead::beef", 443)
+        "[dead::beef]:443"
     """
-    ("192.168.1.1", None) --> "192.168.1.1"
-    ("192.168.1.1", 443) --> "192.168.1.1:443"
-    ("evilcorp.com", 80) --> "evilcorp.com:80"
-    ("dead::beef", 443) --> "[dead::beef]:443"
-    """
-    if port is None:
-        return host
     if is_ip(host, version=6):
         host = f"[{host}]"
+    if port is None:
+        return host
     return f"{host}:{port}"
 
 
 def which(*executables):
-    """
-    "python" --> "/usr/bin/python"
+    """Finds the full path of the first available executable from a list of executables.
+
+    Args:
+        *executables (str): One or more executable names to search for.
+
+    Returns:
+        str: The full path of the first available executable, or None if none are found.
+
+    Examples:
+        >>> which("python", "python3")
+        "/usr/bin/python"
     """
     for e in executables:
         location = shutil.which(e)
@@ -652,9 +1299,19 @@ def which(*executables):
 
 
 def search_dict_by_key(key, d):
-    """
-    Search a dictionary by key name
-    Generator, yields all values with matching keys
+    """Search a nested dictionary or list of dictionaries by a key and yield all matching values.
+
+    Args:
+        key (str): The key to search for.
+        d (Union[dict, list]): The dictionary or list of dictionaries to search.
+
+    Yields:
+        Any: Yields all values that match the provided key.
+
+    Examples:
+        >>> d = {'a': 1, 'b': {'c': 2, 'a': 3}, 'd': [{'a': 4}, {'e': 5}]}
+        >>> list(search_dict_by_key('a', d))
+        [1, 3, 4]
     """
     if isinstance(d, dict):
         if key in d:
@@ -667,10 +1324,18 @@ def search_dict_by_key(key, d):
 
 
 def search_format_dict(d, **kwargs):
-    """
-    Recursively .format() string values in dictionary values
-    search_format_dict({"test": "#{name} is awesome"}, name="keanu")
-        --> {"test": "keanu is awesome"}
+    """Recursively format string values in a dictionary or list using the provided keyword arguments.
+
+    Args:
+        d (Union[dict, list, str]): The dictionary, list, or string to format.
+        **kwargs: Arbitrary keyword arguments used for string formatting.
+
+    Returns:
+        Union[dict, list, str]: The formatted dictionary, list, or string.
+
+    Examples:
+        >>> search_format_dict({"test": "#{name} is awesome"}, name="keanu")
+        {"test": "keanu is awesome"}
     """
     if isinstance(d, dict):
         return {k: search_format_dict(v, **kwargs) for k, v in d.items()}
@@ -684,21 +1349,30 @@ def search_format_dict(d, **kwargs):
 
 
 def search_dict_values(d, *regexes):
-    """
-    Recursively search a dictionary's values based on regexes
+    """Recursively search a dictionary's values based on provided regex patterns.
 
-    dict_to_search = {
-        "key1": {
-            "key2": [
-                {
-                    "key3": "A URL: https://www.evilcorp.com"
-                }
-            ]
-        }
-    })
+    Args:
+        d (Union[dict, list, str]): The dictionary, list, or string to search.
+        *regexes: Arbitrary number of compiled regex patterns.
 
-    search_dict_values(dict_to_search, url_regexes) --> "https://www.evilcorp.com"
+    Returns:
+        Generator: Yields matching values based on the provided regex patterns.
+
+    Examples:
+        >>> dict_to_search = {
+        ...     "key1": {
+        ...         "key2": [
+        ...             {
+        ...                 "key3": "A URL: https://www.evilcorp.com"
+        ...             }
+        ...         ]
+        ...     }
+        ... }
+        >>> url_regexes = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+        >>> list(search_dict_values(dict_to_search, url_regexes))
+        ["https://www.evilcorp.com"]
     """
+
     results = set()
     if isinstance(d, str):
         for r in regexes:
@@ -716,11 +1390,25 @@ def search_dict_values(d, *regexes):
             yield from search_dict_values(v, *regexes)
 
 
-def filter_dict(d, *key_names, fuzzy=False, invert=False, exclude_keys=None, prev_key=None):
+def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
     """
-    Recursively filter a dictionary based on key names
-    filter_dict({"key1": "test", "key2": "asdf"}, "key2")
-        --> {"key2": "asdf"}
+    Recursively filter a dictionary based on key names.
+
+    Args:
+        d (dict): The input dictionary.
+        *key_names: Names of keys to filter for.
+        fuzzy (bool): Whether to perform fuzzy matching on keys.
+        exclude_keys (list, None): List of keys to be excluded from the final dict.
+        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
+
+    Returns:
+        dict: A dictionary containing only the keys specified in key_names.
+
+    Examples:
+        >>> filter_dict({"key1": "test", "key2": "asdf"}, "key2")
+        {"key2": "asdf"}
+        >>> filter_dict({"key1": "test", "key2": {"key3": "asdf"}}, "key1", "key3", exclude_keys="key2")
+        {'key1': 'test'}
     """
     if exclude_keys is None:
         exclude_keys = []
@@ -730,16 +1418,31 @@ def filter_dict(d, *key_names, fuzzy=False, invert=False, exclude_keys=None, pre
     if isinstance(d, dict):
         for key in d:
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if not prev_key in exclude_keys:
+                if not any(k in exclude_keys for k in [key, _prev_key]):
                     ret[key] = copy.deepcopy(d[key])
             elif isinstance(d[key], list) or isinstance(d[key], dict):
-                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, prev_key=key, exclude_keys=exclude_keys)
+                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
                 if child:
                     ret[key] = child
     return ret
 
 
-def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, prev_key=None):
+def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
+    """
+    Recursively clean unwanted keys from a dictionary.
+    Useful for removing secrets from a config.
+
+    Args:
+        d (dict): The input dictionary.
+        *key_names: Names of keys to remove.
+        fuzzy (bool): Whether to perform fuzzy matching on keys.
+        exclude_keys (list, None): List of keys to be excluded from removal.
+        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
+
+    Returns:
+        dict: A dictionary cleaned of the keys specified in key_names.
+
+    """
     if exclude_keys is None:
         exclude_keys = []
     if isinstance(exclude_keys, str):
@@ -748,26 +1451,47 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, prev_key=None):
     if isinstance(d, dict):
         for key, val in list(d.items()):
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if prev_key not in exclude_keys:
+                if _prev_key not in exclude_keys:
                     d.pop(key)
             else:
-                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, prev_key=key, exclude_keys=exclude_keys)
+                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
     return d
 
 
 def grouper(iterable, n):
     """
-    >>> list(grouper('ABCDEFG', 3))
-    [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
+    Grouper groups an iterable into chunks of a given size.
+
+    Args:
+        iterable (iterable): The iterable to be chunked.
+        n (int): The size of each chunk.
+
+    Returns:
+        iterator: An iterator that produces lists of elements from the original iterable, each of length `n` or less.
+
+    Examples:
+        >>> list(grouper('ABCDEFG', 3))
+        [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
     """
+
     iterable = iter(iterable)
     return iter(lambda: list(islice(iterable, n)), [])
 
 
 def split_list(alist, wanted_parts=2):
     """
-    >>> split_list([1,2,3,4,5])
-    [[1, 2], [3, 4, 5]]
+    Splits a list into a specified number of approximately equal parts.
+
+    Args:
+        alist (list): The list to be split.
+        wanted_parts (int): The number of parts to split the list into.
+
+    Returns:
+        list: A list of lists, each containing a portion of the original list.
+
+    Examples:
+        >>> split_list([1, 2, 3, 4, 5])
+        [[1, 2], [3, 4, 5]]
     """
     length = len(alist)
     return [alist[i * length // wanted_parts : (i + 1) * length // wanted_parts] for i in range(wanted_parts)]
@@ -775,7 +1499,24 @@ def split_list(alist, wanted_parts=2):
 
 def mkdir(path, check_writable=True, raise_error=True):
     """
-    Create a directory and ensure that it's writable
+    Creates a directory and optionally checks if it's writable.
+
+    Args:
+        path (str or Path): The directory to create.
+        check_writable (bool, optional): Whether to check if the directory is writable. Default is True.
+        raise_error (bool, optional): Whether to raise an error if the directory creation fails. Default is True.
+
+    Returns:
+        bool: True if the directory is successfully created (and writable, if check_writable=True); otherwise False.
+
+    Raises:
+        DirectoryCreationError: Raised if the directory cannot be created and `raise_error=True`.
+
+    Examples:
+        >>> mkdir("/tmp/new_dir")
+        True
+        >>> mkdir("/restricted_dir", check_writable=False, raise_error=False)
+        False
     """
     path = Path(path).resolve()
     touchfile = path / f".{rand_string()}"
@@ -794,8 +1535,20 @@ def mkdir(path, check_writable=True, raise_error=True):
 
 def make_date(d=None, microseconds=False):
     """
-    make_date() --> "20220707_1325_50"
-    make_date(microseconds=True) --> "20220707_1330_35167617"
+    Generates a string representation of the current date and time, with optional microsecond precision.
+
+    Args:
+        d (datetime, optional): A datetime object to convert. Defaults to the current date and time.
+        microseconds (bool, optional): Whether to include microseconds. Defaults to False.
+
+    Returns:
+        str: A string representation of the date and time, formatted as YYYYMMDD_HHMM_SS or YYYYMMDD_HHMM_SSFFFFFF if microseconds are included.
+
+    Examples:
+        >>> make_date()
+        "20220707_1325_50"
+        >>> make_date(microseconds=True)
+        "20220707_1330_35167617"
     """
     f = "%Y%m%d_%H%M_%S"
     if microseconds:
@@ -812,9 +1565,21 @@ def error_and_exit(msg):
 
 def get_file_extension(s):
     """
-    https://evilcorp.com/api/test.php --> "php"
-    /etc/test.conf --> "conf"
-    /etc/passwd --> ""
+    Extracts the file extension from a given string representing a URL or file path.
+
+    Args:
+        s (str): The string from which to extract the file extension.
+
+    Returns:
+        str: The file extension, or an empty string if no extension is found.
+
+    Examples:
+        >>> get_file_extension("https://evilcorp.com/api/test.php")
+        "php"
+        >>> get_file_extension("/etc/test.conf")
+        "conf"
+        >>> get_file_extension("/etc/passwd")
+        ""
     """
     s = str(s).lower().strip()
     rightmost_section = s.rsplit("/", 1)[-1]
@@ -826,13 +1591,23 @@ def get_file_extension(s):
 
 def backup_file(filename, max_backups=10):
     """
-    rename a file as a backup
+    Renames a file by appending an iteration number as a backup. Recursively renames
+    files up to a specified maximum number of backups.
 
-    recursively renames files up to max_backups
+    Args:
+        filename (str or pathlib.Path): The file to backup.
+        max_backups (int, optional): The maximum number of backups to keep. Defaults to 10.
 
-    backup_file("/tmp/test.txt") --> "/tmp/test.0.txt"
-    backup_file("/tmp/test.0.txt") --> "/tmp/test.1.txt"
-    backup_file("/tmp/test.1.txt") --> "/tmp/test.2.txt"
+    Returns:
+        pathlib.Path: The new backup filepath.
+
+    Examples:
+        >>> backup_file("/tmp/test.txt")
+        PosixPath("/tmp/test.0.txt")
+        >>> backup_file("/tmp/test.0.txt")
+        PosixPath("/tmp/test.1.txt")
+        >>> backup_file("/tmp/test.1.txt")
+        PosixPath("/tmp/test.2.txt")
     """
     filename = Path(filename).resolve()
     suffixes = [s.strip(".") for s in filename.suffixes]
@@ -850,11 +1625,21 @@ def backup_file(filename, max_backups=10):
 
 
 def latest_mtime(d):
-    """
-    Given a directory, return the latest modified time of any contained file or directory (recursive)
-    Useful for sorting directories by modified time for the purpose of cleanup, etc.
+    """Get the latest modified time of any file or sub-directory in a given directory.
 
-    latest_mtime("~/.bbot/scans/mushy_susan") --> 1659016928.2848816
+    This function takes a directory path as an argument and returns the latest modified time
+    of any contained file or directory, recursively. It's useful for sorting directories by
+    modified time for cleanup or other purposes.
+
+    Args:
+        d (str or Path): The directory path to search for the latest modified time.
+
+    Returns:
+        float: The latest modified time in Unix timestamp format.
+
+    Examples:
+        >>> latest_mtime("~/.bbot/scans/mushy_susan")
+        1659016928.2848816
     """
     d = Path(d).resolve()
     mtimes = [d.lstat().st_mtime]
@@ -868,6 +1653,21 @@ def latest_mtime(d):
 
 
 def filesize(f):
+    """Get the file size of a given file.
+
+    This function takes a file path as an argument and returns its size in bytes. If the path
+    does not point to a file, the function returns 0.
+
+    Args:
+        f (str or Path): The file path for which to get the size.
+
+    Returns:
+        int: The size of the file in bytes, or 0 if the path does not point to a file.
+
+    Examples:
+        >>> filesize("/path/to/file.txt")
+        1024
+    """
     f = Path(f)
     if f.is_file():
         return f.stat().st_size
@@ -875,11 +1675,23 @@ def filesize(f):
 
 
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):
-    """
-    Given a directory "d", measure the number of subdirectories and files (matching "filter")
-    And remove (rm -r) the oldest ones past the threshold of "keep"
+    """Clean up old files and directories within a given directory based on various filtering and sorting options.
 
-    clean_old_dirs("~/.bbot/scans", filter=lambda x: x.is_dir() and scan_name_regex.match(x.name))
+    This function removes the oldest files and directories in the provided directory 'd' that exceed a specified
+    threshold ('keep'). The items to be deleted can be filtered using a lambda function 'filter', and they are
+    sorted by a key function, defaulting to latest modification time.
+
+    Args:
+        d (str or Path): The directory path to clean up.
+        keep (int): The number of items to keep. Ones beyond this count will be removed.
+        filter (Callable): A lambda function for filtering which files or directories to consider.
+                           Defaults to a lambda function that returns True for all.
+        key (Callable): A function to sort the files and directories. Defaults to latest modification time.
+        reverse (bool): Whether to reverse the order of sorted items before removing. Defaults to True.
+        raise_error (bool): Whether to raise an error if directory deletion fails. Defaults to False.
+
+    Examples:
+        >>> clean_old("~/.bbot/scans", filter=lambda x: x.is_dir() and scan_name_regex.match(x.name))
     """
     d = Path(d)
     if not d.is_dir():
@@ -898,13 +1710,126 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
 
 
 def extract_emails(s):
+    """
+    Extract email addresses from a body of text
+
+    This function takes in a string and yields all email addresses found in it.
+    The emails are converted to lower case before yielding. It utilizes
+    regular expressions for email pattern matching.
+
+    Args:
+        s (str): The input string from which to extract email addresses.
+
+    Yields:
+        str: Yields email addresses found in the input string, in lower case.
+
+    Examples:
+        >>> list(extract_emails("Contact us at info@evilcorp.com and support@evilcorp.com"))
+        ['info@evilcorp.com', 'support@evilcorp.com']
+    """
     for email in bbot_regexes.email_regex.findall(smart_decode(s)):
         yield email.lower()
 
 
-def can_sudo_without_password():
+def extract_host(s):
     """
-    Return True if the current user can sudo without a password
+    Attempts to find and extract the host portion of a string.
+
+    Args:
+        s (str): The string from which to extract the host.
+
+    Returns:
+        tuple: A tuple containing three strings:
+               (hostname (None if not found), string_before_hostname, string_after_hostname).
+
+    Examples:
+        >>> extract_host("evilcorp.com:80")
+        ("evilcorp.com", "", ":80")
+
+        >>> extract_host("http://evilcorp.com:80/asdf.php?a=b")
+        ("evilcorp.com", "http://", ":80/asdf.php?a=b")
+
+        >>> extract_host("bob@evilcorp.com")
+        ("evilcorp.com", "bob@", "")
+
+        >>> extract_host("[dead::beef]:22")
+        ("dead::beef", "[", "]:22")
+
+        >>> extract_host("ftp://username:password@my-ftp.com/my-file.csv")
+        (
+            "my-ftp.com",
+            "ftp://username:password@",
+            "/my-file.csv",
+        )
+    """
+    s = smart_decode(s)
+    match = bbot_regexes.extract_host_regex.search(s)
+
+    if match:
+        hostname = match.group(1)
+        before = s[: match.start(1)]
+        after = s[match.end(1) :]
+        host, port = split_host_port(hostname)
+        netloc = make_netloc(host, port)
+        if netloc != hostname:
+            # invalid host / port
+            return (None, s, "")
+        if host is not None:
+            if port is not None:
+                after = f":{port}{after}"
+            if is_ip(host, version=6) and hostname.startswith("["):
+                before = f"{before}["
+                after = f"]{after}"
+            hostname = str(host)
+        return (hostname, before, after)
+
+    return (None, s, "")
+
+
+def smart_encode_punycode(text: str) -> str:
+    """
+    ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
+    """
+    host, before, after = extract_host(text)
+    if host is None:
+        return text
+
+    try:
+        host = idna.encode(host).decode(errors="ignore")
+    except UnicodeError:
+        pass  # If encoding fails, leave the host as it is
+
+    return f"{before}{host}{after}"
+
+
+def smart_decode_punycode(text: str) -> str:
+    """
+    xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
+    """
+    host, before, after = extract_host(text)
+    if host is None:
+        return text
+
+    try:
+        host = idna.decode(host)
+    except UnicodeError:
+        pass  # If decoding fails, leave the host as it is
+
+    return f"{before}{host}{after}"
+
+
+def can_sudo_without_password():
+    """Check if the current user has passwordless sudo access.
+
+    This function checks whether the current user can use sudo without entering a password.
+    It runs a command with sudo and checks the return code to determine this.
+
+    Returns:
+        bool: True if the current user can use sudo without a password, False otherwise.
+
+    Examples:
+        >>> can_sudo_without_password()
+        True
     """
     if os.geteuid() != 0:
         env = dict(os.environ)
@@ -918,8 +1843,20 @@ def can_sudo_without_password():
 
 
 def verify_sudo_password(sudo_pass):
-    """
-    Return True if the sudo password is correct
+    """Verify if the given sudo password is correct.
+
+    This function checks whether the sudo password provided is valid for the current user.
+    It runs a command with sudo, feeding in the password via stdin, and checks the return code.
+
+    Args:
+        sudo_pass (str): The sudo password to verify.
+
+    Returns:
+        bool: True if the sudo password is correct, False otherwise.
+
+    Examples:
+        >>> verify_sudo_password("mysecretpassword")
+        True
     """
     try:
         sp.run(
@@ -935,16 +1872,30 @@ def verify_sudo_password(sudo_pass):
 
 
 def make_table(*args, **kwargs):
-    """
-    make_table([["row1", "row1"], ["row2", "row2"]], ["header1", "header2"]) -->
+    """Generate a formatted table from the given rows and headers.
 
-    +-----------+-----------+
-    | header1   | header2   |
-    +===========+===========+
-    | row1      | row1      |
-    +-----------+-----------+
-    | row2      | row2      |
-    +-----------+-----------+
+    This function uses the `tabulate` package to generate a table with formatting options.
+    It can accept various input formats and table styles, which can be customized using optional arguments.
+
+    Args:
+        *args: Positional arguments to be passed to `tabulate.tabulate`.
+        **kwargs: Keyword arguments to customize table formatting.
+            - tablefmt (str, optional): Table format. Default is 'grid'.
+            - disable_numparse (bool, optional): Disable automatic number parsing. Default is True.
+            - maxcolwidths (int, optional): Maximum column width. Default is 40.
+
+    Returns:
+        str: A string representing the formatted table.
+
+    Examples:
+        >>> print(make_table([["row1", "row1"], ["row2", "row2"]], ["header1", "header2"]))
+        +-----------+-----------+
+        | header1   | header2   |
+        +===========+===========+
+        | row1      | row1      |
+        +-----------+-----------+
+        | row2      | row2      |
+        +-----------+-----------+
     """
     # fix IndexError: list index out of range
     if args and not args[0]:
@@ -965,8 +1916,25 @@ def make_table(*args, **kwargs):
 
 
 def human_timedelta(d):
-    """
-    Format a TimeDelta object in human-readable form
+    """Convert a TimeDelta object into a human-readable string.
+
+    This function takes a datetime.timedelta object and converts it into a string format that
+    is easier to read and understand.
+
+    Args:
+        d (datetime.timedelta): The TimeDelta object to convert.
+
+    Returns:
+        str: A string representation of the TimeDelta object in human-readable form.
+
+    Examples:
+        >>> from datetime import datetime
+        >>>
+        >>> start_time = datetime.now()
+        >>> end_time = datetime.now()
+        >>> elapsed_time = end_time - start_time
+        >>> human_timedelta(elapsed_time)
+        '2 hours, 30 minutes, 15 seconds'
     """
     hours, remainder = divmod(d.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -984,9 +1952,21 @@ def human_timedelta(d):
 
 
 def bytes_to_human(_bytes):
-    """
-    Converts bytes to human-readable filesize
-        bytes_to_human(1234129384) --> "1.15GB"
+    """Convert a bytes size to a human-readable string.
+
+    This function converts a numeric bytes value into a human-readable string format, complete
+    with the appropriate unit symbol (B, KB, MB, GB, etc.).
+
+    Args:
+        _bytes (int): The number of bytes to convert.
+
+    Returns:
+        str: A string representing the number of bytes in a more readable format, rounded to two
+             decimal places.
+
+    Examples:
+        >>> bytes_to_human(1234129384)
+        '1.15GB'
     """
     sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
     units = {}
@@ -1007,9 +1987,23 @@ filesize_regex = re.compile(r"(?P<num>[0-9\.]+)[\s]*(?P<char>[a-z])", re.I)
 
 
 def human_to_bytes(filesize):
-    """
-    Converts human-readable filesize to bytes
-        human_to_bytes("23.23gb") --> 24943022571
+    """Convert a human-readable file size string to its bytes equivalent.
+
+    This function takes a human-readable file size string, such as "2.5GB", and converts it
+    to its equivalent number of bytes.
+
+    Args:
+        filesize (str or int): The human-readable file size string or integer bytes value to convert.
+
+    Returns:
+        int: The number of bytes equivalent to the input human-readable file size.
+
+    Raises:
+        ValueError: If the input string cannot be converted to bytes.
+
+    Examples:
+        >>> human_to_bytes("23.23gb")
+        24943022571
     """
     if isinstance(filesize, int):
         return filesize
@@ -1033,8 +2027,17 @@ def human_to_bytes(filesize):
 
 
 def cpu_architecture():
-    """
-    Returns the CPU architecture, e.g. "amd64, "armv7", "arm64", etc.
+    """Return the CPU architecture of the current system.
+
+    This function fetches and returns the architecture type of the CPU where the code is being executed.
+    It maps common identifiers like "x86_64" to more general types like "amd64".
+
+    Returns:
+        str: A string representing the CPU architecture, such as "amd64", "armv7", or "arm64".
+
+    Examples:
+        >>> cpu_architecture()
+        'amd64'
     """
     uname = platform.uname()
     arch = uname.machine.lower()
@@ -1046,15 +2049,33 @@ def cpu_architecture():
 
 
 def os_platform():
-    """
-    Returns the OS platform, e.g. "linux", "darwin", "windows", etc.
+    """Return the OS platform of the current system.
+
+    This function fetches and returns the OS type where the code is being executed.
+    It converts the platform identifier to lowercase.
+
+    Returns:
+        str: A string representing the OS platform, such as "linux", "darwin", or "windows".
+
+    Examples:
+        >>> os_platform()
+        'linux'
     """
     return platform.system().lower()
 
 
 def os_platform_friendly():
-    """
-    Returns the OS platform in a more human-friendly format, because apple is indecisive
+    """Return a human-friendly OS platform string, suitable for golang release binaries.
+
+    This function fetches the OS platform and modifies it to a more human-readable format if necessary.
+    Specifically, it changes "darwin" to "macOS".
+
+    Returns:
+        str: A string representing the human-friendly OS platform, such as "macOS", "linux", or "windows".
+
+    Examples:
+        >>> os_platform_friendly()
+        'macOS'
     """
     p = os_platform()
     if p == "darwin":
@@ -1066,44 +2087,91 @@ tag_filter_regex = re.compile(r"[^a-z0-9]+")
 
 
 def tagify(s, maxlen=None):
-    """
-    Sanitize a string into a tag-friendly format
+    """Sanitize a string into a tag-friendly format.
 
-    tagify("HTTP Web Title") --> "http-web-title"
+    Converts a given string to lowercase and replaces all characters not matching
+    [a-z0-9] with hyphens. Optionally truncates the result to 'maxlen' characters.
+
+    Args:
+        s (str): The input string to sanitize.
+        maxlen (int, optional): The maximum length for the tag. Defaults to None.
+
+    Returns:
+        str: A sanitized, tag-friendly string.
+
+    Examples:
+        >>> tagify("HTTP Web Title")
+        'http-web-title'
+        >>> tagify("HTTP Web Title", maxlen=8)
+        'http-web'
     """
     ret = str(s).lower()
     return tag_filter_regex.sub("-", ret)[:maxlen].strip("-")
 
 
 def memory_status():
-    """
-    Return statistics on system memory consumption
+    """Return statistics on system memory consumption.
 
-    Example: to get available memory (not including swap):
-        memory_status().available
+    The function returns a `psutil` named tuple that contains statistics on
+    system virtual memory usage, such as total memory, used memory, available
+    memory, and more.
 
-    Example: to get percent memory used:
-        memory_status().percent
+    Returns:
+        psutil._pslinux.svmem: A named tuple representing various statistics
+            about system virtual memory usage.
+
+    Examples:
+        >>> mem = memory_status()
+        >>> mem.available
+        13195399168
+
+        >>> mem = memory_status()
+        >>> mem.percent
+        79.0
     """
     return psutil.virtual_memory()
 
 
 def swap_status():
-    """
-    Return statistics on swap memory consumption
+    """Return statistics on swap memory consumption.
 
-    Example: to get total swap:
-        swap_status().total
+    The function returns a `psutil` named tuple that contains statistics on
+    system swap memory usage, such as total swap, used swap, free swap, and more.
 
-    Example: to get in-use swap:
-        swap_status().used
+    Returns:
+        psutil._common.sswap: A named tuple representing various statistics
+            about system swap memory usage.
+
+    Examples:
+        >>> swap = swap_status()
+        >>> swap.total
+        4294967296
+
+        >>> swap = swap_status()
+        >>> swap.used
+        2097152
     """
     return psutil.swap_memory()
 
 
 def get_size(obj, max_depth=5, seen=None):
     """
-    Rough recursive measurement of a python object's memory footprint
+    Roughly estimate the memory footprint of a Python object using recursion.
+
+    Parameters:
+        obj (any): The object whose size is to be determined.
+        max_depth (int, optional): Maximum depth to which nested objects will be inspected. Defaults to 5.
+        seen (set, optional): Objects that have already been accounted for, to avoid loops.
+
+    Returns:
+        int: Approximate memory footprint of the object in bytes.
+
+    Examples:
+        >>> get_size(my_list)
+        4200
+
+        >>> get_size(my_dict, max_depth=3)
+        8400
     """
     # If seen is not provided, initialize an empty set
     if seen is None:
@@ -1145,6 +2213,22 @@ def get_size(obj, max_depth=5, seen=None):
 
 
 def is_file(f):
+    """
+    Check if a path points to a file.
+
+    Parameters:
+        f (str): Path to the file.
+
+    Returns:
+        bool: True if the path is a file, False otherwise.
+
+    Examples:
+        >>> is_file("/etc/passwd")
+        True
+
+        >>> is_file("/nonexistent")
+        False
+    """
     with suppress(Exception):
         return Path(f).is_file()
     return False
@@ -1155,12 +2239,17 @@ provider_map = {"amazon": "aws", "google": "gcp"}
 
 def cloudcheck(ip):
     """
-    Check whether an IP address belongs to a cloud provider
+    Check whether an IP address belongs to a cloud provider and returns the provider name, type, and subnet.
 
-        provider, provider_type, subnet = cloudcheck("168.62.20.37")
-        print(provider) # "Azure"
-        print(provider_type) # "cloud"
-        print(subnet) # IPv4Network('168.62.0.0/19')
+    Args:
+        ip (str): The IP address to check.
+
+    Returns:
+        tuple: A tuple containing provider name (str), provider type (str), and subnet (IPv4Network).
+
+    Examples:
+        >>> cloudcheck("168.62.20.37")
+        ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
     """
     provider, provider_type, subnet = _cloudcheck.check(ip)
     if provider:
@@ -1170,10 +2259,48 @@ def cloudcheck(ip):
 
 
 def is_async_function(f):
+    """
+    Check if a given function is an asynchronous function.
+
+    Args:
+        f (function): The function to check.
+
+    Returns:
+        bool: True if the function is asynchronous, False otherwise.
+
+    Examples:
+        >>> async def foo():
+        ...     pass
+        >>> is_async_function(foo)
+        True
+    """
     return inspect.iscoroutinefunction(f)
 
 
 async def execute_sync_or_async(callback, *args, **kwargs):
+    """
+    Execute a function or coroutine, handling either synchronous or asynchronous invocation.
+
+    Args:
+        callback (Union[Callable, Coroutine]): The function or coroutine to execute.
+        *args: Variable-length argument list to pass to the callback.
+        **kwargs: Arbitrary keyword arguments to pass to the callback.
+
+    Returns:
+        Any: The return value from the executed function or coroutine.
+
+    Examples:
+        >>> async def foo_async(x):
+        ...     return x + 1
+        >>> def foo_sync(x):
+        ...     return x + 1
+
+        >>> asyncio.run(execute_sync_or_async(foo_async, 1))
+        2
+
+        >>> asyncio.run(execute_sync_or_async(foo_sync, 1))
+        2
+    """
     if is_async_function(callback):
         return await callback(*args, **kwargs)
     else:
@@ -1182,7 +2309,22 @@ async def execute_sync_or_async(callback, *args, **kwargs):
 
 def get_exception_chain(e):
     """
-    Get the full chain of exceptions that led to the current one
+    Retrieves the full chain of exceptions leading to the given exception.
+
+    Args:
+        e (BaseException): The exception for which to get the chain.
+
+    Returns:
+        list[BaseException]: List of exceptions in the chain, from the given exception back to the root cause.
+
+    Examples:
+        >>> try:
+        ...     raise ValueError("This is a value error")
+        ... except ValueError as e:
+        ...     exc_chain = get_exception_chain(e)
+        ...     for exc in exc_chain:
+        ...         print(exc)
+        This is a value error
     """
     exception_chain = []
     current_exception = e
@@ -1193,6 +2335,23 @@ def get_exception_chain(e):
 
 
 def get_traceback_details(e):
+    """
+    Retrieves detailed information from the traceback of an exception.
+
+    Args:
+        e (BaseException): The exception for which to get traceback details.
+
+    Returns:
+        tuple: A tuple containing filename (str), line number (int), and function name (str) where the exception was raised.
+
+    Examples:
+        >>> try:
+        ...     raise ValueError("This is a value error")
+        ... except ValueError as e:
+        ...     filename, lineno, funcname = get_traceback_details(e)
+        ...     print(f"File: {filename}, Line: {lineno}, Function: {funcname}")
+        File: <stdin>, Line: 2, Function: <module>
+    """
     tb = traceback.extract_tb(e.__traceback__)
     last_frame = tb[-1]  # Get the last frame in the traceback (the one where the exception was raised)
     filename = last_frame.filename
@@ -1201,20 +2360,55 @@ def get_traceback_details(e):
     return filename, lineno, funcname
 
 
-async def cancel_tasks(tasks):
+async def cancel_tasks(tasks, ignore_errors=True):
+    """
+    Asynchronously cancels a list of asyncio tasks.
+
+    Args:
+        tasks (list[Task]): A list of asyncio Task objects to cancel.
+        ignore_errors (bool, optional): Whether to ignore errors other than asyncio.CancelledError. Defaults to True.
+
+    Examples:
+        >>> async def main():
+        ...     task1 = asyncio.create_task(async_function1())
+        ...     task2 = asyncio.create_task(async_function2())
+        ...     await cancel_tasks([task1, task2])
+        ...
+        >>> asyncio.run(main())
+
+    Note:
+        This function will not cancel the current task that it is called from.
+    """
     current_task = asyncio.current_task()
     tasks = [t for t in tasks if t != current_task]
     for task in tasks:
         log.debug(f"Cancelling task: {task}")
         task.cancel()
-    for task in tasks:
-        try:
-            await task
-        except asyncio.CancelledError:
-            log.trace(traceback.format_exc())
+    if ignore_errors:
+        for task in tasks:
+            try:
+                await task
+            except BaseException as e:
+                if not isinstance(e, asyncio.CancelledError):
+                    log.trace(traceback.format_exc())
 
 
 def cancel_tasks_sync(tasks):
+    """
+    Synchronously cancels a list of asyncio tasks.
+
+    Args:
+        tasks (list[Task]): A list of asyncio Task objects to cancel.
+
+    Examples:
+        >>> loop = asyncio.get_event_loop()
+        >>> task1 = loop.create_task(some_async_function1())
+        >>> task2 = loop.create_task(some_async_function2())
+        >>> cancel_tasks_sync([task1, task2])
+
+    Note:
+        This function will not cancel the current task from which it is called.
+    """
     current_task = asyncio.current_task()
     for task in tasks:
         if task != current_task:
@@ -1223,6 +2417,31 @@ def cancel_tasks_sync(tasks):
 
 
 def weighted_shuffle(items, weights):
+    """
+    Shuffles a list of items based on their corresponding weights.
+
+    Args:
+        items (list): The list of items to shuffle.
+        weights (list): The list of weights corresponding to each item.
+
+    Returns:
+        list: A new list containing the shuffled items.
+
+    Examples:
+        >>> items = ['apple', 'banana', 'cherry']
+        >>> weights = [0.4, 0.5, 0.1]
+        >>> weighted_shuffle(items, weights)
+        ['banana', 'apple', 'cherry']
+        >>> weighted_shuffle(items, weights)
+        ['apple', 'banana', 'cherry']
+        >>> weighted_shuffle(items, weights)
+        ['apple', 'banana', 'cherry']
+        >>> weighted_shuffle(items, weights)
+        ['banana', 'apple', 'cherry']
+
+    Note:
+        The sum of all weights does not have to be 1. They will be normalized internally.
+    """
     # Create a list of tuples where each tuple is (item, weight)
     pool = list(zip(items, weights))
 
@@ -1245,6 +2464,28 @@ def weighted_shuffle(items, weights):
 
 
 def parse_port_string(port_string):
+    """
+    Parses a string containing ports and port ranges into a list of individual ports.
+
+    Args:
+        port_string (str): The string containing individual ports and port ranges separated by commas.
+
+    Returns:
+        list: A list of individual ports parsed from the input string.
+
+    Raises:
+        ValueError: If the input string contains invalid ports or port ranges.
+
+    Examples:
+        >>> parse_port_string("22,80,1000-1002")
+        [22, 80, 1000, 1001, 1002]
+
+        >>> parse_port_string("1-2,3-5")
+        [1, 2, 3, 4, 5]
+
+        >>> parse_port_string("invalid")
+        ValueError: Invalid port or port range: invalid
+    """
     elements = port_string.split(",")
     ports = []
 
@@ -1270,6 +2511,28 @@ def parse_port_string(port_string):
 
 
 def parse_list_string(list_string):
+    """
+    Parses a comma-separated string into a list, removing invalid characters.
+
+    Args:
+        list_string (str): The string containing elements separated by commas.
+
+    Returns:
+        list: A list of individual elements parsed from the input string.
+
+    Raises:
+        ValueError: If the input string contains invalid characters.
+
+    Examples:
+        >>> parse_list_string("html,js,css")
+        ['html', 'js', 'css']
+
+        >>> parse_list_string("png,jpg,gif")
+        ['png', 'jpg', 'gif']
+
+        >>> parse_list_string("invalid<>char")
+        ValueError: Invalid character in string: invalid<>char
+    """
     elements = list_string.split(",")
     result = []
 
@@ -1281,6 +2544,23 @@ def parse_list_string(list_string):
 
 
 async def as_completed(coros):
+    """
+    Async generator that yields completed Tasks as they are completed.
+
+    Args:
+        coros (iterable): An iterable of coroutine objects or asyncio Tasks.
+
+    Yields:
+        asyncio.Task: A Task object that has completed its execution.
+
+    Examples:
+        >>> async def main():
+        ...     async for task in as_completed([coro1(), coro2(), coro3()]):
+        ...         result = task.result()
+        ...         print(f'Task completed with result: {result}')
+
+        >>> asyncio.run(main())
+    """
     tasks = {coro if isinstance(coro, asyncio.Task) else asyncio.create_task(coro): coro for coro in coros}
     while tasks:
         done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)

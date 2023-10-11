@@ -62,6 +62,7 @@ async def test_events(events, scan, helpers, bbot_config):
     assert events.emoji not in events.domain
     assert events.domain not in events.emoji
     assert "evilcorp.com" == scan.make_event(" eViLcorp.COM.:88", "DNS_NAME", dummy=True)
+    assert "evilcorp.com" == scan.make_event("evilcorp.com.", "DNS_NAME", dummy=True)
 
     # url tests
     assert scan.make_event("http://evilcorp.com", dummy=True) == scan.make_event("http://evilcorp.com/", dummy=True)
@@ -87,6 +88,7 @@ async def test_events(events, scan, helpers, bbot_config):
     assert "http://evilcorp.com:443" == scan.make_event("http://evilcorp.com:443", dummy=True)
     assert scan.make_event("https://evilcorp.com", dummy=True).with_port().geturl() == "https://evilcorp.com:443/"
     assert scan.make_event("https://evilcorp.com:666", dummy=True).with_port().geturl() == "https://evilcorp.com:666/"
+    assert scan.make_event("https://evilcorp.com.:666", dummy=True) == "https://evilcorp.com:666/"
     assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
     assert "status-200" in scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"]).tags
@@ -243,21 +245,94 @@ async def test_events(events, scan, helpers, bbot_config):
             {"host": "evilcorp.com", "severity": "WACK", "description": "asdf"}, "VULNERABILITY", dummy=True
         )
 
-    # punycode
+    # punycode - event type detection
+
+    # japanese
     assert scan.make_event("ドメイン.テスト", dummy=True).type == "DNS_NAME"
     assert scan.make_event("bob@ドメイン.テスト", dummy=True).type == "EMAIL_ADDRESS"
+    assert scan.make_event("テスト@ドメイン.テスト", dummy=True).type == "EMAIL_ADDRESS"
     assert scan.make_event("ドメイン.テスト:80", dummy=True).type == "OPEN_TCP_PORT"
     assert scan.make_event("http://ドメイン.テスト:80", dummy=True).type == "URL_UNVERIFIED"
-
-    assert scan.make_event("xn--eckwd4c7c.xn--zckzah", dummy=True).data == "ドメイン.テスト"
-    assert scan.make_event("bob@xn--eckwd4c7c.xn--zckzah", dummy=True).data == "bob@ドメイン.テスト"
-    assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "ドメイン.テスト:80"
-    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "http://ドメイン.テスト/"
+    assert scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).type == "URL_UNVERIFIED"
 
     assert scan.make_event("xn--eckwd4c7c.xn--zckzah", dummy=True).type == "DNS_NAME"
     assert scan.make_event("bob@xn--eckwd4c7c.xn--zckzah", dummy=True).type == "EMAIL_ADDRESS"
+    assert scan.make_event("テスト@xn--eckwd4c7c.xn--zckzah", dummy=True).type == "EMAIL_ADDRESS"
     assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).type == "OPEN_TCP_PORT"
     assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).type == "URL_UNVERIFIED"
+    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80/テスト", dummy=True).type == "URL_UNVERIFIED"
+
+    # thai
+    assert scan.make_event("เราเที่ยวด้วยกัน.com", dummy=True).type == "DNS_NAME"
+    assert scan.make_event("bob@เราเที่ยวด้วยกัน.com", dummy=True).type == "EMAIL_ADDRESS"
+    assert scan.make_event("ทดสอบ@เราเที่ยวด้วยกัน.com", dummy=True).type == "EMAIL_ADDRESS"
+    assert scan.make_event("เราเที่ยวด้วยกัน.com:80", dummy=True).type == "OPEN_TCP_PORT"
+    assert scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).type == "URL_UNVERIFIED"
+    assert scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).type == "URL_UNVERIFIED"
+
+    assert scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).type == "DNS_NAME"
+    assert scan.make_event("bob@xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).type == "EMAIL_ADDRESS"
+    assert scan.make_event("ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).type == "EMAIL_ADDRESS"
+    assert scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).type == "OPEN_TCP_PORT"
+    assert scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).type == "URL_UNVERIFIED"
+    assert scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80/ทดสอบ", dummy=True).type == "URL_UNVERIFIED"
+
+    # punycode - encoding / decoding tests
+
+    # japanese
+    assert scan.make_event("xn--eckwd4c7c.xn--zckzah", dummy=True).data == "xn--eckwd4c7c.xn--zckzah"
+    assert scan.make_event("bob@xn--eckwd4c7c.xn--zckzah", dummy=True).data == "bob@xn--eckwd4c7c.xn--zckzah"
+    assert scan.make_event("テスト@xn--eckwd4c7c.xn--zckzah", dummy=True).data == "テスト@xn--eckwd4c7c.xn--zckzah"
+    assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
+    assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/"
+    assert (
+        scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80/テスト", dummy=True).data
+        == "http://xn--eckwd4c7c.xn--zckzah/テスト"
+    )
+
+    assert scan.make_event("ドメイン.テスト", dummy=True).data == "xn--eckwd4c7c.xn--zckzah"
+    assert scan.make_event("bob@ドメイン.テスト", dummy=True).data == "bob@xn--eckwd4c7c.xn--zckzah"
+    assert scan.make_event("テスト@ドメイン.テスト", dummy=True).data == "テスト@xn--eckwd4c7c.xn--zckzah"
+    assert scan.make_event("ドメイン.テスト:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
+    assert scan.make_event("http://ドメイン.テスト:80", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/"
+    assert scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/テスト"
+    # thai
+    assert (
+        scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+    )
+    assert (
+        scan.make_event("bob@xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data
+        == "bob@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+    )
+    assert (
+        scan.make_event("ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data
+        == "ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+    )
+    assert (
+        scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).data
+        == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
+    )
+    assert (
+        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).data
+        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
+    )
+    assert (
+        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80/ทดสอบ", dummy=True).data
+        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
+    )
+
+    assert scan.make_event("เราเที่ยวด้วยกัน.com", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+    assert scan.make_event("bob@เราเที่ยวด้วยกัน.com", dummy=True).data == "bob@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+    assert scan.make_event("ทดสอบ@เราเที่ยวด้วยกัน.com", dummy=True).data == "ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+    assert scan.make_event("เราเที่ยวด้วยกัน.com:80", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
+    assert (
+        scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).data
+        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
+    )
+    assert (
+        scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).data
+        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
+    )
 
     # test event serialization
     from bbot.core.event import event_from_json

@@ -1,7 +1,7 @@
-from .crobat import crobat
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class wayback(crobat):
+class wayback(subdomain_enum):
     flags = ["passive", "subdomain-enum", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED", "DNS_NAME"]
@@ -50,7 +50,7 @@ class wayback(crobat):
                 continue
 
         dns_names = set()
-        for parsed_url in self.helpers.collapse_urls(urls, threshold=self.garbage_threshold):
+        for parsed_url in self.helpers.validators.collapse_urls(urls, threshold=self.garbage_threshold):
             if not self.urls:
                 dns_name = parsed_url.hostname
                 h = hash(dns_name)

@@ -1,7 +1,7 @@
-from bbot.modules.shodan_dns import shodan_dns
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
 
-class bevigil(shodan_dns):
+class bevigil(subdomain_enum_apikey):
     """
     Retrieve OSINT data from mobile applications using BeVigil
     """
@@ -34,7 +34,7 @@ class bevigil(shodan_dns):
         if self.urls:
             urls = await self.query(query, request_fn=self.request_urls, parse_fn=self.parse_urls)
             if urls:
-                for parsed_url in self.helpers.collapse_urls(urls):
+                for parsed_url in self.helpers.validators.collapse_urls(urls):
                     self.emit_event(parsed_url.geturl(), "URL_UNVERIFIED", source=event)
 
     async def request_subdomains(self, query):

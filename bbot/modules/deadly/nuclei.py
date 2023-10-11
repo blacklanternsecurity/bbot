@@ -13,7 +13,7 @@ class nuclei(BaseModule):
     batch_size = 25
 
     options = {
-        "version": "2.9.9",
+        "version": "2.9.15",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -66,7 +66,7 @@ class nuclei(BaseModule):
                 self.warning(f"Failure while updating nuclei templates: {update_results.stderr}")
         else:
             self.warning("Error running nuclei template update command")
-
+        self.proxy = self.scan.config.get("http_proxy", "")
         self.mode = self.config.get("mode", "severe")
         self.ratelimit = int(self.config.get("ratelimit", 150))
         self.concurrency = int(self.config.get("concurrency", 25))
@@ -128,12 +128,15 @@ class nuclei(BaseModule):
         return True
 
     async def handle_batch(self, *events):
-        temp_target = self.helpers.make_target(events)
+        temp_target = self.helpers.make_target(*events)
         nuclei_input = [str(e.data) for e in events]
         async for severity, template, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
             cleaned_host = temp_target.get(host)
             source_event = self.correlate_event(events, cleaned_host)
+
+            if not source_event:
+                continue
 
             if url == "":
                 url = str(source_event.data)
@@ -182,9 +185,10 @@ class nuclei(BaseModule):
             self.concurrency,
             "-disable-update-check",
             "-stats-json",
-            # "-r",
-            # self.helpers.resolver_file,
         ]
+
+        if self.helpers.system_resolvers:
+            command += ["-r", self.helpers.resolver_file]
 
         for cli_option in ("severity", "templates", "iserver", "itoken", "tags", "etags"):
             option = getattr(self, cli_option)
@@ -203,6 +207,10 @@ class nuclei(BaseModule):
         if self.mode == "budget":
             command.append("-t")
             command.append(self.budget_templates_file)
+
+        if self.proxy:
+            command.append("-proxy")
+            command.append(f"{self.proxy}")
 
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
