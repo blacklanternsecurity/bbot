@@ -217,7 +217,7 @@ class WebHelper:
         if client_kwargs:
             client = self.AsyncClient(**client_kwargs)
 
-        try:
+        async with self._acatch(url, raise_error):
             if self.http_debug:
                 logstr = f"Web request: {str(args)}, {str(kwargs)}"
                 log.debug(logstr)
@@ -227,41 +227,6 @@ class WebHelper:
                     f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
                 )
             return response
-        except httpx.PoolTimeout:
-            # this block exists because of this:
-            #  https://github.com/encode/httpcore/discussions/783
-            log.verbose(f"PoolTimeout to URL: {url}")
-            self.web_client = self.AsyncClient(persist_cookies=False)
-            return await self.request(*args, **kwargs)
-        except httpx.TimeoutException:
-            log.verbose(f"HTTP timeout to URL: {url}")
-            if raise_error:
-                raise
-        except httpx.ConnectError:
-            log.verbose(f"HTTP connect failed to URL: {url}")
-            if raise_error:
-                raise
-        except httpx.RequestError as e:
-            log.trace(f"Error with request to URL: {url}: {e}")
-            log.trace(traceback.format_exc())
-            if raise_error:
-                raise
-        except ssl.SSLError as e:
-            msg = f"SSL error with request to URL: {url}: {e}"
-            log.trace(msg)
-            log.trace(traceback.format_exc())
-            if raise_error:
-                raise httpx.RequestError(msg)
-        except anyio.EndOfStream as e:
-            msg = f"AnyIO error with request to URL: {url}: {e}"
-            log.trace(msg)
-            log.trace(traceback.format_exc())
-            if raise_error:
-                raise httpx.RequestError(msg)
-        except BaseException as e:
-            log.trace(f"Unhandled exception with request to URL: {url}: {e}")
-            log.trace(traceback.format_exc())
-            raise
 
     async def download(self, url, **kwargs):
         """
