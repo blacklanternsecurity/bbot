@@ -44,7 +44,6 @@ class credshed(BaseModule):
         return True
 
     async def handle_event(self, event):
-        self.critical(event)
         cs_query = await self.helpers.request(
             f"{self.base_url}/api/search",
             method="POST",
