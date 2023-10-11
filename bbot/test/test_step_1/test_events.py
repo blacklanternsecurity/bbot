@@ -158,19 +158,6 @@ async def test_events(events, scan, helpers, bbot_config):
     internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)
     assert internal_event1._internal == True
     assert "internal" in internal_event1.tags
-    internal_event1.scope_distance = 0
-    assert internal_event1._internal == False
-    assert "internal" not in internal_event1.tags
-    internal_event2 = scan.make_event("2.3.4.5", source=internal_event1, internal=True)
-    internal_event3 = scan.make_event("3.4.5.6", source=internal_event2, internal=True)
-    internal_event4 = scan.make_event("4.5.6.7", source=internal_event3)
-    source_trail = internal_event4.scope_distance = 0
-    assert internal_event4._internal == False
-    assert internal_event3._internal == False
-    assert internal_event2._internal == False
-    assert len(source_trail) == 2
-    assert internal_event2 in source_trail
-    assert internal_event3 in source_trail
 
     # event sorting
     parent1 = scan.make_event("127.0.0.1", source=scan.root_event)

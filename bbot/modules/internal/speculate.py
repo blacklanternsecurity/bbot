@@ -42,7 +42,7 @@ class speculate(BaseInternalModule):
         port_string = self.config.get("ports", "80,443")
 
         try:
-            self.ports = self.helpers.parse_port_string(port_string)
+            self.ports = self.helpers.parse_port_string(str(port_string))
         except ValueError as e:
             self.warning(f"Error parsing ports: {e}")
             return False
