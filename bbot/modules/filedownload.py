@@ -34,7 +34,6 @@ class filedownload(BaseModule):
             "indd",  #  Adobe InDesign Document
             "ini",  #  Initialization File
             "jar",  #  Java Archive
-            "json",  #  JavaScript Object Notation File
             "key",  #  Private Key File
             "pub",  #  Public Key File
             "log",  #  Log File
@@ -136,8 +135,6 @@ class filedownload(BaseModule):
         parsed_url = self.helpers.urlparse(url)
         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
         url_path = parsed_url.path.strip("/")
-        if not url_path:
-            url_path = "unknown"
         # try to get extension from URL path
         extension = Path(url_path).suffix.strip(".").lower()
         if extension:
@@ -145,6 +142,9 @@ class filedownload(BaseModule):
         else:
             url_stem = str(url)
         filename = f"{self.helpers.make_date()}_{self.helpers.tagify(url_stem)}"
+        if not url_path:
+            url_path = "unknown"
+            filename = f"{filename}-{url_path}"
         # if that fails, try to get it from content type
         if not extension:
             if content_type and content_type in self.mime_db:
