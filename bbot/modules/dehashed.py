@@ -9,10 +9,7 @@ class dehashed(credential_leak):
     flags = ["passive"]
     meta = {"description": "Execute queries against dehashed.com for exposed credentials", "auth_required": True}
     options = {"username": "", "api_key": ""}
-    options_desc = {
-        "username": "Email Address associated with your API key",
-        "api_key": "DeHashed API Key"
-    }
+    options_desc = {"username": "Email Address associated with your API key", "api_key": "DeHashed API Key"}
 
     base_url = "https://api.dehashed.com/search"
 
@@ -34,7 +31,7 @@ class dehashed(credential_leak):
         async for entries in self.query(event):
             for entry in entries:
                 # we have to clean up the email field because dehashed does a poor job of it
-                email_str = entry.get("email", "").replace('\\', '')
+                email_str = entry.get("email", "").replace("\\", "")
                 found_emails = list(self.helpers.extract_emails(email_str))
                 if not found_emails:
                     self.debug(f"Invalid email from dehashed.com: {email_str}")
@@ -78,7 +75,9 @@ class dehashed(credential_leak):
             page += 1
             if (page >= 3) or (not entries):
                 if result is not None and result.status_code != 200:
-                    self.warning(f"Error retrieving results from dehashed.com (status code {result.status_code}): {result.text}")
+                    self.warning(
+                        f"Error retrieving results from dehashed.com (status code {result.status_code}): {result.text}"
+                    )
                 elif (page >= 3) and (total > num_entries):
                     self.info(
                         f"{event.data} has {total:,} results in Dehashed. The API can only process the first 30,000 results. Please check dehashed.com to get the remaining results."

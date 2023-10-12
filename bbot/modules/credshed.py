@@ -49,7 +49,9 @@ class credshed(credential_leak):
         )
 
         if cs_query is not None and cs_query.status_code != 200:
-            self.warning(f"Error retrieving results from {self.base_url} (status code {cs_query.status_code}): {cs_query.text}")
+            self.warning(
+                f"Error retrieving results from {self.base_url} (status code {cs_query.status_code}): {cs_query.text}"
+            )
 
         json_result = {}
         with suppress(Exception):
