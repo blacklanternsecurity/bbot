@@ -9,7 +9,10 @@ class dehashed(credential_leak):
     flags = ["passive"]
     meta = {"description": "Execute queries against dehashed.com for exposed credentials", "auth_required": True}
     options = {"username": "", "api_key": ""}
-    options_desc = {"username": "Email Address associated with your API key", "api_key": "DeHashed API Key"}
+    options_desc = {
+        "username": "Email Address associated with your API key",
+        "api_key": "DeHashed API Key"
+    }
 
     base_url = "https://api.dehashed.com/search"
 
@@ -28,14 +31,10 @@ class dehashed(credential_leak):
         return await super().setup()
 
     async def handle_event(self, event):
-        already_seen = set()
-        emails = {}
-        query = f"domain:{self.make_query(event)}"
-        url = f"{self.base_url}?query={query}&size=10000&page=" + "{page}"
-        async for entries in self.query(url):
+        async for entries in self.query(event):
             for entry in entries:
                 # we have to clean up the email field because dehashed does a poor job of it
-                email_str = entry.get("email", "").replace("\\", "")
+                email_str = entry.get("email", "").replace('\\', '')
                 found_emails = list(self.helpers.extract_emails(email_str))
                 if not found_emails:
                     self.debug(f"Invalid email from dehashed.com: {email_str}")
@@ -61,7 +60,9 @@ class dehashed(credential_leak):
                         if h_pw and not self.already_seen(f"{email}:{h_pw}"):
                             self.emit_event(h_pw, "HASHED_PASSWORD", source=email_event, tags=tags)
 
-    async def query(self, url):
+    async def query(self, event):
+        query = f"domain:{self.make_query(event)}"
+        url = f"{self.base_url}?query={query}&size=10000&page=" + "{page}"
         page = 0
         num_entries = 0
         agen = self.helpers.api_page_iter(url=url, auth=self.auth, headers=self.headers, json=False)
@@ -77,9 +78,7 @@ class dehashed(credential_leak):
             page += 1
             if (page >= 3) or (not entries):
                 if result is not None and result.status_code != 200:
-                    self.warning(
-                        f"Error retrieving results from dehashed.com (status code {results.status_code}): {result.text}"
-                    )
+                    self.warning(f"Error retrieving results from dehashed.com (status code {result.status_code}): {result.text}")
                 elif (page >= 3) and (total > num_entries):
                     self.info(
                         f"{event.data} has {total:,} results in Dehashed. The API can only process the first 30,000 results. Please check dehashed.com to get the remaining results."
