@@ -1167,6 +1167,7 @@ class WAF(DictHostEvent):
     def _pretty_string(self):
         return self.data["WAF"]
 
+
 def make_event(
     data,
     event_type=None,

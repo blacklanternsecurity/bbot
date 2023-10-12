@@ -1,18 +1,15 @@
 from contextlib import suppress
 
-from bbot.modules.base import BaseModule
+from bbot.modules.templates.credential_leak import credential_leak
 
 
-class dehashed(BaseModule):
+class dehashed(credential_leak):
     watched_events = ["DNS_NAME"]
     produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME"]
     flags = ["passive"]
     meta = {"description": "Execute queries against dehashed.com for exposed credentials", "auth_required": True}
     options = {"username": "", "api_key": ""}
-    options_desc = {
-        "username": "Email Address associated with your API key",
-        "api_key": "DeHashed API Key"
-    }
+    options_desc = {"username": "Email Address associated with your API key", "api_key": "DeHashed API Key"}
 
     base_url = "https://api.dehashed.com/search"
 
@@ -23,8 +20,6 @@ class dehashed(BaseModule):
         self.headers = {
             "Accept": "application/json",
         }
-        self.queries_processed = set()
-        self.data_seen = set()
 
         # soft-fail if we don't have the necessary information to make queries
         if not (self.username and self.api_key):
@@ -32,28 +27,15 @@ class dehashed(BaseModule):
 
         return await super().setup()
 
-    async def filter_event(self, event):
-        query = self.make_query(event)
-        query_hash = hash(query)
-        if query_hash not in self.queries_processed:
-            self.queries_processed.add(query_hash)
-            return True
-        return False, f'Already processed "{query}"'
-
     async def handle_event(self, event):
         already_seen = set()
         emails = {}
-
-        if event.type == "DNS_NAME":
-            query = f"domain:{event.data}"
-        else:
-            query = f"email:{event.data}"
+        query = f"domain:{self.make_query(event)}"
         url = f"{self.base_url}?query={query}&size=10000&page=" + "{page}"
         async for entries in self.query(url):
             for entry in entries:
-
                 # we have to clean up the email field because dehashed does a poor job of it
-                email_str = entry.get("email", "").replace('\\', '')
+                email_str = entry.get("email", "").replace("\\", "")
                 found_emails = list(self.helpers.extract_emails(email_str))
                 if not found_emails:
                     self.debug(f"Invalid email from dehashed.com: {email_str}")
@@ -79,12 +61,6 @@ class dehashed(BaseModule):
                         if h_pw and not self.already_seen(f"{email}:{h_pw}"):
                             self.emit_event(h_pw, "HASHED_PASSWORD", source=email_event, tags=tags)
 
-    def already_seen(self, item):
-        h = hash(item)
-        already_seen = h in self.data_seen
-        self.data_seen.add(h)
-        return already_seen
-
     async def query(self, url):
         page = 0
         num_entries = 0
@@ -101,7 +77,9 @@ class dehashed(BaseModule):
             page += 1
             if (page >= 3) or (not entries):
                 if result is not None and result.status_code != 200:
-                    self.warning(f"Error retrieving results from dehashed.com: {result.text}")
+                    self.warning(
+                        f"Error retrieving results from dehashed.com (status code {results.status_code}): {result.text}"
+                    )
                 elif (page >= 3) and (total > num_entries):
                     self.info(
                         f"{event.data} has {total:,} results in Dehashed. The API can only process the first 30,000 results. Please check dehashed.com to get the remaining results."
@@ -109,9 +87,3 @@ class dehashed(BaseModule):
                 agen.aclose()
                 break
             yield entries
-
-    def make_query(self, event):
-        if "target" in event.tags:
-            return event.data
-        _, domain = self.helpers.split_domain(event.data)
-        return domain
