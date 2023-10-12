@@ -24,6 +24,7 @@ class credshed(BaseModule):
         self.password = self.config.get("password", "")
         self.results = {}
 
+        # make sure we have the information required to make queries
         if not (self.base_url and self.username and self.password):
             return None, "Must set username, password, and credshed_url"
 
@@ -33,8 +34,9 @@ class credshed(BaseModule):
         self.auth_token = ""
         with suppress(Exception):
             self.auth_token = auth_setup.json().get("access_token", "")
+        # hard-fail if we didn't get an access token
         if not self.auth_token:
-            return None, f"Failed to retrieve credshed auth token from url: {self.base_url}"
+            return False, f"Failed to retrieve credshed auth token from url: {self.base_url}"
 
         return await super().setup()
 
