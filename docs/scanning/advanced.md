@@ -33,16 +33,10 @@ asyncio.run(main())
 
 <!-- BBOT HELP OUTPUT -->
 ```text
-usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]]
-               [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]]
-               [--strict-scope] [-m MODULE [MODULE ...]] [-l]
-               [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf]
-               [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]]
-               [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME]
-               [-o DIR] [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y]
-               [--dry-run] [--current-config]
-               [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps]
-               [-a] [--version]
+usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-m MODULE [MODULE ...]] [-l]
+               [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME] [-o DIR]
+               [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y] [--dry-run] [--current-config] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [-a]
+               [--version]
 
 Bighuge BLS OSINT Tool
 
