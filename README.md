@@ -167,6 +167,26 @@ asyncio.run(main())
     - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
 <!-- END BBOT DOCS TOC -->
 
+## Acknowledgements
+
+Thanks to these amazing people for contributing to BBOT! :heart:
+
+If you're interested in contributing to BBOT, or just curious how it works under the hood, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/).
+
+<p align="center">
+<a href="https://github.com/blacklanternsecurity/bbot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=blacklanternsecurity/bbot&max=500">
+</a>
+</p>
+
+Special thanks to the following people who made BBOT possible:
+
+- @TheTechromancer for creating [BBOT](https://github.com/blacklanternsecurity/bbot)
+- @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets)
+- Steve Micallef (@smicallef) for creating Spiderfoot
+- @kerrymilan for his Neo4j and Ansible expertise
+- Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
+
 ## List of BBOT Modules
 <!-- BBOT MODULES -->
 | Module               | Type     | Needs API Key   | Description                                                            | Flags                                                                               | Consumed Events                                                                                         | Produced Events                                |
@@ -272,23 +292,3 @@ asyncio.run(main())
 | excavate             | internal | No              | Passively extract juicy tidbits from scan data                         | passive                                                                             | HTTP_RESPONSE                                                                                           | URL_UNVERIFIED                                 |
 | speculate            | internal | No              | Derive certain event types from others by common sense                 | passive                                                                             | DNS_NAME, DNS_NAME_UNRESOLVED, HTTP_RESPONSE, IP_ADDRESS, IP_RANGE, STORAGE_BUCKET, URL, URL_UNVERIFIED | DNS_NAME, FINDING, IP_ADDRESS, OPEN_TCP_PORT   |
 <!-- END BBOT MODULES -->
-
-## Acknowledgements
-
-Thanks to these amazing people for contributing to BBOT! :heart:
-
-If you're interested in contributing to BBOT, or just curious how it works under the hood, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/).
-
-<p align="center">
-<a href="https://github.com/blacklanternsecurity/bbot/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=blacklanternsecurity/bbot&max=500">
-</a>
-</p>
-
-Special thanks to the following people who made BBOT possible:
-
-- @TheTechromancer for creating [BBOT](https://github.com/blacklanternsecurity/bbot)
-- @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets)
-- Steve Micallef (@smicallef) for creating Spiderfoot
-- @kerrymilan for his Neo4j and Ansible expertise
-- Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
