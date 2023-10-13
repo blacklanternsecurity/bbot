@@ -31,7 +31,7 @@ dns_name_regex = re.compile(_dns_name_regex, re.I)
 _hostname_regex = r"(?!\w*\.\w+)\w(?:[\w-]{0,100}\w)?"
 hostname_regex = re.compile(r"^" + _hostname_regex + r"$", re.I)
 
-_email_regex = r"(?:[^\W_][\w\-\.\+]{,100})@" + _dns_name_regex
+_email_regex = r"(?:[^\W_][\w\-\.\+']{,100})@" + _dns_name_regex
 email_regex = re.compile(_email_regex, re.I)
 
 _ptr_regex = r"(?:[0-9]{1,3}[-_\.]){3}[0-9]{1,3}"
