@@ -7,6 +7,7 @@ import warnings
 import traceback
 from pathlib import Path
 from bs4 import BeautifulSoup
+from contextlib import asynccontextmanager
 
 from httpx._models import Cookies
 
@@ -216,7 +217,7 @@ class WebHelper:
         if client_kwargs:
             client = self.AsyncClient(**client_kwargs)
 
-        try:
+        async with self._acatch(url, raise_error):
             if self.http_debug:
                 logstr = f"Web request: {str(args)}, {str(kwargs)}"
                 log.debug(logstr)
@@ -226,41 +227,6 @@ class WebHelper:
                     f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
                 )
             return response
-        except httpx.PoolTimeout:
-            # this block exists because of this:
-            #  https://github.com/encode/httpcore/discussions/783
-            log.verbose(f"PoolTimeout to URL: {url}")
-            self.web_client = self.AsyncClient(persist_cookies=False)
-            return await self.request(*args, **kwargs)
-        except httpx.TimeoutException:
-            log.verbose(f"HTTP timeout to URL: {url}")
-            if raise_error:
-                raise
-        except httpx.ConnectError:
-            log.verbose(f"HTTP connect failed to URL: {url}")
-            if raise_error:
-                raise
-        except httpx.RequestError as e:
-            log.trace(f"Error with request to URL: {url}: {e}")
-            log.trace(traceback.format_exc())
-            if raise_error:
-                raise
-        except ssl.SSLError as e:
-            msg = f"SSL error with request to URL: {url}: {e}"
-            log.trace(msg)
-            log.trace(traceback.format_exc())
-            if raise_error:
-                raise httpx.RequestError(msg)
-        except anyio.EndOfStream as e:
-            msg = f"AnyIO error with request to URL: {url}: {e}"
-            log.trace(msg)
-            log.trace(traceback.format_exc())
-            if raise_error:
-                raise httpx.RequestError(msg)
-        except BaseException as e:
-            log.trace(f"Unhandled exception with request to URL: {url}: {e}")
-            log.trace(traceback.format_exc())
-            raise
 
     async def download(self, url, **kwargs):
         """
@@ -272,9 +238,11 @@ class WebHelper:
             url (str): The URL of the file to download.
             filename (str, optional): The filename to save the downloaded file as.
                 If not provided, will generate based on URL.
+            max_size (str or int): Maximum filesize as a string ("5MB") or integer in bytes.
             cache_hrs (float, optional): The number of hours to cache the downloaded file.
                 A negative value disables caching. Defaults to -1.
             method (str, optional): The HTTP method to use for the request, defaults to 'GET'.
+            raise_error (bool, optional): Whether to raise exceptions for HTTP connect, timeout errors. Defaults to False.
             **kwargs: Additional keyword arguments to pass to the httpx request.
 
         Returns:
@@ -285,7 +253,15 @@ class WebHelper:
         """
         success = False
         filename = kwargs.pop("filename", self.parent_helper.cache_filename(url))
+        follow_redirects = kwargs.pop("follow_redirects", True)
+        max_size = kwargs.pop("max_size", None)
+        warn = kwargs.pop("warn", True)
+        raise_error = kwargs.pop("raise_error", False)
+        if max_size is not None:
+            max_size = self.parent_helper.human_to_bytes(max_size)
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
+        total_size = 0
+        chunk_size = 8192
         log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
         if cache_hrs > 0 and self.parent_helper.is_cached(url):
             log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
@@ -293,20 +269,32 @@ class WebHelper:
         else:
             # kwargs["raise_error"] = True
             # kwargs["stream"] = True
+            kwargs["follow_redirects"] = follow_redirects
             if not "method" in kwargs:
                 kwargs["method"] = "GET"
             try:
-                async with self.AsyncClient().stream(url=url, **kwargs) as response:
+                async with self._acatch(url, raise_error), self.AsyncClient().stream(url=url, **kwargs) as response:
                     status_code = getattr(response, "status_code", 0)
                     log.debug(f"Download result: HTTP {status_code}")
                     if status_code != 0:
                         response.raise_for_status()
                         with open(filename, "wb") as f:
-                            async for chunk in response.aiter_bytes(chunk_size=8192):
+                            agen = response.aiter_bytes(chunk_size=chunk_size)
+                            async for chunk in agen:
+                                if max_size is not None and total_size + chunk_size > max_size:
+                                    log.verbose(
+                                        f"Filesize of {url} exceeds {self.parent_helper.bytes_to_human(max_size)}, file will be truncated"
+                                    )
+                                    agen.aclose()
+                                    break
+                                total_size += chunk_size
                                 f.write(chunk)
                         success = True
             except httpx.HTTPError as e:
-                log.warning(f"Failed to download {url}: {e}")
+                log_fn = log.verbose
+                if warn:
+                    log_fn = log.warning
+                log_fn(f"Failed to download {url}: {e}")
                 return
 
         if success:
@@ -573,6 +561,59 @@ class WebHelper:
         if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
             return True
         return False
+
+    def ssl_context_noverify(self):
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        ssl_context.options &= ~ssl.OP_NO_SSLv2 & ~ssl.OP_NO_SSLv3
+        ssl_context.set_ciphers("ALL:@SECLEVEL=0")
+        ssl_context.options |= 0x4  # Add the OP_LEGACY_SERVER_CONNECT option
+        return ssl_context
+
+    @asynccontextmanager
+    async def _acatch(self, url, raise_error):
+        """
+        Asynchronous context manager to handle various httpx errors during a request.
+
+        Yields:
+            None
+
+        Note:
+            This function is internal and should generally not be used directly.
+            `url`, `args`, `kwargs`, and `raise_error` should be in the same context as this function.
+        """
+        try:
+            yield
+        except httpx.TimeoutException:
+            log.verbose(f"HTTP timeout to URL: {url}")
+            if raise_error:
+                raise
+        except httpx.ConnectError:
+            log.verbose(f"HTTP connect failed to URL: {url}")
+            if raise_error:
+                raise
+        except httpx.RequestError as e:
+            log.trace(f"Error with request to URL: {url}: {e}")
+            log.trace(traceback.format_exc())
+            if raise_error:
+                raise
+        except ssl.SSLError as e:
+            msg = f"SSL error with request to URL: {url}: {e}"
+            log.trace(msg)
+            log.trace(traceback.format_exc())
+            if raise_error:
+                raise httpx.RequestError(msg)
+        except anyio.EndOfStream as e:
+            msg = f"AnyIO error with request to URL: {url}: {e}"
+            log.trace(msg)
+            log.trace(traceback.format_exc())
+            if raise_error:
+                raise httpx.RequestError(msg)
+        except BaseException as e:
+            log.trace(f"Unhandled exception with request to URL: {url}: {e}")
+            log.trace(traceback.format_exc())
+            raise
 
 
 user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
