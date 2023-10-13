@@ -92,7 +92,7 @@ class asset_inventory(CSV):
             ports = getattr(asset, "ports", set())
             ports = [str(p) for p in sorted([int(p) for p in asset.ports])]
             ips = sorted([str(i) for i in getattr(asset, "ip_addresses", [])])
-            host = getattr(asset, "host", "")
+            host = self.helpers.make_ip_type(getattr(asset, "host", ""))
             if host and isinstance(host, str):
                 _, domain = self.helpers.split_domain(host)
                 if domain:
@@ -197,7 +197,7 @@ class Asset:
 
     def absorb_csv_row(self, row):
         # host
-        host = row.get("Host", "").strip()
+        host = make_ip_type(row.get("Host", "").strip())
         if host and not is_ip(host):
             self.host = host
         # ips
