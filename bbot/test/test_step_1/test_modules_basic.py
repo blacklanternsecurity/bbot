@@ -24,7 +24,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     assert base_output_module._event_precheck(localhost)[0] == True
     localhost._internal = True
     assert base_output_module._event_precheck(localhost)[0] == False
-    localhost._force_output = True
+    localhost._internal = False
     assert base_output_module._event_precheck(localhost)[0] == True
     localhost._omit = True
     assert base_output_module._event_precheck(localhost)[0] == False
