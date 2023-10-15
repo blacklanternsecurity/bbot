@@ -267,8 +267,8 @@ class ScanManager:
                 already_graph_important = bool(source._graph_important)
                 if not already_graph_important:
                     source._graph_important = True
-                    log.critical(
-                        f"RE-QUEUEING {source.data}: graph_important:{source._graph_important}, {event} --> {source}"
+                    log.debug(
+                        f"re-queuing internal event {source} with parent {event}"
                     )
                     self.queue_event(source)
 
@@ -413,13 +413,8 @@ class ScanManager:
                 acceptable_dup = (not is_outgoing_duplicate) or mod.accept_dupes
                 # graph_important = mod._type == "output" and event._graph_important == True
                 graph_important = mod._preserve_graph and event._graph_important
-                log.critical(
-                    f"mod: {mod}, acceptable_dup: {acceptable_dup}, graph_important: {graph_important}, {event}"
-                )
                 if acceptable_dup or graph_important:
                     await mod.queue_event(event)
-                else:
-                    log.critical(f"Not distributing {event} to {mod}")
 
     async def _worker_loop(self):
         try:
