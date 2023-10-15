@@ -4,8 +4,8 @@ from .base import ModuleTestBase
 class TestAsset_Inventory(ModuleTestBase):
     targets = ["127.0.0.1", "bbottest.notreal"]
     scan_name = "asset_inventory_test"
-    config_overrides = {"dns_resolution": True, "internal_modules": {"speculate": {"ports": "9999"}}}
-    modules_overrides = ["asset_inventory", "speculate", "sslcert"]
+    config_overrides = {"dns_resolution": True, "internal_modules": {"nmap": {"ports": "9999"}}}
+    modules_overrides = ["asset_inventory", "nmap", "sslcert"]
 
     async def setup_before_prep(self, module_test):
         old_resolve_fn = module_test.scan.helpers.dns.resolve_event

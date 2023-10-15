@@ -90,6 +90,8 @@ class BaseEvent:
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
     _always_emit_tags = ["affiliate"]
+    # Whether this event has been retroactively marked as part of an important discovery chain
+    _graph_important = False
     # Exclude from output modules
     _omit = False
     # Disables certain data validations
@@ -196,7 +198,7 @@ class BaseEvent:
         if not self._dummy:
             # removed this second part because it was making certain sslcert events internal
             if _internal:  # or source._internal:
-                self.make_internal()
+                self.internal = True
 
         # an event indicating whether the event has undergone DNS resolution
         self._resolved = asyncio.Event()
@@ -220,6 +222,34 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self._data = data
+
+    @property
+    def internal(self):
+        return self._internal
+
+    @internal.setter
+    def internal(self, value):
+        """
+        Marks the event as internal, excluding it from output but allowing normal exchange between scan modules.
+
+        Internal events are typically speculative and may not be interesting by themselves but can lead to
+        the discovery of interesting events. This method sets the `_internal` attribute to True and adds the
+        "internal" tag.
+
+        Examples of internal events include `OPEN_TCP_PORT`s from the `speculate` module,
+        `IP_ADDRESS`es from the `ipneighbor` module, or out-of-scope `DNS_NAME`s that originate
+        from DNS resolutions.
+
+        The purpose of internal events is to enable speculative/explorative discovery without cluttering
+        the console with irrelevant or uninteresting events.
+        """
+        if not value in (True, False):
+            raise ValueError(f'"internal" must be boolean, not {type(value)}')
+        if value == True:
+            self.add_tag("internal")
+        else:
+            self.remove_tag("internal")
+        self._internal = value
 
     @property
     def host(self):
@@ -402,28 +432,6 @@ class BaseEvent:
             sources.append(source)
             e = source
         return sources
-
-    def make_internal(self):
-        """
-        Marks the event as internal, excluding it from output but allowing normal exchange between scan modules.
-
-        Internal events are typically speculative and may not be interesting by themselves but can lead to
-        the discovery of interesting events. This method sets the `_internal` attribute to True, adds the
-        "internal" tag, and ensures the event is marked as made internal (useful for later reversion).
-
-        Examples of internal events include `OPEN_TCP_PORT`s from the `speculate` module,
-        `IP_ADDRESS`es from the `ipneighbor` module, or out-of-scope `DNS_NAME`s that originate
-        from DNS resolutions.
-
-        Once an event is marked as internal, all of its future children become internal as well.
-        If `ScanManager._emit_event()` determines the event is interesting, it may be reverted back to its
-        original state and forcefully re-emitted along with the whole chain of internal events.
-
-        The purpose of internal events is to enable speculative/explorative discovery without cluttering
-        the console with irrelevant or uninteresting events.
-        """
-        self._internal = True
-        self.add_tag("internal")
 
     def _host(self):
         return ""
@@ -1181,7 +1189,7 @@ def make_event(
         if source is not None:
             data.source = source
         if internal == True:
-            data.make_internal()
+            data.internal = True
         event_type = data.type
         return data
     else:

@@ -128,6 +128,8 @@ class ScanManager:
         if event == event.get_source():
             log.debug(f"Skipping event with self as source: {event}")
             return False
+        if event._graph_important:
+            return True
         if self.is_incoming_duplicate(event, add=True):
             log.debug(f"Skipping event because it was already emitted by its module: {event}")
             return False
@@ -141,9 +143,8 @@ class ScanManager:
         important method in all of BBOT. It is basically the central intersection that
         every event passes through.
 
-        Probably it is also needless to say that it exists in a delicate balance.
-        Close to half of my debugging time has been spent in this function.
-        I have slain many dragons here and there may still be more yet to slay.
+        It exists in a delicate balance. Close to half of my debugging time has been spent
+        in this function. I have slain many dragons here and there may still be more yet to slay.
 
         Tread carefully, friend. -TheTechromancer
 
@@ -169,7 +170,6 @@ class ScanManager:
             - Updating scan statistics.
         """
         log.debug(f"Emitting {event}")
-        distribute_event = True
         event_distributed = False
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
@@ -234,15 +234,17 @@ class ScanManager:
 
             # Scope shepherding
             # here is where we make sure in-scope events are set to their proper scope distance
-            if event.host:
-                if event_whitelisted:
-                    log.debug(f"Making {event} in-scope")
-                    event.scope_distance = 0
-                elif (not event.always_emit) and event.scope_distance > self.scan.scope_report_distance:
-                    log.debug(
-                        f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                    )
-                    event.make_internal()
+            if event.host and event_whitelisted:
+                log.debug(f"Making {event} in-scope")
+                event.scope_distance = 0
+
+            event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
+            event_will_be_output = event.always_emit or event_in_report_distance
+            if not event_will_be_output:
+                log.debug(
+                    f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                )
+                event.internal = True
 
             # check for wildcards
             if event.scope_distance <= self.scan.scope_search_distance:
@@ -255,6 +257,20 @@ class ScanManager:
                 acceptable = self._event_precheck(event)
                 if not acceptable:
                     return
+
+            # if we discovered something interesting from an internal event,
+            # make sure we preserve its chain of parents
+            source = event.source
+            if source.internal and (event_will_be_output or event._graph_important):
+                if event_in_report_distance:
+                    source.internal = False
+                already_graph_important = bool(source._graph_important)
+                if not already_graph_important:
+                    source._graph_important = True
+                    log.critical(
+                        f"RE-QUEUEING {source.data}: graph_important:{source._graph_important}, {event} --> {source}"
+                    )
+                    self.queue_event(source)
 
             # now that the event is properly tagged, we can finally make decisions about it
             abort_result = False
@@ -270,13 +286,12 @@ class ScanManager:
                     return
 
             # run success callback before distributing event (so it can add tags, etc.)
-            if distribute_event:
-                if callable(on_success_callback):
-                    async with self.scan._acatch(context=on_success_callback):
-                        await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
+            if callable(on_success_callback):
+                async with self.scan._acatch(context=on_success_callback):
+                    await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
 
-                await self.distribute_event(event)
-                event_distributed = True
+            await self.distribute_event(event)
+            event_distributed = True
 
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
@@ -396,7 +411,12 @@ class ScanManager:
                 self.scan.word_cloud.absorb_event(event)
             for mod in self.scan.modules.values():
                 acceptable_dup = (not is_outgoing_duplicate) or mod.accept_dupes
-                if acceptable_dup:
+                # graph_important = mod._type == "output" and event._graph_important == True
+                graph_important = mod._preserve_graph and event._graph_important
+                log.critical(
+                    f"mod: {mod}, acceptable_dup: {acceptable_dup}, graph_important: {graph_important}, {event}"
+                )
+                if acceptable_dup or graph_important:
                     await mod.queue_event(event)
                 else:
                     log.critical(f"Not distributing {event} to {mod}")

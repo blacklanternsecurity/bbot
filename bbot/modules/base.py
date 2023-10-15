@@ -127,8 +127,6 @@ class BaseModule:
         self._outgoing_event_queue = None
         # track incoming events to prevent unwanted duplicates
         self._incoming_dup_tracker = set()
-        # track events that are critical to the graph
-        self._graph_important_tracker = set()
         # seconds since we've submitted a batch
         self._last_submitted_batch = None
         # additional callbacks to be executed alongside self.cleanup()
@@ -681,34 +679,19 @@ class BaseModule:
                 # then skip the event.
                 # this helps avoid double-portscanning both an individual IP and its parent CIDR.
                 return False, "module consumes IP ranges directly"
+
         return True, "precheck succeeded"
 
     async def _event_postcheck(self, event):
         """
-        A simple wrapper for dup tracking and preserving event chains for graph modules
+        A simple wrapper for dup tracking
         """
         acceptable, reason = await self.__event_postcheck(event)
-        is_graph_important = self._is_graph_important(event, remove=True)
         if acceptable:
             # check duplicates
             is_incoming_duplicate = self.is_incoming_duplicate(event, add=True)
             if is_incoming_duplicate and not self.accept_dupes:
-                if not is_graph_important:
-                    return False, f"module has already seen {event}"
-
-            # queue parents if required by graph
-            if self._preserve_graph:
-                s = event
-                while 1:
-                    s = s.get_source()
-                    if s is None:
-                        break
-                    if s == self.scan.root_event or s == event:
-                        break
-                    if not self.is_incoming_duplicate(s, add=True):
-                        self._graph_important_tracker.add(hash(s))
-                        self.debug(f"Queueing {s} as graph-important event")
-                        await self.queue_event(s, precheck=False)
+                return False, f"module has already seen {event}"
 
         return acceptable, reason
 
@@ -734,6 +717,10 @@ class BaseModule:
         if event.type in ("FINISHED",):
             return True, ""
 
+        # force-output certain events to the graph
+        if self._is_graph_important(event):
+            return True, "event is critical to the graph"
+
         # don't send out-of-scope targets to active modules
         # this only takes effect if your target and whitelist are different
         # TODO: the logic here seems incomplete, it could probably use some work.
@@ -743,10 +730,6 @@ class BaseModule:
         # check scope distance
         filter_result, reason = self._scope_distance_check(event)
         if not filter_result:
-            if self._is_graph_important(event):
-                return True, f"{reason}, but exception was made because it is graph important"
-            else:
-                self.debug(f"{event} is not graph-important")
             return filter_result, reason
 
         # custom filtering
@@ -916,16 +899,7 @@ class BaseModule:
         is_dup = event_hash in self._incoming_dup_tracker
         if add:
             self._incoming_dup_tracker.add(event_hash)
-        if self._is_graph_important(event):
-            return False
         return is_dup
-
-    def _is_graph_important(self, event, remove=False):
-        ret = self._preserve_graph and hash(event) in self._graph_important_tracker
-        if remove:
-            with suppress(KeyError):
-                self._graph_important_tracker.remove(hash(event))
-        return ret
 
     def _incoming_dedup_hash(self, event):
         """
@@ -1182,6 +1156,9 @@ class BaseModule:
                 f.write(table)
             self.verbose(f"Wrote {table_name} to {filename}")
         return table
+
+    def _is_graph_important(self, event):
+        return self._preserve_graph and getattr(event, "_graph_important", False)
 
     def stdout(self, *args, **kwargs):
         """Writes log messages directly to standard output.
