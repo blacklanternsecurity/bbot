@@ -4,7 +4,7 @@ import base64
 import jwt as j
 from urllib.parse import urljoin
 
-from bbot.core.helpers.regexes import _email_regex
+from bbot.core.helpers.regexes import _email_regex, dns_name_regex
 from bbot.modules.internal.base import BaseInternalModule
 
 
@@ -34,6 +34,25 @@ class BaseExtractor:
 
     def report(self, result, name, event):
         pass
+
+
+class CSPExtractor(BaseExtractor):
+    regexes = {"CSP": r"(?i)(?m)Content-Security-Policy:.+$"}
+
+    def extract_domains(self, csp):
+        domains = dns_name_regex.findall(csp)
+        unique_domains = set(domains)
+        return unique_domains
+
+    async def search(self, content, event, **kwargs):
+        results = set()
+        async for csp, name in self._search(content, event, **kwargs):
+            extracted_domains = self.extract_domains(csp)
+            for domain in extracted_domains:
+                self.report(domain, event, **kwargs)
+
+    def report(self, domain, event, **kwargs):
+        self.excavate.emit_event(domain, "DNS_NAME_UNRESOLVED", source=event)
 
 
 class HostnameExtractor(BaseExtractor):
@@ -297,6 +316,7 @@ class excavate(BaseInternalModule):
     scope_distance_modifier = None
 
     async def setup(self):
+        self.csp = CSPExtractor(self)
         self.hostname = HostnameExtractor(self)
         self.url = URLExtractor(self)
         self.email = EmailExtractor(self)
@@ -306,7 +326,6 @@ class excavate(BaseInternalModule):
         self.serialization = SerializationExtractor(self)
         self.functionality = FunctionalityExtractor(self)
         self.max_redirects = self.scan.config.get("http_max_redirects", 5)
-
         return True
 
     async def search(self, source, extractors, event, **kwargs):
@@ -369,7 +388,7 @@ class excavate(BaseInternalModule):
             headers = self.helpers.recursive_decode(event.data.get("raw_header", ""))
             await self.search(
                 headers,
-                [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization],
+                [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization, self.csp],
                 event,
                 consider_spider_danger=False,
             )
