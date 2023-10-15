@@ -30,7 +30,6 @@ class speculate(BaseInternalModule):
         "ports": "The set of ports to speculate on",
     }
     scope_distance_modifier = 1
-    _scope_shepherding = False
     _priority = 4
 
     async def setup(self):

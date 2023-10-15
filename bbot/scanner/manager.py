@@ -262,12 +262,12 @@ class ScanManager:
             # make sure we preserve its chain of parents
             source = event.source
             if source.internal and (event_will_be_output or event._graph_important):
-                if event_in_report_distance:
+                source_in_report_distance = source.scope_distance <= self.scan.scope_report_distance
+                if source_in_report_distance:
                     source.internal = False
-                already_graph_important = bool(source._graph_important)
-                if not already_graph_important:
+                if not source._graph_important:
                     source._graph_important = True
-                    log.debug(f"re-queuing internal event {source} with parent {event}")
+                    log.debug(f"Re-queuing internal event {source} with parent {event}")
                     self.queue_event(source)
 
             # now that the event is properly tagged, we can finally make decisions about it
