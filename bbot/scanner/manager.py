@@ -267,9 +267,7 @@ class ScanManager:
                 already_graph_important = bool(source._graph_important)
                 if not already_graph_important:
                     source._graph_important = True
-                    log.debug(
-                        f"re-queuing internal event {source} with parent {event}"
-                    )
+                    log.debug(f"re-queuing internal event {source} with parent {event}")
                     self.queue_event(source)
 
             # now that the event is properly tagged, we can finally make decisions about it
