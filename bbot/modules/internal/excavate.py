@@ -45,7 +45,6 @@ class CSPExtractor(BaseExtractor):
         return unique_domains
 
     async def search(self, content, event, **kwargs):
-        results = set()
         async for csp, name in self._search(content, event, **kwargs):
             extracted_domains = self.extract_domains(csp)
             for domain in extracted_domains:
