@@ -762,3 +762,31 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
         assert 0 == len([e for e in graph_output_events if e.type == "DNS_NAME" and e.data == "www.bbottest.notreal"])
         assert 0 == len([e for e in graph_output_events if e.type == "OPEN_TCP_PORT" and e.data == "test.notreal:9999"])
         assert 0 == len([e for e in graph_output_events if e.type == "DNS_NAME_UNRESOLVED" and e.data == "notreal"])
+
+
+@pytest.mark.asyncio
+async def test_manager_blacklist(bbot_config, bbot_scanner, bbot_httpserver, caplog):
+
+    bbot_httpserver.expect_request(uri="/").respond_with_data(response_data="<a href='http://www-prod.test.notreal:8888'/><a href='http://www-dev.test.notreal:8888'/>")
+
+    # dns search distance = 1, report distance = 0
+    config = {"dns_resolution": True, "scope_dns_search_distance": 1, "scope_report_distance": 0}
+    merged_config = OmegaConf.merge(bbot_config, OmegaConf.create(config))
+    scan = bbot_scanner(
+        "http://127.0.0.1:8888",
+        modules=["httpx", "excavate"],
+        config=merged_config,
+        whitelist=["127.0.0.0/29", "test.notreal"],
+        blacklist=["127.0.0.64/29"],
+    )
+    scan.helpers.dns.mock_dns({
+        ("www-prod.test.notreal", "A"): "127.0.0.66",
+        ("www-dev.test.notreal", "A"): "127.0.0.22",
+    })
+
+    events = [e async for e in scan.async_start()]
+
+    assert any([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://www-dev.test.notreal:8888/"])
+    assert not any([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://www-prod.test.notreal:8888/"])
+
+    assert 'Omitting due to blacklisted DNS associations: URL_UNVERIFIED("http://www-prod.test.notreal:8888/"' in caplog.text

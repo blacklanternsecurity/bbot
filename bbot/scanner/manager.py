@@ -216,9 +216,6 @@ class ScanManager:
             event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
             if event_blacklisted:
                 event.add_tag("blacklisted")
-
-            # Blacklist purging
-            if "blacklisted" in event.tags:
                 reason = "event host"
                 if event_blacklisted_dns:
                     reason = "DNS associations"
