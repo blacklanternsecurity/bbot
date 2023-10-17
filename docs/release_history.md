@@ -1,3 +1,40 @@
+## v1.1.1
+October 11, 2023
+
+Includes webhook output modules - Discord, Slack, and Teams!
+
+![image](https://github.com/blacklanternsecurity/bbot/assets/20261699/72e3e940-a41a-4c7a-952e-49a1d7cae526)
+
+### Improvements
+- https://github.com/blacklanternsecurity/bbot/pull/677
+- https://github.com/blacklanternsecurity/bbot/pull/674
+- https://github.com/blacklanternsecurity/bbot/pull/683
+- https://github.com/blacklanternsecurity/bbot/pull/740
+- https://github.com/blacklanternsecurity/bbot/pull/743
+- https://github.com/blacklanternsecurity/bbot/pull/748
+- https://github.com/blacklanternsecurity/bbot/pull/749
+- https://github.com/blacklanternsecurity/bbot/pull/751
+- https://github.com/blacklanternsecurity/bbot/pull/692
+
+### Bugfixes
+- https://github.com/blacklanternsecurity/bbot/pull/691
+- https://github.com/blacklanternsecurity/bbot/pull/684
+- https://github.com/blacklanternsecurity/bbot/pull/669
+- https://github.com/blacklanternsecurity/bbot/pull/664
+- https://github.com/blacklanternsecurity/bbot/pull/737
+- https://github.com/blacklanternsecurity/bbot/pull/741
+- https://github.com/blacklanternsecurity/bbot/pull/744
+- https://github.com/blacklanternsecurity/bbot/issues/760
+- https://github.com/blacklanternsecurity/bbot/issues/759
+- https://github.com/blacklanternsecurity/bbot/issues/758
+- https://github.com/blacklanternsecurity/bbot/pull/764
+- https://github.com/blacklanternsecurity/bbot/pull/773
+
+### New Modules
+- https://github.com/blacklanternsecurity/bbot/pull/689
+- https://github.com/blacklanternsecurity/bbot/pull/665
+- https://github.com/blacklanternsecurity/bbot/pull/663
+
 ## v1.1.0
 August 4, 2023
 
