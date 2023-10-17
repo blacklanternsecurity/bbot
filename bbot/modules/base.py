@@ -5,8 +5,8 @@ from sys import exc_info
 from contextlib import suppress
 
 from ..core.helpers.misc import get_size  # noqa
+from ..core.errors import ValidationError
 from ..core.helpers.async_helpers import TaskCounter
-from ..core.errors import ValidationError, WordlistError
 
 
 class BaseModule:
@@ -527,9 +527,6 @@ class BaseModule:
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
             self.set_error_state()
-            # soft-fail if it's only a wordlist error
-            if isinstance(e, WordlistError):
-                status = None
             msg = f"{e}"
             self.trace()
         return self.name, status, str(msg)
