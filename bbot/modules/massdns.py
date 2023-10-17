@@ -284,7 +284,7 @@ class massdns(subdomain_enum):
                             hosts_yielded.add(hostname_hash)
                             yield hostname, data, rdtype
 
-    async def sfinish(self):
+    async def finish(self):
         found = sorted(self.found.items(), key=lambda x: len(x[-1]), reverse=True)
         # if we have a lot of rounds to make, don't try mutations on less-populated domains
         trimmed_found = []
