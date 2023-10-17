@@ -82,6 +82,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         modules=list(set(available_modules + available_internal_modules)),
         output_modules=list(available_output_modules),
         config=bbot_config,
+        force_start=True,
     )
     scan2.helpers.dns.fallback_nameservers_file = fallback_nameservers
     await scan2.load_modules()
