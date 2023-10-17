@@ -5,8 +5,8 @@ import re
 import sys
 import asyncio
 import logging
-import threading
 import traceback
+from aioconsole import ainput
 from omegaconf import OmegaConf
 from contextlib import suppress
 
@@ -306,36 +306,42 @@ async def _main():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()
 
-                    def keyboard_listen():
-                        allowed_errors = 10
+                    def handle_keyboard_input(keyboard_input):
                         kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
+                        if keyboard_input:
+                            log.verbose(f'Got keyboard input: "{keyboard_input}"')
+                            kill_match = kill_regex.match(keyboard_input)
+                            if kill_match:
+                                module = kill_match.group("module")
+                                if module in scanner.modules:
+                                    log.hugewarning(f'Killing module: "{module}"')
+                                    scanner.manager.kill_module(module, message="killed by user")
+                                else:
+                                    log.warning(f'Invalid module: "{module}"')
+                        else:
+                            toggle_log_level(logger=log)
+                            scanner.manager.modules_status(_log=True)
+
+                    async def akeyboard_listen():
+                        allowed_errors = 10
                         while 1:
                             keyboard_input = "a"
                             try:
-                                keyboard_input = input()
-                                allowed_errors = 10
+                                keyboard_input = await ainput()
                             except Exception:
                                 allowed_errors -= 1
-                            if keyboard_input:
-                                log.verbose(f'Got keyboard input: "{keyboard_input}"')
-                                kill_match = kill_regex.match(keyboard_input)
-                                if kill_match:
-                                    module = kill_match.group("module")
-                                    if module in scanner.modules:
-                                        log.hugewarning(f'Killing module: "{module}"')
-                                        scanner.manager.kill_module(module, message="killed by user")
-                                    else:
-                                        log.warning(f'Invalid module: "{module}"')
-                            else:
-                                toggle_log_level(logger=log)
-                                scanner.manager.modules_status(_log=True)
+                            handle_keyboard_input(keyboard_input)
                             if allowed_errors <= 0:
                                 break
 
-                    keyboard_listen_thread = threading.Thread(target=keyboard_listen, daemon=True)
-                    keyboard_listen_thread.start()
+                    try:
+                        keyboard_listen_task = asyncio.create_task(akeyboard_listen())
 
-                    await scanner.async_start_without_generator()
+                        await scanner.async_start_without_generator()
+                    finally:
+                        keyboard_listen_task.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await keyboard_listen_task
 
             except bbot.core.errors.ScanError as e:
                 log_to_stderr(str(e), level="ERROR")
