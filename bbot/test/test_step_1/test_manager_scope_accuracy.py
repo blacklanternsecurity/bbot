@@ -803,6 +803,7 @@ async def test_manager_scope_tagging(bbot_config, bbot_scanner):
 
     e2 = scan.make_event("dev.test.notreal", source=e1, tags=["affiliate"])
     assert e2.scope_distance == 2
+    assert "affiliate" in e2.tags
     assert "in-scope" not in e2.tags
     distance_tags = [t for t in e2.tags if t.startswith("distance-")]
     assert len(distance_tags) == 1
@@ -812,5 +813,6 @@ async def test_manager_scope_tagging(bbot_config, bbot_scanner):
     log.critical(e2)
     assert e2.scope_distance == 0
     assert "in-scope" in e2.tags
+    assert "affiliate" not in e2.tags
     distance_tags = [t for t in e2.tags if t.startswith("distance-")]
     assert not distance_tags
