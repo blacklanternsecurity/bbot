@@ -349,10 +349,6 @@ class BaseEvent:
             The method will automatically update the relevant 'distance-' tags associated with the event.
         """
         if scope_distance >= 0:
-            if scope_distance == 0:
-                self.add_tag("in-scope")
-            else:
-                self.remove_tag("in-scope")
             new_scope_distance = None
             # ensure scope distance does not increase (only allow setting to smaller values)
             if self.scope_distance == -1:
@@ -360,11 +356,17 @@ class BaseEvent:
             else:
                 new_scope_distance = min(self.scope_distance, scope_distance)
             if self._scope_distance != new_scope_distance:
-                self._scope_distance = new_scope_distance
+                # remove old scope distance tags
                 for t in list(self.tags):
                     if t.startswith("distance-"):
                         self.remove_tag(t)
-                self.add_tag(f"distance-{new_scope_distance}")
+                if scope_distance == 0:
+                    self.add_tag("in-scope")
+                    self.remove_tag("affiliate")
+                else:
+                    self.remove_tag("in-scope")
+                    self.add_tag(f"distance-{new_scope_distance}")
+                self._scope_distance = new_scope_distance
             # apply recursively to parent events
             source_scope_distance = getattr(self.source, "scope_distance", -1)
             if source_scope_distance >= 0 and self != self.source:

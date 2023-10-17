@@ -790,3 +790,27 @@ async def test_manager_blacklist(bbot_config, bbot_scanner, bbot_httpserver, cap
     assert not any([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://www-prod.test.notreal:8888/"])
 
     assert 'Omitting due to blacklisted DNS associations: URL_UNVERIFIED("http://www-prod.test.notreal:8888/"' in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_manager_scope_tagging(bbot_config, bbot_scanner):
+    scan = bbot_scanner("test.notreal", config=bbot_config)
+    e1 = scan.make_event("www.test.notreal", source=scan.root_event, tags=["affiliate"])
+    log.critical(e1)
+    assert e1.scope_distance == 1
+    assert "distance-1" in e1.tags
+    assert "affiliate" in e1.tags
+
+    e2 = scan.make_event("dev.test.notreal", source=e1, tags=["affiliate"])
+    assert e2.scope_distance == 2
+    assert "in-scope" not in e2.tags
+    distance_tags = [t for t in e2.tags if t.startswith("distance-")]
+    assert len(distance_tags) == 1
+    assert distance_tags[0] == "distance-2"
+
+    e2.scope_distance = 0
+    log.critical(e2)
+    assert e2.scope_distance == 0
+    assert "in-scope" in e2.tags
+    distance_tags = [t for t in e2.tags if t.startswith("distance-")]
+    assert not distance_tags
