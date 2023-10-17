@@ -47,6 +47,7 @@ httpx = {extras = ["http2"], version = "^0.24.1"}
 dnspython = "^2.4.2"
 anyio = "4.0.0rc1"
 httpcore = "^0.17.3"
+aioconsole = "^0.6.2"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
