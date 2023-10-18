@@ -132,7 +132,10 @@ class WebHelper:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.http_debug = self.parent_helper.config.get("http_debug", False)
+        self._ssl_context_noverify = None
         self.ssl_verify = self.parent_helper.config.get("ssl_verify", False)
+        if self.ssl_verify is False:
+            self.ssl_verify = self.ssl_context_noverify()
         self.web_client = self.AsyncClient(persist_cookies=False)
 
     def AsyncClient(self, *args, **kwargs):
@@ -453,7 +456,7 @@ class WebHelper:
             curl_command.append("--path-as-is")
 
         # respect global ssl verify settings
-        if self.ssl_verify == False:
+        if self.ssl_verify is not True:
             curl_command.append("-k")
 
         headers = kwargs.get("headers", {})
@@ -563,13 +566,15 @@ class WebHelper:
         return False
 
     def ssl_context_noverify(self):
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        ssl_context.options &= ~ssl.OP_NO_SSLv2 & ~ssl.OP_NO_SSLv3
-        ssl_context.set_ciphers("ALL:@SECLEVEL=0")
-        ssl_context.options |= 0x4  # Add the OP_LEGACY_SERVER_CONNECT option
-        return ssl_context
+        if self._ssl_context_noverify is None:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            ssl_context.options &= ~ssl.OP_NO_SSLv2 & ~ssl.OP_NO_SSLv3
+            ssl_context.set_ciphers("ALL:@SECLEVEL=0")
+            ssl_context.options |= 0x4  # Add the OP_LEGACY_SERVER_CONNECT option
+            self._ssl_context_noverify = ssl_context
+        return self._ssl_context_noverify
 
     @asynccontextmanager
     async def _acatch(self, url, raise_error):
