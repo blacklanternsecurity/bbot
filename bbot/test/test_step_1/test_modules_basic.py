@@ -175,9 +175,9 @@ async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbo
         "evilcorp.com",
         modules=list(set(available_modules + available_internal_modules)),
         config=bbot_config,
+        force_start=True,
     )
 
-    await per_host_scan.load_modules()
     await per_host_scan.setup_modules()
     per_host_scan.status = "RUNNING"
 
@@ -215,6 +215,7 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, b
         "evilcorp.com",
         modules=list(set(available_modules + available_internal_modules)),
         config=bbot_config,
+        force_start=True,
     )
 
     await per_domain_scan.load_modules()
