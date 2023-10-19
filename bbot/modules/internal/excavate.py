@@ -51,7 +51,7 @@ class CSPExtractor(BaseExtractor):
                 self.report(domain, event, **kwargs)
 
     def report(self, domain, event, **kwargs):
-        self.excavate.emit_event(domain, "DNS_NAME_UNRESOLVED", source=event)
+        self.excavate.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
 
 
 class HostnameExtractor(BaseExtractor):
