@@ -6,7 +6,7 @@ class NSEC(BaseModule):
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Enumerate subdomains by NSEC-walking"}
-    max_event_handlers = 5
+    _max_event_handlers = 5
 
     async def filter_event(self, event):
         if "ns-record" in event.tags:

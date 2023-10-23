@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from pathlib import Path
 from omegaconf import OmegaConf
@@ -41,12 +42,20 @@ default_config = OmegaConf.merge(files.default_config, modules_config)
 sentinel = object()
 
 
+exclude_from_validation = re.compile(r".*modules\.[a-z0-9_]+\.(?:batch_size|max_event_handlers)$")
+
+
 def check_cli_args():
-    for c in args.cli_config:
-        if not is_file(c):
-            c = c.split("=")[0].strip()
-            v = OmegaConf.select(default_config, c, default=sentinel)
-            if v is sentinel:
+    conf = [a for a in args.cli_config if not is_file(a)]
+    all_options = None
+    for c in conf:
+        c = c.split("=")[0].strip()
+        v = OmegaConf.select(default_config, c, default=sentinel)
+        # if option isn't in the default config
+        if v is sentinel:
+            if exclude_from_validation.match(c):
+                continue
+            if all_options is None:
                 from ...modules import module_loader
 
                 modules_options = set()
@@ -54,7 +63,7 @@ def check_cli_args():
                     modules_options.update(set(o[0] for o in module_options))
                 global_options = set(default_config.keys()) - {"modules", "output_modules"}
                 all_options = global_options.union(modules_options)
-                match_and_exit(c, all_options, msg="module option")
+            match_and_exit(c, all_options, msg="module option")
 
 
 def ensure_config_files():

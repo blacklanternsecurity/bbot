@@ -51,6 +51,7 @@ class nuclei(BaseModule):
     ]
     deps_pip = ["pyyaml~=6.0"]
     in_scope_only = True
+    _batch_size = 25
 
     async def setup(self):
         # setup batch size
