@@ -16,7 +16,7 @@ class subdomain_hijack(BaseModule):
     }
     options_desc = {"fingerprints": "URL or path to fingerprints.json"}
     scope_distance_modifier = 3
-    max_event_handlers = 5
+    _max_event_handlers = 5
 
     async def setup(self):
         fingerprints_url = self.config.get("fingerprints")

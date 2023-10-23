@@ -69,7 +69,7 @@ class paramminer_headers(BaseModule):
         "zx-request-id",
         "zx-timer",
     }
-    max_event_handlers = 12
+    _max_event_handlers = 12
     in_scope_only = True
     compare_mode = "header"
     default_wordlist = "paramminer_headers.txt"

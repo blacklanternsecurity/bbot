@@ -11,7 +11,6 @@ class gowitness(BaseModule):
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["active", "safe", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages"}
-    batch_size = 100
     options = {
         "version": "2.4.2",
         "threads": 4,
@@ -76,6 +75,7 @@ class gowitness(BaseModule):
             },
         },
     ]
+    _batch_size = 100
     # visit up to and including the scan's configured search distance plus one
     # this is one hop further than the default
     scope_distance_modifier = 1

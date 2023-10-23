@@ -16,7 +16,7 @@ class neo4j(BaseOutputModule):
         "password": "Neo4j password",
     }
     deps_pip = ["git+https://github.com/blacklanternsecurity/py2neo"]
-    batch_size = 50
+    _batch_size = 50
 
     async def setup(self):
         try:

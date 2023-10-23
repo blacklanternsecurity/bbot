@@ -11,7 +11,7 @@ class dnszonetransfer(BaseModule):
     meta = {"description": "Attempt DNS zone transfers"}
     options = {"timeout": 10}
     options_desc = {"timeout": "Max seconds to wait before timing out"}
-    max_event_handlers = 5
+    _max_event_handlers = 5
     suppress_dupes = False
 
     async def setup(self):
