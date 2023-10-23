@@ -290,16 +290,16 @@ class BaseModule:
 
     @property
     def batch_size(self):
-        batch_size = self.options.get("batch_size", None)
+        batch_size = self.config.get("batch_size", None)
         # only allow overriding the batch size if its default value is greater than 1
         # this prevents modules from being accidentally neutered by an incorect batch_size setting
-        if batch_size is None or (self._batch_size > 1 and batch_size <= 1):
+        if batch_size is None or self._batch_size == 1:
             batch_size = self._batch_size
         return batch_size
 
     @property
     def max_event_handlers(self):
-        max_event_handlers = self.options.get("max_event_handlers", None)
+        max_event_handlers = self.config.get("max_event_handlers", None)
         if max_event_handlers is None:
             max_event_handlers = self._max_event_handlers
         return max_event_handlers
