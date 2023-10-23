@@ -54,9 +54,6 @@ class nuclei(BaseModule):
     _batch_size = 25
 
     async def setup(self):
-        # setup batch size
-        self.batch_size = int(self.config.get("batch_size", 200))
-
         # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
         self.info("Updating Nuclei templates")
