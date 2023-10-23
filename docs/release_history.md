@@ -1,3 +1,24 @@
+## v1.1.2
+October 24, 2023
+
+### Improvements
+- https://github.com/blacklanternsecurity/bbot/pull/776
+- https://github.com/blacklanternsecurity/bbot/pull/772
+- https://github.com/blacklanternsecurity/bbot/pull/783
+- https://github.com/blacklanternsecurity/bbot/pull/790
+- https://github.com/blacklanternsecurity/bbot/pull/797
+- https://github.com/blacklanternsecurity/bbot/pull/798
+- https://github.com/blacklanternsecurity/bbot/pull/799
+
+### Bugfixes
+- https://github.com/blacklanternsecurity/bbot/pull/780
+- https://github.com/blacklanternsecurity/bbot/pull/787
+- https://github.com/blacklanternsecurity/bbot/pull/788
+- https://github.com/blacklanternsecurity/bbot/pull/791
+
+### New Modules
+- https://github.com/blacklanternsecurity/bbot/pull/774
+
 ## v1.1.1
 October 11, 2023
 
