@@ -94,8 +94,8 @@ class BaseModule:
     target_only = False
     in_scope_only = False
 
-    max_event_handlers = 1
-    batch_size = 1
+    _max_event_handlers = 1
+    _batch_size = 1
     batch_wait = 10
     failed_request_abort_threshold = 5
 
@@ -287,6 +287,20 @@ class BaseModule:
             AssertionError: If the API does not respond as expected.
         """
         return
+
+    @property
+    def batch_size(self):
+        batch_size = self.options.get("batch_size", None)
+        if batch_size is None:
+            batch_size = self._batch_size
+        return batch_size
+
+    @property
+    def max_event_handlers(self):
+        max_event_handlers = self.options.get("max_event_handlers", None)
+        if max_event_handlers is None:
+            max_event_handlers = self._max_event_handlers
+        return max_event_handlers
 
     @property
     def auth_secret(self):
@@ -484,12 +498,8 @@ class BaseModule:
             ret = self.incoming_event_queue.qsize()
         return ret
 
-    @property
-    def _max_event_handlers(self):
-        return self.max_event_handlers
-
     def start(self):
-        self._tasks = [asyncio.create_task(self._worker()) for _ in range(self._max_event_handlers)]
+        self._tasks = [asyncio.create_task(self._worker()) for _ in range(self.max_event_handlers)]
 
     async def _setup(self):
         """

@@ -25,7 +25,7 @@ class paramminer_cookies(paramminer_headers):
     options_desc = {"wordlist": "Define the wordlist to be used to derive cookies"}
     scanned_hosts = []
     boring_words = set()
-    max_event_handlers = 12
+    _max_event_handlers = 12
     in_scope_only = True
     compare_mode = "cookie"
     default_wordlist = "paramminer_parameters.txt"

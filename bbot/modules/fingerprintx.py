@@ -10,8 +10,8 @@ class fingerprintx(BaseModule):
     meta = {"description": "Fingerprint exposed services like RDP, SSH, MySQL, etc."}
     options = {"version": "1.1.4"}
     options_desc = {"version": "fingerprintx version"}
-    batch_size = 10
-    max_event_handlers = 2
+    _batch_size = 10
+    _max_event_handlers = 2
     _priority = 2
 
     deps_ansible = [

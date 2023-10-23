@@ -10,8 +10,6 @@ class nuclei(BaseModule):
     flags = ["active", "aggressive"]
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
-    batch_size = 25
-
     options = {
         "version": "2.9.15",
         "tags": "",
@@ -49,6 +47,7 @@ class nuclei(BaseModule):
     ]
     deps_pip = ["pyyaml~=6.0"]
     in_scope_only = True
+    _batch_size = 25
 
     async def setup(self):
         # attempt to update nuclei templates
