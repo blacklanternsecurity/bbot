@@ -10,8 +10,6 @@ class nuclei(BaseModule):
     flags = ["active", "aggressive"]
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
-    batch_size = 25
-
     options = {
         "version": "2.9.15",
         "tags": "",
@@ -23,6 +21,8 @@ class nuclei(BaseModule):
         "etags": "",
         "budget": 1,
         "directory_only": True,
+        "retries": 0,
+        "batch_size": 200,
     }
     options_desc = {
         "version": "nuclei version",
@@ -35,6 +35,8 @@ class nuclei(BaseModule):
         "etags": "tags to exclude from the scan",
         "budget": "Used in budget mode to set the number of requests which will be alloted to the nuclei scan",
         "directory_only": "Filter out 'file' URL event (default True)",
+        "retries": "number of times to retry a failed request (default 0)",
+        "batch_size": "Number of targets to send to Nuclei per batch (default 200)",
     }
     deps_ansible = [
         {
@@ -51,6 +53,9 @@ class nuclei(BaseModule):
     in_scope_only = True
 
     async def setup(self):
+        # setup batch size
+        self.batch_size = int(self.config.get("batch_size", 200))
+
         # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
         self.info("Updating Nuclei templates")
@@ -85,6 +90,7 @@ class nuclei(BaseModule):
             self.info(f"Limiting nuclei templates to the following severites: [{self.severity}]")
         self.iserver = self.scan.config.get("interactsh_server", None)
         self.itoken = self.scan.config.get("interactsh_token", None)
+        self.retries = int(self.config.get("retries", 0))
 
         if self.mode not in ("technology", "severe", "manual", "budget"):
             self.warning(f"Unable to initialize nuclei: invalid mode selected: [{self.mode}]")
@@ -185,6 +191,8 @@ class nuclei(BaseModule):
             self.concurrency,
             "-disable-update-check",
             "-stats-json",
+            "-retries",
+            self.retries,
         ]
 
         if self.helpers.system_resolvers:
