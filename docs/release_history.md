@@ -9,6 +9,7 @@ October 24, 2023
 - https://github.com/blacklanternsecurity/bbot/pull/797
 - https://github.com/blacklanternsecurity/bbot/pull/798
 - https://github.com/blacklanternsecurity/bbot/pull/799
+- https://github.com/blacklanternsecurity/bbot/pull/801
 
 ### Bugfixes
 - https://github.com/blacklanternsecurity/bbot/pull/780
