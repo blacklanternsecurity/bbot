@@ -171,11 +171,11 @@ asyncio.run(main())
 
 ## Contribution
 
-Collaboration is what makes BBOT great. We welcome contributions - and not just in the form of code, but ideas, too! If you have an idea for a new feature, please let us know in [Discussions](https://github.com/blacklanternsecurity/bbot/discussions). If you want to get your hands dirty, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/). There you can find setup instructions and a simple tutorial on how to write a BBOT module. We also have extensive [Developer Documentation](https://www.blacklanternsecurity.com/bbot/dev/).
+BBOT is constantly being improved by the community. Every day it grows more powerful!
+
+We welcome contributions. Not just code, but ideas too! If you have an idea for a new feature, please let us know in [Discussions](https://github.com/blacklanternsecurity/bbot/discussions). If you want to get your hands dirty, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/). There you can find setup instructions and a simple tutorial on how to write a BBOT module. We also have extensive [Developer Documentation](https://www.blacklanternsecurity.com/bbot/dev/).
 
 Thanks to these amazing people for contributing to BBOT! :heart:
-
-If you're interested in contributing to BBOT, or just curious how it works under the hood, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/).
 
 <p align="center">
 <a href="https://github.com/blacklanternsecurity/bbot/graphs/contributors">
