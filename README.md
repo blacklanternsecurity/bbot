@@ -116,7 +116,9 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scann
 
 ## BBOT as a Python library
 
-BBOT exposes a Python API that allows it to be used for all kinds of fun and nefarious purposes, like a [Discord Bot that responds to `/scan evilcorp.com`](https://www.blacklanternsecurity.com/bbot/dev/#bbot-python-library-advanced-usage#discord-bot-example).
+BBOT exposes a Python API that allows it to be used for all kinds of fun and nefarious purposes, like a [Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/#bbot-python-library-advanced-usage#discord-bot-example) that responds to the `/scan` command.
+
+![![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9)](https://www.blacklanternsecurity.com/bbot/dev/#bbot-python-library-advanced-usage#discord-bot-example)
 
 **Synchronous**
 
@@ -167,7 +169,9 @@ asyncio.run(main())
     - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
 <!-- END BBOT DOCS TOC -->
 
-## Acknowledgements
+## Contribution
+
+Collaboration is what makes BBOT great. We welcome contributions - and not just in the form of code, but ideas, too! If you have an idea for a new feature, please let us know in [Discussions](https://github.com/blacklanternsecurity/bbot/discussions). If you want to get your hands dirty, see [Contribution](https://www.blacklanternsecurity.com/bbot/contribution/). There you can find setup instructions and a simple tutorial on how to write a BBOT module. We also have extensive [Developer Documentation](https://www.blacklanternsecurity.com/bbot/dev/).
 
 Thanks to these amazing people for contributing to BBOT! :heart:
 
