@@ -221,6 +221,7 @@ def collapse_urls(urls, threshold=10):
         ["http://evilcorp.com/user/11111/info"]
 
     """
+    log.verbose(f"Collapsing {len(urls):,} URLs")
     url_hashes = {}
     for url in urls:
         try:

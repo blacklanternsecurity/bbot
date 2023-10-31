@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
@@ -49,8 +51,19 @@ class wayback(subdomain_enum):
             except KeyError:
                 continue
 
+        self.verbose(f"Found {len(urls):,} URLs for {query}")
+
         dns_names = set()
-        for parsed_url in self.helpers.validators.collapse_urls(urls, threshold=self.garbage_threshold):
+        collapsed_urls = 0
+        start_time = datetime.now()
+        parsed_urls = await self.scan.run_in_executor_mp(
+            self.execute_callback,
+            self.helpers.validators.collapse_urls,
+            urls,
+            threshold=self.garbage_threshold,
+        )
+        for parsed_url in parsed_urls:
+            collapsed_urls += 1
             if not self.urls:
                 dns_name = parsed_url.hostname
                 h = hash(dns_name)
@@ -59,4 +72,14 @@ class wayback(subdomain_enum):
                     results.add((dns_name, "DNS_NAME"))
             else:
                 results.add((parsed_url.geturl(), "URL_UNVERIFIED"))
+        end_time = datetime.now()
+        duration = self.helpers.human_timedelta(end_time - start_time)
+        self.verbose(f"Collapsed {len(urls):,} -> {collapsed_urls:,} URLs in {duration}")
         return results
+
+    @staticmethod
+    def execute_callback(callback, *args, **kwargs):
+        """
+        This exists so that we can run our URL parsing logic in a separate process.
+        """
+        return list(callback(*args, **kwargs))
