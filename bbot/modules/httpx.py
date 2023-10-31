@@ -129,7 +129,8 @@ class httpx(BaseModule):
                 continue
 
             # discard 404s from unverified URLs
-            if source_event.type == "URL_UNVERIFIED" and status_code in (404,):
+            path = j.get("path", "/")
+            if source_event.type == "URL_UNVERIFIED" and status_code in (404,) and path != "/":
                 self.debug(f'Discarding 404 from "{url}"')
                 continue
 
