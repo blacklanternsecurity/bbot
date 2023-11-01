@@ -175,7 +175,9 @@ class nuclei(BaseModule):
         for event in events:
             if host in event:
                 return event
-        self.warning("Failed to correlate nuclei result with event")
+        self.verbose(f"Failed to correlate nuclei result for {host}. Possible source events:")
+        for event in events:
+            self.verbose(f" - {event.data}")
 
     async def execute_nuclei(self, nuclei_input):
         command = [
