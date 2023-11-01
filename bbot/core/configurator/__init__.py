@@ -1,9 +1,5 @@
-import os
 import re
-import sys
-from pathlib import Path
 from omegaconf import OmegaConf
-from contextlib import suppress
 
 from . import files, args, environ
 from ..errors import ConfigLoadError
