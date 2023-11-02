@@ -1,7 +1,7 @@
-from .test_module_bucket_aws import *
+from .test_module_bucket_amazon import *
 
 
-class TestBucket_DigitalOcean(Bucket_AWS_Base):
+class TestBucket_DigitalOcean(Bucket_Amazon_Base):
     provider = "digitalocean"
     random_bucket_1 = f"{random_bucket_name_1}.fra1.digitaloceanspaces.com"
     random_bucket_2 = f"{random_bucket_name_2}.fra1.digitaloceanspaces.com"

@@ -1,7 +1,7 @@
-from bbot.modules.bucket_aws import bucket_aws
+from bbot.modules.bucket_amazon import bucket_amazon
 
 
-class bucket_azure(bucket_aws):
+class bucket_azure(bucket_amazon):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]

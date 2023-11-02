@@ -3,7 +3,7 @@ import re
 from .base import ModuleTestBase
 from bbot.core.helpers.misc import rand_string
 
-__all__ = ["random_bucket_name_1", "random_bucket_name_2", "random_bucket_name_3", "Bucket_AWS_Base"]
+__all__ = ["random_bucket_name_1", "random_bucket_name_2", "random_bucket_name_3", "Bucket_Amazon_Base"]
 
 # first one is a normal bucket
 random_bucket_name_1 = rand_string(15, digits=False)
@@ -13,9 +13,9 @@ random_bucket_name_2 = rand_string(15, digits=False)
 random_bucket_name_3 = f"{random_bucket_name_2}-dev"
 
 
-class Bucket_AWS_Base(ModuleTestBase):
+class Bucket_Amazon_Base(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    provider = "aws"
+    provider = "amazon"
 
     random_bucket_1 = f"{random_bucket_name_1}.s3.amazonaws.com"
     random_bucket_2 = f"{random_bucket_name_2}.s3-ap-southeast-2.amazonaws.com"
@@ -89,5 +89,5 @@ class Bucket_AWS_Base(ModuleTestBase):
         ), f'bucket (dev mutation) not found for provider "{self.provider}"'
 
 
-class TestBucket_AWS(Bucket_AWS_Base):
+class TestBucket_Amazon(Bucket_Amazon_Base):
     pass
