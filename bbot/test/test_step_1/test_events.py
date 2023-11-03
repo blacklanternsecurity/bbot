@@ -337,19 +337,21 @@ async def test_events(events, scan, helpers, bbot_config):
     # test event serialization
     from bbot.core.event import event_from_json
 
-    db_event = scan.make_event("127.0.0.1", dummy=True)
+    db_event = scan.make_event("evilcorp.com", dummy=True)
+    db_event._resolved_hosts = {"127.0.0.1"}
     db_event.scope_distance = 1
     timestamp = db_event.timestamp.timestamp()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
-    assert json_event["data"] == "127.0.0.1"
-    assert json_event["type"] == "IP_ADDRESS"
+    assert json_event["data"] == "evilcorp.com"
+    assert json_event["type"] == "DNS_NAME"
     assert json_event["timestamp"] == timestamp
     reconstituted_event = event_from_json(json_event)
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.timestamp() == timestamp
-    assert reconstituted_event.data == "127.0.0.1"
-    assert reconstituted_event.type == "IP_ADDRESS"
+    assert reconstituted_event.data == "evilcorp.com"
+    assert reconstituted_event.type == "DNS_NAME"
+    assert "127.0.0.1" in reconstituted_event.resolved_hosts
 
     http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
     assert http_response.source_id == scan.root_event.id
