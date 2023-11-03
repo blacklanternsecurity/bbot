@@ -1,7 +1,7 @@
-from bbot.modules.bucket_amazon import bucket_amazon
+from bbot.modules.templates.bucket import bucket_template
 
 
-class bucket_google(bucket_amazon):
+class bucket_google(bucket_template):
     """
     Adapted from https://github.com/RhinoSecurityLabs/GCPBucketBrute/blob/master/gcpbucketbrute.py
     """

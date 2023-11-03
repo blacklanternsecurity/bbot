@@ -1,7 +1,7 @@
-from bbot.modules.bucket_amazon import bucket_amazon
+from bbot.modules.templates.bucket import bucket_template
 
 
-class bucket_firebase(bucket_amazon):
+class bucket_firebase(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]
@@ -11,12 +11,13 @@ class bucket_firebase(bucket_amazon):
         "permutations": "Whether to try permutations",
     }
 
-    cloud_helper_name = "firebase"
+    cloud_helper_name = "google"
     delimiters = ("", "-")
     base_domains = ["firebaseio.com"]
 
     def filter_bucket(self, event):
-        if not str(event.host).endswith(".firebaseio.com"):
+        host = str(event.host)
+        if not any(host.endswith(f".{d}") for d in self.base_domains):
             return False, "bucket belongs to a different cloud provider"
         return True, ""
 
