@@ -19,7 +19,7 @@ class nmap(BaseModule):
         "timing": "-T<0-5>: Set timing template (higher is faster)",
         "skip_host_discovery": "skip host discovery (-Pn)",
     }
-    max_event_handlers = 2
+    _max_event_handlers = 2
     batch_size = 256
     _priority = 2
 

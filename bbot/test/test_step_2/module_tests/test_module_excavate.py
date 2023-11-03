@@ -209,3 +209,15 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
         url_data = [e.data for e in url_events if "spider-danger" not in e.tags]
         assert "http://127.0.0.1:8888/10" in url_data
         assert "http://127.0.0.1:8888/11" not in url_data
+
+
+class TestExcavateCSP(TestExcavate):
+    csp_test_header = "default-src 'self'; script-src fake.domain.com; object-src 'none';"
+
+    async def setup_before_prep(self, module_test):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"headers": {"Content-Security-Policy": self.csp_test_header}}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check(self, module_test, events):
+        assert any(e.data == "fake.domain.com" for e in events)

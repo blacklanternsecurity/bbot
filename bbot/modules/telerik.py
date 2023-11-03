@@ -157,7 +157,7 @@ class telerik(BaseModule):
         },
     ]
 
-    max_event_handlers = 5
+    _max_event_handlers = 5
 
     async def setup(self):
         self.timeout = self.scan.config.get("httpx_timeout", 5)

@@ -89,7 +89,6 @@ class TestNucleiTechnology(TestNucleiManual):
     }
 
     async def setup_before_prep(self, module_test):
-        self.caplog = module_test.request_fixture.getfixturevalue("caplog")
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {
             "response_data": "<html><Directory></Directory></html>",
@@ -98,9 +97,10 @@ class TestNucleiTechnology(TestNucleiManual):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        if "Using Interactsh Server" in self.caplog.text:
-            return False
         assert any(e.type == "FINDING" and "apache" in e.data["description"] for e in events)
+
+        with open(module_test.scan.home / "debug.log") as f:
+            assert "Using Interactsh Server" not in f.read()
 
 
 class TestNucleiBudget(TestNucleiManual):
@@ -123,3 +123,32 @@ class TestNucleiBudget(TestNucleiManual):
 
     def check(self, module_test, events):
         assert any(e.type == "FINDING" and "SpiderFoot" in e.data["description"] for e in events)
+
+
+class TestNucleiRetries(TestNucleiManual):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"nuclei": {"tags": "musictraveler"}},
+    }
+
+    async def setup_before_prep(self, module_test):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {
+            "response_data": "content",
+        }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+    def check(self, module_test, events):
+        with open(module_test.scan.home / "debug.log") as f:
+            assert "-retries 0" in f.read()
+
+
+class TestNucleiRetriesCustom(TestNucleiRetries):
+    config_overrides = {
+        "interactsh_disable": True,
+        "modules": {"nuclei": {"tags": "musictraveler", "retries": 1}},
+    }
+
+    def check(self, module_test, events):
+        with open(module_test.scan.home / "debug.log") as f:
+            assert "-retries 1" in f.read()
