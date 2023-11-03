@@ -690,7 +690,7 @@ class BaseEvent:
     def __str__(self):
         max_event_len = 80
         d = str(self.data)
-        return f'{self.type}("{d[:max_event_len]}{("..." if len(d) > max_event_len else "")}", module={self.module}, tags={self.tags} graph_important={self._graph_important})'
+        return f'{self.type}("{d[:max_event_len]}{("..." if len(d) > max_event_len else "")}", module={self.module}, tags={self.tags})'
 
     def __repr__(self):
         return str(self)

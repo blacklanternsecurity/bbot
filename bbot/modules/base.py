@@ -688,21 +688,26 @@ class BaseModule:
         A simple wrapper for dup tracking and preserving event chains for graph modules
         """
         acceptable, reason = await self.__event_postcheck(event)
+        is_graph_important = self._is_graph_important(event, remove=True)
         if acceptable:
+            # check duplicates
             is_incoming_duplicate = self.is_incoming_duplicate(event, add=True)
             if is_incoming_duplicate and not self.accept_dupes:
-                if not self._graph_important(event):
+                if not is_graph_important:
                     return False, f"module has already seen {event}"
 
+            # queue parents if required by graph
             if self._preserve_graph:
                 s = event
                 while 1:
-                    s = s.source
-                    if s is None or s == self.scan.root_event or s == event:
+                    s = s.get_source()
+                    if s is None:
+                        break
+                    if s == self.scan.root_event or s == event:
                         break
                     if not self.is_incoming_duplicate(s, add=True):
-                        self._graph_important_tracker.add(hash(event))
-                        self.critical(f"queueing {event}")
+                        self._graph_important_tracker.add(hash(s))
+                        self.debug(f"Queueing {s} as graph-important event")
                         await self.queue_event(s, precheck=False)
 
         return acceptable, reason
@@ -740,6 +745,8 @@ class BaseModule:
         if not filter_result:
             if self._is_graph_important(event):
                 return True, f"{reason}, but exception was made because it is graph important"
+            else:
+                self.debug(f"{event} is not graph-important")
             return filter_result, reason
 
         # custom filtering
@@ -819,7 +826,7 @@ class BaseModule:
             if self.incoming_event_queue is False:
                 self.debug(f"Not in an acceptable state to queue incoming event")
                 return
-            acceptable, reason = True, "no precheck was performed"
+            acceptable, reason = True, "precheck was skipped"
             if precheck:
                 acceptable, reason = self._event_precheck(event)
             if not acceptable:
@@ -913,8 +920,12 @@ class BaseModule:
             return False
         return is_dup
 
-    def _is_graph_important(self, event):
-        return self._preserve_graph and hash(event) in self._graph_important_tracker
+    def _is_graph_important(self, event, remove=False):
+        ret = self._preserve_graph and hash(event) in self._graph_important_tracker
+        if remove:
+            with suppress(KeyError):
+                self._graph_important_tracker.remove(hash(event))
+        return ret
 
     def _incoming_dedup_hash(self, event):
         """

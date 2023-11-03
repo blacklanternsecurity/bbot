@@ -31,7 +31,7 @@ class BaseOutputModule(BaseModule):
         if event._omit:
             return False, "_omit is True"
         # force-output certain events to the graph
-        if self._preserve_graph and event._graph_important:
+        if self._is_graph_important(event):
             return True, "event is critical to the graph"
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance

@@ -235,10 +235,10 @@ class ScanManager:
             # Scope shepherding
             # here is where we make sure in-scope events are set to their proper scope distance
             if event.host and event_whitelisted:
-                log.critical(f"Making {event} in-scope")
+                log.debug(f"Making {event} in-scope")
                 event.scope_distance = 0
             elif (not event.always_emit) and event.scope_distance > self.scan.scope_report_distance:
-                log.critical(
+                log.debug(
                     f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
                 )
                 event.make_internal()
