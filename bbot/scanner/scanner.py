@@ -255,7 +255,7 @@ class Scanner:
             mp.set_start_method("spawn")
         except Exception:
             self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
-        self.process_pool = ProcessPoolExecutor(max_tasks_per_child=100)
+        self.process_pool = ProcessPoolExecutor()
 
         self._stopping = False
 
