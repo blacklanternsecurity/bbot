@@ -48,3 +48,21 @@ class TestHTTPX(ModuleTestBase):
                     url = True
         assert url, "Failed to visit target URL"
         assert open_port, "Failed to visit target OPEN_TCP_PORT"
+
+
+class TestHTTPX_404(ModuleTestBase):
+    targets = ["https://127.0.0.1:9999"]
+    modules_overrides = ["httpx", "speculate", "excavate"]
+    config_overrides = {"internal_modules": {"speculate": {"ports": "8888,9999"}}}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "Redirecting...", status=301, headers={"Location": "https://127.0.0.1:9999"}
+        )
+        module_test.httpserver_ssl.expect_request("/").respond_with_data("404 not found", status=404)
+
+    def check(self, module_test, events):
+        assert 1 == len(
+            [e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/" and "status-301" in e.tags]
+        )
+        assert 1 == len([e for e in events if e.type == "URL" and e.data == "https://127.0.0.1:9999/"])
