@@ -90,7 +90,7 @@ line-length = 119
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v1.1.2{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v1.1.3{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]
