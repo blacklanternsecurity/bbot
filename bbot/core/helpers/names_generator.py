@@ -9,7 +9,6 @@ adjectives = [
     "affectionate",
     "aggravated",
     "aggrieved",
-    "anal",
     "atrocious",
     "awkward",
     "baby",
