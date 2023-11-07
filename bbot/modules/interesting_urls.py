@@ -54,5 +54,7 @@ class interesting_urls(ffuf):
         for idx, val in enumerate(self.wordlist_lines):
             if len(val) > 0:
                 line_count += 1
+                if "#" in val:
+                    val = val.split("#")[0]
                 virtual_file.append(f"{val.strip().lower()}")
         return self.helpers.tempfile(virtual_file, pipe=False), line_count
