@@ -223,10 +223,10 @@ async def test_web_cookies(bbot_scanner, bbot_config, httpx_mock):
     client = scan.helpers.AsyncClient(persist_cookies=True)
     r = await client.get(url="http://www.evilcorp.com/cookies")
     assert r.cookies["wat"] == "asdf"
-    httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test", match_headers={"cookie": "wat=asdf"})
+    httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test", match_headers={"Cookie": "wat=asdf"})
     r = await client.get(url="http://www.evilcorp.com/cookies/test")
     # make sure we can manually send cookies
-    httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test2", match_headers={"cookie": "asdf=wat"})
+    httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test2", match_headers={"Cookie": "asdf=wat"})
     r = await scan.helpers.request(url="http://www.evilcorp.com/cookies/test2", cookies={"asdf": "wat"})
     assert client.cookies["wat"] == "asdf"
 
@@ -237,11 +237,11 @@ async def test_web_cookies(bbot_scanner, bbot_config, httpx_mock):
     r = await client2.get(url="http://www2.evilcorp.com/cookies")
     # make sure we can access the cookies
     assert "wats" in r.cookies
-    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test", match_headers={"cookie": "wats=fdsa"})
+    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test", match_headers={"Cookie": "wats=fdsa"})
     # but that they're not sent in the response
     with pytest.raises(httpx.TimeoutException):
         r = await client2.get(url="http://www2.evilcorp.com/cookies/test")
     # make sure we can manually send cookies
-    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test2", match_headers={"cookie": "fdsa=wats"})
+    httpx_mock.add_response(url="http://www2.evilcorp.com/cookies/test2", match_headers={"Cookie": "fdsa=wats"})
     r = await client2.get(url="http://www2.evilcorp.com/cookies/test2", cookies={"fdsa": "wats"})
     assert not client2.cookies
