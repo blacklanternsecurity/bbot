@@ -18,7 +18,7 @@ def pytest_sessionfinish(session, exitstatus):
             logger.removeHandler(handler)
 
     # Wipe out BBOT home dir
-    # shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
+    shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
 
     yield
 
