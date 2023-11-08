@@ -804,7 +804,6 @@ class ASN(DictEvent):
 class CODE_REPOSITORY(DictHostEvent):
     class _data_validator(BaseModel):
         url: str
-        # _validate_url = field_validator("url")(validators.validate_url)
         _validate_url = field_validator("url")(validators.validate_url)
 
     def _pretty_string(self):
@@ -1059,7 +1058,7 @@ class VULNERABILITY(DictHostEvent):
         host: str
         severity: str
         description: str
-        url: Optional[str]
+        url: Optional[str] = None
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
 
@@ -1073,7 +1072,7 @@ class FINDING(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         description: str
-        url: Optional[str]
+        url: Optional[str] = None
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
@@ -1084,7 +1083,7 @@ class TECHNOLOGY(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         technology: str
-        url: Optional[str]
+        url: Optional[str] = None
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _data_id(self):
@@ -1100,7 +1099,7 @@ class VHOST(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         vhost: str
-        url: Optional[str]
+        url: Optional[str] = None
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
@@ -1111,8 +1110,8 @@ class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
-        port: Optional[int]
-        banner: Optional[str]
+        port: Optional[int] = None
+        banner: Optional[str] = None
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_port = field_validator("port")(validators.validate_port)
 
@@ -1164,7 +1163,7 @@ class WAF(DictHostEvent):
         url: str
         host: str
         WAF: str
-        info: Optional[str]
+        info: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
