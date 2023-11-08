@@ -506,8 +506,7 @@ class BaseEvent:
         if self._data_validator is not None:
             if not isinstance(data, dict):
                 raise ValidationError(f"data is not of type dict: {data}")
-            data = self._data_validator(**data).dict()
-            data = {k: v for k, v in data.items() if v is not None}
+            data = self._data_validator(**data).model_dump(exclude_none=True)
         return self.sanitize_data(data)
 
     def sanitize_data(self, data):
