@@ -1319,6 +1319,10 @@ def event_from_json(j):
             "dummy": True,
         }
         event = make_event(**kwargs)
+
+        resolved_hosts = j.get("resolved_hosts", [])
+        event._resolved_hosts = set(resolved_hosts)
+
         event.timestamp = datetime.fromtimestamp(j["timestamp"])
         event.scope_distance = j["scope_distance"]
         source_id = j.get("source", None)
