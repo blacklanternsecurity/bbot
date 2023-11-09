@@ -18,7 +18,7 @@ BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn
 
 ## Installation ([pip](https://pypi.org/project/bbot/))
 
-Note: Requires Linux and Python 3.9+. For more installation methods including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Installation](https://www.blacklanternsecurity.com/bbot/#installation).
+Note: Requires Linux and Python 3.9+.
 
 ```bash
 # stable version
@@ -29,6 +29,23 @@ pipx install --pip-args '\--pre' bbot
 
 bbot --help
 ```
+
+## Installation ([Docker](https://hub.docker.com/r/blacklanternsecurity/bbot))
+
+Docker images are provided, along with helper script `bbot-docker.sh` to persist your scan data.
+
+```bash
+# bleeding edge (dev)
+docker run -it blacklanternsecurity/bbot --help
+
+# stable
+docker run -it blacklanternsecurity/bbot:stable --help
+
+# helper script
+git clone https://github.com/blacklanternsecurity/bbot && cd bbot
+./bbot-docker.sh --help
+```
+
 
 ## Example Commands
 
