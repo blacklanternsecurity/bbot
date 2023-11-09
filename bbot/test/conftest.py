@@ -25,7 +25,7 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture
 def non_mocked_hosts() -> list:
-    return ["127.0.0.1", "localhost"] + interactsh_servers
+    return ["127.0.0.1", "localhost", "github.com"] + interactsh_servers
 
 
 @pytest.fixture
