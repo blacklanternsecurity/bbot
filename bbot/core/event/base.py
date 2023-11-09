@@ -354,12 +354,16 @@ class BaseEvent:
         """
         if is_event(source):
             self._source = source
+            hosts_are_same = self.host == source.host
             if source.scope_distance >= 0:
                 new_scope_distance = int(source.scope_distance)
                 # only increment the scope distance if the host changes
-                if self.host != source.host:
+                if not hosts_are_same:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
+            # inherit affiliate tag
+            if hosts_are_same and "affiliate" in source.tags:
+                self.add_tag("affiliate")
         elif not self._dummy:
             log.warning(f"Tried to set invalid source on {self}: (got: {source})")
 
