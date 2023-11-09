@@ -48,7 +48,7 @@ aioconsole = "^0.6.2"
 pydantic = "^2.4.2"
 httpx = "^0.25.1"
 pytest-httpx = "^0.26.0"
-cloudcheck = {git = "https://github.com/blacklanternsecurity/cloudcheck", rev = "async-rework"}
+cloudcheck = "^2.1.0.103"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"

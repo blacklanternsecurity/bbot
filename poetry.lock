@@ -377,22 +377,18 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "2.0.0.0"
+version = "2.1.0.103"
 description = "Check whether an IP address belongs to a cloud provider"
 optional = false
-python-versions = "^3.9"
-files = []
-develop = false
+python-versions = ">=3.9,<4.0"
+files = [
+    {file = "cloudcheck-2.1.0.103-py3-none-any.whl", hash = "sha256:d81fef177131c554a4e02e6d63f14abad675516135c89ca999f3a846f277aea2"},
+    {file = "cloudcheck-2.1.0.103.tar.gz", hash = "sha256:68a3d60f32f67a726b73f95f905dc529cc3698a997ef11286733865e17dbda80"},
+]
 
 [package.dependencies]
-httpx = "^0.25"
-pydantic = "^2.4.2"
-
-[package.source]
-type = "git"
-url = "https://github.com/blacklanternsecurity/cloudcheck"
-reference = "async-rework"
-resolved_reference = "167d76e05206d5fbfca3c31e555e337eed0d3091"
+httpx = ">=0.25,<0.26"
+pydantic = ">=2.4.2,<3.0.0"
 
 [[package]]
 name = "colorama"
@@ -2409,4 +2405,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "11601fdb0412015ba250b58f9dcab83af28c6175da7842bd1f5461e548b9195e"
+content-hash = "3cd90ba654e142fc96a399d4e3b76e73fd514fc99a6f35783c72014f35556c81"
