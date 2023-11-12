@@ -4,3 +4,19 @@ backup.zip
 .htaccess.txt
 php.ini.bak
 settings.php.old
+backup.zip
+minify-2.1.7/min_extras/tools/minifyUrl.php # Probable SSRF
+minify_2/min_extras/tools/minifyUrl.php # Probable SSRF
+Minify/min_extras/tools/minifyUrl.php # Probable SSRF
+fileman/asp_net/main.ashx # https://www.exploit-db.com/explosudo its/51355
+cf_scripts/scripts/ajax/ckeditor/plugins/filemanager/filemanager.cfc
+Telerik.Web.UI.WebResource.axd # https://bishopfox.com/blog/cve-2019-18935-remote-code-execution-in-telerik-ui
+Telerik.Web.UI.DialogHandler.aspx # https://github.com/blacklanternsecurity/dp_cryptomg
+wp-content/plugins/w3-total-cache/pub/minify.php  # https://klikki.fi/w3-total-cache-ssrf-vulnerability/
+docpicker/internal_proxy/http/example.com # https://blog.assetnote.io/2021/12/25/advisory-websphere-portal/
+desktopmodules/DNNArticle/GetCSS.ashx # https://www.exploit-db.com/exploits/44414
+cf_scripts/scripts/ajax/ckeditor/plugins/filemanager/filemanager.cfc
+cf_scripts/scripts/ajax/ckeditor/plugins/filemanager/upload.cfm # https://www.exploit-db.com/exploits/45979
+wp-content/plugins/contact-form-7/modules/file.php #https://www.exploit-db.com/exploits/48062
+dotAdmin
+CuteSoft_Client/CuteEditor/Load.ashx?type=image # Potential Arbitrary File Read

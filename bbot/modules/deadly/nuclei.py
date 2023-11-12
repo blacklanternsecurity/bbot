@@ -151,11 +151,7 @@ class nuclei(BaseModule):
 
             if severity in ["INFO", "UNKNOWN"]:
                 self.emit_event(
-                    {
-                        "host": str(source_event.host),
-                        "url": url,
-                        "description": description_string,
-                    },
+                    {"host": str(source_event.host), "url": url, "description": description_string},
                     "FINDING",
                     source_event,
                 )
