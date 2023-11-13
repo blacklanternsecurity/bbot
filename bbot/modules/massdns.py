@@ -12,6 +12,13 @@ class massdns(subdomain_enum):
 
     It uses massdns to brute-force subdomains.
     At the end of a scan, it will leverage BBOT's word cloud to recursively discover target-specific subdomain mutations.
+
+    Each subdomain discovered via mutations is tagged with the "mutation" tag. This tag includes the depth at which
+    the mutations is found. I.e. the first mutation will be tagged "mutation-1". The second one (a mutation of a
+    mutation) will be "mutation-2". Mutations of mutations of mutations will be "mutation-3", etc.
+
+    This is especially use for bug bounties because it enables you to recognize distant/rare subdomains at a glance.
+    Subdomains with higher mutation levels are more likely to be distant/rare or never-before-seen.
     """
 
     flags = ["subdomain-enum", "passive", "slow", "aggressive"]
