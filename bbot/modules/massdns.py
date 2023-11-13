@@ -310,6 +310,7 @@ class massdns(subdomain_enum):
                     )
 
         base_mutations = set()
+        found_mutations = False
         try:
             for i, (domain, subdomains) in enumerate(trimmed_found):
                 self.verbose(f"{domain} has {len(subdomains):,} subdomains")
@@ -372,7 +373,6 @@ class massdns(subdomain_enum):
                         add_mutation(domain_hash, subdomain)
 
                     if mutations:
-                        self._mutation_run += 1
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
                         results = list(await self.massdns(query, mutations))
                         for hostname in results:
@@ -382,10 +382,14 @@ class massdns(subdomain_enum):
                                 source_event = self.scan.root_event
                             self.emit_result(hostname, source_event, query, tags=[f"mutation-{self._mutation_run}"])
                         if results:
+                            found_mutations = True
                             continue
                     break
         except AssertionError as e:
             self.warning(e)
+
+        if found_mutations:
+            self._mutation_run += 1
 
     def add_found(self, host):
         if not isinstance(host, str):
