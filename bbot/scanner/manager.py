@@ -410,6 +410,7 @@ class ScanManager:
     def kill_module(self, module_name, message=None):
         module = self.scan.modules[module_name]
         module.set_error_state(message=message, clear_outgoing_queue=True)
+        self.scan.helpers.cancel_tasks_sync(module._tasks)
 
     @property
     def modules_by_priority(self):
