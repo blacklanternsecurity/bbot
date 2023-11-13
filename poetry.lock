@@ -1745,13 +1745,13 @@ Werkzeug = ">=2.0.0"
 
 [[package]]
 name = "pytest-httpx"
-version = "0.26.0"
+version = "0.27.0"
 description = "Send responses to httpx."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "pytest_httpx-0.26.0-py3-none-any.whl", hash = "sha256:ca372b94c569c0aca2f06240f6f78cc223dfbc3ab97b5700d4e14c9a73eab17a"},
-    {file = "pytest_httpx-0.26.0.tar.gz", hash = "sha256:b489c5a7bb847551943eaee601bc35053b35dc4f5961c944305120f14a1d770a"},
+    {file = "pytest_httpx-0.27.0-py3-none-any.whl", hash = "sha256:24f6f53d507ab483bea8f89b975a1a111fb613ccab4d86e570be8991776e8bcc"},
+    {file = "pytest_httpx-0.27.0.tar.gz", hash = "sha256:a33c4e8df415cc1232b3664869b6a8b8061c4c223335aca0b237cefbc01ba0eb"},
 ]
 
 [package.dependencies]
@@ -2405,4 +2405,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "3cd90ba654e142fc96a399d4e3b76e73fd514fc99a6f35783c72014f35556c81"
+content-hash = "7c9bc9de29d8d2e299850343b56e9c1adf4eea1e16e7fb771512efe029d4c97b"
