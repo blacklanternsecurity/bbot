@@ -298,7 +298,7 @@ class ScanManager:
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_module._priority = 4
                 source_event = self.scan.make_event(
-                    event.host, "DNS_NAME", module=source_module, source=event, internal=True
+                    event.host, "DNS_NAME", module=source_module, source=event
                 )
                 # only emit the event if it's not already in the parent chain
                 if source_event is not None and source_event not in source_event.get_sources():
