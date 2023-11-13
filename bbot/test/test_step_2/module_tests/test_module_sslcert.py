@@ -6,7 +6,7 @@ class TestSSLCert(ModuleTestBase):
     config_overrides = {"scope_report_distance": 1}
 
     def check(self, module_test, events):
-        assert len(events) == 5
+        assert len(events) == 6
         assert 1 == len(
             [
                 e
