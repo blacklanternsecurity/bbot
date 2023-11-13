@@ -10,7 +10,7 @@ class Slack(Discord):
     options_desc = {
         "webhook_url": "Discord webhook URL",
         "event_types": "Types of events to send",
-        "min_severity": "Only allow VULNERABILITY events of this severity or highter",
+        "min_severity": "Only allow VULNERABILITY events of this severity or higher",
     }
     good_status_code = 200
     content_key = "text"

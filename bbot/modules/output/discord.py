@@ -10,7 +10,7 @@ class Discord(BaseOutputModule):
     options_desc = {
         "webhook_url": "Discord webhook URL",
         "event_types": "Types of events to send",
-        "min_severity": "Only allow VULNERABILITY events of this severity or highter",
+        "min_severity": "Only allow VULNERABILITY events of this severity or higher",
     }
     accept_dupes = False
     good_status_code = 204
