@@ -9,7 +9,6 @@ async def test_cloud_helpers(bbot_scanner, bbot_config):
     for provider_name in provider_names:
         assert provider_name in scan1.helpers.cloud.providers.providers
 
-    log.critical(scan1.helpers.cloud.providers.providers)
     for p in scan1.helpers.cloud.providers.providers.values():
         print(f"{p.name}: {p.domains} / {p.ranges}")
     amazon_ranges = list(scan1.helpers.cloud["amazon"].ranges)
@@ -30,12 +29,10 @@ async def test_cloud_helpers(bbot_scanner, bbot_config):
     other_event3._resolved_hosts = {"asdf.amazonaws.com"}
 
     for event in (ip_event, aws_event1, aws_event2, aws_event4, other_event2, other_event3):
-        log.critical(event)
         await scan1.helpers.cloud.tag_event(event)
         assert "cloud-amazon" in event.tags, f"{event} was not properly cloud-tagged"
 
     for event in (aws_event3, other_event1):
-        log.critical(event)
         await scan1.helpers.cloud.tag_event(event)
         assert "cloud-amazon" not in event.tags, f"{event} was improperly cloud-tagged"
         assert not any(

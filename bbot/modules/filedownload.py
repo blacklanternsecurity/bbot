@@ -77,7 +77,7 @@ class filedownload(BaseModule):
         "max_filesize": "Cancel download if filesize is greater than this size",
     }
 
-    scope_distance_modifier = 1
+    scope_distance_modifier = 3
 
     async def setup(self):
         self.extensions = list(set([e.lower().strip(".") for e in self.options.get("extensions", [])]))
@@ -101,8 +101,11 @@ class filedownload(BaseModule):
         # accept file download requests from other modules
         if "filedownload" in event.tags:
             return True
-        if self.hash_event(event) in self.urls_downloaded:
-            return False, f"Already processed {event}"
+        else:
+            if event.scope_distance > 1:
+                return False, f"{event} not within scope distance"
+            elif self.hash_event(event) in self.urls_downloaded:
+                return False, f"Already processed {event}"
         return True
 
     def hash_event(self, event):
@@ -113,7 +116,9 @@ class filedownload(BaseModule):
     async def handle_event(self, event):
         if event.type == "URL_UNVERIFIED":
             url_lower = event.data.lower()
-            if any(url_lower.endswith(f".{e}") for e in self.extensions):
+            extension_matches = any(url_lower.endswith(f".{e}") for e in self.extensions)
+            filedownload_requested = "filedownload" in event.tags
+            if extension_matches or filedownload_requested:
                 await self.download_file(event.data)
         elif event.type == "HTTP_RESPONSE":
             content_type = event.data["header"].get("content_type", "")

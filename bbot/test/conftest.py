@@ -18,14 +18,14 @@ def pytest_sessionfinish(session, exitstatus):
             logger.removeHandler(handler)
 
     # Wipe out BBOT home dir
-    shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
+    # shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
 
     yield
 
 
 @pytest.fixture
 def non_mocked_hosts() -> list:
-    return ["127.0.0.1", "localhost", "githubusercontent.com"] + interactsh_servers
+    return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
 
 
 @pytest.fixture
