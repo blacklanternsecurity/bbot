@@ -90,6 +90,7 @@ class massdns(subdomain_enum):
             cache_hrs=24 * 7,
         )
         self.devops_mutations = list(self.helpers.word_cloud.devops_mutations)
+        self._mutation_run = 1
         return await super().setup()
 
     async def filter_event(self, event):
@@ -119,9 +120,11 @@ class massdns(subdomain_enum):
         if "wildcard" in event.tags:
             return True, "event is a wildcard"
 
-    def emit_result(self, result, source_event, query):
+    def emit_result(self, result, source_event, query, tags=None):
         if not result == source_event:
             kwargs = {"abort_if": self.abort_if}
+            if tags is not None:
+                kwargs["tags"] = tags
             self.emit_event(result, "DNS_NAME", source_event, **kwargs)
 
     def already_processed(self, hostname):
@@ -362,6 +365,7 @@ class massdns(subdomain_enum):
                         add_mutation(domain_hash, subdomain)
 
                     if mutations:
+                        self._mutation_run += 1
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
                         results = list(await self.massdns(query, mutations))
                         for hostname in results:
@@ -369,7 +373,7 @@ class massdns(subdomain_enum):
                             if source_event is None:
                                 self.warning(f"Could not correlate source event from: {hostname}")
                                 source_event = self.scan.root_event
-                            self.emit_result(hostname, source_event, query)
+                            self.emit_result(hostname, source_event, query, tags=[f"mutation-{self._mutation_run}"])
                         if results:
                             continue
                     break
