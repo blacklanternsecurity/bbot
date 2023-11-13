@@ -5,25 +5,6 @@ class TestSubdomain_Hijack(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
     modules_overrides = ["httpx", "excavate", "subdomain_hijack"]
 
-    async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="https://raw.githubusercontent.com/EdOverflow/can-i-take-over-xyz/master/fingerprints.json",
-            json=[
-                {
-                    "cicd_pass": True,
-                    "cname": ["us-east-1.elasticbeanstalk.com"],
-                    "discussion": "[Issue #194](https://github.com/EdOverflow/can-i-take-over-xyz/issues/194)",
-                    "documentation": "",
-                    "fingerprint": "NXDOMAIN",
-                    "http_status": None,
-                    "nxdomain": True,
-                    "service": "AWS/Elastic Beanstalk",
-                    "status": "Vulnerable",
-                    "vulnerable": True,
-                }
-            ],
-        )
-
     async def setup_after_prep(self, module_test):
         fingerprints = module_test.module.fingerprints
         assert fingerprints, "No subdomain hijacking fingerprints available"
