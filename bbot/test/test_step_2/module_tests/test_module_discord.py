@@ -7,7 +7,7 @@ class TestDiscord(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/cookie.aspx", "http://127.0.0.1:8888/cookie2.aspx"]
     modules_overrides = ["discord", "excavate", "badsecrets", "httpx"]
 
-    webhook_url = "output_modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef-P-uF-asdf"
+    webhook_url = "https://discord.com/api/webhooks/1234/deadbeef-P-uF-asdf"
     config_overrides = {"output_modules": {"discord": {"webhook_url": webhook_url}}}
 
     def custom_setup(self, module_test):
@@ -31,7 +31,7 @@ class TestDiscord(ModuleTestBase):
             else:
                 return httpx.Response(status_code=module_test.module.good_status_code)
 
-        module_test.httpx_mock.add_callback(custom_response)
+        module_test.httpx_mock.add_callback(custom_response, url=self.webhook_url)
 
     def check(self, module_test, events):
         vulns = [e for e in events if e.type == "VULNERABILITY"]

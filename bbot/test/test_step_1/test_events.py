@@ -234,7 +234,7 @@ async def test_events(events, scan, helpers, bbot_config):
     )
     assert json.loads(test_vuln2.data_human)["severity"] == "INFO"
     assert test_vuln2.host.is_private
-    with pytest.raises(ValidationError, match=".*severity.*\n.*field required.*"):
+    with pytest.raises(ValidationError, match=".*validation error.*\nseverity\n.*Field required.*"):
         test_vuln = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "VULNERABILITY", dummy=True)
     with pytest.raises(ValidationError, match=".*host.*\n.*Invalid host.*"):
         test_vuln = scan.make_event(

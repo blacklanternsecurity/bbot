@@ -6,7 +6,7 @@ import traceback
 from typing import Optional
 from datetime import datetime
 from contextlib import suppress
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from .helpers import *
 from bbot.core.errors import *
@@ -506,8 +506,7 @@ class BaseEvent:
         if self._data_validator is not None:
             if not isinstance(data, dict):
                 raise ValidationError(f"data is not of type dict: {data}")
-            data = self._data_validator(**data).dict()
-            data = {k: v for k, v in data.items() if v is not None}
+            data = self._data_validator(**data).model_dump(exclude_none=True)
         return self.sanitize_data(data)
 
     def sanitize_data(self, data):
@@ -805,7 +804,7 @@ class ASN(DictEvent):
 class CODE_REPOSITORY(DictHostEvent):
     class _data_validator(BaseModel):
         url: str
-        _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
+        _validate_url = field_validator("url")(validators.validate_url)
 
     def _pretty_string(self):
         return self.data["url"]
@@ -1059,9 +1058,9 @@ class VULNERABILITY(DictHostEvent):
         host: str
         severity: str
         description: str
-        url: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
-        _validate_severity = validator("severity", allow_reuse=True)(validators.validate_severity)
+        url: Optional[str] = None
+        _validate_host = field_validator("host")(validators.validate_host)
+        _validate_severity = field_validator("severity")(validators.validate_severity)
 
     def _pretty_string(self):
         return f'[{self.data["severity"]}] {self.data["description"]}'
@@ -1073,8 +1072,8 @@ class FINDING(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         description: str
-        url: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        url: Optional[str] = None
+        _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
         return self.data["description"]
@@ -1084,8 +1083,8 @@ class TECHNOLOGY(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         technology: str
-        url: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        url: Optional[str] = None
+        _validate_host = field_validator("host")(validators.validate_host)
 
     def _data_id(self):
         # dedupe by host+port+tech
@@ -1100,8 +1099,8 @@ class VHOST(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         vhost: str
-        url: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        url: Optional[str] = None
+        _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
         return self.data["vhost"]
@@ -1111,10 +1110,10 @@ class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
-        port: Optional[int]
-        banner: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
-        _validate_port = validator("port", allow_reuse=True)(validators.validate_port)
+        port: Optional[int] = None
+        banner: Optional[str] = None
+        _validate_host = field_validator("host")(validators.validate_host)
+        _validate_port = field_validator("port")(validators.validate_port)
 
     def sanitize_data(self, data):
         new_data = dict(data)
@@ -1164,9 +1163,9 @@ class WAF(DictHostEvent):
         url: str
         host: str
         WAF: str
-        info: Optional[str]
-        _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        info: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
         return self.data["WAF"]

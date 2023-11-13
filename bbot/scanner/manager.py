@@ -216,8 +216,7 @@ class ScanManager:
                 event.type = "DNS_NAME_UNRESOLVED"
 
             # Cloud tagging
-            for provider in self.scan.helpers.cloud.providers.values():
-                provider.tag_event(event)
+            await self.scan.helpers.cloud.tag_event(event)
 
             # Scope shepherding
             # here, we buff or nerf the scope distance of an event based on its attributes and certain scan settings
