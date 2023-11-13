@@ -18,7 +18,7 @@ class Target:
         scan (Scan): Reference to the Scan object that instantiated the Target.
         _events (dict): Dictionary mapping hosts to events related to the target.
         strict_scope (bool): Flag indicating whether to consider child domains in-scope.
-            If set to True, only the exact hosts specifieid and not their children are considered part of the target.
+            If set to True, only the exact hosts specified and not their children are considered part of the target.
 
     Examples:
         Basic usage

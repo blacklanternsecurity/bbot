@@ -79,7 +79,7 @@ Below is a full list of event types along with which modules produce/consume the
 | WEBSCREENSHOT       | 0                     | 1                     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | gowitness                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 <!-- END BBOT EVENTS -->
 
-## Findings Vs. Vulnerabilties
+## Findings Vs. Vulnerabilities
 
 BBOT has a sharp distinction between Findings and Vulnerabilities:
 

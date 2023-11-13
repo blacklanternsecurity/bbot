@@ -410,10 +410,10 @@ class massdns(subdomain_enum):
             yield d
 
     def gen_random_subdomains(self, n=50):
-        delimeters = (".", "-")
+        delimiters = (".", "-")
         lengths = list(range(3, 8))
         for i in range(0, max(0, n - 5)):
-            d = delimeters[i % len(delimeters)]
+            d = delimiters[i % len(delimiters)]
             l = lengths[i % len(lengths)]
             segments = list(random.choice(self.devops_mutations) for _ in range(l))
             segments.append(self.helpers.rand_string(length=8, digits=False))
