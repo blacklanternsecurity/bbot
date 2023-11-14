@@ -32,9 +32,9 @@ class skymem(emailformat):
                 continue
             for email in self.helpers.extract_emails(r2.text):
                 self.emit_event(email, "EMAIL_ADDRESS", source=event)
-            pages = re.findall(r"/domain/" + domain_id + r"\?p=(\d+)", r2.text)
+            pages = re.findall(f"/domain/{domain_id}" + r"\?p=(\d+)", r2.text)
             if not pages:
                 break
-            last_page = max([int(p) for p in pages])
+            last_page = max(int(p) for p in pages)
             if page >= last_page:
                 break

@@ -286,7 +286,6 @@ class hunt(BaseModule):
                 if p.lower() in hunt_param_dict[k]:
                     description = f"Found potential {k.upper()} parameter [{p}]"
                     data = {"host": str(event.host), "description": description}
-                    url = event.data.get("url", "")
-                    if url:
+                    if url := event.data.get("url", ""):
                         data["url"] = url
                     self.emit_event(data, "FINDING", event)

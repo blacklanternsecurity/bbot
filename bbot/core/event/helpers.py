@@ -6,7 +6,6 @@ from bbot.core.errors import ValidationError
 from bbot.core.helpers import sha1, smart_decode, smart_encode_punycode
 from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
 
-
 log = logging.getLogger("bbot.core.event.helpers")
 
 
@@ -45,17 +44,12 @@ def get_event_type(data):
     for t, regexes in event_type_regexes.items():
         for r in regexes:
             if r.match(data):
-                if t == "URL":
-                    return "URL_UNVERIFIED", data
-                return t, data
-
+                return ("URL_UNVERIFIED", data) if t == "URL" else (t, data)
     raise ValidationError(f'Unable to autodetect event type from "{data}"')
 
 
 def is_event_id(s):
-    if event_id_regex.match(str(s)):
-        return True
-    return False
+    return bool(event_id_regex.match(str(s)))
 
 
 def make_event_id(data, event_type):

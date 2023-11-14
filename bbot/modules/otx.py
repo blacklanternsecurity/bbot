@@ -17,6 +17,5 @@ class otx(subdomain_enum):
         j = r.json()
         if isinstance(j, dict):
             for entry in j.get("passive_dns", []):
-                subdomain = entry.get("hostname", "")
-                if subdomain:
+                if subdomain := entry.get("hostname", ""):
                     yield subdomain

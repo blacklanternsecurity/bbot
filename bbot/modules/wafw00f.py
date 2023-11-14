@@ -27,17 +27,16 @@ class wafw00f(BaseModule):
         if waf_detections:
             for waf in waf_detections:
                 self.emit_event({"host": str(event.host), "url": url, "WAF": waf}, "WAF", source=event)
-        else:
-            if self.config.get("generic_detect") == True:
-                generic = await self.scan.run_in_executor(WW.genericdetect)
-                if generic:
-                    self.emit_event(
-                        {
-                            "host": str(event.host),
-                            "url": url,
-                            "WAF": "generic detection",
-                            "info": WW.knowledge["generic"]["reason"],
-                        },
-                        "WAF",
-                        source=event,
-                    )
+        elif self.config.get("generic_detect") == True:
+            generic = await self.scan.run_in_executor(WW.genericdetect)
+            if generic:
+                self.emit_event(
+                    {
+                        "host": str(event.host),
+                        "url": url,
+                        "WAF": "generic detection",
+                        "info": WW.knowledge["generic"]["reason"],
+                    },
+                    "WAF",
+                    source=event,
+                )

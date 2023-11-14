@@ -41,8 +41,7 @@ class CSPExtractor(BaseExtractor):
 
     def extract_domains(self, csp):
         domains = dns_name_regex.findall(csp)
-        unique_domains = set(domains)
-        return unique_domains
+        return set(domains)
 
     async def search(self, content, event, **kwargs):
         async for csp, name in self._search(content, event, **kwargs):
@@ -59,7 +58,7 @@ class HostnameExtractor(BaseExtractor):
 
     def __init__(self, excavate):
         for i, r in enumerate(excavate.scan.dns_regexes):
-            self.regexes[f"dns_name_{i+1}"] = r.pattern
+            self.regexes[f"dns_name_{i + 1}"] = r.pattern
         super().__init__(excavate)
 
     def report(self, result, name, event, **kwargs):
@@ -98,13 +97,13 @@ class URLExtractor(BaseExtractor):
                 url_in_scope = self.excavate.scan.in_scope(url_event)
                 is_spider_danger = self.excavate.helpers.is_spider_danger(event, result)
                 if (
-                    (
-                        urls_found >= self.web_spider_links_per_page and url_in_scope
-                    )  # if we exceeded the max number of links
-                    or (consider_spider_danger and is_spider_danger)  # or if there's spider danger
-                    or (
+                        (
+                                urls_found >= self.web_spider_links_per_page and url_in_scope
+                        )  # if we exceeded the max number of links
+                        or (consider_spider_danger and is_spider_danger)  # or if there's spider danger
+                        or (
                         (not consider_spider_danger) and (web_spider_distance > self.excavate.max_redirects)
-                    )  # or if the spider distance is way out of control (greater than max_redirects)
+                )  # or if the spider distance is way out of control (greater than max_redirects)
                 ):
                     url_event.add_tag("spider-danger")
 
@@ -148,10 +147,9 @@ class URLExtractor(BaseExtractor):
         parsed_uri = self.excavate.helpers.urlparse(result)
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
         # Handle non-HTTP URIs (ftp, s3, etc.)
-        if not "http" in parsed_uri.scheme.lower():
+        if "http" not in parsed_uri.scheme.lower():
             event_data = {"host": str(host), "description": f"Non-HTTP URI: {result}"}
-            parsed_url = getattr(event, "parsed", None)
-            if parsed_url:
+            if parsed_url := getattr(event, "parsed", None):
                 event_data["url"] = parsed_url.geturl()
             self.excavate.emit_event(
                 event_data,
@@ -216,9 +214,7 @@ class JWTExtractor(BaseExtractor):
         try:
             j.decode(result, options={"verify_signature": False})
             jwt_headers = j.get_unverified_header(result)
-            tags = []
-            if jwt_headers["alg"].upper()[0:2] == "HS":
-                tags = ["crackable"]
+            tags = ["crackable"] if jwt_headers["alg"].upper()[:2] == "HS" else []
             description = f"JWT Identified [{result}]"
             self.excavate.emit_event(
                 {"host": str(event.host), "url": event.data.get("url", ""), "description": description},

@@ -2,7 +2,6 @@ import sys
 
 from bbot.modules.base import BaseModule
 
-
 """
 wrapper for https://github.com/defparam/smuggler.git
 """

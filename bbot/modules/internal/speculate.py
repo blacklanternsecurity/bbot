@@ -35,8 +35,12 @@ class speculate(BaseInternalModule):
     _priority = 4
 
     async def setup(self):
-        self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
-        self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
+        self.open_port_consumers = any(
+            "OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()
+        )
+        self.portscanner_enabled = any(
+            "portscan" in m.flags for m in self.scan.modules.values()
+        )
         self.range_to_ip = True
         self.dns_resolution = self.scan.config.get("dns_resolution", True)
 
@@ -57,7 +61,9 @@ class speculate(BaseInternalModule):
                 self.hugewarning(
                     f"Selected target ({target_len:,} hosts) is too large, skipping IP_RANGE --> IP_ADDRESS speculation"
                 )
-                self.hugewarning(f"Enabling a port scanner (nmap or masscan) module is highly recommended")
+                self.hugewarning(
+                    "Enabling a port scanner (nmap or masscan) module is highly recommended"
+                )
             self.range_to_ip = False
 
         return True
@@ -80,15 +86,14 @@ class speculate(BaseInternalModule):
         # generate open ports
         emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         # from URLs
-        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
-            if event.host and event.port not in self.ports:
-                self.emit_event(
-                    self.helpers.make_netloc(event.host, event.port),
-                    "OPEN_TCP_PORT",
-                    source=event,
-                    internal=True,
-                    quick=(event.type == "URL"),
-                )
+        if (event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports)) and (event.host and event.port not in self.ports):
+            self.emit_event(
+                self.helpers.make_netloc(event.host, event.port),
+                "OPEN_TCP_PORT",
+                source=event,
+                internal=True,
+                quick=(event.type == "URL"),
+            )
 
         # generate sub-directory URLS from URLS
         if event.type == "URL":
@@ -103,12 +108,10 @@ class speculate(BaseInternalModule):
 
         # from hosts
         if emit_open_ports:
-            # don't act on unresolved DNS_NAMEs
-            usable_dns = False
-            if event.type == "DNS_NAME":
-                if (not self.dns_resolution) or ("a-record" in event.tags or "aaaa-record" in event.tags):
-                    usable_dns = True
-
+            usable_dns = event.type == "DNS_NAME" and (
+                (not self.dns_resolution)
+                or ("a-record" in event.tags or "aaaa-record" in event.tags)
+            )
             if event.type == "IP_ADDRESS" or usable_dns:
                 for port in self.ports:
                     self.emit_event(
@@ -124,10 +127,12 @@ class speculate(BaseInternalModule):
 
     async def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self
-        if str(event.module) == "speculate":
-            if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
-                return False
-        # don't accept errored DNS_NAMEs
-        if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
+        if str(event.module) == "speculate" and (
+            event.type != "IP_ADDRESS"
+            or str(getattr(event.source, "type")) != "IP_RANGE"
+        ):
             return False
-        return True
+        # don't accept errored DNS_NAMEs
+        return all(
+            t not in event.tags for t in ("unresolved", "a-error", "aaaa-error")
+        )

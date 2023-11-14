@@ -111,9 +111,9 @@ async def test_wildcards(bbot_scanner, bbot_config):
     assert "SRV" not in wildcard_rdtypes
     assert wildcard_rdtypes["A"] == (True, "github.io")
     assert hash("github.io") in helpers.dns._wildcard_cache
-    assert not hash("asdf.github.io") in helpers.dns._wildcard_cache
-    assert not hash("asdf.asdf.github.io") in helpers.dns._wildcard_cache
-    assert not hash("asdf.asdf.asdf.github.io") in helpers.dns._wildcard_cache
+    assert hash("asdf.github.io") not in helpers.dns._wildcard_cache
+    assert hash("asdf.asdf.github.io") not in helpers.dns._wildcard_cache
+    assert hash("asdf.asdf.asdf.github.io") not in helpers.dns._wildcard_cache
     assert len(helpers.dns._wildcard_cache[hash("github.io")]) > 0
     wildcard_event1 = scan.make_event("wat.asdf.fdsa.github.io", "DNS_NAME", dummy=True)
     wildcard_event2 = scan.make_event("wats.asd.fdsa.github.io", "DNS_NAME", dummy=True)

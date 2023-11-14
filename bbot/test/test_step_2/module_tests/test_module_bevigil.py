@@ -6,7 +6,7 @@ class TestBeVigil(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://osint.bevigil.com/api/blacklanternsecurity.com/subdomains/",
+            url="https://osint.bevigil.com/api/blacklanternsecurity.com/subdomains/",
             json={
                 "domain": "blacklanternsecurity.com",
                 "subdomains": [
@@ -15,8 +15,11 @@ class TestBeVigil(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url=f"https://osint.bevigil.com/api/blacklanternsecurity.com/urls/",
-            json={"domain": "blacklanternsecurity.com", "urls": ["https://asdf.blacklanternsecurity.com"]},
+            url="https://osint.bevigil.com/api/blacklanternsecurity.com/urls/",
+            json={
+                "domain": "blacklanternsecurity.com",
+                "urls": ["https://asdf.blacklanternsecurity.com"],
+            },
         )
 
     def check(self, module_test, events):

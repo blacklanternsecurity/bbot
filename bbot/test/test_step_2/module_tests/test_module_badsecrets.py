@@ -77,33 +77,33 @@ class TestBadSecrets(ModuleTestBase):
 
         for e in events:
             if (
-                e.type == "VULNERABILITY"
-                and "Known Secret Found." in e.data["description"]
-                and "validationKey: 0F97BAE23F6F36801ABDB5F145124E00A6F795A97093D778EE5CD24F35B78B6FC4C0D0D4420657689C4F321F8596B59E83F02E296E970C4DEAD2DFE226294979 validationAlgo: SHA1 encryptionKey: 8CCFBC5B7589DD37DC3B4A885376D7480A69645DAEEC74F418B4877BEC008156 encryptionAlgo: AES"
-                in e.data["description"]
+                    e.type == "VULNERABILITY"
+                    and "Known Secret Found." in e.data["description"]
+                    and "validationKey: 0F97BAE23F6F36801ABDB5F145124E00A6F795A97093D778EE5CD24F35B78B6FC4C0D0D4420657689C4F321F8596B59E83F02E296E970C4DEAD2DFE226294979 validationAlgo: SHA1 encryptionKey: 8CCFBC5B7589DD37DC3B4A885376D7480A69645DAEEC74F418B4877BEC008156 encryptionAlgo: AES"
+                    in e.data["description"]
             ):
                 SecretFound = True
 
             if (
-                e.type == "FINDING"
-                and "AAAAYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESfAAAA"
-                in e.data["description"]
+                    e.type == "FINDING"
+                    and "AAAAYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESfAAAA"
+                    in e.data["description"]
             ):
                 IdentifyOnly = True
 
             if (
-                e.type == "VULNERABILITY"
-                and "1234" in e.data["description"]
-                and "eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo"
-                in e.data["description"]
+                    e.type == "VULNERABILITY"
+                    and "1234" in e.data["description"]
+                    and "eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkJhZFNlY3JldHMiLCJleHAiOjE1OTMxMzM0ODMsImlhdCI6MTQ2NjkwMzA4M30.ovqRikAo_0kKJ0GVrAwQlezymxrLGjcEiW_s3UJMMCo"
+                    in e.data["description"]
             ):
                 CookieBasedDetection = True
 
             if (
-                e.type == "VULNERABILITY"
-                and "keyboard cat" in e.data["description"]
-                and "s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc"
-                in e.data["description"]
+                    e.type == "VULNERABILITY"
+                    and "keyboard cat" in e.data["description"]
+                    and "s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc"
+                    in e.data["description"]
             ):
                 CookieBasedDetection_2 = True
 

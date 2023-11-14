@@ -87,7 +87,7 @@ class WordCloud(dict):
         super().__init__(*args, **kwargs)
 
     def mutations(
-        self, words, devops=True, cloud=True, letters=True, numbers=5, number_padding=2, substitute_numbers=True
+            self, words, devops=True, cloud=True, letters=True, numbers=5, number_padding=2, substitute_numbers=True
     ):
         """
         Generate various mutations for the given list of words based on different criteria.
@@ -111,20 +111,19 @@ class WordCloud(dict):
         results = set()
         for word in words:
             h = hash(word)
-            if not h in results:
+            if h not in results:
                 results.add(h)
                 yield (word,)
-        if numbers > 0:
-            if substitute_numbers:
-                for word in words:
-                    for number_mutation in self.get_number_mutations(word, n=numbers, padding=number_padding):
-                        h = hash(number_mutation)
-                        if not h in results:
-                            results.add(h)
-                            yield (number_mutation,)
+        if numbers > 0 and substitute_numbers:
+            for word in words:
+                for number_mutation in self.get_number_mutations(word, n=numbers, padding=number_padding):
+                    h = hash(number_mutation)
+                    if h not in results:
+                        results.add(h)
+                        yield (number_mutation,)
         for word in words:
             for modifier in self.modifiers(
-                devops=devops, cloud=cloud, letters=letters, numbers=numbers, number_padding=number_padding
+                    devops=devops, cloud=cloud, letters=letters, numbers=numbers, number_padding=number_padding
             ):
                 a = (word, modifier)
                 b = (modifier, word)
@@ -251,8 +250,8 @@ class WordCloud(dict):
         for match in list(self.parent_helper.regexes.num_regex.finditer(base))[-3:]:
             span = match.span()
             before = base[: span[0]]
-            after = base[span[-1] :]
-            number = base[span[0] : span[-1]]
+            after = base[span[-1]:]
+            number = base[span[0]: span[-1]]
             numlen = len(number)
             maxnum = min(int("9" * numlen), int(number) + n)
             minnum = max(0, int(number) - n)
@@ -272,7 +271,7 @@ class WordCloud(dict):
             span = match.span()
             for suffix in number_suffixes:
                 before = base[: span[-1]]
-                after = base[span[-1] :]
+                after = base[span[-1]:]
                 # skip if there's already a number
                 if len(after) > 1 and not after[0].isdigit():
                     results.add(f"{before}{suffix}{after}")
@@ -322,7 +321,7 @@ class WordCloud(dict):
 
     @property
     def default_filename(self):
-        return self.parent_helper.scan.home / f"wordcloud.tsv"
+        return self.parent_helper.scan.home / "wordcloud.tsv"
 
     def save(self, filename=None, limit=None):
         """
@@ -357,7 +356,7 @@ class WordCloud(dict):
                 log.debug(f"Saved word cloud ({len(self):,} words) to {filename}")
                 return True, filename
             else:
-                log.debug(f"No words to save")
+                log.debug("No words to save")
         except Exception as e:
             import traceback
 
@@ -394,9 +393,7 @@ class WordCloud(dict):
         except Exception as e:
             import traceback
 
-            log_fn = log.debug
-            if filename is not None:
-                log_fn = log.warning
+            log_fn = log.warning if filename is not None else log.debug
             log_fn(f"Failed to load word cloud from {wordcloud_path}: {e}")
             if filename is not None:
                 log.trace(traceback.format_exc())
@@ -439,7 +436,7 @@ class Mutator(dict):
     def _add_mutation(self, mutation):
         if None not in mutation:
             return
-        mutation = tuple([m for m in mutation if m != ""])
+        mutation = tuple(m for m in mutation if m != "")
         try:
             self[mutation] += 1
         except KeyError:
@@ -519,7 +516,7 @@ class DNSMutator(Mutator):
                     if s.isdigit():
                         continue
                     split_before = "".join(match_str_split[:i])
-                    split_after = "".join(match_str_split[i + 1 :])
+                    split_after = "".join(match_str_split[i + 1:])
                     wordninja_mutation = (before + split_before, None, split_after + after)
                     mutations.add(wordninja_mutation)
         for m in mutations:

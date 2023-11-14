@@ -27,7 +27,7 @@ class Websocket(BaseOutputModule):
         if self._ws is None or rebuild:
             kwargs = {"close_timeout": 0.5}
             if self.token:
-                kwargs.update({"extra_headers": {"Authorization": f"Bearer {self.token}"}})
+                kwargs["extra_headers"] = {"Authorization": f"Bearer {self.token}"}
             verbs = ("Building", "Built")
             if rebuild:
                 verbs = ("Rebuilding", "Rebuilt")

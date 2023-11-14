@@ -23,11 +23,10 @@ class chaos(subdomain_enum_apikey):
 
     def parse_results(self, r, query):
         j = r.json()
-        subdomains_set = set()
         if isinstance(j, dict):
-            domain = j.get("domain", "")
-            if domain:
+            if domain := j.get("domain", ""):
                 subdomains = j.get("subdomains", [])
+                subdomains_set = set()
                 for s in subdomains:
                     s = s.lower().strip(".*")
                     subdomains_set.add(s)

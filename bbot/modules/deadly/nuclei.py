@@ -123,7 +123,7 @@ class nuclei(BaseModule):
             self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
 
             self.info(
-                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.budget)}] request(s)"
+                f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{self.budget}] request(s)"
             )
             self.info(
                 f"Template Severity: Critical [{self.nucleibudget.severity_stats['critical']}] High [{self.nucleibudget.severity_stats['high']}] Medium [{self.nucleibudget.severity_stats['medium']}] Low [{self.nucleibudget.severity_stats['low']}] Info [{self.nucleibudget.severity_stats['info']}] Unknown [{self.nucleibudget.severity_stats['unknown']}]"
@@ -199,27 +199,19 @@ class nuclei(BaseModule):
             command += ["-r", self.helpers.resolver_file]
 
         for cli_option in ("severity", "templates", "iserver", "itoken", "tags", "etags"):
-            option = getattr(self, cli_option)
-
-            if option:
-                command.append(f"-{cli_option}")
-                command.append(option)
-
+            if option := getattr(self, cli_option):
+                command.extend((f"-{cli_option}", option))
         if self.scan.config.get("interactsh_disable") == True:
             self.info("Disbling interactsh in accordance with global settings")
             command.append("-no-interactsh")
 
-        if self.mode == "technology":
+        if self.mode == "budget":
+            command.extend(("-t", self.budget_templates_file))
+        elif self.mode == "technology":
             command.append("-as")
 
-        if self.mode == "budget":
-            command.append("-t")
-            command.append(self.budget_templates_file)
-
         if self.proxy:
-            command.append("-proxy")
-            command.append(f"{self.proxy}")
-
+            command.extend(("-proxy", f"{self.proxy}"))
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
             with open(stats_file, "w") as stats_fh:
@@ -279,12 +271,11 @@ class nuclei(BaseModule):
         resume_file.unlink(missing_ok=True)
 
     async def filter_event(self, event):
-        if self.config.get("directory_only", True):
-            if "endpoint" in event.tags:
-                self.debug(
-                    f"rejecting URL [{str(event.data)}] because directory_only is true and event has endpoint tag"
-                )
-                return False
+        if self.config.get("directory_only", True) and "endpoint" in event.tags:
+            self.debug(
+                f"rejecting URL [{str(event.data)}] because directory_only is true and event has endpoint tag"
+            )
+            return False
         return True
 
 
@@ -307,7 +298,7 @@ class NucleiBudget:
             if yf:
                 for paths in self.get_yaml_request_attr(yf, "path"):
                     for path in paths:
-                        if path in path_frequency.keys():
+                        if path in path_frequency:
                             path_frequency[path] += 1
                         else:
                             path_frequency[path] = 1
@@ -321,14 +312,12 @@ class NucleiBudget:
         for r in requests:
             raw = r.get("raw")
             if not raw:
-                res = r.get(attr)
-                yield res
+                yield r.get(attr)
 
     def get_yaml_info_attr(self, yf, attr):
         p = self.parse_yaml(yf)
         info = p.get("info", [])
-        res = info.get(attr)
-        yield res
+        yield info.get(attr)
 
     # Parse through all templates and locate those which match the conditions necessary to collapse down to the budget setting
     def find_collapsable_templates(self):
@@ -368,7 +357,7 @@ class NucleiBudget:
                             collapsable_templates.append(str(yf))
                             severity_gen = self.get_yaml_info_attr(yf, "severity")
                             severity = next(severity_gen)
-                            if severity in severity_dict.keys():
+                            if severity in severity_dict:
                                 severity_dict[severity] += 1
                             else:
                                 severity_dict[severity] = 1

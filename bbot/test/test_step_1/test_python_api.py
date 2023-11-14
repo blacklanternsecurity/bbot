@@ -10,7 +10,7 @@ async def test_python_api(bbot_config):
     events1 = []
     async for event in scan1.async_start():
         events1.append(event)
-    assert any("127.0.0.1" == e for e in events1)
+    assert "127.0.0.1" in events1
     # make sure output files work
     scan2 = Scanner("127.0.0.1", config=bbot_config, output_modules=["json"], name="python_api_test")
     await scan2.async_start_without_generator()
@@ -51,10 +51,8 @@ def test_python_api_sync(bbot_config):
 
     # make sure events are properly yielded
     scan1 = Scanner("127.0.0.1", config=bbot_config)
-    events1 = []
-    for event in scan1.start():
-        events1.append(event)
-    assert any("127.0.0.1" == e for e in events1)
+    events1 = list(scan1.start())
+    assert "127.0.0.1" in events1
     # make sure output files work
     scan2 = Scanner("127.0.0.1", config=bbot_config, output_modules=["json"], name="python_api_test")
     scan2.start_without_generator()

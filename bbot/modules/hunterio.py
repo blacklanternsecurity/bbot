@@ -24,30 +24,27 @@ class hunterio(subdomain_enum_apikey):
             email = entry.get("value", "")
             sources = entry.get("sources", [])
             if email:
-                email_event = self.make_event(email, "EMAIL_ADDRESS", event)
-                if email_event:
+                if email_event := self.make_event(email, "EMAIL_ADDRESS", event):
                     self.emit_event(email_event)
                     for source in sources:
-                        domain = source.get("domain", "")
-                        if domain:
+                        if domain := source.get("domain", ""):
                             self.emit_event(domain, "DNS_NAME", email_event)
-                        url = source.get("uri", "")
-                        if url:
+                        if url := source.get("uri", ""):
                             self.emit_event(url, "URL_UNVERIFIED", email_event)
 
     async def query(self, query):
         emails = []
         url = (
-            f"{self.base_url}/domain-search?domain={query}&api_key={self.api_key}"
-            + "&limit={page_size}&offset={offset}"
+                f"{self.base_url}/domain-search?domain={query}&api_key={self.api_key}"
+                + "&limit={page_size}&offset={offset}"
         )
         agen = self.helpers.api_page_iter(url, page_size=self.limit)
         try:
             async for j in agen:
-                new_emails = j.get("data", {}).get("emails", [])
-                if not new_emails:
+                if new_emails := j.get("data", {}).get("emails", []):
+                    emails += new_emails
+                else:
                     break
-                emails += new_emails
         finally:
             agen.aclose()
         return emails

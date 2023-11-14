@@ -286,8 +286,8 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
     assert scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/"
     assert (
-        scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80/テスト", dummy=True).data
-        == "http://xn--eckwd4c7c.xn--zckzah/テスト"
+            scan.make_event("http://xn--eckwd4c7c.xn--zckzah:80/テスト", dummy=True).data
+            == "http://xn--eckwd4c7c.xn--zckzah/テスト"
     )
 
     assert scan.make_event("ドメイン.テスト", dummy=True).data == "xn--eckwd4c7c.xn--zckzah"
@@ -298,27 +298,28 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/テスト"
     # thai
     assert (
-        scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+            scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com",
+                            dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
     )
     assert (
-        scan.make_event("bob@xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data
-        == "bob@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+            scan.make_event("bob@xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data
+            == "bob@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
     )
     assert (
-        scan.make_event("ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data
-        == "ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
+            scan.make_event("ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data
+            == "ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
     )
     assert (
-        scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).data
-        == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
+            scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).data
+            == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
     )
     assert (
-        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).data
-        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
+            scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80", dummy=True).data
+            == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
     )
     assert (
-        scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80/ทดสอบ", dummy=True).data
-        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
+            scan.make_event("http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80/ทดสอบ", dummy=True).data
+            == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 
     assert scan.make_event("เราเที่ยวด้วยกัน.com", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
@@ -326,12 +327,12 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("ทดสอบ@เราเที่ยวด้วยกัน.com", dummy=True).data == "ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
     assert scan.make_event("เราเที่ยวด้วยกัน.com:80", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
     assert (
-        scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).data
-        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
+            scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).data
+            == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
     )
     assert (
-        scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).data
-        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
+            scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).data
+            == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/ทดสอบ"
     )
 
     # test event serialization

@@ -14,8 +14,7 @@ class certspotter(subdomain_enum):
         return self.request_with_fail_count(url, timeout=self.http_timeout + 30)
 
     def parse_results(self, r, query):
-        json = r.json()
-        if json:
+        if json := r.json():
             for r in json:
                 for dns_name in r.get("dns_names", []):
                     yield dns_name.lstrip(".*").rstrip(".")

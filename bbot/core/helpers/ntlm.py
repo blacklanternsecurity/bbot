@@ -16,7 +16,7 @@ class StrStruct(object):
         self.length = length
         self.alloc = alloc
         self.offset = offset
-        self.raw = raw[offset : offset + length]
+        self.raw = raw[offset: offset + length]
         self.utf16 = False
 
         if len(self.raw) >= 2 and self.raw[1] == "\0":
@@ -42,41 +42,48 @@ def decode_ntlm_challenge(st):
 
     nxt = st[40:48]
     if len(nxt) == 8:
-        hdr_tup = struct.unpack("<hhi", nxt)
-        tgt = StrStruct(hdr_tup, st)
-
-        output = "Target: [block] (%db @%d)" % (tgt.length, tgt.offset)
-        if tgt.alloc != tgt.length:
-            output += " alloc: %d" % tgt.alloc
-
-        raw = tgt.raw
-        pos = 0
-
-        while pos + 4 < len(raw):
-            rec_hdr = struct.unpack("<hh", raw[pos : pos + 4])
-            rec_type_id = rec_hdr[0]
-            rec_type = target_field_types[rec_type_id]
-            rec_sz = rec_hdr[1]
-            subst = raw[pos + 4 : pos + 4 + rec_sz]
-            try:
-                parsed_challange[rec_type] = subst.replace(b"\x00", b"").decode()
-            except UnicodeDecodeError:
-                parsed_challange[rec_type] = subst.replace(b"\x00", b"")
-            pos += 4 + rec_sz
-
+        parse_ntlm_target_block(nxt, st, parsed_challange)
     return parsed_challange
+
+
+def parse_ntlm_target_block(nxt, st, parsed_challange):
+    hdr_tup = struct.unpack("<hhi", nxt)
+    tgt = StrStruct(hdr_tup, st)
+
+    output = "Target: [block] (%db @%d)" % (tgt.length, tgt.offset)
+    if tgt.alloc != tgt.length:
+        output += " alloc: %d" % tgt.alloc
+
+    raw = tgt.raw
+    pos = 0
+
+    while pos + 4 < len(raw):
+        rec_hdr = struct.unpack("<hh", raw[pos: pos + 4])
+        rec_type_id = rec_hdr[0]
+        rec_type = target_field_types[rec_type_id]
+        rec_sz = rec_hdr[1]
+        subst = raw[pos + 4: pos + 4 + rec_sz]
+        try:
+            parsed_challange[rec_type] = subst.replace(b"\x00", b"").decode()
+        except UnicodeDecodeError:
+            parsed_challange[rec_type] = subst.replace(b"\x00", b"")
+        pos += 4 + rec_sz
 
 
 def ntlmdecode(authenticate_header):
     try:
         st = base64.b64decode(authenticate_header)
-    except Exception:
-        raise NTLMError(f"Failed to decode NTLM challenge: {authenticate_header}")
+    except Exception as e:
+        raise NTLMError(
+            f"Failed to decode NTLM challenge: {authenticate_header}"
+        ) from e
 
-    if not st[:8] == b"NTLMSSP\x00":
+    if st[:8] != b"NTLMSSP\x00":
         raise NTLMError("NTLMSSP header not found at start of input string")
 
     try:
         return decode_ntlm_challenge(st)
     except Exception as e:
-        raise NTLMError(f"Failed to parse NTLM challenge: {authenticate_header}: {e}")
+        raise NTLMError(
+            f"Failed to parse NTLM challenge: {authenticate_header}: {e}"
+        ) from e

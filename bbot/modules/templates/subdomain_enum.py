@@ -37,8 +37,12 @@ class subdomain_enum(BaseModule):
                     except ValueError as e:
                         self.verbose(e)
                         continue
-                    if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
-                        self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
+                if (
+                        hostname
+                        and hostname.endswith(f".{query}")
+                        and hostname != event.data
+                ):
+                    self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"
@@ -52,10 +56,8 @@ class subdomain_enum(BaseModule):
         return ".".join([s for s in query.split(".") if s != "_wildcard"])
 
     def parse_results(self, r, query=None):
-        json = r.json()
-        if json:
-            for hostname in json:
-                yield hostname
+        if json := r.json():
+            yield from json
 
     async def query(self, query, parse_fn=None, request_fn=None):
         if parse_fn is None:
@@ -109,10 +111,7 @@ class subdomain_enum(BaseModule):
         query = self.make_query(event)
         # check if wildcard
         is_wildcard = await self._is_wildcard(query)
-        # check if cloud
-        is_cloud = False
-        if any(t.startswith("cloud-") for t in event.tags):
-            is_cloud = True
+        is_cloud = any((t.startswith("cloud-") for t in event.tags))
         # reject if it's a cloud resource and not in our target
         if is_cloud and event not in self.scan.target:
             return False, "Event is a cloud resource and not a direct target"
@@ -120,27 +119,25 @@ class subdomain_enum(BaseModule):
         if self.reject_wildcards:
             if any(t in event.tags for t in ("a-error", "aaaa-error")):
                 return False, "Event has a DNS resolution error"
-            if self.reject_wildcards == "strict":
-                if is_wildcard:
-                    return False, "Event is a wildcard domain"
-            elif self.reject_wildcards == "cloud_only":
+            if self.reject_wildcards == "cloud_only":
                 if is_wildcard and is_cloud:
                     return False, "Event is both a cloud resource and a wildcard domain"
+            elif self.reject_wildcards == "strict":
+                if is_wildcard:
+                    return False, "Event is a wildcard domain"
         return True, ""
 
     def already_processed(self, hostname):
-        for parent in self.helpers.domain_parents(hostname, include_self=True):
-            if hash(parent) in self.processed:
-                return True
-        return False
+        return any(
+            hash(parent) in self.processed
+            for parent in self.helpers.domain_parents(hostname, include_self=True)
+        )
 
     async def abort_if(self, event):
         # this helps weed out unwanted results when scanning IP_RANGES and wildcard domains
         if "in-scope" not in event.tags:
             return True
-        if await self._is_wildcard(event.data):
-            return True
-        return False
+        return bool(await self._is_wildcard(event.data))
 
 
 class subdomain_enum_apikey(subdomain_enum):

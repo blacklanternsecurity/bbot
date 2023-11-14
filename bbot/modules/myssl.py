@@ -19,7 +19,6 @@ class myssl(subdomain_enum):
         if json and isinstance(json, dict):
             data = json.get("data", [])
             for d in data:
-                hostname = d.get("domain", "").lower()
-                if hostname:
+                if hostname := d.get("domain", "").lower():
                     results.add(hostname)
         return results

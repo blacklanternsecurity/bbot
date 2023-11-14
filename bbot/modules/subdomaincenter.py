@@ -30,8 +30,5 @@ class subdomaincenter(subdomain_enum):
         return response
 
     def parse_results(self, r, query):
-        results = set()
         json = r.json()
-        if json and isinstance(json, list):
-            results = set(json)
-        return results
+        return set(json) if json and isinstance(json, list) else set()

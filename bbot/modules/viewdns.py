@@ -50,7 +50,7 @@ class viewdns(BaseModule):
                     domain = table_cells[0].text.strip().lower()
                     # registrar == last cell
                     registrar = table_cells[-1].text.strip()
-                    if domain and not domain == query:
+                    if domain and domain != query:
                         result = (domain, registrar)
                         result_hash = hash(result)
                         if result_hash not in found:

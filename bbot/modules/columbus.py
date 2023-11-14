@@ -14,8 +14,8 @@ class columbus(subdomain_enum):
         return await self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
-        results = set()
         json = r.json()
         if json and isinstance(json, list):
-            return set([f"{s.lower()}.{query}" for s in json])
-        return results
+            return {f"{s.lower()}.{query}" for s in json}
+        else:
+            return set()

@@ -32,4 +32,6 @@ class TestZoomEye(ModuleTestBase):
         assert any(e.data == "zzzz.blacklanternsecurity.com" for e in events), "Failed to detect subdomain #2"
         assert any(e.data == "ffff.blacklanternsecurity.com" for e in events), "Failed to detect subdomain #3"
         assert any(e.data == "affiliate.bls" and "affiliate" in e.tags for e in events), "Failed to detect affiliate"
-        assert not any(e.data == "nope.blacklanternsecurity.com" for e in events), "Failed to obey max_pages"
+        assert all(
+            e.data != "nope.blacklanternsecurity.com" for e in events
+        ), "Failed to obey max_pages"

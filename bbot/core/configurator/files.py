@@ -15,9 +15,11 @@ default_config = None
 
 
 def _get_config(filename, name="config"):
-    notify = False
-    if sys.argv and sys.argv[0].endswith("bbot") and not any(x in sys.argv for x in ("-s", "--silent")):
-        notify = True
+    notify = bool(
+        sys.argv
+        and sys.argv[0].endswith("bbot")
+        and all(x not in sys.argv for x in ("-s", "--silent"))
+    )
     filename = Path(filename).resolve()
     try:
         conf = OmegaConf.load(str(filename))
@@ -26,7 +28,7 @@ def _get_config(filename, name="config"):
         return conf
     except Exception as e:
         if filename.exists():
-            raise ConfigLoadError(f"Error parsing config at {filename}:\n\n{e}")
+            raise ConfigLoadError(f"Error parsing config at {filename}:\n\n{e}") from e
         return OmegaConf.create()
 
 

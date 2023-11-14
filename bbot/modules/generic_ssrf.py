@@ -1,7 +1,6 @@
 from bbot.modules.base import BaseModule
 from bbot.core.errors import InteractshError
 
-
 ssrf_params = [
     "Dest",
     "Redirect",
@@ -65,11 +64,7 @@ class BaseSubmodule:
 
     def process(self, event, r, subdomain_tag):
         response_token = self.parent_module.interactsh_domain.split(".")[0][::-1]
-        if response_token in r:
-            read_response = True
-        else:
-            read_response = False
-
+        read_response = response_token in r
         self.parent_module.interactsh_subdomain_tags[subdomain_tag] = (
             event,
             self.technique_description,
@@ -86,14 +81,10 @@ class Generic_SSRF(BaseSubmodule):
         return event.data
 
     def create_paths(self):
-        query_string = ""
-        for param in ssrf_params:
-            query_string += f"{param}=http://SSRF_CANARY&"
-
-        query_string_lower = ""
-        for param in ssrf_params:
-            query_string_lower += f"{param.lower()}=http://SSRF_CANARY&"
-
+        query_string = "".join(f"{param}=http://SSRF_CANARY&" for param in ssrf_params)
+        query_string_lower = "".join(
+            f"{param.lower()}=http://SSRF_CANARY&" for param in ssrf_params
+        )
         return [f"?{query_string.rstrip('&')}", f"?{query_string_lower.rstrip('&')}"]
 
 
@@ -108,14 +99,14 @@ class Generic_SSRF_POST(BaseSubmodule):
         test_url = f"{event.data}"
 
         subdomain_tag = self.parent_module.helpers.rand_string(4, digits=False)
-        post_data = {}
-        for param in ssrf_params:
-            post_data[param] = f"http://{subdomain_tag}.{self.parent_module.interactsh_domain}"
-
+        post_data = {
+            param: f"http://{subdomain_tag}.{self.parent_module.interactsh_domain}"
+            for param in ssrf_params
+        }
         subdomain_tag_lower = self.parent_module.helpers.rand_string(4, digits=False)
         post_data_lower = {
             k.lower(): f"http://{subdomain_tag_lower}.{self.parent_module.interactsh_domain}"
-            for k, v in post_data.items()
+            for k in post_data
         }
 
         post_data_list = [(subdomain_tag, post_data), (subdomain_tag_lower, post_data_lower)]
@@ -189,8 +180,7 @@ class generic_ssrf(BaseModule):
             await s.test(event)
 
     def interactsh_callback(self, r):
-        full_id = r.get("full-id", None)
-        if full_id:
+        if full_id := r.get("full-id", None):
             if "." in full_id:
                 match = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
                 if not match:

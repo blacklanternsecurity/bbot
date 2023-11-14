@@ -62,32 +62,31 @@ event_type_regexes = OrderedDict(
     (
         (k, tuple(re.compile(r, re.I) for r in regexes))
         for k, regexes in (
+        (
+            "DNS_NAME",
             (
-                "DNS_NAME",
-                (
-                    r"^" + _dns_name_regex + r"$",
-                    r"^" + _hostname_regex + r"$",
-                ),
+                r"^" + _dns_name_regex + r"$",
+                r"^" + _hostname_regex + r"$",
             ),
-            (
-                "EMAIL_ADDRESS",
-                (r"^" + _email_regex + r"$",),
-            ),
-            (
-                "OPEN_TCP_PORT",
-                tuple(r"^" + r + r"$" for r in _open_port_regexes),
-            ),
-            (
-                "URL",
-                tuple(r"^" + r + r"$" for r in _url_regexes),
-            ),
-        )
+        ),
+        (
+            "EMAIL_ADDRESS",
+            (r"^" + _email_regex + r"$",),
+        ),
+        (
+            "OPEN_TCP_PORT",
+            tuple(r"^" + r + r"$" for r in _open_port_regexes),
+        ),
+        (
+            "URL",
+            tuple(r"^" + r + r"$" for r in _url_regexes),
+        ),
+    )
     )
 )
 
 event_id_regex = re.compile(r"[0-9a-f]{40}:[A-Z0-9_]+")
 scan_name_regex = re.compile(r"[a-z]{3,20}_[a-z]{3,20}")
-
 
 # For use with extract_params_html helper
 input_tag_regex = re.compile(r"<input[^>]+?name=[\"\'](\w+)[\"\']")

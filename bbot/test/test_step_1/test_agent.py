@@ -4,7 +4,6 @@ from functools import partial
 
 from ..bbot_fixtures import *  # noqa: F401
 
-
 _first_run = True
 success = False
 

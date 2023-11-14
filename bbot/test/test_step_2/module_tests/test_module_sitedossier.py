@@ -127,11 +127,10 @@ class TestSitedossier(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"http://www.sitedossier.com/parentdomain/evilcorp.com",
-            text=page1,
+            url="http://www.sitedossier.com/parentdomain/evilcorp.com", text=page1
         )
         module_test.httpx_mock.add_response(
-            url=f"http://www.sitedossier.com/parentdomain/evilcorp.com/101",
+            url="http://www.sitedossier.com/parentdomain/evilcorp.com/101",
             text=page2,
         )
 

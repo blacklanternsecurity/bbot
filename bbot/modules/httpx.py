@@ -100,14 +100,12 @@ class httpx(BaseModule):
             f"{self.max_response_size}",
         ]
 
-        dns_resolvers = ",".join(self.helpers.system_resolvers)
-        if dns_resolvers:
+        if dns_resolvers := ",".join(self.helpers.system_resolvers):
             command += ["-r", dns_resolvers]
 
         for hk, hv in self.scan.config.get("http_headers", {}).items():
             command += ["-header", f"{hk}: {hv}"]
-        proxy = self.scan.config.get("http_proxy", "")
-        if proxy:
+        if proxy := self.scan.config.get("http_proxy", ""):
             command += ["-http-proxy", proxy]
         async for line in self.helpers.run_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
             try:
@@ -122,7 +120,7 @@ class httpx(BaseModule):
                 self.debug(f'No HTTP status code for "{url}"')
                 continue
 
-            source_event = stdin.get(j.get("input", ""), None)
+            source_event = stdin.get(j.get("input", ""))
 
             if source_event is None:
                 self.warning(f"Unable to correlate source event from: {line}")
@@ -130,24 +128,24 @@ class httpx(BaseModule):
 
             # discard 404s from unverified URLs
             path = j.get("path", "/")
-            if source_event.type == "URL_UNVERIFIED" and status_code in (404,) and path != "/":
+            if (
+                source_event.type == "URL_UNVERIFIED"
+                and status_code in {404}
+                and path != "/"
+            ):
                 self.debug(f'Discarding 404 from "{url}"')
                 continue
 
             # main URL
             tags = [f"status-{status_code}"]
-            httpx_ip = j.get("host", "")
-            if httpx_ip:
+            if httpx_ip := j.get("host", ""):
                 tags.append(f"ip-{httpx_ip}")
             # detect login pages
             if is_login_page(j.get("body", "")):
                 tags.append("login-page")
-            # grab title
-            title = self.helpers.tagify(j.get("title", ""), maxlen=30)
-            if title:
+            if title := self.helpers.tagify(j.get("title", ""), maxlen=30):
                 tags.append(f"http-title-{title}")
-            url_event = self.make_event(url, "URL", source_event, tags=tags)
-            if url_event:
+            if url_event := self.make_event(url, "URL", source_event, tags=tags):
                 if url_event != source_event:
                     self.emit_event(url_event)
                 else:

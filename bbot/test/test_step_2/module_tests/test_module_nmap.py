@@ -7,4 +7,4 @@ class TestNmap(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(e.data == "127.0.0.1:8888" for e in events)
-        assert not any(e.data == "127.0.0.1:8889" for e in events)
+        assert all(e.data != "127.0.0.1:8889" for e in events)

@@ -113,19 +113,19 @@ class Scanner:
     }
 
     def __init__(
-        self,
-        *targets,
-        whitelist=None,
-        blacklist=None,
-        scan_id=None,
-        name=None,
-        modules=None,
-        output_modules=None,
-        output_dir=None,
-        config=None,
-        dispatcher=None,
-        strict_scope=False,
-        force_start=False,
+            self,
+            *targets,
+            whitelist=None,
+            blacklist=None,
+            scan_id=None,
+            name=None,
+            modules=None,
+            output_modules=None,
+            output_dir=None,
+            config=None,
+            dispatcher=None,
+            strict_scope=False,
+            force_start=False,
     ):
         """
         Initializes the Scanner class.
@@ -154,10 +154,7 @@ class Scanner:
         if isinstance(output_modules, str):
             output_modules = [output_modules]
 
-        if config is None:
-            config = OmegaConf.create({})
-        else:
-            config = OmegaConf.create(config)
+        config = OmegaConf.create({}) if config is None else OmegaConf.create(config)
         self.config = OmegaConf.merge(bbot_config, config)
         prepare_environment(self.config)
         if self.config.get("debug", False):
@@ -214,10 +211,7 @@ class Scanner:
             blacklist = []
         self.blacklist = Target(self, *blacklist)
 
-        if dispatcher is None:
-            self.dispatcher = Dispatcher()
-        else:
-            self.dispatcher = dispatcher
+        self.dispatcher = Dispatcher() if dispatcher is None else dispatcher
         self.dispatcher.set_scan(self)
 
         self.manager = ScanManager(self)
@@ -254,7 +248,9 @@ class Scanner:
         try:
             mp.set_start_method("spawn")
         except Exception:
-            self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
+            self.warning(
+                "Failed to set multiprocessing spawn method. This may negatively affect performance."
+            )
         self.process_pool = ProcessPoolExecutor()
 
         self._stopping = False
@@ -285,18 +281,17 @@ class Scanner:
 
             await self.load_modules()
 
-            self.info(f"Setting up modules...")
+            self.info("Setting up modules...")
             await self.setup_modules()
 
             self.success(f"Setup succeeded for {len(self.modules):,} modules.")
             self._prepped = True
 
     def start(self):
-        for event in async_to_sync_gen(self.async_start()):
-            yield event
+        yield from async_to_sync_gen(self.async_start())
 
     def start_without_generator(self):
-        for event in async_to_sync_gen(self.async_start()):
+        for _ in async_to_sync_gen(self.async_start()):
             pass
 
     async def async_start_without_generator(self):
@@ -313,7 +308,7 @@ class Scanner:
             self._start_log_handlers()
 
             if not self.target:
-                self.warning(f"No scan targets specified")
+                self.warning("No scan targets specified")
 
             # start status ticker
             self.ticker_task = asyncio.create_task(self._status_ticker(self.status_frequency))
@@ -321,7 +316,7 @@ class Scanner:
             self.status = "STARTING"
 
             if not self.modules:
-                self.error(f"No modules loaded")
+                self.error("No modules loaded")
                 self.status = "FAILED"
                 return
             else:
@@ -404,7 +399,7 @@ class Scanner:
             self._stop_log_handlers()
 
     def _start_modules(self):
-        self.verbose(f"Starting module worker loops")
+        self.verbose("Starting module worker loops")
         for module_name, module in self.modules.items():
             module.start()
 
@@ -428,7 +423,7 @@ class Scanner:
             Soft-failed modules are not set to an error state but are also removed if `remove_failed` is True.
         """
         await self.load_modules()
-        self.verbose(f"Setting up modules")
+        self.verbose("Setting up modules")
         succeeded = []
         hard_failed = []
         soft_failed = []
@@ -491,64 +486,65 @@ class Scanner:
         Note:
             After all modules are loaded, they are sorted by `_priority` and stored in the `modules` dictionary.
         """
-        if not self._modules_loaded:
-            all_modules = list(set(self._scan_modules + self._output_modules + self._internal_modules))
-            if not all_modules:
-                self.warning(f"No modules to load")
-                return
+        if self._modules_loaded:
+            return
+        all_modules = list(set(self._scan_modules + self._output_modules + self._internal_modules))
+        if not all_modules:
+            self.warning("No modules to load")
+            return
 
-            if not self._scan_modules:
-                self.warning(f"No scan modules to load")
+        if not self._scan_modules:
+            self.warning("No scan modules to load")
 
-            # install module dependencies
-            succeeded, failed = await self.helpers.depsinstaller.install(
-                *self._scan_modules, *self._output_modules, *self._internal_modules
+        # install module dependencies
+        succeeded, failed = await self.helpers.depsinstaller.install(
+            *self._scan_modules, *self._output_modules, *self._internal_modules
+        )
+        if failed:
+            msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
+            self._fail_setup(msg)
+        modules = sorted([m for m in self._scan_modules if m in succeeded])
+        output_modules = sorted([m for m in self._output_modules if m in succeeded])
+        internal_modules = sorted([m for m in self._internal_modules if m in succeeded])
+
+        # Load scan modules
+        self.verbose(f"Loading {len(modules):,} scan modules: {','.join(modules)}")
+        loaded_modules, failed = self._load_modules(modules)
+        self.modules.update(loaded_modules)
+        if len(failed) > 0:
+            msg = f"Failed to load {len(failed):,} scan modules: {','.join(failed)}"
+            self._fail_setup(msg)
+        if loaded_modules:
+            self.info(
+                f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules ({','.join(loaded_modules)})"
             )
-            if failed:
-                msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
-                self._fail_setup(msg)
-            modules = sorted([m for m in self._scan_modules if m in succeeded])
-            output_modules = sorted([m for m in self._output_modules if m in succeeded])
-            internal_modules = sorted([m for m in self._internal_modules if m in succeeded])
 
-            # Load scan modules
-            self.verbose(f"Loading {len(modules):,} scan modules: {','.join(modules)}")
-            loaded_modules, failed = self._load_modules(modules)
-            self.modules.update(loaded_modules)
-            if len(failed) > 0:
-                msg = f"Failed to load {len(failed):,} scan modules: {','.join(failed)}"
-                self._fail_setup(msg)
-            if loaded_modules:
-                self.info(
-                    f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules ({','.join(loaded_modules)})"
-                )
+        # Load internal modules
+        self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(internal_modules)}")
+        loaded_internal_modules, failed_internal = self._load_modules(internal_modules)
+        self.modules.update(loaded_internal_modules)
+        if len(failed_internal) > 0:
+            msg = f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
+            self._fail_setup(msg)
+        if loaded_internal_modules:
+            self.info(
+                f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(loaded_internal_modules)})"
+            )
 
-            # Load internal modules
-            self.verbose(f"Loading {len(internal_modules):,} internal modules: {','.join(internal_modules)}")
-            loaded_internal_modules, failed_internal = self._load_modules(internal_modules)
-            self.modules.update(loaded_internal_modules)
-            if len(failed_internal) > 0:
-                msg = f"Failed to load {len(loaded_internal_modules):,} internal modules: {','.join(loaded_internal_modules)}"
-                self._fail_setup(msg)
-            if loaded_internal_modules:
-                self.info(
-                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(loaded_internal_modules)})"
-                )
+        # Load output modules
+        self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(output_modules)}")
+        loaded_output_modules, failed_output = self._load_modules(output_modules)
+        self.modules.update(loaded_output_modules)
+        if len(failed_output) > 0:
+            msg = f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}"
+            self._fail_setup(msg)
+        if loaded_output_modules:
+            self.info(
+                f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules, ({','.join(loaded_output_modules)})"
+            )
 
-            # Load output modules
-            self.verbose(f"Loading {len(output_modules):,} output modules: {','.join(output_modules)}")
-            loaded_output_modules, failed_output = self._load_modules(output_modules)
-            self.modules.update(loaded_output_modules)
-            if len(failed_output) > 0:
-                msg = f"Failed to load {len(failed_output):,} output modules: {','.join(failed_output)}"
-                self._fail_setup(msg)
-            if loaded_output_modules:
-                self.info(
-                    f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules, ({','.join(loaded_output_modules)})"
-                )
-
-            self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
-            self._modules_loaded = True
+        self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
+        self._modules_loaded = True
 
     def stop(self):
         """Stops the in-progress scan and performs necessary cleanup.
@@ -561,7 +557,7 @@ class Scanner:
         if not self._stopping:
             self._stopping = True
             self.status = "ABORTING"
-            self.hugewarning(f"Aborting scan")
+            self.hugewarning("Aborting scan")
             self.trace()
             self._cancel_tasks()
             self._drain_queues()
@@ -752,29 +748,27 @@ class Scanner:
         """
         status = str(status).strip().upper()
         if status in self._status_codes:
-            if self.status == "ABORTING" and not status == "ABORTED":
+            if self.status == "ABORTING" and status != "ABORTED":
                 self.debug(f'Attempt to set invalid status "{status}" on aborted scan')
+            elif status == self._status:
+                self.debug(f'Scan status is already "{status}"')
             else:
-                if status != self._status:
-                    self._status = status
-                    self._status_code = self._status_codes[status]
-                    self.dispatcher_tasks.append(
-                        asyncio.create_task(self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id))
-                    )
-                else:
-                    self.debug(f'Scan status is already "{status}"')
+                self._status = status
+                self._status_code = self._status_codes[status]
+                self.dispatcher_tasks.append(
+                    asyncio.create_task(self.dispatcher.catch(self.dispatcher.on_status, self._status, self.id))
+                )
         else:
             self.debug(f'Attempt to set invalid status "{status}" on scan')
 
     def make_event(self, *args, **kwargs):
         kwargs["scan"] = self
-        event = make_event(*args, **kwargs)
-        return event
+        return make_event(*args, **kwargs)
 
     @property
     def log(self):
         if self._log is None:
-            self._log = logging.getLogger(f"bbot.agent.scanner")
+            self._log = logging.getLogger("bbot.agent.scanner")
         return self._log
 
     @property
@@ -842,14 +836,23 @@ class Scanner:
             ...         hostname = match.group().lower()
         """
         if self._dns_regexes is None:
-            dns_targets = set(t.host for t in self.target if t.host and isinstance(t.host, str))
-            dns_whitelist = set(t.host for t in self.whitelist if t.host and isinstance(t.host, str))
+            dns_targets = {
+                t.host for t in self.target if t.host and isinstance(t.host, str)
+            }
+            dns_whitelist = {
+                t.host
+                for t in self.whitelist
+                if t.host and isinstance(t.host, str)
+            }
             dns_targets.update(dns_whitelist)
             dns_targets = sorted(dns_targets, key=len)
             dns_targets_set = set()
             dns_regexes = []
             for t in dns_targets:
-                if not any(x in dns_targets_set for x in self.helpers.domain_parents(t, include_self=True)):
+                if all(
+                        x not in dns_targets_set
+                        for x in self.helpers.domain_parents(t, include_self=True)
+                ):
                     dns_targets_set.add(t)
                     dns_regexes.append(re.compile(r"((?:(?:[\w-]+)\.)+" + re.escape(t) + ")", re.I))
             self._dns_regexes = dns_regexes
@@ -868,19 +871,18 @@ class Scanner:
         """
         A dictionary representation of the scan including its name, ID, targets, whitelist, blacklist, and modules
         """
-        j = dict()
+        j = {}
         for i in ("id", "name"):
-            v = getattr(self, i, "")
-            if v:
-                j.update({i: v})
+            if v := getattr(self, i, ""):
+                j[i] = v
         if self.target:
-            j.update({"targets": [str(e.data) for e in self.target]})
+            j["targets"] = [str(e.data) for e in self.target]
         if self.whitelist:
-            j.update({"whitelist": [str(e.data) for e in self.whitelist]})
+            j["whitelist"] = [str(e.data) for e in self.whitelist]
         if self.blacklist:
-            j.update({"blacklist": [str(e.data) for e in self.blacklist]})
+            j["blacklist"] = [str(e.data) for e in self.blacklist]
         if self.modules:
-            j.update({"modules": [str(m) for m in self.modules]})
+            j["modules"] = [str(m) for m in self.modules]
         return j
 
     def debug(self, *args, trace=False, **kwargs):
@@ -1061,7 +1063,7 @@ class Scanner:
         filename, lineno, funcname = self.helpers.get_traceback_details(e)
         exception_chain = self.helpers.get_exception_chain(e)
         if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
-            log.debug(f"Interrupted")
+            log.debug("Interrupted")
             self.stop()
         elif isinstance(e, BrokenPipeError):
             log.debug(f"BrokenPipeError in {filename}:{lineno}:{funcname}(): {e}")

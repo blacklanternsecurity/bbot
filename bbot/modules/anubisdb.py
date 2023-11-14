@@ -20,20 +20,17 @@ class anubisdb(subdomain_enum):
         This exists because of the _disgusting_ amount of garbage data in this API
         """
         dns_depth = hostname.count(".") + 1
-        if dns_depth > self.dns_abort_depth:
-            return True
-        return False
+        return dns_depth > self.dns_abort_depth
 
     async def abort_if(self, event):
         # abort if dns name is unresolved
-        if not "resolved" in event.tags:
+        if "resolved" not in event.tags:
             return True, "DNS name is unresolved"
         return await super().abort_if(event)
 
     def parse_results(self, r, query):
         results = set()
-        json = r.json()
-        if json:
+        if json := r.json():
             for hostname in json:
                 hostname = str(hostname).lower()
                 if hostname.endswith(f".{query}") and not self.abort_if_pre(hostname):

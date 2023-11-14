@@ -7,7 +7,6 @@ from . import args
 from ...modules import module_loader
 from ..helpers.misc import cpu_architecture, os_platform, os_platform_friendly
 
-
 # keep track of whether BBOT is being executed via the CLI
 cli_execution = False
 
@@ -48,9 +47,9 @@ def add_to_path(v, k="PATH"):
     var_list = os.environ.get(k, "").split(":")
     deduped_var_list = []
     for _ in var_list:
-        if not _ in deduped_var_list:
+        if _ not in deduped_var_list:
             deduped_var_list.append(_)
-    if not v in deduped_var_list:
+    if v not in deduped_var_list:
         deduped_var_list = [v] + deduped_var_list
     new_var_str = ":".join(deduped_var_list)
     os.environ[k] = new_var_str
@@ -61,7 +60,7 @@ def prepare_environment(bbot_config):
     Sync config to OS environment variables
     """
     # ensure bbot_home
-    if not "home" in bbot_config:
+    if "home" not in bbot_config:
         bbot_config["home"] = "~/.bbot"
     home = Path(bbot_config["home"]).expanduser().resolve()
     bbot_config["home"] = str(home)
@@ -78,7 +77,7 @@ def prepare_environment(bbot_config):
     # ensure bbot_tools
     bbot_tools = home / "tools"
     os.environ["BBOT_TOOLS"] = str(bbot_tools)
-    if not str(bbot_tools) in os.environ.get("PATH", "").split(":"):
+    if str(bbot_tools) not in os.environ.get("PATH", "").split(":"):
         os.environ["PATH"] = f'{bbot_tools}:{os.environ.get("PATH", "").strip(":")}'
     # ensure bbot_cache
     bbot_cache = home / "cache"
@@ -99,15 +98,7 @@ def prepare_environment(bbot_config):
 
     # exchange certain options between CLI args and config
     if cli_execution and args.cli_options is not None:
-        # deps
-        bbot_config["retry_deps"] = args.cli_options.retry_deps
-        bbot_config["force_deps"] = args.cli_options.force_deps
-        bbot_config["no_deps"] = args.cli_options.no_deps
-        bbot_config["ignore_failed_deps"] = args.cli_options.ignore_failed_deps
-        # debug
-        bbot_config["debug"] = args.cli_options.debug
-        bbot_config["silent"] = args.cli_options.silent
-
+        configure_cli_options(bbot_config)
     import logging
 
     log = logging.getLogger()
@@ -122,11 +113,9 @@ def prepare_environment(bbot_config):
 
     # copy config to environment
     bbot_environ = flatten_config(bbot_config)
-    os.environ.update(bbot_environ)
+    os.environ |= bbot_environ
 
-    # handle HTTP proxy
-    http_proxy = bbot_config.get("http_proxy", "")
-    if http_proxy:
+    if http_proxy := bbot_config.get("http_proxy", ""):
         os.environ["HTTP_PROXY"] = http_proxy
         os.environ["HTTPS_PROXY"] = http_proxy
     else:
@@ -142,12 +131,27 @@ def prepare_environment(bbot_config):
     urllib3.disable_warnings()
     ssl_verify = bbot_config.get("ssl_verify", False)
     if not ssl_verify:
-        import requests
-        import functools
-
-        requests.adapters.BaseAdapter.send = functools.partialmethod(requests.adapters.BaseAdapter.send, verify=False)
-        requests.adapters.HTTPAdapter.send = functools.partialmethod(requests.adapters.HTTPAdapter.send, verify=False)
-        requests.Session.request = functools.partialmethod(requests.Session.request, verify=False)
-        requests.request = functools.partial(requests.request, verify=False)
-
+        disable_ssl_verification()
     return bbot_config
+
+
+def configure_cli_options(bbot_config):
+    # deps
+    bbot_config["retry_deps"] = args.cli_options.retry_deps
+    bbot_config["force_deps"] = args.cli_options.force_deps
+    bbot_config["no_deps"] = args.cli_options.no_deps
+    bbot_config["ignore_failed_deps"] = args.cli_options.ignore_failed_deps
+    # debug
+    bbot_config["debug"] = args.cli_options.debug
+    bbot_config["silent"] = args.cli_options.silent
+
+
+# TODO Rename this here and in `prepare_environment`
+def disable_ssl_verification():
+    import requests
+    import functools
+
+    requests.adapters.BaseAdapter.send = functools.partialmethod(requests.adapters.BaseAdapter.send, verify=False)
+    requests.adapters.HTTPAdapter.send = functools.partialmethod(requests.adapters.HTTPAdapter.send, verify=False)
+    requests.Session.request = functools.partialmethod(requests.Session.request, verify=False)
+    requests.request = functools.partial(requests.request, verify=False)

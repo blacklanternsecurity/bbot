@@ -142,7 +142,14 @@ def validate_url_parsed(url):
 @validator
 def validate_severity(severity):
     severity = str(severity).strip().upper()
-    if not severity in ("UNKNOWN", "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"):
+    if severity not in {
+        "UNKNOWN",
+        "INFO",
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL",
+    }:
         raise ValueError(f"Invalid severity: {severity}")
     return severity
 
@@ -236,7 +243,7 @@ def collapse_urls(urls, threshold=10):
                 new_url,
             }
 
-    for url_hash, new_urls in url_hashes.items():
+    for new_urls in url_hashes.values():
         # if the number of URLs exceeds the threshold
         if len(new_urls) > threshold:
             # yield only one
@@ -270,8 +277,8 @@ def soft_validate(s, t):
     """
     try:
         validator_fn = globals()[f"validate_{t.strip().lower()}"]
-    except KeyError:
-        raise ValueError(f'No validator for type "{t}"')
+    except KeyError as e:
+        raise ValueError(f'No validator for type "{t}"') from e
     try:
         validator_fn(s)
         return True

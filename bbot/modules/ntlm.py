@@ -96,30 +96,29 @@ class ntlm(BaseModule):
                         "FINDING",
                         source=event,
                     )
-                    fqdn = result.get("FQDN", "")
-                    if fqdn:
+                    if fqdn := result.get("FQDN", ""):
                         self.emit_event(fqdn, "DNS_NAME", source=event)
                     break
 
     async def filter_event(self, event):
         if self.try_all:
             return True
-        if event.type == "HTTP_RESPONSE":
-            if "www-authenticate" in event.data["header-dict"]:
-                header_value = event.data["header-dict"]["www-authenticate"].lower()
-                if "ntlm" in header_value or "negotiate" in header_value:
-                    return True
+        if event.type == "HTTP_RESPONSE" and "www-authenticate" in event.data["header-dict"]:
+            header_value = event.data["header-dict"]["www-authenticate"].lower()
+            if "ntlm" in header_value or "negotiate" in header_value:
+                return True
         return False
 
     async def handle_url(self, event):
-        if event.type == "URL":
-            urls = {
+        urls = (
+            {
                 event.data,
             }
-        else:
-            urls = {
+            if event.type == "URL"
+            else {
                 event.data["url"],
             }
+        )
         if self.try_all:
             for endpoint in ntlm_discovery_endpoints:
                 urls.add(f"{event.parsed.scheme}://{event.parsed.netloc}/{endpoint}")
@@ -138,12 +137,12 @@ class ntlm(BaseModule):
         # use lower timeout value
         http_timeout = self.config.get("httpx_timeout", 5)
         r = await self.helpers.request(test_url, headers=NTLM_test_header, allow_redirects=False, timeout=http_timeout)
-        ntlm_resp = r.headers.get("WWW-Authenticate", "")
-        if ntlm_resp:
+        if ntlm_resp := r.headers.get("WWW-Authenticate", ""):
             ntlm_resp_b64 = max(ntlm_resp.split(","), key=lambda x: len(x)).split()[-1]
             try:
-                ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
-                if ntlm_resp_decoded:
+                if ntlm_resp_decoded := self.helpers.ntlm.ntlmdecode(
+                        ntlm_resp_b64
+                ):
                     return ntlm_resp_decoded, test_url
             except NTLMError as e:
                 self.verbose(str(e))

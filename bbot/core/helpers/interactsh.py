@@ -153,7 +153,7 @@ class Interactsh:
             break
 
         if not self.server:
-            raise InteractshError(f"Failed to register with an interactsh server")
+            raise InteractshError("Failed to register with an interactsh server")
 
         log.info(
             f"Successfully registered to interactsh server {self.server} with correlation_id {self.correlation_id} [{self.domain}]"
@@ -179,7 +179,7 @@ class Interactsh:
             >>> await interactsh_client.deregister()
         """
         if not self.server or not self.correlation_id or not self.secret:
-            raise InteractshError(f"Missing required information to deregister")
+            raise InteractshError("Missing required information to deregister")
 
         headers = {}
         if self.token:
@@ -224,7 +224,7 @@ class Interactsh:
             ]
         """
         if not self.server or not self.correlation_id or not self.secret:
-            raise InteractshError(f"Missing required information to poll")
+            raise InteractshError("Missing required information to poll")
 
         headers = {}
         if self.token:
@@ -235,8 +235,7 @@ class Interactsh:
         )
 
         ret = []
-        data_list = r.json().get("data", None)
-        if data_list:
+        if data_list := r.json().get("data", None):
             aes_key = r.json()["aes_key"]
 
             for data in data_list:

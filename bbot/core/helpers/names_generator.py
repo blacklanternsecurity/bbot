@@ -665,8 +665,8 @@ names = [
 def random_name():
     name = random.choice(names)
     adjective = random.choice(adjectives)
-    if adjective == "unchained":
-        scan_name = f"{name}_{adjective}"
-    else:
-        scan_name = f"{adjective}_{name}"
-    return scan_name
+    return (
+        f"{name}_{adjective}"
+        if adjective == "unchained"
+        else f"{adjective}_{name}"
+    )

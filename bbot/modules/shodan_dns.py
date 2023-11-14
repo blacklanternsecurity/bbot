@@ -19,11 +19,9 @@ class shodan_dns(subdomain_enum_apikey):
 
     async def request_url(self, query):
         url = f"{self.base_url}/dns/domain/{self.helpers.quote(query)}?key={self.api_key}"
-        response = await self.request_with_fail_count(url)
-        return response
+        return await self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
-        json = r.json()
-        if json:
+        if json := r.json():
             for hostname in json.get("subdomains", []):
                 yield f"{hostname}.{query}"

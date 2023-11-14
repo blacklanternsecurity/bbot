@@ -22,13 +22,11 @@ class crt(subdomain_enum):
     def parse_results(self, r, query):
         j = r.json()
         for cert_info in j:
-            if not type(cert_info) == dict:
+            if type(cert_info) != dict:
                 continue
-            cert_id = cert_info.get("id")
-            if cert_id:
+            if cert_id := cert_info.get("id"):
                 if hash(cert_id) not in self.cert_ids:
                     self.cert_ids.add(hash(cert_id))
-                    domain = cert_info.get("name_value")
-                    if domain:
+                    if domain := cert_info.get("name_value"):
                         for d in domain.splitlines():
                             yield d.lower()

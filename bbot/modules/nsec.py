@@ -9,9 +9,7 @@ class NSEC(BaseModule):
     _max_event_handlers = 5
 
     async def filter_event(self, event):
-        if "ns-record" in event.tags:
-            return True
-        return False
+        return "ns-record" in event.tags
 
     async def handle_event(self, event):
         emitted_finding = False

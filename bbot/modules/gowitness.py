@@ -86,8 +86,7 @@ class gowitness(BaseModule):
         self.proxy = self.scan.config.get("http_proxy", "")
         self.resolution_x = self.config.get("resolution_x")
         self.resolution_y = self.config.get("resolution_y")
-        output_path = self.config.get("output_path")
-        if output_path:
+        if output_path := self.config.get("output_path"):
             self.base_path = Path(output_path) / "gowitness"
         else:
             self.base_path = self.scan.home / "gowitness"
@@ -99,7 +98,7 @@ class gowitness(BaseModule):
         self.screenshot_path = self.base_path / "screenshots"
         self.command = self.construct_command()
         self.prepped = False
-        self.screenshots_taken = dict()
+        self.screenshots_taken = {}
         self.connections_logged = set()
         self.technologies_found = set()
         return True
@@ -244,8 +243,8 @@ class gowitness(BaseModule):
     async def report(self):
         if self.screenshots_taken:
             self.success(f"{len(self.screenshots_taken):,} web screenshots captured. To view:")
-            self.success(f"    - Start gowitness")
+            self.success("    - Start gowitness")
             self.success(f"        - cd {self.base_path} && ./gowitness server")
-            self.success(f"    - Browse to http://localhost:7171")
+            self.success("    - Browse to http://localhost:7171")
         else:
-            self.info(f"No web screenshots captured")
+            self.info("No web screenshots captured")

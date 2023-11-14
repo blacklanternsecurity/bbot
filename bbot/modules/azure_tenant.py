@@ -25,8 +25,9 @@ class azure_tenant(BaseModule):
 
         tenant_id = None
         authorization_endpoint = openid_config.get("authorization_endpoint", "")
-        matches = self.helpers.regexes.uuid_regex.findall(authorization_endpoint)
-        if matches:
+        if matches := self.helpers.regexes.uuid_regex.findall(
+            authorization_endpoint
+        ):
             tenant_id = matches[0]
 
         tenant_names = set()
@@ -37,8 +38,7 @@ class azure_tenant(BaseModule):
                 self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate", "azure-tenant"])
                 # tenant names
                 if domain.lower().endswith(".onmicrosoft.com"):
-                    tenantname = domain.split(".")[0].lower()
-                    if tenantname:
+                    if tenantname := domain.split(".")[0].lower():
                         tenant_names.add(tenantname)
 
         event_data = {"tenant-names": sorted(tenant_names), "domains": sorted(domains)}

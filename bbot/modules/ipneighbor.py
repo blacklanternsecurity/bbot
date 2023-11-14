@@ -19,16 +19,14 @@ class ipneighbor(BaseModule):
         return True
 
     async def filter_event(self, event):
-        if str(event.module) in ("speculate", "ipneighbor"):
-            return False
-        return True
+        return str(event.module) not in {"speculate", "ipneighbor"}
 
     async def handle_event(self, event):
         main_ip = event.host
         netmask = main_ip.max_prefixlen - min(main_ip.max_prefixlen, self.num_bits)
         network = ipaddress.ip_network(f"{main_ip}/{netmask}", strict=False)
         subnet_hash = hash(network)
-        if not subnet_hash in self.processed:
+        if subnet_hash not in self.processed:
             self.processed.add(subnet_hash)
             for ip in network:
                 if ip != main_ip:

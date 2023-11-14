@@ -44,11 +44,7 @@ class sslcert(BaseModule):
 
     async def handle_event(self, event):
         _host = event.host
-        if event.port:
-            port = event.port
-        else:
-            port = 443
-
+        port = event.port or 443
         # turn hostnames into IP address(es)
         if self.helpers.is_ip(_host):
             hosts = [_host]
@@ -65,7 +61,7 @@ class sslcert(BaseModule):
         tasks = [self.visit_host(host, port) for host in hosts]
         async for task in self.helpers.as_completed(tasks):
             result = await task
-            if not isinstance(result, tuple) or not len(result) == 3:
+            if not isinstance(result, tuple) or len(result) != 3:
                 continue
             dns_names, emails, (host, port) = result
             if len(dns_names) > abort_threshold:
@@ -79,8 +75,12 @@ class sslcert(BaseModule):
                     if event_data is not None and event_data != event:
                         self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
                         try:
-                            ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
-                            if ssl_event:
+                            if ssl_event := self.make_event(
+                                    event_data,
+                                    event_type,
+                                    source=event,
+                                    raise_error=True,
+                            ):
                                 self.emit_event(ssl_event, on_success_callback=self.on_success_callback)
                         except ValidationError as e:
                             self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
@@ -123,9 +123,7 @@ class sslcert(BaseModule):
                 self.debug(f"Timed out after {self.timeout} seconds while connecting to {netloc}")
                 return [], [], (host, port)
             except Exception as e:
-                log_fn = self.warning
-                if isinstance(e, OSError):
-                    log_fn = self.debug
+                log_fn = self.debug if isinstance(e, OSError) else self.warning
                 log_fn(f"Error connecting to {netloc}: {e}")
                 return [], [], (host, port)
             finally:
@@ -168,7 +166,7 @@ class sslcert(BaseModule):
         sans = []
         raw_sans = None
         ext_count = cert.get_extension_count()
-        for i in range(0, ext_count):
+        for i in range(ext_count):
             ext = cert.get_extension(i)
             short_name = str(ext.get_short_name())
             if "subjectAltName" in short_name:

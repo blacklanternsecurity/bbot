@@ -9,8 +9,8 @@ class TestDNSCommonSRV(ModuleTestBase):
 
         async def resolve(query, **kwargs):
             if (
-                query == "_ldap._tcp.gc._msdcs.blacklanternsecurity.notreal"
-                and kwargs.get("type", "").upper() == "SRV"
+                    query == "_ldap._tcp.gc._msdcs.blacklanternsecurity.notreal"
+                    and kwargs.get("type", "").upper() == "SRV"
             ):
                 return {"asdf.blacklanternsecurity.notreal"}
             return await old_resolve_fn(query, **kwargs)
@@ -21,4 +21,7 @@ class TestDNSCommonSRV(ModuleTestBase):
         assert any(
             e.data == "_ldap._tcp.gc._msdcs.blacklanternsecurity.notreal" for e in events
         ), "Failed to detect subdomain"
-        assert not any(e.data == "_ldap._tcp.dc._msdcs.blacklanternsecurity.notreal" for e in events), "False positive"
+        assert all(
+            e.data != "_ldap._tcp.dc._msdcs.blacklanternsecurity.notreal"
+            for e in events
+        ), "False positive"

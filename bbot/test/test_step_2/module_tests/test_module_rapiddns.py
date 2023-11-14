@@ -9,7 +9,8 @@ class TestRapidDNS(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.module.abort_if = lambda e: False
         module_test.httpx_mock.add_response(
-            url=f"https://rapiddns.io/subdomain/blacklanternsecurity.com?full=1#result", text=self.web_body
+            url="https://rapiddns.io/subdomain/blacklanternsecurity.com?full=1#result",
+            text=self.web_body,
         )
 
     def check(self, module_test, events):

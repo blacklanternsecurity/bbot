@@ -42,52 +42,55 @@ class vhost(ffuf):
         return await super().setup()
 
     async def handle_event(self, event):
-        if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):
-            host = f"{event.parsed.scheme}://{event.parsed.netloc}"
-            if host in self.scanned_hosts.keys():
-                return
-            else:
-                self.scanned_hosts[host] = event
+        if self.helpers.is_ip(event.host) and not self.config.get(
+            "force_basehost"
+        ):
+            return
+        host = f"{event.parsed.scheme}://{event.parsed.netloc}"
+        if host in self.scanned_hosts.keys():
+            return
+        else:
+            self.scanned_hosts[host] = event
 
-            # subdomain vhost check
-            self.verbose("Main vhost bruteforce")
-            if self.config.get("force_basehost"):
-                basehost = self.config.get("force_basehost")
-            else:
-                basehost = self.helpers.parent_domain(event.parsed.netloc)
+        # subdomain vhost check
+        self.verbose("Main vhost bruteforce")
+        if self.config.get("force_basehost"):
+            basehost = self.config.get("force_basehost")
+        else:
+            basehost = self.helpers.parent_domain(event.parsed.netloc)
 
-            self.debug(f"Using basehost: {basehost}")
-            async for vhost in self.ffuf_vhost(host, f".{basehost}", event):
-                self.verbose(f"Starting mutations check for {vhost}")
-                async for vhost in self.ffuf_vhost(host, f".{basehost}", event, wordlist=self.mutations_check(vhost)):
-                    pass
-
-            # check existing host for mutations
-            self.verbose("Checking for vhost mutations on main host")
-            async for vhost in self.ffuf_vhost(
-                host, f".{basehost}", event, wordlist=self.mutations_check(event.parsed.netloc.split(".")[0])
-            ):
+        self.debug(f"Using basehost: {basehost}")
+        async for vhost in self.ffuf_vhost(host, f".{basehost}", event):
+            self.verbose(f"Starting mutations check for {vhost}")
+            async for vhost in self.ffuf_vhost(host, f".{basehost}", event, wordlist=self.mutations_check(vhost)):
                 pass
 
-            # special vhost list
-            self.verbose("Checking special vhost list")
-            async for vhost in self.ffuf_vhost(
+        # check existing host for mutations
+        self.verbose("Checking for vhost mutations on main host")
+        async for vhost in self.ffuf_vhost(
+                host, f".{basehost}", event, wordlist=self.mutations_check(event.parsed.netloc.split(".")[0])
+        ):
+            pass
+
+        # special vhost list
+        self.verbose("Checking special vhost list")
+        async for vhost in self.ffuf_vhost(
                 host,
                 "",
                 event,
                 wordlist=self.helpers.tempfile(self.special_vhost_list, pipe=False),
                 skip_dns_host=True,
-            ):
-                pass
+        ):
+            pass
 
     async def ffuf_vhost(self, host, basehost, event, wordlist=None, skip_dns_host=False):
         filters = await self.baseline_ffuf(f"{host}/", exts=[""], suffix=basehost, mode="hostheader")
-        self.debug(f"Baseline completed and returned these filters:")
+        self.debug("Baseline completed and returned these filters:")
         self.debug(filters)
         if not wordlist:
             wordlist = self.tempfile
         async for r in self.execute_ffuf(
-            wordlist, host, exts=[""], suffix=basehost, filters=filters, mode="hostheader"
+                wordlist, host, exts=[""], suffix=basehost, filters=filters, mode="hostheader"
         ):
             found_vhost_b64 = r["input"]["FUZZ"]
             vhost_dict = {"host": str(event.host), "url": host, "vhost": base64.b64decode(found_vhost_b64).decode()}
@@ -101,10 +104,8 @@ class vhost(ffuf):
     def mutations_check(self, vhost):
         mutations_list = []
         for mutation in self.helpers.word_cloud.mutations(vhost):
-            for i in ["", ".", "-"]:
-                mutations_list.append(i.join(mutation))
-        mutations_list_file = self.helpers.tempfile(mutations_list, pipe=False)
-        return mutations_list_file
+            mutations_list.extend(i.join(mutation) for i in ["", ".", "-"])
+        return self.helpers.tempfile(mutations_list, pipe=False)
 
     async def finish(self):
         # check existing hosts with wordcloud

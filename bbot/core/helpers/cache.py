@@ -16,11 +16,10 @@ def cache_get(self, key, text=True, cache_hrs=24 * 7):
     """
     filename = self.cache_filename(key)
     if filename.is_file():
-        valid = self.is_cached(key, cache_hrs)
-        if valid:
+        if valid := self.is_cached(key, cache_hrs):
             open_kwargs = {}
             if text:
-                open_kwargs.update({"mode": "r", "encoding": "utf-8", "errors": "ignore"})
+                open_kwargs |= {"mode": "r", "encoding": "utf-8", "errors": "ignore"}
             else:
                 open_kwargs["mode"] = "rb"
             log.debug(f'Using cached content for "{key}"')
@@ -93,10 +92,8 @@ class CacheDict:
         if not self or len(self) <= self._max_size:
             return
         for nh in list(self._cache.keys()):
-            try:
+            with suppress(KeyError):
                 del self._cache[nh]
-            except KeyError:
-                pass
             if not self or len(self) <= self._max_size:
                 break
 
@@ -113,9 +110,7 @@ class CacheDict:
         return self._cache.clear()
 
     def _hash(self, v):
-        if type(v) == int:
-            return v
-        return hash(str(v))
+        return v if type(v) == int else hash(str(v))
 
     def __contains__(self, item):
         return self._hash(item) in self._cache

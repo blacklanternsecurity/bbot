@@ -46,15 +46,14 @@ class bevigil(subdomain_enum_apikey):
         return await self.request_with_fail_count(url, headers=self.headers)
 
     def parse_subdomains(self, r, query=None):
-        results = set()
-        subdomains = r.json().get("subdomains")
-        if subdomains:
-            results.update(subdomains)
-        return results
+        return self._extracted_from_parse_urls_2(r, "subdomains")
 
     def parse_urls(self, r, query=None):
+        return self._extracted_from_parse_urls_2(r, "urls")
+
+    # TODO Rename this here and in `parse_subdomains` and `parse_urls`
+    def _extracted_from_parse_urls_2(self, r, arg1):
         results = set()
-        urls = r.json().get("urls")
-        if urls:
-            results.update(urls)
+        if subdomains := r.json().get(arg1):
+            results.update(subdomains)
         return results

@@ -258,15 +258,14 @@ class BaseModule:
             - Sets the API key readiness status accordingly.
         """
         self.api_key = self.config.get("api_key", "")
-        if self.auth_secret:
-            try:
-                await self.ping()
-                self.hugesuccess(f"API is ready")
-                return True
-            except Exception as e:
-                return None, f"Error with API ({str(e).strip()})"
-        else:
+        if not self.auth_secret:
             return None, "No API key set"
+        try:
+            await self.ping()
+            self.hugesuccess("API is ready")
+            return True
+        except Exception as e:
+            return None, f"Error with API ({str(e).strip()})"
 
     async def ping(self):
         """Asynchronously checks the health of the configured API.
@@ -430,8 +429,7 @@ class BaseModule:
             v = event_kwargs.pop(o, None)
             if v is not None:
                 emit_kwargs[o] = v
-        event = self.make_event(*args, **event_kwargs)
-        if event:
+        if event := self.make_event(*args, **event_kwargs):
             self.queue_outgoing_event(event, **emit_kwargs)
 
     async def emit_event_wait(self, *args, **kwargs):
@@ -474,9 +472,7 @@ class BaseModule:
         """
         events = []
         finish = False
-        while self.incoming_event_queue:
-            if len(events) > self.batch_size:
-                break
+        while self.incoming_event_queue and len(events) <= self.batch_size:
             try:
                 event = self.incoming_event_queue.get_nowait()
                 self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
@@ -495,10 +491,11 @@ class BaseModule:
 
     @property
     def num_incoming_events(self):
-        ret = 0
-        if self.incoming_event_queue is not False:
-            ret = self.incoming_event_queue.qsize()
-        return ret
+        return (
+            self.incoming_event_queue.qsize()
+            if self.incoming_event_queue is not False
+            else 0
+        )
 
     def start(self):
         self._tasks = [asyncio.create_task(self._worker()) for _ in range(self.max_event_handlers)]
@@ -586,7 +583,7 @@ class BaseModule:
                             if self.incoming_event_queue is not False:
                                 event = await self.incoming_event_queue.get()
                             else:
-                                self.debug(f"Event queue is in bad state")
+                                self.debug("Event queue is in bad state")
                                 break
                         except asyncio.queues.QueueEmpty:
                             continue
@@ -610,7 +607,7 @@ class BaseModule:
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")
                 raise
-        self.log.trace(f"Worker stopped")
+        self.log.trace("Worker stopped")
 
     @property
     def max_scope_distance(self):
@@ -651,29 +648,24 @@ class BaseModule:
         if event.type in ("FINISHED",):
             return True, "its type is FINISHED"
         if self.errored:
-            return False, f"module is in error state"
+            return False, "module is in error state"
         # exclude non-watched types
-        if not any(t in self.get_watched_events() for t in ("*", event.type)):
+        if all(t not in self.get_watched_events() for t in ("*", event.type)):
             return False, "its type is not in watched_events"
-        if self.target_only:
-            if "target" not in event.tags:
-                return False, "it did not meet target_only filter criteria"
+        if self.target_only and "target" not in event.tags:
+            return False, "it did not meet target_only filter criteria"
         # exclude certain URLs (e.g. javascript):
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
             return False, "its extension was listed in url_extension_httpx_only"
         # if event is an IP address that was speculated from a CIDR
         source_is_range = getattr(event.source, "type", "") == "IP_RANGE"
         if (
-            source_is_range
-            and event.type == "IP_ADDRESS"
-            and str(event.module) == "speculate"
-            and self.name != "speculate"
-        ):
-            # and the current module listens for both ranges and CIDRs
-            if all([x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")]):
-                # then skip the event.
-                # this helps avoid double-portscanning both an individual IP and its parent CIDR.
-                return False, "module consumes IP ranges directly"
+                source_is_range
+                and event.type == "IP_ADDRESS"
+                and str(event.module) == "speculate"
+                and self.name != "speculate"
+        ) and all(x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")):
+            return False, "module consumes IP ranges directly"
         return True, "precheck succeeded"
 
     async def _event_postcheck(self, event):
@@ -748,9 +740,8 @@ class BaseModule:
         return True, ""
 
     def _scope_distance_check(self, event):
-        if self.in_scope_only:
-            if event.scope_distance > 0:
-                return False, "it did not meet in_scope_only filter criteria"
+        if self.in_scope_only and event.scope_distance > 0:
+            return False, "it did not meet in_scope_only filter criteria"
         if self.scope_distance_modifier is not None:
             if event.scope_distance < 0:
                 return False, f"its scope_distance ({event.scope_distance}) is invalid."
@@ -765,8 +756,8 @@ class BaseModule:
         if not self._cleanedup:
             self._cleanedup = True
             for callback in [self.cleanup] + self.cleanup_callbacks:
-                context = f"{self.name}.cleanup()"
                 if callable(callback):
+                    context = f"{self.name}.cleanup()"
                     async with self.scan._acatch(context), self._task_counter.count(context):
                         await self.helpers.execute_sync_or_async(callback)
 
@@ -791,7 +782,7 @@ class BaseModule:
         """
         async with self._task_counter.count("queue_event()", _log=False):
             if self.incoming_event_queue is False:
-                self.debug(f"Not in an acceptable state to queue incoming event")
+                self.debug("Not in an acceptable state to queue incoming event")
                 return
             acceptable, reason = self._event_precheck(event)
             if not acceptable:
@@ -807,7 +798,7 @@ class BaseModule:
                 if event.type != "FINISHED":
                     self.scan.manager._new_activity = True
             except AttributeError:
-                self.debug(f"Not in an acceptable state to queue incoming event")
+                self.debug("Not in an acceptable state to queue incoming event")
 
     def queue_outgoing_event(self, event, **kwargs):
         """
@@ -832,7 +823,7 @@ class BaseModule:
         try:
             self.outgoing_event_queue.put_nowait((event, kwargs))
         except AttributeError:
-            self.debug(f"Not in an acceptable state to queue outgoing event")
+            self.debug("Not in an acceptable state to queue outgoing event")
 
     def set_error_state(self, message=None, clear_outgoing_queue=False):
         """
@@ -855,26 +846,27 @@ class BaseModule:
             - The function sets `self._incoming_event_queue` to False to prevent its further use.
             - If the module was already in an errored state, the function will not reset the error state or the queue.
         """
-        if not self.errored:
-            log_msg = f"Setting error state for module {self.name}"
-            if message is not None:
-                log_msg += f": {message}"
-            self.warning(log_msg)
-            self.errored = True
-            # clear incoming queue
-            if self.incoming_event_queue is not False:
-                self.debug(f"Emptying event_queue")
-                with suppress(asyncio.queues.QueueEmpty):
-                    while 1:
-                        self.incoming_event_queue.get_nowait()
-                # set queue to None to prevent its use
-                # if there are leftover objects in the queue, the scan will hang.
-                self._incoming_event_queue = False
+        if self.errored:
+            return
+        log_msg = f"Setting error state for module {self.name}"
+        if message is not None:
+            log_msg += f": {message}"
+        self.warning(log_msg)
+        self.errored = True
+        # clear incoming queue
+        if self.incoming_event_queue is not False:
+            self.debug("Emptying event_queue")
+            with suppress(asyncio.queues.QueueEmpty):
+                while 1:
+                    self.incoming_event_queue.get_nowait()
+            # set queue to None to prevent its use
+            # if there are leftover objects in the queue, the scan will hang.
+            self._incoming_event_queue = False
 
-            if clear_outgoing_queue:
-                with suppress(asyncio.queues.QueueEmpty):
-                    while 1:
-                        self.outgoing_event_queue.get_nowait()
+        if clear_outgoing_queue:
+            with suppress(asyncio.queues.QueueEmpty):
+                while 1:
+                    self.outgoing_event_queue.get_nowait()
 
     def get_per_host_hash(self, event):
         """
@@ -949,13 +941,15 @@ class BaseModule:
             >>> self.status
             {'events': {'incoming': 5, 'outgoing': 2}, 'tasks': 3, 'errored': False, 'running': True}
         """
-        status = {
-            "events": {"incoming": self.num_incoming_events, "outgoing": self.outgoing_event_queue.qsize()},
+        return {
+            "events": {
+                "incoming": self.num_incoming_events,
+                "outgoing": self.outgoing_event_queue.qsize(),
+            },
             "tasks": self._task_counter.value,
             "errored": self.errored,
+            "running": self.running,
         }
-        status["running"] = self.running
-        return status
 
     @property
     def running(self):

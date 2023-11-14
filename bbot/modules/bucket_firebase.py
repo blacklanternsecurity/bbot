@@ -24,7 +24,5 @@ class bucket_firebase(bucket_aws):
         response = await self.helpers.request(url)
         tags = self.gen_tags_exists(response)
         status_code = getattr(response, "status_code", 404)
-        msg = ""
-        if status_code == 200:
-            msg = "Open storage bucket"
+        msg = "Open storage bucket" if status_code == 200 else ""
         return (msg, tags)

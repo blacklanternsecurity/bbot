@@ -22,14 +22,18 @@ class urlscan(subdomain_enum):
         for domain, url in await self.query(query):
             source_event = event
             if domain and domain != query:
-                domain_event = self.make_event(domain, "DNS_NAME", source=event)
-                if domain_event:
-                    if str(domain_event.host).endswith(query) and not str(domain_event.host) == str(event.host):
+                if domain_event := self.make_event(
+                        domain, "DNS_NAME", source=event
+                ):
+                    if str(domain_event.host).endswith(query) and str(
+                            domain_event.host
+                    ) != str(event.host):
                         self.emit_event(domain_event, abort_if=self.abort_if)
                         source_event = domain_event
             if url:
-                url_event = self.make_event(url, "URL_UNVERIFIED", source=source_event)
-                if url_event:
+                if url_event := self.make_event(
+                        url, "URL_UNVERIFIED", source=source_event
+                ):
                     if str(url_event.host).endswith(query):
                         if self.urls:
                             self.emit_event(url_event, abort_if=self.abort_if)
@@ -62,5 +66,5 @@ class urlscan(subdomain_enum):
             else:
                 self.debug(f'No results for "{query}"')
         except Exception:
-            self.verbose(f"Error retrieving urlscan results")
+            self.verbose("Error retrieving urlscan results")
         return results

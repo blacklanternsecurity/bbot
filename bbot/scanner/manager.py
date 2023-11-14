@@ -61,7 +61,7 @@ class ScanManager:
             - It also marks the Scan object as finished with initialization by setting `_finished_init` to True.
         """
 
-        context = f"manager.init_events()"
+        context = "manager.init_events()"
         async with self.scan._acatch(context), self._task_counter.count(context):
             await self.distribute_event(self.scan.root_event)
             sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
@@ -86,9 +86,7 @@ class ScanManager:
 
             log.debug(f'Module "{event.module}" raised {event}')
 
-            # "quick" queues the event immediately
-            quick = kwargs.pop("quick", False)
-            if quick:
+            if quick := kwargs.pop("quick", False):
                 log.debug(f'Module "{event.module}" raised {event}')
                 event._resolved.set()
                 for kwarg in ["abort_if", "on_success_callback"]:
@@ -199,8 +197,9 @@ class ScanManager:
             event._resolved_hosts = resolved_hosts
 
             event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
-            event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
-            if event_blacklisted:
+            if event_blacklisted := event_blacklisted_dns | self.scan.blacklisted(
+                    event
+            ):
                 event.add_tag("blacklisted")
 
             # Blacklist purging
@@ -212,7 +211,11 @@ class ScanManager:
                 distribute_event = False
 
             # DNS_NAME --> DNS_NAME_UNRESOLVED
-            if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
+            if (
+                    event.type == "DNS_NAME"
+                    and "unresolved" in event.tags
+                    and "target" not in event.tags
+            ):
                 event.type = "DNS_NAME_UNRESOLVED"
 
             # Cloud tagging
@@ -222,11 +225,9 @@ class ScanManager:
             # Scope shepherding
             # here, we buff or nerf the scope distance of an event based on its attributes and certain scan settings
             event_is_duplicate = self.is_duplicate_event(event)
-            event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
-            set_scope_distance = event.scope_distance
-            if event_whitelisted:
-                set_scope_distance = 0
+            set_scope_distance = 0 if event_whitelisted else event.scope_distance
             if event.host:
+                event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
                 # here, we evaluate some weird logic
                 # the reason this exists is to ensure we don't have orphans in the graph
                 # because forcefully internalizing certain events can orphan their children
@@ -239,18 +240,19 @@ class ScanManager:
                     # force re-emit internal source events
                     for s in source_trail:
                         self.queue_event(s)
-                else:
-                    if event.scope_distance > self.scan.scope_report_distance:
-                        log.debug(
-                            f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                        )
-                        event.make_internal()
+                elif event.scope_distance > self.scan.scope_report_distance:
+                    log.debug(
+                        f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                    )
+                    event.make_internal()
 
             # check for wildcards
-            if event.scope_distance <= self.scan.scope_search_distance:
-                if not "unresolved" in event.tags:
-                    if not self.scan.helpers.is_ip_type(event.host):
-                        await self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
+            if (
+                    event.scope_distance <= self.scan.scope_search_distance
+                    and "unresolved" not in event.tags
+                    and not self.scan.helpers.is_ip_type(event.host)
+            ):
+                await self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
 
             # now that the event is properly tagged, we can finally make decisions about it
             abort_result = False
@@ -269,10 +271,9 @@ class ScanManager:
                 return
 
             # run success callback before distributing event (so it can add tags, etc.)
-            if distribute_event:
-                if callable(on_success_callback):
-                    async with self.scan._acatch(context=on_success_callback):
-                        await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
+            if distribute_event and callable(on_success_callback):
+                async with self.scan._acatch(context=on_success_callback):
+                    await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
 
             if not event.host or (event.always_emit and not event_is_duplicate):
                 log.debug(
@@ -289,9 +290,15 @@ class ScanManager:
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
             if (
-                event.host
-                and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
-                and not str(event.module) == "speculate"
+                    event.host
+                    and event.type
+                    not in (
+                    "DNS_NAME",
+                    "DNS_NAME_UNRESOLVED",
+                    "IP_ADDRESS",
+                    "IP_RANGE",
+            )
+                    and str(event.module) != "speculate"
             ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_module._priority = 4
@@ -533,7 +540,7 @@ class ScanManager:
             )
             if event_type_summary:
                 self.scan.info(
-                    f'{self.scan.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
+                    f'{self.scan.name}: Events produced so far: {", ".join([f"{k}: {v}" for k, v in event_type_summary])}'
                 )
             else:
                 self.scan.info(f"{self.scan.name}: No events produced yet")

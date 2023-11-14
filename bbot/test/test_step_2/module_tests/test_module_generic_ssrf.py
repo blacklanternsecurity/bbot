@@ -6,9 +6,8 @@ from .base import ModuleTestBase
 
 def extract_subdomain_tag(data):
     pattern = r"http://([a-z0-9]{4})\.fakedomain\.fakeinteractsh\.com"
-    match = re.search(pattern, data)
-    if match:
-        return match.group(1)
+    if match := re.search(pattern, data):
+        return match[1]
 
 
 class TestGeneric_SSRF(ModuleTestBase):

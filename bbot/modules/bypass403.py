@@ -21,7 +21,6 @@ signatures = [
     ("GET", "{scheme}://{netloc}/(S(X))/../(S(X))/{path}", None, True),  # ASPNET COOKIELESS URLS
 ]
 
-
 query_payloads = [
     "%09",
     "%20",
@@ -70,8 +69,10 @@ for qp in query_payloads:
     if "?" not in qp:  # we only want to use "?" after the path
         signatures.append(("GET", "{scheme}://{netloc}/%s/{path}" % qp, None, True))
 
-for hp_key in header_payloads.keys():
-    signatures.append(("GET", "{scheme}://{netloc}/{path}", {hp_key: header_payloads[hp_key]}, False))
+signatures.extend(
+    ("GET", "{scheme}://{netloc}/{path}", {hp_key: value}, False)
+    for hp_key, value in header_payloads.items()
+)
 
 
 class bypass403(BaseModule):
@@ -86,10 +87,7 @@ class bypass403(BaseModule):
 
         for sig in signatures:
             sig = self.format_signature(sig, event)
-            if sig[2] != None:
-                headers = dict(sig[2])
-            else:
-                headers = None
+            headers = dict(sig[2]) if sig[2] != None else None
             match, reasons, reflection, subject_response = await compare_helper.compare(
                 sig[1], headers=headers, method=sig[0], allow_redirects=True
             )
@@ -130,7 +128,7 @@ class bypass403(BaseModule):
         if len(results) > collapse_threshold:
             self.emit_event(
                 {
-                    "description": f"403 Bypass MULTIPLE SIGNATURES (exceeded threshold {str(collapse_threshold)})",
+                    "description": f"403 Bypass MULTIPLE SIGNATURES (exceeded threshold {collapse_threshold})",
                     "host": str(event.host),
                     "url": event.data,
                 },
@@ -146,9 +144,7 @@ class bypass403(BaseModule):
                 )
 
     async def filter_event(self, event):
-        if ("status-403" in event.tags) or ("status-401" in event.tags):
-            return True
-        return False
+        return "status-403" in event.tags or "status-401" in event.tags
 
     def format_signature(self, sig, event):
         if sig[3] == True:

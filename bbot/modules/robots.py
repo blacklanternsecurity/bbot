@@ -26,15 +26,13 @@ class robots(BaseModule):
         url = f"{host}robots.txt"
         result = await self.helpers.request(url)
         if result:
-            body = result.text
-
-            if body:
+            if body := result.text:
                 lines = body.split("\n")
                 for l in lines:
                     if len(l) > 0:
                         split_l = l.split(": ")
                         if (split_l[0].lower() == "allow" and self.config.get("include_allow") == True) or (
-                            split_l[0].lower() == "disallow" and self.config.get("include_disallow") == True
+                                split_l[0].lower() == "disallow" and self.config.get("include_disallow") == True
                         ):
                             unverified_url = f"{host}{split_l[1].lstrip('/')}".replace(
                                 "*", self.helpers.rand_string(4)

@@ -39,7 +39,7 @@ class TestSmuggler(ModuleTestBase):
         old_run_live = module_test.scan.helpers.run_live
 
         async def smuggler_mock_run_live(*command, **kwargs):
-            if not "smuggler" in command[0][1]:
+            if "smuggler" not in command[0][1]:
                 async for l in old_run_live(*command, **kwargs):
                     yield l
             else:

@@ -10,7 +10,6 @@ from bbot.core.configurator.args import parser, scan_examples
 
 os.environ["BBOT_TABLE_FORMAT"] = "github"
 
-
 # Make a regex pattern which will match any group of non-space characters that include a blacklisted character
 blacklist_chars = ["<", ">"]
 blacklist_re = re.compile(r"\|([^|]*[" + re.escape("".join(blacklist_chars)) + r"][^|]*)\|")
@@ -19,9 +18,7 @@ bbot_code_dir = Path(__file__).parent.parent.parent
 
 
 def enclose_tags(text):
-    # Use re.sub() to replace matched words with the same words enclosed in backticks
-    result = blacklist_re.sub(r"|`\1`|", text)
-    return result
+    return blacklist_re.sub(r"|`\1`|", text)
 
 
 def find_replace_markdown(content, keyword, replace):
@@ -43,10 +40,9 @@ def find_replace_file(file, keyword, replace):
     with open(file) as f:
         content = f.read()
         new_content = find_replace_markdown(content, keyword, replace)
-    if new_content != content:
-        if not "BBOT_TESTING" in os.environ:
-            with open(file, "w") as f:
-                f.write(new_content)
+    if new_content != content and "BBOT_TESTING" not in os.environ:
+        with open(file, "w") as f:
+            f.write(new_content)
 
 
 def update_docs():
@@ -96,8 +92,7 @@ def update_docs():
 
     # Default config
     default_config_file = bbot_code_dir / "bbot" / "defaults.yml"
-    with open(default_config_file) as f:
-        default_config_yml = f.read()
+    default_config_yml = Path(default_config_file).read_text()
     default_config_yml = f'```yaml title="defaults.yml"\n{default_config_yml}\n```'
     assert len(default_config_yml.splitlines()) > 20
     update_md_files("BBOT DEFAULT CONFIG", default_config_yml)

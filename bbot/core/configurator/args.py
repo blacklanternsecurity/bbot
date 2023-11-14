@@ -46,8 +46,7 @@ class BBOTArgumentParser(argparse.ArgumentParser):
                 match_and_exit(m, output_module_choices, msg="output module")
         for f in set(ret.flags + ret.require_flags):
             if f not in flag_choices and not self._dummy:
-                if f not in flag_choices and not self._dummy:
-                    match_and_exit(f, flag_choices, msg="flag")
+                match_and_exit(f, flag_choices, msg="flag")
         return ret
 
 
@@ -104,12 +103,10 @@ usage_examples = [
     ),
 ]
 
-
 epilog = "EXAMPLES\n"
 for example in (scan_examples, usage_examples):
     for title, description, command in example:
         epilog += f"\n    {title}:\n        {command}\n"
-
 
 parser = BBOTArgumentParser(
     description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter, epilog=epilog
@@ -143,9 +140,19 @@ for p in (parser, dummy_parser):
         help=f'Modules to enable. Choices: {",".join(module_choices)}',
         metavar="MODULE",
     )
-    modules.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
     modules.add_argument(
-        "-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE"
+        "-l",
+        "--list-modules",
+        action="store_true",
+        help="List available modules.",
+    )
+    modules.add_argument(
+        "-em",
+        "--exclude-modules",
+        nargs="+",
+        default=[],
+        help="Exclude these modules.",
+        metavar="MODULE",
     )
     modules.add_argument(
         "-f",
@@ -155,13 +162,18 @@ for p in (parser, dummy_parser):
         help=f'Enable modules by flag. Choices: {",".join(sorted(flag_choices))}',
         metavar="FLAG",
     )
-    modules.add_argument("-lf", "--list-flags", action="store_true", help=f"List available flags.")
+    modules.add_argument(
+        "-lf",
+        "--list-flags",
+        action="store_true",
+        help="List available flags.",
+    )
     modules.add_argument(
         "-rf",
         "--require-flags",
         nargs="+",
         default=[],
-        help=f"Only enable modules with these flags (e.g. -rf passive)",
+        help="Only enable modules with these flags (e.g. -rf passive)",
         metavar="FLAG",
     )
     modules.add_argument(
@@ -169,7 +181,7 @@ for p in (parser, dummy_parser):
         "--exclude-flags",
         nargs="+",
         default=[],
-        help=f"Disable modules with these flags. (e.g. -ef aggressive)",
+        help="Disable modules with these flags. (e.g. -ef aggressive)",
         metavar="FLAG",
     )
     modules.add_argument(
@@ -200,7 +212,9 @@ for p in (parser, dummy_parser):
     scan.add_argument("-s", "--silent", action="store_true", help="Be quiet")
     scan.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
     scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
-    scan.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
+    scan.add_argument(
+        "--dry-run", action="store_true", help="Abort before executing scan"
+    )
     scan.add_argument(
         "--current-config",
         action="store_true",
@@ -222,11 +236,9 @@ for p in (parser, dummy_parser):
     misc = p.add_argument_group(title="Misc")
     misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
 
-
 cli_options = None
 with suppress(Exception):
     cli_options = dummy_parser.parse_args()
-
 
 cli_config = []
 

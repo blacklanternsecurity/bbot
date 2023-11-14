@@ -4,6 +4,7 @@ from datetime import datetime
 
 log = logging.getLogger("bbot.db.neo4j")
 
+
 # uncomment this to enable neo4j debugging
 # logging.basicConfig(level=logging.DEBUG, format="%(message)s")
 

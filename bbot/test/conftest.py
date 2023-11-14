@@ -76,8 +76,7 @@ def bbot_httpserver_ssl():
 
 @pytest.fixture
 def interactsh_mock_instance():
-    interactsh_mock = Interactsh_mock()
-    return interactsh_mock
+    return Interactsh_mock()
 
 
 class Interactsh_mock:
@@ -95,10 +94,13 @@ class Interactsh_mock:
         pass
 
     async def poll(self):
-        poll_results = []
-        for subdomain_tag in self.interactions:
-            poll_results.append({"full-id": f"{subdomain_tag}.fakedomain.fakeinteractsh.com", "protocol": "HTTP"})
-        return poll_results
+        return [
+            {
+                "full-id": f"{subdomain_tag}.fakedomain.fakeinteractsh.com",
+                "protocol": "HTTP",
+            }
+            for subdomain_tag in self.interactions
+        ]
 
 
 import threading

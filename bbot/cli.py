@@ -26,12 +26,9 @@ from bbot.core.configurator import ensure_config_files, check_cli_args, environ
 log = logging.getLogger("bbot.cli")
 sys.stdout.reconfigure(line_buffering=True)
 
-
 log_level = get_log_level()
 
-
 from . import config
-
 
 err = False
 scan_name = ""
@@ -201,7 +198,7 @@ async def _main():
                 modules = set(scanner._scan_modules)
                 for m in scanner._scan_modules:
                     flags = module_loader._preloaded.get(m, {}).get("flags", [])
-                    if not all(f in flags for f in options.require_flags):
+                    if any(f not in flags for f in options.require_flags):
                         log.verbose(
                             f"Removing {m} because it does not have the required flags: {'+'.join(options.require_flags)}"
                         )
