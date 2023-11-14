@@ -48,7 +48,7 @@ class ffuf(BaseModule):
     in_scope_only = True
 
     async def setup(self):
-        self.canary = "".join(random.choice(string.ascii_lowercase) for i in range(10))
+        self.canary = "".join(random.choice(string.ascii_lowercase) for _ in range(10))
         wordlist_url = self.config.get("wordlist", "")
         self.debug(f"Using wordlist [{wordlist_url}]")
         self.wordlist = await self.helpers.wordlist(wordlist_url)
@@ -65,7 +65,7 @@ class ffuf(BaseModule):
 
     async def handle_event(self, event):
         if self.helpers.url_depth(event.data) > self.config.get("max_depth"):
-            self.debug(f"Exceeded max depth, aborting event")
+            self.debug("Exceeded max depth, aborting event")
             return
 
         # only FFUF against a directory
@@ -78,9 +78,7 @@ class ffuf(BaseModule):
 
         exts = ["", "/"]
         if self.extensions:
-            for ext in self.extensions:
-                exts.append(f".{ext}")
-
+            exts.extend(f".{ext}" for ext in self.extensions)
         filters = await self.baseline_ffuf(fixed_url, exts=exts)
         async for r in self.execute_ffuf(self.tempfile, fixed_url, exts=exts, filters=filters):
             self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
@@ -91,7 +89,9 @@ class ffuf(BaseModule):
             return False
         return True
 
-    async def baseline_ffuf(self, url, exts=[""], prefix="", suffix="", mode="normal"):
+    async def baseline_ffuf(self, url, exts=None, prefix="", suffix="", mode="normal"):
+        if exts is None:
+            exts = [""]
         filters = {}
         for ext in exts:
             self.debug(f"running baseline for URL [{url}] with ext [{ext}]")
@@ -101,20 +101,25 @@ class ffuf(BaseModule):
 
             canary_length = 4
             canary_list = []
-            for i in range(0, 4):
-                canary_list.append("".join(random.choice(string.ascii_lowercase) for i in range(canary_length)))
+            for _ in range(4):
+                canary_list.append(
+                    "".join(
+                        random.choice(string.ascii_lowercase)
+                        for _ in range(canary_length)
+                    )
+                )
                 canary_length += 2
 
             canary_temp_file = self.helpers.tempfile(canary_list, pipe=False)
             async for canary_r in self.execute_ffuf(
-                canary_temp_file,
-                url,
-                prefix=prefix,
-                suffix=suffix,
-                mode=mode,
-                baseline=True,
-                apply_filters=False,
-                filters=filters,
+                    canary_temp_file,
+                    url,
+                    prefix=prefix,
+                    suffix=suffix,
+                    mode=mode,
+                    baseline=True,
+                    apply_filters=False,
+                    filters=filters,
             ):
                 canary_results.append(canary_r)
 
@@ -129,7 +134,7 @@ class ffuf(BaseModule):
                 continue
 
             # if the codes are different, we should abort, this should also be a warning, as it is highly unusual behavior
-            if len(set(d["status"] for d in canary_results)) != 1:
+            if len({d["status"] for d in canary_results}) != 1:
                 self.warning("Got different codes for each baseline. This could indicate load balancing")
                 filters[ext] = ["ABORT", "BASELINE_CHANGED_CODES"]
                 continue
@@ -155,7 +160,7 @@ class ffuf(BaseModule):
                 continue
 
             # we start by seeing if all of the baselines have the same character count
-            if len(set(d["length"] for d in canary_results)) == 1:
+            if len({d["length"] for d in canary_results}) == 1:
                 self.debug("All baseline results had the same char count, we can make a filter on that")
                 filters[ext] = [
                     "-fc",
@@ -168,7 +173,7 @@ class ffuf(BaseModule):
                 continue
 
             # if that doesn't work we can try words
-            if len(set(d["words"] for d in canary_results)) == 1:
+            if len({d["words"] for d in canary_results}) == 1:
                 self.debug("All baseline results had the same word count, we can make a filter on that")
                 filters[ext] = [
                     "-fc",
@@ -181,7 +186,7 @@ class ffuf(BaseModule):
                 continue
 
             # as a last resort we will try lines
-            if len(set(d["lines"] for d in canary_results)) == 1:
+            if len({d["lines"] for d in canary_results}) == 1:
                 self.debug("All baseline results had the same word count, we can make a filter on that")
                 filters[ext] = [
                     "-fc",
@@ -198,18 +203,11 @@ class ffuf(BaseModule):
 
         return filters
 
-    async def execute_ffuf(
-        self,
-        tempfile,
-        url,
-        prefix="",
-        suffix="",
-        exts=[""],
-        filters={},
-        mode="normal",
-        apply_filters=True,
-        baseline=False,
-    ):
+    async def execute_ffuf(self, tempfile, url, prefix="", suffix="", exts=None, filters=None, mode="normal", apply_filters=True, baseline=False):
+        if exts is None:
+            exts = [""]
+        if filters is None:
+            filters = {}
         for ext in exts:
             if mode == "normal":
                 self.debug("in mode [normal]")
@@ -256,10 +254,7 @@ class ffuf(BaseModule):
                         self.warning(f"Exiting from FFUF run early, received an ABORT filter: [{filters[ext][1]}]")
                         continue
 
-                    elif filters[ext] == None:
-                        pass
-
-                    else:
+                    elif filters[ext] != None:
                         command += filters[ext]
             else:
                 command.append("-mc")
@@ -281,34 +276,38 @@ class ffuf(BaseModule):
                             self.debug("Found canary! aborting...")
                             return
                         else:
-                            if mode == "normal":
-                                # before emitting, we are going to send another baseline. This will immediately catch things like a WAF flipping blocking on us mid-scan
-                                if baseline == False:
-                                    pre_emit_temp_canary = [
-                                        f
-                                        async for f in self.execute_ffuf(
-                                            self.helpers.tempfile(
-                                                ["".join(random.choice(string.ascii_lowercase) for i in range(4))],
-                                                pipe=False,
-                                            ),
-                                            url,
-                                            prefix=prefix,
-                                            suffix=suffix,
-                                            mode=mode,
-                                            exts=[ext],
-                                            baseline=True,
-                                            filters=filters,
-                                        )
-                                    ]
-                                    if len(pre_emit_temp_canary) == 0:
-                                        yield found_json
-                                    else:
-                                        self.warning(
-                                            "Baseline changed mid-scan. This is probably due to a WAF turning on a block against you."
-                                        )
-                                        self.warning(f"Aborting the current run against [{url}]")
-                                        return
+                            if mode == "normal" and baseline == False:
+                                if pre_emit_temp_canary := [
+                                    f
+                                    async for f in self.execute_ffuf(
+                                        self.helpers.tempfile(
+                                            [
+                                                "".join(
+                                                    random.choice(
+                                                        string.ascii_lowercase
+                                                    )
+                                                    for _ in range(4)
+                                                )
+                                            ],
+                                            pipe=False,
+                                        ),
+                                        url,
+                                        prefix=prefix,
+                                        suffix=suffix,
+                                        mode=mode,
+                                        exts=[ext],
+                                        baseline=True,
+                                        filters=filters,
+                                    )
+                                ]:
+                                    self.warning(
+                                        "Baseline changed mid-scan. This is probably due to a WAF turning on a block against you."
+                                    )
+                                    self.warning(f"Aborting the current run against [{url}]")
+                                    return
 
+                                else:
+                                    yield found_json
                             yield found_json
 
                 except json.decoder.JSONDecodeError:
@@ -324,10 +323,12 @@ class ffuf(BaseModule):
             if len(val) > 0:
                 if val.strip().lower() in self.blacklist:
                     self.debug(f"Skipping adding [{val.strip()}] to wordlist because it was in the blacklist")
-                else:
-                    if not prefix or val.strip().lower().startswith(prefix.strip().lower()):
-                        if not any(char in val.strip().lower() for char in self.banned_characters):
-                            line_count += 1
-                            virtual_file.append(f"{val.strip().lower()}")
+                elif not prefix or val.strip().lower().startswith(prefix.strip().lower()):
+                    if all(
+                        char not in val.strip().lower()
+                        for char in self.banned_characters
+                    ):
+                        line_count += 1
+                        virtual_file.append(f"{val.strip().lower()}")
         virtual_file.append(self.canary)
         return self.helpers.tempfile(virtual_file, pipe=False), line_count

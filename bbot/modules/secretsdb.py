@@ -46,11 +46,10 @@ class secretsdb(BaseModule):
         resp_headers = event.data.get("raw_header", "")
         all_matches = await self.scan.run_in_executor(self.search_data, resp_body, resp_headers)
         for matches, name in all_matches:
-            matches = [m.string[m.start() : m.end()] for m in matches]
+            matches = [m.string[m.start(): m.end()] for m in matches]
             description = f"Possible secret ({name}): {matches}"
             event_data = {"host": str(event.host), "description": description}
-            parsed_url = getattr(event, "parsed", None)
-            if parsed_url:
+            if parsed_url := getattr(event, "parsed", None):
                 event_data["url"] = parsed_url.geturl()
             self.emit_event(
                 event_data,
@@ -65,7 +64,6 @@ class secretsdb(BaseModule):
             name = r["name"]
             for text in (resp_body, resp_headers):
                 if text:
-                    matches = list(regex.finditer(text))
-                    if matches:
+                    if matches := list(regex.finditer(text)):
                         all_matches.append((matches, name))
         return all_matches

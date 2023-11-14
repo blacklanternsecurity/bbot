@@ -27,10 +27,10 @@ class TestRobots(ModuleTestBase):
                 if e.data == "http://127.0.0.1:8888/allow/":
                     allow_bool = True
 
-                if e.data == "http://127.0.0.1:8888/disallow/":
+                elif e.data == "http://127.0.0.1:8888/disallow/":
                     disallow_bool = True
 
-                if e.data == "http://127.0.0.1:8888/sitemap.txt":
+                elif e.data == "http://127.0.0.1:8888/sitemap.txt":
                     sitemap_bool = True
 
                 if re.match(r"http://127\.0\.0\.1:8888/\w+/wildcard\.txt", e.data):

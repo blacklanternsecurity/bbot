@@ -12,11 +12,13 @@ class BaseCloudProvider:
         self.parent_helper = parent_helper
         self.name = str(self.__class__.__name__).lower()
         self.dummy_module = self.parent_helper._make_dummy_module(f"{self.name}_cloud", _type="scan")
-        self.bucket_name_regex = re.compile("^" + self.bucket_name_regex + "$", re.I)
+        self.bucket_name_regex = re.compile(f"^{self.bucket_name_regex}$", re.I)
         self.signatures = {}
         self.domain_regexes = []
-        for domain in self.domains:
-            self.domain_regexes.append(re.compile(r"^(?:[\w\-]+\.)*" + rf"{re.escape(domain)}$"))
+        self.domain_regexes.extend(
+            re.compile(r"^(?:[\w\-]+\.)*" + rf"{re.escape(domain)}$")
+            for domain in self.domains
+        )
         for event_type, regexes in self.regexes.items():
             self.signatures[event_type] = [re.compile(r, re.I) for r in regexes]
 
@@ -34,7 +36,7 @@ class BaseCloudProvider:
                 for match in sig.findall(http_body):
                     kwargs = dict(base_kwargs)
                     kwargs["event_type"] = event_type
-                    if not match in found:
+                    if match not in found:
                         found.add(match)
                         if event_type == "STORAGE_BUCKET":
                             self.emit_bucket(match, **kwargs)
@@ -49,11 +51,10 @@ class BaseCloudProvider:
             for event_type, sigs in self.signatures.items():
                 found = set()
                 for sig in sigs:
-                    match = sig.match(event.data)
-                    if match:
+                    if match := sig.match(event.data):
                         kwargs = dict(base_kwargs)
                         kwargs["event_type"] = event_type
-                        if not event.data in found:
+                        if event.data not in found:
                             found.add(event.data)
                             if event_type == "STORAGE_BUCKET":
                                 self.emit_bucket(match.groups(), **kwargs)
@@ -66,10 +67,10 @@ class BaseCloudProvider:
         self.emit_event(**kwargs)
 
     def emit_event(self, *args, **kwargs):
-        excavate_module = self.parent_helper.scan.modules.get("excavate", None)
-        if excavate_module:
-            event = self.dummy_module.make_event(*args, **kwargs)
-            if event:
+        if excavate_module := self.parent_helper.scan.modules.get(
+                "excavate", None
+        ):
+            if event := self.dummy_module.make_event(*args, **kwargs):
                 excavate_module.emit_event(event)
 
     def is_valid_bucket(self, bucket_name):
@@ -77,23 +78,21 @@ class BaseCloudProvider:
 
     def tag_event(self, event):
         # tag the event if
-        if event.host:
-            # its host directly matches this cloud provider's domains
-            if isinstance(event.host, str) and self.domain_match(event.host):
-                event.tags.update(self.base_tags)
-                # tag as buckets, etc.
-                for event_type, sigs in self.signatures.items():
-                    for sig in sigs:
-                        if sig.match(event.host):
-                            event.add_tag(f"cloud-{event_type}")
-            else:
-                # or it has a CNAME that matches this cloud provider's domains
-                for rh in event.resolved_hosts:
-                    if not self.parent_helper.is_ip(rh) and self.domain_match(rh):
-                        event.tags.update(self.base_tags)
+        if not event.host:
+            return
+        # its host directly matches this cloud provider's domains
+        if isinstance(event.host, str) and self.domain_match(event.host):
+            event.tags.update(self.base_tags)
+            # tag as buckets, etc.
+            for event_type, sigs in self.signatures.items():
+                for sig in sigs:
+                    if sig.match(event.host):
+                        event.add_tag(f"cloud-{event_type}")
+        else:
+            # or it has a CNAME that matches this cloud provider's domains
+            for rh in event.resolved_hosts:
+                if not self.parent_helper.is_ip(rh) and self.domain_match(rh):
+                    event.tags.update(self.base_tags)
 
     def domain_match(self, s):
-        for r in self.domain_regexes:
-            if r.match(s):
-                return True
-        return False
+        return any(r.match(s) for r in self.domain_regexes)

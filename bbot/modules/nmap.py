@@ -36,7 +36,7 @@ class nmap(BaseModule):
 
     async def handle_batch(self, *events):
         target = self.helpers.make_target(*events)
-        targets = list(set(str(e.data) for e in events))
+        targets = list({str(e.data) for e in events})
         command, output_file = self.construct_command(targets)
         try:
             await self.helpers.run(command, sudo=True)
@@ -73,10 +73,7 @@ class nmap(BaseModule):
         ]
         if self.skip_host_discovery:
             command += ["-Pn"]
-        if ports:
-            command += ["-p", ports]
-        else:
-            command += ["--top-ports", top_ports]
+        command += ["-p", ports] if ports else ["--top-ports", top_ports]
         command += targets
         return command, temp_filename
 
@@ -104,11 +101,11 @@ class NmapHost(str):
         self.hostnames = []
         for hostname in self.etree.findall("hostnames/hostname"):
             hostname = hostname.attrib.get("name")
-            if hostname and not hostname in self.hostnames:
+            if hostname and hostname not in self.hostnames:
                 self.hostnames.append(hostname)
 
         # convenient port information
-        self.scripts = dict()
+        self.scripts = {}
         self.open_ports = []
         self.closed_ports = []
         self.filtered_ports = []

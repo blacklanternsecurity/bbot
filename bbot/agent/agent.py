@@ -34,10 +34,10 @@ class Agent:
 
     def setup(self):
         if not self.url:
-            log.error(f"Must specify agent_url")
+            log.error("Must specify agent_url")
             return False
         if not self.token:
-            log.error(f"Must specify agent_token")
+            log.error("Must specify agent_token")
             return False
         return True
 
@@ -45,7 +45,7 @@ class Agent:
         if self._ws is None or rebuild:
             kwargs = {"close_timeout": 0.5}
             if self.token:
-                kwargs.update({"extra_headers": {"Authorization": f"Bearer {self.token}"}})
+                kwargs["extra_headers"] = {"Authorization": f"Bearer {self.token}"}
             verbs = ("Building", "Built")
             if rebuild:
                 verbs = ("Rebuilding", "Rebuilt")
@@ -74,10 +74,9 @@ class Agent:
                     message = json.loads(message)
                     message = messages.Message(**message)
 
-                    if message.command == "ping":
-                        if self.scan is None:
-                            await self.send({"conversation": str(message.conversation), "message_type": "pong"})
-                            continue
+                    if message.command == "ping" and self.scan is None:
+                        await self.send({"conversation": str(message.conversation), "message_type": "pong"})
+                        continue
 
                     command_type = getattr(messages, message.command, None)
                     if command_type is None:
@@ -116,7 +115,15 @@ class Agent:
                 await asyncio.sleep(1)
                 # rebuild = True
 
-    async def start_scan(self, scan_id, name=None, targets=[], modules=[], output_modules=[], config={}):
+    async def start_scan(self, scan_id, name=None, targets=None, modules=None, output_modules=None, config=None):
+        if targets is None:
+            targets = []
+        if modules is None:
+            modules = []
+        if output_modules is None:
+            output_modules = []
+        if config is None:
+            config = {}
         async with self._scan_lock:
             if self.scan is None:
                 log.success(
@@ -139,7 +146,7 @@ class Agent:
                 )
                 self.task = asyncio.create_task(self._start_scan_task(scan))
 
-                return {"success": f"Started scan", "scan_id": scan.id}
+                return {"success": "Started scan", "scan_id": scan.id}
             else:
                 msg = f"Scan {self.scan.id} already in progress"
                 log.warning(msg)

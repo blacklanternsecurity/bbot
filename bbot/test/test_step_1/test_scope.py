@@ -14,7 +14,7 @@ class Scope_test_blacklist(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert not any(e.type == "URL" for e in events)
+        assert all(e.type != "URL" for e in events)
 
 
 class Scope_test_whitelist(Scope_test_blacklist):

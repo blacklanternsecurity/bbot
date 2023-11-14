@@ -114,20 +114,18 @@ class massdns(subdomain_enum):
             self.emit_result(hostname, event, query)
 
     def abort_if(self, event):
-        if not event.scope_distance == 0:
+        if event.scope_distance != 0:
             return True, "event is not in scope"
         if "wildcard" in event.tags:
             return True, "event is a wildcard"
 
     def emit_result(self, result, source_event, query):
-        if not result == source_event:
+        if result != source_event:
             kwargs = {"abort_if": self.abort_if}
             self.emit_event(result, "DNS_NAME", source_event, **kwargs)
 
     def already_processed(self, hostname):
-        if hash(hostname) in self.processed:
-            return True
-        return False
+        return hash(hostname) in self.processed
 
     async def massdns(self, domain, subdomains):
         subdomains = list(subdomains)
@@ -151,7 +149,7 @@ class massdns(subdomain_enum):
         abort_msg = f"Aborting massdns on {domain} due to false positive"
         canary_result = await self._canary_check(domain)
         if canary_result:
-            self.info(abort_msg + f": {canary_result}")
+            self.info(f"{abort_msg}: {canary_result}")
             return []
         else:
             self.log.trace(f"Canary result for {domain}: {canary_result}")
@@ -176,7 +174,7 @@ class massdns(subdomain_enum):
         if len(results) > 50:
             canary_result = await self._canary_check(domain)
             if canary_result:
-                self.info(abort_msg + f": {canary_result}")
+                self.info(f"{abort_msg}: {canary_result}")
                 return []
             else:
                 self.log.trace(f"Canary result for {domain}: {canary_result}")
@@ -278,7 +276,7 @@ class massdns(subdomain_enum):
                     rdtype = answer.get("type", "").upper()
                     # avoid garbage answers like this:
                     # 8AAAA queries have been locally blocked by dnscrypt-proxy/Set block_ipv6 to false to disable this feature
-                    if data and rdtype and not " " in data:
+                    if data and rdtype and " " not in data:
                         hostname_hash = hash(hostname)
                         if hostname_hash not in hosts_yielded:
                             hosts_yielded.add(hostname_hash)
@@ -289,7 +287,9 @@ class massdns(subdomain_enum):
         # if we have a lot of rounds to make, don't try mutations on less-populated domains
         trimmed_found = []
         if found:
-            avg_subdomains = sum([len(subdomains) for domain, subdomains in found[:50]]) / len(found[:50])
+            avg_subdomains = sum(
+                len(subdomains) for domain, subdomains in found[:50]
+            ) / len(found[:50])
             for i, (domain, subdomains) in enumerate(found):
                 # accept domains that are in the top 50 or have more than 5 percent of the average number of subdomains
                 if i < 50 or (len(subdomains) > 1 and len(subdomains) >= (avg_subdomains * 0.05)):
@@ -343,13 +343,13 @@ class massdns(subdomain_enum):
                                 continue
                             add_mutation(domain_hash, first_segment)
                             for word in self.helpers.extract_words(
-                                first_segment, word_regexes=self.helpers.word_cloud.dns_mutator.extract_word_regexes
+                                    first_segment, word_regexes=self.helpers.word_cloud.dns_mutator.extract_word_regexes
                             ):
                                 add_mutation(domain_hash, word)
 
                     # numbers + devops mutations
                     for mutation in self.helpers.word_cloud.mutations(
-                        subdomains, cloud=False, numbers=3, number_padding=1
+                            subdomains, cloud=False, numbers=3, number_padding=1
                     ):
                         for delimiter in ("", ".", "-"):
                             m = delimiter.join(mutation).lower()
@@ -357,12 +357,12 @@ class massdns(subdomain_enum):
 
                     # special dns mutator
                     for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
-                        subdomains, max_mutations=self.max_mutations
+                            subdomains, max_mutations=self.max_mutations
                     ):
                         add_mutation(domain_hash, subdomain)
 
                     if mutations:
-                        self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
+                        self.info(f"Trying {len(mutations):,} mutations against {domain} ({i + 1}/{len(found)})")
                         results = list(await self.massdns(query, mutations))
                         for hostname in results:
                             source_event = self.source_events.get(hostname)
@@ -387,22 +387,20 @@ class massdns(subdomain_enum):
                 try:
                     self.found[domain].add(subdomain)
                 except KeyError:
-                    self.found[domain] = set((subdomain,))
+                    self.found[domain] = {subdomain}
 
     async def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
-            d = f"{p}.{domain}"
-            yield d
+            yield f"{p}.{domain}"
 
     def gen_random_subdomains(self, n=50):
         delimeters = (".", "-")
         lengths = list(range(3, 8))
-        for i in range(0, max(0, n - 5)):
+        for i in range(max(0, n - 5)):
             d = delimeters[i % len(delimeters)]
             l = lengths[i % len(lengths)]
-            segments = list(random.choice(self.devops_mutations) for _ in range(l))
+            segments = [random.choice(self.devops_mutations) for _ in range(l)]
             segments.append(self.helpers.rand_string(length=8, digits=False))
-            subdomain = d.join(segments)
-            yield subdomain
+            yield d.join(segments)
         for _ in range(5):
             yield self.helpers.rand_string(length=8, digits=False)

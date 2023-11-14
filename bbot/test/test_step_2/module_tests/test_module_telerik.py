@@ -64,7 +64,7 @@ class TestTelerik(ModuleTestBase):
                 telerik_axd_detection = True
                 continue
 
-            if e.type == "VULNERABILITY" and "Confirmed Vulnerable Telerik (version: 2014.3.1024)":
+            if e.type == "VULNERABILITY":
                 telerik_axd_vulnerable = True
                 continue
 

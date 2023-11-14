@@ -37,14 +37,13 @@ class asset_inventory(CSV):
     async def setup(self):
         self.assets = {}
         self.open_port_producers = "httpx" in self.scan.modules or any(
-            ["portscan" in m.flags for m in self.scan.modules.values()]
+            "portscan" in m.flags for m in self.scan.modules.values()
         )
         self.use_previous = self.config.get("use_previous", False)
         self.summary_netmask = self.config.get("summary_netmask", 16)
         self.emitted_contents = False
         self._ran_hooks = False
-        ret = await super().setup()
-        return ret
+        return await super().setup()
 
     async def filter_event(self, event):
         if event._internal:
@@ -73,7 +72,7 @@ class asset_inventory(CSV):
                 totals[stat] += 1
             except KeyError:
                 totals[stat] = 1
-            if not stat in stats:
+            if stat not in stats:
                 stats[stat] = {}
             try:
                 stats[stat][value] += 1
@@ -122,7 +121,7 @@ class asset_inventory(CSV):
                 stats_sorted = sorted(stats[header].items(), key=lambda x: x[-1], reverse=True)
                 total = totals[header]
                 for k, v in stats_sorted:
-                    table.append([str(k), f"{v:,}/{total} ({v/total*100:.1f}%)"])
+                    table.append([str(k), f"{v:,}/{total} ({v / total * 100:.1f}%)"])
                 self.log_table(table, table_header, table_name=f"asset-inventory-{header}")
 
         if self._file is not None:
@@ -204,20 +203,18 @@ class Asset:
         self.ip_addresses = set(_make_ip_list(row.get("IP(s)", "")))
         # ports
         ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
-        self.ports.update(set(i for i in ports if i and is_port(i)))
+        self.ports.update({i for i in ports if i and is_port(i)})
         # findings
         findings = [i.strip() for i in row.get("Findings", "").splitlines()]
-        self.findings.update(set(i for i in findings if i))
+        self.findings.update({i for i in findings if i})
         # technologies
         technologies = [i.strip() for i in row.get("Description", "").splitlines()]
-        self.technologies.update(set(i for i in technologies if i))
+        self.technologies.update({i for i in technologies if i})
         # risk rating
         risk_rating = row.get("Risk Rating", "").strip()
         if risk_rating and risk_rating.isdigit() and int(risk_rating) > self.risk_rating:
             self.risk_rating = int(risk_rating)
-        # provider
-        provider = row.get("Provider", "").strip()
-        if provider:
+        if provider := row.get("Provider", "").strip():
             self.provider = provider
         # custom fields
         for k, v in row.items():
@@ -237,13 +234,11 @@ class Asset:
             self.ports.add(str(event.port))
 
         if event.type == "FINDING":
-            location = event.data.get("url", event.data.get("host", ""))
-            if location:
+            if location := event.data.get("url", event.data.get("host", "")):
                 self.findings.add(f"{location}:{event.data['description']}")
 
         if event.type == "VULNERABILITY":
-            location = event.data.get("url", event.data.get("host", ""))
-            if location:
+            if location := event.data.get("url", event.data.get("host", "")):
                 self.findings.add(f"{location}:{event.data['description']}:{event.data['severity']}")
                 severity_int = severity_map.get(event.data.get("severity", "N/A"), 0)
                 if severity_int > self.risk_rating:
@@ -269,8 +264,7 @@ def _make_hostkey(host, ips):
     If they're private, we dedupe by the IPs themselves
     """
     ips = _make_ip_list(ips)
-    is_private = ips and all(is_ip(i) and i.is_private for i in ips)
-    if is_private:
+    if is_private := ips and all(is_ip(i) and i.is_private for i in ips):
         return ",".join(sorted([str(i) for i in ips]))
     return str(host)
 

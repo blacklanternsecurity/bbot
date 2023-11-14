@@ -39,7 +39,7 @@ class iis_shortnames(BaseModule):
                     detections.append((method, test.status_code, technique))
 
                 elif ("Error Code</th><td>0x80070002" in control.text) and (
-                    "Error Code</th><td>0x00000000" in test.text
+                        "Error Code</th><td>0x00000000" in test.text
                 ):
                     detections.append((method, 0, technique))
                     technique = "HTTP Body Error Message"
@@ -85,9 +85,8 @@ class iis_shortnames(BaseModule):
 
             if duplicate_check_results.status_code != affirmative_status_code:
                 break
-            else:
-                duplicates.append(f"{base_hint}~{str(count)}")
-                count += 1
+            duplicates.append(f"{base_hint}~{str(count)}")
+            count += 1
 
             if count > 5:
                 self.warning("Found more than 5 files with the same shortname. Will stop further duplicate checking.")
@@ -97,13 +96,12 @@ class iis_shortnames(BaseModule):
 
     async def threaded_request(self, method, url, affirmative_status_code, c):
         r = await self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
-        if r is not None:
-            if r.status_code == affirmative_status_code:
-                return True, c
+        if r is not None and r.status_code == affirmative_status_code:
+            return True, c
         return None, c
 
     async def solve_shortname_recursive(
-        self, method, target, prefix, affirmative_status_code, extension_mode=False, node_count=0
+            self, method, target, prefix, affirmative_status_code, extension_mode=False, node_count=0
     ):
         url_hint_list = []
         found_results = False
@@ -122,7 +120,7 @@ class iis_shortnames(BaseModule):
             if result:
                 found_results = True
                 node_count += 1
-                self.verbose(f"node_count: {str(node_count)} for node: {target}")
+                self.verbose(f"node_count: {node_count} for node: {target}")
                 if node_count > self.config.get("max_node_count"):
                     self.warning(
                         f"iis_shortnames: max_node_count ({str(self.config.get('max_node_count'))}) exceeded for node: {target}. Affected branch will be terminated."
@@ -134,9 +132,8 @@ class iis_shortnames(BaseModule):
                 payload = encode_all(f"{prefix}{c}{wildcard}")
                 url = f"{target}{payload}{suffix}"
                 r = await self.helpers.request(method=method, url=url, allow_redirects=False, retries=2, timeout=10)
-                if r is not None:
-                    if r.status_code == affirmative_status_code:
-                        url_hint_list.append(f"{prefix}{c}")
+                if r is not None and r.status_code == affirmative_status_code:
+                    url_hint_list.append(f"{prefix}{c}")
 
                 url_hint_list += await self.solve_shortname_recursive(
                     method, target, f"{prefix}{c}", affirmative_status_code, extension_mode, node_count=node_count
@@ -152,8 +149,8 @@ class iis_shortnames(BaseModule):
 
         detections = await self.detect(normalized_url)
 
-        technique_strings = []
         if detections:
+            technique_strings = []
             for detection in detections:
                 method, affirmative_status_code, technique = detection
                 technique_strings.append(f"{method} ({technique})")
@@ -175,7 +172,7 @@ class iis_shortnames(BaseModule):
                     file_name_hints = list(
                         set(await self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code))
                     )
-                    if len(file_name_hints) == 0:
+                    if not file_name_hints:
                         continue
                     else:
                         valid_method_confirmed = True
@@ -207,15 +204,10 @@ class iis_shortnames(BaseModule):
                             url_hint_list.append(z)
 
                     for url_hint in url_hint_list:
-                        if "." in url_hint:
-                            hint_type = "shortname-file"
-                        else:
-                            hint_type = "shortname-directory"
+                        hint_type = "shortname-file" if "." in url_hint else "shortname-directory"
                         self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
 
     async def filter_event(self, event):
         if "dir" in event.tags:
-            if self.normalize_url(event.data) not in self.scanned_tracker:
-                return True
-            return False
+            return self.normalize_url(event.data) not in self.scanned_tracker
         return False

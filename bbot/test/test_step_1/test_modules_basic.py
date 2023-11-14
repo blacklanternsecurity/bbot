@@ -122,8 +122,11 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         for flag in flags:
             all_flags.add(flag)
         if preloaded["type"] == "scan":
-            assert ("active" in flags and not "passive" in flags) or (
-                not "active" in flags and "passive" in flags
+            assert (
+                    "active" in flags
+                    and "passive" not in flags
+                    or "active" not in flags
+                    and "passive" in flags
             ), f'module "{module_name}" must have either "active" or "passive" flag'
             assert preloaded.get("meta", {}).get("description", ""), f"{module_name} must have a description"
 
@@ -133,20 +136,20 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
         assert type(watched_events) == list
         assert type(produced_events) == list
-        if not preloaded.get("type", "") in ("internal",):
+        if preloaded.get("type", "") not in ("internal",):
             assert watched_events, f"{module_name}.watched_events must not be empty"
         assert type(watched_events) == list, f"{module_name}.watched_events must be of type list"
         assert type(produced_events) == list, f"{module_name}.produced_events must be of type list"
         assert all(
-            [type(t) == str for t in watched_events]
+            type(t) == str for t in watched_events
         ), f"{module_name}.watched_events entries must be of type string"
         assert all(
-            [type(t) == str for t in produced_events]
+            type(t) == str for t in produced_events
         ), f"{module_name}.produced_events entries must be of type string"
 
         assert type(preloaded.get("deps_pip", [])) == list, f"{module_name}.deps_pip must be of type list"
         assert (
-            type(preloaded.get("deps_pip_constraints", [])) == list
+                type(preloaded.get("deps_pip_constraints", [])) == list
         ), f"{module_name}.deps_pip_constraints must be of type list"
         assert type(preloaded.get("deps_apt", [])) == list, f"{module_name}.deps_apt must be of type list"
         assert type(preloaded.get("deps_shell", [])) == list, f"{module_name}.deps_shell must be of type list"
@@ -158,7 +161,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         ), f"{module_name}.options do not match options_desc"
         # descriptions most not be blank
         assert all(
-            o for o in preloaded.get("options_desc", {}).values()
+            preloaded.get("options_desc", {}).values()
         ), f"{module_name}.options_desc descriptions must not be blank"
 
     from bbot.core.flags import flag_descriptions
@@ -199,14 +202,14 @@ async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbo
             valid_2, reason_2 = await module._event_postcheck(url_2)
 
             if module.per_host_only == True:
-                assert valid_1 == True
                 assert valid_2 == False
                 assert hash("http://evilcorp.com/") in module._per_host_tracker
                 assert reason_2 == "per_host_only enabled and already seen host"
 
             else:
-                assert valid_1 == True
                 assert valid_2 == True
+
+            assert valid_1 == True
 
 
 @pytest.mark.asyncio
@@ -240,11 +243,11 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, b
             valid_2, reason_2 = await module._event_postcheck(url_2)
 
             if module.per_domain_only == True:
-                assert valid_1 == True
                 assert valid_2 == False
                 assert hash("evilcorp.com") in module._per_host_tracker
                 assert reason_2 == "per_domain_only enabled and already seen domain"
 
             else:
-                assert valid_1 == True
                 assert valid_2 == True
+
+            assert valid_1 == True

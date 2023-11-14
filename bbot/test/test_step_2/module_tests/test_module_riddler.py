@@ -9,7 +9,8 @@ class TestRiddler(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         module_test.module.abort_if = lambda e: False
         module_test.httpx_mock.add_response(
-            url=f"https://riddler.io/search/exportcsv?q=pld:blacklanternsecurity.com", text=self.web_body
+            url="https://riddler.io/search/exportcsv?q=pld:blacklanternsecurity.com",
+            text=self.web_body,
         )
 
     def check(self, module_test, events):

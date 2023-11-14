@@ -12,7 +12,7 @@ async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     user_agent = bbot_config.get("user_agent", "")
     headers = {"User-Agent": user_agent}
     custom_headers = bbot_config.get("http_headers", {})
-    headers.update(custom_headers)
+    headers |= custom_headers
     assert headers["test"] == "header"
 
     url = bbot_httpserver.url_for("/test_http_helpers")
@@ -135,17 +135,17 @@ async def test_web_curl(bbot_scanner, bbot_config, bbot_httpserver):
     assert (await helpers.curl(url=url, head_mode=True)).startswith("HTTP/")
     assert await helpers.curl(url=url, raw_body="body") == "curl_yep"
     assert (
-        await helpers.curl(
-            url=url,
-            raw_path=True,
-            headers={"test": "test", "test2": ["test2"]},
-            ignore_bbot_global_settings=False,
-            post_data={"test": "test"},
-            method="POST",
-            cookies={"test": "test"},
-            path_override="/index.html",
-        )
-        == "curl_yep_index"
+            await helpers.curl(
+                url=url,
+                raw_path=True,
+                headers={"test": "test", "test2": ["test2"]},
+                ignore_bbot_global_settings=False,
+                post_data={"test": "test"},
+                method="POST",
+                cookies={"test": "test"},
+                path_override="/index.html",
+            )
+            == "curl_yep_index"
     )
     # test custom headers
     bbot_httpserver.expect_request("/test-custom-http-headers-curl", headers={"test": "header"}).respond_with_data(
@@ -186,7 +186,7 @@ async def test_http_proxy(bbot_scanner, bbot_config, bbot_httpserver, proxy_serv
     r = await scan.helpers.request(url)
 
     assert (
-        len(proxy_server.RequestHandlerClass.urls) == 1
+            len(proxy_server.RequestHandlerClass.urls) == 1
     ), f"Request to {url} did not go through proxy {proxy_address}"
     visited_url = proxy_server.RequestHandlerClass.urls[0]
     assert visited_url.endswith(endpoint), f"There was a problem with request to {url}: {visited_url}"

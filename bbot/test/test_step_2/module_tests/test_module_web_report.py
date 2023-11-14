@@ -1,3 +1,4 @@
+import pathlib
 from .base import ModuleTestBase
 
 
@@ -22,20 +23,19 @@ class TestWebReport(ModuleTestBase):
 
     def check(self, module_test, events):
         report_file = module_test.scan.home / "web_report.html"
-        with open(report_file) as f:
-            report_content = f.read()
+        report_content = pathlib.Path(report_file).read_text()
         assert "<li>[CRITICAL] Known Secret Found" in report_content
         assert (
-            """<h3>URL</h3>
-<ul>
-<li><strong>http://127.0.0.1:8888/</strong>"""
-            in report_content
+                """<h3>URL</h3>
+    <ul>
+    <li><strong>http://127.0.0.1:8888/</strong>"""
+                in report_content
         )
         assert (
-            """<h3>FINDING</h3>
-<ul>
-<li>Possible secret (Asymmetric Private Key)"""
-            in report_content
+                """<h3>FINDING</h3>
+    <ul>
+    <li>Possible secret (Asymmetric Private Key)"""
+                in report_content
         )
         assert "<h3>TECHNOLOGY</h3>" in report_content
         assert "<p>flask</p>" in report_content

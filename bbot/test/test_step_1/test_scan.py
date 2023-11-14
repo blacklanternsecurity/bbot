@@ -3,12 +3,12 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_scan(
-    events,
-    bbot_config,
-    helpers,
-    neograph,
-    monkeypatch,
-    bbot_scanner,
+        events,
+        bbot_config,
+        helpers,
+        neograph,
+        monkeypatch,
+        bbot_scanner,
 ):
     scan0 = bbot_scanner(
         "8.8.8.8/31",

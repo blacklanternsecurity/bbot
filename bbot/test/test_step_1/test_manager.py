@@ -49,7 +49,7 @@ async def test_manager(bbot_config, bbot_scanner):
     localhost.module = DummyModule1()
     # make sure abort_if works as intended
     await manager._emit_event(localhost, abort_if=lambda e: e.module._type == "output")
-    assert len(results) == 0
+    assert not results
     manager.events_accepted.clear()
     manager.events_distributed.clear()
     await manager._emit_event(localhost, abort_if=lambda e: e.module._type != "output")
@@ -67,7 +67,7 @@ async def test_manager(bbot_config, bbot_scanner):
     # make sure deduplication is working
     localhost2 = scan1.make_event("127.0.0.1", source=scan1.root_event, tags=["localhost2"])
     manager._emit_event(localhost2)
-    assert len(results) == 0
+    assert not results
     # make sure dns resolution is working
     googledns = scan1.make_event("8.8.8.8", source=scan1.root_event)
     googledns.module = DummyModule2()
@@ -75,7 +75,7 @@ async def test_manager(bbot_config, bbot_scanner):
     googledns.set_scope_distance(0)
     manager.queue_event = event_children_append
     await manager._emit_event(googledns)
-    assert len(event_children) > 0
+    assert event_children
     assert googledns in results
     assert googledns in output
     results.clear()
@@ -83,16 +83,16 @@ async def test_manager(bbot_config, bbot_scanner):
     event_children.clear()
     # make sure deduplication catches the same event
     await manager._emit_event(googledns)
-    assert len(output) == 0
-    assert len(results) == 0
-    assert len(event_children) == 0
+    assert not output
+    assert not results
+    assert not event_children
     output.clear()
     event_children.clear()
     # make sure _force_output overrides dup detection
     googledns._force_output = True
     await manager._emit_event(googledns)
     assert googledns in output
-    assert len(event_children) == 0
+    assert not event_children
     googledns._force_output = False
     results.clear()
     event_children.clear()
@@ -101,7 +101,7 @@ async def test_manager(bbot_config, bbot_scanner):
     source_event._resolved.set()
     googledns.source = source_event
     await manager._emit_event(googledns)
-    assert len(event_children) == 0
+    assert not event_children
     assert googledns in output
 
     # error catching
@@ -176,7 +176,7 @@ async def test_scope_distance(bbot_scanner, bbot_config):
     await manager._emit_event(test_event4)
     assert test_event4.scope_distance == 2
     assert test_event4._internal == True
-    assert test_event4._force_output == True
+    assert test_event4._force_output
     assert test_event4 in output_queue
     assert test_event4 in module_queue
     valid, reason = await module._event_postcheck(test_event4)

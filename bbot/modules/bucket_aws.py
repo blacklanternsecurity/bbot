@@ -27,9 +27,8 @@ class bucket_aws(BaseModule):
     async def filter_event(self, event):
         if event.type == "DNS_NAME" and event.scope_distance > 0:
             return False, "only accepts in-scope DNS_NAMEs"
-        if event.type == "STORAGE_BUCKET":
-            if f"cloud-{self.cloud_helper_name}" not in event.tags:
-                return False, "bucket belongs to a different cloud provider"
+        if f"cloud-{self.cloud_helper_name}" not in event.tags and event.type == "STORAGE_BUCKET":
+            return False, "bucket belongs to a different cloud provider"
         return True
 
     async def handle_event(self, event):
@@ -59,7 +58,7 @@ class bucket_aws(BaseModule):
                 self.emit_event(event_data, "FINDING", source=event, tags=tags)
 
         async for bucket_name, url, tags in self.brute_buckets(
-            [bucket_name], permutations=self.permutations, omit_base=True
+                [bucket_name], permutations=self.permutations, omit_base=True
         ):
             self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", source=event, tags=tags)
 
@@ -106,16 +105,14 @@ class bucket_aws(BaseModule):
         status_code = getattr(response, "status_code", 404)
         content = getattr(response, "text", "")
         open_bucket = status_code == 200 and "Contents" in content
-        msg = ""
-        if open_bucket:
-            msg = "Open storage bucket"
+        msg = "Open storage bucket" if open_bucket else ""
         return (msg, tags)
 
     def valid_bucket_name(self, bucket_name):
         valid = self.cloud_helper.is_valid_bucket(bucket_name)
         if valid and not self.helpers.is_ip(bucket_name):
             bucket_hash = hash(bucket_name)
-            if not bucket_hash in self.buckets_tried:
+            if bucket_hash not in self.buckets_tried:
                 self.buckets_tried.add(bucket_hash)
                 return True
         return False

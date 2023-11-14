@@ -18,57 +18,57 @@ class filedownload(BaseModule):
     meta = {"description": "Download common filetypes such as PDF, DOCX, PPTX, etc."}
     options = {
         "extensions": [
-            "bak",  #  Backup File
-            "bash",  #  Bash Script or Configuration
-            "bashrc",  #  Bash Script or Configuration
-            "conf",  #  Configuration File
-            "cfg",  #  Configuration File
-            "crt",  #  Certificate File
-            "csv",  #  Comma Separated Values File
-            "db",  #  SQLite Database File
-            "sqlite",  #  SQLite Database File
-            "doc",  #  Microsoft Word Document (Old Format)
-            "docx",  #  Microsoft Word Document
-            "exe",  #  Windows PE executable
-            "ica",  #  Citrix Independent Computing Architecture File
-            "indd",  #  Adobe InDesign Document
-            "ini",  #  Initialization File
-            "jar",  #  Java Archive
-            "key",  #  Private Key File
-            "pub",  #  Public Key File
-            "log",  #  Log File
-            "markdown",  #  Markdown File
-            "md",  #  Markdown File
+            "bak",  # Backup File
+            "bash",  # Bash Script or Configuration
+            "bashrc",  # Bash Script or Configuration
+            "conf",  # Configuration File
+            "cfg",  # Configuration File
+            "crt",  # Certificate File
+            "csv",  # Comma Separated Values File
+            "db",  # SQLite Database File
+            "sqlite",  # SQLite Database File
+            "doc",  # Microsoft Word Document (Old Format)
+            "docx",  # Microsoft Word Document
+            "exe",  # Windows PE executable
+            "ica",  # Citrix Independent Computing Architecture File
+            "indd",  # Adobe InDesign Document
+            "ini",  # Initialization File
+            "jar",  # Java Archive
+            "key",  # Private Key File
+            "pub",  # Public Key File
+            "log",  # Log File
+            "markdown",  # Markdown File
+            "md",  # Markdown File
             "msi",  # Windows setup file
-            "odg",  #  OpenDocument Graphics (LibreOffice, OpenOffice)
-            "odp",  #  OpenDocument Presentation (LibreOffice, OpenOffice)
-            "ods",  #  OpenDocument Spreadsheet (LibreOffice, OpenOffice)
-            "odt",  #  OpenDocument Text (LibreOffice, OpenOffice)
-            "pdf",  #  Adobe Portable Document Format
-            "pem",  #  Privacy Enhanced Mail (SSL certificate)
-            "png",  #  Portable Network Graphics Image
-            "pps",  #  Microsoft PowerPoint Slideshow (Old Format)
-            "ppsx",  #  Microsoft PowerPoint Slideshow
-            "ppt",  #  Microsoft PowerPoint Presentation (Old Format)
-            "pptx",  #  Microsoft PowerPoint Presentation
-            "ps1",  #  PowerShell Script
-            "raw",  #  Raw Image File Format
-            "rdp",  #  Remote Desktop Protocol File
-            "sh",  #  Shell Script
-            "sql",  #  SQL Database Dump
-            "swp",  #  Swap File (temporary file, often Vim)
-            "sxw",  #  OpenOffice.org Writer document
-            "tar",  #  Tar Archive
+            "odg",  # OpenDocument Graphics (LibreOffice, OpenOffice)
+            "odp",  # OpenDocument Presentation (LibreOffice, OpenOffice)
+            "ods",  # OpenDocument Spreadsheet (LibreOffice, OpenOffice)
+            "odt",  # OpenDocument Text (LibreOffice, OpenOffice)
+            "pdf",  # Adobe Portable Document Format
+            "pem",  # Privacy Enhanced Mail (SSL certificate)
+            "png",  # Portable Network Graphics Image
+            "pps",  # Microsoft PowerPoint Slideshow (Old Format)
+            "ppsx",  # Microsoft PowerPoint Slideshow
+            "ppt",  # Microsoft PowerPoint Presentation (Old Format)
+            "pptx",  # Microsoft PowerPoint Presentation
+            "ps1",  # PowerShell Script
+            "raw",  # Raw Image File Format
+            "rdp",  # Remote Desktop Protocol File
+            "sh",  # Shell Script
+            "sql",  # SQL Database Dump
+            "swp",  # Swap File (temporary file, often Vim)
+            "sxw",  # OpenOffice.org Writer document
+            "tar",  # Tar Archive
             "tar.gz",  # Gzip-Compressed Tar Archive
-            "zip",  #  Zip Archive
-            "txt",  #  Plain Text Document
-            "vbs",  #  Visual Basic Script
-            "wpd",  #  WordPerfect Document
-            "xls",  #  Microsoft Excel Spreadsheet (Old Format)
-            "xlsx",  #  Microsoft Excel Spreadsheet
-            "xml",  #  eXtensible Markup Language File
-            "yml",  #  YAML Ain't Markup Language
-            "yaml",  #  YAML Ain't Markup Language
+            "zip",  # Zip Archive
+            "txt",  # Plain Text Document
+            "vbs",  # Visual Basic Script
+            "wpd",  # WordPerfect Document
+            "xls",  # Microsoft Excel Spreadsheet (Old Format)
+            "xlsx",  # Microsoft Excel Spreadsheet
+            "xml",  # eXtensible Markup Language File
+            "yml",  # YAML Ain't Markup Language
+            "yaml",  # YAML Ain't Markup Language
         ],
         "max_filesize": "10MB",
     }
@@ -80,7 +80,9 @@ class filedownload(BaseModule):
     scope_distance_modifier = 1
 
     async def setup(self):
-        self.extensions = list(set([e.lower().strip(".") for e in self.options.get("extensions", [])]))
+        self.extensions = list(
+            {e.lower().strip(".") for e in self.options.get("extensions", [])}
+        )
         self.max_filesize = self.options.get("max_filesize", "10MB")
         self.download_dir = self.scan.home / "filedownload"
         self.helpers.mkdir(self.download_dir)
@@ -116,8 +118,7 @@ class filedownload(BaseModule):
             if any(url_lower.endswith(f".{e}") for e in self.extensions):
                 await self.download_file(event.data)
         elif event.type == "HTTP_RESPONSE":
-            content_type = event.data["header"].get("content_type", "")
-            if content_type:
+            if content_type := event.data["header"].get("content_type", ""):
                 url = event.data["url"]
                 await self.download_file(url, content_type=content_type)
 
@@ -137,18 +138,14 @@ class filedownload(BaseModule):
         url_path = parsed_url.path.strip("/")
         # try to get extension from URL path
         extension = Path(url_path).suffix.strip(".").lower()
-        if extension:
-            url_stem = url.rsplit(".", 1)[0]
-        else:
-            url_stem = str(url)
+        url_stem = url.rsplit(".", 1)[0] if extension else str(url)
         filename = f"{self.helpers.make_date()}_{self.helpers.tagify(url_stem)}"
         if not url_path:
             url_path = "unknown"
             filename = f"{filename}-{url_path}"
         # if that fails, try to get it from content type
-        if not extension:
-            if content_type and content_type in self.mime_db:
-                extension = self.mime_db[content_type]
+        if not extension and (content_type and content_type in self.mime_db):
+            extension = self.mime_db[content_type]
 
         if (not extension) or (extension not in self.extensions):
             self.debug(f'Extension "{extension}" at url "{url}" not in list of watched extensions.')

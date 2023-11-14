@@ -98,12 +98,7 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
                 continue
             if not line:
                 break
-            if text:
-                line = smart_decode(line).rstrip("\r\n")
-            else:
-                line = line.rstrip(b"\r\n")
-            yield line
-
+            yield smart_decode(line).rstrip("\r\n") if text else line.rstrip(b"\r\n")
         if input_task is not None:
             try:
                 await input_task
@@ -178,17 +173,18 @@ async def _write_stdin(proc, _input):
         proc (subprocess.Popen): An active subprocess object.
         _input (str, bytes, list, tuple, async generator): The data to write to stdin.
     """
-    if _input is not None:
-        if isinstance(_input, (str, bytes)):
-            _input = [_input]
-        if isinstance(_input, (list, tuple)):
-            for chunk in _input:
-                proc.stdin.write(smart_encode(chunk) + b"\n")
-        else:
-            async for chunk in _input:
-                proc.stdin.write(smart_encode(chunk) + b"\n")
-        await proc.stdin.drain()
-        proc.stdin.close()
+    if _input is None:
+        return
+    if isinstance(_input, (str, bytes)):
+        _input = [_input]
+    if isinstance(_input, (list, tuple)):
+        for chunk in _input:
+            proc.stdin.write(smart_encode(chunk) + b"\n")
+    else:
+        async for chunk in _input:
+            proc.stdin.write(smart_encode(chunk) + b"\n")
+    await proc.stdin.drain()
+    proc.stdin.close()
 
 
 def _prepare_command_kwargs(self, command, kwargs):
@@ -215,11 +211,11 @@ def _prepare_command_kwargs(self, command, kwargs):
         (['sudo', '-E', '-A', 'LD_LIBRARY_PATH=...', 'PATH=...', 'ls', '-l'], {'limit': 104857600, 'stdout': -1, 'stderr': -1, 'env': environ(...)})
     """
     # limit = 100MB (this is needed for cases like httpx that are sending large JSON blobs over stdout)
-    if not "limit" in kwargs:
+    if "limit" not in kwargs:
         kwargs["limit"] = 1024 * 1024 * 100
-    if not "stdout" in kwargs:
+    if "stdout" not in kwargs:
         kwargs["stdout"] = asyncio.subprocess.PIPE
-    if not "stderr" in kwargs:
+    if "stderr" not in kwargs:
         kwargs["stderr"] = asyncio.subprocess.PIPE
     sudo = kwargs.pop("sudo", False)
 

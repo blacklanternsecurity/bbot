@@ -261,7 +261,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         fuzzy=True,
         exclude_keys="modules",
     )
-    assert not "secrets_db" in filtered_dict4["modules"]
+    assert "secrets_db" not in filtered_dict4["modules"]
     assert "ipneighbor" in filtered_dict4["modules"]
     assert "secret" in filtered_dict4["modules"]["ipneighbor"]
     assert "asdf" not in filtered_dict4["modules"]["ipneighbor"]
@@ -372,8 +372,8 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     # urls
     assert helpers.validators.validate_url(" httP://evilcorP.com/asdf?a=b&c=d#e") == "http://evilcorp.com/asdf"
     assert (
-        helpers.validators.validate_url_parsed(" httP://evilcorP.com/asdf?a=b&c=d#e").geturl()
-        == "http://evilcorp.com/asdf"
+            helpers.validators.validate_url_parsed(" httP://evilcorP.com/asdf?a=b&c=d#e").geturl()
+            == "http://evilcorp.com/asdf"
     )
     assert helpers.validators.soft_validate(" httP://evilcorP.com/asdf?a=b&c=d#e", "url") == True
     assert helpers.validators.soft_validate("!@#$", "url") == False
@@ -409,15 +409,16 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.recursive_decode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021") == " Привет!"
     assert helpers.recursive_decode("Hello%2520world%2521") == "Hello world!"
     assert (
-        helpers.recursive_decode("Hello%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442")
-        == "Hello Привет"
+            helpers.recursive_decode("Hello%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442")
+            == "Hello Привет"
     )
     assert (
-        helpers.recursive_decode("%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021")
-        == " Привет!"
+            helpers.recursive_decode("%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021")
+            == " Привет!"
     )
     assert (
-        helpers.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText") == "Hello\nWorld\tGreetings\nMore\nText"
+            helpers.recursive_decode(
+                r"Hello\\nWorld\\\tGreetings\\\\nMore\nText") == "Hello\nWorld\tGreetings\nMore\nText"
     )
 
     ### CACHE ###
@@ -497,30 +498,29 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     items = ["a", "b", "c", "d", "e"]
     first_frequencies = {i: 0 for i in items}
     weights = [1, 2, 3, 4, 5]
-    for i in range(10000):
+    for _ in range(10000):
         shuffled = helpers.weighted_shuffle(items, weights)
         first = shuffled[0]
         first_frequencies[first] += 1
     assert (
-        first_frequencies["a"]
-        < first_frequencies["b"]
-        < first_frequencies["c"]
-        < first_frequencies["d"]
-        < first_frequencies["e"]
+            first_frequencies["a"]
+            < first_frequencies["b"]
+            < first_frequencies["c"]
+            < first_frequencies["d"]
+            < first_frequencies["e"]
     )
 
 
 def test_word_cloud(helpers, bbot_config, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
-    assert "base0_p013" in number_mutations
-    assert "base7_p013" in number_mutations
-    assert "base8_p013" not in number_mutations
+    assert_number_mutations_presence(
+        "base0_p013", number_mutations, "base7_p013", "base8_p013"
+    )
     assert "base2_p008" in number_mutations
     assert "base2_p007" not in number_mutations
-    assert "base2_p018" in number_mutations
-    assert "base2_p0134" in number_mutations
-    assert "base2_p0135" not in number_mutations
-
+    assert_number_mutations_presence(
+        "base2_p018", number_mutations, "base2_p0134", "base2_p0135"
+    )
     permutations = helpers.word_cloud.mutations("_base", numbers=1)
     assert ("_base", "dev") in permutations
     assert ("dev", "_base") in permutations
@@ -528,20 +528,12 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     # saving and loading
     scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
     word_cloud = scan1.helpers.word_cloud
-    word_cloud.add_word("lantern")
-    word_cloud.add_word("black")
-    word_cloud.add_word("black")
+    add_words_to_mutator(word_cloud, "lantern", "black", "black")
     word_cloud.save()
-    with open(word_cloud.default_filename) as f:
-        word_cloud_content = [l.rstrip() for l in f.read().splitlines()]
-    assert len(word_cloud_content) == 2
-    assert "2\tblack" in word_cloud_content
+    word_cloud_content = assert_word_cloud_file_content(word_cloud, 2)
     assert "1\tlantern" in word_cloud_content
     word_cloud.save(limit=1)
-    with open(word_cloud.default_filename) as f:
-        word_cloud_content = [l.rstrip() for l in f.read().splitlines()]
-    assert len(word_cloud_content) == 1
-    assert "2\tblack" in word_cloud_content
+    word_cloud_content = assert_word_cloud_file_content(word_cloud, 1)
     assert "1\tlantern" not in word_cloud_content
     word_cloud.clear()
     with open(word_cloud.default_filename, "w") as f:
@@ -570,9 +562,7 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     }
 
     m = DNSMutator()
-    m.add_word("blacklantern-security")
-    m.add_word("sec")
-    m.add_word("sec2")
+    add_words_to_mutator(m, "blacklantern-security", "sec", "sec2")
     m.add_word("black2")
     mutations = sorted(m.mutations("whitebasket"))
     assert mutations == sorted(
@@ -608,6 +598,26 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     )
     top_mutations = sorted(m.top_mutations().items(), key=lambda x: x[-1], reverse=True)
     assert top_mutations[:2] == [((None,), 4), ((None, "2"), 2)]
+
+
+def assert_number_mutations_presence(arg0, number_mutations, arg2, arg3):
+    assert arg0 in number_mutations
+    assert arg2 in number_mutations
+    assert arg3 not in number_mutations
+
+
+def add_words_to_mutator(arg0, arg1, arg2, arg3):
+    arg0.add_word(arg1)
+    arg0.add_word(arg2)
+    arg0.add_word(arg3)
+
+
+def assert_word_cloud_file_content(word_cloud, arg1):
+    with open(word_cloud.default_filename) as f:
+        result = [l.rstrip() for l in f.read().splitlines()]
+    assert len(result) == arg1
+    assert "2\tblack" in result
+    return result
 
 
 def test_names(helpers):

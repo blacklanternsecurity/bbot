@@ -1,43 +1,43 @@
-import os
-import re
-import sys
-import copy
-import idna
-import json
+import asyncio
 import atexit
 import codecs
-import psutil
+import contextlib
+import copy
+import difflib
+import inspect
+import ipaddress
+import json
+import os
+import platform
 import random
+import re
 import shutil
 import signal
 import string
-import asyncio
-import difflib
-import inspect
-import logging
-import platform
-import ipaddress
-import traceback
 import subprocess as sp
-from pathlib import Path
-from itertools import islice
-from datetime import datetime
-from tabulate import tabulate
-import wordninja as _wordninja
-from contextlib import suppress
-import cloudcheck as _cloudcheck
-import tldextract as _tldextract
+import sys
+import traceback
 import xml.etree.ElementTree as ET
-from collections.abc import Mapping
-from hashlib import sha1 as hashlib_sha1
 from asyncio import create_task, gather, sleep, wait_for  # noqa
+from collections.abc import Mapping
+from datetime import datetime
+from hashlib import sha1 as hashlib_sha1
+from itertools import islice
+from pathlib import Path
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
+import cloudcheck as _cloudcheck
+import idna
+import psutil
+import tldextract as _tldextract
+import wordninja as _wordninja
+from tabulate import tabulate
+
+from . import regexes as bbot_regexes
+from .logger import log_to_stderr
+from .names_generator import random_name, names, adjectives  # noqa F401
 from .url import *  # noqa F401
 from .. import errors
-from .logger import log_to_stderr
-from . import regexes as bbot_regexes
-from .names_generator import random_name, names, adjectives  # noqa F401
 
 log = logging.getLogger("bbot.core.helpers.misc")
 
@@ -67,9 +67,7 @@ def is_domain(d):
     """
     d, _ = split_host_port(d)
     extracted = tldextract(d)
-    if extracted.domain and not extracted.subdomain:
-        return True
-    return False
+    return bool(extracted.domain and not extracted.subdomain)
 
 
 def is_subdomain(d):
@@ -97,9 +95,7 @@ def is_subdomain(d):
     """
     d, _ = split_host_port(d)
     extracted = tldextract(d)
-    if extracted.domain and extracted.subdomain:
-        return True
-    return False
+    return bool(extracted.domain and extracted.subdomain)
 
 
 def is_ptr(d):
@@ -146,10 +142,7 @@ def is_url(u):
         False
     """
     u = str(u)
-    for r in bbot_regexes.event_type_regexes["URL"]:
-        if r.match(u):
-            return True
-    return False
+    return any(r.match(u) for r in bbot_regexes.event_type_regexes["URL"])
 
 
 uri_regex = re.compile(r"^([a-z0-9]{2,20})://", re.I)
@@ -184,9 +177,7 @@ def is_uri(u, return_scheme=False):
     """
     match = uri_regex.match(u)
     if return_scheme:
-        if match:
-            return match.groups()[0].lower()
-        return ""
+        return match.groups()[0].lower() if match else ""
     return bool(match)
 
 
@@ -382,7 +373,7 @@ def url_parents(u):
     parent_list = []
     while 1:
         parent = parent_url(u)
-        if parent == None:
+        if parent is None:
             return parent_list
         elif parent not in parent_list:
             parent_list.append(parent)
@@ -457,7 +448,9 @@ def domain_stem(domain):
         - Utilizes the `tldextract` function for domain parsing.
     """
     parsed = tldextract(str(domain))
-    return f".".join(parsed.subdomain.split(".") + parsed.domain.split(".")).strip(".")
+    return ".".join(
+        parsed.subdomain.split(".") + parsed.domain.split(".")
+    ).strip(".")
 
 
 def ip_network_parents(i, include_self=False):
@@ -527,9 +520,7 @@ def is_dns_name(d):
     d = smart_decode(d)
     if bbot_regexes.hostname_regex.match(d):
         return True
-    if bbot_regexes.dns_name_regex.match(d):
-        return True
-    return False
+    return bool(bbot_regexes.dns_name_regex.match(d))
 
 
 def is_ip(d, version=None):
@@ -553,15 +544,12 @@ def is_ip(d, version=None):
         >>> is_ip('evilcorp.com')
         False
     """
-    if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
-        if version is None or version == d.version:
-            return True
-    try:
+    if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)) and (version is None or version == d.version):
+        return True
+    with contextlib.suppress(Exception):
         ip = ipaddress.ip_address(d)
         if version is None or ip.version == version:
             return True
-    except Exception:
-        pass
     return False
 
 
@@ -583,7 +571,7 @@ def is_ip_type(i):
         >>> is_ip_type("192.168.1.0/24")
         False
     """
-    return isinstance(i, ipaddress._BaseV4) or isinstance(i, ipaddress._BaseV6)
+    return isinstance(i, (ipaddress._BaseV4, ipaddress._BaseV6))
 
 
 def make_ip_type(s):
@@ -666,13 +654,12 @@ def host_in_host(host1, host2):
     host2_ip_type = is_ip_type(host2)
     # if both hosts are IP types
     if host1_ip_type and host2_ip_type:
-        if not host1.version == host2.version:
+        if host1.version != host2.version:
             return False
         host1_net = ipaddress.ip_network(host1)
         host2_net = ipaddress.ip_network(host2)
         return host1_net.subnet_of(host2_net)
 
-    # else hostnames
     elif not (host1_ip_type or host2_ip_type):
         host2_len = len(host2.split("."))
         host1_truncated = ".".join(host1.split(".")[-host2_len:])
@@ -851,10 +838,7 @@ def extract_params_json(json_data):
                 if isinstance(value, (dict, list)):
                     stack.append(value)
         elif isinstance(current_data, list):
-            for item in current_data:
-                if isinstance(item, (dict, list)):
-                    stack.append(item)
-
+            stack.extend(item for item in current_data if isinstance(item, (dict, list)))
     return keys
 
 
@@ -887,8 +871,7 @@ def extract_params_xml(xml_data):
     while stack:
         current_element = stack.pop()
         tags.add(current_element.tag)
-        for child in current_element:
-            stack.append(child)
+        stack.extend(iter(current_element))
     return tags
 
 
@@ -931,9 +914,7 @@ def extract_params_html(html_data):
         log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
         yield i
 
-    # check for jquery post parameters
-    jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
-    if jquery_post:
+    if jquery_post := bbot_regexes.jquery_post_regex.findall(html_data):
         for i in jquery_post:
             for x in i.split(","):
                 s = x.split(":")[0].rstrip()
@@ -995,9 +976,8 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
         #        subword_slice = "".join(subwords[s:e])
         #        words.add(subword_slice)
         # blacklanternsecurity --> bls
-        if acronyms:
-            if len(subwords) > 1:
-                words.add("".join([c[0] for c in subwords if len(c) > 0]))
+        if acronyms and len(subwords) > 1:
+            words.add("".join([c[0] for c in subwords if len(c) > 0]))
 
     return words
 
@@ -1026,9 +1006,7 @@ def closest_match(s, choices, n=1, cutoff=0.0):
     matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
     if not choices or not matches:
         return
-    if n == 1:
-        return matches[0]
-    return matches
+    return matches[0] if n == 1 else matches
 
 
 def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
@@ -1126,7 +1104,7 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
         >>> chain_lists(["a,file.txt", "c,d"], try_files=True)
         ['a', 'f_line1', 'f_line2', 'f_line3', 'c', 'd']
     """
-    final_list = dict()
+    final_list = {}
     for entry in l:
         for s in entry.split(","):
             f = s.strip()
@@ -1274,9 +1252,7 @@ def make_netloc(host, port):
     """
     if is_ip(host, version=6):
         host = f"[{host}]"
-    if port is None:
-        return host
-    return f"{host}:{port}"
+    return host if port is None else f"{host}:{port}"
 
 
 def which(*executables):
@@ -1293,8 +1269,7 @@ def which(*executables):
         "/usr/bin/python"
     """
     for e in executables:
-        location = shutil.which(e)
-        if location:
+        if location := shutil.which(e):
             return location
 
 
@@ -1373,8 +1348,8 @@ def search_dict_values(d, *regexes):
         ["https://www.evilcorp.com"]
     """
 
-    results = set()
     if isinstance(d, str):
+        results = set()
         for r in regexes:
             for match in r.finditer(d):
                 result = match.group()
@@ -1418,11 +1393,16 @@ def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
     if isinstance(d, dict):
         for key in d:
             if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if not any(k in exclude_keys for k in [key, _prev_key]):
+                if all(k not in exclude_keys for k in [key, _prev_key]):
                     ret[key] = copy.deepcopy(d[key])
-            elif isinstance(d[key], list) or isinstance(d[key], dict):
-                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
-                if child:
+            elif isinstance(d[key], (list, dict)):
+                if child := filter_dict(
+                    d[key],
+                    *key_names,
+                    fuzzy=fuzzy,
+                    _prev_key=key,
+                    exclude_keys=exclude_keys,
+                ):
                     ret[key] = child
     return ret
 
@@ -1494,7 +1474,7 @@ def split_list(alist, wanted_parts=2):
         [[1, 2], [3, 4, 5]]
     """
     length = len(alist)
-    return [alist[i * length // wanted_parts : (i + 1) * length // wanted_parts] for i in range(wanted_parts)]
+    return [alist[i * length // wanted_parts: (i + 1) * length // wanted_parts] for i in range(wanted_parts)]
 
 
 def mkdir(path, check_writable=True, raise_error=True):
@@ -1526,7 +1506,9 @@ def mkdir(path, check_writable=True, raise_error=True):
         return True
     except Exception as e:
         if raise_error:
-            raise errors.DirectoryCreationError(f"Failed to create directory at {path}: {e}")
+            raise errors.DirectoryCreationError(
+                f"Failed to create directory at {path}: {e}"
+            ) from e
     finally:
         with suppress(Exception):
             touchfile.unlink()
@@ -1583,10 +1565,7 @@ def get_file_extension(s):
     """
     s = str(s).lower().strip()
     rightmost_section = s.rsplit("/", 1)[-1]
-    if "." in rightmost_section:
-        extension = rightmost_section.rsplit(".", 1)[-1]
-        return extension
-    return ""
+    return rightmost_section.rsplit(".", 1)[-1] if "." in rightmost_section else ""
 
 
 def backup_file(filename, max_backups=10):
@@ -1643,12 +1622,8 @@ def latest_mtime(d):
     """
     d = Path(d).resolve()
     mtimes = [d.lstat().st_mtime]
-    if d.is_dir():
-        to_list = d.glob("**/*")
-    else:
-        to_list = [d]
-    for e in to_list:
-        mtimes.append(e.lstat().st_mtime)
+    to_list = d.glob("**/*") if d.is_dir() else [d]
+    mtimes.extend(e.lstat().st_mtime for e in to_list)
     return max(mtimes)
 
 
@@ -1669,9 +1644,7 @@ def filesize(f):
         1024
     """
     f = Path(f)
-    if f.is_file():
-        return f.stat().st_size
-    return 0
+    return f.stat().st_size if f.is_file() else 0
 
 
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):
@@ -1705,7 +1678,7 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
         except Exception as e:
             msg = f"Failed to delete directory: {path}, {e}"
             if raise_error:
-                raise errors.DirectoryDeletionError()
+                raise errors.DirectoryDeletionError() from e
             log.warning(msg)
 
 
@@ -1763,12 +1736,10 @@ def extract_host(s):
         )
     """
     s = smart_decode(s)
-    match = bbot_regexes.extract_host_regex.search(s)
-
-    if match:
+    if match := bbot_regexes.extract_host_regex.search(s):
         hostname = match.group(1)
         before = s[: match.start(1)]
-        after = s[match.end(1) :]
+        after = s[match.end(1):]
         host, port = split_host_port(hostname)
         netloc = make_netloc(host, port)
         if netloc != hostname:
@@ -1794,11 +1765,8 @@ def smart_encode_punycode(text: str) -> str:
     if host is None:
         return text
 
-    try:
+    with contextlib.suppress(UnicodeError):
         host = idna.encode(host).decode(errors="ignore")
-    except UnicodeError:
-        pass  # If encoding fails, leave the host as it is
-
     return f"{before}{host}{after}"
 
 
@@ -1810,11 +1778,8 @@ def smart_decode_punycode(text: str) -> str:
     if host is None:
         return text
 
-    try:
+    with contextlib.suppress(UnicodeError):
         host = idna.decode(host)
-    except UnicodeError:
-        pass  # If decoding fails, leave the host as it is
-
     return f"{before}{host}{after}"
 
 
@@ -1903,9 +1868,9 @@ def make_table(*args, **kwargs):
     tablefmt = os.environ.get("BBOT_TABLE_FORMAT", None)
     defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": None}
     if tablefmt is None:
-        defaults.update({"maxcolwidths": 40})
+        defaults["maxcolwidths"] = 40
     else:
-        defaults.update({"tablefmt": tablefmt})
+        defaults["tablefmt"] = tablefmt
     for k, v in defaults.items():
         if k not in kwargs:
             kwargs[k] = v
@@ -1945,9 +1910,7 @@ def human_timedelta(d):
         result.append(f"{minutes:,} minute" + ("s" if minutes > 1 else ""))
     if seconds:
         result.append(f"{seconds:,} second" + ("s" if seconds > 1 else ""))
-    ret = ", ".join(result)
-    if not ret:
-        ret = "0 seconds"
+    ret = ", ".join(result) or "0 seconds"
     return ret
 
 
@@ -1969,15 +1932,10 @@ def bytes_to_human(_bytes):
         '1.15GB'
     """
     sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
-    units = {}
-    for count, size in enumerate(sizes):
-        units[size] = pow(1024, count)
+    units = {size: pow(1024, count) for count, size in enumerate(sizes)}
     for size in sizes:
         if abs(_bytes) < 1024.0:
-            if size == sizes[0]:
-                _bytes = str(int(_bytes))
-            else:
-                _bytes = f"{_bytes:.2f}"
+            _bytes = str(int(_bytes)) if size == sizes[0] else f"{_bytes:.2f}"
             return f"{_bytes}{size}"
         _bytes /= 1024
     raise ValueError(f'Unable to convert "{_bytes}" to human filesize')
@@ -2015,14 +1973,12 @@ def human_to_bytes(filesize):
         if len(size) == 2:
             units[size[0]] = size_increment
     match = filesize_regex.match(filesize)
-    try:
+    with contextlib.suppress(KeyError):
         if match:
             num, size = match.groups()
             size = size.upper()
             size_increment = units[size]
             return int(float(num) * size_increment)
-    except KeyError:
-        pass
     raise ValueError(f'Unable to convert filesize "{filesize}" to bytes')
 
 
@@ -2078,9 +2034,7 @@ def os_platform_friendly():
         'macOS'
     """
     p = os_platform()
-    if p == "darwin":
-        return "macOS"
-    return p
+    return "macOS" if p == "darwin" else p
 
 
 tag_filter_regex = re.compile(r"[^a-z0-9]+")

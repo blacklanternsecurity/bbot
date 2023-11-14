@@ -42,10 +42,8 @@ class Ipstack(BaseModule):
         except Exception:
             self.verbose(f"Error retrieving results for {event.data}", trace=True)
             return
-        geo_data = {k: v for k, v in geo_data.items() if v is not None}
-        if geo_data:
+        if geo_data := {k: v for k, v in geo_data.items() if v is not None}:
             self.emit_event(geo_data, "GEOLOCATION", event)
         elif "error" in geo_data:
-            error_msg = geo_data.get("error").get("info", "")
-            if error_msg:
+            if error_msg := geo_data.get("error").get("info", ""):
                 self.warning(error_msg)

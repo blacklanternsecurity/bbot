@@ -27,9 +27,7 @@ class asn(BaseReportModule):
     async def filter_event(self, event):
         if str(event.module) == "ipneighbor":
             return False
-        if getattr(event.host, "is_private", False):
-            return False
-        return True
+        return not getattr(event.host, "is_private", False)
 
     async def handle_event(self, event):
         host = event.host
@@ -56,7 +54,7 @@ class asn(BaseReportModule):
             count = self.asn_counts[subnet]
             number = asn["asn"]
             if number != "UNKNOWN":
-                number = "AS" + number
+                number = f"AS{number}"
             name = asn["name"]
             country = asn["country"]
             description = asn["description"]
@@ -89,7 +87,7 @@ class asn(BaseReportModule):
         returns a list of ASNs, e.g.:
             [{'asn': '54113', 'subnet': '2606:50c0:8000::/48', 'name': 'FASTLY', 'description': 'Fastly', 'country': 'US', 'emails': []}, {'asn': '54113', 'subnet': '2606:50c0:8000::/46', 'name': 'FASTLY', 'description': 'Fastly', 'country': 'US', 'emails': []}]
         """
-        for attempt in range(retries + 1):
+        for _ in range(retries + 1):
             for i, source in enumerate(list(self.sources)):
                 get_asn_fn = getattr(self, f"get_asn_{source}")
                 res = await get_asn_fn(ip)
@@ -108,15 +106,11 @@ class asn(BaseReportModule):
         asns = []
         if response == False:
             return False
-        data = response.get("data", {})
-        if not data:
-            data = {}
+        data = response.get("data", {}) or {}
         prefix = data.get("prefix", "")
         asn_numbers = data.get("asns", [])
         if not prefix or not asn_numbers:
             return []
-        if not asn_numbers:
-            asn_numbers = []
         for number in asn_numbers:
             asn = await self.get_asn_metadata_ripe(number)
             if asn == False:
@@ -135,14 +129,10 @@ class asn(BaseReportModule):
         response = await self.get_url(url, "ASN Metadata", cache=True)
         if response == False:
             return False
-        data = response.get("data", {})
-        if not data:
-            data = {}
-        records = data.get("records", [])
-        if not records:
-            records = []
+        data = response.get("data", {}) or {}
+        records = data.get("records", []) or []
         emails = set()
-        asn = {k: "" for k in metadata_keys.keys()}
+        asn = {k: "" for k in metadata_keys}
         for record in records:
             for item in record:
                 key = item.get("key", "")
@@ -178,7 +168,7 @@ class asn(BaseReportModule):
             description = details.get("description") or prefix.get("description") or ""
             country = details.get("country_code") or prefix.get("country_code") or ""
             emails = []
-            if not asn in asns_tried:
+            if asn not in asns_tried:
                 emails = await self.get_emails_bgpview(asn)
                 if emails == False:
                     return False
@@ -213,9 +203,7 @@ class asn(BaseReportModule):
         data = {}
         try:
             j = r.json()
-            if not isinstance(j, dict):
-                return data
-            return j
+            return j if isinstance(j, dict) else data
         except Exception as e:
             self.verbose(f"Error retrieving {data_type} at {url}: {e}", trace=True)
             self.debug(f"Got data: {getattr(r, 'content', '')}")

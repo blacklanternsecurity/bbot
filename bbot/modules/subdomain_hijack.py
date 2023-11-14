@@ -45,19 +45,13 @@ class subdomain_hijack(BaseModule):
         if hijackable:
             source_hosts = []
             e = event
-            while 1:
-                host = getattr(e, "host", "")
-                if host:
-                    if e not in source_hosts:
-                        source_hosts.append(e)
-                    e = e.get_source()
-                else:
-                    break
-
+            while 1 and (host := getattr(e, "host", "")):
+                if e not in source_hosts:
+                    source_hosts.append(e)
+                e = e.get_source()
             url = f"https://{event.host}"
             description = f'Hijackable Subdomain "{event.data}": {reason}'
-            source_hosts = source_hosts[::-1]
-            if source_hosts:
+            if source_hosts := source_hosts[::-1]:
                 source_hosts_str = str(source_hosts[0].host)
                 for e in source_hosts[1:]:
                     source_hosts_str += f" -[{e.module.name}]-> {e.host}"
@@ -70,11 +64,11 @@ class subdomain_hijack(BaseModule):
         for f in self.fingerprints:
             for domain in f.domains:
                 self_matches = self.helpers.host_in_host(event.data, domain)
-                child_matches = any(self.helpers.host_in_host(domain, h) for h in event.resolved_hosts)
                 if event.type == "DNS_NAME_UNRESOLVED":
                     if self_matches and f.nxdomain:
                         return True, "NXDOMAIN"
                 else:
+                    child_matches = any(self.helpers.host_in_host(domain, h) for h in event.resolved_hosts)
                     if self_matches or child_matches:
                         for scheme in ("https", "http"):
                             if self.scan.stopping:
@@ -104,14 +98,14 @@ class subdomain_hijack(BaseModule):
                 return True, f"HTTP status == {fingerprint.http_status}"
             text = getattr(r, "text", "")
             if (
-                not fingerprint.nxdomain
-                and not fingerprint.http_status
-                and fingerprint.fingerprint_regex.findall(text)
+                    not fingerprint.nxdomain
+                    and not fingerprint.http_status
+                    and fingerprint.fingerprint_regex.findall(text)
             ):
                 return True, "Fingerprint match"
         except httpx.RequestError as e:
             if fingerprint.nxdomain and "Name or service not known" in str(e):
-                return True, f"NXDOMAIN"
+                return True, "NXDOMAIN"
         return False, "No match"
 
 
@@ -120,7 +114,7 @@ class Fingerprint:
         assert isinstance(fingerprint, dict), "fingerprint must be a dictionary"
         self.engine = fingerprint.get("service")
         self.cnames = fingerprint.get("cname", [])
-        self.domains = list(set([tldextract(c).registered_domain for c in self.cnames]))
+        self.domains = list({tldextract(c).registered_domain for c in self.cnames})
         self.http_status = fingerprint.get("http_status", None)
         self.nxdomain = fingerprint.get("nxdomain", False)
         self.vulnerable = fingerprint.get("vulnerable", False)

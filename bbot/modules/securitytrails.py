@@ -23,8 +23,7 @@ class securitytrails(shodan_dns):
 
     async def request_url(self, query):
         url = f"{self.base_url}/domain/{query}/subdomains?apikey={self.api_key}"
-        response = await self.request_with_fail_count(url)
-        return response
+        return await self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
         j = r.json()

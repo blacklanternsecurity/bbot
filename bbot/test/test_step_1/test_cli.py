@@ -1,3 +1,4 @@
+import contextlib
 from ..bbot_fixtures import *
 
 
@@ -53,11 +54,8 @@ async def test_cli(monkeypatch, bbot_config):
     task = asyncio.create_task(cli._main())
     await asyncio.sleep(2)
     task.cancel()
-    try:
+    with contextlib.suppress(asyncio.CancelledError):
         await task
-    except asyncio.CancelledError:
-        pass
-
     # no args
     monkeypatch.setattr("sys.argv", ["bbot"])
     await cli._main()

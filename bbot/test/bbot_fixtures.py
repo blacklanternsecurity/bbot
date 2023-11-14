@@ -14,13 +14,10 @@ from werkzeug.wrappers import Request
 
 class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
     def match_data(self, request: Request) -> bool:
-        if self.data is None:
-            return True
-        return self.data in request.data
+        return True if self.data is None else self.data in request.data
 
 
 pytest_httpserver.httpserver.RequestMatcher = SubstringRequestMatcher
-
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 if test_config.get("debug", False):
@@ -41,7 +38,7 @@ for h in root_logger.handlers:
 
 tldextract.extract("www.evilcorp.com")
 
-log = logging.getLogger(f"bbot.test.fixtures")
+log = logging.getLogger("bbot.test.fixtures")
 
 
 @pytest.fixture

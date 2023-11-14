@@ -10,17 +10,18 @@ def test_target(bbot_config, bbot_scanner):
     assert not scan5.target
     assert len(scan1.target) == 9
     assert len(scan4.target) == 8
-    assert "8.8.8.9" in scan1.target
-    assert "8.8.8.12" not in scan1.target
-    assert "8.8.8.8/31" in scan1.target
-    assert "8.8.8.8/30" in scan1.target
-    assert "8.8.8.8/29" not in scan1.target
-    assert "2001:4860:4860::8889" in scan1.target
+    assert_target_presence("8.8.8.9", scan1, "8.8.8.12", "8.8.8.8/31")
+    assert_target_presence(
+        "8.8.8.8/30", scan1, "8.8.8.8/29", "2001:4860:4860::8889"
+    )
     assert "2001:4860:4860::888c" not in scan1.target
     assert "www.api.publicapis.org" in scan1.target
-    assert "api.publicapis.org" in scan1.target
-    assert "publicapis.org" not in scan1.target
-    assert "bob@www.api.publicapis.org" in scan1.target
+    assert_target_presence(
+        "api.publicapis.org",
+        scan1,
+        "publicapis.org",
+        "bob@www.api.publicapis.org",
+    )
     assert "https://www.api.publicapis.org" in scan1.target
     assert "www.api.publicapis.org:80" in scan1.target
     assert scan1.make_event("https://[2001:4860:4860::8888]:80", dummy=True) in scan1.target
@@ -38,3 +39,9 @@ def test_target(bbot_config, bbot_scanner):
     assert scan1.target.get("2001:4860:4860::888c") is None
     assert str(scan1.target.get("www.api.publicapis.org").host) == "api.publicapis.org"
     assert scan1.target.get("publicapis.org") is None
+
+
+def assert_target_presence(arg0, scan1, arg2, arg3):
+    assert arg0 in scan1.target
+    assert arg2 not in scan1.target
+    assert arg3 in scan1.target

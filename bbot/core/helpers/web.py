@@ -52,15 +52,14 @@ class BBOTAsyncClient(httpx.AsyncClient):
         web_requests_per_second = self._bbot_scan.config.get("web_requests_per_second", 100)
         self._rate_limiter = RateLimiter(web_requests_per_second, "Web")
 
-        http_debug = self._bbot_scan.config.get("http_debug", None)
-        if http_debug:
+        if http_debug := self._bbot_scan.config.get("http_debug", None):
             log.debug(f"Creating AsyncClient: {args}, {kwargs}")
 
         self._persist_cookies = kwargs.pop("persist_cookies", True)
 
         # timeout
         http_timeout = self._bbot_scan.config.get("http_timeout", 20)
-        if not "timeout" in kwargs:
+        if "timeout" not in kwargs:
             kwargs["timeout"] = http_timeout
 
         # headers
@@ -95,9 +94,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
         return request
 
     def _merge_cookies(self, cookies):
-        if self._persist_cookies:
-            return super()._merge_cookies(cookies)
-        return cookies
+        return super()._merge_cookies(cookies) if self._persist_cookies else cookies
 
 
 class WebHelper:
@@ -222,7 +219,7 @@ class WebHelper:
 
         async with self._acatch(url, raise_error):
             if self.http_debug:
-                logstr = f"Web request: {str(args)}, {str(kwargs)}"
+                logstr = f"Web request: {str(args)}, {kwargs}"
                 log.debug(logstr)
             response = await client.request(*args, **kwargs)
             if self.http_debug:
@@ -263,8 +260,6 @@ class WebHelper:
         if max_size is not None:
             max_size = self.parent_helper.human_to_bytes(max_size)
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
-        total_size = 0
-        chunk_size = 8192
         log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
         if cache_hrs > 0 and self.parent_helper.is_cached(url):
             log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
@@ -273,8 +268,10 @@ class WebHelper:
             # kwargs["raise_error"] = True
             # kwargs["stream"] = True
             kwargs["follow_redirects"] = follow_redirects
-            if not "method" in kwargs:
+            if "method" not in kwargs:
                 kwargs["method"] = "GET"
+            total_size = 0
+            chunk_size = 8192
             try:
                 async with self._acatch(url, raise_error), self.AsyncClient().stream(url=url, **kwargs) as response:
                     status_code = getattr(response, "status_code", 0)
@@ -294,9 +291,7 @@ class WebHelper:
                                 f.write(chunk)
                         success = True
             except httpx.HTTPError as e:
-                log_fn = log.verbose
-                if warn:
-                    log_fn = log.warning
+                log_fn = log.warning if warn else log.verbose
                 log_fn(f"Failed to download {url}: {e}")
                 return
 
@@ -332,7 +327,7 @@ class WebHelper:
         """
         if not path:
             raise WordlistError(f"Invalid wordlist: {path}")
-        if not "cache_hrs" in kwargs:
+        if "cache_hrs" not in kwargs:
             kwargs["cache_hrs"] = 720
         if self.parent_helper.is_url(path):
             filename = await self.download(str(path), **kwargs)
@@ -345,16 +340,15 @@ class WebHelper:
 
         if lines is None:
             return filename
-        else:
-            lines = int(lines)
-            with open(filename) as f:
-                read_lines = f.readlines()
-            cache_key = f"{filename}:{lines}"
-            truncated_filename = self.parent_helper.cache_filename(cache_key)
-            with open(truncated_filename, "w") as f:
-                for line in read_lines[:lines]:
-                    f.write(line)
-            return truncated_filename
+        lines = int(lines)
+        with open(filename) as f:
+            read_lines = f.readlines()
+        cache_key = f"{filename}:{lines}"
+        truncated_filename = self.parent_helper.cache_filename(cache_key)
+        with open(truncated_filename, "w") as f:
+            for line in read_lines[:lines]:
+                f.write(line)
+        return truncated_filename
 
     async def api_page_iter(self, url, page_size=100, json=True, next_key=None, **requests_kwargs):
         """
@@ -451,8 +445,7 @@ class WebHelper:
 
         curl_command = ["curl", url, "-s"]
 
-        raw_path = kwargs.get("raw_path", False)
-        if raw_path:
+        if raw_path := kwargs.get("raw_path", False):
             curl_command.append("--path-as-is")
 
         # respect global ssl verify settings
@@ -461,9 +454,9 @@ class WebHelper:
 
         headers = kwargs.get("headers", {})
 
-        ignore_bbot_global_settings = kwargs.get("ignore_bbot_global_settings", False)
-
-        if ignore_bbot_global_settings:
+        if ignore_bbot_global_settings := kwargs.get(
+            "ignore_bbot_global_settings", False
+        ):
             log.debug("ignore_bbot_global_settings enabled. Global settings will not be applied")
         else:
             http_timeout = self.parent_helper.config.get("http_timeout", 20)
@@ -478,7 +471,7 @@ class WebHelper:
                     headers[hk] = hv
 
             # add the timeout
-            if not "timeout" in kwargs:
+            if "timeout" not in kwargs:
                 timeout = http_timeout
 
             curl_command.append("-m")
@@ -487,50 +480,36 @@ class WebHelper:
         for k, v in headers.items():
             if isinstance(v, list):
                 for x in v:
-                    curl_command.append("-H")
-                    curl_command.append(f"{k}: {x}")
-
+                    curl_command.extend(("-H", f"{k}: {x}"))
             else:
-                curl_command.append("-H")
-                curl_command.append(f"{k}: {v}")
-
+                curl_command.extend(("-H", f"{k}: {v}"))
         post_data = kwargs.get("post_data", {})
         if len(post_data.items()) > 0:
             curl_command.append("-d")
-            post_data_str = ""
-            for k, v in post_data.items():
-                post_data_str += f"&{k}={v}"
+            post_data_str = "".join(f"&{k}={v}" for k, v in post_data.items())
             curl_command.append(post_data_str.lstrip("&"))
 
-        method = kwargs.get("method", "")
-        if method:
+        if method := kwargs.get("method", ""):
             curl_command.append("-X")
             curl_command.append(method)
 
-        cookies = kwargs.get("cookies", "")
-        if cookies:
+        if cookies := kwargs.get("cookies", ""):
             curl_command.append("-b")
-            cookies_str = ""
-            for k, v in cookies.items():
-                cookies_str += f"{k}={v}; "
+            cookies_str = "".join(f"{k}={v}; " for k, v in cookies.items())
             curl_command.append(f'{cookies_str.rstrip(" ")}')
 
-        path_override = kwargs.get("path_override", None)
-        if path_override:
+        if path_override := kwargs.get("path_override", None):
             curl_command.append("--request-target")
             curl_command.append(f"{path_override}")
 
-        head_mode = kwargs.get("head_mode", None)
-        if head_mode:
+        if head_mode := kwargs.get("head_mode", None):
             curl_command.append("-I")
 
-        raw_body = kwargs.get("raw_body", None)
-        if raw_body:
+        if raw_body := kwargs.get("raw_body", None):
             curl_command.append("-d")
             curl_command.append(raw_body)
 
-        output = (await self.parent_helper.run(curl_command)).stdout
-        return output
+        return (await self.parent_helper.run(curl_command)).stdout
 
     def is_spider_danger(self, source_event, url):
         """
@@ -561,9 +540,7 @@ class WebHelper:
         web_spider_depth = self.parent_helper.scan.config.get("web_spider_depth", 1)
         spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
         web_spider_distance = self.parent_helper.scan.config.get("web_spider_distance", 0)
-        if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
-            return True
-        return False
+        return url_depth > web_spider_depth or spider_distance > web_spider_distance
 
     def ssl_context_noverify(self):
         if self._ssl_context_noverify is None:
@@ -608,13 +585,13 @@ class WebHelper:
             log.trace(msg)
             log.trace(traceback.format_exc())
             if raise_error:
-                raise httpx.RequestError(msg)
+                raise httpx.RequestError(msg) from e
         except anyio.EndOfStream as e:
             msg = f"AnyIO error with request to URL: {url}: {e}"
             log.trace(msg)
             log.trace(traceback.format_exc())
             if raise_error:
-                raise httpx.RequestError(msg)
+                raise httpx.RequestError(msg) from e
         except BaseException as e:
             log.trace(f"Unhandled exception with request to URL: {url}: {e}")
             log.trace(traceback.format_exc())

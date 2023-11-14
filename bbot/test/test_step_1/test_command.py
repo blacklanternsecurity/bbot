@@ -75,13 +75,13 @@ async def test_command(bbot_scanner, bbot_config):
     # test piping
     lines = []
     async for line in scan1.helpers.run_live(
-        ["cat"], input=scan1.helpers.run_live(["echo", "-en", r"some\nrandom\nstdin"])
+            ["cat"], input=scan1.helpers.run_live(["echo", "-en", r"some\nrandom\nstdin"])
     ):
         lines.append(line)
     assert lines == ["some", "random", "stdin"]
     lines = []
     async for line in scan1.helpers.run_live(
-        ["cat"], input=scan1.helpers.run_live(["echo", "-en", r"some\nrandom\nstdin"], text=False), text=False
+            ["cat"], input=scan1.helpers.run_live(["echo", "-en", r"some\nrandom\nstdin"], text=False), text=False
     ):
         lines.append(line)
     assert lines == [b"some", b"random", b"stdin"]

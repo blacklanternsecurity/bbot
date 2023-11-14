@@ -6,8 +6,7 @@ from .base import ModuleTestBase
 
 def extract_subdomain_tag(data):
     pattern = r"([a-z0-9]{4})\.fakedomain\.fakeinteractsh\.com"
-    match = re.search(pattern, data)
-    if match:
+    if match := re.search(pattern, data):
         return match.group(1)
 
 
@@ -26,12 +25,12 @@ class TestHost_Header(ModuleTestBase):
             self.interactsh_mock_instance.mock_interaction(subdomain_tag)
             return Response(f"Alive, host is: {subdomain_tag}.{self.fake_host}", status=200)
 
-        # Host Header Overrides
-        subdomain_tag_overrides = extract_subdomain_tag(request.headers["X-Forwarded-For"])
-        if subdomain_tag_overrides:
+        if subdomain_tag_overrides := extract_subdomain_tag(
+                request.headers["X-Forwarded-For"]
+        ):
             return Response(f"Alive, host is: {subdomain_tag}.{self.fake_host}", status=200)
 
-        return Response(f"Alive, host is: defaulthost.com", status=200)
+        return Response("Alive, host is: defaulthost.com", status=200)
 
     async def setup_before_prep(self, module_test):
         self.interactsh_mock_instance = module_test.request_fixture.getfixturevalue("interactsh_mock_instance")

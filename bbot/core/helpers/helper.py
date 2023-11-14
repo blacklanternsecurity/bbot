@@ -13,7 +13,6 @@ from ...scanner.target import Target
 from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
 
-
 log = logging.getLogger("bbot.core.helpers")
 
 
@@ -156,9 +155,9 @@ class ConfigAwareHelper:
                     try:
                         # then try web
                         return getattr(self.web, attr)
-                    except AttributeError:
+                    except AttributeError as e:
                         # then die
-                        raise AttributeError(f'Helper has no attribute "{attr}"')
+                        raise AttributeError(f'Helper has no attribute "{attr}"') from e
 
 
 class DummyModule(BaseModule):

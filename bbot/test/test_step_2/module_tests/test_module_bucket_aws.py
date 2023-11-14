@@ -78,8 +78,8 @@ class Bucket_AWS_Base(ModuleTestBase):
                 if e.type == "FINDING" and str(e.module) == f"bucket_{self.provider}":
                     url = e.data.get("url", "")
                     assert self.random_bucket_2 in url
-                    assert not self.random_bucket_1 in url
-                    assert not f"{self.random_bucket_3}" in url
+                    assert self.random_bucket_1 not in url
+                    assert f"{self.random_bucket_3}" not in url
         # make sure bucket mutations were found
         assert any(
             e.type == "STORAGE_BUCKET"

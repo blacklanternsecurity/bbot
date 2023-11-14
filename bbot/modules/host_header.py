@@ -31,8 +31,7 @@ class host_header(BaseModule):
         return self.helpers.rand_string(*args, **kwargs)
 
     def interactsh_callback(self, r):
-        full_id = r.get("full-id", None)
-        if full_id:
+        if full_id := r.get("full-id", None):
             if "." in full_id:
                 match = self.subdomain_tags.get(full_id.split(".")[0])
                 if match is None:
@@ -132,7 +131,7 @@ class host_header(BaseModule):
                 {
                     "host": str(event.host),
                     "url": event.data["url"],
-                    "description": f"Duplicate Host Header Tolerated",
+                    "description": "Duplicate Host Header Tolerated",
                 },
                 "FINDING",
                 event,

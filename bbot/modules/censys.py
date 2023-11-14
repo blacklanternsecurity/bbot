@@ -46,7 +46,7 @@ class censys(subdomain_enum_apikey):
                 "per_page": 100,
             }
             if cursor:
-                json_data.update({"cursor": cursor})
+                json_data |= {"cursor": cursor}
             resp = await self.helpers.request(
                 url,
                 method="POST",
@@ -61,16 +61,13 @@ class censys(subdomain_enum_apikey):
 
             if resp.status_code < 200 or resp.status_code >= 400:
                 if isinstance(d, dict):
-                    error = d.get("error", "")
-                    if error:
+                    if error := d.get("error", ""):
                         self.warning(error)
-                self.verbose(f'Non-200 Status code: {resp.status_code} for query "{query}", page #{i+1}')
+                self.verbose(f'Non-200 Status code: {resp.status_code} for query "{query}", page #{i + 1}')
                 self.debug(f"Response: {resp.text}")
                 break
             else:
-                if d is None:
-                    break
-                elif not isinstance(d, dict):
+                if d is None or not isinstance(d, dict):
                     break
                 status = d.get("status", "").lower()
                 result = d.get("result", {})

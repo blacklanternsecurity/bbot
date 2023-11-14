@@ -13,4 +13,4 @@ class TestMassdns(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(e.data == "www.blacklanternsecurity.com" for e in events)
-        assert not any(e.data == "asdf.blacklanternsecurity.com" for e in events)
+        assert all(e.data != "asdf.blacklanternsecurity.com" for e in events)

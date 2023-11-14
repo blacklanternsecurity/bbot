@@ -48,10 +48,7 @@ class DepsInstaller:
         self.force_deps = self.parent_helper.config.get("force_deps", False)
         self.retry_deps = self.parent_helper.config.get("retry_deps", False)
         self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
-        self.venv = ""
-        if sys.prefix != sys.base_prefix:
-            self.venv = sys.prefix
-
+        self.venv = sys.prefix if sys.prefix != sys.base_prefix else ""
         self.all_modules_preloaded = module_loader.preloaded()
 
         self.ensure_root_lock = Lock()
@@ -86,35 +83,34 @@ class DepsInstaller:
                 if len(dependencies) <= 0:
                     log.debug(f'No setup to do for module "{m}"')
                     succeeded.append(m)
-                    continue
-                else:
-                    if success is None or (success is False and self.retry_deps) or self.force_deps:
-                        if not notified:
-                            log.hugeinfo(f"Installing module dependencies. Please be patient, this may take a while.")
-                            notified = True
-                        log.verbose(f'Installing dependencies for module "{m}"')
-                        # get sudo access if we need it
-                        if preloaded.get("sudo", False) == True:
-                            self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
-                        success = await self.install_module(m)
-                        self.setup_status[module_hash] = success
-                        if success or self.ignore_failed_deps:
-                            log.debug(f'Setup succeeded for module "{m}"')
-                            succeeded.append(m)
-                        else:
-                            log.warning(f'Setup failed for module "{m}"')
-                            failed.append(m)
+                elif success is None or (success is False and self.retry_deps) or self.force_deps:
+                    if not notified:
+                        log.hugeinfo(
+                            "Installing module dependencies. Please be patient, this may take a while."
+                        )
+                        notified = True
+                    log.verbose(f'Installing dependencies for module "{m}"')
+                    # get sudo access if we need it
+                    if preloaded.get("sudo", False) == True:
+                        self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
+                    success = await self.install_module(m)
+                    self.setup_status[module_hash] = success
+                    if success or self.ignore_failed_deps:
+                        log.debug(f'Setup succeeded for module "{m}"')
+                        succeeded.append(m)
                     else:
-                        if success or self.ignore_failed_deps:
-                            log.debug(
-                                f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
-                            )
-                            succeeded.append(m)
-                        else:
-                            log.warning(
-                                f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
-                            )
-                            failed.append(m)
+                        log.warning(f'Setup failed for module "{m}"')
+                        failed.append(m)
+                elif success or self.ignore_failed_deps:
+                    log.debug(
+                        f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
+                    )
+                    succeeded.append(m)
+                else:
+                    log.warning(
+                        f'Skipping dependency install for module "{m}" because it failed previously (--retry-deps to retry or --ignore-failed-deps to ignore)'
+                    )
+                    failed.append(m)
 
         finally:
             self.write_setup_status()
@@ -127,25 +123,17 @@ class DepsInstaller:
         success = True
         preloaded = self.all_modules_preloaded[module]
 
-        # ansible tasks
-        ansible_tasks = preloaded["deps"]["ansible"]
-        if ansible_tasks:
+        if ansible_tasks := preloaded["deps"]["ansible"]:
             success &= self.tasks(module, ansible_tasks)
 
-        # apt
-        deps_apt = preloaded["deps"]["apt"]
-        if deps_apt:
+        if deps_apt := preloaded["deps"]["apt"]:
             self.apt_install(deps_apt)
 
-        # shell
-        deps_shell = preloaded["deps"]["shell"]
-        if deps_shell:
+        if deps_shell := preloaded["deps"]["shell"]:
             success &= self.shell(module, deps_shell)
 
-        # pip
-        deps_pip = preloaded["deps"]["pip"]
         deps_pip_constraints = preloaded["deps"]["pip_constraints"]
-        if deps_pip:
+        if deps_pip := preloaded["deps"]["pip"]:
             success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
         return success
@@ -211,7 +199,7 @@ class DepsInstaller:
             command["cmd"] += f" && touch {command_status_file}"
             tasks.append(
                 {
-                    "name": f"{module}.deps_shell step {i+1}",
+                    "name": f"{module}.deps_shell step {i + 1}",
                     "ansible.builtin.shell": command,
                     "args": {"executable": "/bin/bash", "creates": str(command_status_file)},
                 }
@@ -220,7 +208,7 @@ class DepsInstaller:
         if success:
             log.info(f"Successfully ran {len(commands):,} shell commands")
         else:
-            log.warning(f"Failed to run shell dependencies")
+            log.warning("Failed to run shell dependencies")
         return success
 
     def tasks(self, module, tasks):
@@ -235,7 +223,7 @@ class DepsInstaller:
     def ansible_run(self, tasks=None, module=None, args=None, ansible_args=None):
         _ansible_args = {"ansible_connection": "local"}
         if ansible_args is not None:
-            _ansible_args.update(ansible_args)
+            _ansible_args |= ansible_args
         module_args = None
         if args:
             module_args = " ".join([f'{k}="{v}"' for k, v in args.items()])
@@ -243,19 +231,16 @@ class DepsInstaller:
         playbook = None
         if tasks:
             for task in tasks:
-                if "package" in task:
-                    # special case for macos
-                    if os_platform() == "darwin":
-                        # don't sudo brew
-                        task["become"] = False
-                        # brew doesn't support update_cache
-                        task["package"].pop("update_cache", "")
+                if "package" in task and os_platform() == "darwin":
+                    task["become"] = False
+                    # brew doesn't support update_cache
+                    task["package"].pop("update_cache", "")
             playbook = {"hosts": "all", "tasks": tasks}
             log.debug(json.dumps(playbook, indent=2))
         if self._sudo_password is not None:
             _ansible_args["ansible_become_password"] = self._sudo_password
         playbook_hash = self.parent_helper.sha1(str(playbook)).hexdigest()
-        data_dir = self.data_dir / (module if module else f"playbook_{playbook_hash}")
+        data_dir = self.data_dir / (module or f"playbook_{playbook_hash}")
         shutil.rmtree(data_dir, ignore_errors=True)
         self.parent_helper.mkdir(data_dir)
 
@@ -276,17 +261,18 @@ class DepsInstaller:
         log.debug(f"Ansible status: {res.status}")
         log.debug(f"Ansible return code: {res.rc}")
         success = res.status == "successful"
-        err = ""
-        for e in res.events:
-            # if self.ansible_debug and not success:
-            #    log.debug(json.dumps(e, indent=4))
-            if e["event"] == "runner_on_failed":
-                err = e["event_data"]["res"]["msg"]
-                break
+        err = next(
+            (
+                e["event_data"]["res"]["msg"]
+                for e in res.events
+                if e["event"] == "runner_on_failed"
+            ),
+            "",
+        )
         return success, err
 
     def read_setup_status(self):
-        setup_status = dict()
+        setup_status = {}
         if self.setup_status_cache.is_file():
             with open(self.setup_status_cache) as f:
                 with suppress(Exception):
@@ -315,16 +301,16 @@ class DepsInstaller:
                         log.warning("Incorrect password")
 
     def install_core_deps(self):
-        to_install = set()
         self._install_sudo_askpass()
         # ensure tldextract data is cached
         self.parent_helper.tldextract("evilcorp.co.uk")
         # command: package_name
         core_deps = {"unzip": "unzip", "curl": "curl"}
-        for command, package_name in core_deps.items():
-            if not self.parent_helper.which(command):
-                to_install.add(package_name)
-        if to_install:
+        if to_install := {
+            package_name
+            for command, package_name in core_deps.items()
+            if not self.parent_helper.which(command)
+        }:
             self.ensure_root()
             self.apt_install(list(to_install))
 

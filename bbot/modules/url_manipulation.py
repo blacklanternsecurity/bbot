@@ -32,9 +32,14 @@ class url_manipulation(BaseModule):
             ".pdf",
             ".gif",
         ]
-        for ext in extensions:
-            self.signatures.append(("GET", "{scheme}://{netloc}/{path}?%s=%s" % (self.rand_string, ext), False))
-
+        self.signatures.extend(
+            (
+                "GET",
+                "{scheme}://{netloc}/{path}?%s=%s" % (self.rand_string, ext),
+                False,
+            )
+            for ext in extensions
+        )
         self.allow_redirects = self.config.get("allow_redirects", True)
         return True
 
@@ -68,29 +73,26 @@ class url_manipulation(BaseModule):
                 if subject_response.text != None:
                     subject_content += subject_response.text
 
-                if self.rand_string not in subject_content:
-                    if match == False:
-                        if str(subject_response.status_code).startswith("2"):
-                            if "body" in reasons:
-                                reported_signature = f"Modified URL: {sig[1]}"
-                                description = f"Url Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
-                                self.emit_event(
-                                    {"description": description, "host": str(event.host), "url": event.data},
-                                    "FINDING",
-                                    source=event,
-                                )
-                        else:
-                            self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")
-                else:
+                if self.rand_string in subject_content:
                     self.debug("Ignoring positive result due to presence of parameter name in result")
+
+                elif match == False:
+                    if str(subject_response.status_code).startswith("2"):
+                        if "body" in reasons:
+                            reported_signature = f"Modified URL: {sig[1]}"
+                            description = f"Url Manipulation: [{','.join(reasons)}] Sig: [{reported_signature}]"
+                            self.emit_event(
+                                {"description": description, "host": str(event.host), "url": event.data},
+                                "FINDING",
+                                source=event,
+                            )
+                    else:
+                        self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")
 
     async def filter_event(self, event):
         accepted_status_codes = ["200", "301", "302"]
 
-        for c in accepted_status_codes:
-            if f"status-{c}" in event.tags:
-                return True
-        return False
+        return any(f"status-{c}" in event.tags for c in accepted_status_codes)
 
     def format_signature(self, sig, event):
         if sig[2] == True:

@@ -49,16 +49,12 @@ class ScanStats:
         for mname, mstat in self.module_stats.items():
             if mname == "TARGET" or mstat.module._stats_exclude:
                 continue
-            table_row = []
-            table_row.append(mname)
             produced_str = f"{mstat.produced_total:,}"
-            produced = sorted(mstat.produced.items(), key=lambda x: x[0])
-            if produced:
+            if produced := sorted(mstat.produced.items(), key=lambda x: x[0]):
                 produced_str += " (" + ", ".join(f"{c:,} {t}" for t, c in produced) + ")"
-            table_row.append(produced_str)
+            table_row = [mname, produced_str]
             consumed_str = f"{mstat.consumed_total:,}"
-            consumed = sorted(mstat.consumed.items(), key=lambda x: x[0])
-            if consumed:
+            if consumed := sorted(mstat.consumed.items(), key=lambda x: x[0]):
                 consumed_str += " (" + ", ".join(f"{c:,} {t}" for t, c in consumed) + ")"
             table_row.append(consumed_str)
             table.append(table_row)

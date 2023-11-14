@@ -28,8 +28,7 @@ class HTTP(BaseOutputModule):
         self.method = self.config.get("method", "POST")
         self.timeout = self.config.get("timeout", 10)
         self.headers = {}
-        bearer = self.config.get("bearer", "")
-        if bearer:
+        if bearer := self.config.get("bearer", ""):
             self.headers["Authorization"] = f"Bearer {bearer}"
         username = self.config.get("username", "")
         password = self.config.get("password", "")

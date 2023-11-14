@@ -85,7 +85,11 @@ class ModuleTestBase:
             self.events = []
             self.log = logging.getLogger(f"bbot.test.{module_test_base.name}")
 
-        def set_expect_requests(self, expect_args={}, respond_args={}):
+        def set_expect_requests(self, expect_args=None, respond_args=None):
+            if expect_args is None:
+                expect_args = {}
+            if respond_args is None:
+                respond_args = {}
             if "uri" not in expect_args:
                 expect_args["uri"] = "/"
             self.httpserver.expect_request(**expect_args).respond_with_data(**respond_args)
@@ -115,8 +119,7 @@ class ModuleTestBase:
         self.check(module_test, module_test.events)
         module_test.log.info(f"Finished {self.name} module test")
         current_task = asyncio.current_task()
-        tasks = [t for t in asyncio.all_tasks() if t != current_task]
-        if len(tasks) > 0:
+        if tasks := [t for t in asyncio.all_tasks() if t != current_task]:
             module_test.log.info(f"Unfinished tasks detected: {tasks}")
 
     def check(self, module_test, events):
@@ -138,9 +141,7 @@ class ModuleTestBase:
 
     @property
     def modules(self):
-        if self.modules_overrides:
-            return self.modules_overrides
-        return [self.name]
+        return self.modules_overrides or [self.name]
 
     async def setup_before_prep(self, module_test):
         pass

@@ -6,7 +6,7 @@ class TestBuiltWith(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://api.builtwith.com/v20/api.json?KEY=asdf&LOOKUP=blacklanternsecurity.com&NOMETA=yes&NOATTR=yes&HIDETEXT=yes&HIDEDL=yes",
+            url="https://api.builtwith.com/v20/api.json?KEY=asdf&LOOKUP=blacklanternsecurity.com&NOMETA=yes&NOATTR=yes&HIDETEXT=yes&HIDEDL=yes",
             json={
                 "Results": [
                     {
@@ -91,7 +91,7 @@ class TestBuiltWith(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url=f"https://api.builtwith.com/redirect1/api.json?KEY=asdf&LOOKUP=blacklanternsecurity.com",
+            url="https://api.builtwith.com/redirect1/api.json?KEY=asdf&LOOKUP=blacklanternsecurity.com",
             json={
                 "Lookup": "blacklanternsecurity.com",
                 "Inbound": [

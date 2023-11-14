@@ -49,20 +49,24 @@ trailer <</Root 1 0 R>>"""
     def check(self, module_test, events):
         download_dir = module_test.scan.home / "filedownload"
 
-        # text file
-        text_files = list(download_dir.glob("*test-file.txt"))
-        assert len(text_files) == 1, f"No text file found at {download_dir}"
-        file = text_files[0]
-        assert file.is_file(), f"File not found at {file}"
+        file = self.assert_single_file_presence(
+            download_dir, "*test-file.txt", 'No text file found at '
+        )
         assert open(file).read() == "juicy stuff", f"File at {file} does not contain the correct content"
 
-        # PDF file (no extension)
-        pdf_files = list(download_dir.glob("*test-pdf.pdf"))
-        assert len(pdf_files) == 1, f"No PDF file found at {download_dir}"
-        file = pdf_files[0]
-        assert file.is_file(), f"File not found at {file}"
+        file = self.assert_single_file_presence(
+            download_dir, "*test-pdf.pdf", 'No PDF file found at '
+        )
         assert open(file).read() == self.pdf_data, f"File at {file} does not contain the correct content"
 
         # we don't want html files
         html_files = list(download_dir.glob("*.html"))
-        assert len(html_files) == 0, "HTML files were erroneously downloaded"
+        assert not html_files, "HTML files were erroneously downloaded"
+
+    def assert_single_file_presence(self, download_dir, arg1, arg2):
+        # text file
+        text_files = list(download_dir.glob(arg1))
+        assert len(text_files) == 1, f"{arg2}{download_dir}"
+        result = text_files[0]
+        assert result.is_file(), f"File not found at {result}"
+        return result

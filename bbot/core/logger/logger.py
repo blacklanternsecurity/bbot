@@ -9,7 +9,6 @@ from ..configurator import config
 from ..helpers.misc import mkdir, error_and_exit
 from ..helpers.logger import colorize, loglevel_mapping
 
-
 _log_level_override = None
 
 bbot_loggers = None
@@ -101,7 +100,6 @@ addLoggingLevel("HUGEINFO", 21)
 addLoggingLevel("HUGEVERBOSE", 16)
 addLoggingLevel("VERBOSE", 15)
 
-
 verbosity_levels_toggle = [logging.INFO, logging.VERBOSE, logging.DEBUG]
 
 
@@ -167,9 +165,7 @@ def get_log_handlers():
             log_level = get_log_level()
             if record.levelno == logging.STDOUT or (record.levelno == logging.TRACE and log_level > logging.DEBUG):
                 return False
-            if record.levelno < log_level:
-                return False
-            return True
+            return record.levelno >= log_level
 
         # Log to stderr
         stderr_handler = logging.StreamHandler(sys.stderr)

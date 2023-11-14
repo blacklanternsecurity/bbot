@@ -36,9 +36,7 @@ class paramminer_cookies(paramminer_headers):
 
     def gen_count_args(self, url):
         cookie_count = 40
-        while 1:
-            if cookie_count < 0:
-                break
-            fake_cookies = {self.rand_string(14): self.rand_string(14) for _ in range(0, cookie_count)}
+        while 1 and cookie_count >= 0:
+            fake_cookies = {self.rand_string(14): self.rand_string(14) for _ in range(cookie_count)}
             yield cookie_count, (url,), {"cookies": fake_cookies}
             cookie_count -= 5

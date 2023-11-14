@@ -37,10 +37,10 @@ class virustotal(shodan_dns):
         )
         try:
             async for response in agen:
-                r = self.parse_results(response, query)
-                if not r:
+                if r := self.parse_results(response, query):
+                    results.update(r)
+                else:
                     break
-                results.update(r)
         finally:
             agen.aclose()
         return results

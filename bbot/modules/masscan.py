@@ -70,8 +70,8 @@ class masscan(BaseModule):
 
         self.run_time = self.helpers.make_date()
         self.use_cache = self.config.get("use_cache", False)
-        self.ping_cache = self.scan.home / f"masscan_ping.txt"
-        self.syn_cache = self.scan.home / f"masscan_syn.txt"
+        self.ping_cache = self.scan.home / "masscan_ping.txt"
+        self.syn_cache = self.scan.home / "masscan_syn.txt"
         if self.use_cache:
             files_exist = self.ping_cache.is_file() or self.syn_cache.is_file()
             files_empty = self.helpers.filesize(self.ping_cache) == 0 and self.helpers.filesize(self.syn_cache) == 0
@@ -211,7 +211,7 @@ class masscan(BaseModule):
             if cached_pings:
                 self.success(f"{len(cached_pings):,} hosts loaded from previous ping scan")
             else:
-                self.verbose(f"No hosts cached from previous ping scan")
+                self.verbose("No hosts cached from previous ping scan")
             for ip in cached_pings:
                 if self.scan.stopping:
                     break
@@ -224,7 +224,7 @@ class masscan(BaseModule):
             if cached_syns:
                 self.success(f"{len(cached_syns):,} hosts loaded from previous SYN scan")
             else:
-                self.warning(f"No hosts cached from previous SYN scan")
+                self.warning("No hosts cached from previous SYN scan")
             for line in cached_syns:
                 if self.scan.stopping:
                     break

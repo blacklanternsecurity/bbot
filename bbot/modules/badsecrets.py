@@ -21,8 +21,7 @@ class badsecrets(BaseModule):
         resp_headers = event.data.get("header", None)
         resp_cookies = {}
         if resp_headers:
-            resp_cookies_raw = resp_headers.get("set_cookie", None)
-            if resp_cookies_raw:
+            if resp_cookies_raw := resp_headers.get("set_cookie", None):
                 if "," in resp_cookies_raw:
                     resp_cookies_list = resp_cookies_raw.split(",")
                 else:

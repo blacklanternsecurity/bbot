@@ -18,74 +18,75 @@ class HttpCompare:
         self._baselined = False
 
     async def _baseline(self):
-        if not self._baselined:
-            self._baselined = True
-            # vanilla URL
-            if self.include_cache_buster:
-                url_1 = self.parent_helper.add_get_params(self.baseline_url, self.gen_cache_buster()).geturl()
-            else:
-                url_1 = self.baseline_url
-            baseline_1 = await self.parent_helper.request(
-                url_1, follow_redirects=self.allow_redirects, method=self.method
+        if self._baselined:
+            return
+        self._baselined = True
+        # vanilla URL
+        if self.include_cache_buster:
+            url_1 = self.parent_helper.add_get_params(self.baseline_url, self.gen_cache_buster()).geturl()
+        else:
+            url_1 = self.baseline_url
+        baseline_1 = await self.parent_helper.request(
+            url_1, follow_redirects=self.allow_redirects, method=self.method
+        )
+        await self.parent_helper.sleep(1)
+        # put random parameters in URL, headers, and cookies
+        get_params = {self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)}
+
+        if self.include_cache_buster:
+            get_params |= self.gen_cache_buster()
+        url_2 = self.parent_helper.add_get_params(self.baseline_url, get_params).geturl()
+        baseline_2 = await self.parent_helper.request(
+            url_2,
+            headers={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
+            cookies={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
+            follow_redirects=self.allow_redirects,
+            method=self.method,
+        )
+
+        self.baseline = baseline_1
+
+        if baseline_1 is None or baseline_2 is None:
+            log.debug("HTTP error while establishing baseline, aborting")
+            raise HttpCompareError(
+                f"Can't get baseline from source URL: {url_1}:{baseline_1} / {url_2}:{baseline_2}"
             )
-            await self.parent_helper.sleep(1)
-            # put random parameters in URL, headers, and cookies
-            get_params = {self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)}
+        if baseline_1.status_code != baseline_2.status_code:
+            log.debug("Status code not stable during baseline, aborting")
+            raise HttpCompareError("Can't get baseline from source URL")
+        try:
+            baseline_1_json = xmltodict.parse(baseline_1.text)
+            baseline_2_json = xmltodict.parse(baseline_2.text)
+        except ExpatError:
+            log.debug(f"Cant HTML parse for {self.baseline_url}. Switching to text parsing as a backup")
+            baseline_1_json = baseline_1.text.split("\n")
+            baseline_2_json = baseline_2.text.split("\n")
 
-            if self.include_cache_buster:
-                get_params.update(self.gen_cache_buster())
-            url_2 = self.parent_helper.add_get_params(self.baseline_url, get_params).geturl()
-            baseline_2 = await self.parent_helper.request(
-                url_2,
-                headers={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
-                cookies={self.parent_helper.rand_string(6): self.parent_helper.rand_string(6)},
-                follow_redirects=self.allow_redirects,
-                method=self.method,
-            )
+        ddiff = DeepDiff(baseline_1_json, baseline_2_json, ignore_order=True, view="tree")
+        self.ddiff_filters = []
 
-            self.baseline = baseline_1
+        for k, v in ddiff.items():
+            for x in list(ddiff[k]):
+                log.debug(f"Added {k} filter for path: {x.path()}")
+                self.ddiff_filters.append(x.path())
 
-            if baseline_1 is None or baseline_2 is None:
-                log.debug("HTTP error while establishing baseline, aborting")
-                raise HttpCompareError(
-                    f"Can't get baseline from source URL: {url_1}:{baseline_1} / {url_2}:{baseline_2}"
-                )
-            if baseline_1.status_code != baseline_2.status_code:
-                log.debug("Status code not stable during baseline, aborting")
-                raise HttpCompareError("Can't get baseline from source URL")
-            try:
-                baseline_1_json = xmltodict.parse(baseline_1.text)
-                baseline_2_json = xmltodict.parse(baseline_2.text)
-            except ExpatError:
-                log.debug(f"Cant HTML parse for {self.baseline_url}. Switching to text parsing as a backup")
-                baseline_1_json = baseline_1.text.split("\n")
-                baseline_2_json = baseline_2.text.split("\n")
+        self.baseline_json = baseline_1_json
 
-            ddiff = DeepDiff(baseline_1_json, baseline_2_json, ignore_order=True, view="tree")
-            self.ddiff_filters = []
-
-            for k, v in ddiff.items():
-                for x in list(ddiff[k]):
-                    log.debug(f"Added {k} filter for path: {x.path()}")
-                    self.ddiff_filters.append(x.path())
-
-            self.baseline_json = baseline_1_json
-
-            self.baseline_ignore_headers = [
-                h.lower()
-                for h in [
-                    "date",
-                    "last-modified",
-                    "content-length",
-                    "ETag",
-                    "X-Pad",
-                    "X-Backside-Transport",
-                ]
+        self.baseline_ignore_headers = [
+            h.lower()
+            for h in [
+                "date",
+                "last-modified",
+                "content-length",
+                "ETag",
+                "X-Pad",
+                "X-Backside-Transport",
             ]
-            dynamic_headers = self.compare_headers(baseline_1.headers, baseline_2.headers)
+        ]
+        dynamic_headers = self.compare_headers(baseline_1.headers, baseline_2.headers)
 
-            self.baseline_ignore_headers += [x.lower() for x in dynamic_headers]
-            self.baseline_body_distance = self.compare_body(baseline_1_json, baseline_2_json)
+        self.baseline_ignore_headers += [x.lower() for x in dynamic_headers]
+        self.baseline_body_distance = self.compare_body(baseline_1_json, baseline_2_json)
 
     def gen_cache_buster(self):
         return {self.parent_helper.rand_string(6): "1"}
@@ -97,7 +98,7 @@ class HttpCompare:
             for header, value in list(headers.items()):
                 if header.lower() in self.baseline_ignore_headers:
                     with suppress(KeyError):
-                        log.debug(f'found ignored header "{header}" in headers_{i+1} and removed')
+                        log.debug(f'found ignored header "{header}" in headers_{i + 1} and removed')
                         del headers[header]
 
         ddiff = DeepDiff(headers_1, headers_2, ignore_order=True, view="tree")
@@ -119,12 +120,11 @@ class HttpCompare:
 
         if len(ddiff.keys()) == 0:
             return True
-        else:
-            log.debug(ddiff)
-            return False
+        log.debug(ddiff)
+        return False
 
     async def compare(
-        self, subject, headers=None, cookies=None, check_reflection=False, method="GET", allow_redirects=False
+            self, subject, headers=None, cookies=None, check_reflection=False, method="GET", allow_redirects=False
     ):
         """
         Compares a URL with the baseline, with optional headers or cookies added
@@ -180,13 +180,14 @@ class HttpCompare:
             )
             diff_reasons.append("code")
 
-        different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
-        if different_headers:
+        if different_headers := self.compare_headers(
+            self.baseline.headers, subject_response.headers
+        ):
             log.debug(f"headers were different, no match [{different_headers}]")
             diff_reasons.append("header")
 
         if self.compare_body(self.baseline_json, subject_json) == False:
-            log.debug(f"difference in HTML body, no match")
+            log.debug("difference in HTML body, no match")
 
             diff_reasons.append("body")
 
@@ -202,7 +203,7 @@ class HttpCompare:
         await self._baseline()
         headers = None
         cookies = None
-        for i in range(0, rounds):
+        for _ in range(rounds):
             random_params = {self.parent_helper.rand_string(7): self.parent_helper.rand_string(6)}
             new_url = str(url)
             if mode == "getparam":

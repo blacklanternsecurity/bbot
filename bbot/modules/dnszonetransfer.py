@@ -19,9 +19,7 @@ class dnszonetransfer(BaseModule):
         return True
 
     async def filter_event(self, event):
-        if any([x in event.tags for x in ("ns-record", "soa-record")]):
-            return True
-        return False
+        return any(x in event.tags for x in ("ns-record", "soa-record"))
 
     async def handle_event(self, event):
         domain = event.data
@@ -47,10 +45,7 @@ class dnszonetransfer(BaseModule):
             finding_description = f"Successful DNS zone transfer against {nameserver} for {domain}"
             self.emit_event({"host": str(event.host), "description": finding_description}, "FINDING", source=event)
             for name, ttl, rdata in zone.iterate_rdatas():
-                if str(name) == "@":
-                    parent_data = domain
-                else:
-                    parent_data = f"{name}.{domain}"
+                parent_data = domain if str(name) == "@" else f"{name}.{domain}"
                 parent_event = self.make_event(parent_data, "DNS_NAME", event)
                 if not parent_event or parent_event == event:
                     parent_event = event
@@ -62,5 +57,4 @@ class dnszonetransfer(BaseModule):
                     module = self.helpers.dns._get_dummy_module(rdtype)
                     child_event = self.scan.make_event(t, "DNS_NAME", parent_event, module=module)
                     self.emit_event(child_event)
-            else:
-                self.debug(f"No data returned by {nameserver} for domain {domain}")
+            self.debug(f"No data returned by {nameserver} for domain {domain}")

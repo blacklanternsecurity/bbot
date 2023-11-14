@@ -34,9 +34,7 @@ class paramminer_getparams(paramminer_headers):
 
     def gen_count_args(self, url):
         getparam_count = 40
-        while 1:
-            if getparam_count < 0:
-                break
-            fake_getparams = {self.rand_string(14): self.rand_string(14) for _ in range(0, getparam_count)}
+        while 1 and getparam_count >= 0:
+            fake_getparams = {self.rand_string(14): self.rand_string(14) for _ in range(getparam_count)}
             yield getparam_count, (self.helpers.add_get_params(url, fake_getparams).geturl(),), {}
             getparam_count -= 5

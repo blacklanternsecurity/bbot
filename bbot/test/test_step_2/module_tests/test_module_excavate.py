@@ -129,17 +129,16 @@ class TestExcavate2(TestExcavate):
         for e in events:
             if e.type == "URL_UNVERIFIED":
                 # these cases represent the desired behavior for parsing relative links
-                if e.data == "http://127.0.0.1:8888/rootrelative.html":
-                    root_relative_detection = True
-                if e.data == "http://127.0.0.1:8888/subdir/pagerelative1.html":
-                    page_relative_detection_1 = True
-                if e.data == "http://127.0.0.1:8888/subdir/pagerelative2.html":
-                    page_relative_detection_2 = True
-
-                # these cases indicates that excavate parsed the relative links incorrectly
                 if e.data == "http://127.0.0.1:8888/pagerelative.html":
                     root_page_confusion_1 = True
-                if e.data == "http://127.0.0.1:8888/subdir/rootrelative.html":
+                elif e.data == "http://127.0.0.1:8888/rootrelative.html":
+                    root_relative_detection = True
+                elif e.data == "http://127.0.0.1:8888/subdir/pagerelative1.html":
+                    page_relative_detection_1 = True
+                elif e.data == "http://127.0.0.1:8888/subdir/pagerelative2.html":
+                    page_relative_detection_2 = True
+
+                elif e.data == "http://127.0.0.1:8888/subdir/rootrelative.html":
                     root_page_confusion_2 = True
 
         assert root_relative_detection, "Failed to properly excavate root-relative URL"

@@ -42,11 +42,11 @@ def test_dns_name_regexes():
 
         try:
             event_type, _ = get_event_type(dns)
-            if event_type == "OPEN_TCP_PORT":
-                assert dns == "evilcorp.com:80"
-                continue
-            elif event_type == "IP_ADDRESS":
+            if event_type == "IP_ADDRESS":
                 assert dns == "1.2.3.4"
+                continue
+            elif event_type == "OPEN_TCP_PORT":
+                assert dns == "evilcorp.com:80"
                 continue
             pytest.fail(f"BAD DNS NAME: {dns} matched returned event type: {event_type}")
         except ValidationError:
@@ -55,12 +55,12 @@ def test_dns_name_regexes():
             pytest.fail(f"BAD DNS NAME: {dns} raised unknown error: {e}")
 
     for dns in good_dns:
-        matches = list(r.match(dns) for r in dns_name_regexes)
+        matches = [r.match(dns) for r in dns_name_regexes]
         assert any(matches), f"Good DNS_NAME {dns} did not match regexes"
         event_type, _ = get_event_type(dns)
-        if not event_type == "DNS_NAME":
+        if event_type != "DNS_NAME":
             assert (
-                dns == "1.2.3.4" and event_type == "IP_ADDRESS"
+                    dns == "1.2.3.4" and event_type == "IP_ADDRESS"
             ), f"Event type for DNS_NAME {dns} was not properly detected"
 
 
@@ -104,11 +104,11 @@ def test_open_port_regexes():
 
         try:
             event_type, _ = get_event_type(open_port)
-            if event_type == "IP_ADDRESS":
-                assert open_port in ("1.2.3.4", "[dead::beef]")
-                continue
-            elif event_type == "DNS_NAME":
+            if event_type == "DNS_NAME":
                 assert open_port in ("evilcorp.com", "asdfasdfasdfasdfasdfasdf.asdfasdfasdfasdfasdf.evilcorp.com")
+                continue
+            elif event_type == "IP_ADDRESS":
+                assert open_port in ("1.2.3.4", "[dead::beef]")
                 continue
             pytest.fail(f"BAD OPEN_TCP_PORT: {open_port} matched returned event type: {event_type}")
         except ValidationError:
@@ -117,7 +117,7 @@ def test_open_port_regexes():
             pytest.fail(f"BAD OPEN_TCP_PORT: {open_port} raised unknown error: {e}")
 
     for open_port in good_ports:
-        matches = list(r.match(open_port) for r in open_port_regexes)
+        matches = [r.match(open_port) for r in open_port_regexes]
         assert any(matches), f"Good OPEN_TCP_PORT {open_port} did not match regexes"
         event_type, _ = get_event_type(open_port)
         assert event_type == "OPEN_TCP_PORT"
@@ -182,8 +182,8 @@ def test_url_regexes():
             pytest.fail(f"BAD URL: {bad_url} raised unknown error: {e}: {traceback.format_exc()}")
 
     for good_url in good_urls:
-        matches = list(r.match(good_url) for r in url_regexes)
+        matches = [r.match(good_url) for r in url_regexes]
         assert any(matches), f"Good URL {good_url} did not match regexes"
         assert (
-            get_event_type(good_url)[0] == "URL_UNVERIFIED"
+                get_event_type(good_url)[0] == "URL_UNVERIFIED"
         ), f"Event type for URL {good_url} was not properly detected"

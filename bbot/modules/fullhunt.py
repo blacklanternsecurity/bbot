@@ -24,8 +24,7 @@ class fullhunt(subdomain_enum_apikey):
 
     async def request_url(self, query):
         url = f"{self.base_url}/domain/{self.helpers.quote(query)}/subdomains"
-        response = await self.request_with_fail_count(url, headers=self.headers)
-        return response
+        return await self.request_with_fail_count(url, headers=self.headers)
 
     def parse_results(self, r, query):
         return r.json().get("hosts", [])

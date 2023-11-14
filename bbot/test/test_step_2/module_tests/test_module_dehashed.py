@@ -41,7 +41,7 @@ class TestDehashed(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url=f"https://api.dehashed.com/search?query=domain:blacklanternsecurity.com&size=10000&page=1",
+            url="https://api.dehashed.com/search?query=domain:blacklanternsecurity.com&size=10000&page=1",
             json=dehashed_domain_response,
         )
 
@@ -54,7 +54,7 @@ class TestDehashed(ModuleTestBase):
                 e
                 for e in events
                 if e.type == "HASHED_PASSWORD"
-                and e.data == "$2a$12$pVmwJ7pXEr3mE.DmCCE4fOUDdeadbeefd2KuCy/tq1ZUFyEOH2bve"
+                   and e.data == "$2a$12$pVmwJ7pXEr3mE.DmCCE4fOUDdeadbeefd2KuCy/tq1ZUFyEOH2bve"
             ]
         )
         assert 1 == len([e for e in events if e.type == "PASSWORD" and e.data == "TimTamSlam69"])

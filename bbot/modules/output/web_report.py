@@ -41,7 +41,7 @@ class web_report(BaseOutputModule):
             source_chain = []
 
             current_parent = event.source
-            while not current_parent.type == "SCAN":
+            while current_parent.type != "SCAN":
                 source_chain.append(
                     f" ({current_parent.module})---> [{current_parent.type}]:{html.escape(current_parent.pretty_string)}"
                 )
@@ -49,9 +49,9 @@ class web_report(BaseOutputModule):
 
             source_chain.reverse()
             source_chain_text = (
-                "".join(source_chain)
-                + f" ({event.module})---> "
-                + f"[{event.type}]:{html.escape(event.pretty_string)}"
+                    "".join(source_chain)
+                    + f" ({event.module})---> "
+                    + f"[{event.type}]:{html.escape(event.pretty_string)}"
             )
             self.web_assets[host]["URL"].append(f"**{html.escape(event.data)}**: {source_chain_text}")
 

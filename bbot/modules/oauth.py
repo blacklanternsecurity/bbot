@@ -41,18 +41,15 @@ class OAUTH(BaseModule):
                 self.processed.add(domain_hash)
                 oidc_tasks.append(self.helpers.create_task(self.getoidc(f"https://login.windows.net/{domain}")))
 
-        if event.type == "URL_UNVERIFIED":
-            url = event.data
-        else:
-            url = f"https://{event.data}"
-
+        url = event.data if event.type == "URL_UNVERIFIED" else f"https://{event.data}"
         oauth_tasks = []
         if self.try_all or any(t in event.tags for t in ("oauth-token-endpoint",)):
             oauth_tasks.append(self.helpers.create_task(self.getoauth(url)))
         if self.try_all or any(t in event.tags for t in ("ms-auth-url",)):
-            for u in self.url_and_base(url):
-                oidc_tasks.append(self.helpers.create_task(self.getoidc(u)))
-
+            oidc_tasks.extend(
+                self.helpers.create_task(self.getoidc(u))
+                for u in self.url_and_base(url)
+            )
         for oidc_task in oidc_tasks:
             url, token_endpoint, oidc_results = await oidc_task
             if token_endpoint:
@@ -103,7 +100,7 @@ class OAUTH(BaseModule):
         results = set()
         if not url.endswith("openid-configuration"):
             url = url.strip("/") + "/.well-known/openid-configuration"
-        url_hash = hash("OIDC:" + url)
+        url_hash = hash(f"OIDC:{url}")
         token_endpoint = ""
         if url_hash not in self.processed:
             self.processed.add(url_hash)
@@ -122,20 +119,18 @@ class OAUTH(BaseModule):
         return url, token_endpoint, results
 
     async def getoauth(self, url):
-        data = {
-            "grant_type": "authorization_code",
-            "client_id": "xxx",
-            "redirect_uri": "https://example.com",
-            "code": "xxx",
-            "client_secret": "xxx",
-        }
-        url_hash = hash("OAUTH:" + url)
+        url_hash = hash(f"OAUTH:{url}")
         if url_hash not in self.processed:
             self.processed.add(url_hash)
+            data = {
+                "grant_type": "authorization_code",
+                "client_id": "xxx",
+                "redirect_uri": "https://example.com",
+                "code": "xxx",
+                "client_secret": "xxx",
+            }
             r = await self.helpers.request(url, method="POST", data=data)
             if r is None:
                 return
-            if r.status_code in (400, 401):
-                if "json" in r.headers.get("content-type", "").lower():
-                    if any(x in r.text.lower() for x in ("invalid_grant", "invalid_client")):
-                        return url
+            if "json" in r.headers.get("content-type", "").lower() and any(x in r.text.lower() for x in ("invalid_grant", "invalid_client")) and r.status_code in (400, 401):
+                return url

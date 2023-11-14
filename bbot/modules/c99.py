@@ -23,9 +23,7 @@ class c99(subdomain_enum_apikey):
     def parse_results(self, r, query):
         j = r.json()
         if isinstance(j, dict):
-            subdomains = j.get("subdomains", [])
-            if subdomains:
+            if subdomains := j.get("subdomains", []):
                 for s in subdomains:
-                    subdomain = s.get("subdomain", "")
-                    if subdomain:
+                    if subdomain := s.get("subdomain", ""):
                         yield subdomain

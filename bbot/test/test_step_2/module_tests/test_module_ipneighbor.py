@@ -24,4 +24,4 @@ class TestIPNeighbor(ModuleTestBase):
 
     def check(self, module_test, events):
         assert any(e.data == "127.0.0.3" for e in events)
-        assert not any(e.data == "127.0.0.4" for e in events)
+        assert all(e.data != "127.0.0.4" for e in events)

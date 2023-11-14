@@ -11,8 +11,7 @@ class rapiddns(subdomain_enum):
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomain/{self.helpers.quote(query)}?full=1#result"
-        response = await self.request_with_fail_count(url)
-        return response
+        return await self.request_with_fail_count(url)
 
     def parse_results(self, r, query):
         results = set()

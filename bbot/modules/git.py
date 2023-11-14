@@ -24,10 +24,7 @@ class git(BaseModule):
         tasks = [self.get_url(u) for u in urls]
         async for task in self.helpers.as_completed(tasks):
             result, url = await task
-            text = getattr(result, "text", "")
-            if not text:
-                text = ""
-            if text:
+            if text := getattr(result, "text", "") or "":
                 if getattr(result, "status_code", 0) == 200 and "[core]" in text and not self.fp_regex.match(text):
                     self.emit_event(
                         {"host": str(event.host), "url": url, "description": f"Exposed .git config at {url}"},

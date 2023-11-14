@@ -5,7 +5,6 @@ from urllib.parse import urlparse, parse_qs, urlencode, ParseResult
 
 from .regexes import double_slash_regex
 
-
 log = logging.getLogger("bbot.core.helpers.url")
 
 
@@ -27,9 +26,7 @@ def parse_url(url):
         >>> parse_url('https://www.evilcorp.com')
         ParseResult(scheme='https', netloc='www.evilcorp.com', path='', params='', query='', fragment='')
     """
-    if isinstance(url, ParseResult):
-        return url
-    return urlparse(url)
+    return url if isinstance(url, ParseResult) else urlparse(url)
 
 
 def add_get_params(url, params):
@@ -55,7 +52,7 @@ def add_get_params(url, params):
     """
     parsed = parse_url(url)
     old_params = dict(parse_qs(parsed.query))
-    old_params.update(params)
+    old_params |= params
     return parsed._replace(query=urlencode(old_params, doseq=True))
 
 
@@ -183,8 +180,7 @@ def hash_url(url):
     parsed = parsed._replace(fragment="", query="")
     to_hash = [parsed.netloc]
     for segment in parsed.path.split("/"):
-        hash_segment = []
-        hash_segment.append(charset(segment))
+        hash_segment = [charset(segment)]
         hash_segment.append(param_type(segment))
         dot_split = segment.split(".")
         if len(dot_split) > 1:

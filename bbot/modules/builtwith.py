@@ -63,8 +63,7 @@ class builtwith(subdomain_enum_apikey):
         results_set = set()
         json = r.json()
         if json and isinstance(json, dict):
-            results = json.get("Results", [])
-            if results:
+            if results := json.get("Results", []):
                 for result in results:
                     for chunk in result.get("Result", {}).get("Paths", []):
                         domain = chunk.get("Domain", "")
@@ -73,11 +72,9 @@ class builtwith(subdomain_enum_apikey):
                             if subdomain:
                                 domain = f"{subdomain}.{domain}"
                             results_set.add(domain)
-            else:
-                errors = json.get("Errors", [{}])
-                if errors:
-                    error = errors[0].get("Message", "Unknown Error")
-                    self.verbose(f"No results for {query}: {error}")
+            elif errors := json.get("Errors", [{}]):
+                error = errors[0].get("Message", "Unknown Error")
+                self.verbose(f"No results for {query}: {error}")
         return results_set
 
     def parse_redirects(self, r, query):
@@ -101,16 +98,13 @@ class builtwith(subdomain_enum_apikey):
             outbound = json.get("Outbound", [])
             if inbound:
                 for i in inbound:
-                    domain = i.get("Domain", "")
-                    if domain:
+                    if domain := i.get("Domain", ""):
                         results.add(domain)
             if outbound:
                 for o in outbound:
-                    domain = o.get("Domain", "")
-                    if domain:
+                    if domain := o.get("Domain", ""):
                         results.add(domain)
         if not results:
-            error = json.get("error", "")
-            if error:
+            if error := json.get("error", ""):
                 self.warning(f"No results for {query}: {error}")
         return results

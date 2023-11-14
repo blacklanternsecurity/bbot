@@ -29,13 +29,10 @@ class leakix(subdomain_enum_apikey):
 
     async def request_url(self, query):
         url = f"{self.base_url}/api/subdomains/{self.helpers.quote(query)}"
-        response = await self.request_with_fail_count(url, headers=self.headers)
-        return response
+        return await self.request_with_fail_count(url, headers=self.headers)
 
     def parse_results(self, r, query=None):
-        json = r.json()
-        if json:
+        if json := r.json():
             for entry in json:
-                subdomain = entry.get("subdomain", "")
-                if subdomain:
+                if subdomain := entry.get("subdomain", ""):
                     yield subdomain

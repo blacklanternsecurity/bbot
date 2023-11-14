@@ -21,9 +21,9 @@ class Discord(BaseOutputModule):
         self.webhook_url = self.config.get("webhook_url", "")
         self.min_severity = self.config.get("min_severity", "LOW").strip().upper()
         assert (
-            self.min_severity in self.vuln_severities
+                self.min_severity in self.vuln_severities
         ), f"min_severity must be one of the following: {','.join(self.vuln_severities)}"
-        self.allowed_severities = self.vuln_severities[self.vuln_severities.index(self.min_severity) :]
+        self.allowed_severities = self.vuln_severities[self.vuln_severities.index(self.min_severity):]
         if not self.webhook_url:
             self.warning("Must set Webhook URL")
             return False
@@ -40,16 +40,15 @@ class Discord(BaseOutputModule):
             status_code = getattr(response, "status_code", 0)
             if self.evaluate_response(response):
                 break
-            else:
-                response_data = getattr(response, "text", "")
-                try:
-                    retry_after = response.json().get("retry_after", 1)
-                except Exception:
-                    retry_after = 1
-                self.verbose(
-                    f"Error sending {event}: status code {status_code}, response: {response_data}, retrying in {retry_after} seconds"
-                )
-                await self.helpers.sleep(retry_after)
+            response_data = getattr(response, "text", "")
+            try:
+                retry_after = response.json().get("retry_after", 1)
+            except Exception:
+                retry_after = 1
+            self.verbose(
+                f"Error sending {event}: status code {status_code}, response: {response_data}, retrying in {retry_after} seconds"
+            )
+            await self.helpers.sleep(retry_after)
 
     def get_watched_events(self):
         if self._watched_events is None:
@@ -62,7 +61,7 @@ class Discord(BaseOutputModule):
     async def filter_event(self, event):
         if event.type == "VULNERABILITY":
             severity = event.data.get("severity", "UNKNOWN")
-            if not severity in self.allowed_severities:
+            if severity not in self.allowed_severities:
                 return False, f"{severity} is below min_severity threshold"
         return True
 
@@ -79,11 +78,10 @@ class Discord(BaseOutputModule):
         return f"""**`{event_type}`**\n```yaml\n{event_yaml}```"""
 
     def get_severity_color(self, event):
-        if event.type == "VULNERABILITY":
-            severity = event.data.get("severity", "UNKNOWN")
-            return f"{event.type} ({severity})", event.severity_colors[severity]
-        else:
+        if event.type != "VULNERABILITY":
             return event.type, "🟦"
+        severity = event.data.get("severity", "UNKNOWN")
+        return f"{event.type} ({severity})", event.severity_colors[severity]
 
     def format_message(self, event):
         if isinstance(event.data, str):

@@ -270,15 +270,9 @@ class telerik(BaseModule):
 
     async def test_detector(self, baseurl, detector):
         result = None
-        if "/" != baseurl[-1]:
-            url = f"{baseurl}/{detector}"
-        else:
-            url = f"{baseurl}{detector}"
+        url = f"{baseurl}/{detector}" if baseurl[-1] != "/" else f"{baseurl}{detector}"
         result = await self.helpers.request(url, timeout=self.timeout)
         return result, detector
 
     async def filter_event(self, event):
-        if "endpoint" in event.tags:
-            return False
-        else:
-            return True
+        return "endpoint" not in event.tags
