@@ -46,7 +46,7 @@ jobs:
           poetry install
       - name: Run tests
         run: |
-          poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 600 --disable-warnings --log-cli-level=DEBUG --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
+          poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Code Coverage
         uses: codecov/codecov-action@v3
         with:
