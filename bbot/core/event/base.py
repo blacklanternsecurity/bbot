@@ -90,6 +90,8 @@ class BaseEvent:
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
     _always_emit_tags = ["affiliate"]
+    # Whether this event has been retroactively marked as part of an important discovery chain
+    _graph_important = False
     # Exclude from output modules
     _omit = False
     # Disables certain data validations
@@ -143,9 +145,6 @@ class BaseEvent:
         self._module_priority = None
         self._resolved_hosts = set()
 
-        self._made_internal = False
-        # whether to force-send to output modules
-        self._force_output = False
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
 
@@ -199,7 +198,7 @@ class BaseEvent:
         if not self._dummy:
             # removed this second part because it was making certain sslcert events internal
             if _internal:  # or source._internal:
-                self.make_internal()
+                self.internal = True
 
         # an event indicating whether the event has undergone DNS resolution
         self._resolved = asyncio.Event()
@@ -223,6 +222,34 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self._data = data
+
+    @property
+    def internal(self):
+        return self._internal
+
+    @internal.setter
+    def internal(self, value):
+        """
+        Marks the event as internal, excluding it from output but allowing normal exchange between scan modules.
+
+        Internal events are typically speculative and may not be interesting by themselves but can lead to
+        the discovery of interesting events. This method sets the `_internal` attribute to True and adds the
+        "internal" tag.
+
+        Examples of internal events include `OPEN_TCP_PORT`s from the `speculate` module,
+        `IP_ADDRESS`es from the `ipneighbor` module, or out-of-scope `DNS_NAME`s that originate
+        from DNS resolutions.
+
+        The purpose of internal events is to enable speculative/explorative discovery without cluttering
+        the console with irrelevant or uninteresting events.
+        """
+        if not value in (True, False):
+            raise ValueError(f'"internal" must be boolean, not {type(value)}')
+        if value == True:
+            self.add_tag("internal")
+        else:
+            self.remove_tag("internal")
+        self._internal = value
 
     @property
     def host(self):
@@ -292,7 +319,9 @@ class BaseEvent:
 
     @property
     def always_emit(self):
-        return self._always_emit or any(t in self.tags for t in self._always_emit_tags)
+        always_emit_tags = any(t in self.tags for t in self._always_emit_tags)
+        no_host_information = not bool(self.host)
+        return self._always_emit or always_emit_tags or no_host_information
 
     @property
     def id(self):
@@ -327,11 +356,21 @@ class BaseEvent:
             else:
                 new_scope_distance = min(self.scope_distance, scope_distance)
             if self._scope_distance != new_scope_distance:
-                self._scope_distance = new_scope_distance
+                # remove old scope distance tags
                 for t in list(self.tags):
                     if t.startswith("distance-"):
                         self.remove_tag(t)
-                self.add_tag(f"distance-{new_scope_distance}")
+                if scope_distance == 0:
+                    self.add_tag("in-scope")
+                    self.remove_tag("affiliate")
+                else:
+                    self.remove_tag("in-scope")
+                    self.add_tag(f"distance-{new_scope_distance}")
+                self._scope_distance = new_scope_distance
+            # apply recursively to parent events
+            source_scope_distance = getattr(self.source, "scope_distance", -1)
+            if source_scope_distance >= 0 and self != self.source:
+                self.source.scope_distance = scope_distance + 1
 
     @property
     def source(self):
@@ -395,95 +434,6 @@ class BaseEvent:
             sources.append(source)
             e = source
         return sources
-
-    def make_internal(self):
-        """
-        Marks the event as internal, excluding it from output but allowing normal exchange between scan modules.
-
-        Internal events are typically speculative and may not be interesting by themselves but can lead to
-        the discovery of interesting events. This method sets the `_internal` attribute to True, adds the
-        "internal" tag, and ensures the event is marked as made internal (useful for later reversion).
-
-        Examples of internal events include `OPEN_TCP_PORT`s from the `speculate` module,
-        `IP_ADDRESS`es from the `ipneighbor` module, or out-of-scope `DNS_NAME`s that originate
-        from DNS resolutions.
-
-        Once an event is marked as internal, all of its future children become internal as well.
-        If `ScanManager._emit_event()` determines the event is interesting, it may be reverted back to its
-        original state and forcefully re-emitted along with the whole chain of internal events.
-
-        The purpose of internal events is to enable speculative/explorative discovery without cluttering
-        the console with irrelevant or uninteresting events.
-        """
-        if not self._made_internal:
-            self._internal = True
-            self.add_tag("internal")
-            self._made_internal = True
-
-    def unmake_internal(self, set_scope_distance=None, force_output=False):
-        """
-        Reverts the event from being internal, optionally forcing it to be included in output and setting its scope distance.
-
-        Removes the 'internal' tag, resets the `_internal` attribute, and adjusts scope distance if specified.
-        Optionally, forces the event to be included in the output. Also, if any source events are internal, they
-        are also reverted recursively.
-
-        This typically happens in `ScanManager._emit_event()` if the event is determined to be interesting.
-
-        Parameters:
-            set_scope_distance (int, optional): If specified, sets the scope distance to this value.
-            force_output (bool or str, optional): If True, forces the event to be included in output.
-                                                  If set to "trail_only", only its source events are modified.
-
-        Returns:
-            list: A list of source events that were also reverted from being internal.
-        """
-        source_trail = []
-        self.remove_tag("internal")
-        if self._made_internal:
-            if set_scope_distance is not None:
-                self.scope_distance = set_scope_distance
-            self._internal = False
-            self._made_internal = False
-        if force_output is True:
-            self._force_output = True
-        if force_output == "trail_only":
-            force_output = True
-
-        # if our source event is internal, unmake it too
-        if getattr(self.source, "_internal", False):
-            source_scope_distance = None
-            if set_scope_distance is not None:
-                source_scope_distance = set_scope_distance + 1
-            source_trail += self.source.unmake_internal(
-                set_scope_distance=source_scope_distance, force_output=force_output
-            )
-            source_trail.append(self.source)
-
-        return source_trail
-
-    def set_scope_distance(self, d=0):
-        """
-        Sets the scope distance for the event and its parent events, while considering module-specific scoping rules.
-
-        Unmakes the event internal if needed and adjusts its scope distance. If the distance is set to 0,
-        adds the 'in-scope' tag to the event. Takes into account module-specific scoping preferences unless
-        the event type is "DNS_NAME".
-
-        Parameters:
-            d (int): The scope distance to set for this event.
-
-        Returns:
-            list: A list of parent events whose scope distance was also set.
-        """
-        source_trail = []
-        # keep the event internal if the module requests so, unless it's a DNS_NAME
-        if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=d, force_output="trail_only")
-        self.scope_distance = d
-        if d == 0:
-            self.add_tag("in-scope")
-        return source_trail
 
     def _host(self):
         return ""
@@ -1240,8 +1190,8 @@ def make_event(
             data.module = module
         if source is not None:
             data.source = source
-        if internal == True and not data._made_internal:
-            data.make_internal()
+        if internal == True:
+            data.internal = True
         event_type = data.type
         return data
     else:

@@ -153,7 +153,7 @@ class httpx(BaseModule):
                 else:
                     url_event._resolved.set()
                 # HTTP response
-                self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags, internal=True)
+                self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags)
 
     async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"

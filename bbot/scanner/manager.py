@@ -39,12 +39,23 @@ class ScanManager:
 
         self.scan = scan
 
-        self.incoming_event_queue = asyncio.PriorityQueue()
+        # TODO: consider reworking modules' dedupe policy (accept_dupes)
+        # by creating a function that decides the criteria for what is
+        # considered to be a duplicate (by default this would be a simple
+        # hash(event)), but allowing each module to override it if needed.
+        # If a module used the default function, its dedupe could be done
+        # at the manager level to save memory. If not, it would be done by the scan.
 
-        # tracks duplicate events on a global basis
-        self.events_distributed = set()
-        # tracks duplicate events on a per-module basis
+        self.incoming_event_queue = asyncio.PriorityQueue()
+        # track incoming duplicates module-by-module (for `suppress_dupes` attribute of modules)
+        self.incoming_dup_tracker = set()
+        # track outgoing duplicates (for `accept_dupes` attribute of modules)
+        self.outgoing_dup_tracker = set()
+        # tracks duplicate events
         self.events_accepted = set()
+        # tracks duplicate events for graph purposes
+        # (allows certain duplicates in order to maintain a complete graph)
+        self.events_accepted_graph = set()
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
         self._task_counter = TaskCounter()
         self._new_activity = True
@@ -79,15 +90,19 @@ class ScanManager:
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         """
         async with self._task_counter.count(f"emit_event({event})"):
+            # "quick" queues the event immediately
+            # This is used by speculate
+            quick = kwargs.pop("quick", False)
+
             # skip event if it fails precheck
-            if not self._event_precheck(event):
-                event._resolved.set()
-                return
+            if event.type != "DNS_NAME":
+                acceptable = self._event_precheck(event)
+                if not acceptable:
+                    event._resolved.set()
+                    return
 
             log.debug(f'Module "{event.module}" raised {event}')
 
-            # "quick" queues the event immediately
-            quick = kwargs.pop("quick", False)
             if quick:
                 log.debug(f'Module "{event.module}" raised {event}')
                 event._resolved.set()
@@ -97,11 +112,15 @@ class ScanManager:
                     await self.distribute_event(event, *args, **kwargs)
             else:
                 async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
-                    await self._emit_event(event, *args, **kwargs)
+                    await self._emit_event(
+                        event,
+                        *args,
+                        **kwargs,
+                    )
 
-    def _event_precheck(self, event, exclude=("DNS_NAME",)):
+    def _event_precheck(self, event):
         """
-        Check an event previous to its DNS resolution etc. to see if we can save on performance by skipping it
+        Check an event to see if we can skip it to save on performance
         """
         if event._dummy:
             log.warning(f"Cannot emit dummy event: {event}")
@@ -109,8 +128,10 @@ class ScanManager:
         if event == event.get_source():
             log.debug(f"Skipping event with self as source: {event}")
             return False
-        if self.is_duplicate_event(event) and not event._force_output:
-            log.debug(f"Skipping {event} because it is a duplicate")
+        if event._graph_important:
+            return True
+        if self.is_incoming_duplicate(event, add=True):
+            log.debug(f"Skipping event because it was already emitted by its module: {event}")
             return False
         return True
 
@@ -122,9 +143,8 @@ class ScanManager:
         important method in all of BBOT. It is basically the central intersection that
         every event passes through.
 
-        Probably it is also needless to say that it exists in a delicate balance.
-        Close to half of my debugging time has been spent in this function.
-        I have slain many dragons here and there may still be more yet to slay.
+        It exists in a delicate balance. Close to half of my debugging time has been spent
+        in this function. I have slain many dragons here and there may still be more yet to slay.
 
         Tread carefully, friend. -TheTechromancer
 
@@ -150,7 +170,6 @@ class ScanManager:
             - Updating scan statistics.
         """
         log.debug(f"Emitting {event}")
-        distribute_event = True
         event_distributed = False
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
@@ -187,11 +206,6 @@ class ScanManager:
                 )
                 dns_children = {}
 
-            # We do this again in case event.data changed during resolve_event()
-            if event.type == "DNS_NAME" and not self._event_precheck(event, exclude=()):
-                log.debug(f"Omitting due to failed precheck: {event}")
-                distribute_event = False
-
             if event.type in ("DNS_NAME", "IP_ADDRESS"):
                 for tag in dns_tags:
                     event.add_tag(tag)
@@ -202,14 +216,11 @@ class ScanManager:
             event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
             if event_blacklisted:
                 event.add_tag("blacklisted")
-
-            # Blacklist purging
-            if "blacklisted" in event.tags:
                 reason = "event host"
                 if event_blacklisted_dns:
                     reason = "DNS associations"
                 log.debug(f"Omitting due to blacklisted {reason}: {event}")
-                distribute_event = False
+                return
 
             # DNS_NAME --> DNS_NAME_UNRESOLVED
             if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
@@ -219,37 +230,42 @@ class ScanManager:
             await self.scan.helpers.cloud.tag_event(event)
 
             # Scope shepherding
-            # here, we buff or nerf the scope distance of an event based on its attributes and certain scan settings
-            event_is_duplicate = self.is_duplicate_event(event)
+            # here is where we make sure in-scope events are set to their proper scope distance
+            if event.host and event_whitelisted:
+                log.debug(f"Making {event} in-scope")
+                event.scope_distance = 0
+
             event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
-            set_scope_distance = event.scope_distance
-            if event_whitelisted:
-                set_scope_distance = 0
-            if event.host:
-                # here, we evaluate some weird logic
-                # the reason this exists is to ensure we don't have orphans in the graph
-                # because forcefully internalizing certain events can orphan their children
-                event_will_be_output = event_whitelisted or event_in_report_distance
-                event_is_duplicate = event_is_duplicate and not event._force_output
-                if event_will_be_output and not event_is_duplicate:
-                    if set_scope_distance == 0:
-                        log.debug(f"Making {event} in-scope")
-                    source_trail = event.set_scope_distance(set_scope_distance)
-                    # force re-emit internal source events
-                    for s in source_trail:
-                        self.queue_event(s)
-                else:
-                    if event.scope_distance > self.scan.scope_report_distance:
-                        log.debug(
-                            f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                        )
-                        event.make_internal()
+            event_will_be_output = event.always_emit or event_in_report_distance
+            if not event_will_be_output:
+                log.debug(
+                    f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                )
+                event.internal = True
 
             # check for wildcards
             if event.scope_distance <= self.scan.scope_search_distance:
                 if not "unresolved" in event.tags:
                     if not self.scan.helpers.is_ip_type(event.host):
                         await self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
+
+            # For DNS_NAMEs, we've waited to do this until now, in case event.data changed during handle_wildcard_event()
+            if event.type == "DNS_NAME":
+                acceptable = self._event_precheck(event)
+                if not acceptable:
+                    return
+
+            # if we discovered something interesting from an internal event,
+            # make sure we preserve its chain of parents
+            source = event.source
+            if source.internal and (event_will_be_output or event._graph_important):
+                source_in_report_distance = source.scope_distance <= self.scan.scope_report_distance
+                if source_in_report_distance:
+                    source.internal = False
+                if not source._graph_important:
+                    source._graph_important = True
+                    log.debug(f"Re-queuing internal event {source} with parent {event}")
+                    self.queue_event(source)
 
             # now that the event is properly tagged, we can finally make decisions about it
             abort_result = False
@@ -264,26 +280,13 @@ class ScanManager:
                     log.debug(msg)
                     return
 
-            if not self.accept_event(event):
-                return
-
             # run success callback before distributing event (so it can add tags, etc.)
-            if distribute_event:
-                if callable(on_success_callback):
-                    async with self.scan._acatch(context=on_success_callback):
-                        await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
+            if callable(on_success_callback):
+                async with self.scan._acatch(context=on_success_callback):
+                    await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
 
-            if not event.host or (event.always_emit and not event_is_duplicate):
-                log.debug(
-                    f"Force-emitting {event} (host:{event.host}, always_emit={event.always_emit}, is_duplicate={event_is_duplicate})"
-                )
-                source_trail = event.unmake_internal(force_output=True)
-                for s in source_trail:
-                    self.queue_event(s)
-
-            if distribute_event:
-                await self.distribute_event(event)
-                event_distributed = True
+            await self.distribute_event(event)
+            event_distributed = True
 
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
@@ -304,13 +307,13 @@ class ScanManager:
 
             ### Emit DNS children ###
             if self.dns_resolution:
-                emit_children = -1 < event.scope_distance < self.scan.scope_dns_search_distance
-                if emit_children:
-                    # only emit DNS children once for each unique host
-                    host_hash = hash(str(event.host))
-                    if host_hash in self.events_accepted:
-                        emit_children = False
-                    self.events_accepted.add(host_hash)
+                emit_children = True
+                in_dns_scope = -1 < event.scope_distance < self.scan.scope_dns_search_distance
+                # only emit DNS children once for each unique host
+                host_hash = hash(str(event.host))
+                if host_hash in self.outgoing_dup_tracker:
+                    emit_children = False
+                self.outgoing_dup_tracker.add(host_hash)
 
                 if emit_children:
                     dns_child_events = []
@@ -323,7 +326,9 @@ class ScanManager:
                                     child_event = self.scan.make_event(
                                         record, "DNS_NAME", module=module, source=source_event
                                     )
-                                    dns_child_events.append(child_event)
+                                    host_hash = hash(str(child_event.host))
+                                    if in_dns_scope or self.scan.in_scope(child_event):
+                                        dns_child_events.append(child_event)
                                 except ValidationError as e:
                                     log.warning(
                                         f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
@@ -341,9 +346,9 @@ class ScanManager:
                 self.scan.stats.event_distributed(event)
             log.debug(f"{event.module}.emit_event() finished for {event}")
 
-    def hash_event(self, event):
+    def hash_event_graph(self, event):
         """
-        Hash an event for duplicate detection
+        Hash an event for graph duplicate detection
 
         This is necessary because duplicate events from certain sources (e.g. DNS)
             need to be allowed in order to preserve their relationship trail
@@ -355,23 +360,35 @@ class ScanManager:
         else:
             return hash((event, str(event.module)))
 
-    def is_duplicate_event(self, event, add=False):
+    def is_incoming_duplicate(self, event, add=False):
         """
-        Calculate whether an event is a duplicate on a per-module basis
+        Calculate whether an event is a duplicate in the context of the module that emitted it
+        This will return True if the event's parent module has raised the event before.
         """
-        event_hash = self.hash_event(event)
-        suppress_dupes = getattr(event.module, "suppress_dupes", True)
-        duplicate_event = suppress_dupes and event_hash in self.events_accepted
+        try:
+            event_hash = event.module._outgoing_dedup_hash(event)
+        except AttributeError:
+            event_hash = hash(event)
+        is_dup = event_hash in self.incoming_dup_tracker
         if add:
-            self.events_accepted.add(event_hash)
-        return duplicate_event
+            self.incoming_dup_tracker.add(event_hash)
+        suppress_dupes = getattr(event.module, "suppress_dupes", True)
+        if suppress_dupes and is_dup:
+            return True
+        return False
 
-    def accept_event(self, event):
-        is_duplicate = self.is_duplicate_event(event, add=True)
-        if is_duplicate and not event._force_output:
-            log.debug(f"{event.module}: not raising duplicate event {event}")
-            return False
-        return True
+    def is_outgoing_duplicate(self, event, add=False):
+        """
+        Calculate whether an event is a duplicate in the context of the whole scan,
+        This will return True if the same event (irregardless of its source module) has been emitted before.
+
+        TODO: Allow modules to use this for custom deduplication such as on a per-host or per-domain basis.
+        """
+        event_hash = hash(event)
+        is_dup = event_hash in self.outgoing_dup_tracker
+        if add:
+            self.outgoing_dup_tracker.add(event_hash)
+        return is_dup
 
     async def distribute_event(self, *args, **kwargs):
         """
@@ -379,18 +396,17 @@ class ScanManager:
         """
         async with self.scan._acatch(context=self.distribute_event):
             event = self.scan.make_event(*args, **kwargs)
-
-            event_hash = hash(event)
-            dup = event_hash in self.events_distributed
-            if dup:
+            is_outgoing_duplicate = self.is_outgoing_duplicate(event)
+            if is_outgoing_duplicate:
                 self.scan.verbose(f"{event.module}: Duplicate event: {event}")
-            else:
-                self.events_distributed.add(event_hash)
             # absorb event into the word cloud if it's in scope
-            if not dup and -1 < event.scope_distance < 1:
+            if not is_outgoing_duplicate and -1 < event.scope_distance < 1:
                 self.scan.word_cloud.absorb_event(event)
             for mod in self.scan.modules.values():
-                if not dup or mod.accept_dupes or (mod._type == "output" and event._force_output):
+                acceptable_dup = (not is_outgoing_duplicate) or mod.accept_dupes
+                # graph_important = mod._type == "output" and event._graph_important == True
+                graph_important = mod._preserve_graph and event._graph_important
+                if acceptable_dup or graph_important:
                     await mod.queue_event(event)
 
     async def _worker_loop(self):
