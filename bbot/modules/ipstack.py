@@ -20,8 +20,7 @@ class Ipstack(BaseModule):
     base_url = "http://api.ipstack.com"
 
     async def setup(self):
-        await self.require_api_key()
-        return True
+        return await self.require_api_key()
 
     async def ping(self):
         url = f"{self.base_url}/check?access_key={self.api_key}"
@@ -43,9 +42,9 @@ class Ipstack(BaseModule):
             self.verbose(f"Error retrieving results for {event.data}", trace=True)
             return
         geo_data = {k: v for k, v in geo_data.items() if v is not None}
-        if geo_data:
-            self.emit_event(geo_data, "GEOLOCATION", event)
-        elif "error" in geo_data:
+        if "error" in geo_data:
             error_msg = geo_data.get("error").get("info", "")
             if error_msg:
                 self.warning(error_msg)
+        elif geo_data:
+            self.emit_event(geo_data, "GEOLOCATION", event)
