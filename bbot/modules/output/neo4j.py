@@ -17,6 +17,7 @@ class neo4j(BaseOutputModule):
     }
     deps_pip = ["git+https://github.com/blacklanternsecurity/py2neo"]
     _batch_size = 50
+    _preserve_graph = True
 
     async def setup(self):
         try:

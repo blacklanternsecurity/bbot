@@ -22,9 +22,8 @@ class IP2Location(BaseModule):
     base_url = "http://api.ip2location.io"
 
     async def setup(self):
-        await self.require_api_key()
         self.lang = self.config.get("lang", "")
-        return True
+        return await self.require_api_key()
 
     async def ping(self):
         url = self.build_url("8.8.8.8")
@@ -53,9 +52,9 @@ class IP2Location(BaseModule):
             return
 
         geo_data = {k: v for k, v in geo_data.items() if v is not None}
-        if geo_data:
-            self.emit_event(geo_data, "GEOLOCATION", event)
-        elif "error" in geo_data:
+        if "error" in geo_data:
             error_msg = geo_data.get("error").get("error_message", "")
             if error_msg:
                 self.warning(error_msg)
+        elif geo_data:
+            self.emit_event(geo_data, "GEOLOCATION", event)

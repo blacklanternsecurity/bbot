@@ -24,15 +24,16 @@ class BaseOutputModule(BaseModule):
         # exclude certain URLs (e.g. javascript):
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
             return False, "its extension was listed in url_extension_httpx_only"
-        # forced events like intermediary links in a DNS resolution chain
 
         # output module specific stuff
         # omitted events such as HTTP_RESPONSE etc.
         if event._omit:
             return False, "_omit is True"
-        # forced events like intermediary links in a DNS resolution chain
-        if event._force_output:
-            return True, "_force_output is True"
+
+        # force-output certain events to the graph
+        if self._is_graph_important(event):
+            return True, "event is critical to the graph"
+
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance
         if event._internal:
@@ -52,6 +53,13 @@ class BaseOutputModule(BaseModule):
                 # this helps avoid double-portscanning both an individual IP and its parent CIDR.
                 return False, "module consumes IP ranges directly"
         return True, "precheck succeeded"
+
+    def is_incoming_duplicate(self, event, add=False):
+        is_incoming_duplicate = super().is_incoming_duplicate(event, add=add)
+        # make exception for graph-important events
+        if self._is_graph_important(event):
+            return False
+        return is_incoming_duplicate
 
     def _prep_output_dir(self, filename):
         self.output_file = self.config.get("output_file", "")

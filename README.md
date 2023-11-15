@@ -18,7 +18,7 @@ BBOT typically outperforms other subdomain enumeration tools by 20-25%. To learn
 
 ## Installation ([pip](https://pypi.org/project/bbot/))
 
-Note: Requires Linux and Python 3.9+. For more installation methods including [Docker](https://hub.docker.com/r/blacklanternsecurity/bbot), see [Installation](https://www.blacklanternsecurity.com/bbot/#installation).
+Note: Requires Linux and Python 3.9+.
 
 ```bash
 # stable version
@@ -29,6 +29,23 @@ pipx install --pip-args '\--pre' bbot
 
 bbot --help
 ```
+
+## Installation ([Docker](https://hub.docker.com/r/blacklanternsecurity/bbot))
+
+Docker images are provided, along with helper script `bbot-docker.sh` to persist your scan data.
+
+```bash
+# bleeding edge (dev)
+docker run -it blacklanternsecurity/bbot --help
+
+# stable
+docker run -it blacklanternsecurity/bbot:stable --help
+
+# helper script
+git clone https://github.com/blacklanternsecurity/bbot && cd bbot
+./bbot-docker.sh --help
+```
+
 
 ## Example Commands
 
@@ -196,11 +213,11 @@ Special thanks to the following people who made BBOT possible:
 | Module               | Type     | Needs API Key   | Description                                                                             | Flags                                                                               | Consumed Events                                                                                         | Produced Events                                    |
 |----------------------|----------|-----------------|-----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|----------------------------------------------------|
 | badsecrets           | scan     | No              | Library for detecting known or weak secrets across many web frameworks                  | active, safe, web-basic, web-thorough                                               | HTTP_RESPONSE                                                                                           | FINDING, VULNERABILITY                             |
-| bucket_aws           | scan     | No              | Check for S3 buckets related to target                                                  | active, cloud-enum, safe, web-basic, web-thorough                                   | DNS_NAME, STORAGE_BUCKET                                                                                | FINDING, STORAGE_BUCKET                            |
+| bucket_amazon        | scan     | No              | Check for S3 buckets related to target                                                  | active, cloud-enum, safe, web-basic, web-thorough                                   | DNS_NAME, STORAGE_BUCKET                                                                                | FINDING, STORAGE_BUCKET                            |
 | bucket_azure         | scan     | No              | Check for Azure storage blobs related to target                                         | active, cloud-enum, safe, web-basic, web-thorough                                   | DNS_NAME, STORAGE_BUCKET                                                                                | FINDING, STORAGE_BUCKET                            |
 | bucket_digitalocean  | scan     | No              | Check for DigitalOcean spaces related to target                                         | active, cloud-enum, safe, slow, web-thorough                                        | DNS_NAME, STORAGE_BUCKET                                                                                | FINDING, STORAGE_BUCKET                            |
 | bucket_firebase      | scan     | No              | Check for open Firebase databases related to target                                     | active, cloud-enum, safe, web-basic, web-thorough                                   | DNS_NAME, STORAGE_BUCKET                                                                                | FINDING, STORAGE_BUCKET                            |
-| bucket_gcp           | scan     | No              | Check for Google object storage related to target                                       | active, cloud-enum, safe, web-basic, web-thorough                                   | DNS_NAME, STORAGE_BUCKET                                                                                | FINDING, STORAGE_BUCKET                            |
+| bucket_google        | scan     | No              | Check for Google object storage related to target                                       | active, cloud-enum, safe, web-basic, web-thorough                                   | DNS_NAME, STORAGE_BUCKET                                                                                | FINDING, STORAGE_BUCKET                            |
 | bypass403            | scan     | No              | Check 403 pages for common bypasses                                                     | active, aggressive, web-thorough                                                    | URL                                                                                                     | FINDING                                            |
 | dnszonetransfer      | scan     | No              | Attempt DNS zone transfers                                                              | active, safe, subdomain-enum                                                        | DNS_NAME                                                                                                | DNS_NAME                                           |
 | ffuf                 | scan     | No              | A fast web fuzzer written in Go                                                         | active, aggressive, deadly                                                          | URL                                                                                                     | URL_UNVERIFIED                                     |

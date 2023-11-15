@@ -24,7 +24,7 @@ class ffuf(BaseModule):
     options_desc = {
         "wordlist": "Specify wordlist to use when finding directories",
         "lines": "take only the first N lines from the wordlist when finding directories",
-        "max_depth": "the maxium directory depth to attempt to solve",
+        "max_depth": "the maximum directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
     }

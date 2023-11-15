@@ -255,7 +255,7 @@ class Scanner:
             mp.set_start_method("spawn")
         except Exception:
             self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
-        self.process_pool = ProcessPoolExecutor(max_tasks_per_child=100)
+        self.process_pool = ProcessPoolExecutor()
 
         self._stopping = False
 
@@ -772,12 +772,6 @@ class Scanner:
         return event
 
     @property
-    def log(self):
-        if self._log is None:
-            self._log = logging.getLogger(f"bbot.agent.scanner")
-        return self._log
-
-    @property
     def root_event(self):
         """
         The root scan event, e.g.:
@@ -1028,19 +1022,6 @@ class Scanner:
             while 1:
                 await asyncio.sleep(interval)
                 self.manager.modules_status(_log=True)
-
-    @contextlib.contextmanager
-    def _catch(self, context="scan", finally_callback=None):
-        """
-        Handle common errors by stopping scan, logging tracebacks, etc.
-
-        with catch():
-            do_stuff()
-        """
-        try:
-            yield
-        except BaseException as e:
-            self._handle_exception(e, context=context)
 
     @contextlib.asynccontextmanager
     async def _acatch(self, context="scan", finally_callback=None):

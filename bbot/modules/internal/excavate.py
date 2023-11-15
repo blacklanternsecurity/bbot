@@ -352,7 +352,8 @@ class excavate(BaseInternalModule):
                     scheme = self.helpers.is_uri(location, return_scheme=True)
                 if scheme in ("http", "https"):
                     if num_redirects <= self.max_redirects:
-                        url_event = self.make_event(location, "URL_UNVERIFIED", event)
+                        # tag redirects to out-of-scope hosts as affiliates
+                        url_event = self.make_event(location, "URL_UNVERIFIED", event, tags="affiliate")
                         if url_event is not None:
                             # inherit web spider distance from parent (don't increment)
                             source_web_spider_distance = getattr(event, "web_spider_distance", 0)
