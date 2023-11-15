@@ -227,4 +227,4 @@ class TestOAUTH(ModuleTestBase):
             == "Potentially Sprayable OAUTH Endpoint (domain: evilcorp.com) at https://evilcorp.okta.com/oauth2/v1/token"
             for e in events
         )
-        assert any(e.data == "sts.windows.net" for e in events)
+        assert any(e.data == "https://sts.windows.net/cc74fc12-4142-400e-a653-f98bdeadbeef/" for e in events)

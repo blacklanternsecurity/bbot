@@ -32,7 +32,7 @@ The Nuclei module has many configuration options:
 | etags          | Tags to exclude from the scan                                            | <blank> |
 | directory_only | When on, limits scan to only "directory" URLs (omit endpoints)           | True    |
 | budget         | Used in budget mode to set the number of requests which will be allotted | 1       |
-| retries        | Mumber of times to retry a failed request                                | 0       |
+| retries        | Number of times to retry a failed request                                | 0       |
 | batch_size     | The number of targets BBOT will pass to Nuclei at a time                 | 200     |
 
 Most of these you probably will **NOT** want to change. In particular, we strongly advise against changing the version of Nuclei, as it's very likely the latest version won't work right with BBOT.

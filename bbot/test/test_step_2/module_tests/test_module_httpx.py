@@ -66,3 +66,32 @@ class TestHTTPX_404(ModuleTestBase):
             [e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/" and "status-301" in e.tags]
         )
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "https://127.0.0.1:9999/"])
+
+
+class TestHTTPX_Redirect(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "speculate", "excavate"]
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "Redirecting...", status=301, headers={"Location": "http://www.evilcorp.com"}
+        )
+
+    def check(self, module_test, events):
+        assert 1 == len(
+            [e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/" and "status-301" in e.tags]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "URL_UNVERIFIED" and e.data == "http://www.evilcorp.com/" and "affiliate" in e.tags
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type.startswith("DNS_NAME") and e.data == "www.evilcorp.com" and "affiliate" in e.tags
+            ]
+        )

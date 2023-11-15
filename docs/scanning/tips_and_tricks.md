@@ -7,6 +7,11 @@ Press enter during a BBOT scan to change the log level. This will allow you to s
 
 <img src="https://user-images.githubusercontent.com/20261699/224358855-9411cdc6-68a9-4cc4-828f-e30e4766101a.gif" style="max-width: 45em !important"/>
 
+## Kill Individual Module During Scan
+Sometimes a certain module can get stuck or slow down the scan. If this happens and you want to kill it, just type "`kill <module>`" in the terminal and press enter. This will kill and disable the module for the rest of the scan.
+
+<img src="https://github.com/blacklanternsecurity/bbot/assets/20261699/61ad7123-8879-4c86-afdd-e96d7264b67c" style="max-width: 45em !important"/>
+
 ## Common Config Changes
 
 ### Boost Massdns Thread Count

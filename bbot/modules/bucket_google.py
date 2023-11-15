@@ -1,7 +1,7 @@
-from bbot.modules.bucket_aws import bucket_aws
+from bbot.modules.templates.bucket import bucket_template
 
 
-class bucket_gcp(bucket_aws):
+class bucket_google(bucket_template):
     """
     Adapted from https://github.com/RhinoSecurityLabs/GCPBucketBrute/blob/master/gcpbucketbrute.py
     """
@@ -15,7 +15,7 @@ class bucket_gcp(bucket_aws):
         "permutations": "Whether to try permutations",
     }
 
-    cloud_helper_name = "gcp"
+    cloud_helper_name = "google"
     delimiters = ("", "-", ".", "_")
     base_domains = ["storage.googleapis.com"]
     bad_permissions = [
@@ -24,6 +24,11 @@ class bucket_gcp(bucket_aws):
         "storage.objects.get",
         "storage.objects.create",
     ]
+
+    def filter_bucket(self, event):
+        if not str(event.host).endswith(".googleapis.com"):
+            return False, "bucket belongs to a different cloud provider"
+        return True, ""
 
     def build_url(self, bucket_name, base_domain, region):
         return f"https://www.googleapis.com/storage/v1/b/{bucket_name}"

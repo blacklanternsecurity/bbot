@@ -26,4 +26,4 @@ class TestTeams(DiscordBase):
                     text="1",
                 )
 
-        module_test.httpx_mock.add_callback(custom_response)
+        module_test.httpx_mock.add_callback(custom_response, url=self.webhook_url)

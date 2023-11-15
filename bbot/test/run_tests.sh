@@ -14,4 +14,4 @@ flake8 --select F,E722 --ignore F403,F405,F541 --per-file-ignores="*/__init__.py
 echo
 
 echo "[+] Testing with pytest"
-pytest --exitfirst --disable-warnings --log-cli-level=ERROR "$bbot_dir" --cov=bbot/test/test_step_2/test_cli.py --cov-report term-missing
+pytest --exitfirst --disable-warnings --log-cli-level=ERROR "$bbot_dir" --cov=bbot/test/test_step_2/test_cli.py --cov-report="term-missing" --cov-config="$bbot_dir/test/coverage.cfg"

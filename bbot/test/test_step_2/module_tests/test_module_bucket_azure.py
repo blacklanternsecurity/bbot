@@ -1,7 +1,7 @@
-from .test_module_bucket_aws import *
+from .test_module_bucket_amazon import *
 
 
-class TestBucket_Azure(Bucket_AWS_Base):
+class TestBucket_Azure(Bucket_Amazon_Base):
     provider = "azure"
     random_bucket_1 = f"{random_bucket_name_1}.blob.core.windows.net"
     random_bucket_2 = f"{random_bucket_name_2}.blob.core.windows.net"
