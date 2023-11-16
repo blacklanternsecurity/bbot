@@ -286,9 +286,20 @@ class Scanner:
             await self.load_modules()
 
             self.info(f"Setting up modules...")
-            await self.setup_modules()
+            succeeded, hard_failed, soft_failed = await self.setup_modules()
 
-            self.success(f"Setup succeeded for {len(self.modules):,} modules.")
+            num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
+            if num_output_modules < 1:
+                raise ScanError("Failed to load output modules. Aborting.")
+            total_failed = len(hard_failed + soft_failed)
+            if hard_failed:
+                msg = f"Setup hard-failed for {len(hard_failed):,} modules ({','.join(hard_failed)})"
+                self._fail_setup(msg)
+
+            total_modules = total_failed + len(self.modules)
+            success_msg = f"Setup succeeded for {len(self.modules):,}/{total_modules:,} modules."
+
+            self.success(success_msg)
             self._prepped = True
 
     def start(self):
@@ -443,26 +454,12 @@ class Scanner:
                 self.modules[module_name].set_error_state()
                 hard_failed.append(module_name)
             else:
-                self.warning(f"Setup soft-failed for {module_name}: {msg}")
+                self.info(f"Setup soft-failed for {module_name}: {msg}")
                 soft_failed.append(module_name)
             if not status and remove_failed:
                 self.modules.pop(module_name)
 
-        num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
-        if num_output_modules < 1:
-            raise ScanError("Failed to load output modules. Aborting.")
-        total_failed = len(hard_failed + soft_failed)
-        if hard_failed:
-            msg = f"Setup hard-failed for {len(hard_failed):,} modules ({','.join(hard_failed)})"
-            self._fail_setup(msg)
-        elif total_failed > 0:
-            self.warning(f"Setup failed for {total_failed:,} modules")
-
-        return {
-            "succeeded": succeeded,
-            "hard_failed": hard_failed,
-            "soft_failed": soft_failed,
-        }
+        return succeeded, hard_failed, soft_failed
 
     async def load_modules(self):
         """Asynchronously import and instantiate all scan modules, including internal and output modules.

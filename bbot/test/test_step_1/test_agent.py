@@ -140,7 +140,7 @@ async def test_agent(agent):
 
     global success
     async with websockets.serve(_websocket_handler, "127.0.0.1", 8765):
-        asyncio.create_task(agent.start())
+        agent_task = asyncio.create_task(agent.start())
         # wait for 30 seconds
         await asyncio.wait_for(scan_done.wait(), 30)
         assert success
@@ -149,3 +149,10 @@ async def test_agent(agent):
         await agent.start_scan("scan_to_be_rejected", targets=["127.0.0.1"], modules=["ipneighbor"])
         await asyncio.sleep(0.1)
         await agent.stop_scan()
+        tasks = [agent.task, agent_task]
+        for task in tasks:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
