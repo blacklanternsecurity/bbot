@@ -31,7 +31,7 @@ async def websocket_handler(websocket, path, scan_done=None):
     assert websocket.request_headers["Authorization"] == "Bearer test"
 
     async for message in websocket:
-        log.critical(f"PHASE: {phase}, MESSAGE: {message}")
+        log.debug(f"PHASE: {phase}, MESSAGE: {message}")
         if not control or not first_run:
             continue
         m = json.loads(message)
