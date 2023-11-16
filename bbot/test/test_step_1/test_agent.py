@@ -31,7 +31,7 @@ async def websocket_handler(websocket, path, scan_done=None):
     assert websocket.request_headers["Authorization"] == "Bearer test"
 
     async for message in websocket:
-        log.debug(f"PHASE: {phase}, MESSAGE: {message}")
+        log.critical(f"PHASE: {phase}, MESSAGE: {message}")
         if not control or not first_run:
             continue
         m = json.loads(message)
@@ -142,7 +142,7 @@ async def test_agent(agent):
     async with websockets.serve(_websocket_handler, "127.0.0.1", 8765):
         agent_task = asyncio.create_task(agent.start())
         # wait for 90 seconds
-        await asyncio.wait_for(scan_done.wait(), 90)
+        await asyncio.wait_for(scan_done.wait(), 60)
         assert success
 
         await agent.start_scan("scan_to_be_cancelled", targets=["127.0.0.1"], modules=["ipneighbor"])
@@ -151,8 +151,8 @@ async def test_agent(agent):
         await agent.stop_scan()
         tasks = [agent.task, agent_task]
         for task in tasks:
-            task.cancel()
             try:
+                task.cancel()
                 await task
-            except asyncio.CancelledError:
+            except (asyncio.CancelledError, AttributeError):
                 pass
