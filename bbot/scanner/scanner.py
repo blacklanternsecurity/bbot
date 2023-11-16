@@ -426,10 +426,10 @@ class Scanner:
             remove_failed (bool): Flag indicating whether to remove modules that fail setup.
 
         Returns:
-            dict: Dictionary containing lists of module names categorized by their setup status.
-                  'succeeded' - List of modules that successfully set up.
-                  'hard_failed' - List of modules that encountered a hard failure during setup.
-                  'soft_failed' - List of modules that encountered a soft failure during setup.
+            tuple:
+                succeeded - List of modules that successfully set up.
+                hard_failed - List of modules that encountered a hard failure during setup.
+                soft_failed - List of modules that encountered a soft failure during setup.
 
         Raises:
             ScanError: If no output modules could be loaded.
@@ -450,7 +450,7 @@ class Scanner:
                 self.debug(f"Setup succeeded for {module_name} ({msg})")
                 succeeded.append(module_name)
             elif status == False:
-                self.error(f"Setup hard-failed for {module_name}: {msg}")
+                self.warning(f"Setup hard-failed for {module_name}: {msg}")
                 self.modules[module_name].set_error_state()
                 hard_failed.append(module_name)
             else:
