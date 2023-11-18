@@ -20,3 +20,4 @@ cf_scripts/scripts/ajax/ckeditor/plugins/filemanager/upload.cfm # https://www.ex
 wp-content/plugins/contact-form-7/modules/file.php #https://www.exploit-db.com/exploits/48062
 dotAdmin
 CuteSoft_Client/CuteEditor/Load.ashx?type=image # Potential Arbitrary File Read
+ChartImage.axd?ImageName=Jmg8ZTsXDd3lkOZqINS0Gw%3D%3D # Possible File read, if version 2012 and older
