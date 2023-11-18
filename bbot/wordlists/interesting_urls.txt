@@ -21,3 +21,4 @@ wp-content/plugins/contact-form-7/modules/file.php #https://www.exploit-db.com/e
 dotAdmin
 CuteSoft_Client/CuteEditor/Load.ashx?type=image # Potential Arbitrary File Read
 ChartImage.axd?ImageName=Jmg8ZTsXDd3lkOZqINS0Gw%3D%3D # Possible File read, if version 2012 and older
+ajaxpro/anything.ashx # https://www.rapid7.com/db/modules/exploit/windows/http/ajaxpro_deserialization_rce/
