@@ -41,6 +41,14 @@ class interesting_urls(ffuf):
         filters[""] = ["-mc", "200"]
         filters[""] += ["-fr", "|".join(self.waf_strings)]
 
+        # canary check
+        canary_tempfile = self.helpers.tempfile(
+            ["canary_check.aspx", "canary_check", "canary_check.php", "canary_check.jsp"], pipe=False
+        )
+        async for r in self.execute_ffuf(canary_tempfile, fixed_url, exts=[""], filters=filters):
+            self.debug(f'Canary check triggered with canary URL: {r["url"]}')
+            return False
+
         async for r in self.execute_ffuf(self.tempfile, fixed_url, exts=[""], filters=filters):
             self.emit_event(
                 r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}", "interesting-urls"]
