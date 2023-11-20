@@ -8,7 +8,7 @@ from bbot.modules.base import BaseModule
 class telerik(BaseModule):
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
-    flags = ["active", "aggressive", "slow", "web-thorough"]
+    flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Scan for critical Telerik vulnerabilities"}
 
     telerikVersions = [

@@ -21,7 +21,7 @@ class massdns(subdomain_enum):
     Subdomains with higher mutation levels are more likely to be distant/rare or never-before-seen.
     """
 
-    flags = ["subdomain-enum", "passive", "slow", "aggressive"]
+    flags = ["subdomain-enum", "passive", "aggressive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {"description": "Brute-force subdomains with massdns (highly effective)"}

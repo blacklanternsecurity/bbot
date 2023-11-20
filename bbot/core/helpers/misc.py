@@ -2234,9 +2234,6 @@ def is_file(f):
     return False
 
 
-provider_map = {"amazon": "aws", "google": "gcp"}
-
-
 def cloudcheck(ip):
     """
     Check whether an IP address belongs to a cloud provider and returns the provider name, type, and subnet.
@@ -2251,11 +2248,7 @@ def cloudcheck(ip):
         >>> cloudcheck("168.62.20.37")
         ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
     """
-    provider, provider_type, subnet = _cloudcheck.check(ip)
-    if provider:
-        with suppress(KeyError):
-            provider = provider_map[provider.lower()]
-    return provider, provider_type, subnet
+    return _cloudcheck.check(ip)
 
 
 def is_async_function(f):
