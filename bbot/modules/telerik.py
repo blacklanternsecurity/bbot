@@ -170,7 +170,6 @@ class telerik(BaseModule):
         return True
 
     async def handle_event(self, event):
-        self.warning(event.type)
         if event.type == "URL":
             webresource = "Telerik.Web.UI.WebResource.axd?type=rau"
             result, _ = await self.test_detector(event.data, webresource)
