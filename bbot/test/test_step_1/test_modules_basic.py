@@ -171,6 +171,8 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
 @pytest.mark.asyncio
 async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+    from bbot.modules.base import BaseModule
+
     per_host_scan = bbot_scanner(
         "evilcorp.com",
         modules=list(set(available_modules + available_internal_modules)),
@@ -198,15 +200,17 @@ async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbo
             valid_1, reason_1 = await module._event_postcheck(url_1)
             valid_2, reason_2 = await module._event_postcheck(url_2)
 
-            if module.per_host_only == True:
-                assert valid_1 == True
-                assert valid_2 == False
-                assert hash("http://evilcorp.com/") in module._per_host_tracker
-                assert reason_2 == "per_host_only enabled and already seen host"
+            # if the module overrides _incoming_dedup_hash, this test won't work.
+            if module._incoming_dedup_hash == BaseModule._incoming_dedup_hash:
+                if module.per_host_only == True:
+                    assert valid_1 == True
+                    assert valid_2 == False
+                    assert hash("http://evilcorp.com/") in module._per_host_tracker
+                    assert reason_2 == "per_host_only enabled and already seen host"
 
-            else:
-                assert valid_1 == True
-                assert valid_2 == True
+                else:
+                    assert valid_1 == True
+                    assert valid_2 == True
 
 
 @pytest.mark.asyncio
