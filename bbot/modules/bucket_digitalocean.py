@@ -17,4 +17,4 @@ class bucket_digitalocean(bucket_template):
     regions = ["ams3", "fra1", "nyc3", "sfo2", "sfo3", "sgp1"]
 
     def build_url(self, bucket_name, base_domain, region):
-        return f"https://{bucket_name}.{region}.{base_domain}"
+        return f"https://{bucket_name}.{region}.{base_domain}/"

@@ -867,16 +867,9 @@ class URL_UNVERIFIED(BaseEvent):
 
         parsed_path_lower = str(self.parsed.path).lower()
 
-        url_extension_blacklist = []
-        url_extension_httpx_only = []
         scan = getattr(self, "scan", None)
-        if scan is not None:
-            _url_extension_blacklist = scan.config.get("url_extension_blacklist", [])
-            _url_extension_httpx_only = scan.config.get("url_extension_httpx_only", [])
-            if _url_extension_blacklist:
-                url_extension_blacklist = [e.lower() for e in _url_extension_blacklist]
-            if _url_extension_httpx_only:
-                url_extension_httpx_only = [e.lower() for e in _url_extension_httpx_only]
+        url_extension_blacklist = getattr(scan, "url_extension_blacklist", [])
+        url_extension_httpx_only = getattr(scan, "url_extension_httpx_only", [])
 
         extension = get_file_extension(parsed_path_lower)
         if extension:
@@ -934,6 +927,7 @@ class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
     class _data_validator(BaseModel):
         name: str
         url: str
+        _validate_url = field_validator("url")(validators.validate_url)
 
     def _words(self):
         return self.data["name"]
@@ -1009,6 +1003,7 @@ class VULNERABILITY(DictHostEvent):
         severity: str
         description: str
         url: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
         _validate_severity = field_validator("severity")(validators.validate_severity)
 
@@ -1023,6 +1018,7 @@ class FINDING(DictHostEvent):
         host: str
         description: str
         url: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
@@ -1034,6 +1030,7 @@ class TECHNOLOGY(DictHostEvent):
         host: str
         technology: str
         url: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _data_id(self):
@@ -1050,6 +1047,7 @@ class VHOST(DictHostEvent):
         host: str
         vhost: str
         url: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):

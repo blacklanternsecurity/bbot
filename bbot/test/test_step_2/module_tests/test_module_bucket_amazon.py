@@ -37,9 +37,9 @@ class Bucket_Amazon_Base(ModuleTestBase):
         return ["excavate", "speculate", "httpx", self.module_name]
 
     def url_setup(self):
-        self.url_1 = f"https://{self.random_bucket_1}"
-        self.url_2 = f"https://{self.random_bucket_2}"
-        self.url_3 = f"https://{self.random_bucket_3}"
+        self.url_1 = f"https://{self.random_bucket_1}/"
+        self.url_2 = f"https://{self.random_bucket_2}/"
+        self.url_3 = f"https://{self.random_bucket_3}/"
 
     def bucket_setup(self):
         self.url_setup()
@@ -83,14 +83,14 @@ class Bucket_Amazon_Base(ModuleTestBase):
                     url = e.data.get("url", "")
                     assert self.random_bucket_2 in url
                     assert not self.random_bucket_1 in url
-                    assert not f"{self.random_bucket_3}" in url
+                    assert not self.random_bucket_3 in url
         # make sure bucket mutations were found
         assert any(
             e.type == "STORAGE_BUCKET"
             and str(e.module) == self.module_name
             and f"{random_bucket_name_3}" in e.data["url"]
             for e in events
-        ), f'bucket (dev mutation) not found for module "{self.module_name}"'
+        ), f'bucket (dev mutation: {self.random_bucket_3}) not found for module "{self.module_name}"'
 
 
 class TestBucket_Amazon(Bucket_Amazon_Base):

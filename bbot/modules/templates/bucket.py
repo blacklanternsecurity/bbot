@@ -126,7 +126,7 @@ class bucket_template(BaseModule):
         return False
 
     def build_url(self, bucket_name, base_domain, region):
-        return f"https://{bucket_name}.{base_domain}"
+        return f"https://{bucket_name}.{base_domain}/"
 
     def gen_tags_exists(self, response):
         return set()

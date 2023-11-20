@@ -12,14 +12,6 @@ class TestFileDownload(ModuleTestBase):
 3 0 obj<</Parent 2 0 R>>endobj
 trailer <</Root 1 0 R>>"""
 
-    async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(
-            url="https://raw.githubusercontent.com/jshttp/mime-db/master/db.json",
-            json={
-                "application/pdf": {"source": "iana", "compressible": False, "extensions": ["pdf"]},
-            },
-        )
-
     async def setup_after_prep(self, module_test):
         module_test.set_expect_requests(
             dict(uri="/"),
