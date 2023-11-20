@@ -230,6 +230,10 @@ class Scanner:
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
 
+        # url file extensions
+        self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
+        self.url_extension_httpx_only = set(e.lower() for e in self.config.get("url_extension_httpx_only", []))
+
         # custom HTTP headers warning
         self.custom_http_headers = self.config.get("http_headers", {})
         if self.custom_http_headers:

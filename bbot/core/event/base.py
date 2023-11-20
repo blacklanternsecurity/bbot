@@ -867,16 +867,9 @@ class URL_UNVERIFIED(BaseEvent):
 
         parsed_path_lower = str(self.parsed.path).lower()
 
-        url_extension_blacklist = []
-        url_extension_httpx_only = []
         scan = getattr(self, "scan", None)
-        if scan is not None:
-            _url_extension_blacklist = scan.config.get("url_extension_blacklist", [])
-            _url_extension_httpx_only = scan.config.get("url_extension_httpx_only", [])
-            if _url_extension_blacklist:
-                url_extension_blacklist = [e.lower() for e in _url_extension_blacklist]
-            if _url_extension_httpx_only:
-                url_extension_httpx_only = [e.lower() for e in _url_extension_httpx_only]
+        url_extension_blacklist = getattr(scan, "url_extension_blacklist", [])
+        url_extension_httpx_only = getattr(scan, "url_extension_httpx_only", [])
 
         extension = get_file_extension(parsed_path_lower)
         if extension:

@@ -13,7 +13,15 @@ class bucket_file_enum(BaseModule):
         "description": "Works in conjunction with the filedownload module to download files from open storage buckets. Currently supported cloud providers: AWS"
     }
     flags = ["passive", "safe", "cloud-enum"]
+    options = {
+        "file_limit": 50,
+    }
+    options_desc = {"file_limit": "Limit the number of files downloaded per bucket"}
     scope_distance_modifier = 2
+
+    async def setup(self):
+        self.file_limit = self.config.get("file_limit", 50)
+        return True
 
     async def handle_event(self, event):
         cloud_tags = (t for t in event.tags if t.startswith("cloud-"))
@@ -22,6 +30,7 @@ class bucket_file_enum(BaseModule):
 
     async def handle_aws(self, event):
         url = event.data["url"]
+        urls_emitted = 0
         response = await self.helpers.request(url)
         status_code = getattr(response, "status_code", 0)
         if status_code == 200:
@@ -31,4 +40,9 @@ class bucket_file_enum(BaseModule):
             keys = [key.text for key in root.findall(".//s3:Key", namespace)]
             for key in keys:
                 bucket_file = url + "/" + key
-                self.emit_event(bucket_file, "URL_UNVERIFIED", source=event, tags="filedownload")
+                file_extension = self.helpers.get_file_extension(key)
+                if file_extension not in self.scan.url_extension_blacklist:
+                    self.emit_event(bucket_file, "URL_UNVERIFIED", source=event, tags="filedownload")
+                    urls_emitted += 1
+                    if urls_emitted >= self.file_limit:
+                        return

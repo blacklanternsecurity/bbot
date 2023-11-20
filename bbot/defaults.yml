@@ -99,6 +99,8 @@ url_extension_blacklist:
     - woff
     - woff2
     - ttf
+    - sass
+    - scss
     # audio
     - mp3
     - m4a
