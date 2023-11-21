@@ -22,3 +22,11 @@ dotAdmin
 CuteSoft_Client/CuteEditor/Load.ashx?type=image # Potential Arbitrary File Read
 ChartImage.axd?ImageName=Jmg8ZTsXDd3lkOZqINS0Gw%3D%3D # Possible File read, if version 2012 and older
 ajaxpro/anything.ashx # https://www.rapid7.com/db/modules/exploit/windows/http/ajaxpro_deserialization_rce/
+Telerik.Sitefinity.AsyncFileUploadHandler.ashx
+Telerik.Sitefinity.AsyncImageUploadHandler.ashx
+Telerik.Sitefinity.AsyncToolsetXmlUploadHandler.ashx
+Telerik.Sitefinity.ExportSubscribersHttpHandler.ashx
+Telerik.Sitefinity.FilesDownloadHandler.ashx
+Telerik.Sitefinity.Html5UploadHandler.ashx
+Telerik.Sitefinity.LibrariesRadUploadHandler.ashx
+Telerik.Sitefinity.ThumbnailUploadHandler.ashx
