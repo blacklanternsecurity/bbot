@@ -892,6 +892,8 @@ class BaseModule:
                         self.outgoing_event_queue.get_nowait()
 
     def is_incoming_duplicate(self, event, add=False):
+        if event.type in ("FINISHED",):
+            return False
         event_hash = self._incoming_dedup_hash(event)
         is_dup = event_hash in self._incoming_dup_tracker
         if add:
