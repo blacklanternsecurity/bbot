@@ -1,4 +1,3 @@
-import json
 import yaml
 
 from bbot.modules.output.base import BaseOutputModule
@@ -10,7 +9,7 @@ class WebhookOutputModule(BaseOutputModule):
     """
     accept_dupes = False
     good_status_code = 204
-    char_limit = 2000
+    message_size_limit = 2000
     content_key = "content"
     vuln_severities = ["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
@@ -29,18 +28,12 @@ class WebhookOutputModule(BaseOutputModule):
     async def handle_event(self, event):
         while 1:
             message = self.format_message(event)
-            data = json.dumps({self.content_key: message})
-            if len(data) > self.char_limit:
-                overflow_size = len(data) - self.char_limit
-                self.critical(f"OVERFLOW: {overflow_size}")
-                message = message[:-(overflow_size-5)] + "..."
-                data = json.dumps({self.content_key: message})
+            data = {self.content_key: message}
 
             response = await self.helpers.request(
                 url=self.webhook_url,
                 method="POST",
-                headers={"content-type": "application/json"},
-                data=data,
+                json=data,
             )
             status_code = getattr(response, "status_code", 0)
             if self.evaluate_response(response):
@@ -91,11 +84,13 @@ class WebhookOutputModule(BaseOutputModule):
             return event.type, "🟦"
 
     def format_message(self, event):
-        return "A" * 2001
         if isinstance(event.data, str):
-            return self.format_message_str(event)
+            msg = self.format_message_str(event)
         else:
-            return self.format_message_other(event)
+            msg = self.format_message_other(event)
+        if len(msg) > self.message_size_limit:
+            msg = message[:self.message_size_limit-3] + "..."
+        return msg
 
     def evaluate_response(self, response):
         status_code = getattr(response, "status_code", 0)
