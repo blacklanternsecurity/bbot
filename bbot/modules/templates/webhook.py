@@ -89,7 +89,7 @@ class WebhookOutputModule(BaseOutputModule):
         else:
             msg = self.format_message_other(event)
         if len(msg) > self.message_size_limit:
-            msg = message[:self.message_size_limit-3] + "..."
+            msg = msg[:self.message_size_limit-3] + "..."
         return msg
 
     def evaluate_response(self, response):
