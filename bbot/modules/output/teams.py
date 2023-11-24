@@ -1,9 +1,9 @@
-from .discord import Discord
+from bbot.modules.templates.webhook import WebhookOutputModule
 
 
-class Teams(Discord):
+class Teams(WebhookOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Message a Slack channel when certain events are encountered"}
+    meta = {"description": "Message a Teams channel when certain events are encountered"}
     options = {"webhook_url": "", "event_types": ["VULNERABILITY", "FINDING"], "min_severity": "LOW"}
     options_desc = {
         "webhook_url": "Discord webhook URL",
