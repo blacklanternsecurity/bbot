@@ -91,7 +91,7 @@ class WebhookOutputModule(BaseOutputModule):
             return event.type, "🟦"
 
     def format_message(self, event):
-        return "A" * 3000
+        return "A" * 2001
         if isinstance(event.data, str):
             return self.format_message_str(event)
         else:
