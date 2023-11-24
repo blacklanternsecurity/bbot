@@ -29,7 +29,6 @@ class WebhookOutputModule(BaseOutputModule):
     async def handle_event(self, event):
         while 1:
             message = self.format_message(event)
-            message = "A" * 3000
             data = json.dumps({self.content_key: message})
             if len(data) > self.char_limit:
                 overflow_size = len(data) - self.char_limit
@@ -92,6 +91,7 @@ class WebhookOutputModule(BaseOutputModule):
             return event.type, "🟦"
 
     def format_message(self, event):
+        return "A" * 3000
         if isinstance(event.data, str):
             return self.format_message_str(event)
         else:
