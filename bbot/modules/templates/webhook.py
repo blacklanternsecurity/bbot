@@ -7,6 +7,7 @@ class WebhookOutputModule(BaseOutputModule):
     """
     A template for webhook output modules such as Discord, Teams, and Slack
     """
+
     accept_dupes = False
     good_status_code = 204
     message_size_limit = 2000
@@ -89,7 +90,7 @@ class WebhookOutputModule(BaseOutputModule):
         else:
             msg = self.format_message_other(event)
         if len(msg) > self.message_size_limit:
-            msg = msg[:self.message_size_limit-3] + "..."
+            msg = msg[: self.message_size_limit - 3] + "..."
         return msg
 
     def evaluate_response(self, response):
