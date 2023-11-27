@@ -1091,6 +1091,17 @@ class HASHED_PASSWORD(BaseEvent):
 class USERNAME(BaseEvent):
     _always_emit = True
 
+    def __new__(cls, data, *args, **kwargs):
+        # if the data is an email, emit as an email instead
+        if validators.soft_validate(data, "email"):
+            log.critical(f"{data} is an email")
+            tags = set(kwargs.get("tags", []))
+            # add affiliate tag so the event is always emitted regardless of scope distance
+            tags.add("affiliate")
+            kwargs["tags"] = tags
+            return EMAIL_ADDRESS(data, *args, **kwargs)
+        return super().__new__(cls)
+
 
 class SOCIAL(DictEvent):
     _always_emit = True
