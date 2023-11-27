@@ -125,6 +125,9 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
             assert ("active" in flags and not "passive" in flags) or (
                 not "active" in flags and "passive" in flags
             ), f'module "{module_name}" must have either "active" or "passive" flag'
+            assert ("safe" in flags and not "aggressive" in flags) or (
+                not "safe" in flags and "aggressive" in flags
+            ), f'module "{module_name}" must have either "safe" or "aggressive" flag'
             assert preloaded.get("meta", {}).get("description", ""), f"{module_name} must have a description"
 
         # attribute checks
