@@ -11,12 +11,22 @@ class masscan(BaseModule):
     produced_events = ["OPEN_TCP_PORT"]
     meta = {"description": "Port scan IP subnets with masscan"}
     # 600 packets/s ~= entire private IP space in 8 hours
-    options = {"ports": "80,443", "rate": 600, "wait": 10, "ping_first": False, "use_cache": False}
+    options = {
+        "top_ports": 100,
+        "ports": "",
+        "rate": 600,
+        "wait": 10,
+        "ping_first": False,
+        "ping_only": False,
+        "use_cache": False,
+    }
     options_desc = {
+        "top_ports": "Top ports to scan (default 100)",
         "ports": "Ports to scan",
         "rate": "Rate in packets per second",
         "wait": "Seconds to wait for replies after scan is complete",
         "ping_first": "Only portscan hosts that reply to pings",
+        "ping_only": "Ping sweep only, no portscan",
         "use_cache": "Instead of scanning, use the results from the previous scan",
     }
     deps_ansible = [
@@ -51,10 +61,12 @@ class masscan(BaseModule):
     _qsize = 100
 
     async def setup(self):
+        self.top_ports = self.config.get("top_ports", 100)
         self.ports = self.config.get("ports", "80,443")
         self.rate = self.config.get("rate", 600)
         self.wait = self.config.get("wait", 10)
         self.ping_first = self.config.get("ping_first", False)
+        self.ping_only = self.config.get("ping_only", False)
         self.alive_hosts = dict()
         # make a quick dry run to validate ports etc.
         self._target_findkey = "9.8.7.6"
@@ -111,7 +123,7 @@ class masscan(BaseModule):
                 return
 
             # ping scan
-            if self.ping_first:
+            if self.ping_first or self.ping_only:
                 self.verbose("Starting masscan (ping scan)")
 
                 await self.masscan(targets, result_callback=self.append_alive_host, exclude=exclude, ping=True)
@@ -121,11 +133,11 @@ class masscan(BaseModule):
                     return
 
             # TCP SYN scan
-            if self.ports:
+            if not self.ping_only:
                 self.verbose("Starting masscan (TCP SYN scan)")
                 await self.masscan(targets, result_callback=self.emit_open_tcp_port, exclude=exclude)
             else:
-                self.verbose("No ports specified, skipping TCP SYN scan")
+                self.verbose("Only ping sweep was requested, skipping TCP SYN scan")
             # save memory
             self.alive_hosts.clear()
 
@@ -159,7 +171,10 @@ class masscan(BaseModule):
         if ping:
             command += ("--ping",)
         elif not dry_run:
-            command += ("-p", self.ports)
+            if self.ports:
+                command += ("-p", self.ports)
+            else:
+                command += ("--top-ports", str(self.top_ports))
         if exclude is not None:
             command += ("--exclude", exclude)
         if dry_run:
