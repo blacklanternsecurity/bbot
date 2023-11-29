@@ -54,6 +54,13 @@ _url_regexes = (
 )
 url_regexes = list(re.compile(r, re.I) for r in _url_regexes)
 
+_uri_regexes = (
+    r"[a-z0-9]+://" + _dns_name_regex + r"(?::[0-9]{1,5})?(?:(?:/|\?).*)?",
+    r"[a-z0-9]+://" + _hostname_regex + r"(?::[0-9]{1,5})?(?:(?:/|\?).*)?",
+    r"[a-z0-9]+://\[" + _ipv6_regex + r"\](?::[0-9]{1,5})?(?:(?:/|\?).*)?",
+)
+uri_regexes = list(re.compile(r, re.I) for r in _uri_regexes)
+
 _double_slash_regex = r"/{2,}"
 double_slash_regex = re.compile(_double_slash_regex)
 

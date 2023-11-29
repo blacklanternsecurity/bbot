@@ -379,6 +379,18 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.validators.soft_validate("!@#$", "url") == False
     with pytest.raises(ValueError):
         helpers.validators.validate_url("!@#$")
+    assert helpers.validators.soft_validate("http://evilcorp.com", "url") == True
+    assert helpers.validators.soft_validate("ftp://evilcorp.com", "url") == False
+    # uris
+    assert helpers.validators.soft_validate("http://evilcorp.com", "uri") == True
+    assert helpers.validators.soft_validate("ftp://evilcorp.com", "uri") == True
+    assert helpers.validators.validate_uri("FTP://evilcorp.com") == "ftp://evilcorp.com"
+    assert helpers.validators.validate_uri("FTP://evilcorp.com:2121") == "ftp://evilcorp.com:2121"
+    uri_finding = scan.make_event(
+        {"host": "evilcorp.com", "url": "ftp://evilcorp.com", "description": "asdf"}, "FINDING", source=scan.root_event
+    )
+    assert uri_finding is not None
+    assert uri_finding.data["url"] == "ftp://evilcorp.com"
     # severities
     assert helpers.validators.validate_severity(" iNfo") == "INFO"
     assert helpers.validators.soft_validate(" iNfo", "severity") == True

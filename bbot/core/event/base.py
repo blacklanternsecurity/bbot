@@ -722,12 +722,6 @@ class DefaultEvent(BaseEvent):
 
 
 class DictEvent(BaseEvent):
-    def sanitize_data(self, data):
-        url = data.get("url", "")
-        if url:
-            self.parsed = validators.validate_url_parsed(url)
-        return data
-
     def _data_human(self):
         return json.dumps(self.data, sort_keys=True)
 
@@ -1018,7 +1012,7 @@ class FINDING(DictHostEvent):
         host: str
         description: str
         url: Optional[str] = None
-        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_url = field_validator("url")(validators.validate_uri)
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):

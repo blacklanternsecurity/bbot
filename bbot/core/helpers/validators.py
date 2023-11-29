@@ -143,6 +143,19 @@ def validate_url_parsed(url: str):
 
 
 @validator
+def validate_uri(uri: str):
+    return validate_uri_parsed(uri).geturl()
+
+
+@validator
+def validate_uri_parsed(uri: str):
+    uri = str(uri).strip()
+    if not any(r.match(uri) for r in regexes.uri_regexes):
+        raise ValidationError(f'Invalid URI: "{uri}"')
+    return clean_url(uri, uri=True)
+
+
+@validator
 def validate_severity(severity: str):
     severity = str(severity).strip().upper()
     if not severity in ("UNKNOWN", "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"):
@@ -158,7 +171,7 @@ def validate_email(email: str):
     raise ValidationError(f'Invalid email: "{email}"')
 
 
-def clean_url(url: str):
+def clean_url(url: str, uri=False):
     """
     Cleans and normalizes a URL. This function removes the query string and fragment,
     lowercases the netloc, and removes redundant port numbers.
@@ -181,18 +194,20 @@ def clean_url(url: str):
     """
     parsed = parse_url(url)
     parsed = parsed._replace(netloc=str(parsed.netloc).lower(), fragment="", query="")
+    hostname = validate_host(parsed.hostname)
     try:
         scheme = parsed.scheme
     except ValueError:
         scheme = "https"
+    port = None
     with suppress(Exception):
         port = parsed.port
-    if port is None:
-        port = 80 if scheme == "http" else 443
-    hostname = validate_host(parsed.hostname)
-    # remove ports if they're redundant
-    if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
-        port = None
+    if not uri:
+        if port is None:
+            port = 80 if scheme == "http" else 443
+        # remove ports if they're redundant
+        if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
+            port = None
     # special case for IPv6 URLs
     netloc = make_netloc(hostname, port)
     # urlparse is special - it needs square brackets even if there's no port
@@ -202,7 +217,7 @@ def clean_url(url: str):
     # normalize double slashes
     parsed = parsed._replace(path=regexes.double_slash_regex.sub("/", parsed.path))
     # append / if path is empty
-    if parsed.path == "":
+    if parsed.path == "" and not uri:
         parsed = parsed._replace(path="/")
     return parsed
 
