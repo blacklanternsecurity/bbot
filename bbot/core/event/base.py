@@ -1176,8 +1176,10 @@ def make_event(
     """
 
     # allow tags to be either a string or an array
-    if isinstance(tags, str):
-        tags = [tags]
+    if tags is not None:
+        if isinstance(tags, str):
+            tags = [tags]
+        tags = list(tags)
 
     if is_event(data):
         if scan is not None and not data.scan:
@@ -1217,6 +1219,10 @@ def make_event(
                     event_type = "IP_ADDRESS"
                 elif event_type == "IP_ADDRESS" and not data_is_ip:
                     event_type = "DNS_NAME"
+        # USERNAME <--> EMAIL_ADDRESS confusion
+        if event_type == "USERNAME" and validators.soft_validate(data, "email"):
+            event_type = "EMAIL_ADDRESS"
+            tags.append("affiliate")
 
         event_class = globals().get(event_type, DefaultEvent)
 
