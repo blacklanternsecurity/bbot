@@ -722,12 +722,6 @@ class DefaultEvent(BaseEvent):
 
 
 class DictEvent(BaseEvent):
-    def sanitize_data(self, data):
-        url = data.get("url", "")
-        if url:
-            self.parsed = validators.validate_url_parsed(url)
-        return data
-
     def _data_human(self):
         return json.dumps(self.data, sort_keys=True)
 
