@@ -14,7 +14,7 @@ class filedownload(BaseModule):
 
     watched_events = ["URL_UNVERIFIED", "HTTP_RESPONSE"]
     produced_events = []
-    flags = ["active", "safe"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Download common filetypes such as PDF, DOCX, PPTX, etc."}
     options = {
         "extensions": [
@@ -46,7 +46,6 @@ class filedownload(BaseModule):
             "odt",  #  OpenDocument Text (LibreOffice, OpenOffice)
             "pdf",  #  Adobe Portable Document Format
             "pem",  #  Privacy Enhanced Mail (SSL certificate)
-            "png",  #  Portable Network Graphics Image
             "pps",  #  Microsoft PowerPoint Slideshow (Old Format)
             "ppsx",  #  Microsoft PowerPoint Slideshow
             "ppt",  #  Microsoft PowerPoint Presentation (Old Format)
