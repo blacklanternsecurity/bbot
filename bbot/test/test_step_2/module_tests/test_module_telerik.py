@@ -3,7 +3,7 @@ from .base import ModuleTestBase
 
 
 class TestTelerik(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888"]
+    targets = ["http://127.0.0.1:8888", "http://127.0.0.1:8888/telerik.aspx"]
     modules_overrides = ["httpx", "telerik"]
     config_overrides = {"modules": {"telerik": {"exploit_RAU_crypto": True}}}
 
@@ -29,7 +29,7 @@ class TestTelerik(ModuleTestBase):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
         # Simulate DialogHandler detection
-        expect_args = {"method": "GET", "uri": "Telerik.Web.UI.SpellCheckHandler.axd"}
+        expect_args = {"method": "GET", "uri": "/Telerik.Web.UI.SpellCheckHandler.axd"}
         respond_args = {"status": 500}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
@@ -38,6 +38,24 @@ class TestTelerik(ModuleTestBase):
         respond_args = {
             "response_data": '<input type="hidden" name="dialogParametersHolder" id="dialogParametersHolder" /><div style=\'color:red\'>Cannot deserialize dialog parameters. Please refresh the editor page.</div><div>Error Message:Invalid length for a Base-64 char array or string.</div></form></body></html>'
         }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # Simulate ChartImage.axd Detection
+        expect_args = {
+            "method": "GET",
+            "uri": "/ChartImage.axd",
+            "query_string": "ImageName=bqYXJAqm315eEd6b%2bY4%2bGqZpe7a1kY0e89gfXli%2bjFw%3d",
+        }
+        respond_args = {"status": 200}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"method": "GET", "uri": "/ChartImage.axd", "query_string": "ImageName="}
+        respond_args = {"status": 500}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        # Simulate Dialog Parameters in URL
+        expect_args = {"method": "GET", "uri": "/telerik.aspx"}
+        respond_args = {"response_data": '{"ImageManager":{"SerializedParameters":"MBwZB"}'}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
         # Fallback
@@ -58,9 +76,12 @@ class TestTelerik(ModuleTestBase):
         telerik_axd_vulnerable = False
         telerik_spellcheck_detection = False
         telerik_dialoghandler_detection = False
+        telerik_chartimage_detection = False
+        telerik_http_response_parameters_detection = False
 
         for e in events:
             if e.type == "FINDING" and "Telerik RAU AXD Handler detected" in e.data["description"]:
+                e.data["description"]
                 telerik_axd_detection = True
                 continue
 
@@ -76,7 +97,20 @@ class TestTelerik(ModuleTestBase):
                 telerik_spellcheck_detection = True
                 continue
 
+            if e.type == "FINDING" and "Telerik ChartImage AXD Handler Detected" in e.data["description"]:
+                telerik_chartimage_detection = True
+                continue
+
+            if (
+                e.type == "FINDING"
+                and "Telerik DialogHandler [SerializedParameters] Detected in HTTP Response" in e.data["description"]
+            ):
+                telerik_http_response_parameters_detection = True
+                continue
+
         assert telerik_axd_detection, "Telerik AXD detection failed"
         assert telerik_axd_vulnerable, "Telerik vulnerable AXD detection failed"
         assert telerik_spellcheck_detection, "Telerik spellcheck detection failed"
         assert telerik_dialoghandler_detection, "Telerik dialoghandler detection failed"
+        assert telerik_chartimage_detection, "Telerik chartimage detection failed"
+        assert telerik_http_response_parameters_detection, "Telerik SerializedParameters detection failed"
