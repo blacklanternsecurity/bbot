@@ -149,6 +149,8 @@ class URLExtractor(BaseExtractor):
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
         # Handle non-HTTP URIs (ftp, s3, etc.)
         if not "http" in parsed_uri.scheme.lower():
+            # these findings are pretty mundane so don't bother with them if they aren't in scope
+            abort_if = lambda e: e.scope_distance > 0
             event_data = {"host": str(host), "description": f"Non-HTTP URI: {result}"}
             parsed_url = getattr(event, "parsed", None)
             if parsed_url:
@@ -157,11 +159,16 @@ class URLExtractor(BaseExtractor):
                 event_data,
                 "FINDING",
                 source=event,
+                abort_if=abort_if,
             )
+            protocol_data = {"protocol": parsed_uri.scheme, "host": str(host)}
+            if port:
+                protocol_data["port"] = port
             self.excavate.emit_event(
-                {"protocol": parsed_uri.scheme, "host": str(host)},
+                protocol_data,
                 "PROTOCOL",
                 source=event,
+                abort_if=abort_if,
             )
             return
 
@@ -340,7 +347,6 @@ class excavate(BaseInternalModule):
             web_spider_distance = getattr(event, "web_spider_distance", 0)
             num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
             location = event.data.get("location", "")
-            host = event.host
             # if it's a redirect
             if location:
                 # get the url scheme
@@ -361,10 +367,6 @@ class excavate(BaseInternalModule):
                             self.emit_event(url_event)
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
-                elif scheme:
-                    # we ran into a scheme that's not HTTP or HTTPS
-                    data = {"host": host, "description": f"Non-standard URI scheme: {scheme}://", "url": location}
-                    self.emit_event(data, "FINDING", event)
 
             body = self.helpers.recursive_decode(event.data.get("body", ""))
             # Cloud extractors
