@@ -22,8 +22,13 @@ class github(subdomain_enum_apikey):
         assert getattr(response, "status_code", 0) == 200
 
     async def handle_event(self, event):
+        # self.search_code(event)
+        self.search_org(event)
+
+    async def search_code(self, event):
         query = self.make_query(event)
-        for repo_url, raw_urls in (await self.query(query)).items():
+        self.verbose(f"Search for any code belonging to {query}")
+        for repo_url, raw_urls in (await self.query_code(query)).items():
             repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
             if repo_event is None:
                 continue
@@ -35,7 +40,26 @@ class github(subdomain_enum_apikey):
                 url_event.scope_distance = repo_event.scope_distance
                 self.emit_event(url_event)
 
-    async def query(self, query):
+    async def search_org(self, event):
+        domain = self.make_query(event)
+        potential_org = domain.split(".")[0]
+        if self.validate_org(potential_org):
+            self.verbose(f"Search for any repositorys belonging to {potential_org}")
+            for repo_url, raw_urls in (await self.query_org_repos(potential_org)).items():
+                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
+                if repo_event is None:
+                    continue
+                self.emit_event(repo_event)
+                for raw_url in raw_urls:
+                    url_event = self.make_event(raw_url, "URL_UNVERIFIED", source=repo_event, tags=["httpx-safe"])
+                    if not url_event:
+                        continue
+                    url_event.scope_distance = repo_event.scope_distance
+                    self.emit_event(url_event)
+        else:
+            self.warning(f"Unable to validate {potential_org} is within the scope of this assesment, skipping...")
+
+    async def query_code(self, query):
         repos = {}
         url = f"{self.base_url}/search/code?per_page=100&type=Code&q={self.helpers.quote(query)}&page=" + "{page}"
         agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
@@ -67,12 +91,64 @@ class github(subdomain_enum_apikey):
         finally:
             agen.aclose()
         return repos
-    
+
+    async def query_org_repos(self, query):
+        repos = {}
+        url = f"{self.base_url}/orgs/{self.helpers.quote(query)}/repos"
+        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        try:
+            async for r in agen:
+                if r is None:
+                    break
+                status_code = getattr(r, "status_code", 0)
+                if status_code == 429:
+                    "Github is rate-limiting us (HTTP status: 429)"
+                    break
+                try:
+                    j = r.json()
+                except Exception as e:
+                    self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+                    break
+                for item in j:
+                    html_url = item.get("html_url", "")
+                    self.verbose(f"Discovered {html_url}")
+                    repo_name = item.get("full_name", "")
+                    repo_contents = self.query_repo(repo_name)
+                    repos[html_url] = repo_contents
+        finally:
+            agen.aclose()
+        return repos
+
+    async def query_repo_cntents(self, query):
+        contents = []
+        url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents"
+        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        try:
+            async for r in agen:
+                if r is None:
+                    break
+                status_code = getattr(r, "status_code", 0)
+                if status_code == 429:
+                    "Github is rate-limiting us (HTTP status: 429)"
+                    break
+                try:
+                    j = r.json()
+                except Exception as e:
+                    self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+                    break
+                for item in j:
+                    raw_url = item.get("download_url", "")
+                    self.verbose(f"Got {raw_url} from {query}")
+                    contents.append(raw_url)
+        finally:
+            agen.aclose()
+        return contents
+
     async def validate_org(self, input, domain):
         self.verbose(f"Validating the organization {input} is within our scope...")
         in_scope = False
         url = f"{self.endpoint}/orgs/{input}"
-        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        agen = self.helpers.api_page_iter(url, json=False)
         try:
             async for r in agen:
                 if r is None:
