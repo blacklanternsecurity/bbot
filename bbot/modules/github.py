@@ -119,9 +119,12 @@ class github(subdomain_enum_apikey):
             agen.aclose()
         return repos
 
-    async def query_repo_contents(self, query):
+    async def query_repo_contents(self, query, path=None):
         contents = []
-        url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents"
+        if dir:
+            url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents/{path}"
+        else:
+            url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents"
         agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
         try:
             async for r in agen:
@@ -138,8 +141,13 @@ class github(subdomain_enum_apikey):
                     break
                 for item in j:
                     raw_url = item.get("download_url", "")
-                    self.verbose(f"Got {raw_url} from {query}")
-                    contents.append(raw_url)
+                    if not raw_url:
+                        path = item.get("path", "")
+                        sub_dir_files = self.query_repo_contents(query, path=path)
+                        contents = contents + sub_dir_files
+                    else:
+                        self.verbose(f"Got {raw_url} from {query}")
+                        contents.append(raw_url)
         finally:
             agen.aclose()
         return contents
