@@ -92,7 +92,42 @@ class TestGithub(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="https://api.github.com/orgs/blacklanternsecurity/repos",
+            url="https://api.github.com/orgs/blacklanternsecurity",
+            json={
+                "login": "blacklanternsecurity",
+                "id": 25311592,
+                "node_id": "MDEyOk9yZ2FuaXphdGlvbjI1MzExNTky",
+                "url": "https://api.github.com/orgs/blacklanternsecurity",
+                "repos_url": "https://api.github.com/orgs/blacklanternsecurity/repos",
+                "events_url": "https://api.github.com/orgs/blacklanternsecurity/events",
+                "hooks_url": "https://api.github.com/orgs/blacklanternsecurity/hooks",
+                "issues_url": "https://api.github.com/orgs/blacklanternsecurity/issues",
+                "members_url": "https://api.github.com/orgs/blacklanternsecurity/members{/member}",
+                "public_members_url": "https://api.github.com/orgs/blacklanternsecurity/public_members{/member}",
+                "avatar_url": "https://avatars.githubusercontent.com/u/25311592?v=4",
+                "description": "Security Organization",
+                "name": "Black Lantern Security",
+                "company": None,
+                "blog": "www.blacklanternsecurity.com",
+                "location": "Charleston, SC",
+                "email": None,
+                "twitter_username": None,
+                "is_verified": False,
+                "has_organization_projects": True,
+                "has_repository_projects": True,
+                "public_repos": 70,
+                "public_gists": 0,
+                "followers": 415,
+                "following": 0,
+                "html_url": "https://github.com/blacklanternsecurity",
+                "created_at": "2017-01-24T00:14:46Z",
+                "updated_at": "2022-03-28T11:39:03Z",
+                "archived_at": None,
+                "type": "Organization",
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
             json=[
                 {
                     "id": 459780477,
