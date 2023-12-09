@@ -127,7 +127,7 @@ class github(subdomain_enum_apikey):
             url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents/{path}"
         else:
             url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents"
-        r = await self.helpers.request(url)
+        r = await self.helpers.request(url, headers=self.headers)
         if r is None:
             return contents
         status_code = getattr(r, "status_code", 0)
