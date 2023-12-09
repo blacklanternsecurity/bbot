@@ -22,7 +22,7 @@ class github(subdomain_enum_apikey):
         assert getattr(response, "status_code", 0) == 200
 
     async def handle_event(self, event):
-        # await self.search_code(event)
+        await self.search_code(event)
         await self.search_org(event)
 
     async def search_code(self, event):
@@ -123,7 +123,7 @@ class github(subdomain_enum_apikey):
 
     async def query_repo_contents(self, query, path=None):
         contents = []
-        if dir:
+        if path:
             url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents/{path}"
         else:
             url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents"
