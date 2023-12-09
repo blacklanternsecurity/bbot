@@ -22,8 +22,8 @@ class github(subdomain_enum_apikey):
         assert getattr(response, "status_code", 0) == 200
 
     async def handle_event(self, event):
-        # self.search_code(event)
-        self.search_org(event)
+        # await self.search_code(event)
+        await self.search_org(event)
 
     async def search_code(self, event):
         query = self.make_query(event)
@@ -43,7 +43,7 @@ class github(subdomain_enum_apikey):
     async def search_org(self, event):
         domain = self.make_query(event)
         potential_org = domain.split(".")[0]
-        if self.validate_org(potential_org):
+        if await self.validate_org(potential_org, domain):
             self.verbose(f"Search for any repositorys belonging to {potential_org}")
             for repo_url, raw_urls in (await self.query_org_repos(potential_org)).items():
                 repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
@@ -94,7 +94,7 @@ class github(subdomain_enum_apikey):
 
     async def query_org_repos(self, query):
         repos = {}
-        url = f"{self.base_url}/orgs/{self.helpers.quote(query)}/repos"
+        url = f"{self.base_url}/orgs/{self.helpers.quote(query)}/repos?per_page=100&page=" + "{page}"
         agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
         try:
             async for r in agen:
@@ -109,11 +109,13 @@ class github(subdomain_enum_apikey):
                 except Exception as e:
                     self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
                     break
+                if not j:
+                    break
                 for item in j:
                     html_url = item.get("html_url", "")
                     self.verbose(f"Discovered {html_url}")
                     repo_name = item.get("full_name", "")
-                    repo_contents = self.query_repo_contents(repo_name)
+                    repo_contents = await self.query_repo_contents(repo_name)
                     repos[html_url] = repo_contents
         finally:
             agen.aclose()
@@ -125,59 +127,47 @@ class github(subdomain_enum_apikey):
             url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents/{path}"
         else:
             url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents"
-        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        r = await self.helpers.request(url)
+        if r is None:
+            return contents
+        status_code = getattr(r, "status_code", 0)
+        if status_code == 429:
+            "Github is rate-limiting us (HTTP status: 429)"
         try:
-            async for r in agen:
-                if r is None:
-                    break
-                status_code = getattr(r, "status_code", 0)
-                if status_code == 429:
-                    "Github is rate-limiting us (HTTP status: 429)"
-                    break
-                try:
-                    j = r.json()
-                except Exception as e:
-                    self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
-                    break
-                for item in j:
-                    raw_url = item.get("download_url", "")
-                    if not raw_url:
-                        path = item.get("path", "")
-                        sub_dir_files = self.query_repo_contents(query, path=path)
-                        contents = contents + sub_dir_files
-                    else:
-                        self.verbose(f"Got {raw_url} from {query}")
-                        contents.append(raw_url)
-        finally:
-            agen.aclose()
+            json = r.json()
+        except Exception as e:
+            self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+            return contents
+        for item in json:
+            raw_url = item.get("download_url", "")
+            if not raw_url:
+                path = item.get("path", "")
+                sub_dir_files = await self.query_repo_contents(query, path=path)
+                contents = contents + sub_dir_files
+            else:
+                self.verbose(f"Got {raw_url} from {query}")
+                contents.append(raw_url)
         return contents
 
     async def validate_org(self, input, domain):
         self.verbose(f"Validating the organization {input} is within our scope...")
         in_scope = False
-        url = f"{self.endpoint}/orgs/{input}"
-        agen = self.helpers.api_page_iter(url, json=False)
+        url = f"{self.base_url}/orgs/{input}"
+        r = await self.helpers.request(url)
+        if r is None:
+            return in_scope
+        status_code = getattr(r, "status_code", 0)
+        if status_code == 429:
+            "Github is rate-limiting us (HTTP status: 429)"
         try:
-            async for r in agen:
-                if r is None:
-                    break
-                status_code = getattr(r, "status_code", 0)
-                if status_code == 429:
-                    "Github is rate-limiting us (HTTP status: 429)"
-                    break
-                try:
-                    j = r.json()
-                except Exception as e:
-                    self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
-                    break
-                blog = j.get("blog", "")
-                if not blog:
-                    break
-                if domain in blog:
-                    self.verbose(f"{input} is within the scope of this assesment")
-                    in_scope = True
-        finally:
-            agen.aclose()
+            json = r.json()
+        except Exception as e:
+            self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+            return in_scope
+        blog = json.get("blog", "")
+        if domain in blog:
+            self.verbose(f"{input} is within the scope of this assesment")
+            in_scope = True
         return in_scope
 
     @staticmethod
