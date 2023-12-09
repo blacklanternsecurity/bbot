@@ -113,13 +113,13 @@ class github(subdomain_enum_apikey):
                     html_url = item.get("html_url", "")
                     self.verbose(f"Discovered {html_url}")
                     repo_name = item.get("full_name", "")
-                    repo_contents = self.query_repo(repo_name)
+                    repo_contents = self.query_repo_contents(repo_name)
                     repos[html_url] = repo_contents
         finally:
             agen.aclose()
         return repos
 
-    async def query_repo_cntents(self, query):
+    async def query_repo_contents(self, query):
         contents = []
         url = f"{self.base_url}/repos/{self.helpers.quote(query)}/contents"
         agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
