@@ -252,19 +252,19 @@ class TestGithub(ModuleTestBase):
                     },
                 },
                 {
-                    "name": "new_key",
-                    "path": "new_key",
-                    "sha": "19a03f23f36992539ba51793e3f052808ffb10fc",
-                    "size": 149,
-                    "url": "https://api.github.com/repos/blacklanternsecurity/test_keys/contents/new_key?ref=main",
-                    "html_url": "https://github.com/blacklanternsecurity/test_keys/blob/main/new_key",
-                    "git_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/blobs/19a03f23f36992539ba51793e3f052808ffb10fc",
-                    "download_url": "https://raw.githubusercontent.com/blacklanternsecurity/test_keys/main/new_key",
-                    "type": "file",
+                    "name": "scripts",
+                    "path": "scripts",
+                    "sha": "a54582de58c87f85e91a7e808c93f97b171249e4",
+                    "size": 0,
+                    "url": "https://api.github.com/repos/blacklanternsecurity/test_keys/contents/scripts?ref=main",
+                    "html_url": "https://github.com/blacklanternsecurity/test_keys/tree/main/scripts",
+                    "git_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/trees/a54582de58c87f85e91a7e808c93f97b171249e4",
+                    "download_url": None,
+                    "type": "dir",
                     "_links": {
-                        "self": "https://api.github.com/repos/blacklanternsecurity/test_keys/contents/new_key?ref=main",
-                        "git": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/blobs/19a03f23f36992539ba51793e3f052808ffb10fc",
-                        "html": "https://github.com/blacklanternsecurity/test_keys/blob/main/new_key",
+                        "self": "https://api.github.com/repos/blacklanternsecurity/test_keys/contents/scripts?ref=main",
+                        "git": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/trees/a54582de58c87f85e91a7e808c93f97b171249e4",
+                        "html": "https://github.com/blacklanternsecurity/test_keys/tree/main/scripts",
                     },
                 },
                 {
@@ -285,13 +285,43 @@ class TestGithub(ModuleTestBase):
                 },
             ],
         )
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/repos/blacklanternsecurity/test_keys/contents/scripts",
+            json=[
+                {
+                    "name": "new_key",
+                    "path": "scripts/new_key",
+                    "sha": "19a03f23f36992539ba51793e3f052808ffb10fc",
+                    "size": 149,
+                    "url": "https://api.github.com/repos/blacklanternsecurity/test_keys/contents/scripts/new_key?ref=main",
+                    "html_url": "https://github.com/blacklanternsecurity/test_keys/blob/main/scripts/new_key",
+                    "git_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/blobs/19a03f23f36992539ba51793e3f052808ffb10fc",
+                    "download_url": "https://raw.githubusercontent.com/blacklanternsecurity/test_keys/main/scripts/new_key",
+                    "type": "file",
+                    "_links": {
+                        "self": "https://api.github.com/repos/blacklanternsecurity/test_keys/contents/scripts/new_key?ref=main",
+                        "git": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/blobs/19a03f23f36992539ba51793e3f052808ffb10fc",
+                        "html": "https://github.com/blacklanternsecurity/test_keys/blob/main/scripts/new_key",
+                    },
+                }
+            ],
+        )
 
     def check(self, module_test, events):
-        assert any(
-            e.data
-            == "https://raw.githubusercontent.com/projectdiscovery/nuclei/06f242e5fce3439b7418877676810cbf57934875/v2/cmd/cve-annotate/main.go"
-            for e in events
-        ), "Failed to detect URL"
-        assert any(
-            e.data == "https://raw.githubusercontent.com/blacklanternsecurity/test_keys/main/new_key" for e in events
-        ), "Failed to detect URL"
+        discovered_repos = []
+        discovered_files = []
+        for e in events:
+            if e.type == "CODE_REPOSITORY":
+                discovered_repos.append(e.data)
+            elif e.type == "URL_UNVERIFIED":
+                discovered_files.append(e.data)
+        assert discovered_repos == [
+            {"url": "https://github.com/projectdiscovery/nuclei"},
+            {"url": "https://github.com/blacklanternsecurity/test_keys"},
+        ]
+        assert discovered_files == [
+            "https://raw.githubusercontent.com/projectdiscovery/nuclei/06f242e5fce3439b7418877676810cbf57934875/v2/cmd/cve-annotate/main.go",
+            "https://raw.githubusercontent.com/blacklanternsecurity/test_keys/main/keys",
+            "https://raw.githubusercontent.com/blacklanternsecurity/test_keys/main/scripts/new_key",
+            "https://raw.githubusercontent.com/blacklanternsecurity/test_keys/main/package.json",
+        ]
