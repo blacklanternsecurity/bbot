@@ -2,14 +2,19 @@ from bbot.modules.templates.github import github
 
 
 class github_org(github):
+    watched_events = ["DNS_NAME"]
+    produced_events = ["CODE_REPOSITORY"]
+    flags = ["passive", "subdomain-enum", "safe"]
     meta = {"description": "Query Github's API for a organization and member repositories"}
+    options = {"api_key": ""}
+    options_desc = {"api_key": "Github token"}
 
     async def handle_event(self, event):
         domain = self.make_query(event)
         potential_org = domain.split(".")[0]
         if await self.validate_org(potential_org, domain):
             self.verbose(f"Search for any repositorys belonging to {potential_org} and its members")
-            for repo_url in await self.query(potential_org):
+            for repo_url in (await self.query(potential_org)):
                 self.emit_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
         else:
             self.warning(f"Unable to validate {potential_org} is within the scope of this assesment, skipping...")
@@ -105,7 +110,7 @@ class github_org(github):
         self.verbose(f"Validating the organization {input} is within our scope...")
         in_scope = False
         url = f"{self.base_url}/orgs/{input}"
-        r = await self.helpers.request(url, self.headers)
+        r = await self.helpers.request(url, headers=self.headers)
         if r is None:
             return in_scope
         status_code = getattr(r, "status_code", 0)
