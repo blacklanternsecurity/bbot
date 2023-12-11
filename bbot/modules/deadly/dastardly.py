@@ -3,61 +3,82 @@ from bbot.modules.base import BaseModule
 
 
 class dastardly(BaseModule):
-    watched_events = ["URL"]
+    watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "aggressive"]
+    flags = ["active", "aggressive", "slow", "web-thorough"]
     meta = {"description": "Lightweight web application security scanner"}
 
-    deps_apt = ["docker.io"]
     deps_pip = ["lxml~=4.9.2"]
-    deps_shell = ["docker pull public.ecr.aws/portswigger/dastardly:latest"]
-    in_scope_only = True
+    deps_ansible = [
+        {
+            "name": "Install Docker (Non-Debian)",
+            "package": {"name": "docker", "state": "present"},
+            "become": True,
+            "when": "ansible_facts['os_family'] != 'Debian'",
+        },
+        {
+            "name": "Install Docker (Debian)",
+            "package": {
+                "name": "docker.io",
+                "state": "present",
+            },
+            "become": True,
+            "when": "ansible_facts['os_family'] == 'Debian'",
+        },
+    ]
+    per_host_only = True
 
     async def setup(self):
-        self.helpers.depsinstaller.ensure_root(message="Dastardly: docker requires root privileges")
+        await self.helpers.run("systemctl", "start", "docker", sudo=True)
+        await self.helpers.run("docker", "pull", "public.ecr.aws/portswigger/dastardly:latest", sudo=True)
+        self.output_dir = self.scan.home / "dastardly"
+        self.helpers.mkdir(self.output_dir)
+        return True
+
+    async def filter_event(self, event):
+        # Reject redirects. This helps to avoid scanning the same site twice.
+        is_redirect = str(event.data["status_code"]).startswith("30")
+        if is_redirect:
+            return False, "URL is a redirect"
         return True
 
     async def handle_event(self, event):
-        host = str(event.data)
+        host = event.parsed._replace(path="/").geturl()
+        self.verbose(f"Running Dastardly scan against {host}")
         command, output_file = self.construct_command(host)
-        try:
-            await self.helpers.run(command, sudo=True)
-            for testsuite in self.parse_dastardly_xml(output_file):
-                url = testsuite.endpoint
-                for testcase in testsuite.testcases:
-                    for failure in testcase.failures:
-                        message = failure.instance
-                        detail = failure.text
-                        if failure.severity == "Info":
-                            self.emit_event(
-                                {
-                                    "host": str(event.host),
-                                    "url": url,
-                                    "description": message,
-                                    "detail": detail,
-                                },
-                                "FINDING",
-                                event,
-                            )
-                        else:
-                            self.emit_event(
-                                {
-                                    "severity": failure.severity,
-                                    "host": str(event.host),
-                                    "url": url,
-                                    "description": message,
-                                    "detail": detail,
-                                },
-                                "VULNERABILITY",
-                                event,
-                            )
-        finally:
-            output_file.unlink(missing_ok=True)
+        finished_proc = await self.helpers.run(command, sudo=True)
+        self.debug(f'dastardly stdout: {getattr(finished_proc, "stdout", "")}')
+        self.debug(f'dastardly stderr: {getattr(finished_proc, "stderr", "")}')
+        for testsuite in self.parse_dastardly_xml(output_file):
+            url = testsuite.endpoint
+            for testcase in testsuite.testcases:
+                for failure in testcase.failures:
+                    if failure.severity == "Info":
+                        self.emit_event(
+                            {
+                                "host": str(event.host),
+                                "url": url,
+                                "description": failure.instance,
+                            },
+                            "FINDING",
+                            event,
+                        )
+                    else:
+                        self.emit_event(
+                            {
+                                "severity": failure.severity,
+                                "host": str(event.host),
+                                "url": url,
+                                "description": failure.instance,
+                            },
+                            "VULNERABILITY",
+                            event,
+                        )
 
     def construct_command(self, target):
-        temp_path = self.helpers.temp_filename(extension="xml")
-        filename = temp_path.name
-        temp_dir = temp_path.parent
+        date_time = self.helpers.make_date()
+        file_name = self.helpers.tagify(target)
+        temp_path = self.output_dir / f"{date_time}_{file_name}.xml"
         command = [
             "docker",
             "run",
@@ -65,11 +86,11 @@ class dastardly(BaseModule):
             "0",
             "--rm",
             "-v",
-            f"{temp_dir}:/dastardly",
+            f"{self.output_dir}:/dastardly",
             "-e",
             f"BURP_START_URL={target}",
             "-e",
-            f"BURP_REPORT_FILE_PATH=/dastardly/{filename}",
+            f"BURP_REPORT_FILE_PATH=/dastardly/{temp_path.name}",
             "public.ecr.aws/portswigger/dastardly:latest",
         ]
         return command, temp_path
@@ -82,10 +103,6 @@ class dastardly(BaseModule):
                     yield TestSuite(testsuite)
         except Exception as e:
             self.warning(f"Error parsing Dastardly XML at {xml_file}: {e}")
-
-    async def cleanup(self):
-        resume_file = self.helpers.current_dir / "resume.cfg"
-        resume_file.unlink(missing_ok=True)
 
 
 class Failure:
