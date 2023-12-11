@@ -6,6 +6,7 @@ class github(subdomain_enum_apikey):
     A template module for use of the GitHub API
     Inherited by several other github modules.
     """
+
     base_url = "https://api.github.com"
 
     async def setup(self):

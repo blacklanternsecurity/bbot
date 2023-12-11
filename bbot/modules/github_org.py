@@ -14,7 +14,7 @@ class github_org(github):
         potential_org = domain.split(".")[0]
         if await self.validate_org(potential_org, domain):
             self.verbose(f"Search for any repositorys belonging to {potential_org} and its members")
-            for repo_url in (await self.query(potential_org)):
+            for repo_url in await self.query(potential_org):
                 self.emit_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
         else:
             self.warning(f"Unable to validate {potential_org} is within the scope of this assesment, skipping...")
@@ -23,7 +23,7 @@ class github_org(github):
         repos = []
         org_repos = await self.query_org_repos(query)
         repos.extend(org_repos)
-        for member in (await self.query_org_members(query)):
+        for member in await self.query_org_members(query):
             member_repos = await self.query_user_repos(member)
             repos.extend(member_repos)
         return repos
