@@ -44,7 +44,7 @@ class DepsInstaller:
         self.setup_status = self.read_setup_status()
 
         self.no_deps = self.parent_helper.config.get("no_deps", False)
-        self.ansible_debug = self.parent_helper.config.get("debug", False)
+        self.ansible_debug = True
         self.force_deps = self.parent_helper.config.get("force_deps", False)
         self.retry_deps = self.parent_helper.config.get("retry_deps", False)
         self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
@@ -278,8 +278,8 @@ class DepsInstaller:
         success = res.status == "successful"
         err = ""
         for e in res.events:
-            # if self.ansible_debug and not success:
-            #    log.debug(json.dumps(e, indent=4))
+            if self.ansible_debug and not success:
+                log.debug(json.dumps(e, indent=4))
             if e["event"] == "runner_on_failed":
                 err = e["event_data"]["res"]["msg"]
                 break
