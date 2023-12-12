@@ -5,7 +5,7 @@ from .base import ModuleTestBase
 
 
 class TestDastardly(ModuleTestBase):
-    targets = ["http://127.0.0.1:8888/"]
+    targets = ["http://127.0.0.1:5556/"]
     modules_overrides = ["httpx", "dastardly"]
 
     web_response = """<!DOCTYPE html>
@@ -38,8 +38,9 @@ class TestDastardly(ModuleTestBase):
         return docker_ip
 
     async def setup_after_prep(self, module_test):
-        module_test.httpserver.expect_request("/").respond_with_data(self.web_response)
-        module_test.httpserver.expect_request("/test").respond_with_handler(self.xss_handler)
+        httpserver = module_test.request_fixture.getfixturevalue("bbot_httpserver_allinterfaces")
+        httpserver.expect_request("/").respond_with_data(self.web_response)
+        httpserver.expect_request("/test").respond_with_handler(self.xss_handler)
 
         # get docker IP
         docker_ip = await self.get_docker_ip(module_test)
@@ -49,7 +50,7 @@ class TestDastardly(ModuleTestBase):
         old_filter_event = module_test.module.filter_event
 
         def new_filter_event(event):
-            self.new_url = f"http://{docker_ip}:8888/"
+            self.new_url = f"http://{docker_ip}:5556/"
             event.data["url"] = self.new_url
             event.parsed = module_test.scan.helpers.urlparse(self.new_url)
             return old_filter_event(event)
