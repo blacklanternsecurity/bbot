@@ -76,7 +76,6 @@ def bbot_httpserver_ssl():
 
 @pytest.fixture
 def bbot_httpserver_allinterfaces():
-
     server = HTTPServer(host="0.0.0.0", port=5556)
     server.start()
 
