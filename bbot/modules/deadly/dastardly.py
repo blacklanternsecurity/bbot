@@ -11,10 +11,16 @@ class dastardly(BaseModule):
     deps_pip = ["lxml~=4.9.2"]
     deps_ansible = [
         {
+            "name": "Check if Docker is already installed",
+            "command": "docker --version",
+            "register": "docker_installed",
+            "ignore_errors": True,
+        },
+        {
             "name": "Install Docker (Non-Debian)",
             "package": {"name": "docker", "state": "present"},
             "become": True,
-            "when": "ansible_facts['os_family'] != 'Debian'",
+            "when": "ansible_facts['os_family'] != 'Debian' and docker_installed.rc != 0",
         },
         {
             "name": "Install Docker (Debian)",
@@ -23,7 +29,7 @@ class dastardly(BaseModule):
                 "state": "present",
             },
             "become": True,
-            "when": "ansible_facts['os_family'] == 'Debian'",
+            "when": "ansible_facts['os_family'] == 'Debian' and docker_installed.rc != 0",
         },
     ]
     per_host_only = True
