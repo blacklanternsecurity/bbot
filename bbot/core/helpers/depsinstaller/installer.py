@@ -44,7 +44,7 @@ class DepsInstaller:
         self.setup_status = self.read_setup_status()
 
         self.no_deps = self.parent_helper.config.get("no_deps", False)
-        self.ansible_debug = self.parent_helper.config.get("debug", False)
+        self.ansible_debug = True
         self.force_deps = self.parent_helper.config.get("force_deps", False)
         self.retry_deps = self.parent_helper.config.get("retry_deps", False)
         self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)

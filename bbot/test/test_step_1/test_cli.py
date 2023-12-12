@@ -71,7 +71,7 @@ async def test_cli(monkeypatch, bbot_config):
     await cli._main()
 
     # install all deps
-    monkeypatch.setattr("sys.argv", ["bbot", "-d", "--install-all-deps"])
+    monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
     success = await cli._main()
     assert success, "--install-all-deps failed for at least one module"
 
