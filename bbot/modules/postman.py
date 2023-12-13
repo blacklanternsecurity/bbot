@@ -76,7 +76,7 @@ class postman(subdomain_enum_apikey):
     async def search_collections(self, id):
         request_ids = []
         url = f"{self.base_url}/list/collection?workspace={id}"
-        r = await self.helpers.request(url)
+        r = await self.helpers.request(url, method="POST")
         if r is None:
             return request_ids
         status_code = getattr(r, "status_code", 0)
