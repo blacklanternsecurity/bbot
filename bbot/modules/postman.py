@@ -5,8 +5,6 @@ class postman(subdomain_enum_apikey):
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe"]
     meta = {"description": "Query Postman's API for related workspaces, collections, requests"}
-    options = {"api_key": ""}
-    options_desc = {"api_key": "Postman API key"}
 
     base_url = "https://www.postman.com/_api"
 
