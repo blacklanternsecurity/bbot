@@ -1,5 +1,6 @@
 from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
+
 class postman(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
@@ -19,7 +20,7 @@ class postman(subdomain_enum_apikey):
     async def handle_event(self, event):
         query = self.make_query(event)
         self.verbose(f"Search for any postman workspaces, collections, requests belonging to {query}")
-        for url in (await self.query(query)):
+        for url in await self.query(query):
             self.emit_event(url, "URL_UNVERIFIED", source=event)
 
     async def query(self, query):
@@ -66,8 +67,8 @@ class postman(subdomain_enum_apikey):
             id = item.get("id", "")
             interesting_urls.append(f"{self.base_url}/workspace/{id}")
             interesting_urls.append(f"{self.base_url}/workspace/{id}/globals")
-            for c_id in workspace['dependencies']['collections']:
-                interesting_urls.append(f'https://www.postman.com/_api/collection/{c_id}')
+            for c_id in workspace["dependencies"]["collections"]:
+                interesting_urls.append(f"https://www.postman.com/_api/collection/{c_id}")
             requests = await self.search_collections(r_id)
             for r_id in requests:
                 interesting_urls.append(f"{self.base_url}/request/{r_id}")
