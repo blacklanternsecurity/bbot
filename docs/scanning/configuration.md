@@ -76,7 +76,7 @@ status_frequency: 15
 # HTTP proxy
 http_proxy: 
 # Web user-agent
-user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36
+user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
 
 ### WEB SPIDER ###
 
