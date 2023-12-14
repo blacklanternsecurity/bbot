@@ -157,8 +157,12 @@ class ConfigAwareHelper:
                         # then try web
                         return getattr(self.web, attr)
                     except AttributeError:
-                        # then die
-                        raise AttributeError(f'Helper has no attribute "{attr}"')
+                        try:
+                            # then try validators
+                            return getattr(self.validators, attr)
+                        except AttributeError:
+                            # then die
+                            raise AttributeError(f'Helper has no attribute "{attr}"')
 
 
 class DummyModule(BaseModule):

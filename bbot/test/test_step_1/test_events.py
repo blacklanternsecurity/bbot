@@ -153,6 +153,18 @@ async def test_events(events, scan, helpers, bbot_config):
     event5 = scan.make_event("4.5.6.7", source=event4)
     assert event5._scope_distance == 3
 
+    url_1 = scan.make_event("https://127.0.0.1/asdf", "URL_UNVERIFIED", source=scan.root_event)
+    assert url_1.scope_distance == 1
+    url_2 = scan.make_event("https://127.0.0.1/test", "URL_UNVERIFIED", source=url_1)
+    assert url_2.scope_distance == 1
+    url_3 = scan.make_event("https://127.0.0.2/asdf", "URL_UNVERIFIED", source=url_1)
+    assert url_3.scope_distance == 2
+
+    org_stub_1 = scan.make_event("STUB1", "ORG_STUB", source=scan.root_event)
+    org_stub_1.scope_distance == 1
+    org_stub_2 = scan.make_event("STUB2", "ORG_STUB", source=org_stub_1)
+    org_stub_2.scope_distance == 2
+
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
     internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)

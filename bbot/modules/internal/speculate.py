@@ -19,8 +19,10 @@ class speculate(BaseInternalModule):
         "IP_ADDRESS",
         "HTTP_RESPONSE",
         "STORAGE_BUCKET",
+        "SOCIAL",
+        "AZURE_TENANT",
     ]
-    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING"]
+    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
     flags = ["passive"]
     meta = {"description": "Derive certain event types from others by common sense"}
 
@@ -37,6 +39,7 @@ class speculate(BaseInternalModule):
         self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
         self.range_to_ip = True
         self.dns_resolution = self.scan.config.get("dns_resolution", True)
+        self.org_stubs_seen = set()
 
         port_string = self.config.get("ports", "80,443")
 
@@ -119,6 +122,28 @@ class speculate(BaseInternalModule):
 
         # storage buckets etc.
         self.helpers.cloud.speculate(event)
+
+        # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
+        org_stubs = set()
+        if event.type == "DNS_NAME" and event.scope_distance == 0:
+            tld_stub = getattr(self.helpers.tldextract(event.data), "domain", "")
+            if tld_stub:
+                org_stubs.add(tld_stub)
+        elif event.type == "SOCIAL":
+            stub = event.data.get("stub", "")
+            if stub:
+                org_stubs.add(stub.lower())
+        elif event.type == "AZURE_TENANT":
+            tenant_names = event.data.get("tenant-names", [])
+            org_stubs.update(set(tenant_names))
+        for stub in org_stubs:
+            stub_hash = hash(stub)
+            if stub_hash not in self.org_stubs_seen:
+                self.org_stubs_seen.add(stub_hash)
+                stub_event = self.make_event(stub, "ORG_STUB", source=event)
+                if event.scope_distance > 0:
+                    stub_event.scope_distance = event.scope_distance
+                self.emit_event(stub_event)
 
     async def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self

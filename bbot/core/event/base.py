@@ -393,7 +393,7 @@ class BaseEvent:
         """
         if is_event(source):
             self._source = source
-            hosts_are_same = self.host == source.host
+            hosts_are_same = self.host and (self.host == source.host)
             if source.scope_distance >= 0:
                 new_scope_distance = int(source.scope_distance)
                 # only increment the scope distance if the host changes
@@ -752,6 +752,8 @@ class ASN(DictEvent):
 
 
 class CODE_REPOSITORY(DictHostEvent):
+    _always_emit = True
+
     class _data_validator(BaseModel):
         url: str
         _validate_url = field_validator("url")(validators.validate_url)

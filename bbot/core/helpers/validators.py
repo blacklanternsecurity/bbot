@@ -280,3 +280,11 @@ def soft_validate(s, t):
         return True
     except ValueError:
         return False
+
+
+def is_email(email):
+    try:
+        validate_email(email)
+        return True
+    except ValueError:
+        return False

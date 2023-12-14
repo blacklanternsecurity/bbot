@@ -2,11 +2,8 @@ from .base import ModuleTestBase
 
 
 class TestGithub_Org(ModuleTestBase):
-    config_overrides = {
-        "modules": {"github_org": {"api_key": "asdf"}},
-        "omit_event_types": [],
-        "scope_report_distance": 1,
-    }
+    config_overrides = {"modules": {"github_org": {"api_key": "asdf"}}}
+    modules_overrides = ["github_org", "speculate"]
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
@@ -283,11 +280,88 @@ class TestGithub_Org(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        discovered_repos = []
-        for e in events:
-            if e.type == "CODE_REPOSITORY":
-                discovered_repos.append(e.data)
-        assert discovered_repos == [
-            {"url": "https://github.com/blacklanternsecurity/test_keys"},
-            {"url": "https://github.com/TheTechromancer/websitedemo"},
-        ]
+        assert len(events) == 6
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com" and e.scope_distance == 0
+            ]
+        ), "Failed to emit target DNS_NAME"
+        assert 1 == len(
+            [e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity" and e.scope_distance == 1]
+        ), "Failed to find ORG_STUB"
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "blacklanternsecurity"
+                and "github-org" in e.tags
+                and e.scope_distance == 1
+            ]
+        ), "Failed to find blacklanternsecurity github"
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "TheTechromancer"
+                and "github-org-member" in e.tags
+                and e.scope_distance == 2
+            ]
+        ), "Failed to find TheTechromancer github"
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "CODE_REPOSITORY"
+                and e.data["url"] == "https://github.com/blacklanternsecurity/test_keys"
+                and e.scope_distance == 1
+            ]
+        ), "Failed to find blacklanternsecurity github repo"
+
+
+class TestGithub_Org_No_Members(TestGithub_Org):
+    config_overrides = {"modules": {"github_org": {"include_members": False}}}
+
+    def check(self, module_test, events):
+        assert len(events) == 5
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "blacklanternsecurity"
+                and "github-org" in e.tags
+                and e.scope_distance == 1
+            ]
+        ), "Failed to find blacklanternsecurity github"
+        assert 0 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "TheTechromancer"
+            ]
+        ), "Found TheTechromancer github"
+
+
+class TestGithub_Org_MemberRepos(TestGithub_Org):
+    config_overrides = {"modules": {"github_org": {"include_member_repos": True}}}
+
+    def check(self, module_test, events):
+        assert len(events) == 7
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "CODE_REPOSITORY"
+                and e.data["url"] == "https://github.com/TheTechromancer/websitedemo"
+                and e.scope_distance == 2
+            ]
+        ), "Found to find TheTechromancer github repo"

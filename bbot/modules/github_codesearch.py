@@ -6,8 +6,14 @@ class github_codesearch(github):
     produced_events = ["CODE_REPOSITORY", "URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe"]
     meta = {"description": "Query Github's API for code containing the target domain name", "auth_required": True}
-    options = {"api_key": ""}
-    options_desc = {"api_key": "Github token"}
+    options = {"api_key": "", "limit": 100}
+    options_desc = {"api_key": "Github token", "limit": "Limit code search to this many results"}
+
+    github_raw_url = "https://raw.githubusercontent.com/"
+
+    async def setup(self):
+        self.limit = self.config.get("limit", 100)
+        return await super().setup()
 
     async def handle_event(self, event):
         query = self.make_query(event)
@@ -27,6 +33,7 @@ class github_codesearch(github):
         repos = {}
         url = f"{self.base_url}/search/code?per_page=100&type=Code&q={self.helpers.quote(query)}&page=" + "{page}"
         agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        num_results = 0
         try:
             async for r in agen:
                 if r is None:
@@ -34,6 +41,8 @@ class github_codesearch(github):
                 status_code = getattr(r, "status_code", 0)
                 if status_code == 429:
                     "Github is rate-limiting us (HTTP status: 429)"
+                    break
+                if status_code != 200:
                     break
                 try:
                     j = r.json()
@@ -52,10 +61,14 @@ class github_codesearch(github):
                             repos[repo_url].append(raw_url)
                         except KeyError:
                             repos[repo_url] = [raw_url]
+                        num_results += 1
+                        if num_results >= self.limit:
+                            break
+                if num_results >= self.limit:
+                    break
         finally:
             agen.aclose()
         return repos
 
-    @staticmethod
-    def raw_url(url):
-        return url.replace("https://github.com/", "https://raw.githubusercontent.com/").replace("/blob/", "/")
+    def raw_url(self, url):
+        return url.replace("https://github.com/", self.github_raw_url).replace("/blob/", "/")
