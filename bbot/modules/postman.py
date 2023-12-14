@@ -1,7 +1,7 @@
-from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
+from bbot.modules.base import BaseModule
 
 
-class postman(subdomain_enum_apikey):
+class postman(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe"]
@@ -18,7 +18,10 @@ class postman(subdomain_enum_apikey):
     }
 
     async def handle_event(self, event):
-        query = self.make_query(event)
+        if "target" in event.tags:
+            query = str(event.data)
+        else:
+            query = self.helpers.parent_domain(event.data).lower()
         self.verbose(f"Search for any postman workspaces, collections, requests belonging to {query}")
         for url in await self.query(query):
             self.emit_event(url, "URL_UNVERIFIED", source=event)
@@ -49,7 +52,7 @@ class postman(subdomain_enum_apikey):
                 "domain": "public",
             },
         }
-        r = await self.helpers.request(url, json, headers=self.headers)
+        r = await self.helpers.request(url, method="POST", json=json, headers=self.headers)
         if r is None:
             return interesting_urls
         status_code = getattr(r, "status_code", 0)
@@ -59,20 +62,38 @@ class postman(subdomain_enum_apikey):
             self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
             return interesting_urls
         workspaces = []
-        for item in json["data"]:
+        for item in json.get("data", {}):
             for workspace in item.get("document", {}).get("workspaces", []):
                 if workspace not in workspaces:
                     workspaces.append(workspace)
-        for workspace in workspaces:
+        for item in workspaces:
             id = item.get("id", "")
             interesting_urls.append(f"{self.base_url}/workspace/{id}")
+            environments, collections = await self.search_workspace(id)
             interesting_urls.append(f"{self.base_url}/workspace/{id}/globals")
-            for c_id in workspace["dependencies"]["collections"]:
-                interesting_urls.append(f"https://www.postman.com/_api/collection/{c_id}")
-            requests = await self.search_collections(r_id)
+            for e_id in environments:
+                interesting_urls.append(f"{self.base_url}/environment/{e_id}")
+            for c_id in collections:
+                interesting_urls.append(f"{self.base_url}/collection/{c_id}")
+            requests = await self.search_collections(id)
             for r_id in requests:
                 interesting_urls.append(f"{self.base_url}/request/{r_id}")
         return interesting_urls
+
+    async def search_workspace(self, id):
+        url = f"{self.base_url}/workspace/{id}"
+        r = await self.helpers.request(url)
+        if r is None:
+            return [], []
+        status_code = getattr(r, "status_code", 0)
+        try:
+            json = r.json()
+        except Exception as e:
+            self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+            return [], []
+        environments = json.get("data", {}).get("dependencies", {}).get("environments", [])
+        collections = json.get("data", {}).get("dependencies", {}).get("collections", [])
+        return environments, collections
 
     async def search_collections(self, id):
         request_ids = []
@@ -86,6 +107,17 @@ class postman(subdomain_enum_apikey):
         except Exception as e:
             self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
             return request_ids
-        for collection in json["data"]:
-            request_ids.append(collection["requests"])
+        for item in json.get("data", {}):
+            request_ids.extend(await self.parse_collection(item))
+        return request_ids
+
+    async def parse_collection(self, json):
+        request_ids = []
+        folders = json.get("folders", [])
+        requests = json.get("requests", [])
+        for folder in folders:
+            request_ids.extend(await self.parse_collection(folder))
+        for request in requests:
+            r_id = request.get("id", "")
+            request_ids.append(r_id)
         return request_ids
