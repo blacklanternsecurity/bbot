@@ -3,8 +3,11 @@ from bbot.modules.base import BaseModule
 
 
 class ajaxpro(BaseModule):
-    ajaxpro_regex = re.compile(r'<script.+src="([\/a-zA-Z0-9\._]+,[a-zA-Z0-9\._]+\.ashx)"')
+    """
+    Reference: https://mogwailabs.de/en/blog/2022/01/vulnerability-spotlight-rce-in-ajax.net-professional/
+    """
 
+    ajaxpro_regex = re.compile(r'<script.+src="([\/a-zA-Z0-9\._]+,[a-zA-Z0-9\._]+\.ashx)"')
     watched_events = ["HTTP_RESPONSE", "URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
     flags = ["active", "web-thorough"]
