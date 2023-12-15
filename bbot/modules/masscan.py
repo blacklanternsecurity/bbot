@@ -8,7 +8,7 @@ class masscan(portscanner):
     flags = ["active", "portscan", "aggressive"]
     watched_events = ["IP_ADDRESS", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
-    meta = {"description": "Port scan IP subnets with masscan"}
+    meta = {"description": "Port scan with masscan. By default, scans top 100 ports."}
     options = {
         "top_ports": 100,
         "ports": "",
@@ -20,7 +20,7 @@ class masscan(portscanner):
         "use_cache": False,
     }
     options_desc = {
-        "top_ports": "Top ports to scan (default 100)",
+        "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
         "ports": "Ports to scan",
         "rate": "Rate in packets per second",
         "wait": "Seconds to wait for replies after scan is complete",

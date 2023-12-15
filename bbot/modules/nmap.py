@@ -6,16 +6,16 @@ class nmap(portscanner):
     watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active", "portscan", "aggressive", "web-thorough"]
-    meta = {"description": "Execute port scans with nmap"}
+    meta = {"description": "Port scan with nmap. By default, scans top 100 ports."}
     options = {
-        "ports": "",
         "top_ports": 100,
+        "ports": "",
         "timing": "T4",
         "skip_host_discovery": True,
     }
     options_desc = {
-        "ports": "ports to scan",
-        "top_ports": "top ports to scan",
+        "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
+        "ports": "Ports to scan",
         "timing": "-T<0-5>: Set timing template (higher is faster)",
         "skip_host_discovery": "skip host discovery (-Pn)",
     }
