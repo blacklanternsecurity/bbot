@@ -7,7 +7,7 @@ class ajaxpro(BaseModule):
 
     watched_events = ["HTTP_RESPONSE", "URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
-    flags = ["active", "aggressive", "web-thorough"]
+    flags = ["active", "web-thorough"]
     meta = {"description": "Check for potentially vulnerable Ajaxpro instances"}
 
     async def handle_event(self, event):
