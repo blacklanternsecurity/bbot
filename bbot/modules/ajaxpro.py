@@ -10,7 +10,7 @@ class ajaxpro(BaseModule):
     ajaxpro_regex = re.compile(r'<script.+src="([\/a-zA-Z0-9\._]+,[a-zA-Z0-9\._]+\.ashx)"')
     watched_events = ["HTTP_RESPONSE", "URL"]
     produced_events = ["VULNERABILITY", "FINDING"]
-    flags = ["active", "web-thorough"]
+    flags = ["active", "safe", "web-thorough"]
     meta = {"description": "Check for potentially vulnerable Ajaxpro instances"}
 
     async def handle_event(self, event):
