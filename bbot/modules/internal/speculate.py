@@ -126,9 +126,12 @@ class speculate(BaseInternalModule):
         # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
         org_stubs = set()
         if event.type == "DNS_NAME" and event.scope_distance == 0:
-            tld_stub = getattr(self.helpers.tldextract(event.data), "domain", "")
-            if tld_stub:
-                org_stubs.add(tld_stub)
+            tldextracted = self.helpers.tldextract(event.data)
+            registered_domain = getattr(tldextracted, "registered_domain", "")
+            if registered_domain:
+                tld_stub = getattr(tldextracted, "domain", "")
+                if tld_stub:
+                    org_stubs.add(tld_stub)
         elif event.type == "SOCIAL":
             stub = event.data.get("stub", "")
             if stub:
