@@ -663,19 +663,6 @@ class BaseModule:
         # exclude certain URLs (e.g. javascript):
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
             return False, "its extension was listed in url_extension_httpx_only"
-        # if event is an IP address that was speculated from a CIDR
-        source_is_range = getattr(event.source, "type", "") == "IP_RANGE"
-        if (
-            source_is_range
-            and event.type == "IP_ADDRESS"
-            and str(event.module) == "speculate"
-            and self.name != "speculate"
-        ):
-            # and the current module listens for both ranges and CIDRs
-            if all([x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")]):
-                # then skip the event.
-                # this helps avoid double-portscanning both an individual IP and its parent CIDR.
-                return False, "module consumes IP ranges directly"
 
         return True, "precheck succeeded"
 

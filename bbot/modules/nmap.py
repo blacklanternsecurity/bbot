@@ -1,8 +1,8 @@
 from lxml import etree
-from bbot.modules.base import BaseModule
+from bbot.modules.templates.portscanner import portscanner
 
 
-class nmap(BaseModule):
+class nmap(portscanner):
     watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active", "portscan", "aggressive", "web-thorough"]
@@ -32,16 +32,7 @@ class nmap(BaseModule):
         self.timing = self.config.get("timing", "T4")
         self.top_ports = self.config.get("top_ports", 100)
         self.skip_host_discovery = self.config.get("skip_host_discovery", True)
-        self.ip_ranges = [e.host for e in self.scan.target.events if e.type == "IP_RANGE"]
-        return True
-
-    async def filter_event(self, event):
-        # skip IP_ADDRESSes if they are included in any of our target IP_RANGEs
-        if event.type == "IP_ADDRESS":
-            for net in self.helpers.ip_network_parents(event.data, include_self=True):
-                if net in self.ip_ranges:
-                    return False, f"Skipping {event.host} because it is already included in {net}"
-        return True
+        return await super().setup()
 
     async def handle_batch(self, *events):
         target = self.helpers.make_target(*events)

@@ -122,10 +122,9 @@ class speculate(BaseInternalModule):
 
     async def filter_event(self, event):
         # don't accept IP_RANGE --> IP_ADDRESS events from self
-        if str(event.module) == "speculate":
-            if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
-                return False
+        if event.module == self and event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE":
+            return False, "cannot accept IP_RANGE->IP_ADDRESS speculate from self"
         # don't accept errored DNS_NAMEs
         if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
-            return False
+            return False, "there were errors resolving this hostname"
         return True
