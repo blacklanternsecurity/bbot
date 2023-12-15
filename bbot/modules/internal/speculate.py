@@ -43,8 +43,7 @@ class speculate(BaseInternalModule):
         try:
             self.ports = self.helpers.parse_port_string(str(port_string))
         except ValueError as e:
-            self.warning(f"Error parsing ports: {e}")
-            return False
+            return False, f"Error parsing ports: {e}"
 
         if not self.portscanner_enabled:
             self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")

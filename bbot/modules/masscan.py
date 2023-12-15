@@ -1,5 +1,4 @@
 import json
-import subprocess
 from contextlib import suppress
 
 from bbot.modules.templates.portscanner import portscanner
@@ -62,34 +61,23 @@ class masscan(portscanner):
 
     async def setup(self):
         self.top_ports = self.config.get("top_ports", 100)
-        self.ports = self.config.get("ports", "80,443")
         self.rate = self.config.get("rate", 600)
         self.wait = self.config.get("wait", 10)
         self.ping_first = self.config.get("ping_first", False)
         self.ping_only = self.config.get("ping_only", False)
         self.use_cache = self.config.get("use_cache", False)
+        self.ports = self.config.get("ports", "80,443")
+        try:
+            self.helpers.parse_port_string(self.ports)
+        except ValueError as e:
+            return False, f"Error parsing ports: {e}"
         self.alive_hosts = dict()
 
-        exclude, invalid_exclude = self._build_targets(self.scan.blacklist)
-        self.exclude = ",".join(exclude)
         _, invalid_targets = self._build_targets(self.scan.target)
-        if invalid_exclude > 0:
-            self.warning(
-                f"Masscan can only accept IP addresses or IP ranges for blacklist ({invalid_exclude:,} blacklisted were hostnames)"
-            )
         if invalid_targets > 0:
             self.warning(
                 f"Masscan can only accept IP addresses or IP ranges as target ({invalid_targets:,} targets were hostnames)"
             )
-
-        # make a quick dry run to validate ports etc.
-        if not self.helpers.in_tests:
-            try:
-                dry_run_command = self._build_masscan_command(dry_run=True)
-                dry_run_result = await self.helpers.run(dry_run_command)
-            except subprocess.CalledProcessError as e:
-                self.warning(f"Error in masscan: {e.stderr}")
-                return False
 
         self.run_time = self.helpers.make_date()
         self.ping_cache = self.scan.home / f"masscan_ping.txt"
@@ -160,13 +148,12 @@ class masscan(portscanner):
             command += ("-iL", str(target_file))
         if ping:
             command += ("--ping",)
-        elif not dry_run:
-            if self.ports:
-                command += ("-p", self.ports)
-            else:
-                command += ("--top-ports", str(self.top_ports))
-        if self.exclude:
-            command += ("--exclude", self.exclude)
+        if self.ports:
+            command += ("-p", self.ports)
+        else:
+            command += ("--top-ports", str(self.top_ports))
+        if self.exclude_file:
+            command += ("--excludefile", str(self.exclude_file))
         if dry_run:
             command += ("--echo",)
         return command
@@ -248,23 +235,14 @@ class masscan(portscanner):
             source_event = self.scan.root_event
         return source_event
 
-    def _build_targets(self, target, delimiter=","):
-        invalid_targets = 0
-        targets = []
-        for t in target:
-            t = self.helpers.make_ip_type(t.data)
-            if isinstance(t, str):
-                invalid_targets += 1
-            else:
-                targets.append(t)
-        return [str(t) for t in targets], invalid_targets
-
     async def cleanup(self):
         if self.ping_first:
             with suppress(Exception):
                 self.ping_cache_fd.close()
         with suppress(Exception):
             self.syn_cache_fd.close()
+        with suppress(Exception):
+            self.exclude_file.unlink()
 
     def _write_ping_result(self, host):
         if self.ping_cache_fd is None:

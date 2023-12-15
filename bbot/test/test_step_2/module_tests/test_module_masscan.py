@@ -5,14 +5,6 @@ class TestMasscan(ModuleTestBase):
     targets = ["8.8.8.8/32"]
     scan_name = "test_masscan"
     config_overrides = {"modules": {"masscan": {"ports": "443", "wait": 1}}}
-    masscan_config = """seed = 17230484647655100360
-rate = 600       
-shard = 1/1
-
-
-# TARGET SELECTION (IP, PORTS, EXCLUDES)
-ports = 
-range = 9.8.7.6"""
 
     masscan_output = """[
 {   "ip": "8.8.8.8",   "timestamp": "1680197558", "ports": [ {"port": 443, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }
@@ -30,7 +22,6 @@ range = 9.8.7.6"""
                 async for l in module_test.scan.helpers.run_live(command, *args, **kwargs):
                     yield l
 
-        module_test.scan.modules["masscan"].masscan_config = self.masscan_config
         module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", run_masscan)
 
     def check(self, module_test, events):

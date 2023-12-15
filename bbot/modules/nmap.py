@@ -77,6 +77,8 @@ class nmap(portscanner):
             command += ["-p", ports]
         else:
             command += ["--top-ports", top_ports]
+        if self.exclude_file:
+            command += ["--excludefile", str(self.exclude_file)]
         command += targets
         return command, temp_filename
 
