@@ -35,11 +35,11 @@ class speculate(BaseInternalModule):
     async def setup(self):
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
         self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
+        self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         self.range_to_ip = True
         self.dns_resolution = self.scan.config.get("dns_resolution", True)
 
         port_string = self.config.get("ports", "80,443")
-
         try:
             self.ports = self.helpers.parse_port_string(str(port_string))
         except ValueError as e:
@@ -75,9 +75,9 @@ class speculate(BaseInternalModule):
                 self.emit_event(parent, "DNS_NAME", source=event, internal=True)
 
         # generate open ports
-        emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
+
         # from URLs
-        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
+        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
             if event.host and event.port not in self.ports:
                 self.emit_event(
                     self.helpers.make_netloc(event.host, event.port),
@@ -99,7 +99,7 @@ class speculate(BaseInternalModule):
                     self.emit_event(url_event)
 
         # from hosts
-        if emit_open_ports:
+        if self.emit_open_ports and event.scope_distance <= self.scan.scope_search_distance:
             # don't act on unresolved DNS_NAMEs
             usable_dns = False
             if event.type == "DNS_NAME":
@@ -120,9 +120,6 @@ class speculate(BaseInternalModule):
         self.helpers.cloud.speculate(event)
 
     async def filter_event(self, event):
-        # don't accept IP_RANGE --> IP_ADDRESS events from self
-        if event.module == self and event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE":
-            return False, "cannot accept IP_RANGE->IP_ADDRESS speculate from self"
         # don't accept errored DNS_NAMEs
         if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
             return False, "there were errors resolving this hostname"
