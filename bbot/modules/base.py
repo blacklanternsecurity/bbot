@@ -6,7 +6,7 @@ from contextlib import suppress
 
 from ..core.helpers.misc import get_size  # noqa
 from ..core.errors import ValidationError
-from ..core.helpers.async_helpers import TaskCounter
+from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
 
 
 class BaseModule:
@@ -1065,13 +1065,13 @@ class BaseModule:
     @property
     def incoming_event_queue(self):
         if self._incoming_event_queue is None:
-            self._incoming_event_queue = asyncio.PriorityQueue()
+            self._incoming_event_queue = ShuffleQueue()
         return self._incoming_event_queue
 
     @property
     def outgoing_event_queue(self):
         if self._outgoing_event_queue is None:
-            self._outgoing_event_queue = asyncio.PriorityQueue()
+            self._outgoing_event_queue = ShuffleQueue()
         return self._outgoing_event_queue
 
     @property
