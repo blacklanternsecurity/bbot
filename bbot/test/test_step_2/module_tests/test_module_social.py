@@ -15,6 +15,6 @@ class TestSocial(ModuleTestBase):
     def check(self, module_test, events):
         assert any(e.type == "SOCIAL" and e.data["platform"] == "discord" for e in events)
         assert any(
-            e.type == "SOCIAL" and e.data["platform"] == "github" and e.data["stub"] == "blacklanternsecurity"
+            e.type == "SOCIAL" and e.data["platform"] == "github" and e.data["profile_name"] == "blacklanternsecurity"
             for e in events
         )
