@@ -76,9 +76,14 @@ class speculate(BaseInternalModule):
 
         # generate open ports
 
+        # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
+        event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
+        speculate_open_ports = self.emit_open_ports and event_in_scope_distance
+
         # from URLs
         if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
-            if event.host and event.port not in self.ports:
+            # only speculate port from a URL if it wouldn't be speculated naturally from the host
+            if event.host and (event.port not in self.ports or not speculate_open_ports):
                 self.emit_event(
                     self.helpers.make_netloc(event.host, event.port),
                     "OPEN_TCP_PORT",
@@ -99,7 +104,7 @@ class speculate(BaseInternalModule):
                     self.emit_event(url_event)
 
         # from hosts
-        if self.emit_open_ports and event.scope_distance <= self.scan.scope_search_distance:
+        if speculate_open_ports:
             # don't act on unresolved DNS_NAMEs
             usable_dns = False
             if event.type == "DNS_NAME":
