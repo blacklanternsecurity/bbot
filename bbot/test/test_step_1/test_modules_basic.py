@@ -62,7 +62,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
             assert reason == "it did not meet in_scope_only filter criteria"
         base_module.in_scope_only = False
         base_module.scope_distance_modifier = 0
-        localhost4 = scan.make_event("127.0.0.1", source=events.subdomain)
         valid, reason = await base_module._event_postcheck(events.localhost)
         assert valid
 
