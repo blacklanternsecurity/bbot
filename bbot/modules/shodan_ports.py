@@ -1,7 +1,7 @@
 from bbot.modules.base import BaseModule
 
 
-class shodan_ports(BaseModule):
+class shodan_port(BaseModule):
     """
     Query IP in Shodan, returning open ports, discovered technologies, and findings/vulnerabilities
     API reference: https://developer.shodan.io/api
@@ -54,7 +54,7 @@ class shodan_ports(BaseModule):
                             "verified": vuln_info.get("verified", False),
                             "description": "",
                             "port": port_number,
-                            "severity": shodan_ports._severity_lookup(vuln_info["cvss"]),
+                            "severity": shodan_port._severity_lookup(vuln_info["cvss"]),
                         }
                         if vuln_info["verified"]:
                             vuln_data["description"] = f"Shodan reported verified CVE {cve}"
