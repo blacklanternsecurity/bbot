@@ -15,6 +15,8 @@ class ajaxpro(BaseModule):
 
     async def handle_event(self, event):
         if event.type == "URL":
+            if "dir" not in event.tags:
+                return False
             probe_url = f"{event.data}ajaxpro/whatever.ashx"
             probe = await self.helpers.request(probe_url)
             if probe:
