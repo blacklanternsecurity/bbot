@@ -9,9 +9,9 @@ class portscanner(BaseModule):
     async def setup(self):
         self.ip_ranges = [e.host for e in self.scan.target.events if e.type == "IP_RANGE"]
         exclude, invalid_exclude = self._build_targets(self.scan.blacklist)
-        self.exclude_file = None
-        if exclude:
-            self.exclude_file = self.helpers.tempfile(exclude, pipe=False)
+        if not exclude:
+            exclude = ["255.255.255.255/32"]
+        self.exclude_file = self.helpers.tempfile(exclude, pipe=False)
         if invalid_exclude > 0:
             self.warning(
                 f"Port scanner can only accept IP addresses or IP ranges as blacklist ({invalid_exclude:,} blacklisted were hostnames)"

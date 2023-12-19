@@ -143,7 +143,18 @@ class masscan(portscanner):
                 file.unlink()
 
     def _build_masscan_command(self, target_file=None, dry_run=False, ping=False):
-        command = ("masscan", "--rate", self.rate, "--wait", self.wait, "--open-only", "-oJ", "-")
+        command = (
+            "masscan",
+            "--excludefile",
+            str(self.exclude_file),
+            "--rate",
+            self.rate,
+            "--wait",
+            self.wait,
+            "--open-only",
+            "-oJ",
+            "-",
+        )
         if target_file is not None:
             command += ("-iL", str(target_file))
         if ping:
@@ -152,8 +163,6 @@ class masscan(portscanner):
             command += ("-p", self.ports)
         else:
             command += ("--top-ports", str(self.top_ports))
-        if self.exclude_file:
-            command += ("--excludefile", str(self.exclude_file))
         if dry_run:
             command += ("--echo",)
         return command

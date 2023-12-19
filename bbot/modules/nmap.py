@@ -65,6 +65,8 @@ class nmap(portscanner):
         temp_filename = self.helpers.temp_filename(extension="xml")
         command = [
             "nmap",
+            "--excludefile",
+            str(self.exclude_file),
             "-n",
             "--resolve-all",
             f"-{self.timing}",
@@ -77,8 +79,6 @@ class nmap(portscanner):
             command += ["-p", ports]
         else:
             command += ["--top-ports", top_ports]
-        if self.exclude_file:
-            command += ["--excludefile", str(self.exclude_file)]
         command += targets
         return command, temp_filename
 
