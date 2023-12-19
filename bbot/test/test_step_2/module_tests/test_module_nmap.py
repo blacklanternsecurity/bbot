@@ -10,9 +10,11 @@ class TestNmap(ModuleTestBase):
         # IPs within the target IP range should be rejected
         ip_event_1 = module_test.scan.make_event("127.0.0.0", source=module_test.scan.root_event)
         ip_event_1.scope_distance = 0
-        assert (await module_test.module._event_postcheck(ip_event_1)) == (
-            False,
-            "it did not meet custom filter criteria: Skipping 127.0.0.0 because it is already included in 127.0.0.0/31",
+        ip_event_1_result = await module_test.module._event_postcheck(ip_event_1)
+        assert ip_event_1_result[0] == False
+        assert (
+            "it did not meet custom filter criteria: skipping 127.0.0.0 because it is already included in 127.0.0.0/31"
+            in ip_event_1_result[1]
         )
         # but ones outside should be accepted
         ip_event_2 = module_test.scan.make_event("127.0.0.3", source=module_test.scan.root_event)
