@@ -141,7 +141,6 @@ class DNSHelper:
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
         if len(self.system_resolvers) == 1:
-            nameserver = next(iter(self.system_resolvers))
             log.warning("BBOT performs better with multiple DNS servers. Your system currently only has one.")
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
