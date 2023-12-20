@@ -66,8 +66,10 @@ def ensure_config_files():
     secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
     exclude_keys = ["modules", "output_modules", "internal_modules"]
 
-    comment_notice = "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n" + \
-    "# Please be sure to uncomment when inserting API keys, etc.\n"
+    comment_notice = (
+        "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n"
+        + "# Please be sure to uncomment when inserting API keys, etc.\n"
+    )
 
     # ensure bbot.yml
     if not files.config_filename.exists():
