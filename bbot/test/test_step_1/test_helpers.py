@@ -678,6 +678,7 @@ async def test_async_helpers():
 
 def test_portparse_singleports(helpers):
     assert helpers.parse_port_string("80,443,22") == [80, 443, 22]
+    assert helpers.parse_port_string(80) == [80]
 
 
 def test_portparse_range_valid(helpers):
