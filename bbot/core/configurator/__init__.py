@@ -66,6 +66,11 @@ def ensure_config_files():
     secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
     exclude_keys = ["modules", "output_modules", "internal_modules"]
 
+    comment_notice = (
+        "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n"
+        + "# Please be sure to uncomment when inserting API keys, etc.\n"
+    )
+
     # ensure bbot.yml
     if not files.config_filename.exists():
         log_to_stderr(f"Creating BBOT config at {files.config_filename}")
@@ -77,7 +82,7 @@ def ensure_config_files():
             exclude_keys=exclude_keys,
         )
         yaml = OmegaConf.to_yaml(no_secrets_config)
-        yaml = "\n".join(f"# {line}" for line in yaml.splitlines())
+        yaml = comment_notice + "\n".join(f"# {line}" for line in yaml.splitlines())
         with open(str(files.config_filename), "w") as f:
             f.write(yaml)
 
@@ -92,7 +97,7 @@ def ensure_config_files():
             exclude_keys=exclude_keys,
         )
         yaml = OmegaConf.to_yaml(secrets_only_config)
-        yaml = "\n".join(f"# {line}" for line in yaml.splitlines())
+        yaml = comment_notice + "\n".join(f"# {line}" for line in yaml.splitlines())
         with open(str(files.secrets_filename), "w") as f:
             f.write(yaml)
         files.secrets_filename.chmod(0o600)
