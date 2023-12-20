@@ -39,6 +39,7 @@ class BBOTAsyncResolver(dns.asyncresolver.Resolver):
         dns_queries_per_second = self._parent_helper.config.get("dns_queries_per_second", 100)
         self._dns_rate_limiter = RateLimiter(dns_queries_per_second, "DNS")
         super().__init__(*args, **kwargs)
+        self.rotate = True
 
     async def resolve(self, *args, **kwargs):
         async with self._dns_rate_limiter:
@@ -139,6 +140,8 @@ class DNSHelper:
 
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
+        if len(self.system_resolvers) == 1:
+            log.warning("BBOT performs better with multiple DNS servers. Your system currently only has one.")
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
         self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
