@@ -180,10 +180,30 @@ class TestPostman(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert any(e.data == "https://www.postman.com/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f" for e in events), "Failed to detect workspace"
-        assert any(e.data == "https://www.postman.com/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f/globals" for e in events), "Failed to detect workspace globals"
-        assert any(e.data == "https://www.postman.com/_api/environment/28129865-fa7edca0-2df6-4187-9805-11845912f567" for e in events), "Failed to detect workspace environment"
-        assert any(e.data == "https://www.postman.com/_api/collection/28129865-d9f8833b-3dd2-4b07-9634-1831206d5205" for e in events), "Failed to detect collection"
-        assert any(e.data == "https://www.postman.com/_api/request/28129865-987c8ac8-bfa9-4bab-ade9-88ccf0597862" for e in events), "Failed to detect collection request #1"
-        assert any(e.data == "https://www.postman.com/_api/request/28129865-3aa78b71-2c4f-4299-94df-287ed1036409" for e in events), "Failed to detect collection request #1"
-        assert any(e.data == "https://www.postman.com/_api/request/28129865-67c9db4c-d0ed-461c-86d2-9a8c5a5de896" for e in events), "Failed to detect collection request #1"
+        assert any(
+            e.data == "https://www.postman.com/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f" for e in events
+        ), "Failed to detect workspace"
+        assert any(
+            e.data == "https://www.postman.com/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f/globals"
+            for e in events
+        ), "Failed to detect workspace globals"
+        assert any(
+            e.data == "https://www.postman.com/_api/environment/28129865-fa7edca0-2df6-4187-9805-11845912f567"
+            for e in events
+        ), "Failed to detect workspace environment"
+        assert any(
+            e.data == "https://www.postman.com/_api/collection/28129865-d9f8833b-3dd2-4b07-9634-1831206d5205"
+            for e in events
+        ), "Failed to detect collection"
+        assert any(
+            e.data == "https://www.postman.com/_api/request/28129865-987c8ac8-bfa9-4bab-ade9-88ccf0597862"
+            for e in events
+        ), "Failed to detect collection request #1"
+        assert any(
+            e.data == "https://www.postman.com/_api/request/28129865-3aa78b71-2c4f-4299-94df-287ed1036409"
+            for e in events
+        ), "Failed to detect collection request #1"
+        assert any(
+            e.data == "https://www.postman.com/_api/request/28129865-67c9db4c-d0ed-461c-86d2-9a8c5a5de896"
+            for e in events
+        ), "Failed to detect collection request #1"
