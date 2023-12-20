@@ -12,9 +12,9 @@ class masscan(portscanner):
     options = {
         "top_ports": 100,
         "ports": "",
-        # 600 packets/s ~= entire private IP space in 8 hours
+        # ping scan at 600 packets/s ~= entire private IP space in 8 hours
         "rate": 600,
-        "wait": 10,
+        "wait": 5,
         "ping_first": False,
         "ping_only": False,
         "use_cache": False,
@@ -66,11 +66,12 @@ class masscan(portscanner):
         self.ping_first = self.config.get("ping_first", False)
         self.ping_only = self.config.get("ping_only", False)
         self.use_cache = self.config.get("use_cache", False)
-        self.ports = self.config.get("ports", "80,443")
-        try:
-            self.helpers.parse_port_string(self.ports)
-        except ValueError as e:
-            return False, f"Error parsing ports: {e}"
+        self.ports = self.config.get("ports", "")
+        if self.ports:
+            try:
+                self.helpers.parse_port_string(self.ports)
+            except ValueError as e:
+                return False, f"Error parsing ports: {e}"
         self.alive_hosts = dict()
 
         _, invalid_targets = self._build_targets(self.scan.target)
@@ -159,10 +160,11 @@ class masscan(portscanner):
             command += ("-iL", str(target_file))
         if ping:
             command += ("--ping",)
-        if self.ports:
-            command += ("-p", self.ports)
         else:
-            command += ("--top-ports", str(self.top_ports))
+            if self.ports:
+                command += ("-p", self.ports)
+            else:
+                command += ("--top-ports", str(self.top_ports))
         if dry_run:
             command += ("--echo",)
         return command

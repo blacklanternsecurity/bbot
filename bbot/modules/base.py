@@ -902,7 +902,7 @@ class BaseModule:
         """
         Determines the criteria for what is considered to be a duplicate event if `suppress_dupes` is True.
         """
-        return hash(event)
+        return hash((event, self.name))
 
     def get_per_host_hash(self, event):
         """
