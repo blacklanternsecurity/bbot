@@ -4,7 +4,7 @@ import traceback
 from contextlib import suppress
 
 from ..core.errors import ValidationError
-from ..core.helpers.async_helpers import TaskCounter
+from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
 
 log = logging.getLogger("bbot.scanner.manager")
 
@@ -18,7 +18,7 @@ class ScanManager:
 
     Attributes:
         scan (Scan): Reference to the Scan object that instantiated the ScanManager.
-        incoming_event_queue (asyncio.PriorityQueue): Queue storing incoming events for processing.
+        incoming_event_queue (ShuffleQueue): Queue storing incoming events for processing.
         events_distributed (set): Set tracking globally unique events.
         events_accepted (set): Set tracking events accepted by individual modules.
         dns_resolution (bool): Flag to enable or disable DNS resolution.
@@ -39,14 +39,7 @@ class ScanManager:
 
         self.scan = scan
 
-        # TODO: consider reworking modules' dedupe policy (accept_dupes)
-        # by creating a function that decides the criteria for what is
-        # considered to be a duplicate (by default this would be a simple
-        # hash(event)), but allowing each module to override it if needed.
-        # If a module used the default function, its dedupe could be done
-        # at the manager level to save memory. If not, it would be done by the scan.
-
-        self.incoming_event_queue = asyncio.PriorityQueue()
+        self.incoming_event_queue = ShuffleQueue()
         # track incoming duplicates module-by-module (for `suppress_dupes` attribute of modules)
         self.incoming_dup_tracker = set()
         # track outgoing duplicates (for `accept_dupes` attribute of modules)
