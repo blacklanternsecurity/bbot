@@ -222,6 +222,11 @@ class ScanManager:
                 log.debug(f"Omitting due to blacklisted {reason}: {event}")
                 return
 
+            # other blacklist rejections - URL extensions, etc.
+            if "blacklisted" in event.tags:
+                log.debug(f"Omitting blacklisted event: {event}")
+                return
+
             # DNS_NAME --> DNS_NAME_UNRESOLVED
             if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
                 event.type = "DNS_NAME_UNRESOLVED"
