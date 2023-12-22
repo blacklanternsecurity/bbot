@@ -6,7 +6,7 @@ from bbot.modules.output.human import Human
 
 class email_addresses(Human):
     watched_events = ["EMAIL_ADDRESS"]
-    flags = ["subdomain-enum"]
+    flags = ["email-enum"]
     meta = {"description": "Output any email addresses found belonging to the target domain"}
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to file"}
