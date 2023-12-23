@@ -85,7 +85,8 @@ class httpx(BaseModule):
 
         command = [
             "httpx",
-            "-silent",
+            "-debug",
+            # "-silent",
             "-json",
             "-include-response",
             "-threads",

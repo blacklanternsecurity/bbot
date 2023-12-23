@@ -1,7 +1,7 @@
-from bbot.modules.base import BaseModule
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class postman(BaseModule):
+class postman(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe"]
@@ -17,14 +17,16 @@ class postman(BaseModule):
         "Referer": "https://www.postman.com/search?q=&scope=public&type=all",
     }
 
+    reject_wildcards = False
+
+    # wait until outgoing queue is empty to help avoid rate limits
+    _qsize = 1
+
     async def handle_event(self, event):
-        if "target" in event.tags:
-            query = str(event.data)
-        else:
-            query = self.helpers.parent_domain(event.data).lower()
+        query = self.make_query(event)
         self.verbose(f"Search for any postman workspaces, collections, requests belonging to {query}")
         for url in await self.query(query):
-            self.emit_event(url, "URL_UNVERIFIED", source=event)
+            self.emit_event(url, "URL_UNVERIFIED", source=event, tags="httpx-safe")
 
     async def query(self, query):
         interesting_urls = []

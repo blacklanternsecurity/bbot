@@ -7,7 +7,9 @@ class TestPostman(ModuleTestBase):
         "scope_report_distance": 1,
     }
 
-    async def setup_before_prep(self, module_test):
+    modules_overrides = ["postman", "httpx", "excavate"]
+
+    async def setup_after_prep(self, module_test):
         module_test.httpx_mock.add_response(
             url="https://www.postman.com/_api/ws/proxy",
             json={
@@ -179,31 +181,51 @@ class TestPostman(ModuleTestBase):
             },
         )
 
+        old_emit_event = module_test.module.emit_event
+
+        def new_emit_event(event_data, event_type, **kwargs):
+            if event_data.startswith("https://www.postman.com"):
+                event_data = event_data.replace("https://www.postman.com", "http://127.0.0.1:8888")
+            old_emit_event(event_data, event_type, **kwargs)
+
+        module_test.monkeypatch.setattr(module_test.module, "emit_event", new_emit_event)
+        module_test.scan.helpers.dns.mock_dns({("asdf.blacklanternsecurity.com", "A"): "127.0.0.1"})
+
+        request_args = dict(uri="/_api/request/28129865-987c8ac8-bfa9-4bab-ade9-88ccf0597862")
+        respond_args = dict(response_data="https://asdf.blacklanternsecurity.com")
+        module_test.set_expect_requests(request_args, respond_args)
+
     def check(self, module_test, events):
         assert any(
-            e.data == "https://www.postman.com/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f" for e in events
+            e.data == "http://127.0.0.1:8888/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f" for e in events
         ), "Failed to detect workspace"
         assert any(
-            e.data == "https://www.postman.com/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f/globals"
+            e.data == "http://127.0.0.1:8888/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f/globals"
             for e in events
         ), "Failed to detect workspace globals"
         assert any(
-            e.data == "https://www.postman.com/_api/environment/28129865-fa7edca0-2df6-4187-9805-11845912f567"
+            e.data == "http://127.0.0.1:8888/_api/environment/28129865-fa7edca0-2df6-4187-9805-11845912f567"
             for e in events
         ), "Failed to detect workspace environment"
         assert any(
-            e.data == "https://www.postman.com/_api/collection/28129865-d9f8833b-3dd2-4b07-9634-1831206d5205"
+            e.data == "http://127.0.0.1:8888/_api/collection/28129865-d9f8833b-3dd2-4b07-9634-1831206d5205"
             for e in events
         ), "Failed to detect collection"
         assert any(
-            e.data == "https://www.postman.com/_api/request/28129865-987c8ac8-bfa9-4bab-ade9-88ccf0597862"
+            e.data == "http://127.0.0.1:8888/_api/request/28129865-987c8ac8-bfa9-4bab-ade9-88ccf0597862"
             for e in events
         ), "Failed to detect collection request #1"
         assert any(
-            e.data == "https://www.postman.com/_api/request/28129865-3aa78b71-2c4f-4299-94df-287ed1036409"
+            e.data == "http://127.0.0.1:8888/_api/request/28129865-3aa78b71-2c4f-4299-94df-287ed1036409"
             for e in events
-        ), "Failed to detect collection request #1"
+        ), "Failed to detect collection request #2"
         assert any(
-            e.data == "https://www.postman.com/_api/request/28129865-67c9db4c-d0ed-461c-86d2-9a8c5a5de896"
+            e.data == "http://127.0.0.1:8888/_api/request/28129865-67c9db4c-d0ed-461c-86d2-9a8c5a5de896"
             for e in events
-        ), "Failed to detect collection request #1"
+        ), "Failed to detect collection request #3"
+        assert any(
+            e.type == "HTTP_RESPONSE"
+            and e.data["url"] == "http://127.0.0.1:8888/_api/request/28129865-987c8ac8-bfa9-4bab-ade9-88ccf0597862"
+            for e in events
+        ), "Failed to emit HTTP_RESPONSE"
+        assert any(e.data == "asdf.blacklanternsecurity.com" for e in events), "Failed to detect subdomain"

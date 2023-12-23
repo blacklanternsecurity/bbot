@@ -269,7 +269,7 @@ class JavascriptExtractor(BaseExtractor):
         "firebase": r"AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}",
         "google_oauth": r"ya29\.[0-9A-Za-z\-_]+",
         "amazon_aws_access_key_id": r"A[SK]IA[0-9A-Z]{16}",
-        "amazon_mws_auth_toke": r"amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        "amazon_mws_auth_token": r"amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
         # "amazon_aws_url": r"s3\.amazonaws.com[/]+|[a-zA-Z0-9_-]*\.s3\.amazonaws.com",
         # "amazon_aws_url2": r"[a-zA-Z0-9-\.\_]+\.s3\.amazonaws\.com",
         # "amazon_aws_url3": r"s3://[a-zA-Z0-9-\.\_]+",
