@@ -2483,7 +2483,7 @@ def parse_port_string(port_string):
         >>> parse_port_string("invalid")
         ValueError: Invalid port or port range: invalid
     """
-    elements = port_string.split(",")
+    elements = str(port_string).split(",")
     ports = []
 
     for element in elements:

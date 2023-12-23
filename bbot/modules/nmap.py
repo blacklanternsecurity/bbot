@@ -1,21 +1,21 @@
 from lxml import etree
-from bbot.modules.base import BaseModule
+from bbot.modules.templates.portscanner import portscanner
 
 
-class nmap(BaseModule):
-    watched_events = ["IP_ADDRESS", "DNS_NAME"]
+class nmap(portscanner):
+    watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active", "portscan", "aggressive", "web-thorough"]
-    meta = {"description": "Execute port scans with nmap"}
+    meta = {"description": "Port scan with nmap. By default, scans top 100 ports."}
     options = {
-        "ports": "",
         "top_ports": 100,
+        "ports": "",
         "timing": "T4",
         "skip_host_discovery": True,
     }
     options_desc = {
-        "ports": "ports to scan",
-        "top_ports": "top ports to scan",
+        "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
+        "ports": "Ports to scan",
         "timing": "-T<0-5>: Set timing template (higher is faster)",
         "skip_host_discovery": "skip host discovery (-Pn)",
     }
@@ -32,7 +32,7 @@ class nmap(BaseModule):
         self.timing = self.config.get("timing", "T4")
         self.top_ports = self.config.get("top_ports", 100)
         self.skip_host_discovery = self.config.get("skip_host_discovery", True)
-        return True
+        return await super().setup()
 
     async def handle_batch(self, *events):
         target = self.helpers.make_target(*events)
@@ -65,6 +65,8 @@ class nmap(BaseModule):
         temp_filename = self.helpers.temp_filename(extension="xml")
         command = [
             "nmap",
+            "--excludefile",
+            str(self.exclude_file),
             "-n",
             "--resolve-all",
             f"-{self.timing}",

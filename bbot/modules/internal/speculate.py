@@ -35,19 +35,19 @@ class speculate(BaseInternalModule):
     _priority = 4
 
     async def setup(self):
-        self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
+        scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
+        self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in scan_modules])
         self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
+        self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         self.range_to_ip = True
         self.dns_resolution = self.scan.config.get("dns_resolution", True)
         self.org_stubs_seen = set()
 
         port_string = self.config.get("ports", "80,443")
-
         try:
             self.ports = self.helpers.parse_port_string(str(port_string))
         except ValueError as e:
-            self.warning(f"Error parsing ports: {e}")
-            return False
+            return False, f"Error parsing ports: {e}"
 
         if not self.portscanner_enabled:
             self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")
@@ -79,10 +79,15 @@ class speculate(BaseInternalModule):
                 self.emit_event(parent, "DNS_NAME", source=event, internal=True)
 
         # generate open ports
-        emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
+
+        # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
+        event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
+        speculate_open_ports = self.emit_open_ports and event_in_scope_distance
+
         # from URLs
-        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
-            if event.host and event.port not in self.ports:
+        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
+            # only speculate port from a URL if it wouldn't be speculated naturally from the host
+            if event.host and (event.port not in self.ports or not speculate_open_ports):
                 self.emit_event(
                     self.helpers.make_netloc(event.host, event.port),
                     "OPEN_TCP_PORT",
@@ -103,7 +108,7 @@ class speculate(BaseInternalModule):
                     self.emit_event(url_event)
 
         # from hosts
-        if emit_open_ports:
+        if speculate_open_ports:
             # don't act on unresolved DNS_NAMEs
             usable_dns = False
             if event.type == "DNS_NAME":
@@ -149,11 +154,7 @@ class speculate(BaseInternalModule):
                 self.emit_event(stub_event)
 
     async def filter_event(self, event):
-        # don't accept IP_RANGE --> IP_ADDRESS events from self
-        if str(event.module) == "speculate":
-            if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
-                return False
         # don't accept errored DNS_NAMEs
         if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
-            return False
+            return False, "there were errors resolving this hostname"
         return True

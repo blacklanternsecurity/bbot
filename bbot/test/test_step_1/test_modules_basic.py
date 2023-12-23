@@ -50,15 +50,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         localhost2.add_tag("target")
         assert base_module._event_precheck(localhost2)[0] == True
         base_module.target_only = False
-        # special case for IPs and ranges
-        base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
-        ip_range = scan.make_event("127.0.0.0/24", dummy=True)
-        localhost4 = scan.make_event("127.0.0.1", source=ip_range)
-        localhost4.scope_distance = 0
-        localhost4.module = "plumbus"
-        assert base_module._event_precheck(localhost4)[0] == True
-        localhost4.module = "speculate"
-        assert base_module._event_precheck(localhost4)[0] == False
 
         # in scope only
         base_module.in_scope_only = True
@@ -71,7 +62,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
             assert reason == "it did not meet in_scope_only filter criteria"
         base_module.in_scope_only = False
         base_module.scope_distance_modifier = 0
-        localhost4 = scan.make_event("127.0.0.1", source=events.subdomain)
         valid, reason = await base_module._event_postcheck(events.localhost)
         assert valid
 

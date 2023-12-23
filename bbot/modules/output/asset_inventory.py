@@ -36,9 +36,6 @@ class asset_inventory(CSV):
 
     async def setup(self):
         self.assets = {}
-        self.open_port_producers = "httpx" in self.scan.modules or any(
-            ["portscan" in m.flags for m in self.scan.modules.values()]
-        )
         self.use_previous = self.config.get("use_previous", False)
         self.summary_netmask = self.config.get("summary_netmask", 16)
         self.emitted_contents = False
@@ -136,6 +133,8 @@ class asset_inventory(CSV):
                 with open(self.output_file, newline="") as f:
                     c = csv.DictReader(f)
                     for row in c:
+                        # yield to event loop to make sure we don't hold up the scan
+                        await self.helpers.sleep(0)
                         host = row.get("Host", "").strip()
                         ips = row.get("IP(s)", "")
                         if not host or not ips:
