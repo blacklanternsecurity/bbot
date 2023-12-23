@@ -94,7 +94,7 @@ class bypass403(BaseModule):
                 match, reasons, reflection, subject_response = await compare_helper.compare(
                     sig[1], headers=headers, method=sig[0], allow_redirects=True
                 )
-            except HttpCompareError:
+            except HttpCompareError as e:
                 self.debug(e)
                 continue
 
