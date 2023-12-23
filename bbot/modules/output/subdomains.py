@@ -1,5 +1,3 @@
-from contextlib import suppress
-
 from bbot.modules.base import BaseModule
 from bbot.modules.output.human import Human
 
