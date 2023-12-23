@@ -26,6 +26,7 @@ class NSEC(BaseModule):
             self.emit_event(result, "DNS_NAME", source=event)
 
     async def get_nsec_record(self, domain):
+        domain = domain.replace("\\000.", "")
         try:
             for result in await self.helpers.resolve(domain, type="NSEC"):
                 return str(result)
