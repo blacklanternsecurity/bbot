@@ -32,11 +32,6 @@ class Subdomains(Human):
             self.file.write(f"{event.data}\n")
             self.file.flush()
 
-    async def cleanup(self):
-        if getattr(self, "_file", None) is not None:
-            with suppress(Exception):
-                self.file.close()
-
     async def report(self):
         if getattr(self, "_file", None) is not None:
             self.info(f"Saved subdomains to {self.output_file}")

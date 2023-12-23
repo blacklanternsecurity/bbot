@@ -14,9 +14,6 @@ class Emails(Human):
 
     output_filename = "emails.txt"
 
-    async def setup(self):
-        return await super().setup()
-
     def _scope_distance_check(self, event):
         return BaseModule._scope_distance_check(self, event)
 
@@ -24,11 +21,6 @@ class Emails(Human):
         if self.file is not None:
             self.file.write(f"{event.data}\n")
             self.file.flush()
-
-    async def cleanup(self):
-        if getattr(self, "_file", None) is not None:
-            with suppress(Exception):
-                self.file.close()
 
     async def report(self):
         if getattr(self, "_file", None) is not None:
