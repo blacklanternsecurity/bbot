@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 from bbot.modules.output.human import Human
 
 
-class email_addresses(Human):
+class Emails(Human):
     watched_events = ["EMAIL_ADDRESS"]
     flags = ["email-enum"]
     meta = {"description": "Output any email addresses found belonging to the target domain"}
@@ -12,7 +12,7 @@ class email_addresses(Human):
     options_desc = {"output_file": "Output to file"}
     in_scope_only = True
 
-    output_filename = "email_addresses.txt"
+    output_filename = "emails.txt"
 
     async def setup(self):
         return await super().setup()

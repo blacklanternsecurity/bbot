@@ -1,8 +1,8 @@
 from .base import ModuleTestBase
 
 
-class TestEmail_Addresses(ModuleTestBase):
-    modules_overrides = ["email_addresses", "emailformat"]
+class TestEmais(ModuleTestBase):
+    modules_overrides = ["emails", "emailformat"]
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
@@ -11,6 +11,6 @@ class TestEmail_Addresses(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        sub_file = module_test.scan.home / "email_addresses.txt"
-        email_addresses = set(open(sub_file).read().splitlines())
-        assert email_addresses == {"info@blacklanternsecurity.com"}
+        sub_file = module_test.scan.home / "emails.txt"
+        emails = set(open(sub_file).read().splitlines())
+        assert emails == {"info@blacklanternsecurity.com"}
