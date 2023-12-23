@@ -24,7 +24,7 @@ class postman(subdomain_enum):
 
     async def handle_event(self, event):
         query = self.make_query(event)
-        self.verbose(f"Search for any postman workspaces, collections, requests belonging to {query}")
+        self.verbose(f"Searching for any postman workspaces, collections, requests belonging to {query}")
         for url in await self.query(query):
             self.emit_event(url, "URL_UNVERIFIED", source=event, tags="httpx-safe")
 
