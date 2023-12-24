@@ -171,6 +171,15 @@ async def test_events(events, scan, helpers, bbot_config):
     assert internal_event1._internal == True
     assert "internal" in internal_event1.tags
 
+    # tag inheritance
+    for tag in ("affiliate", "mutation-1"):
+        affiliate_event = scan.make_event("1.2.3.4", source=root_event, tags=tag)
+        assert tag in affiliate_event.tags
+        affiliate_event2 = scan.make_event("1.2.3.4:88", source=affiliate_event)
+        affiliate_event3 = scan.make_event("4.3.2.1:88", source=affiliate_event)
+        assert tag in affiliate_event2.tags
+        assert tag not in affiliate_event3.tags
+
     # event sorting
     parent1 = scan.make_event("127.0.0.1", source=scan.root_event)
     parent2 = scan.make_event("127.0.0.1", source=scan.root_event)

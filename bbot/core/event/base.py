@@ -400,9 +400,13 @@ class BaseEvent:
                 if not hosts_are_same:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
-            # inherit affiliate tag
-            if hosts_are_same and "affiliate" in source.tags:
-                self.add_tag("affiliate")
+            # inherit certain tags
+            if hosts_are_same:
+                for t in source.tags:
+                    if t == "affiliate":
+                        self.add_tag("affiliate")
+                    elif t.startswith("mutation-"):
+                        self.add_tag(t)
         elif not self._dummy:
             log.warning(f"Tried to set invalid source on {self}: (got: {source})")
 
