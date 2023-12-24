@@ -2,6 +2,7 @@ import re
 import ssl
 import anyio
 import httpx
+import asyncio
 import logging
 import warnings
 import traceback
@@ -616,8 +617,12 @@ class WebHelper:
             if raise_error:
                 raise httpx.RequestError(msg)
         except BaseException as e:
-            log.trace(f"Unhandled exception with request to URL: {url}: {e}")
-            log.trace(traceback.format_exc())
+            # don't log if the error is the result of an intentional cancellation
+            if not any(
+                isinstance(_e, asyncio.exceptions.CancelledError) for _e in self.parent_helper.get_exception_chain(e)
+            ):
+                log.trace(f"Unhandled exception with request to URL: {url}: {e}")
+                log.trace(traceback.format_exc())
             raise
 
 
