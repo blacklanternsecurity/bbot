@@ -533,7 +533,8 @@ class BaseModule:
         status = False
         self.debug(f"Setting up module {self.name}")
         try:
-            result = await self.setup()
+            setup_task = asyncio.create_task(self.setup())
+            result = await setup_task
             if type(result) == tuple and len(result) == 2:
                 status, msg = result
             else:
@@ -600,7 +601,8 @@ class BaseModule:
                             if event.type == "FINISHED":
                                 context = f"{self.name}.finish()"
                                 async with self.scan._acatch(context), self._task_counter.count(context):
-                                    await self.finish()
+                                    finish_task = asyncio.create_task(self.finish())
+                                    await finish_task
                             else:
                                 context = f"{self.name}.handle_event({event})"
                                 self.scan.stats.event_consumed(event, self)
