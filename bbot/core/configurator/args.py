@@ -29,11 +29,13 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         if ret.silent:
             ret.yes = True
         ret.modules = chain_lists(ret.modules)
+        ret.exclude_modules = chain_lists(ret.exclude_modules)
         ret.output_modules = chain_lists(ret.output_modules)
         ret.targets = chain_lists(ret.targets, try_files=True, msg="Reading targets from file: {filename}")
         ret.whitelist = chain_lists(ret.whitelist, try_files=True, msg="Reading whitelist from file: {filename}")
         ret.blacklist = chain_lists(ret.blacklist, try_files=True, msg="Reading blacklist from file: {filename}")
         ret.flags = chain_lists(ret.flags)
+        ret.exclude_flags = chain_lists(ret.exclude_flags)
         ret.require_flags = chain_lists(ret.require_flags)
         for m in ret.modules:
             if m not in module_choices and not self._dummy:

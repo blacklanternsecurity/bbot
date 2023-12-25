@@ -357,7 +357,8 @@ class BaseModule:
                     self.debug(f"Handling batch of {len(events):,} events")
                     submitted = True
                     async with self.scan._acatch(f"{self.name}.handle_batch()"):
-                        await self.handle_batch(*events)
+                        handle_batch_task = asyncio.create_task(self.handle_batch(*events))
+                        await handle_batch_task
                     self.debug(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
@@ -605,7 +606,8 @@ class BaseModule:
                                 self.scan.stats.event_consumed(event, self)
                                 self.debug(f"Handling {event}")
                                 async with self.scan._acatch(context), self._task_counter.count(context):
-                                    await self.handle_event(event)
+                                    handle_event_task = asyncio.create_task(self.handle_event(event))
+                                    await handle_event_task
                                 self.debug(f"Finished handling {event}")
                         else:
                             self.debug(f"Not accepting {event} because {reason}")
