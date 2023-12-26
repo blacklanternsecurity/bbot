@@ -608,7 +608,7 @@ class BaseModule:
                                 self.scan.stats.event_consumed(event, self)
                                 self.debug(f"Handling {event}")
                                 async with self.scan._acatch(context), self._task_counter.count(context):
-                                    task_name = f"{self.name}.handle_event({event]})"
+                                    task_name = f"{self.name}.handle_event({event})"
                                     handle_event_task = asyncio.create_task(self.handle_event(event), name=task_name)
                                     await handle_event_task
                                 self.debug(f"Finished handling {event}")
