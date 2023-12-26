@@ -958,7 +958,8 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_tasks[rdtype].append(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_task = asyncio.create_task(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_tasks[rdtype].append(wildcard_task)
 
                 # combine the random results
                 is_wildcard = False
