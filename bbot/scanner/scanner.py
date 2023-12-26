@@ -259,7 +259,10 @@ class Scanner:
             mp.set_start_method("spawn")
         except Exception:
             self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
-        self.process_pool = ProcessPoolExecutor()
+        # we spawn 1 fewer processes than cores
+        # this helps to avoid locking up the system or competing with the main python process for cpu time
+        num_processes = max(1, mp.cpu_count() - 1)
+        self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
 
         self._stopping = False
 
