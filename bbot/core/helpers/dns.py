@@ -662,7 +662,7 @@ class DNSHelper:
         batch_size = 250
         for i in range(0, len(queries), batch_size):
             batch = queries[i : i + batch_size]
-            tasks = [self._resolve_batch_coro_wrapper(q, **kwargs) for q in batch]
+            tasks = [asyncio.create_task(self._resolve_batch_coro_wrapper(q, **kwargs)) for q in batch]
             async for task in as_completed(tasks):
                 yield await task
 
