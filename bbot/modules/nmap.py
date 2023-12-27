@@ -65,6 +65,7 @@ class nmap(portscanner):
         temp_filename = self.helpers.temp_filename(extension="xml")
         command = [
             "nmap",
+            "--noninteractive",
             "--excludefile",
             str(self.exclude_file),
             "-n",
