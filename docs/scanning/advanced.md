@@ -73,7 +73,7 @@ Modules:
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. -ef aggressive)
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,http,human,json,neo4j,python,slack,subdomains,teams,web_report,websocket
+                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,human,json,neo4j,python,slack,subdomains,teams,web_report,websocket
   --allow-deadly        Enable the use of highly aggressive modules
 
 Scan:
