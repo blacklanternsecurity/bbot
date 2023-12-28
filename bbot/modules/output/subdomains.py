@@ -1,5 +1,3 @@
-from contextlib import suppress
-
 from bbot.modules.base import BaseModule
 from bbot.modules.output.human import Human
 
@@ -31,11 +29,6 @@ class Subdomains(Human):
         if self.file is not None:
             self.file.write(f"{event.data}\n")
             self.file.flush()
-
-    async def cleanup(self):
-        if getattr(self, "_file", None) is not None:
-            with suppress(Exception):
-                self.file.close()
 
     async def report(self):
         if getattr(self, "_file", None) is not None:
