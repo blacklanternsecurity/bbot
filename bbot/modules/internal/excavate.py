@@ -67,8 +67,10 @@ class HostnameExtractor(BaseExtractor):
 
 
 class URLExtractor(BaseExtractor):
+    url_path_regex = r"((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)"
     regexes = {
-        "fullurl": r"(?i)" + r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
+        "fulluri": r"(?i)" + r"([a-z]\w{1,15})://" + url_path_regex,
+        "fullurl": r"(?i)" + r"(https?)://" + url_path_regex,
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
@@ -119,7 +121,7 @@ class URLExtractor(BaseExtractor):
             # yield to event loop
             await self.excavate.helpers.sleep(0)
             for result in regex.findall(content):
-                if name == "fullurl":
+                if name.startswith("full"):
                     protocol, other = result
                     result = f"{protocol}://{other}"
 
@@ -145,7 +147,14 @@ class URLExtractor(BaseExtractor):
                 yield result, name
 
     def report(self, result, name, event, **kwargs):
-        parsed_uri = self.excavate.helpers.urlparse(result)
+        parsed_uri = None
+        try:
+            parsed_uri = self.excavate.helpers.urlparse(result)
+        except Exception as e:
+            self.excavate.debug(f"Error parsing URI {result}: {e}")
+        netloc = getattr(parsed_uri, "netloc", None)
+        if netloc is None:
+            return
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
         # Handle non-HTTP URIs (ftp, s3, etc.)
         if not "http" in parsed_uri.scheme.lower():

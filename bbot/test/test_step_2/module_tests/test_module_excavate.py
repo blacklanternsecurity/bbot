@@ -269,3 +269,14 @@ class TestExcavateCSP(TestExcavate):
 
     def check(self, module_test, events):
         assert any(e.data == "test.asdf.fakedomain" for e in events)
+
+
+class TestExcavateURL(TestExcavate):
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "SomeSMooshedDATAhttps://asdffoo.test.notreal/some/path"
+        )
+
+    def check(self, module_test, events):
+        assert any(e.data == "asdffoo.test.notreal" for e in events)
+        assert any(e.data == "https://asdffoo.test.notreal/some/path" for e in events)
