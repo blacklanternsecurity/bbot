@@ -8,6 +8,7 @@ import logging
 import traceback
 from aioconsole import ainput
 from omegaconf import OmegaConf
+from omegaconf import errors
 from contextlib import suppress
 
 # fix tee buffering
@@ -108,21 +109,32 @@ async def _main():
                     module_filtering = True
                     modules = set(module_loader.preloaded(type="scan"))
                 else:
-                    modules = set(options.modules)
-                    # enable modules by flags
-                    for m, c in module_loader.preloaded().items():
-                        module_type = c.get("type", "scan")
-                        if m not in modules:
-                            flags = c.get("flags", [])
-                            if "deadly" in flags:
-                                continue
-                            for f in options.flags:
-                                if f in flags:
-                                    log.verbose(f'Enabling {m} because it has flag "{f}"')
-                                    if module_type == "output":
-                                        output_modules.add(m)
-                                    else:
-                                        modules.add(m)
+                    if options.modules:
+                        modules = set(options.modules)
+                        # enable modules by flags
+                        for m, c in module_loader.preloaded().items():
+                            module_type = c.get("type", "scan")
+                            if m not in modules:
+                                flags = c.get("flags", [])
+                                if "deadly" in flags:
+                                    continue
+                                for f in options.flags:
+                                    if f in flags:
+                                        log.verbose(f'Enabling {m} because it has flag "{f}"')
+                                        if module_type == "output":
+                                            output_modules.add(m)
+                                        else:
+                                            modules.add(m)
+                    else:
+                        modules = set()
+                        try:
+                            modules = set(config["modules"].keys())
+                            print('\n------------------------------------')
+                            print('Detected modules from config file')
+                            print(modules)
+                            print('------------------------------------\n')
+                        except errors.ConfigKeyError as e:
+                            log.warning("No scan modules described in the configuration file.")
 
                 default_output_modules = ["human", "json", "csv"]
 

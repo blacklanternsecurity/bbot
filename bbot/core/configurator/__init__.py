@@ -14,13 +14,15 @@ from ..helpers.misc import error_and_exit, filter_dict, clean_dict, match_and_ex
 # cached sudo password
 bbot_sudo_pass = None
 
-modules_config = OmegaConf.create(
+'''modules_config = OmegaConf.create(
     {
         "modules": module_loader.configs(type="scan"),
         "output_modules": module_loader.configs(type="output"),
         "internal_modules": module_loader.configs(type="internal"),
     }
-)
+)'''
+
+modules_config = OmegaConf.create({})
 
 try:
     config = OmegaConf.merge(
