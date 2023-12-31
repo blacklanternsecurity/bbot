@@ -1,3 +1,5 @@
+import ipaddress
+
 from bbot.modules.base import BaseModule
 
 
@@ -38,7 +40,7 @@ class portscanner(BaseModule):
             return False, f"skipping IP_RANGE {event.host} because asset_inventory.use_previous=True"
         return True
 
-    def _build_targets(self, target, delimiter=","):
+    def _build_targets(self, target):
         invalid_targets = 0
         targets = []
         for t in target:
@@ -47,7 +49,7 @@ class portscanner(BaseModule):
                 invalid_targets += 1
             else:
                 if self.helpers.is_ip(t):
-                    targets.append(f"{t}/32")
+                    targets.append(str(ipaddress.ip_network(t)))
                 else:
                     targets.append(str(t))
         return targets, invalid_targets

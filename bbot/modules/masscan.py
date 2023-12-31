@@ -190,7 +190,7 @@ class masscan(portscanner):
             with suppress(KeyError):
                 source = self.alive_hosts[ip]
             if proto != "icmp":
-                result += f":{port_number}"
+                result = self.helpers.make_netloc(result, port_number)
                 if source is None:
                     source = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
                     self.emit_event(source)
