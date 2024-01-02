@@ -14,7 +14,7 @@ class badsecrets(BaseModule):
 
     @property
     def _max_event_handlers(self):
-        return multiprocessing.cpu_count()
+        return max(1, multiprocessing.cpu_count() - 1)
 
     async def handle_event(self, event):
         resp_body = event.data.get("body", None)
