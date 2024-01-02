@@ -821,6 +821,13 @@ def rand_string(length=10, digits=True):
     return "".join([random.choice(pool) for _ in range(int(length))])
 
 
+def truncate_string(s, n):
+    if len(s) > n:
+        return s[: n - 3] + "..."
+    else:
+        return s
+
+
 def extract_params_json(json_data):
     """
     Extracts keys from a JSON object and returns them as a set. Used by the `paramminer_headers` module.
