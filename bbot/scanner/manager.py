@@ -415,7 +415,8 @@ class ScanManager:
                 except asyncio.queues.QueueEmpty:
                     await asyncio.sleep(0.1)
                     continue
-                await self.emit_event(event, **kwargs)
+                emit_event_task = asyncio.create_task(self.emit_event(event, **kwargs), name=f"emit_event({event})")
+                await emit_event_task
 
         except Exception:
             log.critical(traceback.format_exc())

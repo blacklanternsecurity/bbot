@@ -662,7 +662,7 @@ class DNSHelper:
         batch_size = 250
         for i in range(0, len(queries), batch_size):
             batch = queries[i : i + batch_size]
-            tasks = [self._resolve_batch_coro_wrapper(q, **kwargs) for q in batch]
+            tasks = [asyncio.create_task(self._resolve_batch_coro_wrapper(q, **kwargs)) for q in batch]
             async for task in as_completed(tasks):
                 yield await task
 
@@ -958,7 +958,8 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_tasks[rdtype].append(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_task = asyncio.create_task(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_tasks[rdtype].append(wildcard_task)
 
                 # combine the random results
                 is_wildcard = False
