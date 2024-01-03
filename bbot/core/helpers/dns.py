@@ -456,8 +456,8 @@ class DNSHelper:
                                     f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"'
                                 )
                                 event.data = wildcard_data
-                else:
-                    # check if this domain is using wildcard dns
+                # tag wildcard domains for convenience
+                elif is_domain(event_host) or hash(event_host) in self._wildcard_cache:
                     event_target = "target" in event.tags
                     wildcard_domain_results = await self.is_wildcard_domain(event_host, log_info=event_target)
                     for hostname, wildcard_domain_rdtypes in wildcard_domain_results.items():
