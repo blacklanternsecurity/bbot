@@ -82,34 +82,33 @@ class ScanManager:
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         """
-        async with self._task_counter.count(f"emit_event({event})"):
-            # "quick" queues the event immediately
-            # This is used by speculate
-            quick = kwargs.pop("quick", False)
+        # "quick" queues the event immediately
+        # This is used by speculate
+        quick = kwargs.pop("quick", False)
 
-            # skip event if it fails precheck
-            if event.type != "DNS_NAME":
-                acceptable = self._event_precheck(event)
-                if not acceptable:
-                    event._resolved.set()
-                    return
-
-            log.debug(f'Module "{event.module}" raised {event}')
-
-            if quick:
-                log.debug(f'Module "{event.module}" raised {event}')
+        # skip event if it fails precheck
+        if event.type != "DNS_NAME":
+            acceptable = self._event_precheck(event)
+            if not acceptable:
                 event._resolved.set()
-                for kwarg in ["abort_if", "on_success_callback"]:
-                    kwargs.pop(kwarg, None)
-                async with self.scan._acatch(context=self.distribute_event):
-                    await self.distribute_event(event, *args, **kwargs)
-            else:
-                async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
-                    await self._emit_event(
-                        event,
-                        *args,
-                        **kwargs,
-                    )
+                return
+
+        log.debug(f'Module "{event.module}" raised {event}')
+
+        if quick:
+            log.debug(f'Module "{event.module}" raised {event}')
+            event._resolved.set()
+            for kwarg in ["abort_if", "on_success_callback"]:
+                kwargs.pop(kwarg, None)
+            async with self.scan._acatch(context=self.distribute_event):
+                await self.distribute_event(event, *args, **kwargs)
+        else:
+            async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
+                await self._emit_event(
+                    event,
+                    *args,
+                    **kwargs,
+                )
 
     def _event_precheck(self, event):
         """
@@ -411,12 +410,16 @@ class ScanManager:
         try:
             while not self.scan.stopped:
                 try:
-                    event, kwargs = self.get_event_from_modules()
+                    async with self._task_counter.count("get_event_from_modules()"):
+                        event, kwargs = self.get_event_from_modules()
                 except asyncio.queues.QueueEmpty:
                     await asyncio.sleep(0.1)
                     continue
-                emit_event_task = asyncio.create_task(self.emit_event(event, **kwargs), name=f"emit_event({event})")
-                await emit_event_task
+                async with self._task_counter.count(f"emit_event({event})"):
+                    emit_event_task = asyncio.create_task(
+                        self.emit_event(event, **kwargs), name=f"emit_event({event})"
+                    )
+                    await emit_event_task
 
         except Exception:
             log.critical(traceback.format_exc())
@@ -438,6 +441,13 @@ class ScanManager:
             queues_by_priority = [m.outgoing_event_queue for m in self.modules_by_priority]
             self._incoming_queues = [self.incoming_event_queue] + queues_by_priority
         return self._incoming_queues
+
+    @property
+    def incoming_qsize(self):
+        incoming_events = 0
+        for q in self.incoming_queues:
+            incoming_events += q.qsize()
+        return incoming_events
 
     @property
     def module_priority_weights(self):
@@ -484,7 +494,7 @@ class ScanManager:
     @property
     def running(self):
         active_tasks = self._task_counter.value
-        incoming_events = self.incoming_event_queue.qsize()
+        incoming_events = self.incoming_qsize
         return active_tasks > 0 or incoming_events > 0
 
     @property
@@ -591,10 +601,8 @@ class ScanManager:
                         scan_active_status.append(f"            tasks:")
                         for task in list(m._task_counter.tasks.values()):
                             scan_active_status.append(f"                - {task}:")
-                    scan_active_status.append(f"            num_incoming_events: {m.num_incoming_events}")
-                    scan_active_status.append(
-                        f"            outgoing_event_queue.qsize: {m.outgoing_event_queue.qsize()}"
-                    )
+                    scan_active_status.append(f"            incoming_queue_size: {m.num_incoming_events}")
+                    scan_active_status.append(f"            outgoing_queue_size: {m.outgoing_event_queue.qsize()}")
                 for line in scan_active_status:
                     self.scan.debug(line)
 
