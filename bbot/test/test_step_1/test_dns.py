@@ -82,6 +82,17 @@ async def test_dns(bbot_scanner, bbot_config):
     assert "1.1.1.1" in [str(x) for x in children2["A"]]
     assert set(children1.keys()) == set(children2.keys())
 
+    dns_config = OmegaConf.create({"dns_resolution": True})
+    dns_config = OmegaConf.merge(bbot_config, dns_config)
+    scan2 = bbot_scanner("evilcorp.com", config=dns_config)
+    scan2.helpers.dns.mock_dns(
+        {("evilcorp.com", "TXT"): '"v=spf1 include:cloudprovider.com ~all"', ("cloudprovider.com", "A"): "1.2.3.4"}
+    )
+    events = [e async for e in scan2.async_start()]
+    assert 1 == len(
+        [e for e in events if e.type == "DNS_NAME" and e.data == "cloudprovider.com" and "affiliate" in e.tags]
+    )
+
 
 @pytest.mark.asyncio
 async def test_wildcards(bbot_scanner, bbot_config):
