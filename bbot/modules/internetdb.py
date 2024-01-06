@@ -96,9 +96,11 @@ class internetdb(BaseModule):
             self.emit_event({"technology": cpe, "host": str(event.host)}, "TECHNOLOGY", source=event)
         for port in data.get("ports", []):
             self.emit_event(self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event)
-        for vuln in data.get("vulns", []):
+        vulns = data.get("vulns", [])
+        if vulns:
+            vulns_str = ", ".join([str(v) for v in vulns])
             self.emit_event(
-                {"description": f"Shodan reported verified vulnerability: {vuln}", "host": str(event.host)},
+                {"description": f"Shodan reported verified vulnerabilities: {vulns_str}", "host": str(event.host)},
                 "FINDING",
                 source=event,
             )
