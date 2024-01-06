@@ -323,6 +323,9 @@ class ScanManager:
                                     child_event = self.scan.make_event(
                                         record, "DNS_NAME", module=module, source=source_event
                                     )
+                                    # if it's a hostname and it's only one hop away, mark it as affiliate
+                                    if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
+                                        child_event.add_tag("affiliate")
                                     host_hash = hash(str(child_event.host))
                                     if in_dns_scope or self.scan.in_scope(child_event):
                                         dns_child_events.append(child_event)
