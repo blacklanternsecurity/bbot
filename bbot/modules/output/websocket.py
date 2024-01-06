@@ -10,6 +10,7 @@ class Websocket(BaseOutputModule):
     meta = {"description": "Output to websockets"}
     options = {"url": "", "token": ""}
     options_desc = {"url": "Web URL", "token": "Authorization Bearer token"}
+    _preserve_graph = True
 
     async def setup(self):
         self.url = self.config.get("url", "")
