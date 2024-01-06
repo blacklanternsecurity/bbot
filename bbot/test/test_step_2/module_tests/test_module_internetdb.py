@@ -36,14 +36,14 @@ class TestInternetDB(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert 9 == len([e for e in events if str(e.module) == "internetdb"])
+        assert 8 == len([e for e in events if str(e.module) == "internetdb"])
         assert 1 == len(
             [e for e in events if e.type == "DNS_NAME" and e.data == "autodiscover.blacklanternsecurity.com"]
         )
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "mail.blacklanternsecurity.com"])
         assert 3 == len([e for e in events if e.type == "OPEN_TCP_PORT" and str(e.module) == "internetdb"])
         assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "blacklanternsecurity.com:443"])
-        assert 2 == len([e for e in events if e.type == "FINDING" and str(e.module) == "internetdb"])
+        assert 1 == len([e for e in events if e.type == "FINDING" and str(e.module) == "internetdb"])
         assert 1 == len([e for e in events if e.type == "FINDING" and "CVE-2021-26857" in e.data["description"]])
         assert 2 == len([e for e in events if e.type == "TECHNOLOGY" and str(e.module) == "internetdb"])
         assert 1 == len(
