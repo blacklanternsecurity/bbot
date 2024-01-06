@@ -99,15 +99,19 @@ class URLExtractor(BaseExtractor):
             if url_event is not None:
                 url_in_scope = self.excavate.scan.in_scope(url_event)
                 is_spider_danger = self.excavate.helpers.is_spider_danger(event, result)
-                if (
-                    (
-                        urls_found >= self.web_spider_links_per_page and url_in_scope
-                    )  # if we exceeded the max number of links
-                    or (consider_spider_danger and is_spider_danger)  # or if there's spider danger
-                    or (
-                        (not consider_spider_danger) and (web_spider_distance > self.excavate.max_redirects)
-                    )  # or if the spider distance is way out of control (greater than max_redirects)
-                ):
+                exceeds_max_links = urls_found >= self.web_spider_links_per_page and url_in_scope
+                exceeds_redirect_distance = (not consider_spider_danger) and (
+                    web_spider_distance > self.excavate.max_redirects
+                )
+                if is_spider_danger or exceeds_max_links or exceeds_redirect_distance:
+                    reason = "its spider depth or distance exceeds the scan's limits"
+                    if exceeds_max_links:
+                        reason = f"it exceeds the max number of links per page ({self.web_spider_links_per_page})"
+                    elif exceeds_redirect_distance:
+                        reason = (
+                            f"its spider distance exceeds the max number of redirects ({self.excavate.max_redirects})"
+                        )
+                    self.excavate.debug(f"Tagging {url_event} as spider-danger because {reason}")
                     url_event.add_tag("spider-danger")
 
                 self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
@@ -340,7 +344,9 @@ class excavate(BaseInternalModule):
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
         self.functionality = FunctionalityExtractor(self)
-        self.max_redirects = self.scan.config.get("http_max_redirects", 5)
+        max_redirects = self.scan.config.get("http_max_redirects", 5)
+        self.web_spider_distance = self.scan.config.get("web_spider_distance", 0)
+        self.max_redirects = max(max_redirects, self.web_spider_distance)
         return True
 
     async def search(self, source, extractors, event, **kwargs):
