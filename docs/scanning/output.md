@@ -175,7 +175,7 @@ docker run -d -p 7687:7687 -p 7474:7474 -v "$(pwd)/neo4j/:/data/" -e NEO4J_AUTH=
 bbot -f subdomain-enum -t evilcorp.com -om neo4j
 ```
 
-- Browse data at [http://localhost:7474](http://localhost:7474)
+- Log in at [http://localhost:7474](http://localhost:7474) with `neo4j` / `bbotislife`
 
 ### Cypher Queries and Tips
 
@@ -218,6 +218,11 @@ MATCH (n) --> (p:OPEN_TCP_PORT)
 WHERE "in-scope" in n.tags and (n:DNS_NAME or n:IP_ADDRESS)
 WITH *, TAIL(SPLIT(p.data, ':')) AS port
 RETURN n.data, collect(distinct port)
+```
+
+```cypher
+// Clear the database
+MATCH (n) DETACH DELETE n
 ```
 
 This is not an exhaustive list of clauses, filters, or other means to use cypher and should be considered a starting point. To build more advanced queries consider reading Neo4j's Cypher [documentation](https://neo4j.com/docs/cypher-manual/current/introduction/). 
