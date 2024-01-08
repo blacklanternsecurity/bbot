@@ -107,12 +107,14 @@ class ScanManager:
         else:
             async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
                 try:
-                    async with asyncio.timeout(self._emit_event_timeout):
-                        await self._emit_event(
+                    await asyncio.wait_for(
+                        self._emit_event(
                             event,
                             *args,
                             **kwargs,
-                        )
+                        ),
+                        self._emit_event_timeout,
+                    )
                 except asyncio.TimeoutError:
                     log.warning(
                         f"Timeout after {self._emit_event_timeout:,} seconds while emitting event {event} (args={args}, kwargs={kwargs})"
