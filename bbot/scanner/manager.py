@@ -55,6 +55,8 @@ class ScanManager:
         self._modules_by_priority = None
         self._incoming_queues = None
         self._module_priority_weights = None
+        # emit_event timeout - 5 minutes
+        self._emit_event_timeout = 5 * 60
 
     async def init_events(self):
         """
@@ -104,11 +106,18 @@ class ScanManager:
                 await self.distribute_event(event, *args, **kwargs)
         else:
             async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
-                await self._emit_event(
-                    event,
-                    *args,
-                    **kwargs,
-                )
+                try:
+                    async with asyncio.timeout(self._emit_event_timeout):
+                        await self._emit_event(
+                            event,
+                            *args,
+                            **kwargs,
+                        )
+                except asyncio.TimeoutError:
+                    log.warning(
+                        f"Timeout after {self._emit_event_timeout:,} seconds while emitting event {event} (args={args}, kwargs={kwargs})"
+                    )
+                    self.scan.trace()
 
     def _event_precheck(self, event):
         """
