@@ -73,7 +73,7 @@ class sslcert(BaseModule):
                 log_fn(
                     f"Skipping Subject Alternate Names (SANs) on {netloc} because number of hostnames ({len(dns_names):,}) exceeds threshold ({abort_threshold})"
                 )
-                dns_names = dns_names[:1]
+                dns_names = dns_names[:1] + [n for n in dns_names[1:] if self.scan.in_scope(n)]
             for event_type, results in (("DNS_NAME", dns_names), ("EMAIL_ADDRESS", emails)):
                 for event_data in results:
                     if event_data is not None and event_data != event:
