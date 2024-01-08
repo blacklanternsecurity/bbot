@@ -1686,10 +1686,10 @@ def filesize(f):
 
 
 def rm_rf(f):
-    """Recursively delete a file/directory
+    """Recursively delete a directory
 
     Args:
-        f (str or Path): The file or directory path to delete.
+        f (str or Path): The directory path to delete.
 
     Examples:
         >>> rm_rf("/tmp/httpx98323849")
