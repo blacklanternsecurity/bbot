@@ -13,7 +13,7 @@ class ScanManager:
     """
     Manages the modules, event queues, and overall event flow during a scan.
 
-    Simultaneously serves as a shepherd, policeman, judge, jury, and executioner for events.
+    Simultaneously serves as a policeman, judge, jury, and executioner for events.
     It is responsible for managing the incoming event queue and distributing events to modules.
 
     Attributes:
