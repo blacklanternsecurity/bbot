@@ -6,7 +6,7 @@ BBOT is a system of individual modules that interchange data **recursively**. Ev
 
 ## What It **_Isn't_**
 
-It's important to understand that BBOT has a fundamentally different philosophy than most tools. Its discovery process does not have "phases", or "stages"; i.e. it does not work like this:
+It's important to understand that BBOT has a fundamentally different philosophy from most tools. Its discovery process does not have "phases", or "stages"; i.e. it does not work like this:
 
 ![how_it_doesnt_work](https://github.com/blacklanternsecurity/bbot/assets/20261699/67c4e332-f181-47e7-b884-2112bda347a4)
 
@@ -16,9 +16,9 @@ Imagine if on the last step of this process, you discovered a new subdomain. Awe
 
 ![traditional-workflow](https://github.com/blacklanternsecurity/bbot/assets/20261699/aa7cb6ac-6f88-464a-8069-0d534cecfd2b)
 
-## What It **_Is_**
+## Recursion
 
-Instead, BBOT works recursively, treating each new individual piece of data as an opportunity to find even more. When it finds something, it feeds it back into the machine and uses it to fuel the discovery process. It continues to churn like this until there is no new data to discover.
+Recursion is at the heart of BBOT's design. Each newly-discovered piece of data is fed it back into the machine, fueling the discovery process. This continues until there is no new data to discover.
 
 ![bbot-workflow](https://github.com/blacklanternsecurity/bbot/assets/20261699/1b56c472-c2c4-41b5-b711-4b7296ec7b20)
 
