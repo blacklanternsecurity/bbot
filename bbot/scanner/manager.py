@@ -106,20 +106,11 @@ class ScanManager:
                 await self.distribute_event(event, *args, **kwargs)
         else:
             async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
-                try:
-                    await asyncio.wait_for(
-                        self._emit_event(
-                            event,
-                            *args,
-                            **kwargs,
-                        ),
-                        self._emit_event_timeout,
-                    )
-                except asyncio.TimeoutError:
-                    log.warning(
-                        f"Timeout after {self._emit_event_timeout:,} seconds while emitting event {event} (args={args}, kwargs={kwargs})"
-                    )
-                    self.scan.trace()
+                await self._emit_event(
+                    event,
+                    *args,
+                    **kwargs,
+                )
 
     def _event_precheck(self, event):
         """
