@@ -1,5 +1,8 @@
+import re
 import json
+import tempfile
 import subprocess
+from pathlib import Path
 from bbot.modules.base import BaseModule
 from bbot.core.helpers.web import is_login_page
 
@@ -39,6 +42,7 @@ class httpx(BaseModule):
         self.retries = self.scan.config.get("httpx_retries", 1)
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.visited = set()
+        self.httpx_tempdir_regex = re.compile(r"^httpx\d+$")
         return True
 
     async def filter_event(self, event):
@@ -154,6 +158,10 @@ class httpx(BaseModule):
                     url_event._resolved.set()
                 # HTTP response
                 self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags)
+
+        for tempdir in Path(tempfile.gettempdir()).iterdir():
+            if tempdir.is_dir() and self.httpx_tempdir_regex.match(tempdir.name):
+                self.helpers.rm_rf(tempdir)
 
     async def cleanup(self):
         resume_file = self.helpers.current_dir / "resume.cfg"

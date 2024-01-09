@@ -55,6 +55,8 @@ class ScanManager:
         self._modules_by_priority = None
         self._incoming_queues = None
         self._module_priority_weights = None
+        # emit_event timeout - 5 minutes
+        self._emit_event_timeout = 5 * 60
 
     async def init_events(self):
         """

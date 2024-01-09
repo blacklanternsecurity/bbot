@@ -41,7 +41,7 @@ class internetdb(BaseModule):
     meta = {"description": "Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities"}
 
     # limit outgoing queue size to help avoid rate limiting
-    _qsize = 1
+    _qsize = 100
 
     base_url = "https://internetdb.shodan.io"
 

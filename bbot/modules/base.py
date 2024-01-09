@@ -504,7 +504,9 @@ class BaseModule:
         return ret
 
     def start(self):
-        self._tasks = [asyncio.create_task(self._worker()) for _ in range(self.max_event_handlers)]
+        self._tasks = [
+            asyncio.create_task(self._worker(), name=f"{self.name}._worker()") for _ in range(self.max_event_handlers)
+        ]
 
     async def _setup(self):
         """
