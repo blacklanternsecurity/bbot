@@ -86,7 +86,9 @@ class ScanManager:
         callbacks_requested = any([kwargs.get(k, None) is not None for k in callbacks])
         # "quick" queues the event immediately
         # This is used by speculate
-        quick = kwargs.pop("quick", False) or getattr(event, "quick_emit", False) and not callbacks_requested
+        quick_kwarg = kwargs.pop("quick", False)
+        quick_event = getattr(event, "quick_emit", False)
+        quick = (quick_kwarg or quick_event) and not callbacks_requested
 
         # skip event if it fails precheck
         if event.type != "DNS_NAME":
