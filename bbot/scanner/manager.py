@@ -379,6 +379,7 @@ class ScanManager:
         Queue event with modules
         """
         async with self.scan._acatch(context=self.distribute_event):
+            # make event internal if it's above our configured report distance
             event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
             event_will_be_output = event.always_emit or event_in_report_distance
             if not event_will_be_output:
