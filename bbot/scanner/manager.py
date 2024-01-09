@@ -84,7 +84,7 @@ class ScanManager:
         """
         # "quick" queues the event immediately
         # This is used by speculate
-        quick = kwargs.pop("quick", False)
+        quick = kwargs.pop("quick", False) or getattr(event, "quick_emit", False)
 
         # skip event if it fails precheck
         if event.type != "DNS_NAME":
@@ -96,7 +96,7 @@ class ScanManager:
         log.debug(f'Module "{event.module}" raised {event}')
 
         if quick:
-            log.debug(f'Module "{event.module}" raised {event}')
+            log.debug(f"Quick-emitting {event}")
             event._resolved.set()
             for kwarg in ["abort_if", "on_success_callback"]:
                 kwargs.pop(kwarg, None)
