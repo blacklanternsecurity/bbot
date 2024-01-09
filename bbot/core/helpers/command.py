@@ -166,6 +166,16 @@ async def _spawn_proc(self, *command, **kwargs):
     return None, None, None
 
 
+async def _write_proc_line(proc, chunk):
+    try:
+        proc.stdin.write(smart_encode(chunk) + b"\n")
+        await proc.stdin.drain()
+    except Exception as e:
+        command = " ".join([str(s) for s in proc.args])
+        log.warning(f"Error writing line to stdin for command: {command}: {e}")
+        log.trace(traceback.format_exc())
+
+
 async def _write_stdin(proc, _input):
     """
     Asynchronously writes input to an active subprocess's stdin.
@@ -183,11 +193,10 @@ async def _write_stdin(proc, _input):
             _input = [_input]
         if isinstance(_input, (list, tuple)):
             for chunk in _input:
-                proc.stdin.write(smart_encode(chunk) + b"\n")
+                await _write_proc_line(proc, chunk)
         else:
             async for chunk in _input:
-                proc.stdin.write(smart_encode(chunk) + b"\n")
-        await proc.stdin.drain()
+                await _write_proc_line(proc, chunk)
         proc.stdin.close()
 
 
