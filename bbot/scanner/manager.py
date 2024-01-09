@@ -82,9 +82,11 @@ class ScanManager:
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         """
+        callbacks = ["abort_if", "on_success_callback"]
+        callbacks_requested = any([kwargs.get(k, None) is not None for k in callbacks])
         # "quick" queues the event immediately
         # This is used by speculate
-        quick = kwargs.pop("quick", False) or getattr(event, "quick_emit", False)
+        quick = kwargs.pop("quick", False) or getattr(event, "quick_emit", False) and not callbacks_requested
 
         # skip event if it fails precheck
         if event.type != "DNS_NAME":
@@ -98,7 +100,7 @@ class ScanManager:
         if quick:
             log.debug(f"Quick-emitting {event}")
             event._resolved.set()
-            for kwarg in ["abort_if", "on_success_callback"]:
+            for kwarg in callbacks:
                 kwargs.pop(kwarg, None)
             async with self.scan._acatch(context=self.distribute_event):
                 await self.distribute_event(event, *args, **kwargs)
