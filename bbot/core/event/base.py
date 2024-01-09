@@ -90,6 +90,9 @@ class BaseEvent:
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
     _always_emit_tags = ["affiliate"]
+    # Bypass scope checking and dns resolution, distribute immediately to modules
+    # This is useful for "end-of-line" events like FINDING and VULNERABILITY
+    _quick_emit = False
     # Whether this event has been retroactively marked as part of an important discovery chain
     _graph_important = False
     # Exclude from output modules
@@ -319,9 +322,17 @@ class BaseEvent:
 
     @property
     def always_emit(self):
+        """
+        If this returns True, the event will always be distributed to output modules regardless of scope distance
+        """
         always_emit_tags = any(t in self.tags for t in self._always_emit_tags)
         no_host_information = not bool(self.host)
         return self._always_emit or always_emit_tags or no_host_information
+
+    @property
+    def quick_emit(self):
+        no_host_information = not bool(self.host)
+        return self._quick_emit or no_host_information
 
     @property
     def id(self):
@@ -753,6 +764,7 @@ class DictHostEvent(DictEvent):
 
 class ASN(DictEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class CODE_REPOSITORY(DictHostEvent):
@@ -992,6 +1004,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 class VULNERABILITY(DictHostEvent):
     _always_emit = True
+    _quick_emit = True
     severity_colors = {
         "CRITICAL": "🟪",
         "HIGH": "🟥",
@@ -1019,6 +1032,7 @@ class VULNERABILITY(DictHostEvent):
 
 class FINDING(DictHostEvent):
     _always_emit = True
+    _quick_emit = True
 
     class _data_validator(BaseModel):
         host: str
@@ -1084,22 +1098,27 @@ class PROTOCOL(DictHostEvent):
 
 class GEOLOCATION(BaseEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class PASSWORD(BaseEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class HASHED_PASSWORD(BaseEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class USERNAME(BaseEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class SOCIAL(DictEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class WEBSCREENSHOT(DictHostEvent):
@@ -1108,10 +1127,12 @@ class WEBSCREENSHOT(DictHostEvent):
 
 class AZURE_TENANT(DictEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class WAF(DictHostEvent):
     _always_emit = True
+    _quick_emit = True
 
     class _data_validator(BaseModel):
         url: str

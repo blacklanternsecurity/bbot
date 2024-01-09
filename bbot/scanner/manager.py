@@ -82,9 +82,13 @@ class ScanManager:
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         bbot.scanner: scan._event_thread_pool: running for 0 seconds: ScanManager._emit_event(DNS_NAME("sipfed.online.lync.com"))
         """
+        callbacks = ["abort_if", "on_success_callback"]
+        callbacks_requested = any([kwargs.get(k, None) is not None for k in callbacks])
         # "quick" queues the event immediately
         # This is used by speculate
-        quick = kwargs.pop("quick", False)
+        quick_kwarg = kwargs.pop("quick", False)
+        quick_event = getattr(event, "quick_emit", False)
+        quick = (quick_kwarg or quick_event) and not callbacks_requested
 
         # skip event if it fails precheck
         if event.type != "DNS_NAME":
@@ -96,12 +100,12 @@ class ScanManager:
         log.debug(f'Module "{event.module}" raised {event}')
 
         if quick:
-            log.debug(f'Module "{event.module}" raised {event}')
+            log.debug(f"Quick-emitting {event}")
             event._resolved.set()
-            for kwarg in ["abort_if", "on_success_callback"]:
+            for kwarg in callbacks:
                 kwargs.pop(kwarg, None)
             async with self.scan._acatch(context=self.distribute_event):
-                await self.distribute_event(event, *args, **kwargs)
+                await self.distribute_event(event)
         else:
             async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
                 await self._emit_event(
@@ -232,14 +236,6 @@ class ScanManager:
                 log.debug(f"Making {event} in-scope")
                 event.scope_distance = 0
 
-            event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
-            event_will_be_output = event.always_emit or event_in_report_distance
-            if not event_will_be_output:
-                log.debug(
-                    f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
-                )
-                event.internal = True
-
             # check for wildcards
             if event.scope_distance <= self.scan.scope_search_distance:
                 if not "unresolved" in event.tags:
@@ -251,18 +247,6 @@ class ScanManager:
                 acceptable = self._event_precheck(event)
                 if not acceptable:
                     return
-
-            # if we discovered something interesting from an internal event,
-            # make sure we preserve its chain of parents
-            source = event.source
-            if source.internal and (event_will_be_output or event._graph_important):
-                source_in_report_distance = source.scope_distance <= self.scan.scope_report_distance
-                if source_in_report_distance:
-                    source.internal = False
-                if not source._graph_important:
-                    source._graph_important = True
-                    log.debug(f"Re-queuing internal event {source} with parent {event}")
-                    self.queue_event(source)
 
             # now that the event is properly tagged, we can finally make decisions about it
             abort_result = False
@@ -390,12 +374,32 @@ class ScanManager:
             self.outgoing_dup_tracker.add(event_hash)
         return is_dup
 
-    async def distribute_event(self, *args, **kwargs):
+    async def distribute_event(self, event):
         """
         Queue event with modules
         """
         async with self.scan._acatch(context=self.distribute_event):
-            event = self.scan.make_event(*args, **kwargs)
+            # make event internal if it's above our configured report distance
+            event_in_report_distance = event.scope_distance <= self.scan.scope_report_distance
+            event_will_be_output = event.always_emit or event_in_report_distance
+            if not event_will_be_output:
+                log.debug(
+                    f"Making {event} internal because its scope_distance ({event.scope_distance}) > scope_report_distance ({self.scan.scope_report_distance})"
+                )
+                event.internal = True
+
+            # if we discovered something interesting from an internal event,
+            # make sure we preserve its chain of parents
+            source = event.source
+            if source.internal and ((not event.internal) or event._graph_important):
+                source_in_report_distance = source.scope_distance <= self.scan.scope_report_distance
+                if source_in_report_distance:
+                    source.internal = False
+                if not source._graph_important:
+                    source._graph_important = True
+                    log.debug(f"Re-queuing internal event {source} with parent {event}")
+                    self.queue_event(source)
+
             is_outgoing_duplicate = self.is_outgoing_duplicate(event)
             if is_outgoing_duplicate:
                 self.scan.verbose(f"{event.module}: Duplicate event: {event}")
