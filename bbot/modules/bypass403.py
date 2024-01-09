@@ -90,9 +90,13 @@ class bypass403(BaseModule):
                 headers = dict(sig[2])
             else:
                 headers = None
-            match, reasons, reflection, subject_response = await compare_helper.compare(
-                sig[1], headers=headers, method=sig[0], allow_redirects=True
-            )
+            try:
+                match, reasons, reflection, subject_response = await compare_helper.compare(
+                    sig[1], headers=headers, method=sig[0], allow_redirects=True
+                )
+            except HttpCompareError as e:
+                self.debug(e)
+                continue
 
             # In some cases WAFs will respond with a 200 code which causes a false positive
             if subject_response != None:

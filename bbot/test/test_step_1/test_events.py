@@ -153,11 +153,32 @@ async def test_events(events, scan, helpers, bbot_config):
     event5 = scan.make_event("4.5.6.7", source=event4)
     assert event5._scope_distance == 3
 
+    url_1 = scan.make_event("https://127.0.0.1/asdf", "URL_UNVERIFIED", source=scan.root_event)
+    assert url_1.scope_distance == 1
+    url_2 = scan.make_event("https://127.0.0.1/test", "URL_UNVERIFIED", source=url_1)
+    assert url_2.scope_distance == 1
+    url_3 = scan.make_event("https://127.0.0.2/asdf", "URL_UNVERIFIED", source=url_1)
+    assert url_3.scope_distance == 2
+
+    org_stub_1 = scan.make_event("STUB1", "ORG_STUB", source=scan.root_event)
+    org_stub_1.scope_distance == 1
+    org_stub_2 = scan.make_event("STUB2", "ORG_STUB", source=org_stub_1)
+    org_stub_2.scope_distance == 2
+
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
     internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)
     assert internal_event1._internal == True
     assert "internal" in internal_event1.tags
+
+    # tag inheritance
+    for tag in ("affiliate", "mutation-1"):
+        affiliate_event = scan.make_event("1.2.3.4", source=root_event, tags=tag)
+        assert tag in affiliate_event.tags
+        affiliate_event2 = scan.make_event("1.2.3.4:88", source=affiliate_event)
+        affiliate_event3 = scan.make_event("4.3.2.1:88", source=affiliate_event)
+        assert tag in affiliate_event2.tags
+        assert tag not in affiliate_event3.tags
 
     # event sorting
     parent1 = scan.make_event("127.0.0.1", source=scan.root_event)

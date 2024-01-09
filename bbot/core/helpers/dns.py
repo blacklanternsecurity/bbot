@@ -39,6 +39,7 @@ class BBOTAsyncResolver(dns.asyncresolver.Resolver):
         dns_queries_per_second = self._parent_helper.config.get("dns_queries_per_second", 100)
         self._dns_rate_limiter = RateLimiter(dns_queries_per_second, "DNS")
         super().__init__(*args, **kwargs)
+        self.rotate = True
 
     async def resolve(self, *args, **kwargs):
         async with self._dns_rate_limiter:
@@ -139,6 +140,8 @@ class DNSHelper:
 
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
+        if len(self.system_resolvers) == 1:
+            log.warning("BBOT performs better with multiple DNS servers. Your system currently only has one.")
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
         self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
@@ -453,8 +456,8 @@ class DNSHelper:
                                     f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"'
                                 )
                                 event.data = wildcard_data
-                else:
-                    # check if this domain is using wildcard dns
+                # tag wildcard domains for convenience
+                elif is_domain(event_host) or hash(event_host) in self._wildcard_cache:
                     event_target = "target" in event.tags
                     wildcard_domain_results = await self.is_wildcard_domain(event_host, log_info=event_target)
                     for hostname, wildcard_domain_rdtypes in wildcard_domain_results.items():
@@ -659,7 +662,7 @@ class DNSHelper:
         batch_size = 250
         for i in range(0, len(queries), batch_size):
             batch = queries[i : i + batch_size]
-            tasks = [self._resolve_batch_coro_wrapper(q, **kwargs) for q in batch]
+            tasks = [asyncio.create_task(self._resolve_batch_coro_wrapper(q, **kwargs)) for q in batch]
             async for task in as_completed(tasks):
                 yield await task
 
@@ -955,7 +958,8 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_tasks[rdtype].append(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_task = asyncio.create_task(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_tasks[rdtype].append(wildcard_task)
 
                 # combine the random results
                 is_wildcard = False

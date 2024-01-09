@@ -393,16 +393,20 @@ class BaseEvent:
         """
         if is_event(source):
             self._source = source
-            hosts_are_same = self.host == source.host
+            hosts_are_same = self.host and (self.host == source.host)
             if source.scope_distance >= 0:
                 new_scope_distance = int(source.scope_distance)
                 # only increment the scope distance if the host changes
                 if not hosts_are_same:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
-            # inherit affiliate tag
-            if hosts_are_same and "affiliate" in source.tags:
-                self.add_tag("affiliate")
+            # inherit certain tags
+            if hosts_are_same:
+                for t in source.tags:
+                    if t == "affiliate":
+                        self.add_tag("affiliate")
+                    elif t.startswith("mutation-"):
+                        self.add_tag(t)
         elif not self._dummy:
             log.warning(f"Tried to set invalid source on {self}: (got: {source})")
 
@@ -752,6 +756,8 @@ class ASN(DictEvent):
 
 
 class CODE_REPOSITORY(DictHostEvent):
+    _always_emit = True
+
     class _data_validator(BaseModel):
         url: str
         _validate_url = field_validator("url")(validators.validate_url)
@@ -1176,8 +1182,10 @@ def make_event(
     """
 
     # allow tags to be either a string or an array
-    if isinstance(tags, str):
-        tags = [tags]
+    if tags is not None:
+        if isinstance(tags, str):
+            tags = [tags]
+        tags = list(tags)
 
     if is_event(data):
         if scan is not None and not data.scan:
@@ -1217,6 +1225,10 @@ def make_event(
                     event_type = "IP_ADDRESS"
                 elif event_type == "IP_ADDRESS" and not data_is_ip:
                     event_type = "DNS_NAME"
+        # USERNAME <--> EMAIL_ADDRESS confusion
+        if event_type == "USERNAME" and validators.soft_validate(data, "email"):
+            event_type = "EMAIL_ADDRESS"
+            tags.append("affiliate")
 
         event_class = globals().get(event_type, DefaultEvent)
 

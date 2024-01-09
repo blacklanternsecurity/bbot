@@ -6,7 +6,7 @@ from contextlib import suppress
 
 from ..core.helpers.misc import get_size  # noqa
 from ..core.errors import ValidationError
-from ..core.helpers.async_helpers import TaskCounter
+from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
 
 
 class BaseModule:
@@ -357,7 +357,8 @@ class BaseModule:
                     self.debug(f"Handling batch of {len(events):,} events")
                     submitted = True
                     async with self.scan._acatch(f"{self.name}.handle_batch()"):
-                        await self.handle_batch(*events)
+                        handle_batch_task = asyncio.create_task(self.handle_batch(*events))
+                        await handle_batch_task
                     self.debug(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
@@ -532,7 +533,8 @@ class BaseModule:
         status = False
         self.debug(f"Setting up module {self.name}")
         try:
-            result = await self.setup()
+            setup_task = asyncio.create_task(self.setup())
+            result = await setup_task
             if type(result) == tuple and len(result) == 2:
                 status, msg = result
             else:
@@ -599,13 +601,16 @@ class BaseModule:
                             if event.type == "FINISHED":
                                 context = f"{self.name}.finish()"
                                 async with self.scan._acatch(context), self._task_counter.count(context):
-                                    await self.finish()
+                                    finish_task = asyncio.create_task(self.finish())
+                                    await finish_task
                             else:
                                 context = f"{self.name}.handle_event({event})"
                                 self.scan.stats.event_consumed(event, self)
                                 self.debug(f"Handling {event}")
                                 async with self.scan._acatch(context), self._task_counter.count(context):
-                                    await self.handle_event(event)
+                                    task_name = f"{self.name}.handle_event({event})"
+                                    handle_event_task = asyncio.create_task(self.handle_event(event), name=task_name)
+                                    await handle_event_task
                                 self.debug(f"Finished handling {event}")
                         else:
                             self.debug(f"Not accepting {event} because {reason}")
@@ -663,19 +668,6 @@ class BaseModule:
         # exclude certain URLs (e.g. javascript):
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
             return False, "its extension was listed in url_extension_httpx_only"
-        # if event is an IP address that was speculated from a CIDR
-        source_is_range = getattr(event.source, "type", "") == "IP_RANGE"
-        if (
-            source_is_range
-            and event.type == "IP_ADDRESS"
-            and str(event.module) == "speculate"
-            and self.name != "speculate"
-        ):
-            # and the current module listens for both ranges and CIDRs
-            if all([x in self.watched_events for x in ("IP_RANGE", "IP_ADDRESS")]):
-                # then skip the event.
-                # this helps avoid double-portscanning both an individual IP and its parent CIDR.
-                return False, "module consumes IP ranges directly"
 
         return True, "precheck succeeded"
 
@@ -718,11 +710,12 @@ class BaseModule:
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
 
-        # don't send out-of-scope targets to active modules
+        # don't send out-of-scope targets to active modules (excluding portscanners, because they can handle it)
         # this only takes effect if your target and whitelist are different
         # TODO: the logic here seems incomplete, it could probably use some work.
-        if "active" in self.flags and "target" in event.tags and event not in self.scan.whitelist:
-            return False, "it is not in whitelist and module has active flag"
+        if "active" in self.flags and "portscan" not in self.flags:
+            if "target" in event.tags and event not in self.scan.whitelist:
+                return False, "it is not in whitelist and module has active flag"
 
         # check scope distance
         filter_result, reason = self._scope_distance_check(event)
@@ -811,10 +804,10 @@ class BaseModule:
                 acceptable, reason = self._event_precheck(event)
             if not acceptable:
                 if reason and reason != "its type is not in watched_events":
-                    self.debug(f"Not accepting {event} because {reason}")
+                    self.debug(f"Not queueing {event} because {reason}")
                 return
             else:
-                self.debug(f"Accepting {event} because {reason}")
+                self.debug(f"Queueing {event} because {reason}")
             try:
                 self.incoming_event_queue.put_nowait(event)
                 async with self._event_received:
@@ -892,6 +885,8 @@ class BaseModule:
                         self.outgoing_event_queue.get_nowait()
 
     def is_incoming_duplicate(self, event, add=False):
+        if event.type in ("FINISHED",):
+            return False
         event_hash = self._incoming_dedup_hash(event)
         is_dup = event_hash in self._incoming_dup_tracker
         if add:
@@ -912,7 +907,7 @@ class BaseModule:
         """
         Determines the criteria for what is considered to be a duplicate event if `suppress_dupes` is True.
         """
-        return hash(event)
+        return hash((event, self.name))
 
     def get_per_host_hash(self, event):
         """
@@ -1065,13 +1060,13 @@ class BaseModule:
     @property
     def incoming_event_queue(self):
         if self._incoming_event_queue is None:
-            self._incoming_event_queue = asyncio.PriorityQueue()
+            self._incoming_event_queue = ShuffleQueue()
         return self._incoming_event_queue
 
     @property
     def outgoing_event_queue(self):
         if self._outgoing_event_queue is None:
-            self._outgoing_event_queue = asyncio.PriorityQueue()
+            self._outgoing_event_queue = ShuffleQueue()
         return self._outgoing_event_queue
 
     @property

@@ -207,7 +207,11 @@ def clean_url(url: str):
     return parsed
 
 
-def collapse_urls(urls, threshold=10):
+def collapse_urls(*args, **kwargs):
+    return list(_collapse_urls(*args, **kwargs))
+
+
+def _collapse_urls(urls, threshold=10):
     """
     Collapses a list of URLs by deduping similar URLs based on a hashing mechanism.
     Useful for cleaning large lists of noisy URLs, such as those retrieved from wayback.
@@ -277,6 +281,14 @@ def soft_validate(s, t):
         raise ValueError(f'No validator for type "{t}"')
     try:
         validator_fn(s)
+        return True
+    except ValueError:
+        return False
+
+
+def is_email(email):
+    try:
+        validate_email(email)
         return True
     except ValueError:
         return False

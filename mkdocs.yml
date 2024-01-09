@@ -51,6 +51,7 @@ nav:
 theme:
   name: material
   logo: bbot.png
+  favicon: favicon.png
   features:
     - content.code.copy
     - navigation.sections

@@ -7,7 +7,7 @@ dehashed_domain_response = {
             "id": "4363462346",
             "email": "bob@blacklanternsecurity.com",
             "ip_address": "",
-            "username": "",
+            "username": "bob@bob.com",
             "password": "",
             "hashed_password": "$2a$12$pVmwJ7pXEr3mE.DmCCE4fOUDdeadbeefd2KuCy/tq1ZUFyEOH2bve",
             "name": "Bob Smith",
@@ -46,8 +46,19 @@ class TestDehashed(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 7
+        assert len(events) == 9
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "bob@blacklanternsecurity.com"])
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "EMAIL_ADDRESS"
+                and e.data == "bob@bob.com"
+                and e.scope_distance == 1
+                and "affiliate" in e.tags
+                and e.source.data == "bob@blacklanternsecurity.com"
+            ]
+        )
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "tim@blacklanternsecurity.com"])
         assert 1 == len(
             [

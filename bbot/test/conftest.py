@@ -75,6 +75,20 @@ def bbot_httpserver_ssl():
 
 
 @pytest.fixture
+def bbot_httpserver_allinterfaces():
+    server = HTTPServer(host="0.0.0.0", port=5556)
+    server.start()
+
+    yield server
+
+    server.clear()
+    if server.is_running():
+        server.stop()
+    server.check_assertions()
+    server.clear()
+
+
+@pytest.fixture
 def interactsh_mock_instance():
     interactsh_mock = Interactsh_mock()
     return interactsh_mock

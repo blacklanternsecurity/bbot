@@ -85,6 +85,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert not helpers.is_ip("127.0.0.0.1")
     assert helpers.is_dns_name("evilcorp.com")
     assert helpers.is_dns_name("evilcorp")
+    assert not helpers.is_dns_name("evilcorp", include_local=False)
     assert helpers.is_dns_name("ドメイン.テスト")
     assert not helpers.is_dns_name("127.0.0.1")
     assert not helpers.is_dns_name("dead::beef")
@@ -678,6 +679,7 @@ async def test_async_helpers():
 
 def test_portparse_singleports(helpers):
     assert helpers.parse_port_string("80,443,22") == [80, 443, 22]
+    assert helpers.parse_port_string(80) == [80]
 
 
 def test_portparse_range_valid(helpers):

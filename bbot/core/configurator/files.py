@@ -21,7 +21,7 @@ def _get_config(filename, name="config"):
     filename = Path(filename).resolve()
     try:
         conf = OmegaConf.load(str(filename))
-        if notify:
+        if notify and __name__ == "__main__":
             log_to_stderr(f"Loaded {name} from {filename}")
         return conf
     except Exception as e:

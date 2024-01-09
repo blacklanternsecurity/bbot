@@ -11,7 +11,7 @@ class nuclei(BaseModule):
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
     options = {
-        "version": "2.9.15",
+        "version": "3.0.4",
         "tags": "",
         "templates": "",
         "severity": "",

@@ -36,10 +36,7 @@ class dnszonetransfer(BaseModule):
                 break
             try:
                 self.debug(f"Attempting zone transfer against {nameserver} for domain {domain}")
-                xfr_answer = await self.scan.run_in_executor(
-                    dns.query.xfr, nameserver, domain, timeout=self.timeout, lifetime=self.timeout
-                )
-                zone = dns.zone.from_xfr(xfr_answer)
+                zone = await self.scan.run_in_executor(self.zone_transfer, nameserver, domain)
             except Exception as e:
                 self.debug(f"Error retrieving zone for {domain}: {e}")
                 continue
@@ -64,3 +61,8 @@ class dnszonetransfer(BaseModule):
                     self.emit_event(child_event)
             else:
                 self.debug(f"No data returned by {nameserver} for domain {domain}")
+
+    def zone_transfer(self, nameserver, domain):
+        xfr_answer = dns.query.xfr(nameserver, domain, timeout=self.timeout, lifetime=self.timeout)
+        zone = dns.zone.from_xfr(xfr_answer)
+        return zone

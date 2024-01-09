@@ -50,15 +50,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         localhost2.add_tag("target")
         assert base_module._event_precheck(localhost2)[0] == True
         base_module.target_only = False
-        # special case for IPs and ranges
-        base_module.watched_events = ["IP_ADDRESS", "IP_RANGE"]
-        ip_range = scan.make_event("127.0.0.0/24", dummy=True)
-        localhost4 = scan.make_event("127.0.0.1", source=ip_range)
-        localhost4.scope_distance = 0
-        localhost4.module = "plumbus"
-        assert base_module._event_precheck(localhost4)[0] == True
-        localhost4.module = "speculate"
-        assert base_module._event_precheck(localhost4)[0] == False
 
         # in scope only
         base_module.in_scope_only = True
@@ -71,7 +62,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
             assert reason == "it did not meet in_scope_only filter criteria"
         base_module.in_scope_only = False
         base_module.scope_distance_modifier = 0
-        localhost4 = scan.make_event("127.0.0.1", source=events.subdomain)
         valid, reason = await base_module._event_postcheck(events.localhost)
         assert valid
 
@@ -125,6 +115,9 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
             assert ("active" in flags and not "passive" in flags) or (
                 not "active" in flags and "passive" in flags
             ), f'module "{module_name}" must have either "active" or "passive" flag'
+            assert ("safe" in flags and not "aggressive" in flags) or (
+                not "safe" in flags and "aggressive" in flags
+            ), f'module "{module_name}" must have either "safe" or "aggressive" flag'
             assert preloaded.get("meta", {}).get("description", ""), f"{module_name} must have a description"
 
         # attribute checks
@@ -171,6 +164,8 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
 @pytest.mark.asyncio
 async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+    from bbot.modules.base import BaseModule
+
     per_host_scan = bbot_scanner(
         "evilcorp.com",
         modules=list(set(available_modules + available_internal_modules)),
@@ -198,15 +193,17 @@ async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbo
             valid_1, reason_1 = await module._event_postcheck(url_1)
             valid_2, reason_2 = await module._event_postcheck(url_2)
 
-            if module.per_host_only == True:
-                assert valid_1 == True
-                assert valid_2 == False
-                assert hash("http://evilcorp.com/") in module._per_host_tracker
-                assert reason_2 == "per_host_only enabled and already seen host"
+            # if the module overrides _incoming_dedup_hash, this test won't work.
+            if module._incoming_dedup_hash == BaseModule._incoming_dedup_hash:
+                if module.per_host_only == True:
+                    assert valid_1 == True
+                    assert valid_2 == False
+                    assert hash("http://evilcorp.com/") in module._per_host_tracker
+                    assert reason_2 == "per_host_only enabled and already seen host"
 
-            else:
-                assert valid_1 == True
-                assert valid_2 == True
+                else:
+                    assert valid_1 == True
+                    assert valid_2 == True
 
 
 @pytest.mark.asyncio

@@ -14,7 +14,7 @@ class badsecrets(BaseModule):
 
     @property
     def _max_event_handlers(self):
-        return multiprocessing.cpu_count()
+        return max(1, multiprocessing.cpu_count() - 1)
 
     async def handle_event(self, event):
         resp_body = event.data.get("body", None)
@@ -44,14 +44,14 @@ class badsecrets(BaseModule):
                     if r["type"] == "SecretFound":
                         data = {
                             "severity": r["description"]["severity"],
-                            "description": f"Known Secret Found. Secret Type: [{r['description']['secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['product']}] Product: [{r['product']}] Detecting Module: [{r['detecting_module']}] Details: [{r['details']}]",
+                            "description": f"Known Secret Found. Secret Type: [{r['description']['secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'],2000)}] Detecting Module: [{r['detecting_module']}] Details: [{r['details']}]",
                             "url": event.data["url"],
                             "host": str(event.host),
                         }
                         self.emit_event(data, "VULNERABILITY", event)
                     elif r["type"] == "IdentifyOnly":
                         data = {
-                            "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{r['product']}] Detecting Module: [{r['detecting_module']}]",
+                            "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'],2000)}] Detecting Module: [{r['detecting_module']}]",
                             "url": event.data["url"],
                             "host": str(event.host),
                         }

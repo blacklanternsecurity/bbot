@@ -1,9 +1,9 @@
 import yaml
 
-from .discord import Discord
+from bbot.modules.templates.webhook import WebhookOutputModule
 
 
-class Slack(Discord):
+class Slack(WebhookOutputModule):
     watched_events = ["*"]
     meta = {"description": "Message a Slack channel when certain events are encountered"}
     options = {"webhook_url": "", "event_types": ["VULNERABILITY", "FINDING"], "min_severity": "LOW"}

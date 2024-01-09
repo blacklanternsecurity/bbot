@@ -504,12 +504,13 @@ def is_port(p):
     return p and p.isdigit() and 0 <= int(p) <= 65535
 
 
-def is_dns_name(d):
+def is_dns_name(d, include_local=True):
     """
     Determines if the given string is a valid DNS name.
 
     Args:
         d (str): The string to be checked.
+        include_local (bool): Consider local hostnames to be valid (hostnames without periods)
 
     Returns:
         bool: True if the string is a valid DNS name, False otherwise.
@@ -519,14 +520,17 @@ def is_dns_name(d):
         True
         >>> is_dns_name('localhost')
         True
+        >>> is_dns_name('localhost', include_local=False)
+        False
         >>> is_dns_name('192.168.1.1')
         False
     """
     if is_ip(d):
         return False
     d = smart_decode(d)
-    if bbot_regexes.hostname_regex.match(d):
-        return True
+    if include_local:
+        if bbot_regexes.hostname_regex.match(d):
+            return True
     if bbot_regexes.dns_name_regex.match(d):
         return True
     return False
@@ -815,6 +819,13 @@ def rand_string(length=10, digits=True):
     if digits:
         pool = rand_pool_digits
     return "".join([random.choice(pool) for _ in range(int(length))])
+
+
+def truncate_string(s, n):
+    if len(s) > n:
+        return s[: n - 3] + "..."
+    else:
+        return s
 
 
 def extract_params_json(json_data):
@@ -2479,7 +2490,7 @@ def parse_port_string(port_string):
         >>> parse_port_string("invalid")
         ValueError: Invalid port or port range: invalid
     """
-    elements = port_string.split(",")
+    elements = str(port_string).split(",")
     ports = []
 
     for element in elements:
