@@ -182,15 +182,6 @@ asyncio.run(main())
 </details>
 
 <details>
-<summary><b>Comparison to Other Tools</b></summary>
-
-BBOT consistently finds 20-30% more subdomains than other tools. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
-
-![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
-
-</details>
-
-<details>
 <summary><b>Documentation - Table of Contents</b></summary>
 
 <!-- BBOT DOCS TOC -->
@@ -255,6 +246,12 @@ Special thanks to the following people who made BBOT possible:
 - Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
 
 </details>
+
+## Comparison to Other Tools
+
+BBOT consistently finds 20-30% more subdomains than other tools. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
+
+![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
 
 ## BBOT Modules By Flag
 For a full list of modules, including the data types consumed and emitted by each one, see [List of Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules/).
