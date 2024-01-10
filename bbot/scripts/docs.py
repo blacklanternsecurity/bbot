@@ -55,7 +55,7 @@ def update_docs():
     def update_md_files(keyword, s):
         for file in md_files:
             find_replace_file(file, keyword, s)
-    
+
     def update_individual_module_options():
         regex = re.compile("BBOT MODULE OPTIONS ([A-Z_]+)")
         for file in md_files:
