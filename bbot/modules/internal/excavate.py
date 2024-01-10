@@ -252,7 +252,12 @@ class JWTExtractor(BaseExtractor):
 
 
 class SerializationExtractor(BaseExtractor):
-    regexes = {"Java": r"(?:[^a-zA-Z0-9+/]|^)(rO0[a-zA-Z0-9+/]+={,2})"}
+    regexes = {
+        "Java": r"(?:[^a-zA-Z0-9+/]|^)(rO0[a-zA-Z0-9+/]+={,2})",
+        ".NET": r"AAEAAAD//[a-zA-Z0-9+/]+={,2}",
+        "PHP": r"YTo[xyz0123456][a-zA-Z0-9+/]+={,2}",
+        "Possible Compressed": r"H4sIAAAAAAAA[a-zA-Z0-9+/]+={,2}",
+    }
 
     def report(self, result, name, event, **kwargs):
         description = f"{name} serialized object found"
