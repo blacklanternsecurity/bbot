@@ -28,7 +28,8 @@ BBOT consistently finds 20-30% more subdomains than other tools. To learn how th
 
 ## Full Documentation [Here](https://www.blacklanternsecurity.com/bbot/).
 
-## Installation ([pip](https://pypi.org/project/bbot/))
+<details>
+<summary><b>Installation ([pip](https://pypi.org/project/bbot/))</b></summary>
 
 Note: Requires Linux and Python 3.9+.
 
@@ -42,7 +43,10 @@ pipx install --pip-args '\--pre' bbot
 bbot --help
 ```
 
-## Installation ([Docker](https://hub.docker.com/r/blacklanternsecurity/bbot))
+</details>
+
+<details>
+<summary><b>Installation ([Docker](https://hub.docker.com/r/blacklanternsecurity/bbot))</b></summary>
 
 Docker images are provided, along with helper script `bbot-docker.sh` to persist your scan data.
 
@@ -57,6 +61,8 @@ docker run -it blacklanternsecurity/bbot:stable --help
 git clone https://github.com/blacklanternsecurity/bbot && cd bbot
 ./bbot-docker.sh --help
 ```
+
+</details>
 
 
 ## Example Commands
