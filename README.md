@@ -8,7 +8,7 @@
 
 BBOT (Bighuge BLS OSINT Tool) is a recursive internet scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot). It is designed to be faster, more reliable, and friendlier to pentesters, bug bounty hunters, and developers.
 
-It has lots of additional features, including:
+Special features include:
 
 - Support for Multiple Targets
 - Web Screenshots

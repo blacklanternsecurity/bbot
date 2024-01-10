@@ -55,6 +55,16 @@ def update_docs():
     def update_md_files(keyword, s):
         for file in md_files:
             find_replace_file(file, keyword, s)
+    
+    def update_individual_module_options():
+        regex = re.compile("BBOT MODULE OPTIONS ([A-Z_]+)")
+        for file in md_files:
+            with open(file) as f:
+                content = f.read()
+            for match in regex.finditer(content):
+                module_name = match.groups()[0].lower()
+                bbot_module_options_table = module_loader.modules_options_table(modules=[module_name])
+                find_replace_file(file, f"BBOT MODULE OPTIONS {module_name.upper()}", bbot_module_options_table)
 
     # Example commands
     bbot_example_commands = []
@@ -88,6 +98,7 @@ def update_docs():
     bbot_module_options_table = module_loader.modules_options_table()
     assert len(bbot_module_options_table.splitlines()) > 100
     update_md_files("BBOT MODULE OPTIONS", bbot_module_options_table)
+    update_individual_module_options()
 
     # BBOT module flags
     bbot_module_flags_table = module_loader.flags_table()
