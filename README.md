@@ -68,7 +68,9 @@ git clone https://github.com/blacklanternsecurity/bbot && cd bbot
 </details>
 
 <details>
-<summary><b>Usage - Example Commands</b></summary>
+<summary><b>Usage</b></summary>
+
+## Example Commands
 
 Scan output, logs, etc. are saved to `~/.bbot`. For more detailed examples and explanations, see [Scanning](https://www.blacklanternsecurity.com/bbot/scanning).
 
@@ -116,10 +118,7 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 ```
 <!-- END BBOT EXAMPLE COMMANDS -->
 
-</details>
-
-<details>
-<summary><b>Usage - Targets</b></summary>
+## Targets
 
 BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
 
@@ -131,10 +130,7 @@ BBOT accepts an unlimited number of targets via `-t`. You can specify targets ei
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/scanning/#scope).
 
-</details>
-
-<details>
-<summary><b>Usage - API Keys</b></summary>
+## API Keys
 
 Similar to Amass or Subfinder, BBOT supports API keys for various third-party services such as SecurityTrails, etc.
 
@@ -158,10 +154,7 @@ bbot -c modules.virustotal.api_key=dd5f0eee2e4a99b71a939bded450b246
 
 For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/)
 
-</details>
-
-<details>
-<summary><b>Usage - Python Library</b></summary>
+## BBOT as a Python Library
 
 BBOT exposes a Python API that allows it to be used for all kinds of fun and nefarious purposes, like a [Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/#bbot-python-library-advanced-usage#discord-bot-example) that responds to the `/scan` command.
 
