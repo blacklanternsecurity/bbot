@@ -26,15 +26,6 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 Below are some short help sections to get you up and running.
 
 <details>
-<summary><b>How it Works</b></summary>
-
-BBOT consistently finds 20-30% more subdomains than other tools. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
-
-![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
-
-</details>
-
-<details>
 <summary><b>Installation (pip)</b></summary>
 
 Note: BBOT's [PyPi package](https://pypi.org/project/bbot/) requires Linux and Python 3.9+.
@@ -187,6 +178,15 @@ async def main():
 import asyncio
 asyncio.run(main())
 ```
+
+</details>
+
+<details>
+<summary><b>Comparison to Other Tools</b></summary>
+
+BBOT consistently finds 20-30% more subdomains than other tools. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
+
+![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
 
 </details>
 
