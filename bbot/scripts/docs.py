@@ -132,7 +132,6 @@ def update_docs():
                     bbot_docs_toc += f"{indent}{format_section(section_title, subsections)}"
                 else:
                     bbot_docs_toc += f"{indent}- **{section_title}**\n"
-                    level += 1
                     for subsection in subsections:
                         update_toc(subsection, level=level + 1)
 
