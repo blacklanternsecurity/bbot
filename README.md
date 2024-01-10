@@ -21,6 +21,10 @@ https://github.com/blacklanternsecurity/bbot/assets/20261699/742df3fe-5d1f-4aea-
 
 _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)_
 
+## Quick Start Guide
+
+Below are some short help sections to get you up and running.
+
 <details>
 <summary><b>How it Works</b></summary>
 
