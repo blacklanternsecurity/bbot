@@ -26,7 +26,7 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 Below are some short help sections to get you up and running.
 
 <details>
-<summary><b>Installation (Pip)</b></summary>
+<summary><b>Installation ( Pip )</b></summary>
 
 Note: BBOT's [PyPi package](https://pypi.org/project/bbot/) requires Linux and Python 3.9+.
 
@@ -43,7 +43,7 @@ bbot --help
 </details>
 
 <details>
-<summary><b>Installation (Docker)</b></summary>
+<summary><b>Installation ( Docker )</b></summary>
 
 [Docker images](https://hub.docker.com/r/blacklanternsecurity/bbot) are provided, along with helper script `bbot-docker.sh` to persist your scan data.
 
