@@ -1152,7 +1152,14 @@ class BaseModule:
         return table
 
     def _is_graph_important(self, event):
-        return self._preserve_graph and getattr(event, "_graph_important", False)
+        return self.preserve_graph and getattr(event, "_graph_important", False)
+
+    @property
+    def preserve_graph(self):
+        preserve_graph = self.config.get("preserve_graph", None)
+        if preserve_graph is None:
+            preserve_graph = self._preserve_graph
+        return preserve_graph
 
     def stdout(self, *args, **kwargs):
         """Writes log messages directly to standard output.

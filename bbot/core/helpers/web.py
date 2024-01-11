@@ -596,7 +596,7 @@ class WebHelper:
             if raise_error:
                 raise
         except httpx.ConnectError:
-            log.verbose(f"HTTP connect failed to URL: {url}")
+            log.debug(f"HTTP connect failed to URL: {url}")
             if raise_error:
                 raise
         except httpx.RequestError as e:
