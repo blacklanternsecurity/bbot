@@ -7,10 +7,10 @@ from badsecrets.base import carve_all_modules
 
 class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
-    deps_pip = ["badsecrets~=0.4"]
+    deps_pip = ["badsecrets~=0.4.432"]
 
     @property
     def _max_event_handlers(self):
@@ -50,9 +50,17 @@ class badsecrets(BaseModule):
                         }
                         self.emit_event(data, "VULNERABILITY", event)
                     elif r["type"] == "IdentifyOnly":
-                        data = {
-                            "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'],2000)}] Detecting Module: [{r['detecting_module']}]",
-                            "url": event.data["url"],
-                            "host": str(event.host),
-                        }
-                        self.emit_event(data, "FINDING", event)
+                        # There is little value to presenting a non-vulnerable asp.net viewstate, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
+                        if r["detecting_module"] == "ASPNET_Viewstate":
+                            self.emit_event(
+                                {"technology": "microsoft asp.net", "url": event.data["url"], "host": str(event.host)},
+                                "TECHNOLOGY",
+                                event,
+                            )
+                        else:
+                            data = {
+                                "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'],2000)}] Detecting Module: [{r['detecting_module']}]",
+                                "url": event.data["url"],
+                                "host": str(event.host),
+                            }
+                            self.emit_event(data, "FINDING", event)

@@ -25,20 +25,8 @@ class TestBadSecrets(ModuleTestBase):
 </html>
 """
 
-    sample_viewstate_notvuln = """
-    <form method="post" action="./query.aspx" id="form1">
-<div class="aspNetHidden">
-<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="AAAAYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESfAAAA" />
-</div>
-
-<div class="aspNetHidden">
-
-    <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="EDD8C9AE" />
-    <input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
-</div>
-    </form>
-</body>
-</html>
+    sample_jsf_notvuln = """
+<p><input type="hidden" name="javax.faces.ViewState" id="j_id__v_0:javax.faces.ViewState:1" value="AHo0wmLu5ceItIi+I7XkEi1GAb4h12WZ894pA+Z4OH7bco2jXEy1RSCWwjtJcZNbWPcvPqL5zzfl03DoeMZfGGX7a9PSv+fUT8MAeKNouAGj1dZuO8srXt8xZIGg+wPCWWCzcX6IhWOtgWUwiXeSojCDTKXklsYt+kAAAAk5wOsXvb2lTJoO0Q==" autocomplete="off" />
 """
 
     modules_overrides = ["badsecrets", "httpx"]
@@ -48,7 +36,7 @@ class TestBadSecrets(ModuleTestBase):
         respond_args = {"response_data": self.sample_viewstate}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        respond_args = {"response_data": self.sample_viewstate_notvuln}
+        respond_args = {"response_data": self.sample_jsf_notvuln}
         module_test.set_expect_requests(respond_args=respond_args)
 
         expect_args = {"uri": "/cookie.aspx"}
@@ -86,7 +74,7 @@ class TestBadSecrets(ModuleTestBase):
 
             if (
                 e.type == "FINDING"
-                and "AAAAYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESfAAAA"
+                and "AHo0wmLu5ceItIi+I7XkEi1GAb4h12WZ894pA+Z4OH7bco2jXEy1RSCWwjtJcZNbWPcvPqL5zzfl03DoeMZfGGX7a9PSv+fUT8MAeKNouAGj1dZuO8srXt8xZIGg+wPCWWCzcX6IhWOtgWUwiXeSojCDTKXklsYt+kAAAAk5wOsXvb2lTJoO0Q=="
                 in e.data["description"]
             ):
                 IdentifyOnly = True
