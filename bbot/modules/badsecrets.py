@@ -10,7 +10,7 @@ class badsecrets(BaseModule):
     produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
-    deps_pip = ["badsecrets~=0.4.432"]
+    deps_pip = ["badsecrets~=0.4.436"]
 
     @property
     def _max_event_handlers(self):
