@@ -57,7 +57,10 @@ class censys(subdomain_enum_apikey):
             if resp is None:
                 break
 
-            d = resp.json()
+            try:
+                d = resp.json()
+            except Exception as e:
+                self.warning(f"Failed to parse JSON from {url} (response: {resp}): {e}")
 
             if resp.status_code < 200 or resp.status_code >= 400:
                 if isinstance(d, dict):
