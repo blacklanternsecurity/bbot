@@ -163,47 +163,91 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_perhostonly(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_perhostonly(helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
     from bbot.modules.base import BaseModule
 
-    per_host_scan = bbot_scanner(
+    class mod_normal(BaseModule):
+        _name = "mod_normal"
+        watched_events = ["*"]
+
+    class mod_host_only(BaseModule):
+        _name = "mod_hostonly"
+        watched_events = ["*"]
+        per_host_only = True
+
+    class mod_hostport_only(BaseModule):
+        _name = "mod_normal"
+        watched_events = ["*"]
+        per_hostport_only = True
+
+    class mod_domain_only(BaseModule):
+        _name = "domain_only"
+        watched_events = ["*"]
+        per_domain_only = True
+
+    scan = bbot_scanner(
         "evilcorp.com",
-        modules=list(set(available_modules + available_internal_modules)),
         config=bbot_config,
         force_start=True,
     )
 
-    await per_host_scan.setup_modules()
-    per_host_scan.status = "RUNNING"
+    scan.modules["mod_normal"] = mod_normal(scan)
+    scan.modules["mod_host_only"] = mod_host_only(scan)
+    scan.modules["mod_hostport_only"] = mod_hostport_only(scan)
+    scan.modules["mod_domain_only"] = mod_domain_only(scan)
+    scan.status = "RUNNING"
 
-    # ensure that multiple events to the same "host" (schema + host) are blocked and check the per host tracker
-    for module_name, module in sorted(per_host_scan.modules.items()):
-        #    module.filter_event = base_module.filter_event
-        monkeypatch.setattr(module, "filter_event", BaseModule(per_host_scan).filter_event)
+    url_1 = scan.make_event("http://evilcorp.com/1", event_type="URL", source=scan.root_event, tags=["status-200"])
+    url_2 = scan.make_event("http://evilcorp.com/2", event_type="URL", source=scan.root_event, tags=["status-200"])
+    url_3 = scan.make_event("http://evilcorp.com:888/3", event_type="URL", source=scan.root_event, tags=["status-200"])
+    url_4 = scan.make_event("http://www.evilcorp.com/", event_type="URL", source=scan.root_event, tags=["status-200"])
+    url_5 = scan.make_event("http://www.evilcorp.net/", event_type="URL", source=scan.root_event, tags=["status-200"])
 
-        if "URL" in module.watched_events:
-            url_1 = per_host_scan.make_event(
-                "http://evilcorp.com/1", event_type="URL", source=per_host_scan.root_event, tags=["status-200"]
-            )
-            url_1.scope_distance = 0
-            url_2 = per_host_scan.make_event(
-                "http://evilcorp.com/2", event_type="URL", source=per_host_scan.root_event, tags=["status-200"]
-            )
-            url_2.scope_distance = 0
-            valid_1, reason_1 = await module._event_postcheck(url_1)
-            valid_2, reason_2 = await module._event_postcheck(url_2)
+    url_1.scope_distance = 0
+    url_2.scope_distance = 0
+    url_3.scope_distance = 0
+    url_4.scope_distance = 0
+    url_5.scope_distance = 0
 
-            # if the module overrides _incoming_dedup_hash, this test won't work.
-            if module._incoming_dedup_hash == BaseModule._incoming_dedup_hash:
-                if module.per_host_only == True:
-                    assert valid_1 == True
-                    assert valid_2 == False
-                    assert hash("http://evilcorp.com/") in module._per_host_tracker
-                    assert reason_2 == "per_host_only enabled and already seen host"
+    for mod_name in ("mod_normal", "mod_host_only", "mod_hostport_only", "mod_domain_only"):
+        module = scan.modules[mod_name]
 
-                else:
-                    assert valid_1 == True
-                    assert valid_2 == True
+        valid_1, reason_1 = await module._event_postcheck(url_1)
+        valid_2, reason_2 = await module._event_postcheck(url_2)
+        valid_3, reason_3 = await module._event_postcheck(url_3)
+        valid_4, reason_4 = await module._event_postcheck(url_4)
+        valid_5, reason_5 = await module._event_postcheck(url_5)
+
+        if mod_name == "mod_normal":
+            assert valid_1 == True
+            assert valid_2 == True
+            assert valid_3 == True
+            assert valid_4 == True
+            assert valid_5 == True
+        elif mod_name == "mod_host_only":
+            assert valid_1 == True
+            assert valid_2 == False
+            assert "per_host_only=True" in reason_2
+            assert valid_3 == False
+            assert "per_host_only=True" in reason_3
+            assert valid_4 == True
+            assert valid_5 == True
+        elif mod_name == "mod_hostport_only":
+            assert valid_1 == True
+            assert valid_2 == False
+            assert "per_hostport_only=True" in reason_2
+            assert valid_3 == True
+            assert valid_4 == True
+            assert valid_5 == True
+        elif mod_name == "mod_domain_only":
+            assert valid_1 == True
+            assert valid_2 == False
+            assert "per_domain_only=True" in reason_2
+            assert valid_3 == False
+            assert "per_domain_only=True" in reason_3
+            assert valid_4 == False
+            assert "per_domain_only=True" in reason_4
+            assert valid_5 == True
 
 
 @pytest.mark.asyncio

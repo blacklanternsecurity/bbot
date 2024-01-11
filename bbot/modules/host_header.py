@@ -9,7 +9,7 @@ class host_header(BaseModule):
     meta = {"description": "Try common HTTP Host header spoofing techniques"}
 
     in_scope_only = True
-    per_host_only = True
+    per_hostport_only = True
 
     deps_apt = ["curl"]
 

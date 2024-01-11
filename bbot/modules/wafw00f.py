@@ -18,7 +18,7 @@ class wafw00f(BaseModule):
     options_desc = {"generic_detect": "When no specific WAF detections are made, try to perform a generic detect"}
 
     in_scope_only = True
-    per_host_only = True
+    per_hostport_only = True
 
     async def handle_event(self, event):
         url = f"{event.parsed.scheme}://{event.parsed.netloc}/"

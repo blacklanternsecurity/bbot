@@ -15,7 +15,7 @@ class smuggler(BaseModule):
     meta = {"description": "Check for HTTP smuggling"}
 
     in_scope_only = True
-    per_host_only = True
+    per_hostport_only = True
 
     deps_ansible = [
         {

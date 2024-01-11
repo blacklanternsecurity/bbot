@@ -33,7 +33,9 @@ class BaseModule:
 
         suppress_dupes (bool): Whether to suppress outgoing duplicate events. Default is True.
 
-        per_host_only (bool): Limit the module to only scanning once per host:port. Default is False.
+        per_host_only (bool): Limit the module to only scanning once per host. Default is False.
+
+        per_hostport_only (bool): Limit the module to only scanning once per host:port. Default is False.
 
         per_domain_only (bool): Limit the module to only scanning once per domain. Default is False.
 
@@ -89,6 +91,7 @@ class BaseModule:
     accept_dupes = False
     suppress_dupes = True
     per_host_only = False
+    per_hostport_only = False
     per_domain_only = False
     scope_distance_modifier = 0
     target_only = False
@@ -680,9 +683,9 @@ class BaseModule:
         acceptable, reason = await self.__event_postcheck(event)
         if acceptable:
             # check duplicates
-            is_incoming_duplicate = self.is_incoming_duplicate(event, add=True)
+            is_incoming_duplicate, reason = self.is_incoming_duplicate(event, add=True)
             if is_incoming_duplicate and not self.accept_dupes:
-                return False, f"module has already seen {event}"
+                return False, f"module has already seen {event}" + (f" ({reason})" if reason else "")
 
         return acceptable, reason
 
@@ -701,7 +704,7 @@ class BaseModule:
 
         Notes:
             - Override the `filter_event` method for custom filtering logic.
-            - This method also maintains host-based tracking when the `per_host_only` flag is set.
+            - This method also maintains host-based tracking when the `per_host_only` or similar flags are set.
             - The method will also update event production stats for output modules.
         """
         # special exception for "FINISHED" event
@@ -733,20 +736,6 @@ class BaseModule:
                 msg += f": {reason}"
             if not filter_result:
                 return False, msg
-
-        if self.per_host_only:
-            _hash = self.get_per_host_hash(event)
-            if _hash in self._per_host_tracker:
-                return False, "per_host_only enabled and already seen host"
-            else:
-                self._per_host_tracker.add(_hash)
-
-        if self.per_domain_only:
-            _hash = self.get_per_domain_hash(event)
-            if _hash in self._per_host_tracker:
-                return False, "per_domain_only enabled and already seen domain"
-            else:
-                self._per_host_tracker.add(_hash)
 
         if self._type == "output" and not event._stats_recorded:
             event._stats_recorded = True
@@ -889,21 +878,26 @@ class BaseModule:
     def is_incoming_duplicate(self, event, add=False):
         if event.type in ("FINISHED",):
             return False
+        reason = ""
         event_hash = self._incoming_dedup_hash(event)
+        with suppress(TypeError, ValueError):
+            event_hash, reason = event_hash
         is_dup = event_hash in self._incoming_dup_tracker
         if add:
             self._incoming_dup_tracker.add(event_hash)
-        return is_dup
+        return is_dup, reason
 
     def _incoming_dedup_hash(self, event):
         """
         Determines the criteria for what is considered to be a duplicate event if `accept_dupes` is False.
         """
         if self.per_host_only:
-            return self.get_per_host_hash(event)
+            return self.get_per_host_hash(event), "per_host_only=True"
+        if self.per_hostport_only:
+            return self.get_per_hostport_hash(event), "per_hostport_only=True"
         elif self.per_domain_only:
-            return self.get_per_domain_hash(event)
-        return hash(event)
+            return self.get_per_domain_hash(event), "per_domain_only=True"
+        return hash(event), ""
 
     def _outgoing_dedup_hash(self, event):
         """
@@ -915,7 +909,25 @@ class BaseModule:
         """
         Computes a per-host hash value for a given event. This method may be optionally overridden in subclasses.
 
-        The function uses the event's `host` and `port` or the parsed URL to create a string to be hashed.
+        The function uses the event's `host` to create a string to be hashed.
+
+        Args:
+            event (Event): The event object containing host information.
+
+        Returns:
+            int: The hash value computed for the host.
+
+        Examples:
+            >>> event = self.make_event("https://example.com:8443")
+            >>> self.get_per_host_hash(event)
+        """
+        return hash(event.host)
+
+    def get_per_hostport_hash(self, event):
+        """
+        Computes a per-host:port hash value for a given event. This method may be optionally overridden in subclasses.
+
+        The function uses the event's `host`, `port`, and `scheme` (for URLs) to create a string to be hashed.
         The hash value is used for distinguishing events related to the same host.
 
         Args:
@@ -926,11 +938,7 @@ class BaseModule:
 
         Examples:
             >>> event = self.make_event("https://example.com:8443")
-            >>> self.get_per_host_hash(event)
-
-        Notes:
-            - To change the behavior, override this method in your custom module.
-            - The hash value is dependent on the `host` and `port` or the `parsed` attribute in the event object.
+            >>> self.get_per_hostport_hash(event)
         """
         parsed = getattr(event, "parsed", None)
         if parsed is None:

@@ -32,7 +32,7 @@ class dastardly(BaseModule):
             "when": "ansible_facts['os_family'] == 'Debian' and docker_installed.rc != 0",
         },
     ]
-    per_host_only = True
+    per_hostport_only = True
 
     async def setup(self):
         await self.helpers.run("systemctl", "start", "docker", sudo=True)
