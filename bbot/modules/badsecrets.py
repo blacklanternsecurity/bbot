@@ -34,7 +34,11 @@ class badsecrets(BaseModule):
         if resp_body or resp_cookies:
             try:
                 r_list = await self.scan.run_in_executor_mp(
-                    carve_all_modules, body=resp_body, cookies=resp_cookies, url=event.data.get("url", None)
+                    carve_all_modules,
+                    body=resp_body,
+                    headers=resp_headers,
+                    cookies=resp_cookies,
+                    url=event.data.get("url", None),
                 )
             except Exception as e:
                 self.warning(f"Error processing {event}: {e}")
