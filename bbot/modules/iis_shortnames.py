@@ -14,7 +14,7 @@ class iis_shortnames(BaseModule):
     produced_events = ["URL_HINT"]
     flags = ["active", "safe", "web-basic", "web-thorough", "iis-shortnames"]
     meta = {"description": "Check for IIS shortname vulnerability"}
-    options = {"detect_only": True, "max_node_count": 30}
+    options = {"detect_only": True, "max_node_count": 40}
     options_desc = {
         "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
         "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
@@ -104,10 +104,11 @@ class iis_shortnames(BaseModule):
 
     async def solve_valid_chars(self, method, target, affirmative_status_code):
         confirmed_chars = []
+        confirmed_exts = []
         tasks = []
+        suffix = "/a.aspx"
 
         for c in valid_chars:
-            suffix = "/a.aspx"
             payload = encode_all(f"*{c}*~1*")
             url = f"{target}{payload}{suffix}"
             task = self.threaded_request(method, url, affirmative_status_code, c)
@@ -118,16 +119,40 @@ class iis_shortnames(BaseModule):
             if result:
                 confirmed_chars.append(c)
 
-        return confirmed_chars
+        tasks = []
+
+        for c in valid_chars:
+            payload = encode_all(f"*~1*{c}*")
+            url = f"{target}{payload}{suffix}"
+            task = self.threaded_request(method, url, affirmative_status_code, c)
+            tasks.append(task)
+
+        async for task in self.helpers.as_completed(tasks):
+            result, c = await task
+            if result:
+                confirmed_exts.append(c)
+
+        return confirmed_chars, confirmed_exts
 
     async def solve_shortname_recursive(
-        self, method, target, prefix, affirmative_status_code, char_list, extension_mode=False, node_count=0
+        self,
+        method,
+        target,
+        prefix,
+        affirmative_status_code,
+        char_list,
+        ext_char_list,
+        extension_mode=False,
+        node_count=0,
     ):
         url_hint_list = []
         found_results = False
 
         tasks = []
-        for c in char_list:
+
+        cl = ext_char_list if extension_mode == True else char_list
+
+        for c in cl:
             suffix = "/a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
@@ -162,6 +187,7 @@ class iis_shortnames(BaseModule):
                     f"{prefix}{c}",
                     affirmative_status_code,
                     char_list,
+                    ext_char_list,
                     extension_mode,
                     node_count=node_count,
                 )
@@ -196,19 +222,21 @@ class iis_shortnames(BaseModule):
                     if valid_method_confirmed:
                         break
 
-                    confirmed_chars = await self.solve_valid_chars(method, normalized_url, affirmative_status_code)
-
+                    confirmed_chars, confirmed_exts = await self.solve_valid_chars(
+                        method, normalized_url, affirmative_status_code
+                    )
                     if len(confirmed_chars) > 0:
                         valid_method_confirmed = True
                     else:
                         continue
 
                     self.debug(f"Confirmed character list: {','.join(confirmed_chars)}")
+                    self.debug(f"Confirmed character list: {','.join(confirmed_exts)}")
 
                     file_name_hints = list(
                         set(
                             await self.solve_shortname_recursive(
-                                method, normalized_url, "", affirmative_status_code, confirmed_chars
+                                method, normalized_url, "", affirmative_status_code, confirmed_chars, confirmed_exts
                             )
                         )
                     )
@@ -236,6 +264,7 @@ class iis_shortnames(BaseModule):
                             f"{y}.",
                             affirmative_status_code,
                             confirmed_chars,
+                            confirmed_exts,
                             extension_mode=True,
                         )
                         for z in file_name_extension_hints:
