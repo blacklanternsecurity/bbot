@@ -207,7 +207,7 @@ class iis_shortnames(BaseModule):
 
     async def handle_event(self, event):
         class safety_counter_obj:
-            counter = 1
+            counter = 0
 
         normalized_url = self.normalize_url(event.data)
         self.scanned_tracker.add(normalized_url)
