@@ -226,7 +226,7 @@ class Scanner:
         # scope distance
         self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 0)))
         self.scope_dns_search_distance = max(
-            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 2))
+            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 1))
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
 
