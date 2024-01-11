@@ -182,7 +182,7 @@ class HttpCompare:
 
         different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
         if different_headers:
-            log.debug(f"headers were different, no match [{different_headers}]")
+            log.debug(f"headers were different, no match")
             diff_reasons.append("header")
 
         if self.compare_body(self.baseline_json, subject_json) == False:
