@@ -265,6 +265,9 @@ class ffuf(BaseModule):
                 command.append("-mc")
                 command.append("all")
 
+            for hk, hv in self.scan.config.get("http_headers", {}).items():
+                command += ["-H", f"{hk}: {hv}"]
+
             async for found in self.helpers.run_live(command):
                 try:
                     found_json = json.loads(found)
