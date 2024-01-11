@@ -877,7 +877,7 @@ class BaseModule:
 
     def is_incoming_duplicate(self, event, add=False):
         if event.type in ("FINISHED",):
-            return False
+            return False, ""
         reason = ""
         event_hash = self._incoming_dedup_hash(event)
         with suppress(TypeError, ValueError):
