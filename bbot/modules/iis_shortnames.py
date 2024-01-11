@@ -172,7 +172,7 @@ class iis_shortnames(BaseModule):
                 node_count += 1
                 safety_counter.counter += 1
                 if safety_counter.counter > 3000:
-                    raise IISShortnamesError(f"Exceeded safety counter threshhold ({safety_counter.counter})")
+                    raise IISShortnamesError(f"Exceeded safety counter threshold ({safety_counter.counter})")
                 self.verbose(f"node_count: {str(node_count)} for node: {target}")
                 if node_count > self.config.get("max_node_count"):
                     self.warning(
