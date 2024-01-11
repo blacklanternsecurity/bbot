@@ -33,22 +33,20 @@ nav:
     - Release History: release_history.md
     - Troubleshooting: troubleshooting.md
 - Developer Manual:
-  - Contribution:
-    - How to Write a Module: contribution.md
-    - Developer Reference:
-      - Overview: dev/index.md
-      - Scanner: dev/scanner.md
-      - Event: dev/event.md
-      - Target: dev/target.md
-      - BaseModule: dev/basemodule.md
-      - Helpers: 
-        - Overview: dev/helpers/index.md
-        - Command: dev/helpers/command.md
-        - DNS: dev/helpers/dns.md
-        - Interactsh: dev/helpers/interactsh.md
-        - Miscellaneous: dev/helpers/misc.md
-        - Web: dev/helpers/web.md
-        - Word Cloud: dev/helpers/wordcloud.md
+  - How to Write a Module: contribution.md
+  - Development Overview: dev/index.md
+  - Scanner: dev/scanner.md
+  - Event: dev/event.md
+  - Target: dev/target.md
+  - BaseModule: dev/basemodule.md
+  - Helpers:
+    - Overview: dev/helpers/index.md
+    - Command: dev/helpers/command.md
+    - DNS: dev/helpers/dns.md
+    - Interactsh: dev/helpers/interactsh.md
+    - Miscellaneous: dev/helpers/misc.md
+    - Web: dev/helpers/web.md
+    - Word Cloud: dev/helpers/wordcloud.md
 
 theme:
   name: material

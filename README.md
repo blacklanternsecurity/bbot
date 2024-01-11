@@ -22,16 +22,19 @@ https://github.com/blacklanternsecurity/bbot/assets/20261699/742df3fe-5d1f-4aea-
 
 _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/blacklanternsecurity/bbot-vivagraphjs)_
 
+<details>
+<summary><b>How it Works</b></summary>
+
 BBOT consistently finds 20-30% more subdomains than other tools. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
 
 ![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
 
-## Full Documentation [Here](https://www.blacklanternsecurity.com/bbot/).
+</details>
 
 <details>
-<summary><b>Installation ([pip](https://pypi.org/project/bbot/))</b></summary>
+<summary><b>Installation (pip)</b></summary>
 
-Note: Requires Linux and Python 3.9+.
+Note: BBOT's [PyPi package](https://pypi.org/project/bbot/) requires Linux and Python 3.9+.
 
 ```bash
 # stable version
@@ -46,9 +49,9 @@ bbot --help
 </details>
 
 <details>
-<summary><b>Installation ([Docker](https://hub.docker.com/r/blacklanternsecurity/bbot))</b></summary>
+<summary><b>Installation (Docker)</b></summary>
 
-Docker images are provided, along with helper script `bbot-docker.sh` to persist your scan data.
+[Docker images](https://hub.docker.com/r/blacklanternsecurity/bbot) are provided, along with helper script `bbot-docker.sh` to persist your scan data.
 
 ```bash
 # bleeding edge (dev)
@@ -64,8 +67,8 @@ git clone https://github.com/blacklanternsecurity/bbot && cd bbot
 
 </details>
 
-
-## Example Commands
+<details>
+<summary><b>Usage - Example Commands</b></summary>
 
 Scan output, logs, etc. are saved to `~/.bbot`. For more detailed examples and explanations, see [Scanning](https://www.blacklanternsecurity.com/bbot/scanning).
 
@@ -113,7 +116,10 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 ```
 <!-- END BBOT EXAMPLE COMMANDS -->
 
-## Targets
+</details>
+
+<details>
+<summary><b>Usage - Targets</b></summary>
 
 BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
 
@@ -125,7 +131,10 @@ BBOT accepts an unlimited number of targets via `-t`. You can specify targets ei
 
 For more information, see [Targets](https://www.blacklanternsecurity.com/bbot/scanning/#targets-t). To learn how BBOT handles scope, see [Scope](https://www.blacklanternsecurity.com/bbot/scanning/#scope).
 
-## API Keys
+</details>
+
+<details>
+<summary><b>Usage - API Keys</b></summary>
 
 Similar to Amass or Subfinder, BBOT supports API keys for various third-party services such as SecurityTrails, etc.
 
@@ -149,7 +158,10 @@ bbot -c modules.virustotal.api_key=dd5f0eee2e4a99b71a939bded450b246
 
 For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration/)
 
-## BBOT as a Python library
+</details>
+
+<details>
+<summary><b>Usage - Python Library</b></summary>
 
 BBOT exposes a Python API that allows it to be used for all kinds of fun and nefarious purposes, like a [Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/#bbot-python-library-advanced-usage#discord-bot-example) that responds to the `/scan` command.
 
@@ -180,31 +192,51 @@ import asyncio
 asyncio.run(main())
 ```
 
-## Documentation
+</details>
+
+<details>
+<summary><b>Documentation - Table of Contents</b></summary>
 
 <!-- BBOT DOCS TOC -->
-- **Basics**
-    - [Getting Started](https://www.blacklanternsecurity.com/bbot/)
-    - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
-    - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
-- **Scanning**
-    - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/)
-    - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
-    - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
-    - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
-    - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
-    - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
-- **Modules**
-    - [List of Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules)
-    - [Nuclei](https://www.blacklanternsecurity.com/bbot/modules/nuclei)
-- **Contribution**
-    - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
-- **Misc**
-    - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
-    - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
+- **User Manual**
+        - **Basics**
+                - [Getting Started](https://www.blacklanternsecurity.com/bbot/)
+                - [How it Works](https://www.blacklanternsecurity.com/bbot/how_it_works)
+                - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
+        - **Scanning**
+                - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/)
+                - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
+                - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
+                - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
+                - [Advanced Usage](https://www.blacklanternsecurity.com/bbot/scanning/advanced)
+                - [Configuration](https://www.blacklanternsecurity.com/bbot/scanning/configuration)
+        - **Modules**
+                - [List of Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules)
+                - [Nuclei](https://www.blacklanternsecurity.com/bbot/modules/nuclei)
+        - **Misc**
+                - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
+                - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
+- **Developer Manual**
+        - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
+        - [Development Overview](https://www.blacklanternsecurity.com/bbot/dev/)
+        - [Scanner](https://www.blacklanternsecurity.com/bbot/dev/scanner)
+        - [Event](https://www.blacklanternsecurity.com/bbot/dev/event)
+        - [Target](https://www.blacklanternsecurity.com/bbot/dev/target)
+        - [BaseModule](https://www.blacklanternsecurity.com/bbot/dev/basemodule)
+        - **Helpers**
+                - [Overview](https://www.blacklanternsecurity.com/bbot/dev/helpers/)
+                - [Command](https://www.blacklanternsecurity.com/bbot/dev/helpers/command)
+                - [DNS](https://www.blacklanternsecurity.com/bbot/dev/helpers/dns)
+                - [Interactsh](https://www.blacklanternsecurity.com/bbot/dev/helpers/interactsh)
+                - [Miscellaneous](https://www.blacklanternsecurity.com/bbot/dev/helpers/misc)
+                - [Web](https://www.blacklanternsecurity.com/bbot/dev/helpers/web)
+                - [Word Cloud](https://www.blacklanternsecurity.com/bbot/dev/helpers/wordcloud)
 <!-- END BBOT DOCS TOC -->
 
-## Contribution
+</details>
+
+<details>
+<summary><b>Contribution</b></summary>
 
 BBOT is constantly being improved by the community. Every day it grows more powerful!
 
@@ -226,7 +258,38 @@ Special thanks to the following people who made BBOT possible:
 - @kerrymilan for his Neo4j and Ansible expertise
 - Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
 
-## List of BBOT Modules
+</details>
+
+<details>
+<summary><b>BBOT Modules - By Flag</b></summary>
+<!-- BBOT MODULE FLAGS -->
+| Flag             | # Modules   | Description                                   | Modules                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|------------------|-------------|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| safe             | 76          | Non-intrusive, safe to run                    | affiliates, aggregate, ajaxpro, anubisdb, asn, azure_realm, azure_tenant, badsecrets, bevigil, binaryedge, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, builtwith, c99, censys, certspotter, chaos, columbus, credshed, crobat, crt, dehashed, digitorus, dnscommonsrv, dnsdumpster, dnszonetransfer, emailformat, filedownload, fingerprintx, fullhunt, git, github_codesearch, github_org, gowitness, hackertarget, httpx, hunt, hunterio, iis_shortnames, internetdb, ip2location, ipstack, leakix, myssl, nsec, ntlm, oauth, otx, passivetotal, pgp, postman, rapiddns, riddler, robots, secretsdb, securitytrails, shodan_dns, sitedossier, skymem, social, sslcert, subdomain_hijack, subdomaincenter, sublist3r, threatminer, urlscan, viewdns, virustotal, wappalyzer, wayback, whoisxmlapi, zoomeye |
+| passive          | 58          | Never connects to target systems              | affiliates, aggregate, anubisdb, asn, azure_realm, azure_tenant, bevigil, binaryedge, bucket_file_enum, builtwith, c99, censys, certspotter, chaos, columbus, credshed, crobat, crt, dehashed, digitorus, dnscommonsrv, dnsdumpster, emailformat, excavate, fullhunt, github_codesearch, github_org, hackertarget, hunterio, internetdb, ip2location, ipneighbor, ipstack, leakix, massdns, myssl, nsec, otx, passivetotal, pgp, postman, rapiddns, riddler, securitytrails, shodan_dns, sitedossier, skymem, social, speculate, subdomaincenter, sublist3r, threatminer, urlscan, viewdns, virustotal, wayback, whoisxmlapi, zoomeye                                                                                                                                                                                                                               |
+| subdomain-enum   | 47          | Enumerates subdomains                         | anubisdb, asn, azure_realm, azure_tenant, bevigil, binaryedge, builtwith, c99, censys, certspotter, chaos, columbus, crt, digitorus, dnscommonsrv, dnsdumpster, dnszonetransfer, fullhunt, github_codesearch, github_org, hackertarget, httpx, hunterio, internetdb, ipneighbor, leakix, massdns, myssl, nsec, oauth, otx, passivetotal, postman, rapiddns, riddler, securitytrails, shodan_dns, sitedossier, sslcert, subdomain_hijack, subdomaincenter, subdomains, threatminer, urlscan, virustotal, wayback, zoomeye                                                                                                                                                                                                                                                                                                                                            |
+| active           | 39          | Makes active connections to target systems    | ajaxpro, badsecrets, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, bypass403, dastardly, dnszonetransfer, ffuf, ffuf_shortnames, filedownload, fingerprintx, generic_ssrf, git, gowitness, host_header, httpx, hunt, iis_shortnames, masscan, nmap, ntlm, nuclei, oauth, paramminer_cookies, paramminer_getparams, paramminer_headers, robots, secretsdb, smuggler, sslcert, subdomain_hijack, telerik, url_manipulation, vhost, wafw00f, wappalyzer                                                                                                                                                                                                                                                                                                                                                                            |
+| web-thorough     | 26          | More advanced web scanning functionality      | ajaxpro, badsecrets, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, bypass403, dastardly, ffuf_shortnames, generic_ssrf, git, host_header, httpx, hunt, iis_shortnames, nmap, ntlm, robots, secretsdb, smuggler, sslcert, subdomain_hijack, telerik, url_manipulation, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| aggressive       | 19          | Generates a large amount of network traffic   | bypass403, dastardly, ffuf, ffuf_shortnames, generic_ssrf, host_header, ipneighbor, masscan, massdns, nmap, nuclei, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler, telerik, url_manipulation, vhost, wafw00f                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| web-basic        | 17          | Basic, non-intrusive web scan functionality   | azure_realm, badsecrets, bucket_amazon, bucket_azure, bucket_firebase, bucket_google, filedownload, git, httpx, iis_shortnames, ntlm, oauth, robots, secretsdb, sslcert, subdomain_hijack, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| cloud-enum       | 11          | Enumerates cloud resources                    | azure_realm, azure_tenant, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_file_enum, bucket_firebase, bucket_google, httpx, oauth, subdomain_hijack                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| affiliates       | 8           | Discovers affiliated hostnames/domains        | affiliates, azure_realm, azure_tenant, builtwith, oauth, sslcert, viewdns, zoomeye                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| slow             | 8           | May take a long time to complete              | bucket_digitalocean, dastardly, fingerprintx, paramminer_cookies, paramminer_getparams, paramminer_headers, smuggler, vhost                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| email-enum       | 7           | Enumerates email addresses                    | dehashed, emailformat, emails, hunterio, pgp, skymem, sslcert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| deadly           | 4           | Highly aggressive                             | dastardly, ffuf, nuclei, vhost                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| portscan         | 3           | Discovers open ports                          | internetdb, masscan, nmap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| web-paramminer   | 3           | Discovers HTTP parameters through brute-force | paramminer_cookies, paramminer_getparams, paramminer_headers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| iis-shortnames   | 2           | Scans for IIS Shortname vulnerability         | ffuf_shortnames, iis_shortnames                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| report           | 2           | Generates a report at the end of the scan     | affiliates, asn                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| social-enum      | 2           | Enumerates social media                       | httpx, social                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| service-enum     | 1           | Identifies protocols running on open ports    | fingerprintx                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| subdomain-hijack | 1           | Detects hijackable subdomains                 | subdomain_hijack                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| web-screenshots  | 1           | Takes screenshots of web pages                | gowitness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+<!-- END BBOT MODULE FLAGS -->
+</details>
+
+<details>
+<summary><b>BBOT Modules - Full List</b></summary>
 <!-- BBOT MODULES -->
 | Module               | Type     | Needs API Key   | Description                                                                                                                             | Flags                                                                               | Consumed Events                                                                                                               | Produced Events                                             |
 |----------------------|----------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
@@ -322,6 +385,7 @@ Special thanks to the following people who made BBOT possible:
 | viewdns              | scan     | No              | Query viewdns.info's reverse whois for related domains                                                                                  | affiliates, passive, safe                                                           | DNS_NAME                                                                                                                      | DNS_NAME                                                    |
 | virustotal           | scan     | Yes             | Query VirusTotal's API for subdomains                                                                                                   | passive, safe, subdomain-enum                                                       | DNS_NAME                                                                                                                      | DNS_NAME                                                    |
 | wayback              | scan     | No              | Query archive.org's API for subdomains                                                                                                  | passive, safe, subdomain-enum                                                       | DNS_NAME                                                                                                                      | DNS_NAME, URL_UNVERIFIED                                    |
+| whoisxmlapi          | scan     | No              | Query WhoisXMLAPI for WHOIS data                                                                                                        | passive, safe                                                                       | DNS_NAME                                                                                                                      | WHOIS                                                       |
 | zoomeye              | scan     | Yes             | Query ZoomEye's API for subdomains                                                                                                      | affiliates, passive, safe, subdomain-enum                                           | DNS_NAME                                                                                                                      | DNS_NAME                                                    |
 | asset_inventory      | output   | No              | Output to an asset inventory style flattened CSV file                                                                                   |                                                                                     | DNS_NAME, FINDING, IP_ADDRESS, OPEN_TCP_PORT, TECHNOLOGY, URL, VULNERABILITY                                                  | IP_ADDRESS, OPEN_TCP_PORT                                   |
 | csv                  | output   | No              | Output to CSV                                                                                                                           |                                                                                     | *                                                                                                                             |                                                             |
@@ -341,3 +405,4 @@ Special thanks to the following people who made BBOT possible:
 | excavate             | internal | No              | Passively extract juicy tidbits from scan data                                                                                          | passive                                                                             | HTTP_RESPONSE                                                                                                                 | URL_UNVERIFIED                                              |
 | speculate            | internal | No              | Derive certain event types from others by common sense                                                                                  | passive                                                                             | AZURE_TENANT, DNS_NAME, DNS_NAME_UNRESOLVED, HTTP_RESPONSE, IP_ADDRESS, IP_RANGE, SOCIAL, STORAGE_BUCKET, URL, URL_UNVERIFIED | DNS_NAME, FINDING, IP_ADDRESS, OPEN_TCP_PORT, ORG_STUB      |
 <!-- END BBOT MODULES -->
+</details>

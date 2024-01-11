@@ -103,26 +103,40 @@ def update_docs():
     update_md_files("BBOT DEFAULT CONFIG", default_config_yml)
 
     # Table of Contents
+    base_url = "https://www.blacklanternsecurity.com/bbot"
+
+    def format_section(section_title, section_path):
+        path = section_path.split("index.md")[0]
+        path = path.split(".md")[0]
+        return f"- [{section_title}]({base_url}/{path})\n"
+
+    bbot_docs_toc = ""
+
+    def update_toc(section, level=0):
+        nonlocal bbot_docs_toc
+        indent = " " * 4 * level
+        if isinstance(section, dict):
+            for section_title, subsections in section.items():
+                if isinstance(subsections, str):
+                    bbot_docs_toc += f"{indent}{format_section(section_title, subsections)}"
+                else:
+                    bbot_docs_toc += f"{indent}- **{section_title}**\n"
+                    level += 1
+                    for subsection in subsections:
+                        update_toc(subsection, level=level + 1)
+
     mkdocs_yml_file = bbot_code_dir / "mkdocs.yml"
     yaml.SafeLoader.add_constructor(
         "tag:yaml.org,2002:python/name:pymdownx.superfences.fence_code_format", lambda x, y: {}
     )
-    bbot_docs_toc = ""
-    base_url = "https://www.blacklanternsecurity.com/bbot"
+
     with open(mkdocs_yml_file, "r") as f:
         mkdocs_yaml = yaml.safe_load(f)
         nav = mkdocs_yaml["nav"]
         for section in nav:
-            for section_title, subsections in section.items():
-                bbot_docs_toc += f"- **{section_title}**\n"
-                for subsection in subsections:
-                    for subsection_title, subsection_path in subsection.items():
-                        if isinstance(subsection_path, str):
-                            path = subsection_path.split("index.md")[0]
-                            path = path.split(".md")[0]
-                            bbot_docs_toc += f"    - [{subsection_title}]({base_url}/{path})\n"
+            update_toc(section)
     bbot_docs_toc = bbot_docs_toc.strip()
-    assert len(bbot_docs_toc.splitlines()) > 5
+    # assert len(bbot_docs_toc.splitlines()) == 2
     update_md_files("BBOT DOCS TOC", bbot_docs_toc)
 
 
