@@ -9,12 +9,16 @@ def encode_all(string):
     return "".join("%{0:0>2}".format(format(ord(char), "x")) for char in string)
 
 
+class IISShortnamesError(Exception):
+    pass
+
+
 class iis_shortnames(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
     flags = ["active", "safe", "web-basic", "web-thorough", "iis-shortnames"]
     meta = {"description": "Check for IIS shortname vulnerability"}
-    options = {"detect_only": True, "max_node_count": 30}
+    options = {"detect_only": True, "max_node_count": 50}
     options_desc = {
         "detect_only": "Only detect the vulnerability and do not run the shortname scanner",
         "max_node_count": "Limit how many nodes to attempt to resolve on any given recursion branch",
@@ -102,14 +106,58 @@ class iis_shortnames(BaseModule):
                 return True, c
         return None, c
 
+    async def solve_valid_chars(self, method, target, affirmative_status_code):
+        confirmed_chars = []
+        confirmed_exts = []
+        tasks = []
+        suffix = "/a.aspx"
+
+        for c in valid_chars:
+            payload = encode_all(f"*{c}*~1*")
+            url = f"{target}{payload}{suffix}"
+            task = self.threaded_request(method, url, affirmative_status_code, c)
+            tasks.append(task)
+
+        async for task in self.helpers.as_completed(tasks):
+            result, c = await task
+            if result:
+                confirmed_chars.append(c)
+
+        tasks = []
+
+        for c in valid_chars:
+            payload = encode_all(f"*~1*{c}*")
+            url = f"{target}{payload}{suffix}"
+            task = self.threaded_request(method, url, affirmative_status_code, c)
+            tasks.append(task)
+
+        async for task in self.helpers.as_completed(tasks):
+            result, c = await task
+            if result:
+                confirmed_exts.append(c)
+
+        return confirmed_chars, confirmed_exts
+
     async def solve_shortname_recursive(
-        self, method, target, prefix, affirmative_status_code, extension_mode=False, node_count=0
+        self,
+        safety_counter,
+        method,
+        target,
+        prefix,
+        affirmative_status_code,
+        char_list,
+        ext_char_list,
+        extension_mode=False,
+        node_count=0,
     ):
         url_hint_list = []
         found_results = False
 
         tasks = []
-        for c in valid_chars:
+
+        cl = ext_char_list if extension_mode == True else char_list
+
+        for c in cl:
             suffix = "/a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
@@ -122,6 +170,9 @@ class iis_shortnames(BaseModule):
             if result:
                 found_results = True
                 node_count += 1
+                safety_counter.counter += 1
+                if safety_counter.counter > 3000:
+                    raise IISShortnamesError(f"Exceeded safety counter threshold ({safety_counter.counter})")
                 self.verbose(f"node_count: {str(node_count)} for node: {target}")
                 if node_count > self.config.get("max_node_count"):
                     self.warning(
@@ -139,7 +190,15 @@ class iis_shortnames(BaseModule):
                         url_hint_list.append(f"{prefix}{c}")
 
                 url_hint_list += await self.solve_shortname_recursive(
-                    method, target, f"{prefix}{c}", affirmative_status_code, extension_mode, node_count=node_count
+                    safety_counter,
+                    method,
+                    target,
+                    f"{prefix}{c}",
+                    affirmative_status_code,
+                    char_list,
+                    ext_char_list,
+                    extension_mode,
+                    node_count=node_count,
                 )
         if len(prefix) > 0 and found_results == False:
             url_hint_list.append(f"{prefix}")
@@ -147,6 +206,9 @@ class iis_shortnames(BaseModule):
         return url_hint_list
 
     async def handle_event(self, event):
+        class safety_counter_obj:
+            counter = 0
+
         normalized_url = self.normalize_url(event.data)
         self.scanned_tracker.add(normalized_url)
 
@@ -166,19 +228,48 @@ class iis_shortnames(BaseModule):
             )
             if not self.config.get("detect_only"):
                 for detection in detections:
+                    safety_counter = safety_counter_obj()
+
                     method, affirmative_status_code, technique = detection
                     valid_method_confirmed = False
 
                     if valid_method_confirmed:
                         break
 
-                    file_name_hints = list(
-                        set(await self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code))
+                    confirmed_chars, confirmed_exts = await self.solve_valid_chars(
+                        method, normalized_url, affirmative_status_code
                     )
-                    if len(file_name_hints) == 0:
+
+                    if len(confirmed_chars) >= len(valid_chars) - 4:
+                        self.debug(
+                            f"Detected [{len(confirmed_chars)}] characters (out of {len(valid_chars)}) as valid. This is likely a false positive"
+                        )
                         continue
-                    else:
+
+                    if len(confirmed_chars) > 0:
                         valid_method_confirmed = True
+                    else:
+                        continue
+
+                    self.debug(f"Confirmed character list: {','.join(confirmed_chars)}")
+                    self.debug(f"Confirmed character list: {','.join(confirmed_exts)}")
+                    try:
+                        file_name_hints = list(
+                            set(
+                                await self.solve_shortname_recursive(
+                                    safety_counter,
+                                    method,
+                                    normalized_url,
+                                    "",
+                                    affirmative_status_code,
+                                    confirmed_chars,
+                                    confirmed_exts,
+                                )
+                            )
+                        )
+                    except IISShortnamesError as e:
+                        self.warning(f"Aborted Shortname Run for URL [{normalized_url}] due to Error: [{e}]")
+                        return
 
                     file_name_hints = [f"{x}~1" for x in file_name_hints]
                     url_hint_list = []
@@ -197,9 +288,21 @@ class iis_shortnames(BaseModule):
                             url_hint_list.append(d)
 
                     for y in file_name_hints:
-                        file_name_extension_hints = await self.solve_shortname_recursive(
-                            method, normalized_url, f"{y}.", affirmative_status_code, extension_mode=True
-                        )
+                        try:
+                            file_name_extension_hints = await self.solve_shortname_recursive(
+                                safety_counter,
+                                method,
+                                normalized_url,
+                                f"{y}.",
+                                affirmative_status_code,
+                                confirmed_chars,
+                                confirmed_exts,
+                                extension_mode=True,
+                            )
+                        except IISShortnamesError as e:
+                            self.warning(f"Aborted Shortname Run for URL {normalized_url} due to Error: [{e}]")
+                            return
+
                         for z in file_name_extension_hints:
                             if z.endswith("."):
                                 z = z.rstrip(".")
