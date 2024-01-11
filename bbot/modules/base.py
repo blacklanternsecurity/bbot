@@ -855,7 +855,7 @@ class BaseModule:
             - If the module was already in an errored state, the function will not reset the error state or the queue.
         """
         if not self.errored:
-            log_msg = f"Setting error state for module {self.name}"
+            log_msg = "Setting error state"
             if message is not None:
                 log_msg += f": {message}"
             self.warning(log_msg)
