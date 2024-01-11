@@ -241,7 +241,9 @@ class iis_shortnames(BaseModule):
                     )
 
                     if len(confirmed_chars) >= len(valid_chars) - 4:
-                        self.debug(f"Detected [{len(confirmed_chars)}] characters (out of {len(valid_chars)}) as valid. This is likely a false positive")
+                        self.debug(
+                            f"Detected [{len(confirmed_chars)}] characters (out of {len(valid_chars)}) as valid. This is likely a false positive"
+                        )
                         continue
 
                     if len(confirmed_chars) > 0:
