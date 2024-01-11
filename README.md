@@ -249,7 +249,7 @@ Special thanks to the following people who made BBOT possible:
 
 ## Comparison to Other Tools
 
-BBOT consistently finds 20-30% more subdomains than other tools. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
+BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
 
 ![subdomain-stats-boeing](https://github.com/blacklanternsecurity/bbot/assets/20261699/de0154c1-476e-4337-9599-45a1c5e0e78b)
 
