@@ -15,7 +15,7 @@ class robots(BaseModule):
     }
 
     in_scope_only = True
-    per_host_only = True
+    per_hostport_only = True
 
     async def setup(self):
         return True

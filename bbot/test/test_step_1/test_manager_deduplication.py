@@ -38,8 +38,8 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
         accept_dupes = True
 
     class PerHostOnly(DefaultModule):
-        _name = "per_host_only"
-        per_host_only = True
+        _name = "per_hostport_only"
+        per_hostport_only = True
 
     class PerDomainOnly(DefaultModule):
         _name = "per_domain_only"
@@ -53,13 +53,13 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
         everything_module = EverythingModule(scan)
         no_suppress_dupes = NoSuppressDupes(scan)
         accept_dupes = AcceptDupes(scan)
-        per_host_only = PerHostOnly(scan)
+        per_hostport_only = PerHostOnly(scan)
         per_domain_only = PerDomainOnly(scan)
         scan.modules["default_module"] = default_module
         scan.modules["everything_module"] = everything_module
         scan.modules["no_suppress_dupes"] = no_suppress_dupes
         scan.modules["accept_dupes"] = accept_dupes
-        scan.modules["per_host_only"] = per_host_only
+        scan.modules["per_hostport_only"] = per_hostport_only
         scan.modules["per_domain_only"] = per_domain_only
         if _dns_mock:
             scan.helpers.dns.mock_dns(_dns_mock)
@@ -71,7 +71,7 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
             everything_module.events,
             no_suppress_dupes.events,
             accept_dupes.events,
-            per_host_only.events,
+            per_hostport_only.events,
             per_domain_only.events,
         )
 
@@ -80,12 +80,12 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
         ("everything_module.test.notreal", "A"): "127.0.0.4",
         ("no_suppress_dupes.test.notreal", "A"): "127.0.0.5",
         ("accept_dupes.test.notreal", "A"): "127.0.0.6",
-        ("per_host_only.test.notreal", "A"): "127.0.0.7",
+        ("per_hostport_only.test.notreal", "A"): "127.0.0.7",
         ("per_domain_only.test.notreal", "A"): "127.0.0.8",
     }
 
     # dns search distance = 1, report distance = 0
-    events, default_events, all_events, no_suppress_dupes, accept_dupes, per_host_only, per_domain_only = await do_scan(
+    events, default_events, all_events, no_suppress_dupes, accept_dupes, per_hostport_only, per_domain_only = await do_scan(
         "test.notreal",
         _config={"dns_resolution": True, "scope_dns_search_distance": 1, "scope_report_distance": 0},
         _dns_mock=dns_mock_chain,
@@ -97,15 +97,15 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "accept_dupes.test.notreal"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "default_module.test.notreal"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_domain_only.test.notreal"])
-    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_host_only.test.notreal"])
+    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_hostport_only.test.notreal"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "per_host_only.test.notreal" and str(e.module) == "per_host_only" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
     assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "accept_dupes.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "accept_dupes.test.notreal"])
     assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "default_module.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "default_module.test.notreal"])
     assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "per_domain_only.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "per_domain_only.test.notreal"])
-    assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "per_host_only.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "per_host_only.test.notreal"])
+    assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "per_hostport_only.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "per_hostport_only.test.notreal"])
     assert 1 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "test.notreal"])
     assert 5 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "no_suppress_dupes.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "no_suppress_dupes.test.notreal"])
 
@@ -114,7 +114,7 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
     assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "default_module.test.notreal" and str(e.module) == "default_module" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes"])
     assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "per_host_only.test.notreal" and str(e.module) == "per_host_only" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
 
     assert len(all_events) == 26
@@ -123,20 +123,20 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "accept_dupes.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "default_module.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_domain_only.test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_host_only.test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_hostport_only.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "per_host_only.test.notreal" and str(e.module) == "per_host_only" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
     assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.3" and str(e.module) == "A" and e.source.data == "default_module.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.5" and str(e.module) == "A" and e.source.data == "no_suppress_dupes.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.6" and str(e.module) == "A" and e.source.data == "accept_dupes.test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.7" and str(e.module) == "A" and e.source.data == "per_host_only.test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.7" and str(e.module) == "A" and e.source.data == "per_hostport_only.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.8" and str(e.module) == "A" and e.source.data == "per_domain_only.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "accept_dupes.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "accept_dupes.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "default_module.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "default_module.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "per_domain_only.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "per_domain_only.test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "per_host_only.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "per_host_only.test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "per_hostport_only.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "per_hostport_only.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "test.notreal"])
     assert 5 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "no_suppress_dupes.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "no_suppress_dupes.test.notreal"])
 
@@ -145,7 +145,7 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
     assert 1 == len([e for e in no_suppress_dupes if e.type == "DNS_NAME" and e.data == "default_module.test.notreal" and str(e.module) == "default_module" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in no_suppress_dupes if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes"])
     assert 1 == len([e for e in no_suppress_dupes if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in no_suppress_dupes if e.type == "DNS_NAME" and e.data == "per_host_only.test.notreal" and str(e.module) == "per_host_only" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in no_suppress_dupes if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in no_suppress_dupes if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
 
     assert len(accept_dupes) == 10
@@ -154,19 +154,19 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
     assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "accept_dupes.test.notreal"])
     assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "default_module.test.notreal"])
     assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_domain_only.test.notreal"])
-    assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_host_only.test.notreal"])
+    assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "per_hostport_only.test.notreal"])
     assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "per_host_only.test.notreal" and str(e.module) == "per_host_only" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in accept_dupes if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
 
-    assert len(per_host_only) == 6
-    assert 1 == len([e for e in per_host_only if e.type == "DNS_NAME" and e.data == "accept_dupes.test.notreal" and str(e.module) == "accept_dupes" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in per_host_only if e.type == "DNS_NAME" and e.data == "default_module.test.notreal" and str(e.module) == "default_module" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in per_host_only if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes"])
-    assert 1 == len([e for e in per_host_only if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in per_host_only if e.type == "DNS_NAME" and e.data == "per_host_only.test.notreal" and str(e.module) == "per_host_only" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in per_host_only if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
+    assert len(per_hostport_only) == 6
+    assert 1 == len([e for e in per_hostport_only if e.type == "DNS_NAME" and e.data == "accept_dupes.test.notreal" and str(e.module) == "accept_dupes" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in per_hostport_only if e.type == "DNS_NAME" and e.data == "default_module.test.notreal" and str(e.module) == "default_module" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in per_hostport_only if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes"])
+    assert 1 == len([e for e in per_hostport_only if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in per_hostport_only if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in per_hostport_only if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
 
     assert len(per_domain_only) == 1
     assert 1 == len([e for e in per_domain_only if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])

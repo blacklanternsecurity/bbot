@@ -42,11 +42,11 @@ class BaseOutputModule(BaseModule):
         return True, "precheck succeeded"
 
     def is_incoming_duplicate(self, event, add=False):
-        is_incoming_duplicate = super().is_incoming_duplicate(event, add=add)
+        is_incoming_duplicate, reason = super().is_incoming_duplicate(event, add=add)
         # make exception for graph-important events
         if self._is_graph_important(event):
-            return False
-        return is_incoming_duplicate
+            return False, "event is graph-important"
+        return is_incoming_duplicate, reason
 
     def _prep_output_dir(self, filename):
         self.output_file = self.config.get("output_file", "")
