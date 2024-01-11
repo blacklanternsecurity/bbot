@@ -7,6 +7,7 @@ class TestBadSecrets(ModuleTestBase):
         "http://127.0.0.1:8888/test.aspx",
         "http://127.0.0.1:8888/cookie.aspx",
         "http://127.0.0.1:8888/cookie2.aspx",
+        "http://127.0.0.1:8888/cookie3.aspx",
     ]
 
     sample_viewstate = """
@@ -50,9 +51,21 @@ class TestBadSecrets(ModuleTestBase):
 
         expect_args = {"uri": "/cookie2.aspx"}
         respond_args = {
-            "response_data": "<html><body><p>Express Cookie Test</p></body></html>",
+            "response_data": "<html><body><p>Express Cookie Test (ES)</p></body></html>",
             "headers": {
                 "set-cookie": "connect.sid=s%3A8FnPwdeM9kdGTZlWvdaVtQ0S1BCOhY5G.qys7H2oGSLLdRsEq7sqh7btOohHsaRKqyjV4LiVnBvc; Path=/; Expires=Wed, 05 Apr 2023 04:47:29 GMT; HttpOnly"
+            },
+        }
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
+
+        expect_args = {"uri": "/cookie3.aspx"}
+        respond_args = {
+            "response_data": "<html><body><p>Express Cookie Test (CS)</p></body></html>",
+            "headers": {
+                "set-cookie": [
+                    "foo=eyJ1c2VybmFtZSI6IkJib3RJc0xpZmUifQ==; path=/; HttpOnly",
+                    "foo.sig=zOQU7v7aTe_3zu7tnVuHi1MJ2DU; path=/; HttpOnly",
+                ],
             },
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
@@ -62,6 +75,7 @@ class TestBadSecrets(ModuleTestBase):
         IdentifyOnly = False
         CookieBasedDetection = False
         CookieBasedDetection_2 = False
+        CookieBasedDetection_3 = False
 
         for e in events:
             if (
@@ -95,7 +109,15 @@ class TestBadSecrets(ModuleTestBase):
             ):
                 CookieBasedDetection_2 = True
 
+            if (
+                e.type == "VULNERABILITY"
+                and "Express.js Secret (cookie-session)" in e.data["description"]
+                and "zOQU7v7aTe_3zu7tnVuHi1MJ2DU" in e.data["description"]
+            ):
+                CookieBasedDetection_3 = True
+
         assert SecretFound, "No secret found"
         assert IdentifyOnly, "No crypto product identified"
-        assert CookieBasedDetection, "No JWT cookie detected"
-        assert CookieBasedDetection_2, "No Express.js cookie detected"
+        assert CookieBasedDetection, "No JWT cookie vuln detected"
+        assert CookieBasedDetection_2, "No Express.js cookie vuln detected"
+        assert CookieBasedDetection_3, "No Express.js (cs dual cookies) vuln detected"

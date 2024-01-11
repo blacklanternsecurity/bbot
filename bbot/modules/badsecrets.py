@@ -10,7 +10,7 @@ class badsecrets(BaseModule):
     produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
-    deps_pip = ["badsecrets~=0.4.432"]
+    deps_pip = ["badsecrets~=0.4.436"]
 
     @property
     def _max_event_handlers(self):
@@ -34,7 +34,11 @@ class badsecrets(BaseModule):
         if resp_body or resp_cookies:
             try:
                 r_list = await self.scan.run_in_executor_mp(
-                    carve_all_modules, body=resp_body, cookies=resp_cookies, url=event.data.get("url", None)
+                    carve_all_modules,
+                    body=resp_body,
+                    headers=resp_headers,
+                    cookies=resp_cookies,
+                    url=event.data.get("url", None),
                 )
             except Exception as e:
                 self.warning(f"Error processing {event}: {e}")
