@@ -102,14 +102,32 @@ class iis_shortnames(BaseModule):
                 return True, c
         return None, c
 
+    async def solve_valid_chars(self, method, target, affirmative_status_code):
+        confirmed_chars = []
+        tasks = []
+
+        for c in valid_chars:
+            suffix = "/a.aspx"
+            payload = encode_all(f"*{c}*~1*")
+            url = f"{target}{payload}{suffix}"
+            task = self.threaded_request(method, url, affirmative_status_code, c)
+            tasks.append(task)
+
+        async for task in self.helpers.as_completed(tasks):
+            result, c = await task
+            if result:
+                confirmed_chars.append(c)
+
+        return confirmed_chars
+
     async def solve_shortname_recursive(
-        self, method, target, prefix, affirmative_status_code, extension_mode=False, node_count=0
+        self, method, target, prefix, affirmative_status_code, char_list, extension_mode=False, node_count=0
     ):
         url_hint_list = []
         found_results = False
 
         tasks = []
-        for c in valid_chars:
+        for c in char_list:
             suffix = "/a.aspx"
             wildcard = "*" if extension_mode else "*~1*"
             payload = encode_all(f"{prefix}{c}{wildcard}")
@@ -139,7 +157,13 @@ class iis_shortnames(BaseModule):
                         url_hint_list.append(f"{prefix}{c}")
 
                 url_hint_list += await self.solve_shortname_recursive(
-                    method, target, f"{prefix}{c}", affirmative_status_code, extension_mode, node_count=node_count
+                    method,
+                    target,
+                    f"{prefix}{c}",
+                    affirmative_status_code,
+                    char_list,
+                    extension_mode,
+                    node_count=node_count,
                 )
         if len(prefix) > 0 and found_results == False:
             url_hint_list.append(f"{prefix}")
@@ -172,13 +196,22 @@ class iis_shortnames(BaseModule):
                     if valid_method_confirmed:
                         break
 
-                    file_name_hints = list(
-                        set(await self.solve_shortname_recursive(method, normalized_url, "", affirmative_status_code))
-                    )
-                    if len(file_name_hints) == 0:
-                        continue
-                    else:
+                    confirmed_chars = await self.solve_valid_chars(method, normalized_url, affirmative_status_code)
+
+                    if len(confirmed_chars) > 0:
                         valid_method_confirmed = True
+                    else:
+                        continue
+
+                    self.debug(f"Confirmed character list: {','.join(confirmed_chars)}")
+
+                    file_name_hints = list(
+                        set(
+                            await self.solve_shortname_recursive(
+                                method, normalized_url, "", affirmative_status_code, confirmed_chars
+                            )
+                        )
+                    )
 
                     file_name_hints = [f"{x}~1" for x in file_name_hints]
                     url_hint_list = []
@@ -198,7 +231,12 @@ class iis_shortnames(BaseModule):
 
                     for y in file_name_hints:
                         file_name_extension_hints = await self.solve_shortname_recursive(
-                            method, normalized_url, f"{y}.", affirmative_status_code, extension_mode=True
+                            method,
+                            normalized_url,
+                            f"{y}.",
+                            affirmative_status_code,
+                            confirmed_chars,
+                            extension_mode=True,
                         )
                         for z in file_name_extension_hints:
                             if z.endswith("."):
