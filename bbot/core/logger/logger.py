@@ -178,7 +178,9 @@ def get_log_handlers():
         stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.addFilter(lambda x: x.levelno == logging.STDOUT)
         # log to files
-        debug_handler.addFilter(lambda x: x.levelno == logging.TRACE or (x.levelno < logging.VERBOSE and x.levelno != logging.STDOUT))
+        debug_handler.addFilter(
+            lambda x: x.levelno == logging.TRACE or (x.levelno < logging.VERBOSE and x.levelno != logging.STDOUT)
+        )
         main_handler.addFilter(
             lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE
         )
