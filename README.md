@@ -6,13 +6,13 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Pypi Downloads](https://img.shields.io/pypi/dm/bbot)](https://pypistats.org/packages/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
-BBOT (Bighuge BLS OSINT Tool) is a recursive internet scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot). It is designed to be faster, more reliable, and friendlier to pentesters, bug bounty hunters, and developers.
+BBOT (Bighuge BLS OSINT Tool) is a recursive internet scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), but designed to be faster, more reliable, and friendlier to pentesters, bug bounty hunters, and developers.
 
 Special features include:
 
 - Support for Multiple Targets
 - Web Screenshots
-- Powerful Suite of Offensive Web Modules
+- Suite of Offensive Web Modules
 - AI-powered Subdomain Mutations
 - Native Output to Neo4j (and more)
 - Python API + Developer Documentation
@@ -26,7 +26,7 @@ _A BBOT scan in real-time - visualization with [VivaGraphJS](https://github.com/
 Below are some short help sections to get you up and running.
 
 <details>
-<summary><b>Installation (pip)</b></summary>
+<summary><b>Installation (Pip)</b></summary>
 
 Note: BBOT's [PyPi package](https://pypi.org/project/bbot/) requires Linux and Python 3.9+.
 
