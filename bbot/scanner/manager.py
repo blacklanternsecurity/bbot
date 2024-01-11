@@ -411,7 +411,7 @@ class ScanManager:
             for mod in self.scan.modules.values():
                 acceptable_dup = (not is_outgoing_duplicate) or mod.accept_dupes
                 # graph_important = mod._type == "output" and event._graph_important == True
-                graph_important = mod._preserve_graph and event._graph_important
+                graph_important = mod._is_graph_important(event)
                 if acceptable_dup or graph_important:
                     await mod.queue_event(event)
 
