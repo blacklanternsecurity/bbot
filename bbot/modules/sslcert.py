@@ -57,10 +57,8 @@ class sslcert(BaseModule):
 
         if event.scope_distance == 0:
             abort_threshold = self.in_scope_abort_threshold
-            log_fn = self.info
         else:
             abort_threshold = self.out_of_scope_abort_threshold
-            log_fn = self.verbose
 
         tasks = [self.visit_host(host, port) for host in hosts]
         async for task in self.helpers.as_completed(tasks):
@@ -70,10 +68,10 @@ class sslcert(BaseModule):
             dns_names, emails, (host, port) = result
             if len(dns_names) > abort_threshold:
                 netloc = self.helpers.make_netloc(host, port)
-                log_fn(
+                self.verbose(
                     f"Skipping Subject Alternate Names (SANs) on {netloc} because number of hostnames ({len(dns_names):,}) exceeds threshold ({abort_threshold})"
                 )
-                dns_names = dns_names[:1]
+                dns_names = dns_names[:1] + [n for n in dns_names[1:] if self.scan.in_scope(n)]
             for event_type, results in (("DNS_NAME", dns_names), ("EMAIL_ADDRESS", emails)):
                 for event_data in results:
                     if event_data is not None and event_data != event:

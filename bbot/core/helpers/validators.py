@@ -1,5 +1,7 @@
 import logging
 import ipaddress
+from typing import Union
+from functools import wraps
 from contextlib import suppress
 
 from bbot.core.helpers import regexes
@@ -26,6 +28,7 @@ def validator(func):
         ...     return max(1, min(65535, int(str(port))))
     """
 
+    @wraps(func)
     def validate_wrapper(*args, **kwargs):
         try:
             return func(*args)
@@ -36,7 +39,7 @@ def validator(func):
 
 
 @validator
-def validate_port(port):
+def validate_port(port: Union[str, int]):
     """
     Validates and sanitizes a port number by ensuring it falls within the allowed range (1-65535).
 
@@ -63,7 +66,7 @@ def validate_port(port):
 
 
 @validator
-def validate_open_port(open_port):
+def validate_open_port(open_port: Union[str, int]):
     host, port = split_host_port(open_port)
     port = validate_port(port)
     host = validate_host(host)
@@ -72,7 +75,7 @@ def validate_open_port(open_port):
 
 
 @validator
-def validate_host(host):
+def validate_host(host: Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]):
     """
     Validates and sanitizes a host string. This function handles IPv4, IPv6, and domain names.
 
@@ -127,12 +130,12 @@ def validate_host(host):
 
 
 @validator
-def validate_url(url):
+def validate_url(url: str):
     return validate_url_parsed(url).geturl()
 
 
 @validator
-def validate_url_parsed(url):
+def validate_url_parsed(url: str):
     url = str(url).strip()
     if not any(r.match(url) for r in regexes.event_type_regexes["URL"]):
         raise ValidationError(f'Invalid URL: "{url}"')
@@ -140,7 +143,7 @@ def validate_url_parsed(url):
 
 
 @validator
-def validate_severity(severity):
+def validate_severity(severity: str):
     severity = str(severity).strip().upper()
     if not severity in ("UNKNOWN", "INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"):
         raise ValueError(f"Invalid severity: {severity}")
@@ -148,14 +151,14 @@ def validate_severity(severity):
 
 
 @validator
-def validate_email(email):
+def validate_email(email: str):
     email = smart_encode_punycode(str(email).strip().lower())
     if any(r.match(email) for r in regexes.event_type_regexes["EMAIL_ADDRESS"]):
         return email
     raise ValidationError(f'Invalid email: "{email}"')
 
 
-def clean_url(url):
+def clean_url(url: str):
     """
     Cleans and normalizes a URL. This function removes the query string and fragment,
     lowercases the netloc, and removes redundant port numbers.
@@ -204,7 +207,11 @@ def clean_url(url):
     return parsed
 
 
-def collapse_urls(urls, threshold=10):
+def collapse_urls(*args, **kwargs):
+    return list(_collapse_urls(*args, **kwargs))
+
+
+def _collapse_urls(urls, threshold=10):
     """
     Collapses a list of URLs by deduping similar URLs based on a hashing mechanism.
     Useful for cleaning large lists of noisy URLs, such as those retrieved from wayback.
@@ -274,6 +281,14 @@ def soft_validate(s, t):
         raise ValueError(f'No validator for type "{t}"')
     try:
         validator_fn(s)
+        return True
+    except ValueError:
+        return False
+
+
+def is_email(email):
+    try:
+        validate_email(email)
         return True
     except ValueError:
         return False

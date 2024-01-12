@@ -44,19 +44,19 @@ class ffuf_shortnames(ffuf):
         "extensions": "",
         "ignore_redirects": True,
         "find_common_prefixes": False,
-        "find_delimeters": True,
+        "find_delimiters": True,
     }
 
     options_desc = {
         "wordlist": "Specify wordlist to use when finding directories",
         "wordlist_extensions": "Specify wordlist to use when making extension lists",
         "lines": "take only the first N lines from the wordlist when finding directories",
-        "max_depth": "the maxium directory depth to attempt to solve",
+        "max_depth": "the maximum directory depth to attempt to solve",
         "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
         "ignore_redirects": "Explicitly ignore redirects (301,302)",
         "find_common_prefixes": "Attempt to automatically detect common prefixes and make additional ffuf runs against them",
-        "find_delimeters": "Attempt to detect common delimeters and make additional ffuf runs against them",
+        "find_delimiters": "Attempt to detect common delimiters and make additional ffuf runs against them",
     }
 
     deps_ansible = [
@@ -115,8 +115,8 @@ class ffuf_shortnames(ffuf):
             return [extension_hint]
 
     def find_delimeter(self, hint):
-        delimeters = ["_", "-"]
-        for d in delimeters:
+        delimiters = ["_", "-"]
+        for d in delimiters:
             if d in hint:
                 if not hint.startswith(d) and not hint.endswith(d):
                     return d, hint.split(d)[0], hint.split(d)[1]
@@ -165,7 +165,7 @@ class ffuf_shortnames(ffuf):
                         r_url = f"{r['url'].rstrip('/')}/"
                         self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
-            if self.config.get("find_delimeters"):
+            if self.config.get("find_delimiters"):
                 if "shortname-directory" in event.tags:
                     delimeter_r = self.find_delimeter(filename_hint)
                     if delimeter_r:

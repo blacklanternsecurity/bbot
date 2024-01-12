@@ -1,7 +1,6 @@
 import random
 import ipaddress
 
-from bbot.core.helpers.misc import parse_port_string
 from bbot.modules.internal.base import BaseInternalModule
 
 
@@ -20,8 +19,10 @@ class speculate(BaseInternalModule):
         "IP_ADDRESS",
         "HTTP_RESPONSE",
         "STORAGE_BUCKET",
+        "SOCIAL",
+        "AZURE_TENANT",
     ]
-    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING"]
+    produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
     flags = ["passive"]
     meta = {"description": "Derive certain event types from others by common sense"}
 
@@ -31,22 +32,22 @@ class speculate(BaseInternalModule):
         "ports": "The set of ports to speculate on",
     }
     scope_distance_modifier = 1
-    _scope_shepherding = False
     _priority = 4
 
     async def setup(self):
-        self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in self.scan.modules.values()])
+        scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
+        self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in scan_modules])
         self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
+        self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         self.range_to_ip = True
         self.dns_resolution = self.scan.config.get("dns_resolution", True)
+        self.org_stubs_seen = set()
 
         port_string = self.config.get("ports", "80,443")
-
         try:
-            self.ports = parse_port_string(port_string)
+            self.ports = self.helpers.parse_port_string(str(port_string))
         except ValueError as e:
-            self.warning(f"Error parsing ports: {e}")
-            return False
+            return False, f"Error parsing ports: {e}"
 
         if not self.portscanner_enabled:
             self.info(f"No portscanner enabled. Assuming open ports: {', '.join(str(x) for x in self.ports)}")
@@ -78,10 +79,15 @@ class speculate(BaseInternalModule):
                 self.emit_event(parent, "DNS_NAME", source=event, internal=True)
 
         # generate open ports
-        emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
+
+        # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
+        event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
+        speculate_open_ports = self.emit_open_ports and event_in_scope_distance
+
         # from URLs
-        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and emit_open_ports):
-            if event.host and event.port not in self.ports:
+        if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
+            # only speculate port from a URL if it wouldn't be speculated naturally from the host
+            if event.host and (event.port not in self.ports or not speculate_open_ports):
                 self.emit_event(
                     self.helpers.make_netloc(event.host, event.port),
                     "OPEN_TCP_PORT",
@@ -102,7 +108,7 @@ class speculate(BaseInternalModule):
                     self.emit_event(url_event)
 
         # from hosts
-        if emit_open_ports:
+        if speculate_open_ports:
             # don't act on unresolved DNS_NAMEs
             usable_dns = False
             if event.type == "DNS_NAME":
@@ -122,12 +128,33 @@ class speculate(BaseInternalModule):
         # storage buckets etc.
         self.helpers.cloud.speculate(event)
 
+        # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
+        org_stubs = set()
+        if event.type == "DNS_NAME" and event.scope_distance == 0:
+            tldextracted = self.helpers.tldextract(event.data)
+            registered_domain = getattr(tldextracted, "registered_domain", "")
+            if registered_domain:
+                tld_stub = getattr(tldextracted, "domain", "")
+                if tld_stub:
+                    org_stubs.add(tld_stub)
+        elif event.type == "SOCIAL":
+            stub = event.data.get("stub", "")
+            if stub:
+                org_stubs.add(stub.lower())
+        elif event.type == "AZURE_TENANT":
+            tenant_names = event.data.get("tenant-names", [])
+            org_stubs.update(set(tenant_names))
+        for stub in org_stubs:
+            stub_hash = hash(stub)
+            if stub_hash not in self.org_stubs_seen:
+                self.org_stubs_seen.add(stub_hash)
+                stub_event = self.make_event(stub, "ORG_STUB", source=event)
+                if event.scope_distance > 0:
+                    stub_event.scope_distance = event.scope_distance
+                self.emit_event(stub_event)
+
     async def filter_event(self, event):
-        # don't accept IP_RANGE --> IP_ADDRESS events from self
-        if str(event.module) == "speculate":
-            if not (event.type == "IP_ADDRESS" and str(getattr(event.source, "type")) == "IP_RANGE"):
-                return False
         # don't accept errored DNS_NAMEs
         if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
-            return False
+            return False, "there were errors resolving this hostname"
         return True

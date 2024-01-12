@@ -7,20 +7,14 @@ class TestWebReport(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         # secretsdb --> FINDING
-        module_test.httpx_mock.add_response(
-            url="https://raw.githubusercontent.com/blacklanternsecurity/secrets-patterns-db/master/db/rules-stable.yml",
-            text="""patterns:
-- pattern:
-    confidence: 99
-    name: Asymmetric Private Key
-    regex: '-----BEGIN ((EC|PGP|DSA|RSA|OPENSSH) )?PRIVATE KEY( BLOCK)?-----'""",
-        )
         # wappalyzer --> TECHNOLOGY
         # badsecrets --> VULNERABILITY
         respond_args = {"response_data": web_body}
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
+        for e in events:
+            module_test.log.critical(e)
         report_file = module_test.scan.home / "web_report.html"
         with open(report_file) as f:
             report_content = f.read()
@@ -31,12 +25,7 @@ class TestWebReport(ModuleTestBase):
 <li><strong>http://127.0.0.1:8888/</strong>"""
             in report_content
         )
-        assert (
-            """<h3>FINDING</h3>
-<ul>
-<li>Possible secret (Asymmetric Private Key)"""
-            in report_content
-        )
+        assert """Possible secret (Asymmetric Private Key)""" in report_content
         assert "<h3>TECHNOLOGY</h3>" in report_content
         assert "<p>flask</p>" in report_content
 

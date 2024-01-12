@@ -1,7 +1,7 @@
-from bbot.modules.bucket_aws import bucket_aws
+from bbot.modules.templates.bucket import bucket_template
 
 
-class bucket_digitalocean(bucket_aws):
+class bucket_digitalocean(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "slow", "cloud-enum", "web-thorough"]
@@ -17,4 +17,4 @@ class bucket_digitalocean(bucket_aws):
     regions = ["ams3", "fra1", "nyc3", "sfo2", "sfo3", "sgp1"]
 
     def build_url(self, bucket_name, base_domain, region):
-        return f"https://{bucket_name}.{region}.{base_domain}"
+        return f"https://{bucket_name}.{region}.{base_domain}/"

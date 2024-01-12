@@ -31,19 +31,22 @@ jobs:
   test:
     needs: lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.x"
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           pip install poetry
           poetry install
       - name: Run tests
         run: |
-          poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 600 --disable-warnings --log-cli-level=DEBUG --cov-report xml:cov.xml --cov=bbot .
+          poetry run pytest --exitfirst --reruns 2 -o timeout_func_only=true --timeout 1200 --disable-warnings --log-cli-level=DEBUG --cov-config=bbot/test/coverage.cfg --cov-report xml:cov.xml --cov=bbot .
       - name: Upload Code Coverage
         uses: codecov/codecov-action@v3
         with:

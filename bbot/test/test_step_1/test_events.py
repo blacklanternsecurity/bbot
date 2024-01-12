@@ -142,7 +142,7 @@ async def test_events(events, scan, helpers, bbot_config):
     # scope distance
     event1 = scan.make_event("1.2.3.4", dummy=True)
     assert event1._scope_distance == -1
-    event1.set_scope_distance(0)
+    event1.scope_distance = 0
     assert event1._scope_distance == 0
     event2 = scan.make_event("2.3.4.5", source=event1)
     assert event2._scope_distance == 1
@@ -153,24 +153,32 @@ async def test_events(events, scan, helpers, bbot_config):
     event5 = scan.make_event("4.5.6.7", source=event4)
     assert event5._scope_distance == 3
 
+    url_1 = scan.make_event("https://127.0.0.1/asdf", "URL_UNVERIFIED", source=scan.root_event)
+    assert url_1.scope_distance == 1
+    url_2 = scan.make_event("https://127.0.0.1/test", "URL_UNVERIFIED", source=url_1)
+    assert url_2.scope_distance == 1
+    url_3 = scan.make_event("https://127.0.0.2/asdf", "URL_UNVERIFIED", source=url_1)
+    assert url_3.scope_distance == 2
+
+    org_stub_1 = scan.make_event("STUB1", "ORG_STUB", source=scan.root_event)
+    org_stub_1.scope_distance == 1
+    org_stub_2 = scan.make_event("STUB2", "ORG_STUB", source=org_stub_1)
+    org_stub_2.scope_distance == 2
+
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
     internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)
     assert internal_event1._internal == True
-    assert internal_event1._made_internal == True
-    internal_event1.set_scope_distance(0)
-    assert internal_event1._internal == False
-    assert internal_event1._made_internal == False
-    internal_event2 = scan.make_event("2.3.4.5", source=internal_event1, internal=True)
-    internal_event3 = scan.make_event("3.4.5.6", source=internal_event2, internal=True)
-    internal_event4 = scan.make_event("4.5.6.7", source=internal_event3)
-    source_trail = internal_event4.set_scope_distance(0)
-    assert internal_event4._internal == False
-    assert internal_event3._internal == False
-    assert internal_event2._internal == False
-    assert len(source_trail) == 2
-    assert internal_event2 in source_trail
-    assert internal_event3 in source_trail
+    assert "internal" in internal_event1.tags
+
+    # tag inheritance
+    for tag in ("affiliate", "mutation-1"):
+        affiliate_event = scan.make_event("1.2.3.4", source=root_event, tags=tag)
+        assert tag in affiliate_event.tags
+        affiliate_event2 = scan.make_event("1.2.3.4:88", source=affiliate_event)
+        affiliate_event3 = scan.make_event("4.3.2.1:88", source=affiliate_event)
+        assert tag in affiliate_event2.tags
+        assert tag not in affiliate_event3.tags
 
     # event sorting
     parent1 = scan.make_event("127.0.0.1", source=scan.root_event)
@@ -234,7 +242,7 @@ async def test_events(events, scan, helpers, bbot_config):
     )
     assert json.loads(test_vuln2.data_human)["severity"] == "INFO"
     assert test_vuln2.host.is_private
-    with pytest.raises(ValidationError, match=".*severity.*\n.*field required.*"):
+    with pytest.raises(ValidationError, match=".*validation error.*\nseverity\n.*Field required.*"):
         test_vuln = scan.make_event({"host": "evilcorp.com", "description": "asdf"}, "VULNERABILITY", dummy=True)
     with pytest.raises(ValidationError, match=".*host.*\n.*Invalid host.*"):
         test_vuln = scan.make_event(
@@ -337,19 +345,21 @@ async def test_events(events, scan, helpers, bbot_config):
     # test event serialization
     from bbot.core.event import event_from_json
 
-    db_event = scan.make_event("127.0.0.1", dummy=True)
+    db_event = scan.make_event("evilcorp.com", dummy=True)
+    db_event._resolved_hosts = {"127.0.0.1"}
     db_event.scope_distance = 1
     timestamp = db_event.timestamp.timestamp()
     json_event = db_event.json()
     assert json_event["scope_distance"] == 1
-    assert json_event["data"] == "127.0.0.1"
-    assert json_event["type"] == "IP_ADDRESS"
+    assert json_event["data"] == "evilcorp.com"
+    assert json_event["type"] == "DNS_NAME"
     assert json_event["timestamp"] == timestamp
     reconstituted_event = event_from_json(json_event)
     assert reconstituted_event.scope_distance == 1
     assert reconstituted_event.timestamp.timestamp() == timestamp
-    assert reconstituted_event.data == "127.0.0.1"
-    assert reconstituted_event.type == "IP_ADDRESS"
+    assert reconstituted_event.data == "evilcorp.com"
+    assert reconstituted_event.type == "DNS_NAME"
+    assert "127.0.0.1" in reconstituted_event.resolved_hosts
 
     http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
     assert http_response.source_id == scan.root_event.id

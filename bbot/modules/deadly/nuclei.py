@@ -11,7 +11,7 @@ class nuclei(BaseModule):
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
     options = {
-        "version": "2.9.15",
+        "version": "3.0.4",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -33,7 +33,7 @@ class nuclei(BaseModule):
         "concurrency": "maximum number of templates to be executed in parallel (default 25)",
         "mode": "manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests",
         "etags": "tags to exclude from the scan",
-        "budget": "Used in budget mode to set the number of requests which will be alloted to the nuclei scan",
+        "budget": "Used in budget mode to set the number of requests which will be allotted to the nuclei scan",
         "directory_only": "Filter out 'file' URL event (default True)",
         "retries": "number of times to retry a failed request (default 0)",
         "batch_size": "Number of targets to send to Nuclei per batch (default 200)",

@@ -6,7 +6,7 @@ from bbot.modules.templates.credential_leak import credential_leak
 class dehashed(credential_leak):
     watched_events = ["DNS_NAME"]
     produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME"]
-    flags = ["passive"]
+    flags = ["passive", "safe", "email-enum"]
     meta = {"description": "Execute queries against dehashed.com for exposed credentials", "auth_required": True}
     options = {"username": "", "api_key": ""}
     options_desc = {"username": "Email Address associated with your API key", "api_key": "DeHashed API Key"}

@@ -2,7 +2,7 @@
 
 ## Overview
 
-BBOT's interface with the open-source vulnerability scanner [Nuclei](https://github.com/projectdiscovery/nuclei) by Project Discovery. This is one of the ways BBOT makes it possible to go from a domain name or IP all the way to confirmed vulnerabilities, in one scan. 
+BBOT integrates with [Nuclei](https://github.com/projectdiscovery/nuclei), an open-source web vulnerability scanner by Project Discovery. This is one of the ways BBOT makes it possible to go from a single target domain/IP all the way to confirmed vulnerabilities, in one scan. 
 
 ![Nuclei Killchain](https://github.com/blacklanternsecurity/bbot/assets/24899338/7174c4ba-4a6e-4596-bb89-5a0c5f5abe74)
 
@@ -13,33 +13,35 @@ BBOT's interface with the open-source vulnerability scanner [Nuclei](https://git
 
 ## Default Behavior
 
-* By default, it will scan *only directory URLs*, but it will scan with ALL templates (**BE CAREFUL!**)
-* Because it's so aggressive, its considered a **deadly** module. This means you need to use the flag **--allow-deadly** to turn it on.
+* By default, only "directory URLs" (URLs ending in a slash) will be scanned, but ALL templates will be used (**BE CAREFUL!**)
+* Because it's so aggressive, Nuclei is considered a **deadly** module. This means you need to use the flag **--allow-deadly** to turn it on.
 
 ## Configuration and Options
 
 The Nuclei module has many configuration options:
 
-| Option         | Description                                                              | Default |
-|----------------|--------------------------------------------------------------------------|---------|
-| version        | What version of Nuclei to use                                            | 2.9.9   |
-| tags           | Limit Nuclei to templates w/these tags                                   | <blank> |
-| templates      | Path to template file, or template directory                             | <blank> |
-| severity       | Filter based on severity field available in the template                 | <blank> |
-| ratelimit      | maximum number of requests to send per second                            | 150     |
-| concurrency    | maximum number of templates to be executed in parallel                   | 25      |
-| mode           | technology \| severe \| manual \| budget                                 | manual  |
-| etags          | Tags to exclude from the scan                                            | <blank> |
-| directory_only | When on, limits scan to only "directory" URLs (omit endpoints)           | True    |
-| budget         | Used in budget mode to set the number of requests which will be allotted | 1       |
-| retries        | Mumber of times to retry a failed request                                | 0       |
-| batch_size     | The number of targets BBOT will pass to Nuclei at a time                 | 200     |
+<!-- BBOT MODULE OPTIONS NUCLEI -->
+| Config Option                 | Type   | Description                                                                                                                                                                                                                                                                                                     | Default   |
+|-------------------------------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| modules.nuclei.batch_size     | int    | Number of targets to send to Nuclei per batch (default 200)                                                                                                                                                                                                                                                     | 200       |
+| modules.nuclei.budget         | int    | Used in budget mode to set the number of requests which will be allotted to the nuclei scan                                                                                                                                                                                                                     | 1         |
+| modules.nuclei.concurrency    | int    | maximum number of templates to be executed in parallel (default 25)                                                                                                                                                                                                                                             | 25        |
+| modules.nuclei.directory_only | bool   | Filter out 'file' URL event (default True)                                                                                                                                                                                                                                                                      | True      |
+| modules.nuclei.etags          | str    | tags to exclude from the scan                                                                                                                                                                                                                                                                                   |           |
+| modules.nuclei.mode           | str    | manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests | manual    |
+| modules.nuclei.ratelimit      | int    | maximum number of requests to send per second (default 150)                                                                                                                                                                                                                                                     | 150       |
+| modules.nuclei.retries        | int    | number of times to retry a failed request (default 0)                                                                                                                                                                                                                                                           | 0         |
+| modules.nuclei.severity       | str    | Filter based on severity field available in the template.                                                                                                                                                                                                                                                       |           |
+| modules.nuclei.tags           | str    | execute a subset of templates that contain the provided tags                                                                                                                                                                                                                                                    |           |
+| modules.nuclei.templates      | str    | template or template directory paths to include in the scan                                                                                                                                                                                                                                                     |           |
+| modules.nuclei.version        | str    | nuclei version                                                                                                                                                                                                                                                                                                  | 3.0.4     |
+<!-- END BBOT MODULE OPTIONS NUCLEI -->
 
-Most of these you probably will **NOT** want to change. In particular, we strongly advise against changing the version of Nuclei, as it's very likely the latest version won't work right with BBOT.
+Most of these you probably will **NOT** want to change. In particular, we advise against changing the version of Nuclei, as it's possible the latest version won't work right with BBOT.
 
-We also do not recommend changing **directory_only** mode. Because BBOT is recursive, feeding Nuclei every URL can get very out-of-hand very quickly, depending on what other modules are in use.
+We also do not recommend changing **directory_only** mode. This will cause Nuclei to process every URL. Because BBOT is recursive, this can get very out-of-hand very quickly, depending on which other modules are in use.
 
-### Mode ###
+### Modes ###
 
 The modes with the Nuclei module are generally in place to help you limit the number of templates you are scanning with, to make your scans quicker. 
 
@@ -82,18 +84,22 @@ The **ratelimit** and **concurrency** settings default to the same defaults that
 
 ### Example Commands
 
-* Scan a SINGLE target with a basic port scan and web modules
+```bash
+# Scan a SINGLE target with a basic port scan and web modules
+bbot -f web-basic -m nmap nuclei --allow-deadly -t app.evilcorp.com​
+```
 
-`COMMAND: bbot -f web-basic -m nmap nuclei --allow-deadly -t app.evilcorp.com​`
+```bash
+# Scanning MULTIPLE targets
+bbot -f web-basic -m nmap nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com​
+```
 
-* Scanning MULTIPLE targets
+```bash
+# Scanning MULTIPLE targets while performing subdomain enumeration
+bbot -f subdomain-enum web-basic -m nmap nuclei –allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com​
+```
 
-`bbot -f web-basic -m nmap nuclei --allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com​`
-
-* Scanning MULTIPLE targets while performing subdomain enumeration
-
-`bbot -f subdomain-enum web-basic -m nmap nuclei –allow-deadly -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com​`
-
-* Scanning MULTIPLE targets on a BUDGET​
-
-`bbot -f subdomain-enum web-basic -m nmap nuclei –allow-deadly –c modules.nuclei.mode=Budget -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com​`
+```bash
+# Scanning MULTIPLE targets on a BUDGET​
+bbot -f subdomain-enum web-basic -m nmap nuclei –allow-deadly –c modules.nuclei.mode=Budget -t app1.evilcorp.com app2.evilcorp.com app3.evilcorp.com​
+```

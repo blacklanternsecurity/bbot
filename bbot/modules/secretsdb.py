@@ -18,6 +18,8 @@ class secretsdb(BaseModule):
         "signatures": "File path or URL to YAML signatures",
     }
     deps_pip = ["pyyaml~=6.0"]
+    # accept any HTTP_RESPONSE including out-of-scope ones (such as from github_codesearch)
+    scope_distance_modifier = 3
 
     async def setup(self):
         self.rules = []

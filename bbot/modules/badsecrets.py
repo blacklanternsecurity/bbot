@@ -7,14 +7,14 @@ from badsecrets.base import carve_all_modules
 
 class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
-    deps_pip = ["badsecrets~=0.4"]
+    deps_pip = ["badsecrets~=0.4.436"]
 
     @property
     def _max_event_handlers(self):
-        return multiprocessing.cpu_count()
+        return max(1, multiprocessing.cpu_count() - 1)
 
     async def handle_event(self, event):
         resp_body = event.data.get("body", None)
@@ -34,7 +34,11 @@ class badsecrets(BaseModule):
         if resp_body or resp_cookies:
             try:
                 r_list = await self.scan.run_in_executor_mp(
-                    carve_all_modules, body=resp_body, cookies=resp_cookies, url=event.data.get("url", None)
+                    carve_all_modules,
+                    body=resp_body,
+                    headers=resp_headers,
+                    cookies=resp_cookies,
+                    url=event.data.get("url", None),
                 )
             except Exception as e:
                 self.warning(f"Error processing {event}: {e}")
@@ -44,15 +48,23 @@ class badsecrets(BaseModule):
                     if r["type"] == "SecretFound":
                         data = {
                             "severity": r["description"]["severity"],
-                            "description": f"Known Secret Found. Secret Type: [{r['description']['secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['product']}] Product: [{r['product']}] Detecting Module: [{r['detecting_module']}] Details: [{r['details']}]",
+                            "description": f"Known Secret Found. Secret Type: [{r['description']['secret']}] Secret: [{r['secret']}] Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'],2000)}] Detecting Module: [{r['detecting_module']}] Details: [{r['details']}]",
                             "url": event.data["url"],
                             "host": str(event.host),
                         }
                         self.emit_event(data, "VULNERABILITY", event)
                     elif r["type"] == "IdentifyOnly":
-                        data = {
-                            "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{r['product']}] Detecting Module: [{r['detecting_module']}]",
-                            "url": event.data["url"],
-                            "host": str(event.host),
-                        }
-                        self.emit_event(data, "FINDING", event)
+                        # There is little value to presenting a non-vulnerable asp.net viewstate, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
+                        if r["detecting_module"] == "ASPNET_Viewstate":
+                            self.emit_event(
+                                {"technology": "microsoft asp.net", "url": event.data["url"], "host": str(event.host)},
+                                "TECHNOLOGY",
+                                event,
+                            )
+                        else:
+                            data = {
+                                "description": f"Cryptographic Product identified. Product Type: [{r['description']['product']}] Product: [{self.helpers.truncate_string(r['product'],2000)}] Detecting Module: [{r['detecting_module']}]",
+                                "url": event.data["url"],
+                                "host": str(event.host),
+                            }
+                            self.emit_event(data, "FINDING", event)

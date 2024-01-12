@@ -14,7 +14,7 @@ class filedownload(BaseModule):
 
     watched_events = ["URL_UNVERIFIED", "HTTP_RESPONSE"]
     produced_events = []
-    flags = ["active", "safe"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Download common filetypes such as PDF, DOCX, PPTX, etc."}
     options = {
         "extensions": [
@@ -46,7 +46,6 @@ class filedownload(BaseModule):
             "odt",  #  OpenDocument Text (LibreOffice, OpenOffice)
             "pdf",  #  Adobe Portable Document Format
             "pem",  #  Privacy Enhanced Mail (SSL certificate)
-            "png",  #  Portable Network Graphics Image
             "pps",  #  Microsoft PowerPoint Slideshow (Old Format)
             "ppsx",  #  Microsoft PowerPoint Slideshow
             "ppt",  #  Microsoft PowerPoint Presentation (Old Format)
@@ -77,14 +76,15 @@ class filedownload(BaseModule):
         "max_filesize": "Cancel download if filesize is greater than this size",
     }
 
-    scope_distance_modifier = 1
+    scope_distance_modifier = 3
 
     async def setup(self):
         self.extensions = list(set([e.lower().strip(".") for e in self.options.get("extensions", [])]))
         self.max_filesize = self.options.get("max_filesize", "10MB")
         self.download_dir = self.scan.home / "filedownload"
         self.helpers.mkdir(self.download_dir)
-        self.files_downloaded = set()
+        self.urls_downloaded = set()
+        self.files_downloaded = 0
         self.mime_db_file = await self.helpers.wordlist(
             "https://raw.githubusercontent.com/jshttp/mime-db/master/db.json"
         )
@@ -100,9 +100,11 @@ class filedownload(BaseModule):
         # accept file download requests from other modules
         if "filedownload" in event.tags:
             return True
-        h = self.hash_event(event)
-        if h in self.files_downloaded:
-            return False, f"Already processed {event}"
+        else:
+            if event.scope_distance > 1:
+                return False, f"{event} not within scope distance"
+            elif self.hash_event(event) in self.urls_downloaded:
+                return False, f"Already processed {event}"
         return True
 
     def hash_event(self, event):
@@ -113,7 +115,9 @@ class filedownload(BaseModule):
     async def handle_event(self, event):
         if event.type == "URL_UNVERIFIED":
             url_lower = event.data.lower()
-            if any(url_lower.endswith(f".{e}") for e in self.extensions):
+            extension_matches = any(url_lower.endswith(f".{e}") for e in self.extensions)
+            filedownload_requested = "filedownload" in event.tags
+            if extension_matches or filedownload_requested:
                 await self.download_file(event.data)
         elif event.type == "HTTP_RESPONSE":
             content_type = event.data["header"].get("content_type", "")
@@ -128,7 +132,8 @@ class filedownload(BaseModule):
         result = await self.helpers.download(url, warn=False, filename=file_destination, max_size=self.max_filesize)
         if result:
             self.info(f'Found "{orig_filename}" at "{base_url}", downloaded to {file_destination}')
-        self.files_downloaded.add(hash(url))
+            self.files_downloaded += 1
+        self.urls_downloaded.add(hash(url))
 
     def make_filename(self, url, content_type=None):
         # first, try to determine original filename
@@ -161,5 +166,5 @@ class filedownload(BaseModule):
         return orig_filename, self.download_dir / filename, base_url
 
     async def report(self):
-        if self.files_downloaded:
-            self.success(f"Downloaded {len(self.files_downloaded):,} file(s) to {self.download_dir}")
+        if self.files_downloaded > 0:
+            self.success(f"Downloaded {self.files_downloaded:,} file(s) to {self.download_dir}")

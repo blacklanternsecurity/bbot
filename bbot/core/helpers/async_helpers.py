@@ -1,4 +1,5 @@
 import uuid
+import random
 import asyncio
 import logging
 import threading
@@ -10,6 +11,15 @@ from contextlib import asynccontextmanager
 log = logging.getLogger("bbot.core.helpers.async_helpers")
 
 from .cache import CacheDict
+
+
+class ShuffleQueue(asyncio.Queue):
+    def _put(self, item):
+        random_index = random.randint(0, self.qsize())
+        self._queue.insert(random_index, item)
+
+    def _get(self):
+        return self._queue.popleft()
 
 
 class _Lock(asyncio.Lock):

@@ -230,19 +230,22 @@ class Interactsh:
         if self.token:
             headers["Authorization"] = self.token
 
-        r = await self.parent_helper.request(
-            f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
-        )
+        try:
+            r = await self.parent_helper.request(
+                f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
+            )
 
-        ret = []
-        data_list = r.json().get("data", None)
-        if data_list:
-            aes_key = r.json()["aes_key"]
+            ret = []
+            data_list = r.json().get("data", None)
+            if data_list:
+                aes_key = r.json()["aes_key"]
 
-            for data in data_list:
-                decrypted_data = self._decrypt(aes_key, data)
-                ret.append(decrypted_data)
-        return ret
+                for data in data_list:
+                    decrypted_data = self._decrypt(aes_key, data)
+                    ret.append(decrypted_data)
+            return ret
+        except Exception as e:
+            raise InteractshError(f"Error polling interact.sh: {e}")
 
     async def poll_loop(self, callback):
         """

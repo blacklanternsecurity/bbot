@@ -138,8 +138,6 @@ class subdomain_enum(BaseModule):
         # this helps weed out unwanted results when scanning IP_RANGES and wildcard domains
         if "in-scope" not in event.tags:
             return True
-        if await self._is_wildcard(event.data):
-            return True
         return False
 
 

@@ -34,7 +34,7 @@ class bevigil(subdomain_enum_apikey):
         if self.urls:
             urls = await self.query(query, request_fn=self.request_urls, parse_fn=self.parse_urls)
             if urls:
-                for parsed_url in self.helpers.validators.collapse_urls(urls):
+                for parsed_url in await self.scan.run_in_executor(self.helpers.validators.collapse_urls, urls):
                     self.emit_event(parsed_url.geturl(), "URL_UNVERIFIED", source=event)
 
     async def request_subdomains(self, query):

@@ -14,6 +14,7 @@ watch:
 
 # Page tree
 nav:
+- User Manual:
   - Basics:
     - Getting Started: index.md
     - How it Works: how_it_works.md
@@ -28,31 +29,32 @@ nav:
   - Modules: 
     - List of Modules: modules/list_of_modules.md
     - Nuclei: modules/nuclei.md
-  - Contribution:
-    - How to Write a Module: contribution.md
-    - Developer Reference:
-      - Overview: dev/index.md
-      - Scanner: dev/scanner.md
-      - Event: dev/event.md
-      - Target: dev/target.md
-      - BaseModule: dev/basemodule.md
-      - Helpers: 
-        - Overview: dev/helpers/index.md
-        - Command: dev/helpers/command.md
-        - DNS: dev/helpers/dns.md
-        - Interactsh: dev/helpers/interactsh.md
-        - Miscellaneous: dev/helpers/misc.md
-        - Web: dev/helpers/web.md
-        - Word Cloud: dev/helpers/wordcloud.md
   - Misc:
     - Release History: release_history.md
     - Troubleshooting: troubleshooting.md
+- Developer Manual:
+  - How to Write a Module: contribution.md
+  - Development Overview: dev/index.md
+  - Scanner: dev/scanner.md
+  - Event: dev/event.md
+  - Target: dev/target.md
+  - BaseModule: dev/basemodule.md
+  - Helpers:
+    - Overview: dev/helpers/index.md
+    - Command: dev/helpers/command.md
+    - DNS: dev/helpers/dns.md
+    - Interactsh: dev/helpers/interactsh.md
+    - Miscellaneous: dev/helpers/misc.md
+    - Web: dev/helpers/web.md
+    - Word Cloud: dev/helpers/wordcloud.md
 
 theme:
   name: material
   logo: bbot.png
+  favicon: favicon.png
   features:
     - content.code.copy
+    - navigation.tabs
     - navigation.sections
     - navigation.expand
     - toc.integrate

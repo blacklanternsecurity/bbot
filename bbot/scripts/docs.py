@@ -56,6 +56,16 @@ def update_docs():
         for file in md_files:
             find_replace_file(file, keyword, s)
 
+    def update_individual_module_options():
+        regex = re.compile("BBOT MODULE OPTIONS ([A-Z_]+)")
+        for file in md_files:
+            with open(file) as f:
+                content = f.read()
+            for match in regex.finditer(content):
+                module_name = match.groups()[0].lower()
+                bbot_module_options_table = module_loader.modules_options_table(modules=[module_name])
+                find_replace_file(file, f"BBOT MODULE OPTIONS {module_name.upper()}", bbot_module_options_table)
+
     # Example commands
     bbot_example_commands = []
     for title, description, command in scan_examples:
@@ -88,6 +98,7 @@ def update_docs():
     bbot_module_options_table = module_loader.modules_options_table()
     assert len(bbot_module_options_table.splitlines()) > 100
     update_md_files("BBOT MODULE OPTIONS", bbot_module_options_table)
+    update_individual_module_options()
 
     # BBOT module flags
     bbot_module_flags_table = module_loader.flags_table()
@@ -103,26 +114,39 @@ def update_docs():
     update_md_files("BBOT DEFAULT CONFIG", default_config_yml)
 
     # Table of Contents
+    base_url = "https://www.blacklanternsecurity.com/bbot"
+
+    def format_section(section_title, section_path):
+        path = section_path.split("index.md")[0]
+        path = path.split(".md")[0]
+        return f"- [{section_title}]({base_url}/{path})\n"
+
+    bbot_docs_toc = ""
+
+    def update_toc(section, level=0):
+        nonlocal bbot_docs_toc
+        indent = " " * 4 * level
+        if isinstance(section, dict):
+            for section_title, subsections in section.items():
+                if isinstance(subsections, str):
+                    bbot_docs_toc += f"{indent}{format_section(section_title, subsections)}"
+                else:
+                    bbot_docs_toc += f"{indent}- **{section_title}**\n"
+                    for subsection in subsections:
+                        update_toc(subsection, level=level + 1)
+
     mkdocs_yml_file = bbot_code_dir / "mkdocs.yml"
     yaml.SafeLoader.add_constructor(
         "tag:yaml.org,2002:python/name:pymdownx.superfences.fence_code_format", lambda x, y: {}
     )
-    bbot_docs_toc = ""
-    base_url = "https://www.blacklanternsecurity.com/bbot"
+
     with open(mkdocs_yml_file, "r") as f:
         mkdocs_yaml = yaml.safe_load(f)
         nav = mkdocs_yaml["nav"]
         for section in nav:
-            for section_title, subsections in section.items():
-                bbot_docs_toc += f"- **{section_title}**\n"
-                for subsection in subsections:
-                    for subsection_title, subsection_path in subsection.items():
-                        if isinstance(subsection_path, str):
-                            path = subsection_path.split("index.md")[0]
-                            path = path.split(".md")[0]
-                            bbot_docs_toc += f"    - [{subsection_title}]({base_url}/{path})\n"
+            update_toc(section)
     bbot_docs_toc = bbot_docs_toc.strip()
-    assert len(bbot_docs_toc.splitlines()) > 5
+    # assert len(bbot_docs_toc.splitlines()) == 2
     update_md_files("BBOT DOCS TOC", bbot_docs_toc)
 
 

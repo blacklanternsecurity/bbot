@@ -6,8 +6,8 @@ from . import misc
 from .dns import DNSHelper
 from .web import WebHelper
 from .diff import HttpCompare
+from .cloud import CloudHelper
 from .wordcloud import WordCloud
-from .cloud import CloudProviders
 from .interactsh import Interactsh
 from ...scanner.target import Target
 from ...modules.base import BaseModule
@@ -75,7 +75,7 @@ class ConfigAwareHelper:
         self.dummy_modules = {}
 
         # cloud helpers
-        self.cloud = CloudProviders(self)
+        self.cloud = CloudHelper(self)
 
     def interactsh(self):
         return Interactsh(self)
@@ -157,8 +157,12 @@ class ConfigAwareHelper:
                         # then try web
                         return getattr(self.web, attr)
                     except AttributeError:
-                        # then die
-                        raise AttributeError(f'Helper has no attribute "{attr}"')
+                        try:
+                            # then try validators
+                            return getattr(self.validators, attr)
+                        except AttributeError:
+                            # then die
+                            raise AttributeError(f'Helper has no attribute "{attr}"')
 
 
 class DummyModule(BaseModule):

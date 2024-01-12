@@ -3,7 +3,7 @@ import re
 from .base import ModuleTestBase
 from bbot.core.helpers.misc import rand_string
 
-__all__ = ["random_bucket_name_1", "random_bucket_name_2", "random_bucket_name_3", "Bucket_AWS_Base"]
+__all__ = ["random_bucket_name_1", "random_bucket_name_2", "random_bucket_name_3", "Bucket_Amazon_Base"]
 
 # first one is a normal bucket
 random_bucket_name_1 = rand_string(15, digits=False)
@@ -13,9 +13,9 @@ random_bucket_name_2 = rand_string(15, digits=False)
 random_bucket_name_3 = f"{random_bucket_name_2}-dev"
 
 
-class Bucket_AWS_Base(ModuleTestBase):
+class Bucket_Amazon_Base(ModuleTestBase):
     targets = ["http://127.0.0.1:8888"]
-    provider = "aws"
+    provider = "amazon"
 
     random_bucket_1 = f"{random_bucket_name_1}.s3.amazonaws.com"
     random_bucket_2 = f"{random_bucket_name_2}.s3-ap-southeast-2.amazonaws.com"
@@ -26,16 +26,20 @@ class Bucket_AWS_Base(ModuleTestBase):
 
     @property
     def config_overrides(self):
-        return {"modules": {f"bucket_{self.provider}": {"permutations": True}}}
+        return {"modules": {self.module_name: {"permutations": True}}}
+
+    @property
+    def module_name(self):
+        return self.__class__.__name__.lower().split("test")[-1]
 
     @property
     def modules_overrides(self):
-        return ["excavate", "speculate", "httpx", f"bucket_{self.provider}"]
+        return ["excavate", "speculate", "httpx", self.module_name]
 
     def url_setup(self):
-        self.url_1 = f"https://{self.random_bucket_1}"
-        self.url_2 = f"https://{self.random_bucket_2}"
-        self.url_3 = f"https://{self.random_bucket_3}"
+        self.url_1 = f"https://{self.random_bucket_1}/"
+        self.url_2 = f"https://{self.random_bucket_2}/"
+        self.url_3 = f"https://{self.random_bucket_3}/"
 
     def bucket_setup(self):
         self.url_setup()
@@ -68,26 +72,26 @@ class Bucket_AWS_Base(ModuleTestBase):
         # make sure buckets were excavated
         assert any(
             e.type == "STORAGE_BUCKET" and str(e.module) == f"{self.provider}_cloud" for e in events
-        ), f'bucket not found for provider "{self.provider}"'
+        ), f'bucket not found for module "{self.module_name}"'
         # make sure open buckets were found
         if module_test.module.supports_open_check:
             assert any(
-                e.type == "FINDING" and str(e.module) == f"bucket_{self.provider}" for e in events
-            ), f'open bucket not found for provider "{self.provider}"'
+                e.type == "FINDING" and str(e.module) == self.module_name for e in events
+            ), f'open bucket not found for module "{self.module_name}"'
             for e in events:
-                if e.type == "FINDING" and str(e.module) == f"bucket_{self.provider}":
+                if e.type == "FINDING" and str(e.module) == self.module_name:
                     url = e.data.get("url", "")
                     assert self.random_bucket_2 in url
                     assert not self.random_bucket_1 in url
-                    assert not f"{self.random_bucket_3}" in url
+                    assert not self.random_bucket_3 in url
         # make sure bucket mutations were found
         assert any(
             e.type == "STORAGE_BUCKET"
-            and str(e.module) == f"bucket_{self.provider}"
+            and str(e.module) == self.module_name
             and f"{random_bucket_name_3}" in e.data["url"]
             for e in events
-        ), f'bucket (dev mutation) not found for provider "{self.provider}"'
+        ), f'bucket (dev mutation: {self.random_bucket_3}) not found for module "{self.module_name}"'
 
 
-class TestBucket_AWS(Bucket_AWS_Base):
+class TestBucket_Amazon(Bucket_Amazon_Base):
     pass

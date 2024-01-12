@@ -67,8 +67,10 @@ class HostnameExtractor(BaseExtractor):
 
 
 class URLExtractor(BaseExtractor):
+    url_path_regex = r"((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)"
     regexes = {
-        "fullurl": r"(?i)" + r"(\w{2,15})://((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)",
+        "fulluri": r"(?i)" + r"([a-z]\w{1,15})://" + url_path_regex,
+        "fullurl": r"(?i)" + r"(https?)://" + url_path_regex,
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
@@ -97,15 +99,19 @@ class URLExtractor(BaseExtractor):
             if url_event is not None:
                 url_in_scope = self.excavate.scan.in_scope(url_event)
                 is_spider_danger = self.excavate.helpers.is_spider_danger(event, result)
-                if (
-                    (
-                        urls_found >= self.web_spider_links_per_page and url_in_scope
-                    )  # if we exceeded the max number of links
-                    or (consider_spider_danger and is_spider_danger)  # or if there's spider danger
-                    or (
-                        (not consider_spider_danger) and (web_spider_distance > self.excavate.max_redirects)
-                    )  # or if the spider distance is way out of control (greater than max_redirects)
-                ):
+                exceeds_max_links = urls_found >= self.web_spider_links_per_page and url_in_scope
+                exceeds_redirect_distance = (not consider_spider_danger) and (
+                    web_spider_distance > self.excavate.max_redirects
+                )
+                if is_spider_danger or exceeds_max_links or exceeds_redirect_distance:
+                    reason = "its spider depth or distance exceeds the scan's limits"
+                    if exceeds_max_links:
+                        reason = f"it exceeds the max number of links per page ({self.web_spider_links_per_page})"
+                    elif exceeds_redirect_distance:
+                        reason = (
+                            f"its spider distance exceeds the max number of redirects ({self.excavate.max_redirects})"
+                        )
+                    self.excavate.debug(f"Tagging {url_event} as spider-danger because {reason}")
                     url_event.add_tag("spider-danger")
 
                 self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
@@ -119,7 +125,7 @@ class URLExtractor(BaseExtractor):
             # yield to event loop
             await self.excavate.helpers.sleep(0)
             for result in regex.findall(content):
-                if name == "fullurl":
+                if name.startswith("full"):
                     protocol, other = result
                     result = f"{protocol}://{other}"
 
@@ -145,10 +151,19 @@ class URLExtractor(BaseExtractor):
                 yield result, name
 
     def report(self, result, name, event, **kwargs):
-        parsed_uri = self.excavate.helpers.urlparse(result)
+        parsed_uri = None
+        try:
+            parsed_uri = self.excavate.helpers.urlparse(result)
+        except Exception as e:
+            self.excavate.debug(f"Error parsing URI {result}: {e}")
+        netloc = getattr(parsed_uri, "netloc", None)
+        if netloc is None:
+            return
         host, port = self.excavate.helpers.split_host_port(parsed_uri.netloc)
         # Handle non-HTTP URIs (ftp, s3, etc.)
         if not "http" in parsed_uri.scheme.lower():
+            # these findings are pretty mundane so don't bother with them if they aren't in scope
+            abort_if = lambda e: e.scope_distance > 0
             event_data = {"host": str(host), "description": f"Non-HTTP URI: {result}"}
             parsed_url = getattr(event, "parsed", None)
             if parsed_url:
@@ -157,11 +172,16 @@ class URLExtractor(BaseExtractor):
                 event_data,
                 "FINDING",
                 source=event,
+                abort_if=abort_if,
             )
+            protocol_data = {"protocol": parsed_uri.scheme, "host": str(host)}
+            if port:
+                protocol_data["port"] = port
             self.excavate.emit_event(
-                {"protocol": parsed_uri.scheme, "host": str(host)},
+                protocol_data,
                 "PROTOCOL",
                 source=event,
+                abort_if=abort_if,
             )
             return
 
@@ -232,7 +252,12 @@ class JWTExtractor(BaseExtractor):
 
 
 class SerializationExtractor(BaseExtractor):
-    regexes = {"Java": r"(?:[^a-zA-Z0-9+/]|^)(rO0[a-zA-Z0-9+/]+={,2})"}
+    regexes = {
+        "Java": r"(?:[^a-zA-Z0-9+/]|^)(rO0[a-zA-Z0-9+/]+={,2})",
+        ".NET": r"AAEAAAD//[a-zA-Z0-9+/]+={,2}",
+        "PHP": r"YTo[xyz0123456][a-zA-Z0-9+/]+={,2}",
+        "Possible Compressed": r"H4sIAAAAAAAA[a-zA-Z0-9+/]+={,2}",
+    }
 
     def report(self, result, name, event, **kwargs):
         description = f"{name} serialized object found"
@@ -262,7 +287,7 @@ class JavascriptExtractor(BaseExtractor):
         "firebase": r"AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}",
         "google_oauth": r"ya29\.[0-9A-Za-z\-_]+",
         "amazon_aws_access_key_id": r"A[SK]IA[0-9A-Z]{16}",
-        "amazon_mws_auth_toke": r"amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        "amazon_mws_auth_token": r"amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
         # "amazon_aws_url": r"s3\.amazonaws.com[/]+|[a-zA-Z0-9_-]*\.s3\.amazonaws.com",
         # "amazon_aws_url2": r"[a-zA-Z0-9-\.\_]+\.s3\.amazonaws\.com",
         # "amazon_aws_url3": r"s3://[a-zA-Z0-9-\.\_]+",
@@ -324,7 +349,9 @@ class excavate(BaseInternalModule):
         self.javascript = JavascriptExtractor(self)
         self.serialization = SerializationExtractor(self)
         self.functionality = FunctionalityExtractor(self)
-        self.max_redirects = self.scan.config.get("http_max_redirects", 5)
+        max_redirects = self.scan.config.get("http_max_redirects", 5)
+        self.web_spider_distance = self.scan.config.get("web_spider_distance", 0)
+        self.max_redirects = max(max_redirects, self.web_spider_distance)
         return True
 
     async def search(self, source, extractors, event, **kwargs):
@@ -340,7 +367,6 @@ class excavate(BaseInternalModule):
             web_spider_distance = getattr(event, "web_spider_distance", 0)
             num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
             location = event.data.get("location", "")
-            host = event.host
             # if it's a redirect
             if location:
                 # get the url scheme
@@ -352,7 +378,8 @@ class excavate(BaseInternalModule):
                     scheme = self.helpers.is_uri(location, return_scheme=True)
                 if scheme in ("http", "https"):
                     if num_redirects <= self.max_redirects:
-                        url_event = self.make_event(location, "URL_UNVERIFIED", event)
+                        # tag redirects to out-of-scope hosts as affiliates
+                        url_event = self.make_event(location, "URL_UNVERIFIED", event, tags="affiliate")
                         if url_event is not None:
                             # inherit web spider distance from parent (don't increment)
                             source_web_spider_distance = getattr(event, "web_spider_distance", 0)
@@ -360,10 +387,6 @@ class excavate(BaseInternalModule):
                             self.emit_event(url_event)
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
-                elif scheme:
-                    # we ran into a scheme that's not HTTP or HTTPS
-                    data = {"host": host, "description": f"Non-standard URI scheme: {scheme}://", "url": location}
-                    self.emit_event(data, "FINDING", event)
 
             body = self.helpers.recursive_decode(event.data.get("body", ""))
             # Cloud extractors

@@ -3,50 +3,50 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_dns(bbot_scanner, bbot_config):
-    scan = bbot_scanner("8.8.8.8", config=bbot_config)
+    scan = bbot_scanner("1.1.1.1", config=bbot_config)
     helpers = scan.helpers
 
     # lowest level functions
-    a_responses = await helpers._resolve_hostname("dns.google")
-    aaaa_responses = await helpers._resolve_hostname("dns.google", rdtype="AAAA")
-    ip_responses = await helpers._resolve_ip("8.8.8.8")
-    assert a_responses[0].response.answer[0][0].address in ("8.8.8.8", "8.8.4.4")
-    assert aaaa_responses[0].response.answer[0][0].address in ("2001:4860:4860::8888", "2001:4860:4860::8844")
-    assert ip_responses[0].response.answer[0][0].target.to_text() in ("dns.google.",)
+    a_responses = await helpers._resolve_hostname("one.one.one.one")
+    aaaa_responses = await helpers._resolve_hostname("one.one.one.one", rdtype="AAAA")
+    ip_responses = await helpers._resolve_ip("1.1.1.1")
+    assert a_responses[0].response.answer[0][0].address in ("1.1.1.1", "1.0.0.1")
+    assert aaaa_responses[0].response.answer[0][0].address in ("2606:4700:4700::1111", "2606:4700:4700::1001")
+    assert ip_responses[0].response.answer[0][0].target.to_text() in ("one.one.one.one.",)
 
     # mid level functions
-    _responses, errors = await helpers.resolve_raw("dns.google")
+    _responses, errors = await helpers.resolve_raw("one.one.one.one")
     responses = []
     for rdtype, response in _responses:
         for answers in response:
             responses += list(helpers.extract_targets(answers))
-    assert ("A", "8.8.8.8") in responses
-    _responses, errors = await helpers.resolve_raw("dns.google", rdtype="AAAA")
+    assert ("A", "1.1.1.1") in responses
+    _responses, errors = await helpers.resolve_raw("one.one.one.one", rdtype="AAAA")
     responses = []
     for rdtype, response in _responses:
         for answers in response:
             responses += list(helpers.extract_targets(answers))
-    assert ("AAAA", "2001:4860:4860::8888") in responses
-    _responses, errors = await helpers.resolve_raw("8.8.8.8")
+    assert ("AAAA", "2606:4700:4700::1111") in responses
+    _responses, errors = await helpers.resolve_raw("1.1.1.1")
     responses = []
     for rdtype, response in _responses:
         for answers in response:
             responses += list(helpers.extract_targets(answers))
-    assert ("PTR", "dns.google") in responses
+    assert ("PTR", "one.one.one.one") in responses
 
     # high level functions
-    assert "8.8.8.8" in await helpers.resolve("dns.google")
-    assert "2001:4860:4860::8888" in await helpers.resolve("dns.google", type="AAAA")
-    assert "dns.google" in await helpers.resolve("8.8.8.8")
+    assert "1.1.1.1" in await helpers.resolve("one.one.one.one")
+    assert "2606:4700:4700::1111" in await helpers.resolve("one.one.one.one", type="AAAA")
+    assert "one.one.one.one" in await helpers.resolve("1.1.1.1")
     for rdtype in ("NS", "SOA", "MX", "TXT"):
         assert len(await helpers.resolve("google.com", type=rdtype)) > 0
 
     # batch resolution
-    batch_results = [r async for r in helpers.resolve_batch(["8.8.8.8", "dns.google"])]
+    batch_results = [r async for r in helpers.resolve_batch(["1.1.1.1", "one.one.one.one"])]
     assert len(batch_results) == 2
     batch_results = dict(batch_results)
-    assert any([x in batch_results["dns.google"] for x in ("8.8.8.8", "8.8.4.4")])
-    assert "dns.google" in batch_results["8.8.8.8"]
+    assert any([x in batch_results["one.one.one.one"] for x in ("1.1.1.1", "1.0.0.1")])
+    assert "one.one.one.one" in batch_results["1.1.1.1"]
 
     # "any" type
     resolved = await helpers.resolve("google.com", type="any")
@@ -54,38 +54,49 @@ async def test_dns(bbot_scanner, bbot_config):
 
     # dns cache
     helpers.dns._dns_cache.clear()
-    assert hash(f"8.8.8.8:PTR") not in helpers.dns._dns_cache
-    assert hash(f"dns.google:A") not in helpers.dns._dns_cache
-    assert hash(f"dns.google:AAAA") not in helpers.dns._dns_cache
-    await helpers.resolve("8.8.8.8", use_cache=False)
-    await helpers.resolve("dns.google", use_cache=False)
-    assert hash(f"8.8.8.8:PTR") not in helpers.dns._dns_cache
-    assert hash(f"dns.google:A") not in helpers.dns._dns_cache
-    assert hash(f"dns.google:AAAA") not in helpers.dns._dns_cache
+    assert hash(f"1.1.1.1:PTR") not in helpers.dns._dns_cache
+    assert hash(f"one.one.one.one:A") not in helpers.dns._dns_cache
+    assert hash(f"one.one.one.one:AAAA") not in helpers.dns._dns_cache
+    await helpers.resolve("1.1.1.1", use_cache=False)
+    await helpers.resolve("one.one.one.one", use_cache=False)
+    assert hash(f"1.1.1.1:PTR") not in helpers.dns._dns_cache
+    assert hash(f"one.one.one.one:A") not in helpers.dns._dns_cache
+    assert hash(f"one.one.one.one:AAAA") not in helpers.dns._dns_cache
 
-    await helpers.resolve("8.8.8.8")
-    assert hash(f"8.8.8.8:PTR") in helpers.dns._dns_cache
-    await helpers.resolve("dns.google")
-    assert hash(f"dns.google:A") in helpers.dns._dns_cache
-    assert hash(f"dns.google:AAAA") in helpers.dns._dns_cache
+    await helpers.resolve("1.1.1.1")
+    assert hash(f"1.1.1.1:PTR") in helpers.dns._dns_cache
+    await helpers.resolve("one.one.one.one")
+    assert hash(f"one.one.one.one:A") in helpers.dns._dns_cache
+    assert hash(f"one.one.one.one:AAAA") in helpers.dns._dns_cache
 
     # Ensure events with hosts have resolved_hosts attribute populated
-    resolved_hosts_event1 = scan.make_event("dns.google", "DNS_NAME", dummy=True)
-    resolved_hosts_event2 = scan.make_event("http://dns.google/", "URL_UNVERIFIED", dummy=True)
+    resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", dummy=True)
+    resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", dummy=True)
     event_tags1, event_whitelisted1, event_blacklisted1, children1 = await scan.helpers.resolve_event(
         resolved_hosts_event1
     )
     event_tags2, event_whitelisted2, event_blacklisted2, children2 = await scan.helpers.resolve_event(
         resolved_hosts_event2
     )
-    assert "8.8.8.8" in [str(x) for x in children1["A"]]
-    assert "8.8.8.8" in [str(x) for x in children2["A"]]
+    assert "1.1.1.1" in [str(x) for x in children1["A"]]
+    assert "1.1.1.1" in [str(x) for x in children2["A"]]
     assert set(children1.keys()) == set(children2.keys())
+
+    dns_config = OmegaConf.create({"dns_resolution": True})
+    dns_config = OmegaConf.merge(bbot_config, dns_config)
+    scan2 = bbot_scanner("evilcorp.com", config=dns_config)
+    scan2.helpers.dns.mock_dns(
+        {("evilcorp.com", "TXT"): '"v=spf1 include:cloudprovider.com ~all"', ("cloudprovider.com", "A"): "1.2.3.4"}
+    )
+    events = [e async for e in scan2.async_start()]
+    assert 1 == len(
+        [e for e in events if e.type == "DNS_NAME" and e.data == "cloudprovider.com" and "affiliate" in e.tags]
+    )
 
 
 @pytest.mark.asyncio
 async def test_wildcards(bbot_scanner, bbot_config):
-    scan = bbot_scanner("8.8.8.8", config=bbot_config)
+    scan = bbot_scanner("1.1.1.1", config=bbot_config)
     helpers = scan.helpers
 
     # wildcards

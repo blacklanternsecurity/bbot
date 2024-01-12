@@ -27,10 +27,8 @@ bbot = 'bbot.cli:main'
 [tool.poetry.dependencies]
 python = "^3.9"
 omegaconf = "^2.3.0"
-tldextract = "^3.4.0"
 psutil = "^5.9.4"
 wordninja = "^2.0.0"
-pydantic = "^1.10.6"
 ansible-runner = "^2.3.2"
 deepdiff = "^6.2.3"
 xmltojson = "^2.0.2"
@@ -38,16 +36,17 @@ pycryptodome = "^3.17"
 idna = "^3.4"
 ansible = "^7.3.0"
 tabulate = "0.8.10"
-cloudcheck = "^2.0.0.34"
 websockets = "^11.0.2"
 pyjwt = "^2.7.0"
 beautifulsoup4 = "^4.12.2"
 lxml = "^4.9.2"
-httpx = {extras = ["http2"], version = "^0.24.1"}
 dnspython = "^2.4.2"
-anyio = "4.0.0rc1"
-httpcore = "^0.17.3"
 aioconsole = "^0.6.2"
+pydantic = "^2.4.2"
+httpx = "^0.26.0"
+cloudcheck = "^2.1.0.181"
+pytest-httpx = "^0.28.0"
+tldextract = "^5.1.1"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
@@ -60,7 +59,6 @@ urllib3 = "^2.0.2"
 werkzeug = "^2.3.4"
 pytest-httpserver = "^1.0.8"
 pytest-env = "^0.8.2"
-pytest-httpx = "^0.22.0"
 pytest-timeout = "^2.1.0"
 pytest = "^7.4.0"
 pre-commit = "^3.4.0"
@@ -86,11 +84,12 @@ build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.black]
 line-length = 119
+extend-exclude = "(test_step_1/test_manager_*)"
 
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v1.1.3{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v1.1.4{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]

@@ -1,7 +1,7 @@
-from bbot.modules.shodan_dns import shodan_dns
+from bbot.modules.templates.subdomain_enum import subdomain_enum_apikey
 
 
-class passivetotal(shodan_dns):
+class passivetotal(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
@@ -24,9 +24,9 @@ class passivetotal(shodan_dns):
         used = j["user"]["counts"]["search_api"]
         assert used < limit, "No quota remaining"
 
-    def abort_if(self, event):
+    async def abort_if(self, event):
         # RiskIQ is famous for their junk data
-        return super().abort_if(event) or "unresolved" in event.tags
+        return await super().abort_if(event) or "unresolved" in event.tags
 
     async def request_url(self, query):
         url = f"{self.base_url}/enrichment/subdomains?query={self.helpers.quote(query)}"

@@ -19,7 +19,7 @@ status_frequency: 15
 # HTTP proxy
 http_proxy: 
 # Web user-agent
-user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36
+user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
 
 ### WEB SPIDER ###
 
@@ -36,7 +36,7 @@ web_spider_links_per_page: 25
 # How far out from the main scope to search
 scope_search_distance: 0
 # How far out from the main scope to resolve DNS names / IPs
-scope_dns_search_distance: 2
+scope_dns_search_distance: 1
 # Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)
 dns_resolve_distance: 5
 
@@ -99,6 +99,8 @@ url_extension_blacklist:
     - woff
     - woff2
     - ttf
+    - sass
+    - scss
     # audio
     - mp3
     - m4a

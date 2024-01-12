@@ -1,3 +1,4 @@
+import dns
 import time
 import asyncio
 import logging
@@ -38,6 +39,7 @@ class BBOTAsyncResolver(dns.asyncresolver.Resolver):
         dns_queries_per_second = self._parent_helper.config.get("dns_queries_per_second", 100)
         self._dns_rate_limiter = RateLimiter(dns_queries_per_second, "DNS")
         super().__init__(*args, **kwargs)
+        self.rotate = True
 
     async def resolve(self, *args, **kwargs):
         async with self._dns_rate_limiter:
@@ -89,7 +91,7 @@ class DNSHelper:
         self.timeout = self.parent_helper.config.get("dns_timeout", 5)
         self.retries = self.parent_helper.config.get("dns_retries", 1)
         self.abort_threshold = self.parent_helper.config.get("dns_abort_threshold", 50)
-        self.max_dns_resolve_distance = self.parent_helper.config.get("max_dns_resolve_distance", 4)
+        self.max_dns_resolve_distance = self.parent_helper.config.get("max_dns_resolve_distance", 5)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
         self._resolver_list = None
@@ -132,8 +134,14 @@ class DNSHelper:
         self._event_cache = self.parent_helper.CacheDict(max_size=10000)
         self._event_cache_locks = NamedLock()
 
+        # for mocking DNS queries
+        self._orig_resolve_raw = None
+        self._mock_table = {}
+
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
+        if len(self.system_resolvers) == 1:
+            log.warning("BBOT performs better with multiple DNS servers. Your system currently only has one.")
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
         self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
@@ -220,13 +228,7 @@ class DNSHelper:
                 kwargs.pop("rdtype", None)
                 if "type" in kwargs:
                     t = kwargs.pop("type")
-                    if isinstance(t, str):
-                        if t.strip().lower() in ("any", "all", "*"):
-                            types = self.all_rdtypes
-                        else:
-                            types = [t.strip().upper()]
-                    elif any([isinstance(t, x) for x in (list, tuple)]):
-                        types = [str(_).strip().upper() for _ in t]
+                    types = self._parse_rdtype(t, default=types)
                 for t in types:
                     r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
                     if r:
@@ -454,8 +456,8 @@ class DNSHelper:
                                     f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"'
                                 )
                                 event.data = wildcard_data
-                else:
-                    # check if this domain is using wildcard dns
+                # tag wildcard domains for convenience
+                elif is_domain(event_host) or hash(event_host) in self._wildcard_cache:
                     event_target = "target" in event.tags
                     wildcard_domain_results = await self.is_wildcard_domain(event_host, log_info=event_target)
                     for hostname, wildcard_domain_rdtypes in wildcard_domain_results.items():
@@ -500,7 +502,7 @@ class DNSHelper:
         event_blacklisted = False
 
         try:
-            if not event.host or event.type in ("IP_RANGE",):
+            if (not event.host) or (event.type in ("IP_RANGE",)):
                 return event_tags, event_whitelisted, event_blacklisted, dns_children
 
             # lock to ensure resolution of the same host doesn't start while we're working here
@@ -660,7 +662,7 @@ class DNSHelper:
         batch_size = 250
         for i in range(0, len(queries), batch_size):
             batch = queries[i : i + batch_size]
-            tasks = [self._resolve_batch_coro_wrapper(q, **kwargs) for q in batch]
+            tasks = [asyncio.create_task(self._resolve_batch_coro_wrapper(q, **kwargs)) for q in batch]
             async for task in as_completed(tasks):
                 yield await task
 
@@ -956,7 +958,8 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_tasks[rdtype].append(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_task = asyncio.create_task(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_tasks[rdtype].append(wildcard_task)
 
                 # combine the random results
                 is_wildcard = False
@@ -1016,6 +1019,16 @@ class DNSHelper:
         self._errors.clear()
         return False
 
+    def _parse_rdtype(self, t, default=None):
+        if isinstance(t, str):
+            if t.strip().lower() in ("any", "all", "*"):
+                return self.all_rdtypes
+            else:
+                return [t.strip().upper()]
+        elif any([isinstance(t, x) for x in (list, tuple)]):
+            return [str(_).strip().upper() for _ in t]
+        return default
+
     def debug(self, *args, **kwargs):
         if self._debug:
             log.debug(*args, **kwargs)
@@ -1027,3 +1040,28 @@ class DNSHelper:
             dummy_module = self.parent_helper._make_dummy_module(name=name, _type="DNS")
             self._dummy_modules[name] = dummy_module
         return dummy_module
+
+    def mock_dns(self, dns_dict):
+        if self._orig_resolve_raw is None:
+            self._orig_resolve_raw = self.resolve_raw
+
+        async def mock_resolve_raw(query, **kwargs):
+            results = []
+            errors = []
+            types = self._parse_rdtype(kwargs.get("type", ["A", "AAAA"]))
+            for t in types:
+                with suppress(KeyError):
+                    results += self._mock_table[(query, t)]
+            return results, errors
+
+        for (query, rdtype), answers in dns_dict.items():
+            if isinstance(answers, str):
+                answers = [answers]
+            for answer in answers:
+                rdata = dns.rdata.from_text("IN", rdtype, answer)
+                try:
+                    self._mock_table[(query, rdtype)].append((rdtype, rdata))
+                except KeyError:
+                    self._mock_table[(query, rdtype)] = [(rdtype, [rdata])]
+
+        self.resolve_raw = mock_resolve_raw

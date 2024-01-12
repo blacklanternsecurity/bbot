@@ -12,9 +12,16 @@ class massdns(subdomain_enum):
 
     It uses massdns to brute-force subdomains.
     At the end of a scan, it will leverage BBOT's word cloud to recursively discover target-specific subdomain mutations.
+
+    Each subdomain discovered via mutations is tagged with the "mutation" tag. This tag includes the depth at which
+    the mutations is found. I.e. the first mutation will be tagged "mutation-1". The second one (a mutation of a
+    mutation) will be "mutation-2". Mutations of mutations of mutations will be "mutation-3", etc.
+
+    This is especially use for bug bounties because it enables you to recognize distant/rare subdomains at a glance.
+    Subdomains with higher mutation levels are more likely to be distant/rare or never-before-seen.
     """
 
-    flags = ["subdomain-enum", "passive", "slow", "aggressive"]
+    flags = ["subdomain-enum", "passive", "aggressive"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {"description": "Brute-force subdomains with massdns (highly effective)"}
@@ -90,6 +97,7 @@ class massdns(subdomain_enum):
             cache_hrs=24 * 7,
         )
         self.devops_mutations = list(self.helpers.word_cloud.devops_mutations)
+        self._mutation_run = 1
         return await super().setup()
 
     async def filter_event(self, event):
@@ -119,9 +127,11 @@ class massdns(subdomain_enum):
         if "wildcard" in event.tags:
             return True, "event is a wildcard"
 
-    def emit_result(self, result, source_event, query):
+    def emit_result(self, result, source_event, query, tags=None):
         if not result == source_event:
             kwargs = {"abort_if": self.abort_if}
+            if tags is not None:
+                kwargs["tags"] = tags
             self.emit_event(result, "DNS_NAME", source_event, **kwargs)
 
     def already_processed(self, hostname):
@@ -300,6 +310,7 @@ class massdns(subdomain_enum):
                     )
 
         base_mutations = set()
+        found_mutations = False
         try:
             for i, (domain, subdomains) in enumerate(trimmed_found):
                 self.verbose(f"{domain} has {len(subdomains):,} subdomains")
@@ -369,12 +380,16 @@ class massdns(subdomain_enum):
                             if source_event is None:
                                 self.warning(f"Could not correlate source event from: {hostname}")
                                 source_event = self.scan.root_event
-                            self.emit_result(hostname, source_event, query)
+                            self.emit_result(hostname, source_event, query, tags=[f"mutation-{self._mutation_run}"])
                         if results:
+                            found_mutations = True
                             continue
                     break
         except AssertionError as e:
             self.warning(e)
+
+        if found_mutations:
+            self._mutation_run += 1
 
     def add_found(self, host):
         if not isinstance(host, str):
@@ -395,10 +410,10 @@ class massdns(subdomain_enum):
             yield d
 
     def gen_random_subdomains(self, n=50):
-        delimeters = (".", "-")
+        delimiters = (".", "-")
         lengths = list(range(3, 8))
         for i in range(0, max(0, n - 5)):
-            d = delimeters[i % len(delimeters)]
+            d = delimiters[i % len(delimiters)]
             l = lengths[i % len(lengths)]
             segments = list(random.choice(self.devops_mutations) for _ in range(l))
             segments.append(self.helpers.rand_string(length=8, digits=False))

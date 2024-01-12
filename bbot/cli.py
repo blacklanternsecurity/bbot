@@ -302,6 +302,7 @@ async def _main():
                 await scanner._prep()
 
                 if not options.dry_run:
+                    log.trace(f"Command: {' '.join(sys.argv)}")
                     if not options.agent_mode and not options.yes and sys.stdin.isatty():
                         log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                         input()

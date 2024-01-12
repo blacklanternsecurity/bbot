@@ -150,7 +150,7 @@ class TestExcavate2(TestExcavate):
 
 
 class TestExcavateRedirect(TestExcavate):
-    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/relative/"]
+    targets = ["http://127.0.0.1:8888/", "http://127.0.0.1:8888/relative/", "http://127.0.0.1:8888/nonhttpredirect/"]
     config_overrides = {"scope_report_distance": 1}
 
     async def setup_before_prep(self, module_test):
@@ -161,11 +161,59 @@ class TestExcavateRedirect(TestExcavate):
         module_test.httpserver.expect_request("/relative/").respond_with_data(
             "", status=302, headers={"Location": "./owa/"}
         )
+        module_test.httpserver.expect_request("/relative/owa/").respond_with_data(
+            "ftp://127.0.0.1:2121\nsmb://127.0.0.1\nssh://127.0.0.2"
+        )
+        module_test.httpserver.expect_request("/nonhttpredirect/").respond_with_data(
+            "", status=302, headers={"Location": "awb://127.0.0.1:7777"}
+        )
         module_test.httpserver.no_handler_status_code = 404
 
     def check(self, module_test, events):
-        assert any(e.data == "https://www.test.notreal/yep" for e in events)
-        assert any(e.data == "http://127.0.0.1:8888/relative/owa/" for e in events)
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "URL_UNVERIFIED" and e.data == "https://www.test.notreal/yep" and e.scope_distance == 1
+            ]
+        )
+        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/relative/owa/"])
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "FINDING" and e.data["description"] == "Non-HTTP URI: awb://127.0.0.1:7777"
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "PROTOCOL" and e.data["protocol"] == "AWB" and e.data.get("port", 0) == 7777
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "FINDING" and e.data["description"] == "Non-HTTP URI: ftp://127.0.0.1:2121"
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "PROTOCOL" and e.data["protocol"] == "FTP" and e.data.get("port", 0) == 2121
+            ]
+        )
+        assert 1 == len(
+            [e for e in events if e.type == "FINDING" and e.data["description"] == "Non-HTTP URI: smb://127.0.0.1"]
+        )
+        assert 1 == len(
+            [e for e in events if e.type == "PROTOCOL" and e.data["protocol"] == "SMB" and not "port" in e.data]
+        )
+        assert 0 == len([e for e in events if e.type == "FINDING" and "ssh://127.0.0.1" in e.data["description"]])
+        assert 0 == len([e for e in events if e.type == "PROTOCOL" and e.data["protocol"] == "SSH"])
 
 
 class TestExcavateMaxLinksPerPage(TestExcavate):
@@ -212,7 +260,7 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
 
 
 class TestExcavateCSP(TestExcavate):
-    csp_test_header = "default-src 'self'; script-src fake.domain.com; object-src 'none';"
+    csp_test_header = "default-src 'self'; script-src test.asdf.fakedomain; object-src 'none';"
 
     async def setup_before_prep(self, module_test):
         expect_args = {"method": "GET", "uri": "/"}
@@ -220,4 +268,15 @@ class TestExcavateCSP(TestExcavate):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.data == "fake.domain.com" for e in events)
+        assert any(e.data == "test.asdf.fakedomain" for e in events)
+
+
+class TestExcavateURL(TestExcavate):
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "SomeSMooshedDATAhttps://asdffoo.test.notreal/some/path"
+        )
+
+    def check(self, module_test, events):
+        assert any(e.data == "asdffoo.test.notreal" for e in events)
+        assert any(e.data == "https://asdffoo.test.notreal/some/path" for e in events)

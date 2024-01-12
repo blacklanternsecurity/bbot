@@ -504,12 +504,13 @@ def is_port(p):
     return p and p.isdigit() and 0 <= int(p) <= 65535
 
 
-def is_dns_name(d):
+def is_dns_name(d, include_local=True):
     """
     Determines if the given string is a valid DNS name.
 
     Args:
         d (str): The string to be checked.
+        include_local (bool): Consider local hostnames to be valid (hostnames without periods)
 
     Returns:
         bool: True if the string is a valid DNS name, False otherwise.
@@ -519,14 +520,17 @@ def is_dns_name(d):
         True
         >>> is_dns_name('localhost')
         True
+        >>> is_dns_name('localhost', include_local=False)
+        False
         >>> is_dns_name('192.168.1.1')
         False
     """
     if is_ip(d):
         return False
     d = smart_decode(d)
-    if bbot_regexes.hostname_regex.match(d):
-        return True
+    if include_local:
+        if bbot_regexes.hostname_regex.match(d):
+            return True
     if bbot_regexes.dns_name_regex.match(d):
         return True
     return False
@@ -815,6 +819,13 @@ def rand_string(length=10, digits=True):
     if digits:
         pool = rand_pool_digits
     return "".join([random.choice(pool) for _ in range(int(length))])
+
+
+def truncate_string(s, n):
+    if len(s) > n:
+        return s[: n - 3] + "..."
+    else:
+        return s
 
 
 def extract_params_json(json_data):
@@ -1674,6 +1685,18 @@ def filesize(f):
     return 0
 
 
+def rm_rf(f):
+    """Recursively delete a directory
+
+    Args:
+        f (str or Path): The directory path to delete.
+
+    Examples:
+        >>> rm_rf("/tmp/httpx98323849")
+    """
+    shutil.rmtree(f)
+
+
 def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True, raise_error=False):
     """Clean up old files and directories within a given directory based on various filtering and sorting options.
 
@@ -1701,7 +1724,7 @@ def clean_old(d, keep=10, filter=lambda x: True, key=latest_mtime, reverse=True,
     for path in paths[keep:]:
         try:
             log.debug(f"Removing {path}")
-            shutil.rmtree(path)
+            rm_rf(path)
         except Exception as e:
             msg = f"Failed to delete directory: {path}, {e}"
             if raise_error:
@@ -2234,9 +2257,6 @@ def is_file(f):
     return False
 
 
-provider_map = {"amazon": "aws", "google": "gcp"}
-
-
 def cloudcheck(ip):
     """
     Check whether an IP address belongs to a cloud provider and returns the provider name, type, and subnet.
@@ -2251,11 +2271,7 @@ def cloudcheck(ip):
         >>> cloudcheck("168.62.20.37")
         ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
     """
-    provider, provider_type, subnet = _cloudcheck.check(ip)
-    if provider:
-        with suppress(KeyError):
-            provider = provider_map[provider.lower()]
-    return provider, provider_type, subnet
+    return _cloudcheck.check(ip)
 
 
 def is_async_function(f):
@@ -2486,7 +2502,7 @@ def parse_port_string(port_string):
         >>> parse_port_string("invalid")
         ValueError: Invalid port or port range: invalid
     """
-    elements = port_string.split(",")
+    elements = str(port_string).split(",")
     ports = []
 
     for element in elements:

@@ -25,7 +25,7 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture
 def non_mocked_hosts() -> list:
-    return ["127.0.0.1", "localhost"] + interactsh_servers
+    return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
 
 
 @pytest.fixture
@@ -70,6 +70,20 @@ def bbot_httpserver_ssl():
     # this is to check if the client has made any request where no
     # `assert_request` was called on it from the test
 
+    server.check_assertions()
+    server.clear()
+
+
+@pytest.fixture
+def bbot_httpserver_allinterfaces():
+    server = HTTPServer(host="0.0.0.0", port=5556)
+    server.start()
+
+    yield server
+
+    server.clear()
+    if server.is_running():
+        server.stop()
     server.check_assertions()
     server.clear()
 

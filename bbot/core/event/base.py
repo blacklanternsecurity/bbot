@@ -6,7 +6,7 @@ import traceback
 from typing import Optional
 from datetime import datetime
 from contextlib import suppress
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from .helpers import *
 from bbot.core.errors import *
@@ -90,6 +90,11 @@ class BaseEvent:
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
     _always_emit_tags = ["affiliate"]
+    # Bypass scope checking and dns resolution, distribute immediately to modules
+    # This is useful for "end-of-line" events like FINDING and VULNERABILITY
+    _quick_emit = False
+    # Whether this event has been retroactively marked as part of an important discovery chain
+    _graph_important = False
     # Exclude from output modules
     _omit = False
     # Disables certain data validations
@@ -143,9 +148,6 @@ class BaseEvent:
         self._module_priority = None
         self._resolved_hosts = set()
 
-        self._made_internal = False
-        # whether to force-send to output modules
-        self._force_output = False
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
 
@@ -199,7 +201,7 @@ class BaseEvent:
         if not self._dummy:
             # removed this second part because it was making certain sslcert events internal
             if _internal:  # or source._internal:
-                self.make_internal()
+                self.internal = True
 
         # an event indicating whether the event has undergone DNS resolution
         self._resolved = asyncio.Event()
@@ -223,6 +225,34 @@ class BaseEvent:
         self.__host = None
         self._port = None
         self._data = data
+
+    @property
+    def internal(self):
+        return self._internal
+
+    @internal.setter
+    def internal(self, value):
+        """
+        Marks the event as internal, excluding it from output but allowing normal exchange between scan modules.
+
+        Internal events are typically speculative and may not be interesting by themselves but can lead to
+        the discovery of interesting events. This method sets the `_internal` attribute to True and adds the
+        "internal" tag.
+
+        Examples of internal events include `OPEN_TCP_PORT`s from the `speculate` module,
+        `IP_ADDRESS`es from the `ipneighbor` module, or out-of-scope `DNS_NAME`s that originate
+        from DNS resolutions.
+
+        The purpose of internal events is to enable speculative/explorative discovery without cluttering
+        the console with irrelevant or uninteresting events.
+        """
+        if not value in (True, False):
+            raise ValueError(f'"internal" must be boolean, not {type(value)}')
+        if value == True:
+            self.add_tag("internal")
+        else:
+            self.remove_tag("internal")
+        self._internal = value
 
     @property
     def host(self):
@@ -292,7 +322,17 @@ class BaseEvent:
 
     @property
     def always_emit(self):
-        return self._always_emit or any(t in self.tags for t in self._always_emit_tags)
+        """
+        If this returns True, the event will always be distributed to output modules regardless of scope distance
+        """
+        always_emit_tags = any(t in self.tags for t in self._always_emit_tags)
+        no_host_information = not bool(self.host)
+        return self._always_emit or always_emit_tags or no_host_information
+
+    @property
+    def quick_emit(self):
+        no_host_information = not bool(self.host)
+        return self._quick_emit or no_host_information
 
     @property
     def id(self):
@@ -327,11 +367,21 @@ class BaseEvent:
             else:
                 new_scope_distance = min(self.scope_distance, scope_distance)
             if self._scope_distance != new_scope_distance:
-                self._scope_distance = new_scope_distance
+                # remove old scope distance tags
                 for t in list(self.tags):
                     if t.startswith("distance-"):
                         self.remove_tag(t)
-                self.add_tag(f"distance-{new_scope_distance}")
+                if scope_distance == 0:
+                    self.add_tag("in-scope")
+                    self.remove_tag("affiliate")
+                else:
+                    self.remove_tag("in-scope")
+                    self.add_tag(f"distance-{new_scope_distance}")
+                self._scope_distance = new_scope_distance
+            # apply recursively to parent events
+            source_scope_distance = getattr(self.source, "scope_distance", -1)
+            if source_scope_distance >= 0 and self != self.source:
+                self.source.scope_distance = scope_distance + 1
 
     @property
     def source(self):
@@ -354,12 +404,20 @@ class BaseEvent:
         """
         if is_event(source):
             self._source = source
+            hosts_are_same = self.host and (self.host == source.host)
             if source.scope_distance >= 0:
                 new_scope_distance = int(source.scope_distance)
                 # only increment the scope distance if the host changes
-                if self.host != source.host:
+                if not hosts_are_same:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
+            # inherit certain tags
+            if hosts_are_same:
+                for t in source.tags:
+                    if t == "affiliate":
+                        self.add_tag("affiliate")
+                    elif t.startswith("mutation-"):
+                        self.add_tag(t)
         elif not self._dummy:
             log.warning(f"Tried to set invalid source on {self}: (got: {source})")
 
@@ -392,95 +450,6 @@ class BaseEvent:
             e = source
         return sources
 
-    def make_internal(self):
-        """
-        Marks the event as internal, excluding it from output but allowing normal exchange between scan modules.
-
-        Internal events are typically speculative and may not be interesting by themselves but can lead to
-        the discovery of interesting events. This method sets the `_internal` attribute to True, adds the
-        "internal" tag, and ensures the event is marked as made internal (useful for later reversion).
-
-        Examples of internal events include `OPEN_TCP_PORT`s from the `speculate` module,
-        `IP_ADDRESS`es from the `ipneighbor` module, or out-of-scope `DNS_NAME`s that originate
-        from DNS resolutions.
-
-        Once an event is marked as internal, all of its future children become internal as well.
-        If `ScanManager._emit_event()` determines the event is interesting, it may be reverted back to its
-        original state and forcefully re-emitted along with the whole chain of internal events.
-
-        The purpose of internal events is to enable speculative/explorative discovery without cluttering
-        the console with irrelevant or uninteresting events.
-        """
-        if not self._made_internal:
-            self._internal = True
-            self.add_tag("internal")
-            self._made_internal = True
-
-    def unmake_internal(self, set_scope_distance=None, force_output=False):
-        """
-        Reverts the event from being internal, optionally forcing it to be included in output and setting its scope distance.
-
-        Removes the 'internal' tag, resets the `_internal` attribute, and adjusts scope distance if specified.
-        Optionally, forces the event to be included in the output. Also, if any source events are internal, they
-        are also reverted recursively.
-
-        This typically happens in `ScanManager._emit_event()` if the event is determined to be interesting.
-
-        Parameters:
-            set_scope_distance (int, optional): If specified, sets the scope distance to this value.
-            force_output (bool or str, optional): If True, forces the event to be included in output.
-                                                  If set to "trail_only", only its source events are modified.
-
-        Returns:
-            list: A list of source events that were also reverted from being internal.
-        """
-        source_trail = []
-        self.remove_tag("internal")
-        if self._made_internal:
-            if set_scope_distance is not None:
-                self.scope_distance = set_scope_distance
-            self._internal = False
-            self._made_internal = False
-        if force_output is True:
-            self._force_output = True
-        if force_output == "trail_only":
-            force_output = True
-
-        # if our source event is internal, unmake it too
-        if getattr(self.source, "_internal", False):
-            source_scope_distance = None
-            if set_scope_distance is not None:
-                source_scope_distance = set_scope_distance + 1
-            source_trail += self.source.unmake_internal(
-                set_scope_distance=source_scope_distance, force_output=force_output
-            )
-            source_trail.append(self.source)
-
-        return source_trail
-
-    def set_scope_distance(self, d=0):
-        """
-        Sets the scope distance for the event and its parent events, while considering module-specific scoping rules.
-
-        Unmakes the event internal if needed and adjusts its scope distance. If the distance is set to 0,
-        adds the 'in-scope' tag to the event. Takes into account module-specific scoping preferences unless
-        the event type is "DNS_NAME".
-
-        Parameters:
-            d (int): The scope distance to set for this event.
-
-        Returns:
-            list: A list of parent events whose scope distance was also set.
-        """
-        source_trail = []
-        # keep the event internal if the module requests so, unless it's a DNS_NAME
-        if getattr(self.module, "_scope_shepherding", True) or self.type in ("DNS_NAME",):
-            source_trail = self.unmake_internal(set_scope_distance=d, force_output="trail_only")
-        self.scope_distance = d
-        if d == 0:
-            self.add_tag("in-scope")
-        return source_trail
-
     def _host(self):
         return ""
 
@@ -502,8 +471,7 @@ class BaseEvent:
         if self._data_validator is not None:
             if not isinstance(data, dict):
                 raise ValidationError(f"data is not of type dict: {data}")
-            data = self._data_validator(**data).dict()
-            data = {k: v for k, v in data.items() if v is not None}
+            data = self._data_validator(**data).model_dump(exclude_none=True)
         return self.sanitize_data(data)
 
     def sanitize_data(self, data):
@@ -796,12 +764,15 @@ class DictHostEvent(DictEvent):
 
 class ASN(DictEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class CODE_REPOSITORY(DictHostEvent):
+    _always_emit = True
+
     class _data_validator(BaseModel):
         url: str
-        _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
+        _validate_url = field_validator("url")(validators.validate_url)
 
     def _pretty_string(self):
         return self.data["url"]
@@ -914,16 +885,9 @@ class URL_UNVERIFIED(BaseEvent):
 
         parsed_path_lower = str(self.parsed.path).lower()
 
-        url_extension_blacklist = []
-        url_extension_httpx_only = []
         scan = getattr(self, "scan", None)
-        if scan is not None:
-            _url_extension_blacklist = scan.config.get("url_extension_blacklist", [])
-            _url_extension_httpx_only = scan.config.get("url_extension_httpx_only", [])
-            if _url_extension_blacklist:
-                url_extension_blacklist = [e.lower() for e in _url_extension_blacklist]
-            if _url_extension_httpx_only:
-                url_extension_httpx_only = [e.lower() for e in _url_extension_httpx_only]
+        url_extension_blacklist = getattr(scan, "url_extension_blacklist", [])
+        url_extension_httpx_only = getattr(scan, "url_extension_httpx_only", [])
 
         extension = get_file_extension(parsed_path_lower)
         if extension:
@@ -981,6 +945,7 @@ class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
     class _data_validator(BaseModel):
         name: str
         url: str
+        _validate_url = field_validator("url")(validators.validate_url)
 
     def _words(self):
         return self.data["name"]
@@ -1039,6 +1004,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
 class VULNERABILITY(DictHostEvent):
     _always_emit = True
+    _quick_emit = True
     severity_colors = {
         "CRITICAL": "🟪",
         "HIGH": "🟥",
@@ -1055,9 +1021,10 @@ class VULNERABILITY(DictHostEvent):
         host: str
         severity: str
         description: str
-        url: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
-        _validate_severity = validator("severity", allow_reuse=True)(validators.validate_severity)
+        url: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_host = field_validator("host")(validators.validate_host)
+        _validate_severity = field_validator("severity")(validators.validate_severity)
 
     def _pretty_string(self):
         return f'[{self.data["severity"]}] {self.data["description"]}'
@@ -1065,12 +1032,14 @@ class VULNERABILITY(DictHostEvent):
 
 class FINDING(DictHostEvent):
     _always_emit = True
+    _quick_emit = True
 
     class _data_validator(BaseModel):
         host: str
         description: str
-        url: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        url: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
         return self.data["description"]
@@ -1080,8 +1049,9 @@ class TECHNOLOGY(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         technology: str
-        url: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        url: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_host = field_validator("host")(validators.validate_host)
 
     def _data_id(self):
         # dedupe by host+port+tech
@@ -1096,8 +1066,9 @@ class VHOST(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         vhost: str
-        url: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        url: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
         return self.data["vhost"]
@@ -1107,10 +1078,10 @@ class PROTOCOL(DictHostEvent):
     class _data_validator(BaseModel):
         host: str
         protocol: str
-        port: Optional[int]
-        banner: Optional[str]
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
-        _validate_port = validator("port", allow_reuse=True)(validators.validate_port)
+        port: Optional[int] = None
+        banner: Optional[str] = None
+        _validate_host = field_validator("host")(validators.validate_host)
+        _validate_port = field_validator("port")(validators.validate_port)
 
     def sanitize_data(self, data):
         new_data = dict(data)
@@ -1127,22 +1098,27 @@ class PROTOCOL(DictHostEvent):
 
 class GEOLOCATION(BaseEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class PASSWORD(BaseEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class HASHED_PASSWORD(BaseEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class USERNAME(BaseEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class SOCIAL(DictEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class WEBSCREENSHOT(DictHostEvent):
@@ -1151,18 +1127,20 @@ class WEBSCREENSHOT(DictHostEvent):
 
 class AZURE_TENANT(DictEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class WAF(DictHostEvent):
     _always_emit = True
+    _quick_emit = True
 
     class _data_validator(BaseModel):
         url: str
         host: str
         WAF: str
-        info: Optional[str]
-        _validate_url = validator("url", allow_reuse=True)(validators.validate_url)
-        _validate_host = validator("host", allow_reuse=True)(validators.validate_host)
+        info: Optional[str] = None
+        _validate_url = field_validator("url")(validators.validate_url)
+        _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
         return self.data["WAF"]
@@ -1225,8 +1203,10 @@ def make_event(
     """
 
     # allow tags to be either a string or an array
-    if isinstance(tags, str):
-        tags = [tags]
+    if tags is not None:
+        if isinstance(tags, str):
+            tags = [tags]
+        tags = list(tags)
 
     if is_event(data):
         if scan is not None and not data.scan:
@@ -1237,8 +1217,8 @@ def make_event(
             data.module = module
         if source is not None:
             data.source = source
-        if internal == True and not data._made_internal:
-            data.make_internal()
+        if internal == True:
+            data.internal = True
         event_type = data.type
         return data
     else:
@@ -1266,6 +1246,10 @@ def make_event(
                     event_type = "IP_ADDRESS"
                 elif event_type == "IP_ADDRESS" and not data_is_ip:
                     event_type = "DNS_NAME"
+        # USERNAME <--> EMAIL_ADDRESS confusion
+        if event_type == "USERNAME" and validators.soft_validate(data, "email"):
+            event_type = "EMAIL_ADDRESS"
+            tags.append("affiliate")
 
         event_class = globals().get(event_type, DefaultEvent)
 
@@ -1315,6 +1299,10 @@ def event_from_json(j):
             "dummy": True,
         }
         event = make_event(**kwargs)
+
+        resolved_hosts = j.get("resolved_hosts", [])
+        event._resolved_hosts = set(resolved_hosts)
+
         event.timestamp = datetime.fromtimestamp(j["timestamp"])
         event.scope_distance = j["scope_distance"]
         source_id = j.get("source", None)

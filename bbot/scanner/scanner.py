@@ -226,9 +226,13 @@ class Scanner:
         # scope distance
         self.scope_search_distance = max(0, int(self.config.get("scope_search_distance", 0)))
         self.scope_dns_search_distance = max(
-            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 2))
+            self.scope_search_distance, int(self.config.get("scope_dns_search_distance", 1))
         )
         self.scope_report_distance = int(self.config.get("scope_report_distance", 1))
+
+        # url file extensions
+        self.url_extension_blacklist = set(e.lower() for e in self.config.get("url_extension_blacklist", []))
+        self.url_extension_httpx_only = set(e.lower() for e in self.config.get("url_extension_httpx_only", []))
 
         # custom HTTP headers warning
         self.custom_http_headers = self.config.get("http_headers", {})
@@ -255,7 +259,10 @@ class Scanner:
             mp.set_start_method("spawn")
         except Exception:
             self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
-        self.process_pool = ProcessPoolExecutor()
+        # we spawn 1 fewer processes than cores
+        # this helps to avoid locking up the system or competing with the main python process for cpu time
+        num_processes = max(1, mp.cpu_count() - 1)
+        self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
 
         self._stopping = False
 
@@ -286,9 +293,20 @@ class Scanner:
             await self.load_modules()
 
             self.info(f"Setting up modules...")
-            await self.setup_modules()
+            succeeded, hard_failed, soft_failed = await self.setup_modules()
 
-            self.success(f"Setup succeeded for {len(self.modules):,} modules.")
+            num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
+            if num_output_modules < 1:
+                raise ScanError("Failed to load output modules. Aborting.")
+            total_failed = len(hard_failed + soft_failed)
+            if hard_failed:
+                msg = f"Setup hard-failed for {len(hard_failed):,} modules ({','.join(hard_failed)})"
+                self._fail_setup(msg)
+
+            total_modules = total_failed + len(self.modules)
+            success_msg = f"Setup succeeded for {len(self.modules):,}/{total_modules:,} modules."
+
+            self.success(success_msg)
             self._prepped = True
 
     def start(self):
@@ -415,10 +433,10 @@ class Scanner:
             remove_failed (bool): Flag indicating whether to remove modules that fail setup.
 
         Returns:
-            dict: Dictionary containing lists of module names categorized by their setup status.
-                  'succeeded' - List of modules that successfully set up.
-                  'hard_failed' - List of modules that encountered a hard failure during setup.
-                  'soft_failed' - List of modules that encountered a soft failure during setup.
+            tuple:
+                succeeded - List of modules that successfully set up.
+                hard_failed - List of modules that encountered a hard failure during setup.
+                soft_failed - List of modules that encountered a soft failure during setup.
 
         Raises:
             ScanError: If no output modules could be loaded.
@@ -439,30 +457,16 @@ class Scanner:
                 self.debug(f"Setup succeeded for {module_name} ({msg})")
                 succeeded.append(module_name)
             elif status == False:
-                self.error(f"Setup hard-failed for {module_name}: {msg}")
+                self.warning(f"Setup hard-failed for {module_name}: {msg}")
                 self.modules[module_name].set_error_state()
                 hard_failed.append(module_name)
             else:
-                self.warning(f"Setup soft-failed for {module_name}: {msg}")
+                self.info(f"Setup soft-failed for {module_name}: {msg}")
                 soft_failed.append(module_name)
             if not status and remove_failed:
                 self.modules.pop(module_name)
 
-        num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
-        if num_output_modules < 1:
-            raise ScanError("Failed to load output modules. Aborting.")
-        total_failed = len(hard_failed + soft_failed)
-        if hard_failed:
-            msg = f"Setup hard-failed for {len(hard_failed):,} modules ({','.join(hard_failed)})"
-            self._fail_setup(msg)
-        elif total_failed > 0:
-            self.warning(f"Setup failed for {total_failed:,} modules")
-
-        return {
-            "succeeded": succeeded,
-            "hard_failed": hard_failed,
-            "soft_failed": soft_failed,
-        }
+        return succeeded, hard_failed, soft_failed
 
     async def load_modules(self):
         """Asynchronously import and instantiate all scan modules, including internal and output modules.
@@ -772,12 +776,6 @@ class Scanner:
         return event
 
     @property
-    def log(self):
-        if self._log is None:
-            self._log = logging.getLogger(f"bbot.agent.scanner")
-        return self._log
-
-    @property
     def root_event(self):
         """
         The root scan event, e.g.:
@@ -1028,19 +1026,6 @@ class Scanner:
             while 1:
                 await asyncio.sleep(interval)
                 self.manager.modules_status(_log=True)
-
-    @contextlib.contextmanager
-    def _catch(self, context="scan", finally_callback=None):
-        """
-        Handle common errors by stopping scan, logging tracebacks, etc.
-
-        with catch():
-            do_stuff()
-        """
-        try:
-            yield
-        except BaseException as e:
-            self._handle_exception(e, context=context)
 
     @contextlib.asynccontextmanager
     async def _acatch(self, context="scan", finally_callback=None):
