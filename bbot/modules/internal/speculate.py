@@ -37,7 +37,10 @@ class speculate(BaseInternalModule):
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in scan_modules])
-        self.portscanner_enabled = any(["portscan" in m.flags for m in self.scan.modules.values()])
+        # only consider active portscanners (still speculate if only passive ones are enabled)
+        self.portscanner_enabled = any(
+            ["portscan" in m.flags and "active" in m.flags for m in self.scan.modules.values()]
+        )
         self.emit_open_ports = self.open_port_consumers and not self.portscanner_enabled
         self.range_to_ip = True
         self.dns_resolution = self.scan.config.get("dns_resolution", True)
