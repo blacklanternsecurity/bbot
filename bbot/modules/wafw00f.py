@@ -1,6 +1,12 @@
 from bbot.modules.base import BaseModule
 from wafw00f import main as wafw00f_main
 
+# disable wafw00f logging
+import logging
+
+wafw00f_logger = logging.getLogger("wafw00f")
+wafw00f_logger.setLevel(logging.CRITICAL + 100)
+
 
 class wafw00f(BaseModule):
     """

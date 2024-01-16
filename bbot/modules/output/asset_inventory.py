@@ -3,7 +3,7 @@ import ipaddress
 from contextlib import suppress
 
 from .csv import CSV
-from bbot.core.helpers.misc import make_ip_type, is_ip, is_port
+from bbot.core.helpers.misc import make_ip_type, is_ip, is_port, best_http_status
 
 severity_map = {
     "INFO": 0,
@@ -21,7 +21,17 @@ severity_map = {
 
 
 class asset_inventory(CSV):
-    watched_events = ["OPEN_TCP_PORT", "DNS_NAME", "URL", "FINDING", "VULNERABILITY", "TECHNOLOGY", "IP_ADDRESS"]
+    watched_events = [
+        "OPEN_TCP_PORT",
+        "DNS_NAME",
+        "URL",
+        "FINDING",
+        "VULNERABILITY",
+        "TECHNOLOGY",
+        "IP_ADDRESS",
+        "WAF",
+        "HTTP_RESPONSE",
+    ]
     produced_events = ["IP_ADDRESS", "OPEN_TCP_PORT"]
     meta = {"description": "Output to an asset inventory style flattened CSV file"}
     options = {"output_file": "", "use_previous": False, "summary_netmask": 16}
@@ -31,7 +41,18 @@ class asset_inventory(CSV):
         "summary_netmask": "Subnet mask to use when summarizing IP addresses at end of scan",
     }
 
-    header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
+    header_row = [
+        "Host",
+        "Provider",
+        "IP(s)",
+        "HTTP Status",
+        "HTTP Title",
+        "Open Ports",
+        "Risk Rating",
+        "Findings",
+        "Description",
+        "WAF",
+    ]
     filename = "asset-inventory.csv"
 
     async def setup(self):
@@ -103,11 +124,13 @@ class asset_inventory(CSV):
                 "Host": host,
                 "Provider": getattr(asset, "provider", ""),
                 "IP(s)": ",".join(ips),
-                "Status": "Active" if asset.ports else "N/A",
+                "HTTP Status": str(getattr(asset, "http_status", 0)),
+                "HTTP Title": str(getattr(asset, "http_title", "")),
                 "Open Ports": ",".join(ports),
                 "Risk Rating": severity_map[getattr(asset, "risk_rating", "")],
                 "Findings": "\n".join(findings_and_vulns),
                 "Description": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
+                "WAF": getattr(asset, "waf", ""),
             }
             row.update(asset.custom_fields)
             self.writerow(row)
@@ -191,8 +214,11 @@ class Asset:
         self.status = "UNKNOWN"
         self.risk_rating = 0
         self.provider = ""
+        self.waf = ""
         self.technologies = set()
         self.custom_fields = {}
+        self.http_status = 0
+        self.http_title = ""
 
     def absorb_csv_row(self, row):
         # host
@@ -230,6 +256,11 @@ class Asset:
         if not is_ip(event.host):
             self.host = event.host
 
+        http_status = getattr(event, "status_code", 0)
+        update_http_status = best_http_status(http_status, self.http_status) == http_status
+        if update_http_status:
+            self.http_status = http_status
+
         self.ip_addresses = set(_make_ip_list(event.resolved_hosts))
 
         if event.port:
@@ -250,6 +281,16 @@ class Asset:
 
         if event.type == "TECHNOLOGY":
             self.technologies.add(event.data["technology"])
+
+        if event.type == "WAF":
+            if waf := event.data.get("WAF", ""):
+                if update_http_status or not self.waf:
+                    self.waf = waf
+
+        if event.type == "HTTP_RESPONSE":
+            if title := event.data.get("title", ""):
+                if update_http_status or not self.http_title:
+                    self.http_title = title
 
         for tag in event.tags:
             if tag.startswith("cdn-") or tag.startswith("cloud-"):

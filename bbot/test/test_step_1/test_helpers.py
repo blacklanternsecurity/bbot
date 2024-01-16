@@ -159,6 +159,12 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "]:22/my-file.csv",
     )
 
+    assert helpers.best_http_status(200, 404) == 200
+    assert helpers.best_http_status(500, 400) == 400
+    assert helpers.best_http_status(301, 302) == 301
+    assert helpers.best_http_status(0, 302) == 302
+    assert helpers.best_http_status(500, 0) == 500
+
     assert helpers.split_domain("www.evilcorp.co.uk") == ("www", "evilcorp.co.uk")
     assert helpers.split_domain("asdf.www.test.notreal") == ("asdf.www", "test.notreal")
     assert helpers.split_domain("www.test.notreal") == ("www", "test.notreal")
