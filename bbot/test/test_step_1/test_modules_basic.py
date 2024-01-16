@@ -289,3 +289,57 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, b
             else:
                 assert valid_1 == True
                 assert valid_2 == True
+
+
+@pytest.mark.asyncio
+async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+    from bbot.modules.base import BaseModule
+
+    class dummy(BaseModule):
+        _name = "dummy"
+        watched_events = ["*"]
+
+        async def handle_event(self, event):
+            self.emit_event(
+                {"host": "www.evilcorp.com", "url": "http://www.evilcorp.com", "description": "asdf"}, "FINDING", event
+            )
+
+    scan = bbot_scanner(
+        "evilcorp.com",
+        config=bbot_config,
+        force_start=True,
+    )
+    scan.helpers.dns.mock_dns({("evilcorp.com", "A"): "127.0.254.1", ("www.evilcorp.com", "A"): "127.0.254.2"})
+
+    scan.modules["dummy"] = dummy(scan)
+    events = [e async for e in scan.async_start()]
+
+    assert len(events) == 3
+
+    assert set(scan.stats.module_stats) == {"dummy", "python", "TARGET"}
+
+    target_stats = scan.stats.module_stats["TARGET"]
+    assert target_stats.emitted == {"SCAN": 1, "DNS_NAME": 1}
+    assert target_stats.emitted_total == 2
+    assert target_stats.produced == {"SCAN": 1, "DNS_NAME": 1}
+    assert target_stats.produced_total == 2
+    assert target_stats.consumed == {}
+    assert target_stats.consumed_total == 0
+
+    dummy_stats = scan.stats.module_stats["dummy"]
+    assert dummy_stats.emitted == {"FINDING": 1}
+    assert dummy_stats.emitted_total == 1
+    assert dummy_stats.produced == {"FINDING": 1}
+    assert dummy_stats.produced_total == 1
+    assert dummy_stats.consumed == {"SCAN": 1, "DNS_NAME": 1}
+    assert dummy_stats.consumed_total == 2
+
+    python_stats = scan.stats.module_stats["python"]
+    assert python_stats.emitted == {}
+    assert python_stats.emitted_total == 0
+    assert python_stats.produced == {}
+    assert python_stats.produced_total == 0
+    assert python_stats.consumed == {"SCAN": 1, "FINDING": 1, "DNS_NAME": 1}
+    assert python_stats.consumed_total == 3
+
+    assert scan.stats.events_emitted_by_type == {"SCAN": 1, "FINDING": 1, "DNS_NAME": 1}
