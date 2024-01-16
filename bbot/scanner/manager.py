@@ -168,7 +168,6 @@ class ScanManager:
             - Updating scan statistics.
         """
         log.debug(f"Emitting {event}")
-        event_distributed = False
         try:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
@@ -269,7 +268,6 @@ class ScanManager:
                     await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
 
             await self.distribute_event(event)
-            event_distributed = True
 
             # speculate DNS_NAMES and IP_ADDRESSes from other event types
             source_event = event
@@ -328,8 +326,6 @@ class ScanManager:
 
         finally:
             event._resolved.set()
-            if event_distributed:
-                self.scan.stats.event_distributed(event)
             log.debug(f"{event.module}.emit_event() finished for {event}")
 
     def hash_event_graph(self, event):
@@ -414,6 +410,8 @@ class ScanManager:
                 graph_important = mod._is_graph_important(event)
                 if acceptable_dup or graph_important:
                     await mod.queue_event(event)
+
+            self.scan.stats.event_distributed(event)
 
     async def _worker_loop(self):
         try:
