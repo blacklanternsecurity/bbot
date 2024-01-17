@@ -33,7 +33,7 @@ class asset_inventory(CSV):
         "HTTP_RESPONSE",
     ]
     produced_events = ["IP_ADDRESS", "OPEN_TCP_PORT"]
-    meta = {"description": "Output to an asset inventory style flattened CSV file"}
+    meta = {"description": "Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV"}
     options = {"output_file": "", "use_previous": False, "summary_netmask": 16}
     options_desc = {
         "output_file": "Set a custom output file",
@@ -52,6 +52,7 @@ class asset_inventory(CSV):
         "Findings",
         "Description",
         "WAF",
+        "DNS Records",
     ]
     filename = "asset-inventory.csv"
 
@@ -131,6 +132,7 @@ class asset_inventory(CSV):
                 "Findings": "\n".join(findings_and_vulns),
                 "Description": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
                 "WAF": getattr(asset, "waf", ""),
+                "DNS Records": ",".join(getattr(asset, "dns_records", [])),
             }
             row.update(asset.custom_fields)
             self.writerow(row)
@@ -208,6 +210,7 @@ class Asset:
     def __init__(self, host):
         self.host = host
         self.ip_addresses = set()
+        self.dns_records = []
         self.ports = set()
         self.findings = set()
         self.vulnerabilities = set()
@@ -255,6 +258,12 @@ class Asset:
     def absorb_event(self, event):
         if not is_ip(event.host):
             self.host = event.host
+
+        dns_children = getattr(event, "_dns_children", {})
+        if dns_children and not self.dns_records:
+            for rdtype, records in sorted(dns_children.items(), key=lambda x: x[0]):
+                for record in sorted(records):
+                    self.dns_records.append(f"{rdtype}:{record}")
 
         http_status = getattr(event, "status_code", 0)
         update_http_status = best_http_status(http_status, self.http_status) == http_status

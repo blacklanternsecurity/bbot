@@ -195,8 +195,6 @@ class ScanManager:
                         for ip in ips:
                             resolved_hosts.add(ip)
 
-            event._dns_children = dns_children
-
             # kill runaway DNS chains
             dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
             if dns_resolve_distance >= self.scan.helpers.dns.max_dns_resolve_distance:
@@ -206,6 +204,7 @@ class ScanManager:
                 dns_children = {}
 
             if event.type in ("DNS_NAME", "IP_ADDRESS"):
+                event._dns_children = dns_children
                 for tag in dns_tags:
                     event.add_tag(tag)
 
