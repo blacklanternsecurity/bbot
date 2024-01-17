@@ -50,7 +50,7 @@ class asset_inventory(CSV):
         "Open Ports",
         "Risk Rating",
         "Findings",
-        "Description",
+        "Technologies",
         "WAF",
         "DNS Records",
     ]
@@ -130,7 +130,7 @@ class asset_inventory(CSV):
                 "Open Ports": ",".join(ports),
                 "Risk Rating": severity_map[getattr(asset, "risk_rating", "")],
                 "Findings": "\n".join(findings_and_vulns),
-                "Description": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
+                "Technologies": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
                 "WAF": getattr(asset, "waf", ""),
                 "DNS Records": ",".join(getattr(asset, "dns_records", [])),
             }
@@ -237,7 +237,7 @@ class Asset:
         findings = [i.strip() for i in row.get("Findings", "").splitlines()]
         self.findings.update(set(i for i in findings if i))
         # technologies
-        technologies = [i.strip() for i in row.get("Description", "").splitlines()]
+        technologies = [i.strip() for i in row.get("Technologies", "").splitlines()]
         self.technologies.update(set(i for i in technologies if i))
         # risk rating
         risk_rating = row.get("Risk Rating", "").strip()
