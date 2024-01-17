@@ -124,15 +124,15 @@ class asset_inventory(CSV):
             row = {
                 "Host": host,
                 "Provider": getattr(asset, "provider", ""),
-                "IP(s)": ",".join(ips),
+                "IP(s)": ", ".join(ips),
                 "HTTP Status": str(getattr(asset, "http_status", 0)),
                 "HTTP Title": str(getattr(asset, "http_title", "")),
-                "Open Ports": ",".join(ports),
+                "Open Ports": ", ".join(ports),
                 "Risk Rating": severity_map[getattr(asset, "risk_rating", "")],
                 "Findings": "\n".join(findings_and_vulns),
                 "Technologies": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
                 "WAF": getattr(asset, "waf", ""),
-                "DNS Records": ",".join(getattr(asset, "dns_records", [])),
+                "DNS Records": ", ".join(getattr(asset, "dns_records", [])),
             }
             row.update(asset.custom_fields)
             self.writerow(row)
