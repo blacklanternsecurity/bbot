@@ -1024,10 +1024,11 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
     @property
     def http_title(self):
+        http_title = self.data.get("title", "")
         try:
-            return recursive_decode(self.data.get("title", ""))
+            return recursive_decode(http_title)
         except Exception:
-            return ""
+            return http_title
 
     @property
     def redirect_location(self):
