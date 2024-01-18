@@ -267,8 +267,6 @@ class Asset:
                     self.dns_records.append(f"{rdtype}:{record}")
 
         http_status = getattr(event, "http_status", 0)
-        # log.hugewarning(event)
-        # log.hugewarning(f"http_status: {http_status}")
         update_http_status = bool(http_status) and best_http_status(http_status, self.http_status) == http_status
         if update_http_status:
             self.http_status = http_status
