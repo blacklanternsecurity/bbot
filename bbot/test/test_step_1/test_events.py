@@ -93,7 +93,7 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
     url_event = scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"])
     assert "status-200" in url_event.tags
-    assert url_event.status_code == 200
+    assert url_event.http_status == 200
     with pytest.raises(ValidationError, match=".*status tag.*"):
         scan.make_event("https://evilcorp.com", "URL", events.ipv4_url)
 
@@ -102,6 +102,20 @@ async def test_events(events, scan, helpers, bbot_config):
     assert events.http_response.port == 80
     assert events.http_response.parsed.scheme == "http"
     assert events.http_response.with_port().geturl() == "http://example.com:80/"
+
+    http_response = scan.make_event(
+        {
+            "port": "80",
+            "url": "http://www.evilcorp.com:80",
+            "input": "http://www.evilcorp.com:80",
+            "location": "/asdf",
+            "status_code": 301,
+        },
+        "HTTP_RESPONSE",
+        dummy=True,
+    )
+    assert http_response.http_status == 301
+    assert http_response.redirect_location == "http://www.evilcorp.com/asdf"
 
     # open port tests
     assert events.open_port in events.domain

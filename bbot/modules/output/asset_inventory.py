@@ -125,7 +125,7 @@ class asset_inventory(CSV):
                 "Host": host,
                 "Provider": getattr(asset, "provider", ""),
                 "IP(s)": ", ".join(ips),
-                "HTTP Status": str(getattr(asset, "http_status", 0)),
+                "HTTP Status": asset.http_status_full,
                 "HTTP Title": str(getattr(asset, "http_title", "")),
                 "Open Ports": ", ".join(ports),
                 "Risk Rating": severity_map[getattr(asset, "risk_rating", "")],
@@ -222,6 +222,7 @@ class Asset:
         self.custom_fields = {}
         self.http_status = 0
         self.http_title = ""
+        self.redirect_location = ""
 
     def absorb_csv_row(self, row):
         # host
@@ -265,12 +266,22 @@ class Asset:
                 for record in sorted(records):
                     self.dns_records.append(f"{rdtype}:{record}")
 
-        http_status = getattr(event, "status_code", 0)
-        update_http_status = best_http_status(http_status, self.http_status) == http_status
+        http_status = getattr(event, "http_status", 0)
+        # log.hugewarning(event)
+        # log.hugewarning(f"http_status: {http_status}")
+        update_http_status = bool(http_status) and best_http_status(http_status, self.http_status) == http_status
         if update_http_status:
             self.http_status = http_status
+            if str(http_status).startswith("3"):
+                if event.type == "HTTP_RESPONSE":
+                    redirect_location = getattr(event, "redirect_location", "")
+                    if redirect_location:
+                        self.redirect_location = redirect_location
+            else:
+                self.redirect_location = ""
 
-        self.ip_addresses = set(_make_ip_list(event.resolved_hosts))
+        if event.resolved_hosts:
+            self.ip_addresses.update(set(_make_ip_list(event.resolved_hosts)))
 
         if event.port:
             self.ports.add(str(event.port))
@@ -309,6 +320,10 @@ class Asset:
     @property
     def hostkey(self):
         return _make_hostkey(self.host, self.ip_addresses)
+
+    @property
+    def http_status_full(self):
+        return str(self.http_status) + (f" -> {self.redirect_location}" if self.redirect_location else "")
 
 
 def _make_hostkey(host, ips):

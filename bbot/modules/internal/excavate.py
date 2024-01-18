@@ -366,16 +366,11 @@ class excavate(BaseInternalModule):
             # handle redirects
             web_spider_distance = getattr(event, "web_spider_distance", 0)
             num_redirects = max(getattr(event, "num_redirects", 0), web_spider_distance)
-            location = event.data.get("location", "")
+            location = getattr(event, "redirect_location", "")
             # if it's a redirect
             if location:
                 # get the url scheme
                 scheme = self.helpers.is_uri(location, return_scheme=True)
-                # if there's no scheme (i.e. it's a relative redirect)
-                if not scheme:
-                    # then join the location with the current url
-                    location = urljoin(event.parsed.geturl(), location)
-                    scheme = self.helpers.is_uri(location, return_scheme=True)
                 if scheme in ("http", "https"):
                     if num_redirects <= self.max_redirects:
                         # tag redirects to out-of-scope hosts as affiliates
