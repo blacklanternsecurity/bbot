@@ -21,7 +21,7 @@ class baddns(BaseModule):
 
     async def setup(self):
         self.custom_nameservers = self.config.get("custom_nameservers", []) or None
-        if self.custom_namesevers:
+        if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
         return True
 
