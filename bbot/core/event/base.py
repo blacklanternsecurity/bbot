@@ -14,7 +14,7 @@ from .helpers import *
 from bbot.core.errors import *
 from bbot.core.helpers import (
     extract_words,
-    split_host_port,
+    get_file_extension,
     host_in_host,
     is_domain,
     is_subdomain,
@@ -24,10 +24,11 @@ from bbot.core.helpers import (
     domain_stem,
     make_netloc,
     make_ip_type,
+    recursive_decode,
     smart_decode,
-    get_file_extension,
-    validators,
+    split_host_port,
     tagify,
+    validators,
 )
 
 
@@ -1020,6 +1021,13 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
             return int(self.data.get("status_code", 0))
         except (ValueError, TypeError):
             return 0
+
+    @property
+    def http_title(self):
+        try:
+            return recursive_decode(self.data.get("title", ""))
+        except Exception:
+            return ""
 
     @property
     def redirect_location(self):

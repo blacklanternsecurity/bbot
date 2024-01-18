@@ -106,6 +106,7 @@ async def test_events(events, scan, helpers, bbot_config):
     http_response = scan.make_event(
         {
             "port": "80",
+            "title": "HTTP%20RESPONSE",
             "url": "http://www.evilcorp.com:80",
             "input": "http://www.evilcorp.com:80",
             "location": "/asdf",
@@ -115,6 +116,7 @@ async def test_events(events, scan, helpers, bbot_config):
         dummy=True,
     )
     assert http_response.http_status == 301
+    assert http_response.http_title == "HTTP RESPONSE"
     assert http_response.redirect_location == "http://www.evilcorp.com/asdf"
 
     # open port tests
