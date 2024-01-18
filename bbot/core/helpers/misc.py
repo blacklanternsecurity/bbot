@@ -1165,6 +1165,8 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
     This function takes a list `l` and flattens it by splitting its entries on commas.
     It also allows you to optionally open entries as files and add their contents to the list.
 
+    The order of entries is preserved, and deduplication is performed automatically.
+
     Args:
         l (list): The list of strings to chain together.
         try_files (bool, optional): Whether to try to open entries as files. Defaults to False.
@@ -1181,6 +1183,8 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
         >>> chain_lists(["a,file.txt", "c,d"], try_files=True)
         ['a', 'f_line1', 'f_line2', 'f_line3', 'c', 'd']
     """
+    if isinstance(l, str):
+        l = [l]
     final_list = dict()
     for entry in l:
         for s in entry.split(","):

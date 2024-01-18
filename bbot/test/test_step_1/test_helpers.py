@@ -344,6 +344,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert "asdf" in helpers.str_or_file(str(test_file))
     assert "nope" in helpers.str_or_file("nope")
     assert tuple(helpers.chain_lists([str(test_file), "nope"], try_files=True)) == ("asdf", "fdsa", "nope")
+    assert tuple(helpers.chain_lists("one, two", try_files=True)) == ("one", "two")
     assert test_file.is_file()
 
     with pytest.raises(DirectoryCreationError, match="Failed to create.*"):
