@@ -389,6 +389,50 @@ def url_parents(u):
             u = parent
 
 
+def best_http_status(code1, code2):
+    """
+    Determine the better HTTP status code between two given codes.
+
+    The 'better' status code is considered based on typical usage and priority in HTTP communication.
+    Lower codes are generally better than higher codes. Within the same class (e.g., 2xx), a lower code is better.
+    Between different classes, the order of preference is 2xx > 3xx > 1xx > 4xx > 5xx.
+
+    Args:
+        code1 (int): The first HTTP status code.
+        code2 (int): The second HTTP status code.
+
+    Returns:
+        int: The better HTTP status code between the two provided codes.
+
+    Examples:
+        >>> better_http_status(200, 404)
+        200
+        >>> better_http_status(500, 400)
+        400
+        >>> better_http_status(301, 302)
+        301
+    """
+
+    # Classify the codes into their respective categories (1xx, 2xx, 3xx, 4xx, 5xx)
+    def classify_code(code):
+        return int(code) // 100
+
+    class1 = classify_code(code1)
+    class2 = classify_code(code2)
+
+    # Priority order for classes
+    priority_order = {2: 1, 3: 2, 1: 3, 4: 4, 5: 5}
+
+    # Compare based on class priority
+    p1 = priority_order.get(class1, 10)
+    p2 = priority_order.get(class2, 10)
+    if p1 != p2:
+        return code1 if p1 < p2 else code2
+
+    # If in the same class, the lower code is better
+    return min(code1, code2)
+
+
 def tldextract(data):
     """
     Extracts the subdomain, domain, and suffix from a URL string.

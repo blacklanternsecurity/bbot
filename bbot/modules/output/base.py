@@ -27,7 +27,7 @@ class BaseOutputModule(BaseModule):
 
         # output module specific stuff
         # omitted events such as HTTP_RESPONSE etc.
-        if event._omit:
+        if event._omit and not event.type in self.get_watched_events():
             return False, "_omit is True"
 
         # force-output certain events to the graph

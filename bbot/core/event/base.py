@@ -1,3 +1,4 @@
+import re
 import json
 import asyncio
 import logging
@@ -866,6 +867,8 @@ class OPEN_TCP_PORT(BaseEvent):
 
 
 class URL_UNVERIFIED(BaseEvent):
+    _status_code_regex = re.compile(r"^status-(\d{1,3})$")
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
@@ -921,6 +924,14 @@ class URL_UNVERIFIED(BaseEvent):
             data = "spider-danger" + data
         return data
 
+    @property
+    def status_code(self):
+        for t in self.tags:
+            match = self._status_code_regex.match(t)
+            if match:
+                return int(match.groups()[0])
+        return 0
+
 
 class URL(URL_UNVERIFIED):
     def sanitize_data(self, data):
@@ -973,7 +984,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         super().__init__(*args, **kwargs)
         # count number of consecutive redirects
         self.num_redirects = getattr(self.source, "num_redirects", 0)
-        if str(self.data.get("status_code", 0)).startswith("3"):
+        if str(self.status_code).startswith("3"):
             self.num_redirects += 1
 
     def sanitize_data(self, data):
@@ -1000,6 +1011,13 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
     def _pretty_string(self):
         return f'{self.data["hash"]["header_mmh3"]}:{self.data["hash"]["body_mmh3"]}'
+
+    @property
+    def status_code(self):
+        try:
+            return int(self.data.get("status_code", 0))
+        except (ValueError, TypeError):
+            return 0
 
 
 class VULNERABILITY(DictHostEvent):

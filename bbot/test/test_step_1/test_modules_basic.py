@@ -18,16 +18,27 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
 
     # output module specific event filtering tests
-    base_output_module = BaseOutputModule(scan)
-    base_output_module.watched_events = ["IP_ADDRESS"]
+    base_output_module_1 = BaseOutputModule(scan)
+    base_output_module_1.watched_events = ["IP_ADDRESS"]
     localhost = scan.make_event("127.0.0.1", source=scan.root_event)
-    assert base_output_module._event_precheck(localhost)[0] == True
+    assert base_output_module_1._event_precheck(localhost)[0] == True
     localhost._internal = True
-    assert base_output_module._event_precheck(localhost)[0] == False
+    assert base_output_module_1._event_precheck(localhost)[0] == False
     localhost._internal = False
-    assert base_output_module._event_precheck(localhost)[0] == True
+    assert base_output_module_1._event_precheck(localhost)[0] == True
     localhost._omit = True
-    assert base_output_module._event_precheck(localhost)[0] == False
+    assert base_output_module_1._event_precheck(localhost)[0] == True
+
+    base_output_module_2 = BaseOutputModule(scan)
+    base_output_module_2.watched_events = ["*"]
+    localhost = scan.make_event("127.0.0.1", source=scan.root_event)
+    assert base_output_module_2._event_precheck(localhost)[0] == True
+    localhost._internal = True
+    assert base_output_module_2._event_precheck(localhost)[0] == False
+    localhost._internal = False
+    assert base_output_module_2._event_precheck(localhost)[0] == True
+    localhost._omit = True
+    assert base_output_module_2._event_precheck(localhost)[0] == False
 
     # common event filtering tests
     for module_class in (BaseModule, BaseOutputModule, BaseReportModule, BaseInternalModule):

@@ -91,7 +91,9 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("https://evilcorp.com.:666", dummy=True) == "https://evilcorp.com:666/"
     assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
-    assert "status-200" in scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"]).tags
+    url_event = scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"])
+    assert "status-200" in url_event.tags
+    assert url_event.status_code == 200
     with pytest.raises(ValidationError, match=".*status tag.*"):
         scan.make_event("https://evilcorp.com", "URL", events.ipv4_url)
 

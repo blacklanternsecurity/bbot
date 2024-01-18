@@ -204,6 +204,7 @@ class ScanManager:
                 dns_children = {}
 
             if event.type in ("DNS_NAME", "IP_ADDRESS"):
+                event._dns_children = dns_children
                 for tag in dns_tags:
                     event.add_tag(tag)
 
