@@ -136,7 +136,7 @@ class asset_inventory(CSV):
                 "Findings": "\n".join(findings_and_vulns),
                 "Technologies": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
                 "WAF": getattr(asset, "waf", ""),
-                "DNS Records": ", ".join(getattr(asset, "dns_records", [])),
+                "DNS Records": ", ".join(sorted([str(r) for r in getattr(asset, "dns_records", [])])),
             }
             row.update(asset.custom_fields)
             self.writerow(row)
@@ -214,7 +214,7 @@ class Asset:
     def __init__(self, host):
         self.host = host
         self.ip_addresses = set()
-        self.dns_records = []
+        self.dns_records = set()
         self.ports = set()
         self.findings = set()
         self.vulnerabilities = set()
@@ -234,7 +234,8 @@ class Asset:
         if host and not is_ip(host):
             self.host = host
         # ips
-        self.ip_addresses = set(_make_ip_list(row.get("IP(s)", "")))
+        self.ip_addresses = set(_make_ip_list(row.get("IP (External)", "")))
+        self.ip_addresses.update(set(_make_ip_list(row.get("IP (Internal)", ""))))
         # ports
         ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
         self.ports.update(set(i for i in ports if i and is_port(i)))
@@ -265,10 +266,9 @@ class Asset:
             self.host = event.host
 
         dns_children = getattr(event, "_dns_children", {})
-        if dns_children and not self.dns_records:
-            for rdtype, records in sorted(dns_children.items(), key=lambda x: x[0]):
-                for record in sorted([str(r) for r in records]):
-                    self.dns_records.append(f"{rdtype}:{record}")
+        for rdtype, records in sorted(dns_children.items(), key=lambda x: x[0]):
+            for record in sorted([str(r) for r in records]):
+                self.dns_records.add(f"{rdtype}:{record}")
 
         http_status = getattr(event, "http_status", 0)
         update_http_status = bool(http_status) and best_http_status(http_status, self.http_status) == http_status
