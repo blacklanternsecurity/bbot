@@ -44,10 +44,11 @@ class asset_inventory(CSV):
     header_row = [
         "Host",
         "Provider",
-        "IP(s)",
+        "IP (External)",
+        "IP (Internal)",
+        "Open Ports",
         "HTTP Status",
         "HTTP Title",
-        "Open Ports",
         "Risk Rating",
         "Findings",
         "Technologies",
@@ -110,13 +111,15 @@ class asset_inventory(CSV):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             ports = getattr(asset, "ports", set())
             ports = [str(p) for p in sorted([int(p) for p in asset.ports])]
-            ips = sorted([str(i) for i in getattr(asset, "ip_addresses", [])])
+            ips_all = getattr(asset, "ip_addresses", [])
+            ips_external = sorted([str(ip) for ip in [i for i in ips_all if not i.is_private]])
+            ips_internal = sorted([str(ip) for ip in [i for i in ips_all if i.is_private]])
             host = self.helpers.make_ip_type(getattr(asset, "host", ""))
             if host and isinstance(host, str):
                 _, domain = self.helpers.split_domain(host)
                 if domain:
                     increment_stat("Domains", domain)
-            for ip in ips:
+            for ip in ips_all:
                 net = ipaddress.ip_network(f"{ip}/{self.summary_netmask}", strict=False)
                 increment_stat("IP Addresses", str(net))
             for port in ports:
@@ -124,10 +127,11 @@ class asset_inventory(CSV):
             row = {
                 "Host": host,
                 "Provider": getattr(asset, "provider", ""),
-                "IP(s)": ", ".join(ips),
+                "IP (External)": ", ".join(ips_external),
+                "IP (Internal)": ", ".join(ips_internal),
+                "Open Ports": ", ".join(ports),
                 "HTTP Status": asset.http_status_full,
                 "HTTP Title": str(getattr(asset, "http_title", "")),
-                "Open Ports": ", ".join(ports),
                 "Risk Rating": severity_map[getattr(asset, "risk_rating", "")],
                 "Findings": "\n".join(findings_and_vulns),
                 "Technologies": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
@@ -161,7 +165,7 @@ class asset_inventory(CSV):
                         # yield to event loop to make sure we don't hold up the scan
                         await self.helpers.sleep(0)
                         host = row.get("Host", "").strip()
-                        ips = row.get("IP(s)", "")
+                        ips = row.get("IP (External)", "") + "," + row.get("IP (Internal)", "")
                         if not host or not ips:
                             continue
                         hostkey = _make_hostkey(host, ips)
@@ -263,7 +267,7 @@ class Asset:
         dns_children = getattr(event, "_dns_children", {})
         if dns_children and not self.dns_records:
             for rdtype, records in sorted(dns_children.items(), key=lambda x: x[0]):
-                for record in sorted(records):
+                for record in sorted([str(r) for r in records]):
                     self.dns_records.append(f"{rdtype}:{record}")
 
         http_status = getattr(event, "http_status", 0)
