@@ -13,7 +13,13 @@ class httpx(BaseModule):
     flags = ["active", "safe", "web-basic", "web-thorough", "social-enum", "subdomain-enum", "cloud-enum"]
     meta = {"description": "Visit webpages. Many other modules rely on httpx"}
 
-    options = {"threads": 50, "in_scope_only": True, "version": "1.2.5", "max_response_size": 5242880, "store_responses": False}
+    options = {
+        "threads": 50,
+        "in_scope_only": True,
+        "version": "1.2.5",
+        "max_response_size": 5242880,
+        "store_responses": False,
+    }
     options_desc = {
         "threads": "Number of httpx threads to use",
         "in_scope_only": "Only visit web resources that are in scope.",
