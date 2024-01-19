@@ -42,7 +42,7 @@ class bucket_file_enum(BaseModule):
                 bucket_file = url + "/" + key
                 file_extension = self.helpers.get_file_extension(key)
                 if file_extension not in self.scan.url_extension_blacklist:
-                    self.emit_event(bucket_file, "URL_UNVERIFIED", source=event, tags="filedownload")
+                    await self.emit_event(bucket_file, "URL_UNVERIFIED", source=event, tags="filedownload")
                     urls_emitted += 1
                     if urls_emitted >= self.file_limit:
                         return

@@ -289,4 +289,4 @@ class hunt(BaseModule):
                     url = event.data.get("url", "")
                     if url:
                         data["url"] = url
-                    self.emit_event(data, "FINDING", event)
+                    await self.emit_event(data, "FINDING", event)

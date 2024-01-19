@@ -18,12 +18,12 @@ class NSEC(BaseModule):
         async for result in self.nsec_walk(event.data):
             if not emitted_finding:
                 emitted_finding = True
-                self.emit_event(
+                await self.emit_event(
                     {"host": event.data, "description": f"DNSSEC NSEC Zone Walking Enabled for domain: {event.data}"},
                     "FINDING",
                     source=event,
                 )
-            self.emit_event(result, "DNS_NAME", source=event)
+            await self.emit_event(result, "DNS_NAME", source=event)
 
     async def get_nsec_record(self, domain):
         domain = domain.replace("\\000.", "")

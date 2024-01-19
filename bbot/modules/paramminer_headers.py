@@ -126,7 +126,7 @@ class paramminer_headers(BaseModule):
             if reflection:
                 tags = ["http_reflection"]
             description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}] Reflection: [{str(reflection)}]"
-            self.emit_event(
+            await self.emit_event(
                 {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
                 event,

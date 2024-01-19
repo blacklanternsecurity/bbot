@@ -57,7 +57,7 @@ class github_org(github):
             for repo_url in repos:
                 repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
                 repo_event.scope_distance = event.scope_distance
-                self.emit_event(repo_event)
+                await self.emit_event(repo_event)
 
             # find members from org (SOCIAL --> SOCIAL)
             if is_org and self.include_members:
@@ -66,7 +66,7 @@ class github_org(github):
                 for member in org_members:
                     event_data = {"platform": "github", "profile_name": member, "url": f"https://github.com/{member}"}
                     member_event = self.make_event(event_data, "SOCIAL", tags="github-org-member", source=event)
-                    self.emit_event(member_event)
+                    await self.emit_event(member_event)
 
         # find valid orgs from stub (ORG_STUB --> SOCIAL)
         elif event.type == "ORG_STUB":
@@ -80,7 +80,7 @@ class github_org(github):
             event_data = {"platform": "github", "profile_name": user, "url": f"https://github.com/{user}"}
             github_org_event = self.make_event(event_data, "SOCIAL", tags="github-org", source=event)
             github_org_event.scope_distance = event.scope_distance
-            self.emit_event(github_org_event)
+            await self.emit_event(github_org_event)
 
     async def query_org_repos(self, query):
         repos = []

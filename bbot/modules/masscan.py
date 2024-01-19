@@ -193,18 +193,18 @@ class masscan(portscanner):
                 result = self.helpers.make_netloc(result, port_number)
                 if source is None:
                     source = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
-                    self.emit_event(source)
+                    await self.emit_event(source)
             result_callback(result, source=source)
 
     def append_alive_host(self, host, source):
         host_event = self.make_event(host, "IP_ADDRESS", source=self.get_source_event(host))
         self.alive_hosts[host] = host_event
         self._write_ping_result(host)
-        self.emit_event(host_event)
+        await self.emit_event(host_event)
 
     def emit_open_tcp_port(self, data, source):
         self._write_syn_result(data)
-        self.emit_event(data, "OPEN_TCP_PORT", source=source)
+        await self.emit_event(data, "OPEN_TCP_PORT", source=source)
 
     def emit_from_cache(self):
         ip_events = {}
@@ -220,7 +220,7 @@ class masscan(portscanner):
                     break
                 ip_event = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
                 ip_events[ip] = ip_event
-                self.emit_event(ip_event)
+                await self.emit_event(ip_event)
         # syn scan
         if self.syn_cache.is_file():
             cached_syns = list(self.helpers.read_file(self.syn_cache))
@@ -237,8 +237,8 @@ class masscan(portscanner):
                 if source_event is None:
                     self.verbose(f"Source event not found for {line}")
                     source_event = self.make_event(line, "IP_ADDRESS", source=self.get_source_event(line))
-                    self.emit_event(source_event)
-                self.emit_event(line, "OPEN_TCP_PORT", source=source_event)
+                    await self.emit_event(source_event)
+                await self.emit_event(line, "OPEN_TCP_PORT", source=source_event)
 
     def get_source_event(self, host):
         source_event = self.scan.whitelist.get(host)

@@ -30,7 +30,7 @@ class host_header(BaseModule):
     def rand_string(self, *args, **kwargs):
         return self.helpers.rand_string(*args, **kwargs)
 
-    def interactsh_callback(self, r):
+    async def interactsh_callback(self, r):
         full_id = r.get("full-id", None)
         if full_id:
             if "." in full_id:
@@ -40,7 +40,7 @@ class host_header(BaseModule):
                 matched_event = match[0]
                 matched_technique = match[1]
 
-                self.emit_event(
+                await self.emit_event(
                     {
                         "host": str(matched_event.host),
                         "url": matched_event.data["url"],
@@ -128,7 +128,7 @@ class host_header(BaseModule):
 
         split_output = output.split("\n")
         if " 4" in split_output:
-            self.emit_event(
+            await self.emit_event(
                 {
                     "host": str(event.host),
                     "url": event.data["url"],
@@ -168,7 +168,7 @@ class host_header(BaseModule):
 
         # emit all the domain reflections we found
         for dr in domain_reflections:
-            self.emit_event(
+            await self.emit_event(
                 {
                     "host": str(event.host),
                     "url": event.data["url"],

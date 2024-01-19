@@ -200,7 +200,7 @@ class generic_ssrf(BaseModule):
                 matched_severity = match[2]
                 matched_read_response = str(match[3])
 
-                self.emit_event(
+                await self.emit_event(
                     {
                         "severity": matched_severity,
                         "host": str(matched_event.host),

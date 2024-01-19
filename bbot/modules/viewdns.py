@@ -26,7 +26,7 @@ class viewdns(BaseModule):
     async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
         for domain, _ in await self.query(query):
-            self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
+            await self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
 
     async def query(self, query):
         results = set()

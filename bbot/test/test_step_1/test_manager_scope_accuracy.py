@@ -257,7 +257,7 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
             return False, "bleh"
 
         async def handle_event(self, event):
-            self.emit_event(
+            await self.emit_event(
                 {"host": str(event.host), "description": "yep", "severity": "CRITICAL"}, "VULNERABILITY", source=event
             )
 

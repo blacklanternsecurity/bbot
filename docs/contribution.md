@@ -74,7 +74,7 @@ class MyModule(BaseModule):
         self.hugeinfo(f"GOT EVENT: {event}")
         for ip in await self.helpers.resolve(event.data):
             self.hugesuccess(f"EMITTING IP_ADDRESS: {ip}")
-            self.emit_event(ip, "IP_ADDRESS", source=event)
+            await self.emit_event(ip, "IP_ADDRESS", source=event)
 ```
 
 After saving the module, you can run it simply by specifying it with `-m`:

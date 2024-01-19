@@ -104,7 +104,7 @@ class BaseModule:
 
     _preserve_graph = False
     _stats_exclude = False
-    _qsize = 0
+    _qsize = 100
     _priority = 3
     _name = "base"
     _type = "scan"
@@ -381,7 +381,7 @@ class BaseModule:
 
         Examples:
             >>> new_event = self.make_event("1.2.3.4", source=event)
-            >>> self.emit_event(new_event)
+            >>> await self.emit_event(new_event)
 
         Returns:
             Event or None: The created event, or None if a validation error occurred and raise_error was False.
@@ -401,7 +401,7 @@ class BaseModule:
             event.module = self
         return event
 
-    def emit_event(self, *args, **kwargs):
+    async def emit_event(self, *args, **kwargs):
         """Emit an event to the event queue and distribute it to interested modules.
 
         This is how modules "return" data.
@@ -419,10 +419,10 @@ class BaseModule:
                 ```
 
         Examples:
-            >>> self.emit_event("www.evilcorp.com", source=event, tags=["affiliate"])
+            >>> await self.emit_event("www.evilcorp.com", source=event, tags=["affiliate"])
 
             >>> new_event = self.make_event("1.2.3.4", source=event)
-            >>> self.emit_event(new_event)
+            >>> await self.emit_event(new_event)
 
         Returns:
             None
@@ -438,27 +438,7 @@ class BaseModule:
                 emit_kwargs[o] = v
         event = self.make_event(*args, **event_kwargs)
         if event:
-            self.queue_outgoing_event(event, **emit_kwargs)
-
-    async def emit_event_wait(self, *args, **kwargs):
-        """Emit an event to the event queue and await until there is space in the outgoing queue.
-
-        This method is similar to `emit_event`, but it waits until there's sufficient space in the outgoing
-        event queue before emitting the event. It utilizes the queue size threshold defined in `self._qsize`.
-
-        Args:
-            *args: Positional arguments to be passed to `emit_event()` for event creation.
-            **kwargs: Keyword arguments to be passed to `emit_event()` for event creation or configuration.
-
-        Returns:
-            None
-
-        See Also:
-            emit_event: For emitting an event without waiting on the queue size.
-        """
-        while self.outgoing_event_queue.qsize() > self._qsize:
-            await self.helpers.sleep(0.2)
-        return self.emit_event(*args, **kwargs)
+            await self.queue_outgoing_event(event, **emit_kwargs)
 
     async def _events_waiting(self):
         """
@@ -808,7 +788,7 @@ class BaseModule:
             except AttributeError:
                 self.debug(f"Not in an acceptable state to queue incoming event")
 
-    def queue_outgoing_event(self, event, **kwargs):
+    async def queue_outgoing_event(self, event, **kwargs):
         """
         Queues an outgoing event to the module's outgoing event queue for further processing.
 
@@ -829,7 +809,7 @@ class BaseModule:
             AttributeError: If the module is not in an acceptable state to queue outgoing events.
         """
         try:
-            self.outgoing_event_queue.put_nowait((event, kwargs))
+            await self.outgoing_event_queue.put((event, kwargs))
         except AttributeError:
             self.debug(f"Not in an acceptable state to queue outgoing event")
 
@@ -1076,7 +1056,7 @@ class BaseModule:
     @property
     def outgoing_event_queue(self):
         if self._outgoing_event_queue is None:
-            self._outgoing_event_queue = ShuffleQueue()
+            self._outgoing_event_queue = ShuffleQueue(self._qsize)
         return self._outgoing_event_queue
 
     @property
