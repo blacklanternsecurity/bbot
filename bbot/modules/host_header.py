@@ -58,7 +58,7 @@ class host_header(BaseModule):
             await self.helpers.sleep(5)
             try:
                 for r in await self.interactsh_instance.poll():
-                    self.interactsh_callback(r)
+                    await self.interactsh_callback(r)
             except InteractshError as e:
                 self.debug(f"Error in interact.sh: {e}")
 
