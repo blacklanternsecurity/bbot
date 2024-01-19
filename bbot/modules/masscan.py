@@ -105,7 +105,7 @@ class masscan(portscanner):
 
     async def handle_batch(self, *events):
         if self.use_cache:
-            self.emit_from_cache()
+            await self.emit_from_cache()
         else:
             targets = [str(e.data) for e in events]
             if not targets:
@@ -138,7 +138,7 @@ class masscan(portscanner):
         try:
             with open(stats_file, "w") as stats_fh:
                 async for line in self.helpers.run_live(command, sudo=True, stderr=stats_fh):
-                    self.process_output(line, result_callback=result_callback)
+                    await self.process_output(line, result_callback=result_callback)
         finally:
             for file in (stats_file, target_file):
                 file.unlink()
@@ -169,7 +169,7 @@ class masscan(portscanner):
             command += ("--echo",)
         return command
 
-    def process_output(self, line, result_callback):
+    async def process_output(self, line, result_callback):
         try:
             j = json.loads(line)
         except Exception:
@@ -194,19 +194,19 @@ class masscan(portscanner):
                 if source is None:
                     source = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
                     await self.emit_event(source)
-            result_callback(result, source=source)
+            await result_callback(result, source=source)
 
-    def append_alive_host(self, host, source):
+    async def append_alive_host(self, host, source):
         host_event = self.make_event(host, "IP_ADDRESS", source=self.get_source_event(host))
         self.alive_hosts[host] = host_event
         self._write_ping_result(host)
         await self.emit_event(host_event)
 
-    def emit_open_tcp_port(self, data, source):
+    async def emit_open_tcp_port(self, data, source):
         self._write_syn_result(data)
         await self.emit_event(data, "OPEN_TCP_PORT", source=source)
 
-    def emit_from_cache(self):
+    async def emit_from_cache(self):
         ip_events = {}
         # ping scan
         if self.ping_cache.is_file():
