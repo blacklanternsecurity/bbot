@@ -21,7 +21,7 @@ class subdomaincenter(subdomain_enum):
         for i, _ in enumerate(range(self.retries + 1)):
             if i > 0:
                 self.verbose(f"Retry #{i} for {query} after response code {status_code}")
-            response = await self.helpers.request(url)
+            response = await self.helpers.request(url, timeout=self.http_timeout + 30)
             status_code = getattr(response, "status_code", 0)
             if status_code == 429:
                 await self.sleep(20)
