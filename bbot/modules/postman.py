@@ -70,16 +70,22 @@ class postman(subdomain_enum):
                     workspaces.append(workspace)
         for item in workspaces:
             id = item.get("id", "")
-            interesting_urls.append(f"{self.base_url}/workspace/{id}")
-            environments, collections = await self.search_workspace(id)
-            interesting_urls.append(f"{self.base_url}/workspace/{id}/globals")
-            for e_id in environments:
-                interesting_urls.append(f"{self.base_url}/environment/{e_id}")
-            for c_id in collections:
-                interesting_urls.append(f"{self.base_url}/collection/{c_id}")
-            requests = await self.search_collections(id)
-            for r_id in requests:
-                interesting_urls.append(f"{self.base_url}/request/{r_id}")
+            name = item.get("name", "")
+            tldextract = self.helpers.tldextract(query)
+            if tldextract.domain.lower() in name.lower():
+                self.verbose(f"Discovered workspace {name} ({id})")
+                interesting_urls.append(f"{self.base_url}/workspace/{id}")
+                environments, collections = await self.search_workspace(id)
+                interesting_urls.append(f"{self.base_url}/workspace/{id}/globals")
+                for e_id in environments:
+                    interesting_urls.append(f"{self.base_url}/environment/{e_id}")
+                for c_id in collections:
+                    interesting_urls.append(f"{self.base_url}/collection/{c_id}")
+                requests = await self.search_collections(id)
+                for r_id in requests:
+                    interesting_urls.append(f"{self.base_url}/request/{r_id}")
+            else:
+                self.verbose(f"Skipping workspace {name} ({id}) as it does not appear to be in scope")
         return interesting_urls
 
     async def search_workspace(self, id):
