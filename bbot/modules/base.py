@@ -175,7 +175,7 @@ class BaseModule:
         """
         pass
 
-    def handle_batch(self, *events):
+    async def handle_batch(self, *events):
         """Handles incoming events in batches for optimized processing.
 
         This method is automatically called when multiple events that match any in `watched_events` are encountered and the `batch_size` attribute is set to a value greater than 1. Override this method to implement custom batch event-handling logic for your module.
@@ -350,13 +350,14 @@ class BaseModule:
             - If a "FINISHED" event is found, invokes 'finish()' method of the module.
         """
         finish = False
-        async with self._task_counter.count(f"{self.name}.handle_batch()"):
+        async with self._task_counter.count(f"{self.name}.handle_batch()") as counter:
             submitted = False
             if self.batch_size <= 1:
                 return
             if self.num_incoming_events > 0:
                 events, finish = await self._events_waiting()
                 if events and not self.errored:
+                    counter.n = len(events)
                     self.debug(f"Handling batch of {len(events):,} events")
                     submitted = True
                     async with self.scan._acatch(f"{self.name}.handle_batch()"):
