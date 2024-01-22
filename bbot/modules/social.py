@@ -33,6 +33,6 @@ class social(BaseModule):
                 if not url.startswith("http"):
                     url = f"https://{url}"
                 profile_name = match.groups()[0]
-                self.emit_event(
+                await self.emit_event(
                     {"platform": platform, "url": url, "profile_name": profile_name}, "SOCIAL", source=event
                 )

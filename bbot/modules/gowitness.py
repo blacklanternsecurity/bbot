@@ -137,7 +137,7 @@ class gowitness(BaseModule):
             filename = screenshot["filename"]
             webscreenshot_data = {"filename": filename, "url": final_url}
             source_event = events[url]
-            self.emit_event(webscreenshot_data, "WEBSCREENSHOT", source=source_event)
+            await self.emit_event(webscreenshot_data, "WEBSCREENSHOT", source=source_event)
 
         # emit URLs
         for url, row in self.new_network_logs.items():
@@ -151,7 +151,7 @@ class gowitness(BaseModule):
             if self.helpers.is_spider_danger(source_event, url):
                 tags.append("spider-danger")
             if url and url.startswith("http"):
-                self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
+                await self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
 
         # emit technologies
         for _, row in self.new_technologies.items():
@@ -160,7 +160,7 @@ class gowitness(BaseModule):
             source_event = events[source_url]
             technology = row["value"]
             tech_data = {"technology": technology, "url": source_url, "host": str(source_event.host)}
-            self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
+            await self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
 
     def construct_command(self):
         # base executable

@@ -166,11 +166,11 @@ class httpx(BaseModule):
             url_event = self.make_event(url, "URL", source_event, tags=tags)
             if url_event:
                 if url_event != source_event:
-                    self.emit_event(url_event)
+                    await self.emit_event(url_event)
                 else:
                     url_event._resolved.set()
                 # HTTP response
-                self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags)
+                await self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags)
 
         for tempdir in Path(tempfile.gettempdir()).iterdir():
             if tempdir.is_dir() and self.httpx_tempdir_regex.match(tempdir.name):

@@ -52,11 +52,11 @@ class badsecrets(BaseModule):
                             "url": event.data["url"],
                             "host": str(event.host),
                         }
-                        self.emit_event(data, "VULNERABILITY", event)
+                        await self.emit_event(data, "VULNERABILITY", event)
                     elif r["type"] == "IdentifyOnly":
                         # There is little value to presenting a non-vulnerable asp.net viewstate, as it is not crackable without a Matrioshka brain. Just emit a technology instead.
                         if r["detecting_module"] == "ASPNET_Viewstate":
-                            self.emit_event(
+                            await self.emit_event(
                                 {"technology": "microsoft asp.net", "url": event.data["url"], "host": str(event.host)},
                                 "TECHNOLOGY",
                                 event,
@@ -67,4 +67,4 @@ class badsecrets(BaseModule):
                                 "url": event.data["url"],
                                 "host": str(event.host),
                             }
-                            self.emit_event(data, "FINDING", event)
+                            await self.emit_event(data, "FINDING", event)

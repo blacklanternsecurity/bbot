@@ -23,7 +23,7 @@ class BaseExtractor:
         async for result, name in self._search(content, event, **kwargs):
             results.add(result)
         for result in results:
-            self.report(result, name, event, **kwargs)
+            await self.report(result, name, event, **kwargs)
 
     async def _search(self, content, event, **kwargs):
         for name, regex in self.compiled_regexes.items():
@@ -32,7 +32,7 @@ class BaseExtractor:
             for result in regex.findall(content):
                 yield result, name
 
-    def report(self, result, name, event):
+    async def report(self, result, name, event):
         pass
 
 
@@ -48,10 +48,10 @@ class CSPExtractor(BaseExtractor):
         async for csp, name in self._search(content, event, **kwargs):
             extracted_domains = self.extract_domains(csp)
             for domain in extracted_domains:
-                self.report(domain, event, **kwargs)
+                await self.report(domain, event, **kwargs)
 
-    def report(self, domain, event, **kwargs):
-        self.excavate.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
+    async def report(self, domain, event, **kwargs):
+        await self.excavate.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
 
 
 class HostnameExtractor(BaseExtractor):
@@ -62,8 +62,8 @@ class HostnameExtractor(BaseExtractor):
             self.regexes[f"dns_name_{i+1}"] = r.pattern
         super().__init__(excavate)
 
-    def report(self, result, name, event, **kwargs):
-        self.excavate.emit_event(result, "DNS_NAME", source=event)
+    async def report(self, result, name, event, **kwargs):
+        await self.excavate.emit_event(result, "DNS_NAME", source=event)
 
 
 class URLExtractor(BaseExtractor):
@@ -95,7 +95,7 @@ class URLExtractor(BaseExtractor):
 
         urls_found = 0
         for result, name in results:
-            url_event = self.report(result, name, event, **kwargs)
+            url_event = await self.report(result, name, event, **kwargs)
             if url_event is not None:
                 url_in_scope = self.excavate.scan.in_scope(url_event)
                 is_spider_danger = self.excavate.helpers.is_spider_danger(event, result)
@@ -115,7 +115,7 @@ class URLExtractor(BaseExtractor):
                     url_event.add_tag("spider-danger")
 
                 self.excavate.debug(f"Found URL [{result}] from parsing [{event.data.get('url')}] with regex [{name}]")
-                self.excavate.emit_event(url_event)
+                await self.excavate.emit_event(url_event)
                 if url_in_scope:
                     urls_found += 1
 
@@ -150,7 +150,7 @@ class URLExtractor(BaseExtractor):
 
                 yield result, name
 
-    def report(self, result, name, event, **kwargs):
+    async def report(self, result, name, event, **kwargs):
         parsed_uri = None
         try:
             parsed_uri = self.excavate.helpers.urlparse(result)
@@ -168,7 +168,7 @@ class URLExtractor(BaseExtractor):
             parsed_url = getattr(event, "parsed", None)
             if parsed_url:
                 event_data["url"] = parsed_url.geturl()
-            self.excavate.emit_event(
+            await self.excavate.emit_event(
                 event_data,
                 "FINDING",
                 source=event,
@@ -177,7 +177,7 @@ class URLExtractor(BaseExtractor):
             protocol_data = {"protocol": parsed_uri.scheme, "host": str(host)}
             if port:
                 protocol_data["port"] = port
-            self.excavate.emit_event(
+            await self.excavate.emit_event(
                 protocol_data,
                 "PROTOCOL",
                 source=event,
@@ -192,12 +192,12 @@ class EmailExtractor(BaseExtractor):
     regexes = {"email": _email_regex}
     tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
 
-    def report(self, result, name, event, **kwargs):
+    async def report(self, result, name, event, **kwargs):
         result = result.lower()
         tld = result.split(".")[-1]
         if tld not in self.tld_blacklist:
             self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
-            self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
+            await self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
 
 
 class ErrorExtractor(BaseExtractor):
@@ -218,10 +218,10 @@ class ErrorExtractor(BaseExtractor):
         "ASP.NET:4": r"Error ([\d-]+) \([\dA-F]+\)",
     }
 
-    def report(self, result, name, event, **kwargs):
+    async def report(self, result, name, event, **kwargs):
         self.excavate.debug(f"Found error message from parsing [{event.data.get('url')}] with regex [{name}]")
         description = f"Error message Detected at Error Type: {name}"
-        self.excavate.emit_event(
+        await self.excavate.emit_event(
             {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
             "FINDING",
             source=event,
@@ -231,7 +231,7 @@ class ErrorExtractor(BaseExtractor):
 class JWTExtractor(BaseExtractor):
     regexes = {"JWT": r"eyJ(?:[\w-]*\.)(?:[\w-]*\.)[\w-]*"}
 
-    def report(self, result, name, event, **kwargs):
+    async def report(self, result, name, event, **kwargs):
         self.excavate.debug(f"Found JWT candidate [{result}]")
         try:
             j.decode(result, options={"verify_signature": False})
@@ -240,7 +240,7 @@ class JWTExtractor(BaseExtractor):
             if jwt_headers["alg"].upper()[0:2] == "HS":
                 tags = ["crackable"]
             description = f"JWT Identified [{result}]"
-            self.excavate.emit_event(
+            await self.excavate.emit_event(
                 {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
                 "FINDING",
                 event,
@@ -259,9 +259,9 @@ class SerializationExtractor(BaseExtractor):
         "Possible Compressed": r"H4sIAAAAAAAA[a-zA-Z0-9+/]+={,2}",
     }
 
-    def report(self, result, name, event, **kwargs):
+    async def report(self, result, name, event, **kwargs):
         description = f"{name} serialized object found"
-        self.excavate.emit_event(
+        await self.excavate.emit_event(
             {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
         )
 
@@ -272,9 +272,9 @@ class FunctionalityExtractor(BaseExtractor):
         "Web Service WSDL": r"(?i)((?:http|https)://[^\s]*?.(?:wsdl))",
     }
 
-    def report(self, result, name, event, **kwargs):
+    async def report(self, result, name, event, **kwargs):
         description = f"{name} found"
-        self.excavate.emit_event(
+        await self.excavate.emit_event(
             {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
         )
 
@@ -314,7 +314,7 @@ class JavascriptExtractor(BaseExtractor):
         "possible_creds_var": r"(?:password|passwd|pwd|pass)\s*=+\s*['\"][^\s'\"]{1,60}['\"]",
     }
 
-    def report(self, result, name, event, **kwargs):
+    async def report(self, result, name, event, **kwargs):
         # ensure that basic auth matches aren't false positives
         if name == "authorization_basic":
             try:
@@ -326,7 +326,7 @@ class JavascriptExtractor(BaseExtractor):
 
         self.excavate.debug(f"Found Possible Secret in Javascript [{result}]")
         description = f"Possible secret in JS [{result}] Signature [{name}]"
-        self.excavate.emit_event(
+        await self.excavate.emit_event(
             {"host": str(event.host), "url": event.data.get("url", ""), "description": description}, "FINDING", event
         )
 
@@ -379,7 +379,7 @@ class excavate(BaseInternalModule):
                             # inherit web spider distance from parent (don't increment)
                             source_web_spider_distance = getattr(event, "web_spider_distance", 0)
                             url_event.web_spider_distance = source_web_spider_distance
-                            self.emit_event(url_event)
+                            await self.emit_event(url_event)
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
 

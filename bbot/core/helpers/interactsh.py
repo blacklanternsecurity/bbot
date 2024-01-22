@@ -78,12 +78,13 @@ class Interactsh:
         ```
     """
 
-    def __init__(self, parent_helper):
+    def __init__(self, parent_helper, poll_interval=10):
         self.parent_helper = parent_helper
         self.server = None
         self.correlation_id = None
         self.custom_server = self.parent_helper.config.get("interactsh_server", None)
         self.token = self.parent_helper.config.get("interactsh_token", None)
+        self.poll_interval = poll_interval
         self._poll_task = None
 
     async def register(self, callback=None):
@@ -279,7 +280,7 @@ class Interactsh:
                 log.warning(e)
                 log.trace(traceback.format_exc())
             if not data_list:
-                await asyncio.sleep(10)
+                await asyncio.sleep(self.poll_interval)
                 continue
             for data in data_list:
                 if data:

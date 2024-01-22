@@ -229,10 +229,10 @@ class TestPostman(ModuleTestBase):
 
         old_emit_event = module_test.module.emit_event
 
-        def new_emit_event(event_data, event_type, **kwargs):
+        async def new_emit_event(event_data, event_type, **kwargs):
             if event_data.startswith("https://www.postman.com"):
                 event_data = event_data.replace("https://www.postman.com", "http://127.0.0.1:8888")
-            old_emit_event(event_data, event_type, **kwargs)
+            await old_emit_event(event_data, event_type, **kwargs)
 
         module_test.monkeypatch.setattr(module_test.module, "emit_event", new_emit_event)
         module_test.scan.helpers.dns.mock_dns({("asdf.blacklanternsecurity.com", "A"): "127.0.0.1"})

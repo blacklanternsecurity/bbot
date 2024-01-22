@@ -311,7 +311,7 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
         watched_events = ["*"]
 
         async def handle_event(self, event):
-            self.emit_event(
+            await self.emit_event(
                 {"host": "www.evilcorp.com", "url": "http://www.evilcorp.com", "description": "asdf"}, "FINDING", event
             )
 

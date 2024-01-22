@@ -52,10 +52,10 @@ class nmap(portscanner):
                 for port in host.open_ports:
                     port_number = int(port.split("/")[0])
                     netloc = self.helpers.make_netloc(host.address, port_number)
-                    self.emit_event(netloc, "OPEN_TCP_PORT", source=source_event)
+                    await self.emit_event(netloc, "OPEN_TCP_PORT", source=source_event)
                     for hostname in host.hostnames:
                         netloc = self.helpers.make_netloc(hostname, port_number)
-                        self.emit_event(netloc, "OPEN_TCP_PORT", source=source_event)
+                        await self.emit_event(netloc, "OPEN_TCP_PORT", source=source_event)
         finally:
             output_file.unlink(missing_ok=True)
 

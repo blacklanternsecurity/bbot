@@ -52,4 +52,4 @@ class fingerprintx(BaseModule):
                     protocol_data["port"] = port
                 if banner:
                     protocol_data["banner"] = banner
-                self.emit_event(protocol_data, "PROTOCOL", source=source_event, tags=tags)
+                await self.emit_event(protocol_data, "PROTOCOL", source=source_event, tags=tags)

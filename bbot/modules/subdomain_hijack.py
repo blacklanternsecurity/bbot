@@ -62,7 +62,9 @@ class subdomain_hijack(BaseModule):
                 for e in source_hosts[1:]:
                     source_hosts_str += f" -[{e.module.name}]-> {e.host}"
                 description += f" ({source_hosts_str})"
-            self.emit_event({"host": event.host, "url": url, "description": description}, "FINDING", source=event)
+            await self.emit_event(
+                {"host": event.host, "url": url, "description": description}, "FINDING", source=event
+            )
         else:
             self.debug(reason)
 

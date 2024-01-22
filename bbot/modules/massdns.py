@@ -119,7 +119,7 @@ class massdns(subdomain_enum):
 
         self.info(f"Brute-forcing subdomains for {query} (source: {event.data})")
         for hostname in await self.massdns(query, self.subdomain_list):
-            self.emit_result(hostname, event, query)
+            await self.emit_result(hostname, event, query)
 
     def abort_if(self, event):
         if not event.scope_distance == 0:
@@ -127,12 +127,12 @@ class massdns(subdomain_enum):
         if "wildcard" in event.tags:
             return True, "event is a wildcard"
 
-    def emit_result(self, result, source_event, query, tags=None):
+    async def emit_result(self, result, source_event, query, tags=None):
         if not result == source_event:
             kwargs = {"abort_if": self.abort_if}
             if tags is not None:
                 kwargs["tags"] = tags
-            self.emit_event(result, "DNS_NAME", source_event, **kwargs)
+            await self.emit_event(result, "DNS_NAME", source_event, **kwargs)
 
     def already_processed(self, hostname):
         if hash(hostname) in self.processed:
@@ -380,7 +380,9 @@ class massdns(subdomain_enum):
                             if source_event is None:
                                 self.warning(f"Could not correlate source event from: {hostname}")
                                 source_event = self.scan.root_event
-                            self.emit_result(hostname, source_event, query, tags=[f"mutation-{self._mutation_run}"])
+                            await self.emit_result(
+                                hostname, source_event, query, tags=[f"mutation-{self._mutation_run}"]
+                            )
                         if results:
                             found_mutations = True
                             continue

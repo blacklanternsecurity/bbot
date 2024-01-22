@@ -73,13 +73,13 @@ class speculate(BaseInternalModule):
             ips = list(net)
             random.shuffle(ips)
             for ip in ips:
-                self.emit_event(ip, "IP_ADDRESS", source=event, internal=True)
+                await self.emit_event(ip, "IP_ADDRESS", source=event, internal=True)
 
         # parent domains
         if event.type == "DNS_NAME":
             parent = self.helpers.parent_domain(event.data)
             if parent != event.data:
-                self.emit_event(parent, "DNS_NAME", source=event, internal=True)
+                await self.emit_event(parent, "DNS_NAME", source=event, internal=True)
 
         # generate open ports
 
@@ -91,7 +91,7 @@ class speculate(BaseInternalModule):
         if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
             # only speculate port from a URL if it wouldn't be speculated naturally from the host
             if event.host and (event.port not in self.ports or not speculate_open_ports):
-                self.emit_event(
+                await self.emit_event(
                     self.helpers.make_netloc(event.host, event.port),
                     "OPEN_TCP_PORT",
                     source=event,
@@ -108,7 +108,7 @@ class speculate(BaseInternalModule):
                     # inherit web spider distance from parent (don't increment)
                     source_web_spider_distance = getattr(event, "web_spider_distance", 0)
                     url_event.web_spider_distance = source_web_spider_distance
-                    self.emit_event(url_event)
+                    await self.emit_event(url_event)
 
         # from hosts
         if speculate_open_ports:
@@ -120,7 +120,7 @@ class speculate(BaseInternalModule):
 
             if event.type == "IP_ADDRESS" or usable_dns:
                 for port in self.ports:
-                    self.emit_event(
+                    await self.emit_event(
                         self.helpers.make_netloc(event.data, port),
                         "OPEN_TCP_PORT",
                         source=event,
@@ -154,7 +154,7 @@ class speculate(BaseInternalModule):
                 stub_event = self.make_event(stub, "ORG_STUB", source=event)
                 if event.scope_distance > 0:
                     stub_event.scope_distance = event.scope_distance
-                self.emit_event(stub_event)
+                await self.emit_event(stub_event)
 
     async def filter_event(self, event):
         # don't accept errored DNS_NAMEs
