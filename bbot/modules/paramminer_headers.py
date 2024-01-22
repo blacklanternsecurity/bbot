@@ -247,4 +247,4 @@ class paramminer_headers(BaseModule):
                 results = await self.do_mining(untested_matches_copy, url, batch_size, compare_helper)
             except HttpCompareError as e:
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
-            self.process_results(event, results)
+            await self.process_results(event, results)
