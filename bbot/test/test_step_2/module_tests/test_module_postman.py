@@ -30,9 +30,9 @@ class TestPostman(ModuleTestBase):
                             "workspaces": [
                                 {
                                     "visibilityStatus": "public",
-                                    "name": "SpilledSecrets",
+                                    "name": "BlackLanternSecuritySpilledSecrets",
                                     "id": "afa061be-9cb0-4520-9d4d-fe63361daf0f",
-                                    "slug": "spilledsecrets",
+                                    "slug": "blacklanternsecurityspilledsecrets",
                                 }
                             ],
                             "collectionForkLabel": "",
@@ -50,6 +50,52 @@ class TestPostman(ModuleTestBase):
                             "documentType": "request",
                             "collection": {
                                 "id": "28129865-d9f8833b-3dd2-4b07-9634-1831206d5205",
+                                "name": "Secret Collection",
+                                "tags": [],
+                                "forkCount": 0,
+                                "watcherCount": 0,
+                                "views": 31,
+                                "apiId": "",
+                                "apiName": "",
+                            },
+                        },
+                    },
+                    {
+                        "score": 498.22398,
+                        "normalizedScore": 8.43312266976538,
+                        "document": {
+                            "isPublisherVerified": False,
+                            "publisherType": "user",
+                            "curatedInList": [],
+                            "publisherId": "28329861",
+                            "publisherHandle": "",
+                            "publisherLogo": "",
+                            "isPublic": True,
+                            "customHostName": "",
+                            "id": "b7fa2137-b7fa2137-23bf-45d1-b176-35359af30ded",
+                            "workspaces": [
+                                {
+                                    "visibilityStatus": "public",
+                                    "name": "SpilledSecrets",
+                                    "id": "92d0451b-119d-4ef0-b74c-22c400e5ce05",
+                                    "slug": "spilledsecrets",
+                                }
+                            ],
+                            "collectionForkLabel": "",
+                            "method": "POST",
+                            "entityType": "request",
+                            "url": "www.example.com/index",
+                            "isBlacklisted": False,
+                            "warehouse__updated_at_collection": "2023-12-11 02:00:00",
+                            "isPrivateNetworkEntity": False,
+                            "warehouse__updated_at_request": "2023-12-11 02:00:00",
+                            "publisherName": "NA",
+                            "name": "A test post request",
+                            "privateNetworkMeta": "",
+                            "privateNetworkFolders": [],
+                            "documentType": "request",
+                            "collection": {
+                                "id": "007e8d67-007e8d67-932b-46ff-b95c-a2aa216edaf3",
                                 "name": "Secret Collection",
                                 "tags": [],
                                 "forkCount": 0,
@@ -199,6 +245,9 @@ class TestPostman(ModuleTestBase):
         assert any(
             e.data == "http://127.0.0.1:8888/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f" for e in events
         ), "Failed to detect workspace"
+        assert any(
+            e.data != "http://127.0.0.1:8888/_api/workspace/92d0451b-119d-4ef0-b74c-22c400e5ce05" for e in events
+        ), "Workspace should not be detected"
         assert any(
             e.data == "http://127.0.0.1:8888/_api/workspace/afa061be-9cb0-4520-9d4d-fe63361daf0f/globals"
             for e in events
