@@ -1165,6 +1165,7 @@ class SOCIAL(DictEvent):
 
 class WEBSCREENSHOT(DictHostEvent):
     _always_emit = True
+    _quick_emit = True
 
 
 class AZURE_TENANT(DictEvent):
