@@ -9,7 +9,7 @@ class TestGowitness(ModuleTestBase):
 
     home_dir = Path("/tmp/.bbot_gowitness_test")
     shutil.rmtree(home_dir, ignore_errors=True)
-    config_overrides = {"force_deps": True, "home": str(home_dir)}
+    config_overrides = {"force_deps": True, "home": str(home_dir), "scope_report_distance": 2, "omit_event_types": []}
 
     async def setup_after_prep(self, module_test):
         respond_args = {
@@ -43,6 +43,10 @@ class TestGowitness(ModuleTestBase):
             len(screenshots) == 2
         ), f"{len(screenshots):,} .png files found at {screenshots_path}, should have been 2"
         assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
+        assert 1 == len(
+            [e for e in events if e.type == "URL_UNVERIFIED" and e.data == "https://fonts.googleapis.com/"]
+        )
+        assert 0 == len([e for e in events if e.type == "URL" and e.data == "https://fonts.googleapis.com/"])
         assert 1 == len(
             [e for e in events if e.type == "SOCIAL" and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"]
         )
