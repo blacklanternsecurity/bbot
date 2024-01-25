@@ -44,10 +44,11 @@ class asset_inventory(CSV):
     header_row = [
         "Host",
         "Provider",
-        "IP(s)",
+        "IP (External)",
+        "IP (Internal)",
+        "Open Ports",
         "HTTP Status",
         "HTTP Title",
-        "Open Ports",
         "Risk Rating",
         "Findings",
         "Technologies",
@@ -110,13 +111,15 @@ class asset_inventory(CSV):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             ports = getattr(asset, "ports", set())
             ports = [str(p) for p in sorted([int(p) for p in asset.ports])]
-            ips = sorted([str(i) for i in getattr(asset, "ip_addresses", [])])
+            ips_all = getattr(asset, "ip_addresses", [])
+            ips_external = sorted([str(ip) for ip in [i for i in ips_all if not i.is_private]])
+            ips_internal = sorted([str(ip) for ip in [i for i in ips_all if i.is_private]])
             host = self.helpers.make_ip_type(getattr(asset, "host", ""))
             if host and isinstance(host, str):
                 _, domain = self.helpers.split_domain(host)
                 if domain:
                     increment_stat("Domains", domain)
-            for ip in ips:
+            for ip in ips_all:
                 net = ipaddress.ip_network(f"{ip}/{self.summary_netmask}", strict=False)
                 increment_stat("IP Addresses", str(net))
             for port in ports:
@@ -124,15 +127,16 @@ class asset_inventory(CSV):
             row = {
                 "Host": host,
                 "Provider": getattr(asset, "provider", ""),
-                "IP(s)": ", ".join(ips),
-                "HTTP Status": str(getattr(asset, "http_status", 0)),
-                "HTTP Title": str(getattr(asset, "http_title", "")),
+                "IP (External)": ", ".join(ips_external),
+                "IP (Internal)": ", ".join(ips_internal),
                 "Open Ports": ", ".join(ports),
+                "HTTP Status": asset.http_status_full,
+                "HTTP Title": str(getattr(asset, "http_title", "")),
                 "Risk Rating": severity_map[getattr(asset, "risk_rating", "")],
                 "Findings": "\n".join(findings_and_vulns),
                 "Technologies": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
                 "WAF": getattr(asset, "waf", ""),
-                "DNS Records": ", ".join(getattr(asset, "dns_records", [])),
+                "DNS Records": ", ".join(sorted([str(r) for r in getattr(asset, "dns_records", [])])),
             }
             row.update(asset.custom_fields)
             self.writerow(row)
@@ -161,7 +165,7 @@ class asset_inventory(CSV):
                         # yield to event loop to make sure we don't hold up the scan
                         await self.helpers.sleep(0)
                         host = row.get("Host", "").strip()
-                        ips = row.get("IP(s)", "")
+                        ips = row.get("IP (External)", "") + "," + row.get("IP (Internal)", "")
                         if not host or not ips:
                             continue
                         hostkey = _make_hostkey(host, ips)
@@ -173,19 +177,19 @@ class asset_inventory(CSV):
                         self.add_custom_headers(list(asset.custom_fields))
                         if not is_ip(asset.host):
                             host_event = self.make_event(asset.host, "DNS_NAME", source=self.scan.root_event)
-                            self.emit_event(host_event)
+                            await self.emit_event(host_event)
                             for port in asset.ports:
                                 netloc = self.helpers.make_netloc(asset.host, port)
                                 open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=host_event)
-                                self.emit_event(open_port_event)
+                                await self.emit_event(open_port_event)
                         else:
                             for ip in asset.ip_addresses:
                                 ip_event = self.make_event(ip, "IP_ADDRESS", source=self.scan.root_event)
-                                self.emit_event(ip_event)
+                                await self.emit_event(ip_event)
                                 for port in asset.ports:
                                     netloc = self.helpers.make_netloc(ip, port)
                                     open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=ip_event)
-                                    self.emit_event(open_port_event)
+                                    await self.emit_event(open_port_event)
             else:
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
@@ -210,7 +214,7 @@ class Asset:
     def __init__(self, host):
         self.host = host
         self.ip_addresses = set()
-        self.dns_records = []
+        self.dns_records = set()
         self.ports = set()
         self.findings = set()
         self.vulnerabilities = set()
@@ -222,6 +226,7 @@ class Asset:
         self.custom_fields = {}
         self.http_status = 0
         self.http_title = ""
+        self.redirect_location = ""
 
     def absorb_csv_row(self, row):
         # host
@@ -229,7 +234,8 @@ class Asset:
         if host and not is_ip(host):
             self.host = host
         # ips
-        self.ip_addresses = set(_make_ip_list(row.get("IP(s)", "")))
+        self.ip_addresses = set(_make_ip_list(row.get("IP (External)", "")))
+        self.ip_addresses.update(set(_make_ip_list(row.get("IP (Internal)", ""))))
         # ports
         ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
         self.ports.update(set(i for i in ports if i and is_port(i)))
@@ -260,17 +266,24 @@ class Asset:
             self.host = event.host
 
         dns_children = getattr(event, "_dns_children", {})
-        if dns_children and not self.dns_records:
-            for rdtype, records in sorted(dns_children.items(), key=lambda x: x[0]):
-                for record in sorted(records):
-                    self.dns_records.append(f"{rdtype}:{record}")
+        for rdtype, records in sorted(dns_children.items(), key=lambda x: x[0]):
+            for record in sorted([str(r) for r in records]):
+                self.dns_records.add(f"{rdtype}:{record}")
 
-        http_status = getattr(event, "status_code", 0)
-        update_http_status = best_http_status(http_status, self.http_status) == http_status
+        http_status = getattr(event, "http_status", 0)
+        update_http_status = bool(http_status) and best_http_status(http_status, self.http_status) == http_status
         if update_http_status:
             self.http_status = http_status
+            if str(http_status).startswith("3"):
+                if event.type == "HTTP_RESPONSE":
+                    redirect_location = getattr(event, "redirect_location", "")
+                    if redirect_location:
+                        self.redirect_location = redirect_location
+            else:
+                self.redirect_location = ""
 
-        self.ip_addresses = set(_make_ip_list(event.resolved_hosts))
+        if event.resolved_hosts:
+            self.ip_addresses.update(set(_make_ip_list(event.resolved_hosts)))
 
         if event.port:
             self.ports.add(str(event.port))
@@ -309,6 +322,10 @@ class Asset:
     @property
     def hostkey(self):
         return _make_hostkey(self.host, self.ip_addresses)
+
+    @property
+    def http_status_full(self):
+        return str(self.http_status) + (f" -> {self.redirect_location}" if self.redirect_location else "")
 
 
 def _make_hostkey(host, ips):

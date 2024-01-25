@@ -7,25 +7,28 @@ import traceback
 from typing import Optional
 from datetime import datetime
 from contextlib import suppress
+from urllib.parse import urljoin
 from pydantic import BaseModel, field_validator
 
 from .helpers import *
 from bbot.core.errors import *
 from bbot.core.helpers import (
     extract_words,
-    split_host_port,
+    get_file_extension,
     host_in_host,
     is_domain,
     is_subdomain,
     is_ip,
     is_ptr,
+    is_uri,
     domain_stem,
     make_netloc,
     make_ip_type,
+    recursive_decode,
     smart_decode,
-    get_file_extension,
-    validators,
+    split_host_port,
     tagify,
+    validators,
 )
 
 
@@ -925,7 +928,7 @@ class URL_UNVERIFIED(BaseEvent):
         return data
 
     @property
-    def status_code(self):
+    def http_status(self):
         for t in self.tags:
             match = self._status_code_regex.match(t)
             if match:
@@ -984,7 +987,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         super().__init__(*args, **kwargs)
         # count number of consecutive redirects
         self.num_redirects = getattr(self.source, "num_redirects", 0)
-        if str(self.status_code).startswith("3"):
+        if str(self.http_status).startswith("3"):
             self.num_redirects += 1
 
     def sanitize_data(self, data):
@@ -1013,11 +1016,32 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
         return f'{self.data["hash"]["header_mmh3"]}:{self.data["hash"]["body_mmh3"]}'
 
     @property
-    def status_code(self):
+    def http_status(self):
         try:
             return int(self.data.get("status_code", 0))
         except (ValueError, TypeError):
             return 0
+
+    @property
+    def http_title(self):
+        http_title = self.data.get("title", "")
+        try:
+            return recursive_decode(http_title)
+        except Exception:
+            return http_title
+
+    @property
+    def redirect_location(self):
+        location = self.data.get("location", "")
+        # if it's a redirect
+        if location:
+            # get the url scheme
+            scheme = is_uri(location, return_scheme=True)
+            # if there's no scheme (i.e. it's a relative redirect)
+            if not scheme:
+                # then join the location with the current url
+                location = urljoin(self.parsed.geturl(), location)
+        return location
 
 
 class VULNERABILITY(DictHostEvent):

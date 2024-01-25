@@ -150,7 +150,7 @@ class nuclei(BaseModule):
                 description_string += f" Extracted Data: [{','.join(extracted_results)}]"
 
             if severity in ["INFO", "UNKNOWN"]:
-                self.emit_event(
+                await self.emit_event(
                     {
                         "host": str(source_event.host),
                         "url": url,
@@ -160,7 +160,7 @@ class nuclei(BaseModule):
                     source_event,
                 )
             else:
-                self.emit_event(
+                await self.emit_event(
                     {
                         "severity": severity,
                         "host": str(source_event.host),

@@ -77,8 +77,8 @@ class ConfigAwareHelper:
         # cloud helpers
         self.cloud = CloudHelper(self)
 
-    def interactsh(self):
-        return Interactsh(self)
+    def interactsh(self, *args, **kwargs):
+        return Interactsh(self, *args, **kwargs)
 
     def http_compare(self, url, allow_redirects=False, include_cache_buster=True):
         return HttpCompare(url, self, allow_redirects=allow_redirects, include_cache_buster=include_cache_buster)

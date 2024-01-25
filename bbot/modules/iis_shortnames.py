@@ -221,7 +221,7 @@ class iis_shortnames(BaseModule):
                 technique_strings.append(f"{method} ({technique})")
 
             description = f"IIS Shortname Vulnerability Detected. Potentially Vulnerable Method/Techniques: [{','.join(technique_strings)}]"
-            self.emit_event(
+            await self.emit_event(
                 {"severity": "LOW", "host": str(event.host), "url": normalized_url, "description": description},
                 "VULNERABILITY",
                 event,
@@ -314,7 +314,7 @@ class iis_shortnames(BaseModule):
                             hint_type = "shortname-file"
                         else:
                             hint_type = "shortname-directory"
-                        self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
+                        await self.emit_event(f"{normalized_url}/{url_hint}", "URL_HINT", event, tags=[hint_type])
 
     async def filter_event(self, event):
         if "dir" in event.tags:

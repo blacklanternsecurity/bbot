@@ -79,7 +79,7 @@ class sslcert(BaseModule):
                         try:
                             ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
                             if ssl_event:
-                                self.emit_event(ssl_event, on_success_callback=self.on_success_callback)
+                                await self.emit_event(ssl_event, on_success_callback=self.on_success_callback)
                         except ValidationError as e:
                             self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")

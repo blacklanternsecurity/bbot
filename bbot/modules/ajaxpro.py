@@ -24,7 +24,7 @@ class ajaxpro(BaseModule):
                     probe_confirm = await self.helpers.request(f"{event.data}a/whatever.ashx")
                     if probe_confirm:
                         if probe_confirm.status_code != 200:
-                            self.emit_event(
+                            await self.emit_event(
                                 {
                                     "host": str(event.host),
                                     "url": event.data,
@@ -40,7 +40,7 @@ class ajaxpro(BaseModule):
                 ajaxpro_regex_result = self.ajaxpro_regex.search(resp_body)
                 if ajaxpro_regex_result:
                     ajax_pro_path = ajaxpro_regex_result.group(0)
-                    self.emit_event(
+                    await self.emit_event(
                         {
                             "host": str(event.host),
                             "url": event.data["url"],

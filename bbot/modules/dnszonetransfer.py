@@ -42,7 +42,9 @@ class dnszonetransfer(BaseModule):
                 continue
             self.hugesuccess(f"Successful zone transfer against {nameserver} for domain {domain}!")
             finding_description = f"Successful DNS zone transfer against {nameserver} for {domain}"
-            self.emit_event({"host": str(event.host), "description": finding_description}, "FINDING", source=event)
+            await self.emit_event(
+                {"host": str(event.host), "description": finding_description}, "FINDING", source=event
+            )
             for name, ttl, rdata in zone.iterate_rdatas():
                 if str(name) == "@":
                     parent_data = domain
@@ -52,13 +54,13 @@ class dnszonetransfer(BaseModule):
                 if not parent_event or parent_event == event:
                     parent_event = event
                 else:
-                    self.emit_event(parent_event)
+                    await self.emit_event(parent_event)
                 for rdtype, t in self.helpers.dns.extract_targets(rdata):
                     if not self.helpers.is_ip(t):
                         t = f"{t}.{domain}"
                     module = self.helpers.dns._get_dummy_module(rdtype)
                     child_event = self.scan.make_event(t, "DNS_NAME", parent_event, module=module)
-                    self.emit_event(child_event)
+                    await self.emit_event(child_event)
             else:
                 self.debug(f"No data returned by {nameserver} for domain {domain}")
 
