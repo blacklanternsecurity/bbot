@@ -101,7 +101,9 @@ class ModuleTestBase:
             return MockRecord(*args, **kwargs)
 
     @pytest_asyncio.fixture
-    async def module_test(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request):
+    async def module_test(
+        self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, configure_mock_resolver
+    ):
         module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request)
         module_test.log.info(f"Starting {self.name} module test")
         await self.setup_before_prep(module_test)

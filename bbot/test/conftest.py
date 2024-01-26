@@ -179,3 +179,70 @@ def proxy_server():
     # Stop the server.
     server.shutdown()
     server_thread.join()
+
+
+class MockResolver:
+    import dns
+
+    def __init__(self, mock_data=None):
+        self.mock_data = mock_data if mock_data else {}
+        self.nameservers = ["127.0.0.1"]
+
+    async def resolve_address(self, host):
+        try:
+            from dns.asyncresolver import resolve_address
+
+            result = await resolve_address(host)
+            return result
+        except ImportError:
+            raise ImportError("dns.asyncresolver.Resolver.resolve_address not found")
+
+    def create_dns_response(self, query_name, rdtype):
+        answers = self.mock_data.get(query_name, {}).get(rdtype, [])
+        if not answers:
+            raise self.dns.resolver.NXDOMAIN(f"No answer found for {query_name} {rdtype}")
+
+        message_text = f"""id 1234
+opcode QUERY
+rcode NOERROR
+flags QR AA RD
+;QUESTION
+{query_name}. IN {rdtype}
+;ANSWER"""
+        for answer in answers:
+            message_text += f"\n{query_name}. 1 IN {rdtype} {answer}"
+
+        message_text += "\n;AUTHORITY\n;ADDITIONAL\n"
+        message = self.dns.message.from_text(message_text)
+        return message
+
+    async def resolve(self, query_name, rdtype=None):
+        if rdtype is None:
+            rdtype = "A"
+        elif isinstance(rdtype, str):
+            rdtype = rdtype.upper()
+        else:
+            rdtype = str(rdtype.name).upper()
+
+        domain_name = self.dns.name.from_text(query_name)
+        rdtype_obj = self.dns.rdatatype.from_text(rdtype)
+
+
+        if "_NXDOMAIN" in self.mock_data and query_name in self.mock_data["_NXDOMAIN"]:
+            # Simulate the NXDOMAIN exception
+            raise self.dns.resolver.NXDOMAIN
+
+        try:
+            response = self.create_dns_response(query_name, rdtype)
+            answer = self.dns.resolver.Answer(domain_name, rdtype_obj, self.dns.rdataclass.IN, response)
+            return answer
+        except self.dns.resolver.NXDOMAIN as e:
+            return []
+
+
+@pytest.fixture()
+def configure_mock_resolver(monkeypatch):
+    def _configure(mock_data):
+        mock_resolver = MockResolver(mock_data)
+        return mock_resolver
+    return _configure

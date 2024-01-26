@@ -10,24 +10,32 @@ include_logger(logging.getLogger("baddns"))
 class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "safe", "web-basic"]
+    flags = ["active", "safe", "web-basic", "baddns"]
     meta = {"description": "Check subdomains for for subdomain takeovers and other DNS tomfoolery"}
-    options = {"custom_nameservers": []}
+    options = {"custom_nameservers": [], "only_high_confidence": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
+        "only_high_confidence": "Do not emit low-confidence or generic detections",
     }
     max_event_handlers = 8
     deps_pip = ["baddns"]
+
+    def select_modules(self):
+        selected_modules = []
+        for m in get_all_modules():
+            if m.name in ["CNAME", "NS", "MX", "references", "TXT"]:
+                selected_modules.append(m)
+        return selected_modules
 
     async def setup(self):
         self.custom_nameservers = self.config.get("custom_nameservers", []) or None
         if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
+        self.only_high_confidence = self.config.get("only_high_confidence", False)
         return True
 
     async def handle_event(self, event):
-        all_modules = get_all_modules()
-        for ModuleClass in all_modules:
+        for ModuleClass in self.select_modules():
             module_instance = ModuleClass(
                 event.data,
                 http_client_class=self.scan.helpers.web.AsyncClient,
@@ -46,18 +54,20 @@ class baddns(BaseModule):
                                 "description": f"{r_dict['description']}. Confidence: [{r_dict['confidence']}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                                 "host": str(event.host),
                             }
-                            self.emit_event(data, "VULNERABILITY", event)
+                            await self.emit_event(data, "VULNERABILITY", event, tags=[f"baddns-{ModuleClass.name}"])
 
-                        elif r_dict["confidence"] in ["UNLIKELY", "POSSIBLE"]:
+                        elif r_dict["confidence"] in ["UNLIKELY", "POSSIBLE"] and not self.only_high_confidence:
                             data = {
                                 "description": f"{r_dict['description']} Confidence: [{r_dict['confidence']}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                                 "host": str(event.host),
                             }
-                            self.emit_event(data, "FINDING", event)
+                            await self.emit_event(data, "FINDING", event, tags=[f"baddns-{ModuleClass.name}"])
                         else:
                             log.warning(f"Got unrecognized confidence level: {r['confidence']}")
 
                         found_domains = r_dict.get("found_domains", None)
                         if found_domains:
                             for found_domain in found_domains:
-                                self.emit_event(found_domain, "DNS_NAME", event)
+                                await self.emit_event(
+                                    found_domain, "DNS_NAME", event, tags=[f"baddns-{ModuleClass.name}"]
+                                )
