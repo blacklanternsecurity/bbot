@@ -147,8 +147,7 @@ class massdns(subdomain_enum):
             for rdtype, results in rdtypes.items():
                 if results:
                     domain_wildcard_rdtypes.add(rdtype)
-
-        if "A" in domain_wildcard_rdtypes:
+        if any([r in domain_wildcard_rdtypes for r in ("A", "CNAME")]):
             self.info(
                 f"Aborting massdns on {domain} because it's a wildcard domain ({','.join(domain_wildcard_rdtypes)})"
             )
