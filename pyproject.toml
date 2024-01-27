@@ -89,7 +89,7 @@ extend-exclude = "(test_step_1/test_manager_*)"
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v1.1.5{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v1.1.6{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]
