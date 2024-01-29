@@ -14,7 +14,6 @@ class BaseTestBaddns_zone(ModuleTestBase):
 
 class TestBaddns_zone_zonetransfer(BaseTestBaddns_zone):
     async def setup_after_prep(self, module_test):
-
         from baddns.lib.whoismanager import WhoisManager
 
         def from_xfr(*args, **kwargs):
@@ -51,6 +50,7 @@ zzzz 600 IN AAAA dead::beef
 class TestBaddns_zone_nsec(BaseTestBaddns_zone):
     async def setup_after_prep(self, module_test):
         from baddns.lib.whoismanager import WhoisManager
+
         mock_data = {
             "bad.dns": {"NSEC": ["asdf.bad.dns"]},
             "asdf.bad.dns": {"NSEC": ["zzzz.bad.dns"]},

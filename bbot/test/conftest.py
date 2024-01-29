@@ -227,7 +227,6 @@ flags QR AA RD
         domain_name = self.dns.name.from_text(query_name)
         rdtype_obj = self.dns.rdatatype.from_text(rdtype)
 
-
         if "_NXDOMAIN" in self.mock_data and query_name in self.mock_data["_NXDOMAIN"]:
             # Simulate the NXDOMAIN exception
             raise self.dns.resolver.NXDOMAIN
@@ -245,4 +244,5 @@ def configure_mock_resolver(monkeypatch):
     def _configure(mock_data):
         mock_resolver = MockResolver(mock_data)
         return mock_resolver
+
     return _configure

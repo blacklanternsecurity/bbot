@@ -67,7 +67,4 @@ class baddns(BaseModule):
 
                         found_domains = r_dict.get("found_domains", None)
                         if found_domains:
-                            for found_domain in found_domains:
-                                await self.emit_event(
-                                    found_domain, "DNS_NAME", event, tags=[f"baddns-{ModuleClass.name}"]
-                                )
+                            await self.emit_event(found_domain, "DNS_NAME", event, tags=[f"baddns-{ModuleClass.name}"])
