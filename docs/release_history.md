@@ -9,6 +9,7 @@ January 29, 2024
 - https://github.com/blacklanternsecurity/bbot/pull/1014
 - https://github.com/blacklanternsecurity/bbot/pull/1015
 - https://github.com/blacklanternsecurity/bbot/pull/1032
+- https://github.com/blacklanternsecurity/bbot/pull/1040
 
 ## Bugfixes
 - https://github.com/blacklanternsecurity/bbot/pull/1005

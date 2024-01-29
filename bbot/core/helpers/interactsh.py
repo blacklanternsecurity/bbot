@@ -235,6 +235,8 @@ class Interactsh:
             r = await self.parent_helper.request(
                 f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
             )
+            if r is None:
+                raise InteractshError("Error polling interact.sh: No response from server")
 
             ret = []
             data_list = r.json().get("data", None)
