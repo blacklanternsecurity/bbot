@@ -1,7 +1,5 @@
 from .base import ModuleTestBase
 
-from bbot.modules import baddns as baddns_module
-
 
 class BaseTestBaddns(ModuleTestBase):
     modules_overrides = ["baddns"]
@@ -23,6 +21,7 @@ class BaseTestBaddns(ModuleTestBase):
 
 class TestBaddns_cname_nxdomain(BaseTestBaddns):
     async def setup_after_prep(self, module_test):
+        from bbot.modules import baddns as baddns_module
         from baddns.lib.whoismanager import WhoisManager
 
         mock_data = {"bad.dns": {"CNAME": ["baddns.azurewebsites.net."]}, "_NXDOMAIN": ["baddns.azurewebsites.net"]}
@@ -43,6 +42,7 @@ class TestBaddns_cname_signature(BaseTestBaddns):
     modules_overrides = ["baddns", "speculate"]
 
     async def setup_after_prep(self, module_test):
+        from bbot.modules import baddns as baddns_module
         from baddns.base import BadDNS_base
         from baddns.lib.whoismanager import WhoisManager
 
