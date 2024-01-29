@@ -10,8 +10,8 @@ include_logger(logging.getLogger("baddns"))
 class baddns(BaseModule):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "safe", "web-basic", "baddns"]
-    meta = {"description": "Check subdomains for for subdomain takeovers and other DNS tomfoolery"}
+    flags = ["active", "safe", "web-basic", "baddns", "cloud-enum"]
+    meta = {"description": "Check hosts for domain/subdomain takeovers"}
     options = {"custom_nameservers": [], "only_high_confidence": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",

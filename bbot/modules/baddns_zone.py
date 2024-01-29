@@ -10,8 +10,8 @@ include_logger(logging.getLogger("baddns_zone"))
 class baddns_zone(baddns_module):
     watched_events = ["DNS_NAME"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["active", "safe", "web-basic", "baddns"]
-    meta = {"description": "Check subdomains for for subdomain takeovers and other DNS tomfoolery"}
+    flags = ["active", "safe", "subdomain-enum", "baddns", "cloud-enum"]
+    meta = {"description": "Check hosts for DNS zone transfers and NSEC walks"}
     options = {"custom_nameservers": [], "only_high_confidence": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",
