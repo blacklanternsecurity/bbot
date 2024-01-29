@@ -24,7 +24,6 @@ class BaseTestBaddns(ModuleTestBase):
 class TestBaddns_cname_nxdomain(BaseTestBaddns):
     async def setup_after_prep(self, module_test):
         from baddns.lib.whoismanager import WhoisManager
-        from baddns.base import get_all_modules
 
         mock_data = {"bad.dns": {"CNAME": ["baddns.azurewebsites.net."]}, "_NXDOMAIN": ["baddns.azurewebsites.net"]}
         configure_mock_resolver = module_test.request_fixture.getfixturevalue("configure_mock_resolver")
@@ -44,7 +43,6 @@ class TestBaddns_cname_signature(BaseTestBaddns):
     modules_overrides = ["baddns", "speculate"]
 
     async def setup_after_prep(self, module_test):
-        from baddns.base import get_all_modules
         from baddns.base import BadDNS_base
         from baddns.lib.whoismanager import WhoisManager
 

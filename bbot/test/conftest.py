@@ -235,7 +235,7 @@ flags QR AA RD
             response = self.create_dns_response(query_name, rdtype)
             answer = self.dns.resolver.Answer(domain_name, rdtype_obj, self.dns.rdataclass.IN, response)
             return answer
-        except self.dns.resolver.NXDOMAIN as e:
+        except self.dns.resolver.NXDOMAIN:
             return []
 
 

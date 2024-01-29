@@ -18,7 +18,7 @@ class baddns(BaseModule):
         "only_high_confidence": "Do not emit low-confidence or generic detections",
     }
     max_event_handlers = 8
-    deps_pip = ["baddns"]
+    deps_pip = ["baddns~=1.0.666"]
 
     def select_modules(self):
         selected_modules = []
@@ -63,8 +63,9 @@ class baddns(BaseModule):
                             }
                             await self.emit_event(data, "FINDING", event, tags=[f"baddns-{ModuleClass.name}"])
                         else:
-                            log.warning(f"Got unrecognized confidence level: {r['confidence']}")
+                            self.warning(f"Got unrecognized confidence level: {r['confidence']}")
 
                         found_domains = r_dict.get("found_domains", None)
                         if found_domains:
-                            await self.emit_event(found_domain, "DNS_NAME", event, tags=[f"baddns-{ModuleClass.name}"])
+                            for found_domain in found_domains:
+                                await self.emit_event(found_domain, "DNS_NAME", event, tags=[f"baddns-{ModuleClass.name}"])
