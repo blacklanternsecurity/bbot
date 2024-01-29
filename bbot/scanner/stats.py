@@ -15,7 +15,6 @@ class ScanStats:
         self.scan = scan
         self.module_stats = {}
         self.events_emitted_by_type = {}
-        self.perf_stats = []
 
     def event_distributed(self, event):
         _increment(self.events_emitted_by_type, event.type)
@@ -66,9 +65,6 @@ class ScanStats:
         return [header] + table
 
     def _make_table(self):
-        self.perf_stats.sort(key=lambda x: x[-1])
-        for callback, runtime in self.perf_stats:
-            log.info(f"{callback}\t{runtime}")
         table = self.table()
         if len(table) == 1:
             table += [["None", "None", "None"]]

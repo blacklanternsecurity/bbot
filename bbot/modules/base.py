@@ -720,6 +720,7 @@ class BaseModule:
 
         if self._type == "output" and not event._stats_recorded:
             event._stats_recorded = True
+            self.scan.stats.event_distributed(event)
             self.scan.stats.event_produced(event)
 
         self.debug(f"{event} passed post-check")

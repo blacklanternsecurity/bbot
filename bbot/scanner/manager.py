@@ -412,8 +412,6 @@ class ScanManager:
                 if acceptable_dup or graph_important:
                     await mod.queue_event(event)
 
-            self.scan.stats.event_distributed(event)
-
     async def _worker_loop(self):
         try:
             while not self.scan.stopped:
