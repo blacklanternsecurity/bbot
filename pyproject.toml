@@ -50,7 +50,6 @@ tldextract = "^5.1.1"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
-black = "^23.1.0"
 pytest-cov = "^4.0.0"
 poetry-dynamic-versioning = "^0.21.4"
 pytest-rerunfailures = "^11.1.2"
@@ -62,6 +61,7 @@ pytest-env = "^0.8.2"
 pytest-timeout = "^2.1.0"
 pytest = "^7.4.0"
 pre-commit = "^3.4.0"
+black = "24.1.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"
@@ -89,7 +89,7 @@ extend-exclude = "(test_step_1/test_manager_*)"
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v1.1.5{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v1.1.6{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]

@@ -14,7 +14,7 @@ class filedownload(BaseModule):
 
     watched_events = ["URL_UNVERIFIED", "HTTP_RESPONSE"]
     produced_events = []
-    flags = ["active", "safe", "web-basic"]
+    flags = ["active", "safe", "web-basic", "web-thorough"]
     meta = {"description": "Download common filetypes such as PDF, DOCX, PPTX, etc."}
     options = {
         "extensions": [

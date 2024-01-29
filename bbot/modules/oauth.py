@@ -6,7 +6,7 @@ from .base import BaseModule
 class OAUTH(BaseModule):
     watched_events = ["DNS_NAME", "URL_UNVERIFIED"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "active", "safe"]
+    flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "web-thorough", "active", "safe"]
     meta = {"description": "Enumerate OAUTH and OpenID Connect services"}
     options = {"try_all": False}
     options_desc = {"try_all": "Check for OAUTH/IODC on every subdomain and URL."}
