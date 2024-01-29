@@ -1,6 +1,6 @@
 from .base import ModuleTestBase
 
-from bbot.modules import baddns
+from bbot.modules import baddns as baddns_module
 
 
 class BaseTestBaddns(ModuleTestBase):
@@ -29,7 +29,7 @@ class TestBaddns_cname_nxdomain(BaseTestBaddns):
         configure_mock_resolver = module_test.request_fixture.getfixturevalue("configure_mock_resolver")
         mock_resolver = configure_mock_resolver(mock_data)
         module_test.monkeypatch.setattr(module_test.scan.helpers.dns, "resolver", mock_resolver)
-        module_test.monkeypatch.setattr(baddns.baddns, "select_modules", self.select_modules)
+        module_test.monkeypatch.setattr(baddns_module.baddns, "select_modules", self.select_modules)
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
     def check(self, module_test, events):
@@ -57,7 +57,7 @@ class TestBaddns_cname_signature(BaseTestBaddns):
         configure_mock_resolver = module_test.request_fixture.getfixturevalue("configure_mock_resolver")
         mock_resolver = configure_mock_resolver(mock_data)
         module_test.monkeypatch.setattr(module_test.scan.helpers.dns, "resolver", mock_resolver)
-        module_test.monkeypatch.setattr(baddns.baddns, "select_modules", self.select_modules)
+        module_test.monkeypatch.setattr(baddns_module.baddns, "select_modules", self.select_modules)
         module_test.monkeypatch.setattr(BadDNS_base, "set_target", set_target)
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 

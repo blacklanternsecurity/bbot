@@ -1,5 +1,4 @@
 import dns
-
 from .base import ModuleTestBase
 
 
