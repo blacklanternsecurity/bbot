@@ -8,10 +8,10 @@ class TestAsset_Inventory(ModuleTestBase):
     modules_overrides = ["asset_inventory", "nmap", "sslcert"]
 
     async def setup_before_prep(self, module_test):
-        module_test.scan.helpers.dns.mock_dns(
+        module_test.mock_dns(
             {
-                ("127.0.0.1", "PTR"): "www.bbottest.notreal",
-                ("www.bbottest.notreal", "A"): "127.0.0.1",
+                "127.0.0.1": {"PTR": ["www.bbottest.notreal"]},
+                "www.bbottest.notreal": {"A": ["127.0.0.1"]},
             }
         )
 

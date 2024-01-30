@@ -777,7 +777,7 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
 
 
 @pytest.mark.asyncio
-async def test_manager_blacklist(bbot_config, bbot_scanner, bbot_httpserver, caplog):
+async def test_manager_blacklist(bbot_config, bbot_scanner, bbot_httpserver, caplog, mock_dns):
 
     bbot_httpserver.expect_request(uri="/").respond_with_data(response_data="<a href='http://www-prod.test.notreal:8888'/><a href='http://www-dev.test.notreal:8888'/>")
 
@@ -791,9 +791,9 @@ async def test_manager_blacklist(bbot_config, bbot_scanner, bbot_httpserver, cap
         whitelist=["127.0.0.0/29", "test.notreal"],
         blacklist=["127.0.0.64/29"],
     )
-    scan.helpers.dns.mock_dns({
-        ("www-prod.test.notreal", "A"): "127.0.0.66",
-        ("www-dev.test.notreal", "A"): "127.0.0.22",
+    mock_dns(scan, {
+        "www-prod.test.notreal": {"A": ["127.0.0.66"]},
+        "www-dev.test.notreal": {"A": ["127.0.0.22"]},
     })
 
     events = [e async for e in scan.async_start()]

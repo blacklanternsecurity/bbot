@@ -3,7 +3,7 @@ from bbot.modules.base import BaseModule
 
 
 @pytest.mark.asyncio
-async def test_manager_deduplication(bbot_config, bbot_scanner):
+async def test_manager_deduplication(bbot_config, bbot_scanner, mock_dns):
 
     class DefaultModule(BaseModule):
         _name = "default_module"
@@ -62,7 +62,7 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
         scan.modules["per_hostport_only"] = per_hostport_only
         scan.modules["per_domain_only"] = per_domain_only
         if _dns_mock:
-            scan.helpers.dns.mock_dns(_dns_mock)
+            mock_dns(scan, _dns_mock)
         if scan_callback is not None:
             scan_callback(scan)
         return (
@@ -76,12 +76,12 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
         )
 
     dns_mock_chain = {
-        ("default_module.test.notreal", "A"): "127.0.0.3",
-        ("everything_module.test.notreal", "A"): "127.0.0.4",
-        ("no_suppress_dupes.test.notreal", "A"): "127.0.0.5",
-        ("accept_dupes.test.notreal", "A"): "127.0.0.6",
-        ("per_hostport_only.test.notreal", "A"): "127.0.0.7",
-        ("per_domain_only.test.notreal", "A"): "127.0.0.8",
+        "default_module.test.notreal": {"A": ["127.0.0.3"]},
+        "everything_module.test.notreal": {"A": ["127.0.0.4"]},
+        "no_suppress_dupes.test.notreal": {"A": ["127.0.0.5"]},
+        "accept_dupes.test.notreal": {"A": ["127.0.0.6"]},
+        "per_hostport_only.test.notreal": {"A": ["127.0.0.7"]},
+        "per_domain_only.test.notreal": {"A": ["127.0.0.8"]},
     }
 
     # dns search distance = 1, report distance = 0
