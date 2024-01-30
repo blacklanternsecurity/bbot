@@ -41,6 +41,14 @@ class BaseOutputModule(BaseModule):
 
         return True, "precheck succeeded"
 
+    async def _event_postcheck(self, event):
+        acceptable, reason = await super()._event_postcheck(event)
+        if acceptable and not event._stats_recorded and event.type not in ("FINISHED",):
+            event._stats_recorded = True
+            self.scan.stats.event_distributed(event)
+            self.scan.stats.event_produced(event)
+        return acceptable, reason
+
     def is_incoming_duplicate(self, event, add=False):
         is_incoming_duplicate, reason = super().is_incoming_duplicate(event, add=add)
         # make exception for graph-important events
