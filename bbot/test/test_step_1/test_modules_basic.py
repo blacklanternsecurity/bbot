@@ -337,14 +337,21 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
     events = [e async for e in scan.async_start()]
 
     assert len(events) == 6
+    assert 1 == len([e for e in events if e.type == "SCAN"])
+    assert 2 == len([e for e in events if e.type == "DNS_NAME"])
+    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com"])
+    # the reason we don't have a DNS_NAME for www.evilcorp.com is because FINDING.quick_emit = True
+    assert 0 == len([e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com"])
+    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.com"])
+    assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp"])
+    assert 1 == len([e for e in events if e.type == "FINDING"])
 
     assert scan.stats.events_emitted_by_type == {
         "SCAN": 1,
-        "DNS_NAME": 3,
+        "DNS_NAME": 2,
         "URL": 1,
         "FINDING": 1,
         "ORG_STUB": 1,
-        "OPEN_TCP_PORT": 1,
     }
 
     assert set(scan.stats.module_stats) == {"host", "speculate", "python", "dummy", "TARGET"}
