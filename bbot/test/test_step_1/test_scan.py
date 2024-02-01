@@ -56,7 +56,7 @@ async def test_scan(
     assert not scan2.in_scope("1.0.0.1")
 
     dns_table = {
-        "1.1.1.1": {"PTR": ["one.one.one.one"]},
+        "1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one"]},
         "one.one.one.one": {"A": ["1.1.1.1"]},
     }
 

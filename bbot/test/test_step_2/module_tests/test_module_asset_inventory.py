@@ -10,7 +10,7 @@ class TestAsset_Inventory(ModuleTestBase):
     async def setup_before_prep(self, module_test):
         module_test.mock_dns(
             {
-                "127.0.0.1": {"PTR": ["www.bbottest.notreal"]},
+                "1.0.0.127.in-addr.arpa": {"PTR": ["www.bbottest.notreal"]},
                 "www.bbottest.notreal": {"A": ["127.0.0.1"]},
             }
         )
