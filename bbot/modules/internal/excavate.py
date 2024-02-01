@@ -21,8 +21,8 @@ class BaseExtractor:
     async def search(self, content, event, **kwargs):
         results = set()
         async for result, name in self._search(content, event, **kwargs):
-            results.add(result)
-        for result in results:
+            results.add((result, name))
+        for result, name in results:
             await self.report(result, name, event, **kwargs)
 
     async def _search(self, content, event, **kwargs):
@@ -254,13 +254,15 @@ class JWTExtractor(BaseExtractor):
 class SerializationExtractor(BaseExtractor):
     regexes = {
         "Java": r"(?:[^a-zA-Z0-9+/]|^)(rO0[a-zA-Z0-9+/]+={,2})",
-        ".NET": r"AAEAAAD//[a-zA-Z0-9+/]+={,2}",
-        "PHP": r"YTo[xyz0123456][a-zA-Z0-9+/]+={,2}",
-        "Possible Compressed": r"H4sIAAAAAAAA[a-zA-Z0-9+/]+={,2}",
+        ".NET": r"(?:[^a-zA-Z0-9+/]|^)(AAEAAAD//[a-zA-Z0-9+/]+={,2})",
+        "PHP (Array)": r"(?:[^a-zA-Z0-9+/]|^)(YTo[xyz0123456][a-zA-Z0-9+/]+={,2})",
+        "PHP (String)": r"(?:[^a-zA-Z0-9+/]|^)(czo[xyz0123456][a-zA-Z0-9+/]+={,2})",
+        "PHP (Object)": r"(?:[^a-zA-Z0-9+/]|^)(Tzo[xyz0123456][a-zA-Z0-9+/]+={,2})",
+        "Possible Compressed": r"(?:[^a-zA-Z0-9+/]|^)(H4sIAAAAAAAA[a-zA-Z0-9+/]+={,2})",
     }
 
     async def report(self, result, name, event, **kwargs):
-        description = f"{name} serialized object found"
+        description = f"{name} serialized object found: [{self.excavate.helpers.truncate_string(result,2000)}]"
         await self.excavate.emit_event(
             {"host": str(event.host), "url": event.data.get("url"), "description": description}, "FINDING", event
         )
