@@ -1,6 +1,7 @@
 import random
 import ipaddress
 
+from bbot.core.helpers import validators
 from bbot.modules.internal.base import BaseInternalModule
 
 
@@ -21,6 +22,7 @@ class speculate(BaseInternalModule):
         "STORAGE_BUCKET",
         "SOCIAL",
         "AZURE_TENANT",
+        "USERNAME",
     ]
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
     flags = ["passive"]
@@ -155,6 +157,14 @@ class speculate(BaseInternalModule):
                 if event.scope_distance > 0:
                     stub_event.scope_distance = event.scope_distance
                 await self.emit_event(stub_event)
+
+        # USERNAME --> EMAIL
+        if event.type == "USERNAME":
+            email = event.data.split(":", 1)[-1]
+            if validators.soft_validate(email, "email"):
+                email_event = self.make_event(email, "EMAIL_ADDRESS", source=event, tags=["affiliate"])
+                email_event.scope_distance = event.scope_distance
+                await self.emit_event(email_event)
 
     async def filter_event(self, event):
         # don't accept errored DNS_NAMEs

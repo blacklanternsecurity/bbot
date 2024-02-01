@@ -74,18 +74,31 @@ class TestCredshed(ModuleTestBase):
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "judy@blacklanternsecurity.com"])
         assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "tim@blacklanternsecurity.com"])
         assert 1 == len(
-            [e for e in events if e.type == "HASHED_PASSWORD" and e.data == "539FE8942DEADBEEFBC49E6EB2F175AC"]
-        )
-        assert 1 == len(
-            [e for e in events if e.type == "HASHED_PASSWORD" and e.data == "D2D8F0E9A4A2DEADBEEF1AC80F36D61F"]
+            [
+                e
+                for e in events
+                if e.type == "HASHED_PASSWORD"
+                and e.data == "judy@blacklanternsecurity.com:539FE8942DEADBEEFBC49E6EB2F175AC"
+            ]
         )
         assert 1 == len(
             [
                 e
                 for e in events
                 if e.type == "HASHED_PASSWORD"
-                and e.data == "$2a$12$SHIC49jLIwsobdeadbeefuWb2BKWHUOk2yhpD77A0itiZI1vJqXHm"
+                and e.data == "judy@blacklanternsecurity.com:D2D8F0E9A4A2DEADBEEF1AC80F36D61F"
             ]
         )
-        assert 1 == len([e for e in events if e.type == "PASSWORD" and e.data == "TimTamSlam69"])
-        assert 1 == len([e for e in events if e.type == "USERNAME" and e.data == "tim"])
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "HASHED_PASSWORD"
+                and e.data
+                == "judy@blacklanternsecurity.com:$2a$12$SHIC49jLIwsobdeadbeefuWb2BKWHUOk2yhpD77A0itiZI1vJqXHm"
+            ]
+        )
+        assert 1 == len(
+            [e for e in events if e.type == "PASSWORD" and e.data == "tim@blacklanternsecurity.com:TimTamSlam69"]
+        )
+        assert 1 == len([e for e in events if e.type == "USERNAME" and e.data == "tim@blacklanternsecurity.com:tim"])

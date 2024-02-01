@@ -275,7 +275,7 @@ class ScanManager:
             if (
                 event.host
                 and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
-                and not str(event.module) == "speculate"
+                and not (event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate")
             ):
                 source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
                 source_module._priority = 4
