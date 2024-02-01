@@ -53,6 +53,24 @@ You can also pair the web spider with subdomain enumeration:
 bbot -t evilcorp.com -f subdomain-enum -c spider.yml
 ```
 
+### Ingesting BBOT Data Into SIEM (Elastic, Splunk)
+
+If your goal is to feed BBOT data into a SIEM such as Elastic, make sure to enable this option when scanning:
+
+```bash
+bbot -t evilcorp.com -c output_modules.json.siem_friendly=true
+```
+
+This nests the event's `.data` beneath its event type like so:
+```json
+{
+  "type": "DNS_NAME",
+  "data": {
+    "DNS_NAME": "blacklanternsecurity.com"
+  }
+}
+```
+
 ### Custom HTTP Proxy
 
 Web pentesters may appreciate BBOT's ability to quickly populate Burp Suite site maps for all subdomains in a target. If your scan includes gowitness, this will capture the traffic as if you manually visited each website in your browser -- including auxiliary web resources and javascript API calls. To accomplish this, set the `http_proxy` config option like so:
