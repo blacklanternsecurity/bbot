@@ -55,7 +55,7 @@ bbot -t evilcorp.com -f subdomain-enum -c spider.yml
 
 ### Ingesting BBOT Data Into SIEM (Elastic, Splunk)
 
-If your goal is to feed BBOT data into a SIEM such as Elastic, make sure to enable this option when scanning:
+If your goal is to feed BBOT data into a SIEM such as Elastic, be sure to enable this option when scanning:
 
 ```bash
 bbot -t evilcorp.com -c output_modules.json.siem_friendly=true
