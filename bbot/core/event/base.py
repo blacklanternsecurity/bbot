@@ -1246,10 +1246,11 @@ def make_event(
     """
 
     # allow tags to be either a string or an array
-    if tags is not None:
-        if isinstance(tags, str):
-            tags = [tags]
-        tags = list(tags)
+    if not tags:
+        tags = []
+    elif isinstance(tags, str):
+        tags = [tags]
+    tags = list(tags)
 
     if is_event(data):
         if scan is not None and not data.scan:

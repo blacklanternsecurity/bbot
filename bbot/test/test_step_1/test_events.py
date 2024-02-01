@@ -250,6 +250,10 @@ async def test_events(events, scan, helpers, bbot_config):
     corrected_event3 = scan.make_event("wat.asdf.com", "IP_ADDRESS", dummy=True)
     assert corrected_event3.type == "DNS_NAME"
 
+    corrected_event4 = scan.make_event("bob@evilcorp.com", "USERNAME", dummy=True)
+    assert corrected_event4.type == "EMAIL_ADDRESS"
+    assert "affiliate" in corrected_event4.tags
+
     test_vuln = scan.make_event(
         {"host": "EVILcorp.com", "severity": "iNfo ", "description": "asdf"}, "VULNERABILITY", dummy=True
     )
