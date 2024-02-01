@@ -30,8 +30,8 @@ class TestSpeculate_OpenPorts(ModuleTestBase):
     async def setup_before_prep(self, module_test):
         module_test.mock_dns(
             {
-                "evilcorp.com": {"A": "127.0.254.1"},
-                "asdf.evilcorp.com": {"A": "127.0.254.2"},
+                "evilcorp.com": {"A": ["127.0.254.1"]},
+                "asdf.evilcorp.com": {"A": ["127.0.254.2"]},
             }
         )
 
