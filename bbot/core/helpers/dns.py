@@ -648,7 +648,7 @@ class DNSHelper:
 
         """
         for q in queries:
-            (q, await self.resolve(q, **kwargs))
+            yield (q, await self.resolve(q, **kwargs))
 
     def extract_targets(self, record):
         """
