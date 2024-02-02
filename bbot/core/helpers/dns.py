@@ -823,8 +823,8 @@ class DNSHelper:
             for t in rdtypes_to_check:
                 raw_results, errors = await self.resolve_raw(query, type=t, use_cache=True)
                 if errors and not raw_results:
-                    self.debug(f"Failed to resolve {query} ({_rdtype}) during wildcard detection")
-                    result[_rdtype] = (None, parent)
+                    self.debug(f"Failed to resolve {query} ({t}) during wildcard detection")
+                    result[t] = (None, parent)
                     continue
                 for __rdtype, answers in raw_results:
                     base_query_results = set()
