@@ -38,6 +38,9 @@ class anubisdb(subdomain_enum):
         if json:
             for hostname in json:
                 hostname = str(hostname).lower()
-                if hostname.endswith(f".{query}") and not self.abort_if_pre(hostname):
+                in_scope = hostname.endswith(f".{query}")
+                is_ptr = self.helpers.is_ptr(hostname)
+                too_long = self.abort_if_pre(hostname)
+                if in_scope and not is_ptr and not too_long:
                     results.add(hostname)
         return sorted(results)[:self.config.get("limit", 1000)]
