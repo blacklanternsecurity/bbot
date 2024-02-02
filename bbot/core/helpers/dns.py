@@ -627,24 +627,13 @@ class DNSHelper:
         except KeyError:
             return set(), None, None, set()
 
-    async def _resolve_batch_coro_wrapper(self, q, **kwargs):
-        """
-        Helps us correlate task results back to their original arguments
-        """
-        result = await self.resolve(q, **kwargs)
-        return (q, result)
-
     async def resolve_batch(self, queries, **kwargs):
         """
-        Asynchronously resolves a batch of queries in parallel and yields the results as they are completed.
-
-        This method wraps around `_resolve_batch_coro_wrapper` to resolve a list of queries in parallel.
-        It batches the queries to a manageable size and executes them asynchronously, respecting
-        global rate limits.
+        A helper to execute a bunch of DNS requests.
 
         Args:
             queries (list): List of queries to resolve.
-            **kwargs: Additional keyword arguments to pass to `_resolve_batch_coro_wrapper`.
+            **kwargs: Additional keyword arguments to pass to `resolve()`.
 
         Yields:
             tuple: A tuple containing the original query and its resolved value.
@@ -658,13 +647,8 @@ class DNSHelper:
             ('evilcorp.com', {'2.2.2.2'})
 
         """
-        queries = list(queries)
-        batch_size = 250
-        for i in range(0, len(queries), batch_size):
-            batch = queries[i : i + batch_size]
-            tasks = [asyncio.create_task(self._resolve_batch_coro_wrapper(q, **kwargs)) for q in batch]
-            async for task in as_completed(tasks):
-                yield await task
+        for q in queries:
+            (q, await self.resolve(q, **kwargs))
 
     def extract_targets(self, record):
         """
@@ -837,9 +821,7 @@ class DNSHelper:
         # if the caller hasn't already done the work of resolving the IPs
         if ips is None:
             # then resolve the query for all rdtypes
-            base_query_tasks = {
-                t: asyncio.create_task(self.resolve_raw(query, type=t, use_cache=True)) for t in rdtypes_to_check
-            }
+            base_query_tasks = {t: self.resolve_raw(query, type=t, use_cache=True) for t in rdtypes_to_check}
             for _rdtype, task in base_query_tasks.items():
                 raw_results, errors = await task
                 if errors and not raw_results:
@@ -949,6 +931,8 @@ class DNSHelper:
                     wildcard_domain_results[host] = self._wildcard_cache[host_hash]
                     continue
 
+                log.verbose(f"Checking if {host} is a wildcard")
+
                 # determine if this is a wildcard domain
                 wildcard_tasks = {t: [] for t in rdtypes_to_check}
                 # resolve a bunch of random subdomains of the same parent
@@ -958,14 +942,14 @@ class DNSHelper:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_task = asyncio.create_task(self.resolve(rand_query, type=rdtype, use_cache=False))
+                        wildcard_task = self.resolve(rand_query, type=rdtype, use_cache=False)
                         wildcard_tasks[rdtype].append(wildcard_task)
 
                 # combine the random results
                 is_wildcard = False
                 wildcard_results = dict()
                 for rdtype, tasks in wildcard_tasks.items():
-                    async for task in as_completed(tasks):
+                    for task in tasks:
                         results = await task
                         if results:
                             is_wildcard = True
