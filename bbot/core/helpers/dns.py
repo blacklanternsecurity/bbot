@@ -526,9 +526,8 @@ class DNSHelper:
                         types = ("A", "AAAA")
 
                 if types:
-                    tasks = [self.resolve_raw(event_host, type=t, use_cache=True) for t in types]
-                    async for task in as_completed(tasks):
-                        resolved_raw, errors = await task
+                    for t in types:
+                        resolved_raw, errors = await self.resolve_raw(event_host, type=t, use_cache=True)
                         for rdtype, e in errors:
                             if rdtype not in resolved_raw:
                                 event_tags.add(f"{rdtype.lower()}-error")
@@ -821,9 +820,8 @@ class DNSHelper:
         # if the caller hasn't already done the work of resolving the IPs
         if ips is None:
             # then resolve the query for all rdtypes
-            base_query_tasks = {t: self.resolve_raw(query, type=t, use_cache=True) for t in rdtypes_to_check}
-            for _rdtype, task in base_query_tasks.items():
-                raw_results, errors = await task
+            for t in rdtypes_to_check:
+                raw_results, errors = await self.resolve_raw(query, type=t, use_cache=True)
                 if errors and not raw_results:
                     self.debug(f"Failed to resolve {query} ({_rdtype}) during wildcard detection")
                     result[_rdtype] = (None, parent)
@@ -934,23 +932,17 @@ class DNSHelper:
                 log.verbose(f"Checking if {host} is a wildcard")
 
                 # determine if this is a wildcard domain
-                wildcard_tasks = {t: [] for t in rdtypes_to_check}
+
                 # resolve a bunch of random subdomains of the same parent
+                is_wildcard = False
+                wildcard_results = dict()
                 for rdtype in rdtypes_to_check:
                     # continue if a wildcard was already found for this rdtype
                     # if rdtype in self._wildcard_cache[host_hash]:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_task = self.resolve(rand_query, type=rdtype, use_cache=False)
-                        wildcard_tasks[rdtype].append(wildcard_task)
-
-                # combine the random results
-                is_wildcard = False
-                wildcard_results = dict()
-                for rdtype, tasks in wildcard_tasks.items():
-                    for task in tasks:
-                        results = await task
+                        results = await self.resolve(rand_query, type=rdtype, use_cache=False)
                         if results:
                             is_wildcard = True
                             if not rdtype in wildcard_results:
