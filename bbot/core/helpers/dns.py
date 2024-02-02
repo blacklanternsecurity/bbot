@@ -969,6 +969,8 @@ class DNSHelper:
                     if log_info:
                         log_fn = log.info
                     log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
+                else:
+                    log.verbose(f"Finished checking {host}, it is not a wildcard")
 
         return wildcard_domain_results
 
