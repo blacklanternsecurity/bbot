@@ -5,12 +5,11 @@ import logging
 import threading
 from datetime import datetime
 from queue import Queue, Empty
+from cachetools import LRUCache
 from .misc import human_timedelta
 from contextlib import asynccontextmanager
 
 log = logging.getLogger("bbot.core.helpers.async_helpers")
-
-from .cache import CacheDict
 
 
 class ShuffleQueue(asyncio.Queue):
@@ -37,15 +36,15 @@ class NamedLock:
     """
 
     def __init__(self, max_size=1000):
-        self._cache = CacheDict(max_size=max_size)
+        self._cache = LRUCache(maxsize=max_size)
 
     @asynccontextmanager
     async def lock(self, name):
         try:
-            lock = self._cache.get(name)
+            lock = self._cache[name]
         except KeyError:
             lock = _Lock(name)
-            self._cache.put(name, lock)
+            self._cache[name] = lock
         async with lock:
             yield
 

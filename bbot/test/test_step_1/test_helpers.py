@@ -441,20 +441,6 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.cache_get("string", cache_hrs=24 * 7) is None
     assert helpers.cache_get("string", cache_hrs=24 * 14) == "wat"
 
-    cache_dict = helpers.CacheDict(max_size=10)
-    cache_dict.put("1", 2)
-    assert cache_dict["1"] == 2
-    assert cache_dict.get("1") == 2
-    assert len(cache_dict) == 1
-    cache_dict["2"] = 3
-    assert cache_dict["2"] == 3
-    assert cache_dict.get("2") == 3
-    assert len(cache_dict) == 2
-    for i in range(20):
-        cache_dict[str(i)] = i + 1
-    assert len(cache_dict) == 10
-    assert tuple(cache_dict) == tuple(hash(str(x)) for x in range(10, 20))
-
     test_file = Path(scan.config["home"]) / "testfile.asdf"
     with open(test_file, "w") as f:
         for i in range(100):

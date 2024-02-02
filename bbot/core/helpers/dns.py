@@ -7,6 +7,7 @@ import traceback
 import contextlib
 import dns.exception
 import dns.asyncresolver
+from cachetools import LRUCache
 from contextlib import suppress
 
 from .regexes import dns_name_regex
@@ -64,8 +65,8 @@ class DNSHelper:
         wildcard_ignore (tuple): Domains to be ignored during wildcard detection.
         wildcard_tests (int): Number of tests to be run for wildcard detection. Defaults to 5.
         _wildcard_cache (dict): Cache for wildcard detection results.
-        _dns_cache (CacheDict): Cache for DNS resolution results, limited in size.
-        _event_cache (CacheDict): Cache for event resolution results, tags. Limited in size.
+        _dns_cache (LRUCache): Cache for DNS resolution results, limited in size.
+        _event_cache (LRUCache): Cache for event resolution results, tags. Limited in size.
         resolver_file (Path): File containing system's current resolver nameservers.
         filter_bad_ptrs (bool): Whether to filter out DNS names that appear to be auto-generated PTR records. Defaults to True.
 
@@ -130,8 +131,8 @@ class DNSHelper:
         self.fallback_nameservers_file = self.parent_helper.wordlist_dir / "nameservers.txt"
         self._debug = self.parent_helper.config.get("dns_debug", False)
         self._dummy_modules = dict()
-        self._dns_cache = self.parent_helper.CacheDict(max_size=100000)
-        self._event_cache = self.parent_helper.CacheDict(max_size=10000)
+        self._dns_cache = LRUCache(maxsize=10000)
+        self._event_cache = LRUCache(maxsize=10000)
         self._event_cache_locks = NamedLock()
 
         # for mocking DNS queries
