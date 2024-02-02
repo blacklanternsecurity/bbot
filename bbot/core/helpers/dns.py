@@ -950,8 +950,6 @@ class DNSHelper:
                             wildcard_results[rdtype].update(results)
                             # we know this rdtype is a wildcard
                             # so we don't need to check it anymore
-                            with suppress(KeyError):
-                                rdtypes_to_check.remove(rdtype)
 
                 self._wildcard_cache.update({host_hash: wildcard_results})
                 wildcard_domain_results.update({host: wildcard_results})
