@@ -13,7 +13,7 @@ from .regexes import dns_name_regex
 from bbot.core.helpers.ratelimiter import RateLimiter
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.errors import ValidationError, DNSError, DNSWildcardBreak
-from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck, as_completed
+from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
