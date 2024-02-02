@@ -94,7 +94,7 @@ class dnscommonsrv(BaseModule):
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Check for common SRV records"}
-    _max_event_handlers = 5
+    _max_event_handlers = 10
 
     async def filter_event(self, event):
         # skip SRV wildcards
