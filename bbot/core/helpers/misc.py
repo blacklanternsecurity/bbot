@@ -66,6 +66,8 @@ def is_domain(d):
         - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
+    if is_ip(d):
+        return False
     extracted = tldextract(d)
     if extracted.registered_domain:
         if not extracted.subdomain:
@@ -99,6 +101,8 @@ def is_subdomain(d):
         - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
+    if is_ip(d):
+        return False
     extracted = tldextract(d)
     if extracted.registered_domain:
         if extracted.subdomain:
@@ -607,9 +611,6 @@ def is_ip(d, version=None):
         >>> is_ip('evilcorp.com')
         False
     """
-    if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
-        if version is None or version == d.version:
-            return True
     try:
         ip = ipaddress.ip_address(d)
         if version is None or ip.version == version:
