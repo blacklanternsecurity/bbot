@@ -398,7 +398,7 @@ class WebHelper:
                     new_url = next_key(result)
                 except Exception as e:
                     log.debug(f"Failed to extract next page of results from {url}: {e}")
-                    log.debug(traceback.formate_exc())
+                    log.debug(traceback.format_exc())
             else:
                 new_url = url.format(page=page, page_size=page_size, offset=offset)
             result = await self.request(new_url, **requests_kwargs)

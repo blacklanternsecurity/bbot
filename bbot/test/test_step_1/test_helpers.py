@@ -52,8 +52,14 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
     assert not helpers.is_domain("www.evilcorp.co.uk")
+    assert helpers.is_domain("evilcorp.notreal")
+    assert not helpers.is_domain("asdf.evilcorp.notreal")
+    assert not helpers.is_domain("notreal")
     assert helpers.is_subdomain("www.evilcorp.co.uk")
     assert not helpers.is_subdomain("evilcorp.co.uk")
+    assert helpers.is_subdomain("www.evilcorp.notreal")
+    assert not helpers.is_subdomain("evilcorp.notreal")
+    assert not helpers.is_subdomain("notreal")
     assert helpers.is_url("http://evilcorp.co.uk/asdf?a=b&c=d#asdf")
     assert helpers.is_url("https://evilcorp.co.uk/asdf?a=b&c=d#asdf")
     assert helpers.is_uri("ftp://evilcorp.co.uk") == True
@@ -67,6 +73,9 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.parent_domain("www.evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("localhost") == "localhost"
+    assert helpers.parent_domain("www.evilcorp.notreal") == "evilcorp.notreal"
+    assert helpers.parent_domain("evilcorp.notreal") == "evilcorp.notreal"
+    assert helpers.parent_domain("notreal") == "notreal"
     assert list(helpers.domain_parents("test.www.evilcorp.co.uk")) == ["www.evilcorp.co.uk", "evilcorp.co.uk"]
     assert list(helpers.domain_parents("www.evilcorp.co.uk", include_self=True)) == [
         "www.evilcorp.co.uk",

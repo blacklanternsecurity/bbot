@@ -31,7 +31,7 @@ class NamedLock:
     """
     Returns a unique asyncio.Lock() based on a provided string
 
-    Useful for preventing multiple operations from occuring on the same data in parallel
+    Useful for preventing multiple operations from occurring on the same data in parallel
     E.g. simultaneous DNS lookups on the same hostname
     """
 

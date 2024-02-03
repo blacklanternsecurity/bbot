@@ -67,8 +67,11 @@ def is_domain(d):
     """
     d, _ = split_host_port(d)
     extracted = tldextract(d)
-    if extracted.domain and not extracted.subdomain:
-        return True
+    if extracted.registered_domain:
+        if not extracted.subdomain:
+            return True
+    else:
+        return d.count(".") == 1
     return False
 
 
@@ -97,8 +100,11 @@ def is_subdomain(d):
     """
     d, _ = split_host_port(d)
     extracted = tldextract(d)
-    if extracted.domain and extracted.subdomain:
-        return True
+    if extracted.registered_domain:
+        if extracted.subdomain:
+            return True
+    else:
+        return d.count(".") > 1
     return False
 
 
