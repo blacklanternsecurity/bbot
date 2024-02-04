@@ -849,12 +849,13 @@ class DNSHelper:
         # for every parent domain, starting with the shortest
         try:
             for host in parents[::-1]:
+                # make sure we've checked that domain for wildcards
+                await self.is_wildcard_domain(host)
+
                 # for every rdtype
                 for _rdtype in list(base_query_ips):
                     # get the IPs from above
                     query_ips = base_query_ips.get(_rdtype, set())
-                    # make sure we've checked that domain for wildcards
-                    await self.is_wildcard_domain(host)
                     host_hash = hash(host)
 
                     if host_hash in self._wildcard_cache:
