@@ -7,8 +7,6 @@ from bbot.core.errors import HttpCompareError
 
 log = logging.getLogger("bbot.core.helpers.diff")
 
-from time import sleep
-
 
 class HttpCompare:
     def __init__(self, baseline_url, parent_helper, method="GET", allow_redirects=False, include_cache_buster=True):
