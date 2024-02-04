@@ -154,12 +154,12 @@ class dnscommonsrv(BaseModule):
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {"description": "Check for common SRV records"}
-    options = {"top": 50, "max_event_handlers": 5}
+    options = {"top": 50, "max_event_handlers": 10}
     options_desc = {
         "top": "How many of the top SRV records to check",
         "max_event_handlers": "How many instances of the module to run concurrently",
     }
-    _max_event_handlers = 5
+    _max_event_handlers = 10
 
     def _incoming_dedup_hash(self, event):
         # dedupe by parent
