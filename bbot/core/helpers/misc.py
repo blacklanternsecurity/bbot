@@ -337,6 +337,23 @@ def domain_parents(d, include_self=False):
         break
 
 
+def subdomain_depth(d):
+    """
+    Calculate the depth of subdomains within a given domain name.
+
+    Args:
+        d (str): The domain name to analyze.
+
+    Returns:
+        int: The depth of the subdomain. For example, a hostname "5.4.3.2.1.evilcorp.com"
+        has a subdomain depth of 5.
+    """
+    subdomain, domain = split_domain(d)
+    if not subdomain:
+        return 0
+    return subdomain.count(".") + 1
+
+
 def parent_url(u):
     """
     Retrieve the parent URL of a given URL.

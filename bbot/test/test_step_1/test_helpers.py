@@ -182,6 +182,12 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.split_domain("192.168.0.1") == ("", "192.168.0.1")
     assert helpers.split_domain("dead::beef") == ("", "dead::beef")
 
+    assert helpers.subdomain_depth("a.s.d.f.evilcorp.co.uk") == 4
+    assert helpers.subdomain_depth("a.s.d.f.evilcorp.com") == 4
+    assert helpers.subdomain_depth("evilcorp.com") == 0
+    assert helpers.subdomain_depth("a.evilcorp.com") == 1
+    assert helpers.subdomain_depth("a.s.d.f.evilcorp.notreal") == 4
+
     assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
