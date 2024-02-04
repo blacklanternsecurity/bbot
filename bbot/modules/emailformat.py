@@ -19,4 +19,4 @@ class emailformat(BaseModule):
             return
         for email in self.helpers.extract_emails(r.text):
             if email.endswith(query):
-                self.emit_event(email, "EMAIL_ADDRESS", source=event)
+                await self.emit_event(email, "EMAIL_ADDRESS", source=event)

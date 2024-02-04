@@ -119,14 +119,14 @@ class paramminer_headers(BaseModule):
             pass
         return results
 
-    def process_results(self, event, results):
+    async def process_results(self, event, results):
         url = event.data.get("url")
         for result, reasons, reflection in results:
             tags = []
             if reflection:
                 tags = ["http_reflection"]
             description = f"[Paramminer] {self.compare_mode.capitalize()}: [{result}] Reasons: [{reasons}] Reflection: [{str(reflection)}]"
-            self.emit_event(
+            await self.emit_event(
                 {"host": str(event.host), "url": url, "description": description},
                 "FINDING",
                 event,
@@ -171,7 +171,7 @@ class paramminer_headers(BaseModule):
             results = await self.do_mining(wl, url, batch_size, compare_helper)
         except HttpCompareError as e:
             self.debug(f"Encountered HttpCompareError: [{e}] for URL [{event.data}]")
-        self.process_results(event, results)
+        await self.process_results(event, results)
 
     async def count_test(self, url):
         baseline = await self.helpers.request(url)
@@ -247,4 +247,4 @@ class paramminer_headers(BaseModule):
                 results = await self.do_mining(untested_matches_copy, url, batch_size, compare_helper)
             except HttpCompareError as e:
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
-            self.process_results(event, results)
+            await self.process_results(event, results)

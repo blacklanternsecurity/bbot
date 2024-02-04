@@ -132,7 +132,7 @@ class bypass403(BaseModule):
         if results is None:
             return
         if len(results) > collapse_threshold:
-            self.emit_event(
+            await self.emit_event(
                 {
                     "description": f"403 Bypass MULTIPLE SIGNATURES (exceeded threshold {str(collapse_threshold)})",
                     "host": str(event.host),
@@ -143,7 +143,7 @@ class bypass403(BaseModule):
             )
         else:
             for description in results:
-                self.emit_event(
+                await self.emit_event(
                     {"description": description, "host": str(event.host), "url": event.data},
                     "FINDING",
                     source=event,

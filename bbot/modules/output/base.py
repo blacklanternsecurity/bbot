@@ -27,7 +27,7 @@ class BaseOutputModule(BaseModule):
 
         # output module specific stuff
         # omitted events such as HTTP_RESPONSE etc.
-        if event._omit:
+        if event._omit and not event.type in self.get_watched_events():
             return False, "_omit is True"
 
         # force-output certain events to the graph
@@ -40,6 +40,14 @@ class BaseOutputModule(BaseModule):
             return False, "_internal is True"
 
         return True, "precheck succeeded"
+
+    async def _event_postcheck(self, event):
+        acceptable, reason = await super()._event_postcheck(event)
+        if acceptable and not event._stats_recorded and event.type not in ("FINISHED",):
+            event._stats_recorded = True
+            self.scan.stats.event_distributed(event)
+            self.scan.stats.event_produced(event)
+        return acceptable, reason
 
     def is_incoming_duplicate(self, event, add=False):
         is_incoming_duplicate, reason = super().is_incoming_duplicate(event, add=add)

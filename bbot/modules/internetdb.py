@@ -76,7 +76,7 @@ class internetdb(BaseModule):
             return
         if data:
             if r.status_code == 200:
-                self._parse_response(data=data, event=event)
+                await self._parse_response(data=data, event=event)
             elif r.status_code == 404:
                 detail = data.get("detail", "")
                 if detail:
@@ -86,22 +86,22 @@ class internetdb(BaseModule):
                 err_msg = data.get("msg", "")
                 self.verbose(f"Shodan error for {ip}: {err_data}: {err_msg}")
 
-    def _parse_response(self, data: dict, event):
+    async def _parse_response(self, data: dict, event):
         """Handles emitting events from returned JSON"""
         data: dict  # has keys: cpes, hostnames, ip, ports, tags, vulns
         # ip is a string, ports is a list of ports, the rest is a list of strings
         for hostname in data.get("hostnames", []):
-            self.emit_event(hostname, "DNS_NAME", source=event)
+            await self.emit_event(hostname, "DNS_NAME", source=event)
         for cpe in data.get("cpes", []):
-            self.emit_event({"technology": cpe, "host": str(event.host)}, "TECHNOLOGY", source=event)
+            await self.emit_event({"technology": cpe, "host": str(event.host)}, "TECHNOLOGY", source=event)
         for port in data.get("ports", []):
-            self.emit_event(
+            await self.emit_event(
                 self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True, quick=True
             )
         vulns = data.get("vulns", [])
         if vulns:
             vulns_str = ", ".join([str(v) for v in vulns])
-            self.emit_event(
+            await self.emit_event(
                 {"description": f"Shodan reported verified vulnerabilities: {vulns_str}", "host": str(event.host)},
                 "FINDING",
                 source=event,
