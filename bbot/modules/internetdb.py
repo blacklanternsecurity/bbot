@@ -115,10 +115,11 @@ class internetdb(BaseModule):
         elif event.type == "DNS_NAME":
             # always try IPv4 first
             ipv6 = []
-            for host in event.resolved_hosts:
-                if self.helpers.is_ip(host, version=4):
-                    return host
-                elif self.helpers.is_ip(host, version=6):
-                    ipv6.append(host)
+            ips = [self.helpers.make_ip_type(h) for h in event.resolved_hosts if self.helpers.is_ip(h)]
+            for ip in sorted(ips):
+                if self.helpers.is_ip(ip, version=4):
+                    return ip
+                elif self.helpers.is_ip(ip, version=6):
+                    ipv6.append(ip)
             for ip in ipv6:
                 return ip
