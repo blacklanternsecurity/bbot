@@ -75,7 +75,7 @@ class massdns(subdomain_enum):
         },
     ]
     reject_wildcards = "strict"
-    _qsize = 100
+    _qsize = 10000
 
     digit_regex = re.compile(r"\d+")
 
