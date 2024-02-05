@@ -1,8 +1,8 @@
-# Created a new module called 'newsletters' that will scrap the websites (or recursive websites, 
-# thanks to BBOT's sub-domain enumeration) looking for the presence of an 'email type' that also 
-# contains a 'placeholder'. The combination of these two HTML items usually signify the presence 
-# of an "Enter Your Email Here" type Newsletter Subscription service. This module could be used 
-# to find newsletters for a future email bombing attack and/or find user-input fields that could 
+# Created a new module called 'newsletters' that will scrap the websites (or recursive websites,
+# thanks to BBOT's sub-domain enumeration) looking for the presence of an 'email type' that also
+# contains a 'placeholder'. The combination of these two HTML items usually signify the presence
+# of an "Enter Your Email Here" type Newsletter Subscription service. This module could be used
+# to find newsletters for a future email bombing attack and/or find user-input fields that could
 # be be susceptible to overflows or injections.
 
 from .base import BaseModule
@@ -25,12 +25,12 @@ headers = {
 
 
 class newsletters(BaseModule):
-    watched_events = ["URL"]
+    watched_events = ["HTTP_RESPONSE"]
     produced_events = ["NEWSLETTER"]
     flags = ["passive", "safe"]
-    meta = {"description": "Searches for Newsletter Registrations"}
+    meta = {"description": "Searches for Newsletter Submission Entry Fields on Websites"}
 
-    # Parse through Website to find a Text Entry Box of 'type = email' 
+    # Parse through Website to find a Text Entry Box of 'type = email'
     # and ensure that there is placeholder text within it.
     def find_type(self, soup):
         email_type = soup.find(type="email")
@@ -44,29 +44,28 @@ class newsletters(BaseModule):
             return False
 
     async def handle_event(self, event):
-        if event.type == "URL":
-            # self.hugeinfo(f"event = {event}")
+        req_url = event.data
 
-            req_url = event.data
-            req = requests.request("GET", req_url, headers=headers)
-            # req = self.helpers.request("GET", req_url, headers=headers)
+        # req = requests.request("GET", req_url, headers=headers)  ## If it ain't broke, don't fix it
+        # req = self.helpers.request(method="GET", url=req_url, headers=headers)    # Doesn't return a status_code
+        # req = await self.helpers.curl(url=req_url, headers=headers)             # Doesn't return a status_code
 
-            if req.status_code == 200:
-                # print(f'\n[+] {req_url}')
-                # print('[+] Status Code: 200')
-                soup = BeautifulSoup(req.content, "html.parser")
-                result = self.find_type(soup)
-                if result:
-                    newsletter_result = self.make_event(
-                        data=f"Newsletter {event.data}",
-                        event_type="NEWSLETTER",
-                        source=event,
-                        tags=event.tags,
-                    )
-                    self.hugesuccess(f"Yippie! There is a Newsletter at {event.data}")
-                    self.emit_event(newsletter_result)
-                    return
-                else:
-                    return                  
+        if event.data["status_code"] == 200:
+            soup = BeautifulSoup(event.data["body"], "html.parser")
+            result = self.find_type(soup)
+            if result:
+                newsletter_result = self.make_event(
+                    data=f"Newsletter {event.data['url']}",
+                    event_type="NEWSLETTER",
+                    source=event,
+                    tags=event.tags
+                )
+                # self.hugesuccess(f"Yippie! There is a Newsletter at {event.data}")
+                self.emit_event(newsletter_result)
+                return
             else:
                 return
+        else:
+            return
+
+            
