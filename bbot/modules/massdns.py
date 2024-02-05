@@ -158,7 +158,7 @@ class massdns(subdomain_enum):
         subdomains = list(subdomains)
 
         domain_wildcard_rdtypes = set()
-        for domain, rdtypes in (await self.helpers.is_wildcard_domain(domain)).items():
+        for _domain, rdtypes in (await self.helpers.is_wildcard_domain(domain)).items():
             for rdtype, results in rdtypes.items():
                 if results:
                     domain_wildcard_rdtypes.add(rdtype)
@@ -385,10 +385,7 @@ class massdns(subdomain_enum):
                         for s in _subdomains:
                             first_segment = s.split(".")[0]
                             # skip stuff with lots of numbers (e.g. PTRs)
-                            digits = self.digit_regex.findall(first_segment)
-                            excessive_digits = len(digits) > 2
-                            long_digits = any(len(d) > 3 for d in digits)
-                            if excessive_digits or long_digits:
+                            if self.has_excessive_digits(first_segment):
                                 continue
                             add_mutation(domain_hash, first_segment)
                             for word in self.helpers.extract_words(
@@ -454,3 +451,16 @@ class massdns(subdomain_enum):
             yield subdomain
         for _ in range(5):
             yield self.helpers.rand_string(length=8, digits=False)
+
+    def has_excessive_digits(self, d):
+        """
+        Identifies dns names with excessive numbers, e.g.:
+            - w1-2-3.evilcorp.com
+            - ptr1234.evilcorp.com
+        """
+        digits = self.digit_regex.findall(d)
+        excessive_digits = len(digits) > 2
+        long_digits = any(len(d) > 3 for d in digits)
+        if excessive_digits or long_digits:
+            return True
+        return False
