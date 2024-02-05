@@ -18,7 +18,7 @@ class baddns(BaseModule):
         "only_high_confidence": "Do not emit low-confidence or generic detections",
     }
     max_event_handlers = 8
-    deps_pip = ["baddns~=1.0.679"]
+    deps_pip = ["baddns~=1.0.698"]
 
     def select_modules(self):
         selected_modules = []
