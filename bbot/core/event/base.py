@@ -25,6 +25,7 @@ from bbot.core.helpers import (
     get_file_extension,
     validators,
     tagify,
+    truncate_string,
 )
 
 
