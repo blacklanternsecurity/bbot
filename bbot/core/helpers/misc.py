@@ -1451,7 +1451,7 @@ def search_dict_values(d, *regexes):
         ...         ]
         ...     }
         ... }
-        >>> url_regexes = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+        >>> url_regexes = re.compile(r'https?://[^\\s<>"]+|www\.[^\\s<>"]+')
         >>> list(search_dict_values(dict_to_search, url_regexes))
         ["https://www.evilcorp.com"]
     """
