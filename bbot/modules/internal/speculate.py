@@ -35,6 +35,7 @@ class speculate(BaseInternalModule):
     }
     scope_distance_modifier = 1
     _priority = 4
+    _qsize = 10000
 
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
