@@ -1,6 +1,7 @@
 from baddns.base import get_all_modules
 from .base import BaseModule
 
+import asyncio
 import logging
 from bbot.core.logger.logger import include_logger
 
@@ -35,6 +36,9 @@ class baddns(BaseModule):
         return True
 
     async def handle_event(self, event):
+
+        tasks = []
+
         for ModuleClass in self.select_modules():
             module_instance = ModuleClass(
                 event.data,
@@ -42,7 +46,10 @@ class baddns(BaseModule):
                 dns_client=self.scan.helpers.dns.resolver,
                 custom_nameservers=self.custom_nameservers,
             )
-            if await module_instance.dispatch():
+            tasks.append((module_instance, asyncio.create_task(module_instance.dispatch())))
+
+        for module_instance, task in tasks:
+            if await task:
                 results = module_instance.analyze()
                 if results and len(results) > 0:
                     for r in results:
