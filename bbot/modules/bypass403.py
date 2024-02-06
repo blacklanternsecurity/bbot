@@ -113,8 +113,7 @@ class bypass403(BaseModule):
                         return
 
             if match == False:
-                self.critical(subject_response.status_code)
-                if str(subject_response.status_code)[0] != "4" and subject_response.status_code != 503:
+                if str(subject_response.status_code)[0] != "4":
                     if sig[2]:
                         added_header_tuple = next(iter(sig[2].items()))
                         reported_signature = f"Added Header: {added_header_tuple[0]}: {added_header_tuple[1]}"
