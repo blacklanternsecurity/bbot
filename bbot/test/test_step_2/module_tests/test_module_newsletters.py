@@ -49,4 +49,3 @@ class TestNewsletters(ModuleTestBase):
                 elif event.data == self.missing_tgt:
                     count += -1
         assert count==1, f"NEWSLETTER Error - Expect count of 1 but got {count}"
-        
