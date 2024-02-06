@@ -6,7 +6,6 @@
 # be be susceptible to overflows or injections.
 
 from .base import BaseModule
-import requests
 import re
 from bs4 import BeautifulSoup
 
@@ -44,18 +43,12 @@ class newsletters(BaseModule):
             return False
 
     async def handle_event(self, event):
-        req_url = event.data
-
-        # req = requests.request("GET", req_url, headers=headers)  ## If it ain't broke, don't fix it
-        # req = self.helpers.request(method="GET", url=req_url, headers=headers)    # Doesn't return a status_code
-        # req = await self.helpers.curl(url=req_url, headers=headers)             # Doesn't return a status_code
-
         if event.data["status_code"] == 200:
             soup = BeautifulSoup(event.data["body"], "html.parser")
             result = self.find_type(soup)
             if result:
                 newsletter_result = self.make_event(
-                    data=f"Newsletter {event.data['url']}", event_type="NEWSLETTER", source=event, tags=event.tags
+                    data=event.data['url'], event_type="NEWSLETTER", source=event, tags=event.tags
                 )
                 # self.hugesuccess(f"Yippie! There is a Newsletter at {event.data}")
                 self.emit_event(newsletter_result)
