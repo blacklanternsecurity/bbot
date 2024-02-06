@@ -97,7 +97,7 @@ class postman(subdomain_enum):
         try:
             json = r.json()
             if not isinstance(json, dict):
-                raise ValueError(f"Got unexpected value for JSON: {json}"
+                raise ValueError(f"Got unexpected value for JSON: {json}")
         except Exception as e:
             self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
             return [], []
