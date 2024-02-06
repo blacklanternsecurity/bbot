@@ -33,7 +33,7 @@ asyncio.run(main())
 
 <!-- BBOT HELP OUTPUT -->
 ```text
-usage: pytest [-h] [--help-all] [-t TARGET [TARGET ...]]
+usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]]
               [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]]
               [--strict-scope] [-m MODULE [MODULE ...]] [-l]
               [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf]
