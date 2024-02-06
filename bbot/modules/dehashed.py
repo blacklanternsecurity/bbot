@@ -1,15 +1,16 @@
 from contextlib import suppress
 
-from bbot.modules.templates.credential_leak import credential_leak
+from bbot.modules.base import BaseModule
 
 
-class dehashed(credential_leak):
+class dehashed(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME"]
     flags = ["passive", "safe", "email-enum"]
     meta = {"description": "Execute queries against dehashed.com for exposed credentials", "auth_required": True}
     options = {"username": "", "api_key": ""}
     options_desc = {"username": "Email Address associated with your API key", "api_key": "DeHashed API Key"}
+    target_only = True
 
     base_url = "https://api.dehashed.com/search"
 
@@ -50,15 +51,15 @@ class dehashed(credential_leak):
                     email_event = self.make_event(email, "EMAIL_ADDRESS", source=event, tags=tags)
                     if email_event is not None:
                         await self.emit_event(email_event)
-                        if user and not self.already_seen(f"{email}:{user}"):
-                            await self.emit_event(user, "USERNAME", source=email_event, tags=tags)
-                        if pw and not self.already_seen(f"{email}:{pw}"):
-                            await self.emit_event(pw, "PASSWORD", source=email_event, tags=tags)
-                        if h_pw and not self.already_seen(f"{email}:{h_pw}"):
-                            await self.emit_event(h_pw, "HASHED_PASSWORD", source=email_event, tags=tags)
+                        if user:
+                            await self.emit_event(f"{email}:{user}", "USERNAME", source=email_event, tags=tags)
+                        if pw:
+                            await self.emit_event(f"{email}:{pw}", "PASSWORD", source=email_event, tags=tags)
+                        if h_pw:
+                            await self.emit_event(f"{email}:{h_pw}", "HASHED_PASSWORD", source=email_event, tags=tags)
 
     async def query(self, event):
-        query = f"domain:{self.make_query(event)}"
+        query = f"domain:{event.data}"
         url = f"{self.base_url}?query={query}&size=10000&page=" + "{page}"
         page = 0
         num_entries = 0

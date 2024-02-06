@@ -45,7 +45,6 @@ aioconsole = "^0.6.2"
 pydantic = "^2.4.2"
 httpx = "^0.26.0"
 cloudcheck = "^2.1.0.181"
-pytest-httpx = "^0.28.0"
 tldextract = "^5.1.1"
 
 [tool.poetry.group.dev.dependencies]
@@ -62,6 +61,7 @@ pytest-timeout = "^2.1.0"
 pytest = "^7.4.0"
 pre-commit = "^3.4.0"
 black = "^24.1.1"
+pytest-httpx = "^0.29.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.2"

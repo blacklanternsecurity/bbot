@@ -288,44 +288,43 @@ class telerik(BaseModule):
 
             spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
             result, _ = await self.test_detector(event.data, spellcheckhandler)
-            try:
-                # The standard behavior for the spellcheck handler without parameters is a 500
-                if result.status_code == 500:
-                    # Sometimes webapps will just return 500 for everything, so rule out the false positive
-                    validate_result, _ = await self.test_detector(event.data, self.helpers.rand_string())
-                    self.debug(validate_result)
-                    if validate_result.status_code != 500:
-                        self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
-                        description = f"Telerik SpellCheckHandler detected"
-                        await self.emit_event(
-                            {
-                                "host": str(event.host),
-                                "url": f"{event.data}{spellcheckhandler}",
-                                "description": description,
-                            },
-                            "FINDING",
-                            event,
-                        )
-            except Exception:
-                pass
+            status_code = getattr(result, "status_code", 0)
+            # The standard behavior for the spellcheck handler without parameters is a 500
+            if status_code == 500:
+                # Sometimes webapps will just return 500 for everything, so rule out the false positive
+                validate_result, _ = await self.test_detector(event.data, self.helpers.rand_string())
+                self.debug(validate_result)
+                validate_status_code = getattr(validate_result, "status_code", 0)
+                if validate_status_code not in (0, 500):
+                    self.debug(f"Detected Telerik UI instance (Telerik.Web.UI.SpellCheckHandler.axd)")
+                    description = f"Telerik SpellCheckHandler detected"
+                    await self.emit_event(
+                        {
+                            "host": str(event.host),
+                            "url": f"{event.data}{spellcheckhandler}",
+                            "description": description,
+                        },
+                        "FINDING",
+                        event,
+                    )
 
             chartimagehandler = "ChartImage.axd?ImageName=bqYXJAqm315eEd6b%2bY4%2bGqZpe7a1kY0e89gfXli%2bjFw%3d"
             result, _ = await self.test_detector(event.data, chartimagehandler)
-
-            if result:
-                if result.status_code == 200:
-                    chartimagehandler_error = "ChartImage.axd?ImageName="
-                    result_error, _ = await self.test_detector(event.data, chartimagehandler_error)
-                    if result_error.status_code != 200:
-                        await self.emit_event(
-                            {
-                                "host": str(event.host),
-                                "url": f"{event.data}{chartimagehandler}",
-                                "description": "Telerik ChartImage AXD Handler Detected",
-                            },
-                            "FINDING",
-                            event,
-                        )
+            status_code = getattr(result, "status_code", 0)
+            if status_code == 200:
+                chartimagehandler_error = "ChartImage.axd?ImageName="
+                result_error, _ = await self.test_detector(event.data, chartimagehandler_error)
+                error_status_code = getattr(result_error, "status_code", 0)
+                if error_status_code not in (0, 200):
+                    await self.emit_event(
+                        {
+                            "host": str(event.host),
+                            "url": f"{event.data}{chartimagehandler}",
+                            "description": "Telerik ChartImage AXD Handler Detected",
+                        },
+                        "FINDING",
+                        event,
+                    )
 
         elif event.type == "HTTP_RESPONSE":
             resp_body = event.data.get("body", None)

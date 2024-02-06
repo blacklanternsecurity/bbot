@@ -37,7 +37,11 @@ dehashed_domain_response = {
 
 
 class TestDehashed(ModuleTestBase):
-    config_overrides = {"modules": {"dehashed": {"username": "admin", "api_key": "deadbeef"}}}
+    modules_overrides = ["dehashed", "speculate"]
+    config_overrides = {
+        "scope_report_distance": 2,
+        "modules": {"dehashed": {"username": "admin", "api_key": "deadbeef"}},
+    }
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
@@ -46,8 +50,9 @@ class TestDehashed(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 9
-        assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "bob@blacklanternsecurity.com"])
+        assert len(events) == 11
+        assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"])
+        assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity"])
         assert 1 == len(
             [
                 e
@@ -56,6 +61,22 @@ class TestDehashed(ModuleTestBase):
                 and e.data == "bob@bob.com"
                 and e.scope_distance == 1
                 and "affiliate" in e.tags
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "DNS_NAME" and e.data == "bob.com" and e.scope_distance == 1 and "affiliate" in e.tags
+            ]
+        )
+        assert 1 == len([e for e in events if e.type == "EMAIL_ADDRESS" and e.data == "bob@blacklanternsecurity.com"])
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "USERNAME"
+                and e.data == "bob@blacklanternsecurity.com:bob@bob.com"
                 and e.source.data == "bob@blacklanternsecurity.com"
             ]
         )
@@ -65,8 +86,11 @@ class TestDehashed(ModuleTestBase):
                 e
                 for e in events
                 if e.type == "HASHED_PASSWORD"
-                and e.data == "$2a$12$pVmwJ7pXEr3mE.DmCCE4fOUDdeadbeefd2KuCy/tq1ZUFyEOH2bve"
+                and e.data
+                == "bob@blacklanternsecurity.com:$2a$12$pVmwJ7pXEr3mE.DmCCE4fOUDdeadbeefd2KuCy/tq1ZUFyEOH2bve"
             ]
         )
-        assert 1 == len([e for e in events if e.type == "PASSWORD" and e.data == "TimTamSlam69"])
-        assert 1 == len([e for e in events if e.type == "USERNAME" and e.data == "timmy"])
+        assert 1 == len(
+            [e for e in events if e.type == "PASSWORD" and e.data == "tim@blacklanternsecurity.com:TimTamSlam69"]
+        )
+        assert 1 == len([e for e in events if e.type == "USERNAME" and e.data == "tim@blacklanternsecurity.com:timmy"])
