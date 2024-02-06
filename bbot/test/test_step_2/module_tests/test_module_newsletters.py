@@ -40,7 +40,7 @@ class TestNewsletters(ModuleTestBase):
 
     def check(self, module_test, events):
         count = 0
-        for event in events:         
+        for event in events:
             if event.type == "NEWSLETTER":
                 # Verify Positive Result
                 if event.data == self.found_tgt:
@@ -48,4 +48,4 @@ class TestNewsletters(ModuleTestBase):
                 # Verify Negative Result (should skip this statement if correct)
                 elif event.data == self.missing_tgt:
                     count += -1
-        assert count==1, f"NEWSLETTER Error - Expect count of 1 but got {count}"
+        assert count == 1, f"NEWSLETTER Error - Expect count of 1 but got {count}"

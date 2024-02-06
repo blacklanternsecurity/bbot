@@ -48,7 +48,7 @@ class newsletters(BaseModule):
             result = self.find_type(soup)
             if result:
                 newsletter_result = self.make_event(
-                    data=event.data['url'], event_type="NEWSLETTER", source=event, tags=event.tags
+                    data=event.data["url"], event_type="NEWSLETTER", source=event, tags=event.tags
                 )
                 # self.hugesuccess(f"Yippie! There is a Newsletter at {event.data}")
                 self.emit_event(newsletter_result)
