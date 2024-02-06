@@ -55,7 +55,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
 
         http_debug = self._bbot_scan.config.get("http_debug", None)
         if http_debug:
-            log.debug(f"Creating AsyncClient: {args}, {kwargs}")
+            log.trace(f"Creating AsyncClient: {args}, {kwargs}")
 
         self._persist_cookies = kwargs.pop("persist_cookies", True)
 
@@ -224,10 +224,10 @@ class WebHelper:
         async with self._acatch(url, raise_error):
             if self.http_debug:
                 logstr = f"Web request: {str(args)}, {str(kwargs)}"
-                log.debug(logstr)
+                log.trace(logstr)
             response = await client.request(*args, **kwargs)
             if self.http_debug:
-                log.debug(
+                log.trace(
                     f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
                 )
             return response

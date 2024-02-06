@@ -1009,7 +1009,7 @@ class DNSHelper:
 
     def debug(self, *args, **kwargs):
         if self._debug:
-            log.debug(*args, **kwargs)
+            log.trace(*args, **kwargs)
 
     def _get_dummy_module(self, name):
         try:
