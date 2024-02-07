@@ -200,6 +200,7 @@ class gowitness(BaseModule):
         if self.db_path.is_file():
             with sqlite3.connect(str(self.db_path)) as con:
                 con.row_factory = sqlite3.Row
+                con.text_factory = self.helpers.smart_decode
                 cur = con.cursor()
                 res = self.cur_execute(cur, "SELECT * FROM urls")
                 for row in res:
