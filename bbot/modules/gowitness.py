@@ -100,7 +100,7 @@ class gowitness(BaseModule):
         for binary in ("chrome", "chromium", custom_chrome_path):
             binary_path = self.helpers.which(binary)
             if binary_path and Path(binary_path).is_file():
-                chrome_test_proc = await self.helpers.run([binary, "--version"])
+                chrome_test_proc = await self.helpers.run([binary_path, "--version"])
                 if getattr(chrome_test_proc, "returncode", 1) == 0:
                     self.verbose(f"Found chrome executable at {binary_path}")
                     chrome_test_pass = True
