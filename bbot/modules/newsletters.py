@@ -40,14 +40,7 @@ class newsletters(BaseModule):
             soup = BeautifulSoup(event.data["body"], "html.parser")
             result = self.find_type(soup)
             if result:
-                newsletter_result = self.make_event(
-                    data=event.data["url"], 
-                    event_type="NEWSLETTER", 
-                    source=event, 
-                    tags=event.tags
-                )
-                # self.emit_event(newsletter_result)
                 description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
-                data = {"host": str(event.host), "description": description, "url":event.data["url"]}
+                data = {"host": str(event.host), "description": description, "url": event.data["url"]}
 
                 self.emit_event(data, "FINDING", event)
