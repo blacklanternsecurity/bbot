@@ -1,8 +1,9 @@
 from .base import ModuleTestBase
-
+import logging
 
 class TestNewsletters(ModuleTestBase):
-    found_tgt = "http://127.0.0.1:8888/found"
+    # found_tgt = "http://127.0.0.1:8888/found"
+    found_tgt = "futureparty.com"
     missing_tgt = "http://127.0.0.1:8888/missing"
     targets = [found_tgt, missing_tgt]
     modules_overrides = ["speculate", "httpx", "newsletters"]
@@ -39,13 +40,15 @@ class TestNewsletters(ModuleTestBase):
         module_test.set_expect_requests(request_args, respond_args)
 
     def check(self, module_test, events):
-        count = 0
+        status = 0
         for event in events:
-            if event.type == "NEWSLETTER":
+            self.log.info(f"event type: {event.type}")
+            if event.type == "FINDING":
+                self.log.info(f"event data: {event.data['host']}")
                 # Verify Positive Result
-                if event.data == self.found_tgt:
-                    count += 1
+                if event.data['host'] == self.found_tgt:
+                    status = 1
                 # Verify Negative Result (should skip this statement if correct)
-                elif event.data == self.missing_tgt:
-                    count += -1
-        assert count == 1, f"NEWSLETTER Error - Expect count of 1 but got {count}"
+                elif event.data['host'] == self.missing_tgt:
+                    status = -2
+        assert status == 1, f"NEWSLETTER Error - Expect status of 1 but got {status}"

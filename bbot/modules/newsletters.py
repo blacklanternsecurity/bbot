@@ -43,4 +43,4 @@ class newsletters(BaseModule):
                 description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
                 data = {"host": str(event.host), "description": description, "url": event.data["url"]}
 
-                self.emit_event(data, "FINDING", event)
+                await self.emit_event(data, "FINDING", event)
