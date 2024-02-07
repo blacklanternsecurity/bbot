@@ -128,11 +128,6 @@ class ModuleTestBase:
         if self.module_name is not None:
             return self.module_name
         return self.__class__.__name__.split("Test")[-1].lower()
-    
-    # # YOU ARE HERE
-    # @property
-    # def log(self):
-    #     return self.module_test.log
 
     @property
     def _scan_name(self):
