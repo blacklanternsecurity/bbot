@@ -106,7 +106,7 @@ class gowitness(BaseModule):
                     chrome_test_pass = True
                     break
         if not chrome_test_pass:
-            return False, "Failed to set up Google chrome. Please install manually use try again with --force-deps."
+            return False, "Failed to set up Google chrome. Please install manually or try again with --force-deps."
 
         self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
