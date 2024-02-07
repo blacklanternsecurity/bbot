@@ -1,4 +1,4 @@
-# Created a new module called 'newsletters' that will scrap the websites (or recursive websites,
+# Created a new module called 'newsletters' that will scrape the websites (or recursive websites,
 # thanks to BBOT's sub-domain enumeration) looking for the presence of an 'email type' that also
 # contains a 'placeholder'. The combination of these two HTML items usually signify the presence
 # of an "Enter Your Email Here" type Newsletter Subscription service. This module could be used
@@ -16,16 +16,12 @@ from bs4 import BeautifulSoup
 # https://www.milkkarten.net/
 # https://geekout.mattnavarra.com/
 
-deps_pip = ["requests", "beautifulsoup4"]
-
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-}
+deps_pip = ["beautifulsoup4"]
 
 
 class newsletters(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
-    produced_events = ["NEWSLETTER"]
+    produced_events = ["FINDING"]
     flags = ["passive", "safe"]
     meta = {"description": "Searches for Newsletter Submission Entry Fields on Websites"}
 
@@ -37,10 +33,7 @@ class newsletters(BaseModule):
             regex = re.compile(r"placeholder")
             if regex.search(str(email_type)):
                 return True
-            else:
-                return False
-        else:
-            return False
+        return False
 
     async def handle_event(self, event):
         if event.data["status_code"] == 200:
@@ -48,12 +41,13 @@ class newsletters(BaseModule):
             result = self.find_type(soup)
             if result:
                 newsletter_result = self.make_event(
-                    data=event.data["url"], event_type="NEWSLETTER", source=event, tags=event.tags
+                    data=event.data["url"], 
+                    event_type="NEWSLETTER", 
+                    source=event, 
+                    tags=event.tags
                 )
-                # self.hugesuccess(f"Yippie! There is a Newsletter at {event.data}")
-                self.emit_event(newsletter_result)
-                return
-            else:
-                return
-        else:
-            return
+                # self.emit_event(newsletter_result)
+                description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
+                data = {"host": str(event.host), "description": description, "url":event.data["url"]}
+
+                self.emit_event(data, "FINDING", event)
