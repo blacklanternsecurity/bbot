@@ -340,7 +340,6 @@ class excavate(BaseInternalModule):
     meta = {"description": "Passively extract juicy tidbits from scan data"}
 
     scope_distance_modifier = None
-    _qsize = 10000
 
     async def setup(self):
         self.csp = CSPExtractor(self)

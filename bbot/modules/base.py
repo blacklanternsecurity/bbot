@@ -104,7 +104,7 @@ class BaseModule:
 
     _preserve_graph = False
     _stats_exclude = False
-    _qsize = 100
+    _qsize = 1000
     _priority = 3
     _name = "base"
     _type = "scan"
