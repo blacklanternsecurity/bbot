@@ -62,7 +62,7 @@ class baddns(BaseModule):
                                 "host": str(event.host),
                             }
                             await self.emit_event(
-                                data, "VULNERABILITY", event, tags=[f"baddns-{ModuleClass.name.lower()}"]
+                                data, "VULNERABILITY", event, tags=[f"baddns-{module_instance.name.lower()}"]
                             )
 
                         elif r_dict["confidence"] in ["UNLIKELY", "POSSIBLE"] and not self.only_high_confidence:
@@ -70,7 +70,7 @@ class baddns(BaseModule):
                                 "description": f"{r_dict['description']} Confidence: [{r_dict['confidence']}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                                 "host": str(event.host),
                             }
-                            await self.emit_event(data, "FINDING", event, tags=[f"baddns-{ModuleClass.name.lower()}"])
+                            await self.emit_event(data, "FINDING", event, tags=[f"baddns-{module_instance.name.lower()}"])
                         else:
                             self.warning(f"Got unrecognized confidence level: {r['confidence']}")
 
@@ -78,5 +78,5 @@ class baddns(BaseModule):
                         if found_domains:
                             for found_domain in found_domains:
                                 await self.emit_event(
-                                    found_domain, "DNS_NAME", event, tags=[f"baddns-{ModuleClass.name.lower()}"]
+                                    found_domain, "DNS_NAME", event, tags=[f"baddns-{module_instance.name.lower()}"]
                                 )
