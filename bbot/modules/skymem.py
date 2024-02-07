@@ -19,7 +19,7 @@ class skymem(emailformat):
         if not r:
             return
         for email in self.helpers.extract_emails(r.text):
-            self.emit_event(email, "EMAIL_ADDRESS", source=event)
+            await self.emit_event(email, "EMAIL_ADDRESS", source=event)
 
         # iterate through other pages
         domain_ids = re.findall(r'<a href="/domain/([a-z0-9]+)\?p=', r.text, re.I)
@@ -31,7 +31,7 @@ class skymem(emailformat):
             if not r2:
                 continue
             for email in self.helpers.extract_emails(r2.text):
-                self.emit_event(email, "EMAIL_ADDRESS", source=event)
+                await self.emit_event(email, "EMAIL_ADDRESS", source=event)
             pages = re.findall(r"/domain/" + domain_id + r"\?p=(\d+)", r2.text)
             if not pages:
                 break

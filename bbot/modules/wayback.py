@@ -27,7 +27,7 @@ class wayback(subdomain_enum):
     async def handle_event(self, event):
         query = self.make_query(event)
         for result, event_type in await self.query(query):
-            self.emit_event(result, event_type, event, abort_if=self.abort_if)
+            await self.emit_event(result, event_type, event, abort_if=self.abort_if)
 
     async def query(self, query):
         results = set()

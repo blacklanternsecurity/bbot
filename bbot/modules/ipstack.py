@@ -47,4 +47,4 @@ class Ipstack(BaseModule):
             if error_msg:
                 self.warning(error_msg)
         elif geo_data:
-            self.emit_event(geo_data, "GEOLOCATION", event)
+            await self.emit_event(geo_data, "GEOLOCATION", event)

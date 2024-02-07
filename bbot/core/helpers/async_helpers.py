@@ -57,33 +57,34 @@ class TaskCounter:
 
     @property
     def value(self):
-        return len(self.tasks)
+        return sum([t.n for t in self.tasks.values()])
 
-    def count(self, task_name, _log=True):
+    def count(self, task_name, n=1, _log=True):
         if callable(task_name):
             task_name = f"{task_name.__qualname__}()"
-        return self.Task(self, task_name, _log)
+        return self.Task(self, task_name, n=n, _log=_log)
 
     class Task:
-        def __init__(self, manager, task_name, _log=True):
+        def __init__(self, manager, task_name, n=1, _log=True):
             self.manager = manager
             self.task_name = task_name
             self.task_id = None
             self.start_time = None
             self.log = _log
+            self.n = n
 
         async def __aenter__(self):
-            self.task_id = uuid.uuid4()  # generate a unique ID for the task
+            self.task_id = uuid.uuid4()
             # if self.log:
             #     log.trace(f"Starting task {self.task_name} ({self.task_id})")
-            async with self.manager.lock:  # acquire the lock
+            async with self.manager.lock:
                 self.start_time = datetime.now()
                 self.manager.tasks[self.task_id] = self
-            return self.task_id  # this will be passed as 'task_id' to __aexit__
+            return self
 
         async def __aexit__(self, exc_type, exc_val, exc_tb):
-            async with self.manager.lock:  # acquire the lock
-                self.manager.tasks.pop(self.task_id, None)  # remove only current task
+            async with self.manager.lock:
+                self.manager.tasks.pop(self.task_id, None)
             # if self.log:
             #     log.trace(f"Finished task {self.task_name} ({self.task_id})")
 

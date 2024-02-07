@@ -1,10 +1,12 @@
 import ssl
 import shutil
 import pytest
+import asyncio
 import logging
 from pathlib import Path
 from pytest_httpserver import HTTPServer
 
+from bbot.core.helpers.misc import execute_sync_or_async
 from bbot.core.helpers.interactsh import server_list as interactsh_servers
 
 
@@ -98,20 +100,34 @@ class Interactsh_mock:
     def __init__(self):
         self.interactions = []
         self.correlation_id = "deadbeef-dead-beef-dead-beefdeadbeef"
+        self.stop = False
 
     def mock_interaction(self, subdomain_tag):
         self.interactions.append(subdomain_tag)
 
     async def register(self, callback=None):
+        if callable(callback):
+            asyncio.create_task(self.poll_loop(callback))
         return "fakedomain.fakeinteractsh.com"
 
     async def deregister(self, callback=None):
-        pass
+        self.stop = True
 
-    async def poll(self):
+    async def poll_loop(self, callback=None):
+        while not self.stop:
+            data_list = await self.poll(callback)
+            if not data_list:
+                await asyncio.sleep(1)
+                continue
+
+    async def poll(self, callback=None):
         poll_results = []
         for subdomain_tag in self.interactions:
-            poll_results.append({"full-id": f"{subdomain_tag}.fakedomain.fakeinteractsh.com", "protocol": "HTTP"})
+            result = {"full-id": f"{subdomain_tag}.fakedomain.fakeinteractsh.com", "protocol": "HTTP"}
+            poll_results.append(result)
+            if callback is not None:
+                await execute_sync_or_async(callback, result)
+        self.interactions = []
         return poll_results
 
 

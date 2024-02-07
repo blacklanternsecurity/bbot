@@ -15,7 +15,7 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
 
         async def handle_event(self, event):
             self.events.append(event)
-            self.emit_event(f"{self.name}.test.notreal", "DNS_NAME", source=event)
+            await self.emit_event(f"{self.name}.test.notreal", "DNS_NAME", source=event)
 
     class EverythingModule(DefaultModule):
         _name = "everything_module"
@@ -27,7 +27,7 @@ async def test_manager_deduplication(bbot_config, bbot_scanner):
         async def handle_event(self, event):
             self.events.append(event)
             if event.type == "DNS_NAME":
-                self.emit_event(f"{event.data}:88", "OPEN_TCP_PORT", source=event)
+                await self.emit_event(f"{event.data}:88", "OPEN_TCP_PORT", source=event)
 
     class NoSuppressDupes(DefaultModule):
         _name = "no_suppress_dupes"

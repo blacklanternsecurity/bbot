@@ -21,13 +21,13 @@ class github_codesearch(github):
             repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
             if repo_event is None:
                 continue
-            self.emit_event(repo_event)
+            await self.emit_event(repo_event)
             for raw_url in raw_urls:
                 url_event = self.make_event(raw_url, "URL_UNVERIFIED", source=repo_event, tags=["httpx-safe"])
                 if not url_event:
                     continue
                 url_event.scope_distance = repo_event.scope_distance
-                self.emit_event(url_event)
+                await self.emit_event(url_event)
 
     async def query(self, query):
         repos = {}

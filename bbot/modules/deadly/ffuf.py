@@ -83,7 +83,7 @@ class ffuf(BaseModule):
 
         filters = await self.baseline_ffuf(fixed_url, exts=exts)
         async for r in self.execute_ffuf(self.tempfile, fixed_url, exts=exts, filters=filters):
-            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+            await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
     async def filter_event(self, event):
         if "endpoint" in event.tags:

@@ -88,8 +88,6 @@ async def _main():
             sys.exit(0)
             return
 
-        log.verbose(f'Command: {" ".join(sys.argv)}')
-
         if options.agent_mode:
             from bbot.agent import Agent
 

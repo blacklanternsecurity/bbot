@@ -26,14 +26,14 @@ class hunterio(subdomain_enum_apikey):
             if email:
                 email_event = self.make_event(email, "EMAIL_ADDRESS", event)
                 if email_event:
-                    self.emit_event(email_event)
+                    await self.emit_event(email_event)
                     for source in sources:
                         domain = source.get("domain", "")
                         if domain:
-                            self.emit_event(domain, "DNS_NAME", email_event)
+                            await self.emit_event(domain, "DNS_NAME", email_event)
                         url = source.get("uri", "")
                         if url:
-                            self.emit_event(url, "URL_UNVERIFIED", email_event)
+                            await self.emit_event(url, "URL_UNVERIFIED", email_event)
 
     async def query(self, query):
         emails = []

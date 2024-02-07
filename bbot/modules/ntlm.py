@@ -87,7 +87,7 @@ class ntlm(BaseModule):
             for result, request_url in await self.handle_url(event):
                 if result and request_url:
                     self.found.add(found_hash)
-                    self.emit_event(
+                    await self.emit_event(
                         {
                             "host": str(event.host),
                             "url": request_url,
@@ -98,7 +98,7 @@ class ntlm(BaseModule):
                     )
                     fqdn = result.get("FQDN", "")
                     if fqdn:
-                        self.emit_event(fqdn, "DNS_NAME", source=event)
+                        await self.emit_event(fqdn, "DNS_NAME", source=event)
                     break
 
     async def filter_event(self, event):
