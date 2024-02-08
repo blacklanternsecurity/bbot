@@ -40,19 +40,17 @@ class TestNewsletters(ModuleTestBase):
         module_test.set_expect_requests(request_args, respond_args)
 
     def check(self, module_test, events):
-        status = 0
+        found = False
+        missing = True
         for event in events:
-            self.log.info(f"event type: {event.type}")
+            # self.log.info(f"event type: {event.type}")
             if event.type == "FINDING":
-                self.log.info(f"event data: {event.data}")
+                # self.log.info(f"event data: {event.data}")
                 # Verify Positive Result
-                if event.data["host"] == self.found_tgt:
-                    status = 1
-                elif event.data["url"] == self.found_tgt:
-                    status = 1
+                if event.data["url"] == self.found_tgt:
+                    found = True
                 # Verify Negative Result (should skip this statement if correct)
-                elif event.data["host"] == self.missing_tgt:
-                    status = -2
                 elif event.data["url"] == self.missing_tgt:
-                    status = -2
-        assert status == 1, f"NEWSLETTER Error - Expect status of 1 but got {status}"
+                    missing = False
+        assert found, f"NEWSLETTER 'Found' Error - Expect status of True but got False"
+        assert missing, f"NEWSLETTER 'Missing' Error - Expect status of True but got False"
