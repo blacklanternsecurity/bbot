@@ -94,6 +94,20 @@ class gowitness(BaseModule):
         custom_chrome_path = self.helpers.tools_dir / "chrome-linux" / "chrome"
         if custom_chrome_path.is_file():
             self.chrome_path = custom_chrome_path
+
+        # make sure we have a working chrome install
+        chrome_test_pass = False
+        for binary in ("chrome", "chromium", custom_chrome_path):
+            binary_path = self.helpers.which(binary)
+            if binary_path and Path(binary_path).is_file():
+                chrome_test_proc = await self.helpers.run([binary_path, "--version"])
+                if getattr(chrome_test_proc, "returncode", 1) == 0:
+                    self.verbose(f"Found chrome executable at {binary_path}")
+                    chrome_test_pass = True
+                    break
+        if not chrome_test_pass:
+            return False, "Failed to set up Google chrome. Please install manually or try again with --force-deps."
+
         self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
         self.command = self.construct_command()
