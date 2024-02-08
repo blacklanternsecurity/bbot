@@ -1,4 +1,5 @@
 from baddns.base import get_all_modules
+from baddns.lib.loader import load_signatures
 from .base import BaseModule
 
 import asyncio
@@ -33,18 +34,19 @@ class baddns(BaseModule):
         if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)
         self.only_high_confidence = self.config.get("only_high_confidence", False)
+        self.signatures = load_signatures()
         return True
 
     async def handle_event(self, event):
 
         tasks = []
-
         for ModuleClass in self.select_modules():
             module_instance = ModuleClass(
                 event.data,
                 http_client_class=self.scan.helpers.web.AsyncClient,
                 dns_client=self.scan.helpers.dns.resolver,
                 custom_nameservers=self.custom_nameservers,
+                signatures=self.signatures,
             )
             tasks.append((module_instance, asyncio.create_task(module_instance.dispatch())))
 
