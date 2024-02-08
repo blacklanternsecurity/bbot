@@ -70,7 +70,7 @@ class nuclei(BaseModule):
         else:
             self.warning("Error running nuclei template update command")
         self.proxy = self.scan.config.get("http_proxy", "")
-        self.mode = self.config.get("mode", "severe")
+        self.mode = self.config.get("mode", "severe").lower()
         self.ratelimit = int(self.config.get("ratelimit", 150))
         self.concurrency = int(self.config.get("concurrency", 25))
         self.budget = int(self.config.get("budget", 1))
