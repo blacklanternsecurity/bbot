@@ -24,10 +24,9 @@ class TestBaddns_cname_nxdomain(BaseTestBaddns):
         from bbot.modules import baddns as baddns_module
         from baddns.lib.whoismanager import WhoisManager
 
-        mock_data = {"bad.dns": {"CNAME": ["baddns.azurewebsites.net."]}, "_NXDOMAIN": ["baddns.azurewebsites.net"]}
-        configure_mock_resolver = module_test.request_fixture.getfixturevalue("configure_mock_resolver")
-        mock_resolver = configure_mock_resolver(mock_data)
-        module_test.monkeypatch.setattr(module_test.scan.helpers.dns, "resolver", mock_resolver)
+        module_test.mock_dns(
+            {"bad.dns": {"CNAME": ["baddns.azurewebsites.net."]}, "_NXDOMAIN": ["baddns.azurewebsites.net"]}
+        )
         module_test.monkeypatch.setattr(baddns_module.baddns, "select_modules", self.select_modules)
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
@@ -53,10 +52,9 @@ class TestBaddns_cname_signature(BaseTestBaddns):
         respond_args = {"response_data": "<h1>Oops! We couldn&#8217;t find that page.</h1>", "status": 200}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        mock_data = {"bad.dns": {"CNAME": ["baddns.bigcartel.com."]}, "baddns.bigcartel.com": {"A": ["127.0.0.1"]}}
-        configure_mock_resolver = module_test.request_fixture.getfixturevalue("configure_mock_resolver")
-        mock_resolver = configure_mock_resolver(mock_data)
-        module_test.monkeypatch.setattr(module_test.scan.helpers.dns, "resolver", mock_resolver)
+        module_test.mock_dns(
+            {"bad.dns": {"CNAME": ["baddns.bigcartel.com."]}, "baddns.bigcartel.com": {"A": ["127.0.0.1"]}}
+        )
         module_test.monkeypatch.setattr(baddns_module.baddns, "select_modules", self.select_modules)
         module_test.monkeypatch.setattr(BadDNS_base, "set_target", set_target)
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)

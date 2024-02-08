@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from bbot.scanner import Scanner
 from bbot.modules import module_loader
 from bbot.core.helpers.misc import rand_string
-from ...bbot_fixtures import test_config
+from ...bbot_fixtures import test_config, MockResolver
 
 log = logging.getLogger("bbot.test.modules")
 
@@ -93,17 +93,17 @@ class ModuleTestBase:
         def set_expect_requests_handler(self, expect_args=None, request_handler=None):
             self.httpserver.expect_request(expect_args).respond_with_handler(request_handler)
 
+        def mock_dns(self, mock_data, scan=None):
+            if scan is None:
+                scan = self.scan
+            scan.helpers.dns.resolver = MockResolver(mock_data)
+
         @property
         def module(self):
             return self.scan.modules[self.name]
 
-        def mock_record(self, *args, **kwargs):
-            return MockRecord(*args, **kwargs)
-
     @pytest_asyncio.fixture
-    async def module_test(
-        self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request, configure_mock_resolver
-    ):
+    async def module_test(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request):
         module_test = self.ModuleTest(self, httpx_mock, bbot_httpserver, bbot_httpserver_ssl, monkeypatch, request)
         module_test.log.info(f"Starting {self.name} module test")
         await self.setup_before_prep(module_test)

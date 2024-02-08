@@ -31,12 +31,8 @@ zzzz 600 IN AAAA dead::beef
             zone = dns.zone.from_text(zone_text, origin="bad.dns.")
             return zone
 
-        mock_data = {"bad.dns": {"NS": ["ns1.bad.dns."]}, "ns1.bad.dns": {"A": ["127.0.0.1"]}}
-        configure_mock_resolver = module_test.request_fixture.getfixturevalue("configure_mock_resolver")
-
-        mock_resolver = configure_mock_resolver(mock_data)
+        module_test.mock_dns({"bad.dns": {"NS": ["ns1.bad.dns."]}, "ns1.bad.dns": {"A": ["127.0.0.1"]}})
         module_test.monkeypatch.setattr("dns.zone.from_xfr", from_xfr)
-        module_test.monkeypatch.setattr(module_test.scan.helpers.dns, "resolver", mock_resolver)
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
     def check(self, module_test, events):
@@ -50,14 +46,13 @@ class TestBaddns_zone_nsec(BaseTestBaddns_zone):
     async def setup_after_prep(self, module_test):
         from baddns.lib.whoismanager import WhoisManager
 
-        mock_data = {
-            "bad.dns": {"NSEC": ["asdf.bad.dns"]},
-            "asdf.bad.dns": {"NSEC": ["zzzz.bad.dns"]},
-            "zzzz.bad.dns": {"NSEC": ["xyz.bad.dns"]},
-        }
-        configure_mock_resolver = module_test.request_fixture.getfixturevalue("configure_mock_resolver")
-        mock_resolver = configure_mock_resolver(mock_data)
-        module_test.monkeypatch.setattr(module_test.scan.helpers.dns, "resolver", mock_resolver)
+        module_test.mock_dns(
+            {
+                "bad.dns": {"NSEC": ["asdf.bad.dns"]},
+                "asdf.bad.dns": {"NSEC": ["zzzz.bad.dns"]},
+                "zzzz.bad.dns": {"NSEC": ["xyz.bad.dns"]},
+            }
+        )
         module_test.monkeypatch.setattr(WhoisManager, "dispatchWHOIS", self.dispatchWHOIS)
 
     def check(self, module_test, events):
