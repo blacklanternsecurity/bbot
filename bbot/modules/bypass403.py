@@ -63,6 +63,7 @@ header_payloads = {
     "X-Host": "127.0.0.1",
 }
 
+# This is planned to be replaced in the future: https://github.com/blacklanternsecurity/bbot/issues/1068
 waf_strings = ["The requested URL was rejected"]
 
 for qp in query_payloads:
@@ -83,8 +84,13 @@ class bypass403(BaseModule):
 
     async def do_checks(self, compare_helper, event, collapse_threshold):
         results = set()
+        error_count = 0
 
         for sig in signatures:
+            if error_count > 3:
+                self.warning(f"Received too many errors for URL {event.data} aborting bypass403")
+                return None
+
             sig = self.format_signature(sig, event)
             if sig[2] != None:
                 headers = dict(sig[2])
@@ -95,6 +101,7 @@ class bypass403(BaseModule):
                     sig[1], headers=headers, method=sig[0], allow_redirects=True
                 )
             except HttpCompareError as e:
+                error_count += 1
                 self.debug(e)
                 continue
 
@@ -149,6 +156,7 @@ class bypass403(BaseModule):
                     source=event,
                 )
 
+    # When a WAF-check helper is available in the future, we will convert to HTTP_RESPONSE and check for the WAF string here.
     async def filter_event(self, event):
         if ("status-403" in event.tags) or ("status-401" in event.tags):
             return True
