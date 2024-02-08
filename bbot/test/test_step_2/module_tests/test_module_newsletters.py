@@ -1,5 +1,6 @@
 from .base import ModuleTestBase
-import logging
+
+# import logging
 
 
 class TestNewsletters(ModuleTestBase):
