@@ -70,7 +70,9 @@ class baddns(BaseModule):
                                 "description": f"{r_dict['description']} Confidence: [{r_dict['confidence']}] Signature: [{r_dict['signature']}] Indicator: [{r_dict['indicator']}] Trigger: [{r_dict['trigger']}] baddns Module: [{r_dict['module']}]",
                                 "host": str(event.host),
                             }
-                            await self.emit_event(data, "FINDING", event, tags=[f"baddns-{module_instance.name.lower()}"])
+                            await self.emit_event(
+                                data, "FINDING", event, tags=[f"baddns-{module_instance.name.lower()}"]
+                            )
                         else:
                             self.warning(f"Got unrecognized confidence level: {r['confidence']}")
 
