@@ -349,7 +349,7 @@ async def _main():
                                 log_to_stderr(f"Error in keyboard listen task: {e}", level="ERROR")
                                 log_to_stderr(traceback.format_exc(), level="TRACE")
 
-                        keyboard_listen_task = asyncio.create_task(akeyboard_listen())
+                        asyncio.create_task(akeyboard_listen())
 
                     await scanner.async_start_without_generator()
 
