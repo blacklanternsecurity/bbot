@@ -88,12 +88,12 @@ BBOT has a sharp distinction between Findings and Vulnerabilities:
 
 **VULNERABILITY**
 
-* There's a higher standard for what is allowed to be a vulnerability. They should be considered **confirmed** and **actionable​** - no additional confirmation required
-* They are always assigned a severity. The possible severities are: LOW, MEDIUM, HIGH, or CRITICAL​
+* There's a higher standard for what is allowed to be a vulnerability. They should be considered **confirmed** and **actionable** - no additional confirmation required
+* They are always assigned a severity. The possible severities are: LOW, MEDIUM, HIGH, or CRITICAL
 
-**FINDING​**
+**FINDING**
 
-* Findings can range anywhere from "slightly interesting behavior" to "likely, but unconfirmed vulnerability"​
+* Findings can range anywhere from "slightly interesting behavior" to "likely, but unconfirmed vulnerability"
 * Are often false positives
 
 By making this separation, actionable vulnerabilities can be identified quickly in the midst of a large scan
