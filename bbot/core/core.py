@@ -5,12 +5,20 @@ class BBOTCore:
 
     def __init__(self):
         self._args = None
+        self._logger = None
+        self._environ = None
         self._files_config = None
         self._module_loader = None
 
         self.bbot_sudo_pass = None
+        self.cli_execution = False
 
         self._config = None
+        self._default_config = None
+
+        # PRESET TODO: add back in bbot/core/configurator/__init__.py
+        # - check_cli_args
+        # - ensure_config_files
 
         # first, we load config files
         #    - ensure bbot home directory (needed for logging)
@@ -31,14 +39,33 @@ class BBOTCore:
         # self.parse_cli_args()
 
     @property
+    def files_config(self):
+        if self._files_config is None:
+            from .config import files
+
+            self.files = files
+            self._files_config = files.BBOTConfigFiles(self)
+        return self._files_config
+
+    @property
     def config(self):
         if self._config is None:
-            from .config import files
             from .config.logger import BBOTLogger
 
-            self._config = files.get_config()
-            self.logger = BBOTLogger(self)
+            self._config = self.files_config.get_config()
+            self._default_config = self._config.copy()
+            self._logger = BBOTLogger(self)
         return self._config
+
+    @property
+    def default_config(self):
+        self.config
+        return self._default_config
+
+    @property
+    def logger(self):
+        self.config
+        return self._logger
 
     @property
     def module_loader(self):
@@ -53,6 +80,14 @@ class BBOTCore:
             self._module_loader = ModuleLoader(module_dirs=module_dirs)
 
         return self._module_loader
+
+    @property
+    def environ(self):
+        if self._environ is None:
+            from .config.environ import BBOTEnviron
+
+            self._environ = BBOTEnviron(self)
+        return self._environ
 
     @property
     def args(self):

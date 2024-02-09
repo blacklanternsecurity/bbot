@@ -149,7 +149,7 @@ class Scanner:
         self.config = OmegaConf.merge(CORE.config, config)
 
         # PRESET TODO: revisit this
-        CORE.prepare_environment(self.config)
+        CORE.environ.prepare()
         if self.config.get("debug", False):
             CORE.logger.set_log_level(logging.DEBUG)
 

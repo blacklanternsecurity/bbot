@@ -1,8 +1,8 @@
+import re
 import sys
 import argparse
 from pathlib import Path
 from omegaconf import OmegaConf
-from contextlib import suppress
 
 from ..helpers.logger import log_to_stderr
 from ..helpers.misc import chain_lists, match_and_exit, is_file
@@ -16,19 +16,8 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         - option to *not* exit on error
     """
 
-    def __init__(self, *args, **kwargs):
-        self._dummy = kwargs.pop("_dummy", False)
-        self.bbot_core = kwargs.pop("_core")
-        self._module_choices = sorted(set(self.bbot_core.module_loader.configs(type="scan")))
-        self._output_module_choices = sorted(set(self.bbot_core.module_loader.configs(type="output")))
-        self._flag_choices = set()
-        for m, c in self.bbot_core.module_loader.preloaded().items():
-            self._flag_choices.update(set(c.get("flags", [])))
-        super().__init__(*args, **kwargs)
-
-    def error(self, message):
-        if not self._dummy:
-            return super().error(message)
+    # module config options to exclude from validation
+    exclude_from_validation = re.compile(r".*modules\.[a-z0-9_]+\.(?:batch_size|max_event_handlers)$")
 
     def parse_args(self, *args, **kwargs):
         """
@@ -48,19 +37,6 @@ class BBOTArgumentParser(argparse.ArgumentParser):
         ret.flags = chain_lists(ret.flags)
         ret.exclude_flags = chain_lists(ret.exclude_flags)
         ret.require_flags = chain_lists(ret.require_flags)
-        if not self._dummy:
-            for m in ret.modules:
-                if m not in self._module_choices:
-                    match_and_exit(m, self._module_choices, msg="module")
-            for m in ret.exclude_modules:
-                if m not in self._module_choices:
-                    match_and_exit(m, self._module_choices, msg="module")
-            for m in ret.output_modules:
-                if m not in self._output_module_choices:
-                    match_and_exit(m, self._output_module_choices, msg="output module")
-            for f in set(ret.flags + ret.require_flags):
-                if f not in self._flag_choices:
-                    match_and_exit(f, self._flag_choices, msg="flag")
         return ret
 
 
@@ -118,10 +94,21 @@ class BBOTArgs:
 
     def __init__(self, core):
         self.core = core
-        self.parser = self.create_parser(_core=self.core)
-        self.dummy_parser = self.create_parser(_core=self.core, _dummy=True)
         self._parsed = None
         self._cli_config = None
+
+        self._module_choices = sorted(set(self.core.module_loader.preloaded(type="scan")))
+        self._output_module_choices = sorted(set(self.core.module_loader.preloaded(type="output")))
+        self._flag_choices = set()
+        for m, c in self.core.module_loader.preloaded().items():
+            self._flag_choices.update(set(c.get("flags", [])))
+        self._flag_choices = sorted(self._flag_choices)
+
+        log_to_stderr(f"module options: {self._module_choices}")
+        log_to_stderr(f"output module options: {self._output_module_choices}")
+        log_to_stderr(f"flag options: {self._flag_choices}")
+
+        self.parser = self.create_parser()
 
     @property
     def parsed(self):
@@ -129,32 +116,30 @@ class BBOTArgs:
         Returns the parsed BBOT Argument Parser.
         """
         if self._parsed is None:
-            self._parsed = self.dummy_parser.parse_args()
+            self._parsed = self.parser.parse_args()
         return self._parsed
 
     @property
     def cli_config(self):
         if self._cli_config is None:
-            with suppress(Exception):
-                if self.parsed.config:
-                    cli_config = self.parsed.config
-                    if cli_config:
-                        filename = Path(cli_config[0]).resolve()
-                        if len(cli_config) == 1 and is_file(filename):
-                            try:
-                                conf = OmegaConf.load(str(filename))
-                                log_to_stderr(f"Loaded custom config from {filename}")
-                                return conf
-                            except Exception as e:
-                                log_to_stderr(f"Error parsing custom config at {filename}: {e}", level="ERROR")
-                                sys.exit(2)
-                    try:
-                        self._cli_config = OmegaConf.from_cli(cli_config)
-                    except Exception as e:
-                        log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
-                        sys.exit(2)
-        if self._cli_config is None:
             self._cli_config = OmegaConf.create({})
+            if self.parsed.config:
+                for c in self.parsed.config:
+                    config_file = Path(c).resolve()
+                    if config_file.is_file():
+                        try:
+                            cli_config = OmegaConf.load(str(config_file))
+                            log_to_stderr(f"Loaded custom config from {config_file}")
+                        except Exception as e:
+                            log_to_stderr(f"Error parsing custom config at {config_file}: {e}", level="ERROR")
+                            sys.exit(2)
+                    else:
+                        try:
+                            cli_config = OmegaConf.from_cli(cli_config)
+                        except Exception as e:
+                            log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
+                            sys.exit(2)
+                    self._cli_config = OmegaConf.merge(self._cli_config, cli_config)
         return self._cli_config
 
     def create_parser(self, *args, **kwargs):
@@ -188,7 +173,7 @@ class BBOTArgs:
             "--modules",
             nargs="+",
             default=[],
-            help=f'Modules to enable. Choices: {",".join(p._module_choices)}',
+            help=f'Modules to enable. Choices: {",".join(self._module_choices)}',
             metavar="MODULE",
         )
         modules.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
@@ -200,7 +185,7 @@ class BBOTArgs:
             "--flags",
             nargs="+",
             default=[],
-            help=f'Enable modules by flag. Choices: {",".join(sorted(p._flag_choices))}',
+            help=f'Enable modules by flag. Choices: {",".join(self._flag_choices)}',
             metavar="FLAG",
         )
         modules.add_argument("-lf", "--list-flags", action="store_true", help=f"List available flags.")
@@ -225,7 +210,7 @@ class BBOTArgs:
             "--output-modules",
             nargs="+",
             default=["human", "json", "csv"],
-            help=f'Output module(s). Choices: {",".join(p._output_module_choices)}',
+            help=f'Output module(s). Choices: {",".join(self._output_module_choices)}',
             metavar="MODULE",
         )
         modules.add_argument("--allow-deadly", action="store_true", help="Enable the use of highly aggressive modules")
@@ -242,6 +227,7 @@ class BBOTArgs:
             nargs="*",
             help="custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'",
             metavar="CONFIG",
+            default=[],
         )
         scan.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
         scan.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
@@ -270,3 +256,45 @@ class BBOTArgs:
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
         return p
+
+    def validate(self):
+        """
+        Validate command line arguments
+            - Validate modules/flags to make sure they exist
+            - If --config was specified, check the config options to make sure they exist
+        """
+        # modules
+        for m in self.parsed.modules:
+            if m not in self._module_choices:
+                match_and_exit(m, self._module_choices, msg="module")
+        for m in self.parsed.exclude_modules:
+            if m not in self._module_choices:
+                match_and_exit(m, self._module_choices, msg="module")
+        for m in self.parsed.output_modules:
+            if m not in self._output_module_choices:
+                match_and_exit(m, self._output_module_choices, msg="output module")
+        # flags
+        for f in set(self.parsed.flags + self.parsed.require_flags + self.parsed.exclude_flags):
+            if f not in self._flag_choices:
+                match_and_exit(f, self._flag_choices, msg="flag")
+
+        # config options
+        sentinel = object()
+        conf = [a for a in self.parsed.config if not is_file(a)]
+        all_options = None
+        for c in conf:
+            c = c.split("=")[0].strip()
+            v = OmegaConf.select(self.core.default_config, c, default=sentinel)
+            # if option isn't in the default config
+            if v is sentinel:
+                if self.exclude_from_validation.match(c):
+                    continue
+                if all_options is None:
+                    from ...modules import module_loader
+
+                    modules_options = set()
+                    for module_options in module_loader.modules_options().values():
+                        modules_options.update(set(o[0] for o in module_options))
+                    global_options = set(self.core.default_config.keys()) - {"modules", "output_modules"}
+                    all_options = global_options.union(modules_options)
+                match_and_exit(c, all_options, msg="module option")

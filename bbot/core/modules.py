@@ -69,9 +69,11 @@ class ModuleLoader:
             }
         """
         for module_dir in self.module_dirs:
-            log_to_stderr(f"Preloading modules from {module_dir}", level="HUGESUCCESS")
             for module_file in list_files(module_dir, filter=self.file_filter):
-                log_to_stderr(f"Preloading module from {module_file}", level="HUGESUCCESS")
+                if module_dir.name == "modules":
+                    namespace = f"bbot.modules"
+                else:
+                    namespace = f"bbot.modules.{module_dir.name}"
                 try:
                     preloaded = self.preload_module(module_file)
                     module_type = "scan"
@@ -80,7 +82,7 @@ class ModuleLoader:
                     elif module_dir.name not in ("modules"):
                         preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
                     preloaded["type"] = module_type
-                    preloaded["namespace"] = "unknown"
+                    preloaded["namespace"] = namespace
                     config = OmegaConf.create(preloaded.get("config", {}))
                     self._configs[module_file.stem] = config
                     self.__preloaded[module_file.stem] = preloaded
