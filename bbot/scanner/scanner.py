@@ -1,4 +1,5 @@
 import re
+import sys
 import asyncio
 import logging
 import traceback
@@ -13,6 +14,8 @@ from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
 
 from bbot.core import CORE
+from bbot import __version__
+
 
 from .target import Target
 from .stats import ScanStats
@@ -319,6 +322,7 @@ class Scanner:
             await self._prep()
 
             self._start_log_handlers()
+            log.verbose(f'Ran BBOT {__version__} at {scan_start_time}, command: {" ".join(sys.argv)}')
 
             if not self.target:
                 self.warning(f"No scan targets specified")
