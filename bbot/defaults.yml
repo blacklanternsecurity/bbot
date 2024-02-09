@@ -33,6 +33,8 @@ web_spider_links_per_page: 25
 
 ### ADVANCED OPTIONS ###
 
+module_paths: []
+
 # How far out from the main scope to search
 scope_search_distance: 0
 # How far out from the main scope to resolve DNS names / IPs

@@ -2,8 +2,8 @@ import logging
 import importlib
 from pathlib import Path
 
+from bbot.core import CORE
 from ..test_step_2.module_tests.base import ModuleTestBase
-from bbot.modules import module_loader
 
 log = logging.getLogger("bbot.test.modules")
 
@@ -16,7 +16,7 @@ module_test_files = [m.name.split("test_module_")[-1].split(".")[0] for m in _mo
 
 def test__module__tests():
     # make sure each module has a .py file
-    for module_name in module_loader.preloaded():
+    for module_name in CORE.module_loader.preloaded():
         module_name = module_name.lower()
         assert module_name in module_test_files, f'No test file found for module "{module_name}"'
 

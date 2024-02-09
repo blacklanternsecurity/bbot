@@ -27,7 +27,6 @@ if test_config.get("debug", False):
     os.environ["BBOT_DEBUG"] = "True"
 
 from .bbot_fixtures import *  # noqa: F401
-import bbot.core.logger  # noqa: F401
 from bbot.core.errors import *  # noqa: F401
 
 # silence pytest_httpserver
@@ -225,8 +224,10 @@ def agent(monkeypatch, bbot_config):
 
 
 # bbot config
-from bbot import config as default_config
+from bbot.core import CORE
 
+# PRESET TODO: revisit this
+default_config = CORE.config
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
 test_config = OmegaConf.merge(default_config, test_config)
 
@@ -239,11 +240,10 @@ def bbot_config():
     return test_config
 
 
-from bbot.modules import module_loader
-
-available_modules = list(module_loader.configs(type="scan"))
-available_output_modules = list(module_loader.configs(type="output"))
-available_internal_modules = list(module_loader.configs(type="internal"))
+# PRESET TODO: revisit this
+available_modules = list(CORE.module_loader.configs(type="scan"))
+available_output_modules = list(CORE.module_loader.configs(type="output"))
+available_internal_modules = list(CORE.module_loader.configs(type="internal"))
 
 
 @pytest.fixture(autouse=True)

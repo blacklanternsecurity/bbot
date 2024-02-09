@@ -12,32 +12,20 @@ from omegaconf import OmegaConf
 from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
 
-from bbot import config as bbot_config
+from bbot.core import CORE
 
 from .target import Target
 from .stats import ScanStats
 from .manager import ScanManager
 from .dispatcher import Dispatcher
-from bbot.modules import module_loader
 from bbot.core.event import make_event
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
-from bbot.core.configurator.environ import prepare_environment
 from bbot.core.errors import BBOTError, ScanError, ValidationError
-from bbot.core.logger import (
-    init_logging,
-    get_log_level,
-    set_log_level,
-    add_log_handler,
-    get_log_handlers,
-    remove_log_handler,
-)
 
 log = logging.getLogger("bbot.scanner")
-
-init_logging()
 
 
 class Scanner:
@@ -158,10 +146,12 @@ class Scanner:
             config = OmegaConf.create({})
         else:
             config = OmegaConf.create(config)
-        self.config = OmegaConf.merge(bbot_config, config)
-        prepare_environment(self.config)
+        self.config = OmegaConf.merge(CORE.config, config)
+
+        # PRESET TODO: revisit this
+        CORE.prepare_environment(self.config)
         if self.config.get("debug", False):
-            set_log_level(logging.DEBUG)
+            CORE.logger.set_log_level(logging.DEBUG)
 
         self.strict_scope = strict_scope
         self.force_start = force_start
@@ -946,7 +936,7 @@ class Scanner:
         """
         Return the current log level, e.g. logging.INFO
         """
-        return get_log_level()
+        return CORE.log_level
 
     @property
     def _log_handlers(self):
@@ -966,26 +956,27 @@ class Scanner:
         return self.__log_handlers
 
     def _start_log_handlers(self):
+        # PRESET TODO: revisit scan logging
         # add log handlers
         for handler in self._log_handlers:
-            add_log_handler(handler)
+            CORE.logger.add_log_handler(handler)
         # temporarily disable main ones
         for handler_name in ("file_main", "file_debug"):
-            handler = get_log_handlers().get(handler_name, None)
+            handler = CORE.logger.log_handlers.get(handler_name, None)
             if handler is not None and handler not in self._log_handler_backup:
                 self._log_handler_backup.append(handler)
-                remove_log_handler(handler)
+                CORE.logger.remove_log_handler(handler)
 
     def _stop_log_handlers(self):
         # remove log handlers
         for handler in self._log_handlers:
-            remove_log_handler(handler)
+            CORE.logger.remove_log_handler(handler)
         # restore main ones
         for handler in self._log_handler_backup:
-            add_log_handler(handler)
+            CORE.logger.add_log_handler(handler)
 
     def _internal_modules(self):
-        for modname in module_loader.preloaded(type="internal"):
+        for modname in CORE.module_loader.preloaded(type="internal"):
             if self.config.get(modname, True):
                 yield modname
 
@@ -1008,7 +999,7 @@ class Scanner:
         modules = [str(m) for m in modules]
         loaded_modules = {}
         failed = set()
-        for module_name, module_class in module_loader.load_modules(modules).items():
+        for module_name, module_class in CORE.module_loader.load_modules(modules).items():
             if module_class:
                 try:
                     loaded_modules[module_name] = module_class(self)

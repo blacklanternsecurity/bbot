@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 from omegaconf import OmegaConf
 
-from ..helpers.misc import mkdir
 from ..errors import ConfigLoadError
 from ..helpers.logger import log_to_stderr
 

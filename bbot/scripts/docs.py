@@ -5,8 +5,8 @@ import re
 import yaml
 from pathlib import Path
 
-from bbot.modules import module_loader
-from bbot.core.configurator.args import parser, scan_examples
+# PRESET TODO: revisit this
+from bbot.core import CORE
 
 os.environ["BBOT_TABLE_FORMAT"] = "github"
 
@@ -49,6 +49,7 @@ def find_replace_file(file, keyword, replace):
                 f.write(new_content)
 
 
+# PRESET TODO: revisit this
 def update_docs():
     md_files = [p for p in bbot_code_dir.glob("**/*.md") if p.is_file()]
 
@@ -63,12 +64,12 @@ def update_docs():
                 content = f.read()
             for match in regex.finditer(content):
                 module_name = match.groups()[0].lower()
-                bbot_module_options_table = module_loader.modules_options_table(modules=[module_name])
+                bbot_module_options_table = CORE.module_loader.modules_options_table(modules=[module_name])
                 find_replace_file(file, f"BBOT MODULE OPTIONS {module_name.upper()}", bbot_module_options_table)
 
     # Example commands
     bbot_example_commands = []
-    for title, description, command in scan_examples:
+    for title, description, command in CORE.args.scan_examples:
         example = ""
         example += f"**{title}:**\n\n"
         # example += f"{description}\n"
@@ -79,29 +80,29 @@ def update_docs():
     update_md_files("BBOT EXAMPLE COMMANDS", bbot_example_commands)
 
     # Help output
-    bbot_help_output = parser.format_help().replace("docs.py", "bbot")
+    bbot_help_output = CORE.args.parser.format_help().replace("docs.py", "bbot")
     bbot_help_output = f"```text\n{bbot_help_output}\n```"
     assert len(bbot_help_output.splitlines()) > 50
     update_md_files("BBOT HELP OUTPUT", bbot_help_output)
 
     # BBOT events
-    bbot_event_table = module_loader.events_table()
+    bbot_event_table = CORE.module_loader.events_table()
     assert len(bbot_event_table.splitlines()) > 10
     update_md_files("BBOT EVENTS", bbot_event_table)
 
     # BBOT modules
-    bbot_module_table = module_loader.modules_table()
+    bbot_module_table = CORE.module_loader.modules_table()
     assert len(bbot_module_table.splitlines()) > 50
     update_md_files("BBOT MODULES", bbot_module_table)
 
     # BBOT module options
-    bbot_module_options_table = module_loader.modules_options_table()
+    bbot_module_options_table = CORE.module_loader.modules_options_table()
     assert len(bbot_module_options_table.splitlines()) > 100
     update_md_files("BBOT MODULE OPTIONS", bbot_module_options_table)
     update_individual_module_options()
 
     # BBOT module flags
-    bbot_module_flags_table = module_loader.flags_table()
+    bbot_module_flags_table = CORE.module_loader.flags_table()
     assert len(bbot_module_flags_table.splitlines()) > 10
     update_md_files("BBOT MODULE FLAGS", bbot_module_flags_table)
 

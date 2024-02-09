@@ -13,8 +13,8 @@ from contextlib import suppress
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
-from bbot.core import configurator
-from bbot.modules import module_loader
+from bbot.core import CORE
+
 from ..misc import can_sudo_without_password, os_platform
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
@@ -32,8 +32,8 @@ class DepsInstaller:
         self._installed_sudo_askpass = False
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         if self._sudo_password is None:
-            if configurator.bbot_sudo_pass is not None:
-                self._sudo_password = configurator.bbot_sudo_pass
+            if CORE.bbot_sudo_pass is not None:
+                self._sudo_password = CORE.bbot_sudo_pass
             elif can_sudo_without_password():
                 self._sudo_password = ""
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
@@ -52,7 +52,8 @@ class DepsInstaller:
         if sys.prefix != sys.base_prefix:
             self.venv = sys.prefix
 
-        self.all_modules_preloaded = module_loader.preloaded()
+        # PRESET TODO: revisit this
+        self.all_modules_preloaded = CORE.module_loader.preloaded()
 
         self.ensure_root_lock = Lock()
 
@@ -310,7 +311,7 @@ class DepsInstaller:
                     if self.parent_helper.verify_sudo_password(password):
                         log.success("Authentication successful")
                         self._sudo_password = password
-                        configurator.bbot_sudo_pass = password
+                        CORE.bbot_sudo_pass = password
                     else:
                         log.warning("Incorrect password")
 

@@ -1,3 +1,4 @@
+import re
 import ast
 import sys
 import importlib
@@ -6,8 +7,12 @@ from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-from ..flags import flag_descriptions
-from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
+from .flags import flag_descriptions
+from .helpers.logger import log_to_stderr
+from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
+
+
+bbot_code_dir = Path(__file__).parent.parent
 
 
 class ModuleLoader:
@@ -19,11 +24,22 @@ class ModuleLoader:
     This ensures that all requisite libraries and components are available for the module to function correctly.
     """
 
-    def __init__(self):
-        self._preloaded = {}
+    default_module_dir = bbot_code_dir / "modules"
+    module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
+
+    def __init__(self, module_dirs=None):
+        self.__preloaded = {}
         self._preloaded_orig = None
         self._modules = {}
         self._configs = {}
+
+        # start with default module dir
+        self.module_dirs = {self.default_module_dir}
+        # include custom ones if requested
+        if module_dirs:
+            self.module_dirs.update(set(Path(p) for p in module_dirs))
+        # expand to include all recursive dirs
+        self.module_dirs.update(self.get_recursive_dirs(*self.module_dirs))
 
     def file_filter(self, file):
         file = file.resolve()
@@ -31,11 +47,11 @@ class ModuleLoader:
             return False
         return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
 
-    def preload(self, module_dir):
-        """Preloads all modules within a directory.
+    def preload(self):
+        """Preloads all BBOT modules.
 
-        This function recursively iterates through each file in the specified directory
-        and preloads the BBOT module to gather its meta-information and dependencies.
+        This function recursively iterates through each file in the module directories
+        and preloads each BBOT module to gather its meta-information and dependencies.
 
         Args:
             module_dir (str or Path): Directory containing BBOT modules to be preloaded.
@@ -52,30 +68,44 @@ class ModuleLoader:
                 ...
             }
         """
-        module_dir = Path(module_dir)
-        for module_file in list_files(module_dir, filter=self.file_filter):
-            if module_dir.name == "modules":
-                namespace = f"bbot.modules"
-            else:
-                namespace = f"bbot.modules.{module_dir.name}"
-            try:
-                preloaded = self.preload_module(module_file)
-                module_type = "scan"
-                if module_dir.name in ("output", "internal"):
-                    module_type = str(module_dir.name)
-                elif module_dir.name not in ("modules"):
-                    preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
-                preloaded["type"] = module_type
-                preloaded["namespace"] = namespace
-                config = OmegaConf.create(preloaded.get("config", {}))
-                self._configs[module_file.stem] = config
-                self._preloaded[module_file.stem] = preloaded
-            except Exception:
-                print(f"[CRIT] Error preloading {module_file}\n\n{traceback.format_exc()}")
-                print(f"[CRIT] Error in {module_file.name}")
-                sys.exit(1)
+        for module_dir in self.module_dirs:
+            log_to_stderr(f"Preloading modules from {module_dir}", level="HUGESUCCESS")
+            for module_file in list_files(module_dir, filter=self.file_filter):
+                log_to_stderr(f"Preloading module from {module_file}", level="HUGESUCCESS")
+                try:
+                    preloaded = self.preload_module(module_file)
+                    module_type = "scan"
+                    if module_dir.name in ("output", "internal"):
+                        module_type = str(module_dir.name)
+                    elif module_dir.name not in ("modules"):
+                        preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
+                    preloaded["type"] = module_type
+                    preloaded["namespace"] = "unknown"
+                    config = OmegaConf.create(preloaded.get("config", {}))
+                    self._configs[module_file.stem] = config
+                    self.__preloaded[module_file.stem] = preloaded
+                except Exception:
+                    log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
+                    log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
+                    sys.exit(1)
 
-        return self._preloaded
+        return self.__preloaded
+
+    @property
+    def _preloaded(self):
+        if not self.__preloaded:
+            self.preload()
+        return self.__preloaded
+
+    def get_recursive_dirs(self, *dirs):
+        dirs = set(Path(d) for d in dirs)
+        for d in list(dirs):
+            if not d.is_dir():
+                continue
+            for p in d.iterdir():
+                if p.is_dir() and self.module_dir_regex.match(p.name):
+                    dirs.update(self.get_recursive_dirs(p))
+        return dirs
 
     def preloaded(self, type=None):
         preloaded = {}
@@ -96,7 +126,7 @@ class ModuleLoader:
     def find_and_replace(self, **kwargs):
         if self._preloaded_orig is None:
             self._preloaded_orig = dict(self._preloaded)
-        self._preloaded = search_format_dict(self._preloaded_orig, **kwargs)
+        self.__preloaded = search_format_dict(self._preloaded_orig, **kwargs)
 
     def check_type(self, module, type):
         return self._preloaded[module]["type"] == type
@@ -495,6 +525,3 @@ class ModuleLoader:
         module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
         module_list.sort(key=lambda x: x[-1]["type"], reverse=True)
         return module_list
-
-
-module_loader = ModuleLoader()
