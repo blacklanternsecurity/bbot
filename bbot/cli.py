@@ -351,12 +351,7 @@ async def _main():
 
                         keyboard_listen_task = asyncio.create_task(akeyboard_listen())
 
-                    try:
-                        await scanner.async_start_without_generator()
-                    finally:
-                        with suppress(Exception):
-                            keyboard_listen_task.cancel()
-                            await keyboard_listen_task
+                    await scanner.async_start_without_generator()
 
             except bbot.core.errors.ScanError as e:
                 log_to_stderr(str(e), level="ERROR")
