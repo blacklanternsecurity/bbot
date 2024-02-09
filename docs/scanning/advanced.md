@@ -34,15 +34,15 @@ asyncio.run(main())
 <!-- BBOT HELP OUTPUT -->
 ```text
 usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]]
-               [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]]
-               [--strict-scope] [-m MODULE [MODULE ...]] [-l]
-               [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf]
-               [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]]
-               [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME]
-               [-o DIR] [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y]
-               [--dry-run] [--current-config]
-               [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps]
-               [-a] [--version]
+              [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]]
+              [--strict-scope] [-m MODULE [MODULE ...]] [-l]
+              [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf]
+              [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]]
+              [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME]
+              [-o DIR] [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y]
+              [--dry-run] [--current-config]
+              [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps]
+              [-a] [--version]
 
 Bighuge BLS OSINT Tool
 
@@ -61,7 +61,7 @@ Target:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,asn,azure_realm,azure_tenant,badsecrets,bevigil,binaryedge,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,builtwith,bypass403,c99,censys,certspotter,chaos,columbus,credshed,crobat,crt,dastardly,dehashed,digitorus,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,github_codesearch,github_org,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,internetdb,ip2location,ipneighbor,ipstack,leakix,masscan,massdns,myssl,nmap,nsec,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,postman,rapiddns,riddler,robots,secretsdb,securitytrails,shodan_dns,sitedossier,skymem,smuggler,social,sslcert,subdomain_hijack,subdomaincenter,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,zoomeye
+                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,asn,azure_realm,azure_tenant,badsecrets,bevigil,binaryedge,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,builtwith,bypass403,c99,censys,certspotter,chaos,columbus,credshed,crobat,crt,dastardly,dehashed,digitorus,dnscommonsrv,dnsdumpster,dnszonetransfer,emailformat,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,github_codesearch,github_org,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,internetdb,ip2location,ipneighbor,ipstack,leakix,masscan,massdns,myssl,newsletters,nmap,nsec,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,postman,rapiddns,riddler,robots,secretsdb,securitytrails,shodan_dns,sitedossier,skymem,smuggler,social,sslcert,subdomain_hijack,subdomaincenter,sublist3r,telerik,threatminer,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,zoomeye
   -l, --list-modules    List available modules.
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.

@@ -313,7 +313,6 @@ class TestExcavateSerializationPositive(TestExcavate):
         )
 
     def check(self, module_test, events):
-
         for serialize_type in ["Java", ".NET", "PHP (Array)", "PHP (String)", "PHP (Object)", "Possible Compressed"]:
             assert any(
                 e.type == "FINDING" and serialize_type in e.data["description"] for e in events

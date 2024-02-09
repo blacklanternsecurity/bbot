@@ -29,6 +29,7 @@ from bbot.core.helpers import (
     split_host_port,
     tagify,
     validators,
+    truncate_string,
 )
 
 
@@ -489,7 +490,7 @@ class BaseEvent:
         return self._data_human()
 
     def _data_human(self):
-        return str(self.data)
+        return truncate_string(str(self.data), n=2000)
 
     def _data_load(self, data):
         """
