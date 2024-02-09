@@ -8,7 +8,7 @@ import logging
 import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
-from aioconsole.stream import NonFileStreamReader
+from aioconsole import stream
 
 # fix tee buffering
 sys.stdout.reconfigure(line_buffering=True)
@@ -322,7 +322,13 @@ async def _main():
                             toggle_log_level(logger=log)
                             scanner.manager.modules_status(_log=True)
 
-                    reader = NonFileStreamReader(sys.stdin)
+                    log.critical(f"is_pipe_transport_compatible: {stream.is_pipe_transport_compatible(sys.stdin)}")
+                    reader = stream.NonFileStreamReader(sys.stdin)
+
+                    # Reader
+                    reader = stream.StandardStreamReader()
+                    protocol = stream.StandardStreamReaderProtocol(reader)
+                    await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
 
                     async def akeyboard_listen():
                         try:
@@ -331,8 +337,10 @@ async def _main():
                                 keyboard_input = None
                                 try:
                                     keyboard_input = smart_decode((await reader.readline()).strip())
-                                    allowed_errors = 0
-                                except Exception:
+                                    allowed_errors = 10
+                                except Exception as e:
+                                    log_to_stderr(f"Error in keyboard listen loop: {e}", level="TRACE")
+                                    log_to_stderr(traceback.format_exc(), level="TRACE")
                                     allowed_errors -= 1
                                 if keyboard_input is not None:
                                     handle_keyboard_input(keyboard_input)
