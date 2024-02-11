@@ -2,6 +2,7 @@ import csv
 import ipaddress
 from contextlib import suppress
 
+import json
 from .csv import CSV
 from bbot.core.helpers.misc import make_ip_type, is_ip, is_port
 
@@ -33,6 +34,7 @@ class asset_inventory(CSV):
 
     header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
     filename = "asset-inventory.csv"
+    filename1 = "asset-inventory.json"
 
     async def setup(self):
         self.assets = {}
@@ -83,7 +85,7 @@ class asset_inventory(CSV):
             with suppress(IndexError):
                 is_digit = host[0].isdigit()
             return (is_digit, host)
-
+        rows = []
         for asset in sorted(self.assets.values(), key=sort_key):
             findings_and_vulns = asset.findings.union(asset.vulnerabilities)
             ports = getattr(asset, "ports", set())
@@ -109,8 +111,12 @@ class asset_inventory(CSV):
                 "Findings": "\n".join(findings_and_vulns),
                 "Description": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
             }
+            rows.append(row)
             row.update(asset.custom_fields)
             self.writerow(row)
+            
+        with open(self.filename1, 'w') as json_file:
+            json.dump(rows, json_file, indent=4)
 
         for header in ("Domains", "IP Addresses", "Open Ports"):
             table_header = [header, ""]
@@ -179,7 +185,6 @@ class asset_inventory(CSV):
                 hook = getattr(module, "asset_inventory_hook", None)
                 if hook is not None and callable(hook):
                     hook(self)
-
 
 class Asset:
     def __init__(self, host):
