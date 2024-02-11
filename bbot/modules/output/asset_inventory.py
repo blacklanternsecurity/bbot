@@ -33,7 +33,7 @@ class asset_inventory(CSV):
     }
 
     header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
-    filename = "asset-inventory1.csv"
+    filename = "asset-inventory.json"
     filename1 = "asset-inventory2.json"
 
     async def setup(self):
@@ -115,7 +115,7 @@ class asset_inventory(CSV):
             rows.append(row)
             self.writerow(row)
 
-        self.info(f"Saved asset-inventory output to {self.output_file}")
+        # self.info(f"Saved asset-inventory output to {self.output_file}")
         with open(self.output_file, 'w') as json_file:
             json.dump(rows, json_file, indent=4)
         
