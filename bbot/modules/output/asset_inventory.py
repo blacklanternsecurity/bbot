@@ -33,8 +33,8 @@ class asset_inventory(CSV):
     }
 
     header_row = ["Host", "Provider", "IP(s)", "Status", "Open Ports", "Risk Rating", "Findings", "Description"]
-    filename = "asset-inventory.csv"
-    filename1 = "asset-inventory.json"
+    filename = "asset-inventory1.csv"
+    filename1 = "asset-inventory2.json"
 
     async def setup(self):
         self.assets = {}
@@ -111,12 +111,13 @@ class asset_inventory(CSV):
                 "Findings": "\n".join(findings_and_vulns),
                 "Description": "\n".join(str(x) for x in getattr(asset, "technologies", set())),
             }
-            rows.append(row)
             row.update(asset.custom_fields)
+            rows.append(row)
             self.writerow(row)
             
-        with open(self.filename1, 'w') as json_file:
+        with open(self.output_file[:-3] + "json", 'w') as json_file:
             json.dump(rows, json_file, indent=4)
+        
 
         for header in ("Domains", "IP Addresses", "Open Ports"):
             table_header = [header, ""]

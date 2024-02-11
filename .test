@@ -1,1 +1,1 @@
-testtest
+bbot -f passive subdomain-enum -m fingerprintx wafw00f gowitness filedownload wappalyzer robots ntlm hunt git badsecrets ajaxpro iis_shortnames secretsdb -t bonbast.com -om asset_inventory -o .bbot/scans/test/ -n $(date +"%Y_%m_%d_%H%M%S")
