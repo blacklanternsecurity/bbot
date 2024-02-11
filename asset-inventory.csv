@@ -1,0 +1,6 @@
+Host,Provider,IP(s),Status,Open Ports,Risk Rating,Findings,Description
+beta.trickest.com,,,N/A,,N/A,,
+bot.trickest.com,cloud-amazon,3.72.141.174,Active,"80,443",N/A,,
+trail.trickest.com,,141.95.205.206,Active,80,N/A,,
+trickest.com,cloud-amazon,75.2.60.5,Active,"80,443",N/A,,
+www.trickest.com,cloud-amazon,75.2.60.5,N/A,,N/A,,

@@ -1,0 +1,22 @@
+[
+    {
+        "Host": "bonbast.com",
+        "Provider": "",
+        "IP(s)": "2001:4860:4802:32::15,2001:4860:4802:34::15,2001:4860:4802:36::15,2001:4860:4802:38::15,216.239.32.21,216.239.34.21,216.239.36.21,216.239.38.21",
+        "Status": "Active",
+        "Open Ports": "80,443",
+        "Risk Rating": "N/A",
+        "Findings": "https://bonbast.com/:Possible secret in JS [AIzaSyCJGWNTkUKVutZaX_Llih1jiSl414v1xGY] Signature [google_api]",
+        "Description": ""
+    },
+    {
+        "Host": "www.bonbast.com",
+        "Provider": "",
+        "IP(s)": "142.250.74.19,2a00:1450:400f:800::2013",
+        "Status": "N/A",
+        "Open Ports": "",
+        "Risk Rating": "N/A",
+        "Findings": "",
+        "Description": ""
+    }
+]
