@@ -114,8 +114,9 @@ class asset_inventory(CSV):
             row.update(asset.custom_fields)
             rows.append(row)
             self.writerow(row)
-            
-        with open(self.output_file[:-3] + "json", 'w') as json_file:
+
+        self.info(f"Saved asset-inventory output to {self.output_file}")
+        with open(self.output_file, 'w') as json_file:
             json.dump(rows, json_file, indent=4)
         
 
