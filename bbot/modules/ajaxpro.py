@@ -19,7 +19,6 @@ class ajaxpro(BaseModule):
                 return False
             for stem in ["ajax", "ajaxpro"]:
                 probe_url = f"{event.data}{stem}/whatever.ashx"
-                self.critical(probe_url)
                 probe = await self.helpers.request(probe_url)
                 if probe:
                     if probe.status_code == 200:
