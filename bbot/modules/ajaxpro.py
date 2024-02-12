@@ -17,7 +17,7 @@ class ajaxpro(BaseModule):
         if event.type == "URL":
             if "dir" not in event.tags:
                 return False
-            for stem in ["ajax","ajaxpro"]:
+            for stem in ["ajax", "ajaxpro"]:
                 probe_url = f"{event.data}{stem}/whatever.ashx"
                 self.critical(probe_url)
                 probe = await self.helpers.request(probe_url)
