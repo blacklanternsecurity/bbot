@@ -378,6 +378,9 @@ class massdns(subdomain_enum):
                             self.mutations_tried.add(h)
                             mutations.add(m)
 
+                    num_base_mutations = len(base_mutations)
+                    self.critical(f"base mutations: {num_base_mutations}")
+
                     # try every subdomain everywhere else
                     for _domain, _subdomains in found:
                         if _domain == domain:
@@ -393,6 +396,9 @@ class massdns(subdomain_enum):
                             ):
                                 add_mutation(domain_hash, word)
 
+                    num_massdns_mutations = len(mutations) - num_base_mutations
+                    self.critical(f"added by massdns: {num_massdns_mutations}")
+
                     # numbers + devops mutations
                     for mutation in self.helpers.word_cloud.mutations(
                         subdomains, cloud=False, numbers=3, number_padding=1
@@ -401,11 +407,18 @@ class massdns(subdomain_enum):
                             m = delimiter.join(mutation).lower()
                             add_mutation(domain_hash, m)
 
+                    num_devops = len(mutations) - num_massdns_mutations
+                    self.critical(f"added by word cloud: {num_devops}")
+
                     # special dns mutator
+                    self.critical(f"dns_mutator size: {len(self.helpers.word_cloud.dns_mutator)} (max: {self.max_mutations})")
                     for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
                         subdomains, max_mutations=self.max_mutations
                     ):
                         add_mutation(domain_hash, subdomain)
+
+                    num_mutations = len(mutations) - num_devops
+                    self.critical(f"added by dns mutator: {num_mutations}")
 
                     if mutations:
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
