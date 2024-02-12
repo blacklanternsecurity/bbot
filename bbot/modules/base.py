@@ -358,12 +358,12 @@ class BaseModule:
                 events, finish = await self._events_waiting()
                 if events and not self.errored:
                     counter.n = len(events)
-                    self.debug(f"Handling batch of {len(events):,} events")
+                    self.verbose(f"Handling batch of {len(events):,} events")
                     submitted = True
                     async with self.scan._acatch(f"{self.name}.handle_batch()"):
                         handle_batch_task = asyncio.create_task(self.handle_batch(*events))
                         await handle_batch_task
-                    self.debug(f"Finished handling batch of {len(events):,} events")
+                    self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
             async with self.scan._acatch(context), self._task_counter.count(context):
