@@ -319,6 +319,7 @@ class ScanManager:
                                         f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
                                     )
                     for child_event in dns_child_events:
+                        log.debug(f"Queueing DNS child for {event}: {child_event}")
                         self.queue_event(child_event)
 
         except ValidationError as e:

@@ -334,6 +334,10 @@ class DNSHelper:
 
         if results:
             self._last_dns_success = time.time()
+            self.debug(f"Answers for {query} with kwargs={kwargs}: {list(results)}")
+
+        if errors:
+            self.debug(f"Errors for {query} with kwargs={kwargs}: {errors}")
 
         return results, errors
 
@@ -1038,6 +1042,7 @@ class DNSHelper:
             dummy_module = self._dummy_modules[name]
         except KeyError:
             dummy_module = self.parent_helper._make_dummy_module(name=name, _type="DNS")
+            dummy_module.suppress_dupes = False
             self._dummy_modules[name] = dummy_module
         return dummy_module
 
