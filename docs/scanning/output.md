@@ -135,6 +135,25 @@ output_modules:
     password: P@ssw0rd
 ```
 
+### Splunk
+
+The `splunk` output module sends [events](events.md) in JSON format to a desired splunk instance via [HEC](https://docs.splunk.com/Documentation/Splunk/9.2.0/Data/UsetheHTTPEventCollector)
+
+You can customize this output with the following variables :
+
+```yaml title="~/.bbot/config/bbot.yml"
+output_modules:
+  splunk:
+    #The full URL with the URI `/services/collector/event`
+    url: https://localhost:8088/services/collector/event
+    #Has to be generated from splunk webui
+    hectoken: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    #Defaults to `main` if not set
+    index: my-specific-index
+    #Defaults to `bbot` if not set
+    source: /my/source.json
+```
+
 ### Asset Inventory
 
 The `asset_inventory` module produces a CSV like this:
