@@ -26,9 +26,15 @@ class wafw00f(BaseModule):
     in_scope_only = True
     per_hostport_only = True
 
+    async def filter_event(self, event):
+        http_status = getattr(event, "http_status", 0)
+        if not http_status or str(http_status).startswith("3"):
+            return False, f"Invalid HTTP status code: {http_status}"
+        return True, ""
+
     async def handle_event(self, event):
         url = f"{event.parsed.scheme}://{event.parsed.netloc}/"
-        WW = await self.scan.run_in_executor(wafw00f_main.WAFW00F, url)
+        WW = await self.scan.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
         waf_detections = await self.scan.run_in_executor(WW.identwaf)
         if waf_detections:
             for waf in waf_detections:
