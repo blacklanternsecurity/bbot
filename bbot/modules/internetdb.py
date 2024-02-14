@@ -40,8 +40,7 @@ class internetdb(BaseModule):
     flags = ["passive", "safe", "portscan", "subdomain-enum"]
     meta = {"description": "Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities"}
 
-    # limit outgoing queue size to help avoid rate limiting
-    _qsize = 100
+    _qsize = 500
 
     base_url = "https://internetdb.shodan.io"
 
@@ -116,10 +115,11 @@ class internetdb(BaseModule):
         elif event.type == "DNS_NAME":
             # always try IPv4 first
             ipv6 = []
-            for host in event.resolved_hosts:
-                if self.helpers.is_ip(host, version=4):
-                    return host
-                elif self.helpers.is_ip(host, version=6):
-                    ipv6.append(host)
+            ips = [h for h in event.resolved_hosts if self.helpers.is_ip(h)]
+            for ip in sorted([str(ip) for ip in ips]):
+                if self.helpers.is_ip(ip, version=4):
+                    return ip
+                elif self.helpers.is_ip(ip, version=6):
+                    ipv6.append(ip)
             for ip in ipv6:
                 return ip

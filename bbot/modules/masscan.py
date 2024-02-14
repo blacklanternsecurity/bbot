@@ -241,9 +241,11 @@ class masscan(portscanner):
                 await self.emit_event(line, "OPEN_TCP_PORT", source=source_event)
 
     def get_source_event(self, host):
-        source_event = self.scan.whitelist.get(host)
+        source_event = self.scan.target.get(host)
         if source_event is None:
-            source_event = self.scan.root_event
+            source_event = self.scan.whitelist.get(host)
+            if source_event is None:
+                source_event = self.scan.root_event
         return source_event
 
     async def cleanup(self):

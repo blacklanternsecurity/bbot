@@ -114,7 +114,7 @@ class ffuf_shortnames(ffuf):
         else:
             return [extension_hint]
 
-    def find_delimeter(self, hint):
+    def find_delimiter(self, hint):
         delimiters = ["_", "-"]
         for d in delimiters:
             if d in hint:
@@ -169,13 +169,13 @@ class ffuf_shortnames(ffuf):
 
             if self.config.get("find_delimiters"):
                 if "shortname-directory" in event.tags:
-                    delimeter_r = self.find_delimeter(filename_hint)
-                    if delimeter_r:
-                        delimeter, prefix, partial_hint = delimeter_r
-                        self.verbose(f"Detected delimeter [{delimeter}] in hint [{filename_hint}]")
+                    delimiter_r = self.find_delimiter(filename_hint)
+                    if delimiter_r:
+                        delimiter, prefix, partial_hint = delimiter_r
+                        self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                         tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
                         async for r in self.execute_ffuf(
-                            tempfile, root_url, prefix=f"{prefix}{delimeter}", exts=["/"]
+                            tempfile, root_url, prefix=f"{prefix}{delimiter}", exts=["/"]
                         ):
                             await self.emit_event(
                                 r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
@@ -183,13 +183,13 @@ class ffuf_shortnames(ffuf):
 
                 elif "shortname-file" in event.tags:
                     for ext in used_extensions:
-                        delimeter_r = self.find_delimeter(filename_hint)
-                        if delimeter_r:
-                            delimeter, prefix, partial_hint = delimeter_r
-                            self.verbose(f"Detected delimeter [{delimeter}] in hint [{filename_hint}]")
+                        delimiter_r = self.find_delimiter(filename_hint)
+                        if delimiter_r:
+                            delimiter, prefix, partial_hint = delimiter_r
+                            self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                             tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
                             async for r in self.execute_ffuf(
-                                tempfile, root_url, prefix=f"{prefix}{delimeter}", suffix=f".{ext}"
+                                tempfile, root_url, prefix=f"{prefix}{delimiter}", suffix=f".{ext}"
                             ):
                                 await self.emit_event(
                                     r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
