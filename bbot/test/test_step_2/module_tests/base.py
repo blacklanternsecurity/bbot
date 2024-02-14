@@ -47,6 +47,7 @@ class ModuleTestBase:
     module_name = None
     config_overrides = {}
     modules_overrides = []
+    log = logging.getLogger("bbot")
 
     class ModuleTest:
         def __init__(self, module_test_base, httpx_mock, httpserver, httpserver_ssl, monkeypatch, request):
