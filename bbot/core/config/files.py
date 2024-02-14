@@ -75,10 +75,11 @@ class BBOTConfigFiles:
                 raise ConfigLoadError(f"Error parsing config at {filename}:\n\n{e}")
             return OmegaConf.create()
 
-    def get_config(self):
-        default_config = self._get_config(self.defaults_filename, name="defaults")
+    def get_custom_config(self):
         return OmegaConf.merge(
-            default_config,
             self._get_config(self.config_filename, name="config"),
             self._get_config(self.secrets_filename, name="secrets"),
         )
+
+    def get_default_config(self):
+        return self._get_config(self.defaults_filename, name="defaults")

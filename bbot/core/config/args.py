@@ -104,10 +104,6 @@ class BBOTArgs:
             self._flag_choices.update(set(c.get("flags", [])))
         self._flag_choices = sorted(self._flag_choices)
 
-        log_to_stderr(f"module options: {self._module_choices}")
-        log_to_stderr(f"output module options: {self._output_module_choices}")
-        log_to_stderr(f"flag options: {self._flag_choices}")
-
         self.parser = self.create_parser()
 
     @property

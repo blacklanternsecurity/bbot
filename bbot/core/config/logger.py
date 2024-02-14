@@ -201,10 +201,11 @@ class BBOTLogger:
             return logging.DEBUG
 
         loglevel = logging.INFO
-        if self.core.args.parsed.verbose:
-            loglevel = logging.VERBOSE
-        if self.core.args.parsed.debug:
-            loglevel = logging.DEBUG
+        if self.core.cli_execution:
+            if self.core.args.parsed.verbose:
+                loglevel = logging.VERBOSE
+            if self.core.args.parsed.debug:
+                loglevel = logging.DEBUG
         return loglevel
 
     def set_log_level(self, level, logger=None):

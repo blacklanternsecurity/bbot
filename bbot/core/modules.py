@@ -28,7 +28,7 @@ class ModuleLoader:
     module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
 
     def __init__(self, module_dirs=None):
-        self.__preloaded = {}
+        self.__preloaded = None
         self._preloaded_orig = None
         self._modules = {}
         self._configs = {}
@@ -68,36 +68,36 @@ class ModuleLoader:
                 ...
             }
         """
-        for module_dir in self.module_dirs:
-            for module_file in list_files(module_dir, filter=self.file_filter):
-                if module_dir.name == "modules":
-                    namespace = f"bbot.modules"
-                else:
-                    namespace = f"bbot.modules.{module_dir.name}"
-                try:
-                    preloaded = self.preload_module(module_file)
-                    module_type = "scan"
-                    if module_dir.name in ("output", "internal"):
-                        module_type = str(module_dir.name)
-                    elif module_dir.name not in ("modules"):
-                        preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
-                    preloaded["type"] = module_type
-                    preloaded["namespace"] = namespace
-                    config = OmegaConf.create(preloaded.get("config", {}))
-                    self._configs[module_file.stem] = config
-                    self.__preloaded[module_file.stem] = preloaded
-                except Exception:
-                    log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
-                    log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
-                    sys.exit(1)
+        if self.__preloaded is None:
+            self.__preloaded = {}
+            for module_dir in self.module_dirs:
+                for module_file in list_files(module_dir, filter=self.file_filter):
+                    if module_dir.name == "modules":
+                        namespace = f"bbot.modules"
+                    else:
+                        namespace = f"bbot.modules.{module_dir.name}"
+                    try:
+                        preloaded = self.preload_module(module_file)
+                        module_type = "scan"
+                        if module_dir.name in ("output", "internal"):
+                            module_type = str(module_dir.name)
+                        elif module_dir.name not in ("modules"):
+                            preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
+                        preloaded["type"] = module_type
+                        preloaded["namespace"] = namespace
+                        config = OmegaConf.create(preloaded.get("config", {}))
+                        self._configs[module_file.stem] = config
+                        self.__preloaded[module_file.stem] = preloaded
+                    except Exception:
+                        log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
+                        log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
+                        sys.exit(1)
 
         return self.__preloaded
 
     @property
     def _preloaded(self):
-        if not self.__preloaded:
-            self.preload()
-        return self.__preloaded
+        return self.preload()
 
     def get_recursive_dirs(self, *dirs):
         dirs = set(Path(d) for d in dirs)

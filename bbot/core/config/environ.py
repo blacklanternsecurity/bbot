@@ -59,9 +59,9 @@ class BBOTEnviron:
         """
         # ensure bbot_home
         if not "home" in self.core.config:
-            self.core.config["home"] = "~/.bbot"
-        home = Path(self.core.config["home"]).expanduser().resolve()
-        self.core.config["home"] = str(home)
+            self.core.custom_config["home"] = "~/.bbot"
+        home = Path(self.core.custom_config["home"]).expanduser().resolve()
+        self.core.custom_config["home"] = str(home)
 
         # if we're running in a virtual environment, make sure to include its /bin in PATH
         if sys.prefix != sys.base_prefix:
@@ -98,23 +98,23 @@ class BBOTEnviron:
         # PRESET TODO: do we even need this?
         if self.core.cli_execution and self.core.args.cli_config:
             # deps
-            self.core.config["retry_deps"] = self.core.args.cli_options.retry_deps
-            self.core.config["force_deps"] = self.core.args.cli_options.force_deps
-            self.core.config["no_deps"] = self.core.args.cli_options.no_deps
-            self.core.config["ignore_failed_deps"] = self.core.args.cli_options.ignore_failed_deps
+            self.core.custom_config["retry_deps"] = self.core.args.cli_options.retry_deps
+            self.core.custom_config["force_deps"] = self.core.args.cli_options.force_deps
+            self.core.custom_config["no_deps"] = self.core.args.cli_options.no_deps
+            self.core.custom_config["ignore_failed_deps"] = self.core.args.cli_options.ignore_failed_deps
             # debug
-            self.core.config["debug"] = self.core.args.cli_options.debug
-            self.core.config["silent"] = self.core.args.cli_options.silent
+            self.core.custom_config["debug"] = self.core.args.cli_options.debug
+            self.core.custom_config["silent"] = self.core.args.cli_options.silent
 
         import logging
 
         log = logging.getLogger()
-        if self.core.config.get("debug", False):
-            self.core.config["silent"] = False
+        if self.core.custom_config.get("debug", False):
+            self.core.custom_config["silent"] = False
             log = logging.getLogger("bbot")
             log.setLevel(logging.DEBUG)
             logging.getLogger("asyncio").setLevel(logging.DEBUG)
-        elif self.core.config.get("silent", False):
+        elif self.core.custom_config.get("silent", False):
             log = logging.getLogger("bbot")
             log.setLevel(logging.CRITICAL)
 

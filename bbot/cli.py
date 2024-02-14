@@ -32,6 +32,13 @@ async def _main():
 
     CORE.cli_execution = True
 
+    log.hugesuccess(CORE.default_config)
+    # log.hugeinfo(CORE.custom_config)
+    # log.hugewarning(CORE.module_loader.configs())
+    # log.hugesuccess(CORE.default_config)
+
+    return
+
     # async def monitor_tasks():
     #     in_row = 0
     #     while 1:
@@ -57,6 +64,7 @@ async def _main():
     # monitor_tasks_task = asyncio.create_task(monitor_tasks())
 
     try:
+
         if len(sys.argv) == 1:
             CORE.args.parser.print_help()
             sys.exit(1)

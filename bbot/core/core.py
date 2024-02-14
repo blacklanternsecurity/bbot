@@ -1,4 +1,5 @@
 from pathlib import Path
+from omegaconf import OmegaConf
 
 
 class BBOTCore:
@@ -15,6 +16,10 @@ class BBOTCore:
 
         self._config = None
         self._default_config = None
+        self._custom_config = None
+
+        # bare minimum == logging
+        self.logger
 
         # PRESET TODO: add back in bbot/core/configurator/__init__.py
         # - check_cli_args
@@ -49,26 +54,60 @@ class BBOTCore:
 
     @property
     def config(self):
-        if self._config is None:
-            from .config.logger import BBOTLogger
+        """
+        .config is just .default_config + .custom_config merged together
 
-            self._config = self.files_config.get_config()
-            self._default_config = self._config.copy()
-            self._logger = BBOTLogger(self)
+        any new values should be added to custom_config.
+        """
+        if self._config is None:
+            self._config = OmegaConf.merge(self.default_config, self.custom_config)
+            # set read-only flag (change .custom_config instead)
+            OmegaConf.set_readonly(self._config, True)
         return self._config
 
     @property
     def default_config(self):
-        self.config
+        if self._default_config is None:
+            self._default_config = self.files_config.get_default_config()
+            # set read-only flag (change .custom_config instead)
+            OmegaConf.set_readonly(self._default_config, True)
         return self._default_config
+
+    @default_config.setter
+    def default_config(self, value):
+        # we temporarily clear out the config so it can be refreshed if/when default_config changes
+        self._config = None
+        self._default_config = value
+
+    @property
+    def custom_config(self):
+        # we temporarily clear out the config so it can be refreshed if/when custom_config changes
+        self._config = None
+        if self._custom_config is None:
+            self._custom_config = self.files_config.get_custom_config()
+        return self._custom_config
+
+    @custom_config.setter
+    def custom_config(self, value):
+        # we temporarily clear out the config so it can be refreshed if/when custom_config changes
+        self._config = None
+        self._custom_config = value
 
     @property
     def logger(self):
         self.config
+        if self._logger is None:
+            from .config.logger import BBOTLogger
+
+            self._logger = BBOTLogger(self)
         return self._logger
 
     @property
     def module_loader(self):
+        # module loader depends on environment to be set up
+        # or is it the other way around
+        # PRESET TODO
+        self.environ
         if self._module_loader is None:
             from .modules import ModuleLoader
 
@@ -78,6 +117,18 @@ class BBOTCore:
             module_dirs = list(set(module_dirs))
 
             self._module_loader = ModuleLoader(module_dirs=module_dirs)
+
+            # update default config with module defaults
+            module_config = OmegaConf.create(
+                {
+                    "modules": self._module_loader.configs(type="scan"),
+                    "output_modules": self._module_loader.configs(type="output"),
+                    "internal_modules": self._module_loader.configs(type="internal"),
+                }
+            )
+            # self.default_config = module_config
+            self.default_config = OmegaConf.merge(self.default_config, module_config)
+            assert False
 
         return self._module_loader
 
