@@ -37,7 +37,7 @@ class viewdns(BaseModule):
             self.verbose(f"Error retrieving reverse whois results (status code: {status_code})")
 
         content = getattr(r, "content", b"")
-        
+
         html = self.helpers.beautifulsoup(content, "html.parser")
         found = set()
         for table_row in html.findAll("tr"):
