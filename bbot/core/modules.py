@@ -1,6 +1,7 @@
 import re
 import ast
 import sys
+import pickle
 import importlib
 import traceback
 from pathlib import Path
@@ -12,9 +13,6 @@ from .helpers.logger import log_to_stderr
 from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
 
 
-bbot_code_dir = Path(__file__).parent.parent
-
-
 class ModuleLoader:
     """
     Main class responsible for loading BBOT modules.
@@ -24,22 +22,20 @@ class ModuleLoader:
     This ensures that all requisite libraries and components are available for the module to function correctly.
     """
 
-    default_module_dir = bbot_code_dir / "modules"
     module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
 
-    def __init__(self, module_dirs=None):
+    def __init__(self, core):
+        self.core = core
         self.__preloaded = None
         self._preloaded_orig = None
         self._modules = {}
         self._configs = {}
 
-        # start with default module dir
-        self.module_dirs = {self.default_module_dir}
-        # include custom ones if requested
-        if module_dirs:
-            self.module_dirs.update(set(Path(p) for p in module_dirs))
+        self.preload_cache_file = self.core.cache_dir / "preloaded"
+        self._preload_cache = None
+
         # expand to include all recursive dirs
-        self.module_dirs.update(self.get_recursive_dirs(*self.module_dirs))
+        self.module_dirs = self.get_recursive_dirs(*self.core.module_dirs)
 
     def file_filter(self, file):
         file = file.resolve()
@@ -72,6 +68,16 @@ class ModuleLoader:
             self.__preloaded = {}
             for module_dir in self.module_dirs:
                 for module_file in list_files(module_dir, filter=self.file_filter):
+                    module_name = module_file.stem
+                    module_file = module_file.resolve()
+
+                    # try to load from cache
+                    module_cache_key = (str(module_file), tuple(module_file.stat()))
+                    cache_key = self.preload_cache.get(module_name, {}).get("cache_key", ())
+                    if module_cache_key == cache_key:
+                        self.__preloaded[module_name] = self.preload_cache[module_name]
+                        continue
+
                     if module_dir.name == "modules":
                         namespace = f"bbot.modules"
                     else:
@@ -85,15 +91,33 @@ class ModuleLoader:
                             preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
                         preloaded["type"] = module_type
                         preloaded["namespace"] = namespace
+                        preloaded["cache_key"] = module_cache_key
                         config = OmegaConf.create(preloaded.get("config", {}))
-                        self._configs[module_file.stem] = config
-                        self.__preloaded[module_file.stem] = preloaded
+                        self._configs[module_name] = config
+                        self.__preloaded[module_name] = preloaded
                     except Exception:
                         log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
                         log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
                         sys.exit(1)
+            self.preload_cache = self.__preloaded
 
         return self.__preloaded
+
+    @property
+    def preload_cache(self):
+        if self._preload_cache is None:
+            self._preload_cache = {}
+            if self.preload_cache_file.is_file():
+                with suppress(Exception):
+                    with open(self.preload_cache_file, "rb") as f:
+                        self._preload_cache = pickle.load(f)
+        return self._preload_cache
+
+    @preload_cache.setter
+    def preload_cache(self, value):
+        self._preload_cache = value
+        with open(self.preload_cache_file, "wb") as f:
+            pickle.dump(self._preload_cache, f)
 
     @property
     def _preloaded(self):
@@ -118,6 +142,7 @@ class ModuleLoader:
         return preloaded
 
     def configs(self, type=None):
+        self.preload()
         configs = {}
         if type is not None:
             configs = {k: v for k, v in self._configs.items() if self.check_type(k, type)}
@@ -271,6 +296,7 @@ class ModuleLoader:
                 "ansible": ansible_tasks,
             },
             "sudo": len(apt_deps) > 0,
+            "code": python_code,
         }
         if any(x == True for x in search_dict_by_key("become", ansible_tasks)) or any(
             x == True for x in search_dict_by_key("ansible_become", ansible_tasks)

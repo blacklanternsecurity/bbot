@@ -2,7 +2,12 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 
+bbot_code_dir = Path(__file__).parent.parent
+
+
 class BBOTCore:
+
+    default_module_dir = bbot_code_dir / "modules"
 
     def __init__(self):
         self._args = None
@@ -17,6 +22,19 @@ class BBOTCore:
         self._config = None
         self._default_config = None
         self._custom_config = None
+
+        # where to load modules from
+        self.module_dirs = self.config.get("module_dirs", [])
+        self.module_dirs = [Path(p) for p in self.module_dirs] + [self.default_module_dir]
+        self.module_dirs = sorted(set(self.module_dirs))
+
+        # ensure bbot home dir
+        if not "home" in self.config:
+            self.custom_config["home"] = "~/.bbot"
+        self.home = Path(self.config["home"]).expanduser().resolve()
+        self.cache_dir = self.home / "cache"
+        self.tools_dir = self.home / "tools"
+        self.scans_dir = self.home / "scans"
 
         # bare minimum == logging
         self.logger
@@ -111,12 +129,7 @@ class BBOTCore:
         if self._module_loader is None:
             from .modules import ModuleLoader
 
-            # PRESET TODO: custom module load paths
-            module_dirs = self.config.get("module_dirs", [])
-            module_dirs = [Path(p) for p in module_dirs]
-            module_dirs = list(set(module_dirs))
-
-            self._module_loader = ModuleLoader(module_dirs=module_dirs)
+            self._module_loader = ModuleLoader(self)
 
             # update default config with module defaults
             module_config = OmegaConf.create(
@@ -126,9 +139,8 @@ class BBOTCore:
                     "internal_modules": self._module_loader.configs(type="internal"),
                 }
             )
-            # self.default_config = module_config
+            print(module_config)
             self.default_config = OmegaConf.merge(self.default_config, module_config)
-            assert False
 
         return self._module_loader
 

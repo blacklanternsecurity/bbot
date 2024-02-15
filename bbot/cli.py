@@ -36,7 +36,7 @@ async def _main():
     # log.hugeinfo(CORE.custom_config)
     # log.hugewarning(CORE.module_loader.configs())
     # log.hugesuccess(CORE.default_config)
-    print(CORE.module_loader.preloaded())
+    print(CORE.module_loader)
 
     return
 

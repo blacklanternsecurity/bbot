@@ -57,12 +57,6 @@ class BBOTEnviron:
         """
         Sync config to OS environment variables
         """
-        # ensure bbot_home
-        if not "home" in self.core.config:
-            self.core.custom_config["home"] = "~/.bbot"
-        home = Path(self.core.custom_config["home"]).expanduser().resolve()
-        self.core.custom_config["home"] = str(home)
-
         # if we're running in a virtual environment, make sure to include its /bin in PATH
         if sys.prefix != sys.base_prefix:
             bin_dir = str(Path(sys.prefix) / "bin")
@@ -73,18 +67,18 @@ class BBOTEnviron:
         self.add_to_path(local_bin_dir)
 
         # ensure bbot_tools
-        bbot_tools = home / "tools"
+        bbot_tools = self.core.home / "tools"
         os.environ["BBOT_TOOLS"] = str(bbot_tools)
         if not str(bbot_tools) in os.environ.get("PATH", "").split(":"):
             os.environ["PATH"] = f'{bbot_tools}:{os.environ.get("PATH", "").strip(":")}'
         # ensure bbot_cache
-        bbot_cache = home / "cache"
+        bbot_cache = self.core.home / "cache"
         os.environ["BBOT_CACHE"] = str(bbot_cache)
         # ensure bbot_temp
-        bbot_temp = home / "temp"
+        bbot_temp = self.core.home / "temp"
         os.environ["BBOT_TEMP"] = str(bbot_temp)
         # ensure bbot_lib
-        bbot_lib = home / "lib"
+        bbot_lib = self.core.home / "lib"
         os.environ["BBOT_LIB"] = str(bbot_lib)
         # export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/.bbot/lib/
         self.add_to_path(str(bbot_lib), k="LD_LIBRARY_PATH")
