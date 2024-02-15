@@ -398,7 +398,7 @@ class WebHelper:
                     new_url = next_key(result)
                 except Exception as e:
                     log.debug(f"Failed to extract next page of results from {url}: {e}")
-                    log.debug(traceback.formate_exc())
+                    log.debug(traceback.format_exc())
             else:
                 new_url = url.format(page=page, page_size=page_size, offset=offset)
             result = await self.request(new_url, **requests_kwargs)
@@ -609,17 +609,20 @@ class WebHelper:
             - Write tests for this function
 
         Examples:
-            >>> soup = BeautifulSoup(event.data["body"], "html.parser")
+            >>> soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
             Perform an html parse of the 'markup' argument and return a soup instance
 
             >>> email_type = soup.find(type="email")
             Searches the soup instance for all occurances of the passed in argument
         """
-
-        soup = BeautifulSoup(
-            markup, features, builder, parse_only, from_encoding, exclude_encodings, element_classes, **kwargs
-        )
-        return soup
+        try:
+            soup = BeautifulSoup(
+                markup, features, builder, parse_only, from_encoding, exclude_encodings, element_classes, **kwargs
+            )
+            return soup
+        except Exception as e:
+            log.debug(f"Error parsing beautifulsoup: {e}")
+            return False
 
     def ssl_context_noverify(self):
         if self._ssl_context_noverify is None:
