@@ -66,9 +66,14 @@ def is_domain(d):
         - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
+    if is_ip(d):
+        return False
     extracted = tldextract(d)
-    if extracted.domain and not extracted.subdomain:
-        return True
+    if extracted.registered_domain:
+        if not extracted.subdomain:
+            return True
+    else:
+        return d.count(".") == 1
     return False
 
 
@@ -96,9 +101,14 @@ def is_subdomain(d):
         - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
+    if is_ip(d):
+        return False
     extracted = tldextract(d)
-    if extracted.domain and extracted.subdomain:
-        return True
+    if extracted.registered_domain:
+        if extracted.subdomain:
+            return True
+    else:
+        return d.count(".") > 1
     return False
 
 
@@ -325,6 +335,23 @@ def domain_parents(d, include_self=False):
         elif is_domain(parent):
             yield parent
         break
+
+
+def subdomain_depth(d):
+    """
+    Calculate the depth of subdomains within a given domain name.
+
+    Args:
+        d (str): The domain name to analyze.
+
+    Returns:
+        int: The depth of the subdomain. For example, a hostname "5.4.3.2.1.evilcorp.com"
+        has a subdomain depth of 5.
+    """
+    subdomain, domain = split_domain(d)
+    if not subdomain:
+        return 0
+    return subdomain.count(".") + 1
 
 
 def parent_url(u):
@@ -601,9 +628,6 @@ def is_ip(d, version=None):
         >>> is_ip('evilcorp.com')
         False
     """
-    if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
-        if version is None or version == d.version:
-            return True
     try:
         ip = ipaddress.ip_address(d)
         if version is None or ip.version == version:
@@ -1427,7 +1451,7 @@ def search_dict_values(d, *regexes):
         ...         ]
         ...     }
         ... }
-        >>> url_regexes = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+        >>> url_regexes = re.compile(r'https?://[^\\s<>"]+|www\.[^\\s<>"]+')
         >>> list(search_dict_values(dict_to_search, url_regexes))
         ["https://www.evilcorp.com"]
     """

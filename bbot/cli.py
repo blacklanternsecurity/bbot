@@ -32,10 +32,11 @@ async def _main():
 
     CORE.cli_execution = True
 
-    log.hugesuccess(CORE.default_config)
+    # log.hugesuccess(CORE.default_config)
     # log.hugeinfo(CORE.custom_config)
     # log.hugewarning(CORE.module_loader.configs())
     # log.hugesuccess(CORE.default_config)
+    print(CORE.module_loader.preloaded())
 
     return
 
@@ -339,8 +340,8 @@ async def _main():
                                         allowed_errors -= 1
                                     if keyboard_input is not None:
                                         handle_keyboard_input(keyboard_input)
-                                        if allowed_errors <= 0:
-                                            break
+                                    if allowed_errors <= 0:
+                                        break
                             except Exception as e:
                                 log_to_stderr(f"Error in keyboard listen task: {e}", level="ERROR")
                                 log_to_stderr(traceback.format_exc(), level="TRACE")

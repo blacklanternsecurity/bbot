@@ -260,7 +260,7 @@ class ScanManager:
                     abort_result, reason = abort_result
                     msg += f": {reason}"
                 if abort_result:
-                    log.debug(msg)
+                    log.verbose(msg)
                     return
 
             # run success callback before distributing event (so it can add tags, etc.)

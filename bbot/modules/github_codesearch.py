@@ -53,8 +53,8 @@ class github_codesearch(github):
                 if not items:
                     break
                 for item in items:
-                    htlm_url = item.get("html_url", "")
-                    raw_url = self.raw_url(htlm_url)
+                    html_url = item.get("html_url", "")
+                    raw_url = self.raw_url(html_url)
                     repo_url = item.get("repository", {}).get("html_url", "")
                     if raw_url and repo_url:
                         try:

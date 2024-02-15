@@ -6,6 +6,10 @@ class anubisdb(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     meta = {"description": "Query jldc.me's database for subdomains"}
+    options = {"limit": 1000}
+    options_desc = {
+        "limit": "Limit the number of subdomains returned per query (increasing this may slow the scan due to garbage results from this API)"
+    }
 
     base_url = "https://jldc.me/anubis/subdomains"
     dns_abort_depth = 5
@@ -36,6 +40,9 @@ class anubisdb(subdomain_enum):
         if json:
             for hostname in json:
                 hostname = str(hostname).lower()
-                if hostname.endswith(f".{query}") and not self.abort_if_pre(hostname):
+                in_scope = hostname.endswith(f".{query}")
+                is_ptr = self.helpers.is_ptr(hostname)
+                too_long = self.abort_if_pre(hostname)
+                if in_scope and not is_ptr and not too_long:
                     results.add(hostname)
-        return results
+        return sorted(results)[: self.config.get("limit", 1000)]
