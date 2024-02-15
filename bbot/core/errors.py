@@ -1,6 +1,3 @@
-from httpx import HTTPError, RequestError  # noqa
-
-
 class BBOTError(Exception):
     pass
 

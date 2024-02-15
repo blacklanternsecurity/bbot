@@ -23,7 +23,6 @@ from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.core.event import make_event
 from bbot.core.helpers.misc import sha1, rand_string
-from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 from bbot.core.errors import BBOTError, ScanError, ValidationError
@@ -167,6 +166,9 @@ class Scanner:
         self._status_code = 0
 
         self.max_workers = max(1, self.config.get("max_threads", 25))
+
+        from bbot.core.helpers.helper import ConfigAwareHelper
+
         self.helpers = ConfigAwareHelper(config=self.config, scan=self)
 
         if name is None:
