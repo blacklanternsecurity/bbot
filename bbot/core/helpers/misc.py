@@ -1,35 +1,15 @@
 import os
 import re
 import sys
-import copy
-import idna
 import json
-import atexit
-import codecs
-import psutil
 import random
-import shutil
-import signal
 import string
 import asyncio
-import difflib
-import inspect
 import logging
-import platform
 import ipaddress
-import traceback
 import subprocess as sp
 from pathlib import Path
-from itertools import islice
-from datetime import datetime
-from tabulate import tabulate
-import wordninja as _wordninja
 from contextlib import suppress
-import cloudcheck as _cloudcheck
-import tldextract as _tldextract
-import xml.etree.ElementTree as ET
-from collections.abc import Mapping
-from hashlib import sha1 as hashlib_sha1
 from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
@@ -478,6 +458,8 @@ def tldextract(data):
         - Utilizes `smart_decode` to preprocess the data.
         - Makes use of the `tldextract` library for extraction.
     """
+    import tldextract as _tldextract
+
     return _tldextract.extract(smart_decode(data))
 
 
@@ -767,6 +749,8 @@ def sha1(data):
         >>> sha1("asdf").hexdigest()
         '3da541559918a808c2402bba5012f6c60b27661c'
     """
+    from hashlib import sha1 as hashlib_sha1
+
     if isinstance(data, dict):
         data = json.dumps(data, sort_keys=True)
     return hashlib_sha1(smart_encode(data))
@@ -840,6 +824,8 @@ def recursive_decode(data, max_depth=5):
         >>> recursive_dcode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021")
         " Привет!"
     """
+    import codecs
+
     # Decode newline and tab escapes
     data = backslash_regex.sub(
         lambda match: {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "v": "\v"}.get(match.group("char")), data
@@ -954,6 +940,8 @@ def extract_params_xml(xml_data):
         >>> extract_params_xml('<root><child1><child2/></child1></root>')
         {'child1', 'child2', 'root'}
     """
+    import xml.etree.ElementTree as ET
+
     try:
         root = ET.fromstring(xml_data)
     except ET.ParseError:
@@ -1046,6 +1034,7 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
         >>> extract_words('blacklanternsecurity')
         {'black', 'lantern', 'security', 'bls', 'blacklanternsecurity'}
     """
+    import wordninja as _wordninja
 
     if word_regexes is None:
         word_regexes = bbot_regexes.word_regexes
@@ -1102,6 +1091,8 @@ def closest_match(s, choices, n=1, cutoff=0.0):
         >>> closest_match("asdf", ["asd", "fds", "asdff"], n=3)
         ['asdff', 'asd', 'fds']
     """
+    import difflib
+
     matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
     if not choices or not matches:
         return
@@ -1136,10 +1127,16 @@ def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
     sys.exit(2)
 
 
-def kill_children(parent_pid=None, sig=signal.SIGTERM):
+def kill_children(parent_pid=None, sig=None):
     """
     Forgive me father for I have sinned
     """
+    import psutil
+    import signal
+
+    if sig is None:
+        sig = signal.SIGTERM
+
     try:
         parent = psutil.Process(parent_pid)
     except psutil.NoSuchProcess:
@@ -1262,6 +1259,8 @@ def rm_at_exit(path):
     Examples:
         >>> rm_at_exit("/tmp/test/file1.txt")
     """
+    import atexit
+
     atexit.register(delete_file, path)
 
 
@@ -1375,6 +1374,8 @@ def which(*executables):
         >>> which("python", "python3")
         "/usr/bin/python"
     """
+    import shutil
+
     for e in executables:
         location = shutil.which(e)
         if location:
@@ -1493,6 +1494,8 @@ def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
         >>> filter_dict({"key1": "test", "key2": {"key3": "asdf"}}, "key1", "key3", exclude_keys="key2")
         {'key1': 'test'}
     """
+    import copy
+
     if exclude_keys is None:
         exclude_keys = []
     if isinstance(exclude_keys, str):
@@ -1526,6 +1529,8 @@ def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
         dict: A dictionary cleaned of the keys specified in key_names.
 
     """
+    import copy
+
     if exclude_keys is None:
         exclude_keys = []
     if isinstance(exclude_keys, str):
@@ -1556,6 +1561,7 @@ def grouper(iterable, n):
         >>> list(grouper('ABCDEFG', 3))
         [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
     """
+    from itertools import islice
 
     iterable = iter(iterable)
     return iter(lambda: list(islice(iterable, n)), [])
@@ -1633,6 +1639,8 @@ def make_date(d=None, microseconds=False):
         >>> make_date(microseconds=True)
         "20220707_1330_35167617"
     """
+    from datetime import datetime
+
     f = "%Y%m%d_%H%M_%S"
     if microseconds:
         f += "%f"
@@ -1766,6 +1774,8 @@ def rm_rf(f):
     Examples:
         >>> rm_rf("/tmp/httpx98323849")
     """
+    import shutil
+
     shutil.rmtree(f)
 
 
@@ -1885,6 +1895,8 @@ def smart_encode_punycode(text: str) -> str:
     """
     ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
     """
+    import idna
+
     host, before, after = extract_host(text)
     if host is None:
         return text
@@ -1901,6 +1913,8 @@ def smart_decode_punycode(text: str) -> str:
     """
     xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
     """
+    import idna
+
     host, before, after = extract_host(text)
     if host is None:
         return text
@@ -1992,6 +2006,8 @@ def make_table(*args, **kwargs):
         | row2      | row2      |
         +-----------+-----------+
     """
+    from tabulate import tabulate
+
     # fix IndexError: list index out of range
     if args and not args[0]:
         args = ([[]],) + args[1:]
@@ -2134,6 +2150,8 @@ def cpu_architecture():
         >>> cpu_architecture()
         'amd64'
     """
+    import platform
+
     uname = platform.uname()
     arch = uname.machine.lower()
     if arch.startswith("aarch"):
@@ -2224,6 +2242,8 @@ def memory_status():
         >>> mem.percent
         79.0
     """
+    import psutil
+
     return psutil.virtual_memory()
 
 
@@ -2246,6 +2266,8 @@ def swap_status():
         >>> swap.used
         2097152
     """
+    import psutil
+
     return psutil.swap_memory()
 
 
@@ -2268,6 +2290,8 @@ def get_size(obj, max_depth=5, seen=None):
         >>> get_size(my_dict, max_depth=3)
         8400
     """
+    from collections.abc import Mapping
+
     # If seen is not provided, initialize an empty set
     if seen is None:
         seen = set()
@@ -2343,6 +2367,8 @@ def cloudcheck(ip):
         >>> cloudcheck("168.62.20.37")
         ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
     """
+    import cloudcheck as _cloudcheck
+
     return _cloudcheck.check(ip)
 
 
@@ -2362,6 +2388,8 @@ def is_async_function(f):
         >>> is_async_function(foo)
         True
     """
+    import inspect
+
     return inspect.iscoroutinefunction(f)
 
 
@@ -2440,6 +2468,8 @@ def get_traceback_details(e):
         ...     print(f"File: {filename}, Line: {lineno}, Function: {funcname}")
         File: <stdin>, Line: 2, Function: <module>
     """
+    import traceback
+
     tb = traceback.extract_tb(e.__traceback__)
     last_frame = tb[-1]  # Get the last frame in the traceback (the one where the exception was raised)
     filename = last_frame.filename
@@ -2478,6 +2508,8 @@ async def cancel_tasks(tasks, ignore_errors=True):
                 await task
             except BaseException as e:
                 if not isinstance(e, asyncio.CancelledError):
+                    import traceback
+
                     log.trace(traceback.format_exc())
 
 

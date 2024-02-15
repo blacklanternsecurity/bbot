@@ -75,30 +75,34 @@ class ModuleLoader:
                     module_cache_key = (str(module_file), tuple(module_file.stat()))
                     cache_key = self.preload_cache.get(module_name, {}).get("cache_key", ())
                     if module_cache_key == cache_key:
-                        self.__preloaded[module_name] = self.preload_cache[module_name]
-                        continue
-
-                    if module_dir.name == "modules":
-                        namespace = f"bbot.modules"
+                        preloaded = self.preload_cache[module_name]
                     else:
-                        namespace = f"bbot.modules.{module_dir.name}"
-                    try:
-                        preloaded = self.preload_module(module_file)
-                        module_type = "scan"
-                        if module_dir.name in ("output", "internal"):
-                            module_type = str(module_dir.name)
-                        elif module_dir.name not in ("modules"):
-                            preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
-                        preloaded["type"] = module_type
-                        preloaded["namespace"] = namespace
-                        preloaded["cache_key"] = module_cache_key
-                        config = OmegaConf.create(preloaded.get("config", {}))
-                        self._configs[module_name] = config
-                        self.__preloaded[module_name] = preloaded
-                    except Exception:
-                        log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
-                        log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
-                        sys.exit(1)
+                        if module_dir.name == "modules":
+                            namespace = f"bbot.modules"
+                        else:
+                            namespace = f"bbot.modules.{module_dir.name}"
+                        try:
+                            preloaded = self.preload_module(module_file)
+                            module_type = "scan"
+                            if module_dir.name in ("output", "internal"):
+                                module_type = str(module_dir.name)
+                            elif module_dir.name not in ("modules"):
+                                preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
+                            preloaded["type"] = module_type
+                            preloaded["namespace"] = namespace
+                            preloaded["cache_key"] = module_cache_key
+
+                        except Exception:
+                            log_to_stderr(
+                                f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL"
+                            )
+                            log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
+                            sys.exit(1)
+
+                    self.__preloaded[module_name] = preloaded
+                    config = OmegaConf.create(preloaded.get("config", {}))
+                    self._configs[module_name] = config
+
             self.preload_cache = self.__preloaded
 
         return self.__preloaded
