@@ -2,8 +2,7 @@
 # thanks to BBOT's sub-domain enumeration) looking for the presence of an 'email type' that also
 # contains a 'placeholder'. The combination of these two HTML items usually signify the presence
 # of an "Enter Your Email Here" type Newsletter Subscription service. This module could be used
-# to find newsletters for a future email bombing attack and/or find user-input fields that could
-# be be susceptible to overflows or injections.
+# to find newsletters for a future email bombing attack.
 
 from .base import BaseModule
 import re
@@ -14,8 +13,6 @@ import re
 # https://buffer.com/
 # https://www.milkkarten.net/
 # https://geekout.mattnavarra.com/
-
-deps_pip = ["beautifulsoup4"]
 
 
 class newsletters(BaseModule):
