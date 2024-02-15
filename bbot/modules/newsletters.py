@@ -7,7 +7,6 @@
 
 from .base import BaseModule
 import re
-from bs4 import BeautifulSoup
 
 # Known Websites with Newsletters
 # https://futureparty.com/
@@ -37,7 +36,7 @@ class newsletters(BaseModule):
 
     async def handle_event(self, event):
         if event.data["status_code"] == 200:
-            soup = BeautifulSoup(event.data["body"], "html.parser")
+            soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
             result = self.find_type(soup)
             if result:
                 description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
