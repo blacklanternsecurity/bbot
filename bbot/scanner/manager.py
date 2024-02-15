@@ -260,7 +260,7 @@ class ScanManager:
                     abort_result, reason = abort_result
                     msg += f": {reason}"
                 if abort_result:
-                    log.debug(msg)
+                    log.verbose(msg)
                     return
 
             # run success callback before distributing event (so it can add tags, etc.)
@@ -319,6 +319,7 @@ class ScanManager:
                                         f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
                                     )
                     for child_event in dns_child_events:
+                        log.debug(f"Queueing DNS child for {event}: {child_event}")
                         self.queue_event(child_event)
 
         except ValidationError as e:

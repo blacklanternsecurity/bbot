@@ -24,7 +24,7 @@ async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     # should fail because URL is not in-scope
     assert response.status_code == 500
     response = await scan2.helpers.request(url)
-    # should suceed because URL is in-scope
+    # should succeed because URL is in-scope
     assert response.status_code == 200
     assert response.text == "test_http_helpers_yep"
 

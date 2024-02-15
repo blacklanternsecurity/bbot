@@ -15,6 +15,7 @@ class Subdomains(Human):
 
     async def setup(self):
         self.include_unresolved = self.config.get("include_unresolved", False)
+        self.subdomains_written = 0
         return await super().setup()
 
     async def filter_event(self, event):
@@ -27,9 +28,10 @@ class Subdomains(Human):
 
     async def handle_event(self, event):
         if self.file is not None:
+            self.subdomains_written += 1
             self.file.write(f"{event.data}\n")
             self.file.flush()
 
     async def report(self):
         if getattr(self, "_file", None) is not None:
-            self.info(f"Saved subdomains to {self.output_file}")
+            self.info(f"Saved {self.subdomains_written:,} subdomains to {self.output_file}")

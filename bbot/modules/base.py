@@ -104,7 +104,7 @@ class BaseModule:
 
     _preserve_graph = False
     _stats_exclude = False
-    _qsize = 100
+    _qsize = 1000
     _priority = 3
     _name = "base"
     _type = "scan"
@@ -297,7 +297,7 @@ class BaseModule:
     def batch_size(self):
         batch_size = self.config.get("batch_size", None)
         # only allow overriding the batch size if its default value is greater than 1
-        # this prevents modules from being accidentally neutered by an incorect batch_size setting
+        # this prevents modules from being accidentally neutered by an incorrect batch_size setting
         if batch_size is None or self._batch_size == 1:
             batch_size = self._batch_size
         return batch_size
@@ -358,12 +358,12 @@ class BaseModule:
                 events, finish = await self._events_waiting()
                 if events and not self.errored:
                     counter.n = len(events)
-                    self.debug(f"Handling batch of {len(events):,} events")
+                    self.verbose(f"Handling batch of {len(events):,} events")
                     submitted = True
                     async with self.scan._acatch(f"{self.name}.handle_batch()"):
                         handle_batch_task = asyncio.create_task(self.handle_batch(*events))
                         await handle_batch_task
-                    self.debug(f"Finished handling batch of {len(events):,} events")
+                    self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
             async with self.scan._acatch(context), self._task_counter.count(context):
