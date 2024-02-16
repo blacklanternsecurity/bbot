@@ -45,6 +45,30 @@ async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     assert filename2.is_file()
     with open(filename2) as f:
         assert f.read() == download_content
+
+    # beautifulsoup
+    download_content = """
+    <div>
+    <h1>Example Domain</h1>
+    <p>This domain is for use in illustrative examples in documents. You may use this
+    domain in literature without prior coordination or asking for permission.</p>
+    <p><a href="https://www.iana.org/domains/example">More information...</a></p>
+    </div>
+    """
+
+    path = "/test_http_helpers_beautifulsoup"
+    url = bbot_httpserver.url_for(path)
+    bbot_httpserver.expect_request(uri=path).respond_with_data(download_content, status=200)
+    webpage = await scan1.helpers.request(url)
+    assert webpage, f"Webpage is False"
+    soup = scan1.helpers.beautifulsoup(webpage, "html.parser")
+    assert soup, f"Soup is False"
+    # pretty_print = soup.prettify()
+    # assert pretty_print, f"PrettyPrint is False"
+    # scan1.helpers.log.info(f"{pretty_print}")
+    html_text = soup.find(text="Example Domain")
+    assert html_text, f"Find HTML Text is False"
+
     # 404
     path = "/test_http_helpers_download_404"
     url = bbot_httpserver.url_for(path)

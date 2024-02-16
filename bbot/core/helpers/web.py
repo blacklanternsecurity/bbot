@@ -566,6 +566,64 @@ class WebHelper:
             return True
         return False
 
+    def beautifulsoup(
+        self,
+        markup,
+        features="html.parser",
+        builder=None,
+        parse_only=None,
+        from_encoding=None,
+        exclude_encodings=None,
+        element_classes=None,
+        **kwargs,
+    ):
+        """
+        Naviate, Search, Modify, Parse, or PrettyPrint HTML Content.
+        More information at https://beautiful-soup-4.readthedocs.io/en/latest/
+
+        Args:
+            markup: A string or a file-like object representing markup to be parsed.
+            features: Desirable features of the parser to be used.
+                This may be the name of a specific parser ("lxml",
+                "lxml-xml", "html.parser", or "html5lib") or it may be
+                the type of markup to be used ("html", "html5", "xml").
+                Defaults to 'html.parser'.
+            builder: A TreeBuilder subclass to instantiate (or instance to use)
+                instead of looking one up based on `features`.
+            parse_only: A SoupStrainer. Only parts of the document
+                matching the SoupStrainer will be considered.
+            from_encoding: A string indicating the encoding of the
+                document to be parsed.
+            exclude_encodings = A list of strings indicating
+                encodings known to be wrong.
+            element_classes = A dictionary mapping BeautifulSoup
+                classes like Tag and NavigableString, to other classes you'd
+                like to be instantiated instead as the parse tree is
+                built.
+            **kwargs = For backwards compatibility purposes.
+
+        Returns:
+            soup: An instance of the BeautifulSoup class
+
+        Todo:
+            - Write tests for this function
+
+        Examples:
+            >>> soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
+            Perform an html parse of the 'markup' argument and return a soup instance
+
+            >>> email_type = soup.find(type="email")
+            Searches the soup instance for all occurances of the passed in argument
+        """
+        try:
+            soup = BeautifulSoup(
+                markup, features, builder, parse_only, from_encoding, exclude_encodings, element_classes, **kwargs
+            )
+            return soup
+        except Exception as e:
+            log.debug(f"Error parsing beautifulsoup: {e}")
+            return False
+
     def ssl_context_noverify(self):
         if self._ssl_context_noverify is None:
             ssl_context = ssl.create_default_context()
