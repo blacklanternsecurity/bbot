@@ -2,12 +2,10 @@
 # thanks to BBOT's sub-domain enumeration) looking for the presence of an 'email type' that also
 # contains a 'placeholder'. The combination of these two HTML items usually signify the presence
 # of an "Enter Your Email Here" type Newsletter Subscription service. This module could be used
-# to find newsletters for a future email bombing attack and/or find user-input fields that could
-# be be susceptible to overflows or injections.
+# to find newsletters for a future email bombing attack.
 
 from .base import BaseModule
 import re
-from bs4 import BeautifulSoup
 
 # Known Websites with Newsletters
 # https://futureparty.com/
@@ -15,8 +13,6 @@ from bs4 import BeautifulSoup
 # https://buffer.com/
 # https://www.milkkarten.net/
 # https://geekout.mattnavarra.com/
-
-deps_pip = ["beautifulsoup4"]
 
 
 class newsletters(BaseModule):
@@ -37,7 +33,7 @@ class newsletters(BaseModule):
 
     async def handle_event(self, event):
         if event.data["status_code"] == 200:
-            soup = BeautifulSoup(event.data["body"], "html.parser")
+            soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
             result = self.find_type(soup)
             if result:
                 description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"

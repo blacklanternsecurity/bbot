@@ -47,6 +47,7 @@ httpx = "^0.26.0"
 cloudcheck = "^2.1.0.181"
 tldextract = "^5.1.1"
 cachetools = "^5.3.2"
+socksio = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
