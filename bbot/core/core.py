@@ -139,7 +139,6 @@ class BBOTCore:
                     "internal_modules": self._module_loader.configs(type="internal"),
                 }
             )
-            print(module_config)
             self.default_config = OmegaConf.merge(self.default_config, module_config)
 
         return self._module_loader
