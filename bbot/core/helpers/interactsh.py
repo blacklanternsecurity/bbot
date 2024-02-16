@@ -127,7 +127,8 @@ class Interactsh:
         if self.custom_server:
             if not self.token:
                 log.verbose("Interact.sh token is not set")
-            headers["Authorization"] = self.token
+            else:
+                headers["Authorization"] = self.token
             self.server_list = [self.custom_server]
         else:
             self.server_list = random.sample(server_list, k=len(server_list))
