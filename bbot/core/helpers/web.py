@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from contextlib import asynccontextmanager
 
 from httpx._models import Cookies
+from socksio.exceptions import SOCKSError
 
 from bbot.core.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
@@ -670,6 +671,12 @@ class WebHelper:
                 raise httpx.RequestError(msg)
         except anyio.EndOfStream as e:
             msg = f"AnyIO error with request to URL: {url}: {e}"
+            log.trace(msg)
+            log.trace(traceback.format_exc())
+            if raise_error:
+                raise httpx.RequestError(msg)
+        except SOCKSError as e:
+            msg = f"SOCKS error with request to URL: {url}: {e}"
             log.trace(msg)
             log.trace(traceback.format_exc())
             if raise_error:
