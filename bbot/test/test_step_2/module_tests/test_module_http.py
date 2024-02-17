@@ -56,7 +56,7 @@ class TestHTTP(ModuleTestBase):
 
 class TestHTTPSIEMFriendly(TestHTTP):
     modules_overrides = ["http"]
-    config_overrides = TestHTTP.config_overrides
+    config_overrides = {"output_modules": {"http": dict(TestHTTP.config_overrides["output_modules"]["http"])}}
     config_overrides["output_modules"]["http"]["siem_friendly"] = True
 
     def verify_data(self, j):
