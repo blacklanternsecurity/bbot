@@ -2,7 +2,8 @@ from bbot.core.errors import RequestError
 
 from bbot.modules.output.base import BaseOutputModule
 
-class SPLUNK(BaseOutputModule):
+
+class Splunk(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Send every event to a splunk instance through HTTP Event Collector"}
     options = {
@@ -31,8 +32,7 @@ class SPLUNK(BaseOutputModule):
         if hectoken:
             self.headers["Authorization"] = f"Splunk {hectoken}"
         if not self.url:
-            self.warning("Must set URL")
-            return False
+            return False, "Must set URL"
         if not self.source:
             self.warning("Please provide a source")
         return True
@@ -44,7 +44,7 @@ class SPLUNK(BaseOutputModule):
                     "index": self.index,
                     "source": self.source,
                     "sourcetype": "_json",
-                    "event": dict(event),
+                    "event": event.json(),
                 }
                 await self.helpers.request(
                     url=self.url,
