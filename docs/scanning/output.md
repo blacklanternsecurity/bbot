@@ -137,20 +137,20 @@ output_modules:
 
 ### Splunk
 
-The `splunk` output module sends [events](events.md) in JSON format to a desired splunk instance via [HEC](https://docs.splunk.com/Documentation/Splunk/9.2.0/Data/UsetheHTTPEventCollector)
+The `splunk` output module sends [events](events.md) in JSON format to a desired splunk instance via [HEC](https://docs.splunk.com/Documentation/Splunk/9.2.0/Data/UsetheHTTPEventCollector).
 
-You can customize this output with the following variables :
+You can customize this output with the following config options:
 
 ```yaml title="~/.bbot/config/bbot.yml"
 output_modules:
   splunk:
-    #The full URL with the URI `/services/collector/event`
+    # The full URL with the URI `/services/collector/event`
     url: https://localhost:8088/services/collector/event
-    #Has to be generated from splunk webui
+    # Generated from splunk webui
     hectoken: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-    #Defaults to `main` if not set
+    # Defaults to `main` if not set
     index: my-specific-index
-    #Defaults to `bbot` if not set
+    # Defaults to `bbot` if not set
     source: /my/source.json
 ```
 
