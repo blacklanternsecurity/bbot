@@ -33,16 +33,10 @@ asyncio.run(main())
 
 <!-- BBOT HELP OUTPUT -->
 ```text
-usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]]
-               [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]]
-               [--strict-scope] [-m MODULE [MODULE ...]] [-l]
-               [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf]
-               [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]]
-               [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME]
-               [-o DIR] [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y]
-               [--dry-run] [--current-config]
-               [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps]
-               [-a] [--version]
+usage: bbot [-h] [--help-all] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-m MODULE [MODULE ...]] [-l]
+               [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]] [--allow-deadly] [-n SCAN_NAME] [-o DIR]
+               [-c [CONFIG ...]] [-v] [-d] [-s] [--force] [-y] [--dry-run] [--current-config] [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [-a]
+               [--version]
 
 Bighuge BLS OSINT Tool
 
@@ -73,7 +67,7 @@ Modules:
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. -ef aggressive)
   -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,human,json,neo4j,python,slack,subdomains,teams,web_report,websocket
+                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,human,json,neo4j,python,slack,splunk,subdomains,teams,web_report,websocket
   --allow-deadly        Enable the use of highly aggressive modules
 
 Scan:
