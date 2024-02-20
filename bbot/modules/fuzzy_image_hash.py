@@ -49,38 +49,37 @@ class fuzzy_image_hash(BaseModule):
                 self.emit_event("data", "FIDNING", event)
 
     def get_image_urls(response_body):
-    """
-    Extracts all image URLs from an HTTP response.
+        """
+        Extracts all image URLs from an HTTP response.
 
-    Parameters:
-    - response: The HTTP response object from requests.
+        Parameters:
+        - response: The HTTP response object from requests.
 
-    Returns:
-    - A list of strings, where each string is the URL of an image found in the response.
-    """
-    # Parse the HTML content of the response
-    soup = BeautifulSoup(response.content, 'html.parser')
-    
-    # Find all <img> tags in the HTML
-    img_tags = soup.find_all('img')
-    
-    # Extract the URLs of the images, handling both absolute and relative URLs
-    image_urls = []
-    for img in img_tags:
-        src = img.get('src')
-        if src:
-            # Convert relative URLs to absolute URLs
-            absolute_src = urljoin(response.url, src)
-            image_urls.append(absolute_src)
-    
-    return image_urls
-        return
+        Returns:
+        - A list of strings, where each string is the URL of an image found in the response.
+        """
+        # Parse the HTML content of the response
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find all <img> tags in the HTML
+        img_tags = soup.find_all('img')
+        
+        # Extract the URLs of the images, handling both absolute and relative URLs
+        image_urls = []
+        for img in img_tags:
+            src = img.get('src')
+            if src:
+                # Convert relative URLs to absolute URLs
+                absolute_src = urljoin(response.url, src)
+                image_urls.append(absolute_src)
+        
+        return image_urls
 
     def download_image(url):
-    """Download image and return its content."""
-    response = requests.get(url)
-    response.raise_for_status()  # Raises an exception for HTTP errors.
-    return response.content
+        """Download image and return its content."""
+        response = requests.get(url)
+        response.raise_for_status()  # Raises an exception for HTTP errors.
+        return response.content
 
     def compute_hash(image_content):
         """Compute the ssdeep hash of the given image content."""
