@@ -38,7 +38,7 @@ target_field_types[7] = "Timestamp"
 
 def decode_ntlm_challenge(st):
     hdr_tup = struct.unpack("<hhiiQ", st[12:32])
-    parsed_challange = {}
+    parsed_challenge = {}
 
     nxt = st[40:48]
     if len(nxt) == 8:
@@ -59,12 +59,12 @@ def decode_ntlm_challenge(st):
             rec_sz = rec_hdr[1]
             subst = raw[pos + 4 : pos + 4 + rec_sz]
             try:
-                parsed_challange[rec_type] = subst.replace(b"\x00", b"").decode()
+                parsed_challenge[rec_type] = subst.replace(b"\x00", b"").decode()
             except UnicodeDecodeError:
-                parsed_challange[rec_type] = subst.replace(b"\x00", b"")
+                parsed_challenge[rec_type] = subst.replace(b"\x00", b"")
             pos += 4 + rec_sz
 
-    return parsed_challange
+    return parsed_challenge
 
 
 def ntlmdecode(authenticate_header):

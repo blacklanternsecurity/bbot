@@ -40,8 +40,7 @@ class internetdb(BaseModule):
     flags = ["passive", "safe", "portscan", "subdomain-enum"]
     meta = {"description": "Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities"}
 
-    # limit outgoing queue size to help avoid rate limiting
-    _qsize = 100
+    _qsize = 500
 
     base_url = "https://internetdb.shodan.io"
 
@@ -76,7 +75,7 @@ class internetdb(BaseModule):
             return
         if data:
             if r.status_code == 200:
-                self._parse_response(data=data, event=event)
+                await self._parse_response(data=data, event=event)
             elif r.status_code == 404:
                 detail = data.get("detail", "")
                 if detail:
@@ -86,22 +85,22 @@ class internetdb(BaseModule):
                 err_msg = data.get("msg", "")
                 self.verbose(f"Shodan error for {ip}: {err_data}: {err_msg}")
 
-    def _parse_response(self, data: dict, event):
+    async def _parse_response(self, data: dict, event):
         """Handles emitting events from returned JSON"""
         data: dict  # has keys: cpes, hostnames, ip, ports, tags, vulns
         # ip is a string, ports is a list of ports, the rest is a list of strings
         for hostname in data.get("hostnames", []):
-            self.emit_event(hostname, "DNS_NAME", source=event)
+            await self.emit_event(hostname, "DNS_NAME", source=event)
         for cpe in data.get("cpes", []):
-            self.emit_event({"technology": cpe, "host": str(event.host)}, "TECHNOLOGY", source=event)
+            await self.emit_event({"technology": cpe, "host": str(event.host)}, "TECHNOLOGY", source=event)
         for port in data.get("ports", []):
-            self.emit_event(
+            await self.emit_event(
                 self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True, quick=True
             )
         vulns = data.get("vulns", [])
         if vulns:
             vulns_str = ", ".join([str(v) for v in vulns])
-            self.emit_event(
+            await self.emit_event(
                 {"description": f"Shodan reported verified vulnerabilities: {vulns_str}", "host": str(event.host)},
                 "FINDING",
                 source=event,
@@ -116,10 +115,11 @@ class internetdb(BaseModule):
         elif event.type == "DNS_NAME":
             # always try IPv4 first
             ipv6 = []
-            for host in event.resolved_hosts:
-                if self.helpers.is_ip(host, version=4):
-                    return host
-                elif self.helpers.is_ip(host, version=6):
-                    ipv6.append(host)
+            ips = [h for h in event.resolved_hosts if self.helpers.is_ip(h)]
+            for ip in sorted([str(ip) for ip in ips]):
+                if self.helpers.is_ip(ip, version=4):
+                    return ip
+                elif self.helpers.is_ip(ip, version=6):
+                    ipv6.append(ip)
             for ip in ipv6:
                 return ip

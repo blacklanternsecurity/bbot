@@ -1,9 +1,9 @@
 from contextlib import suppress
 
-from bbot.modules.templates.credential_leak import credential_leak
+from bbot.modules.base import BaseModule
 
 
-class credshed(credential_leak):
+class credshed(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["PASSWORD", "HASHED_PASSWORD", "USERNAME", "EMAIL_ADDRESS"]
     flags = ["passive", "safe"]
@@ -17,6 +17,7 @@ class credshed(credential_leak):
         "password": "Credshed password",
         "credshed_url": "URL of credshed server",
     }
+    target_only = True
 
     async def setup(self):
         self.base_url = self.config.get("credshed_url", "").rstrip("/")
@@ -40,7 +41,7 @@ class credshed(credential_leak):
         return await super().setup()
 
     async def handle_event(self, event):
-        query = self.make_query(event)
+        query = event.data
         cs_query = await self.helpers.request(
             f"{self.base_url}/api/search",
             method="POST",
@@ -76,11 +77,11 @@ class credshed(credential_leak):
 
             email_event = self.make_event(email, "EMAIL_ADDRESS", source=event, tags=tags)
             if email_event is not None:
-                self.emit_event(email_event)
-                if user and not self.already_seen(f"{email}:{user}"):
-                    self.emit_event(user, "USERNAME", source=email_event, tags=tags)
-                if pw and not self.already_seen(f"{email}:{pw}"):
-                    self.emit_event(pw, "PASSWORD", source=email_event, tags=tags)
+                await self.emit_event(email_event)
+                if user:
+                    await self.emit_event(f"{email}:{user}", "USERNAME", source=email_event, tags=tags)
+                if pw:
+                    await self.emit_event(f"{email}:{pw}", "PASSWORD", source=email_event, tags=tags)
                 for h_pw in hashes:
-                    if h_pw and not self.already_seen(f"{email}:{h_pw}"):
-                        self.emit_event(h_pw, "HASHED_PASSWORD", source=email_event, tags=tags)
+                    if h_pw:
+                        await self.emit_event(f"{email}:{h_pw}", "HASHED_PASSWORD", source=email_event, tags=tags)

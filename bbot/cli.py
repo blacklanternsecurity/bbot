@@ -6,9 +6,9 @@ import sys
 import asyncio
 import logging
 import traceback
-from aioconsole import ainput
 from omegaconf import OmegaConf
 from contextlib import suppress
+from aioconsole import stream
 
 # fix tee buffering
 sys.stdout.reconfigure(line_buffering=True)
@@ -20,6 +20,7 @@ import bbot.core.errors
 from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
+from bbot.core.helpers.misc import smart_decode
 from bbot.core.helpers.logger import log_to_stderr
 from bbot.core.configurator import ensure_config_files, check_cli_args, environ
 
@@ -87,8 +88,6 @@ async def _main():
             log.stdout(f"{OmegaConf.to_yaml(config)}")
             sys.exit(0)
             return
-
-        log.verbose(f'Command: {" ".join(sys.argv)}')
 
         if options.agent_mode:
             from bbot.agent import Agent
@@ -303,46 +302,56 @@ async def _main():
 
                 if not options.dry_run:
                     log.trace(f"Command: {' '.join(sys.argv)}")
-                    if not options.agent_mode and not options.yes and sys.stdin.isatty():
-                        log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
-                        input()
 
-                    def handle_keyboard_input(keyboard_input):
-                        kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
-                        if keyboard_input:
-                            log.verbose(f'Got keyboard input: "{keyboard_input}"')
-                            kill_match = kill_regex.match(keyboard_input)
-                            if kill_match:
-                                module = kill_match.group("module")
-                                if module in scanner.modules:
-                                    log.hugewarning(f'Killing module: "{module}"')
-                                    scanner.manager.kill_module(module, message="killed by user")
-                                else:
-                                    log.warning(f'Invalid module: "{module}"')
-                        else:
-                            toggle_log_level(logger=log)
-                            scanner.manager.modules_status(_log=True)
+                    if sys.stdin.isatty():
+                        if not options.agent_mode and not options.yes:
+                            log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
+                            input()
 
-                    async def akeyboard_listen():
-                        allowed_errors = 10
-                        while 1:
-                            keyboard_input = "a"
+                        def handle_keyboard_input(keyboard_input):
+                            kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
+                            if keyboard_input:
+                                log.verbose(f'Got keyboard input: "{keyboard_input}"')
+                                kill_match = kill_regex.match(keyboard_input)
+                                if kill_match:
+                                    module = kill_match.group("module")
+                                    if module in scanner.modules:
+                                        log.hugewarning(f'Killing module: "{module}"')
+                                        scanner.manager.kill_module(module, message="killed by user")
+                                    else:
+                                        log.warning(f'Invalid module: "{module}"')
+                            else:
+                                toggle_log_level(logger=log)
+                                scanner.manager.modules_status(_log=True)
+
+                        # Reader
+                        reader = stream.StandardStreamReader()
+                        protocol = stream.StandardStreamReaderProtocol(reader)
+                        await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
+
+                        async def akeyboard_listen():
                             try:
-                                keyboard_input = await ainput()
-                            except Exception:
-                                allowed_errors -= 1
-                            handle_keyboard_input(keyboard_input)
-                            if allowed_errors <= 0:
-                                break
+                                allowed_errors = 10
+                                while 1:
+                                    keyboard_input = None
+                                    try:
+                                        keyboard_input = smart_decode((await reader.readline()).strip())
+                                        allowed_errors = 10
+                                    except Exception as e:
+                                        log_to_stderr(f"Error in keyboard listen loop: {e}", level="TRACE")
+                                        log_to_stderr(traceback.format_exc(), level="TRACE")
+                                        allowed_errors -= 1
+                                    if keyboard_input is not None:
+                                        handle_keyboard_input(keyboard_input)
+                                    if allowed_errors <= 0:
+                                        break
+                            except Exception as e:
+                                log_to_stderr(f"Error in keyboard listen task: {e}", level="ERROR")
+                                log_to_stderr(traceback.format_exc(), level="TRACE")
 
-                    try:
-                        keyboard_listen_task = asyncio.create_task(akeyboard_listen())
+                        asyncio.create_task(akeyboard_listen())
 
-                        await scanner.async_start_without_generator()
-                    finally:
-                        keyboard_listen_task.cancel()
-                        with suppress(asyncio.CancelledError):
-                            await keyboard_listen_task
+                    await scanner.async_start_without_generator()
 
             except bbot.core.errors.ScanError as e:
                 log_to_stderr(str(e), level="ERROR")

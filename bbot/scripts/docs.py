@@ -94,6 +94,11 @@ def update_docs():
     assert len(bbot_module_table.splitlines()) > 50
     update_md_files("BBOT MODULES", bbot_module_table)
 
+    # BBOT output modules
+    bbot_output_module_table = module_loader.modules_table(mod_type="output")
+    assert len(bbot_output_module_table.splitlines()) > 10
+    update_md_files("BBOT OUTPUT MODULES", bbot_output_module_table)
+
     # BBOT module options
     bbot_module_options_table = module_loader.modules_options_table()
     assert len(bbot_module_options_table.splitlines()) > 100

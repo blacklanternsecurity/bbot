@@ -91,7 +91,9 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("https://evilcorp.com.:666", dummy=True) == "https://evilcorp.com:666/"
     assert scan.make_event("https://[bad::c0de]", dummy=True).with_port().geturl() == "https://[bad::c0de]:443/"
     assert scan.make_event("https://[bad::c0de]:666", dummy=True).with_port().geturl() == "https://[bad::c0de]:666/"
-    assert "status-200" in scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"]).tags
+    url_event = scan.make_event("https://evilcorp.com", "URL", events.ipv4_url, tags=["status-200"])
+    assert "status-200" in url_event.tags
+    assert url_event.http_status == 200
     with pytest.raises(ValidationError, match=".*status tag.*"):
         scan.make_event("https://evilcorp.com", "URL", events.ipv4_url)
 
@@ -100,6 +102,22 @@ async def test_events(events, scan, helpers, bbot_config):
     assert events.http_response.port == 80
     assert events.http_response.parsed.scheme == "http"
     assert events.http_response.with_port().geturl() == "http://example.com:80/"
+
+    http_response = scan.make_event(
+        {
+            "port": "80",
+            "title": "HTTP%20RESPONSE",
+            "url": "http://www.evilcorp.com:80",
+            "input": "http://www.evilcorp.com:80",
+            "location": "/asdf",
+            "status_code": 301,
+        },
+        "HTTP_RESPONSE",
+        dummy=True,
+    )
+    assert http_response.http_status == 301
+    assert http_response.http_title == "HTTP RESPONSE"
+    assert http_response.redirect_location == "http://www.evilcorp.com/asdf"
 
     # open port tests
     assert events.open_port in events.domain
@@ -232,6 +250,10 @@ async def test_events(events, scan, helpers, bbot_config):
     corrected_event3 = scan.make_event("wat.asdf.com", "IP_ADDRESS", dummy=True)
     assert corrected_event3.type == "DNS_NAME"
 
+    corrected_event4 = scan.make_event("bob@evilcorp.com", "USERNAME", dummy=True)
+    assert corrected_event4.type == "EMAIL_ADDRESS"
+    assert "affiliate" in corrected_event4.tags
+
     test_vuln = scan.make_event(
         {"host": "EVILcorp.com", "severity": "iNfo ", "description": "asdf"}, "VULNERABILITY", dummy=True
     )
@@ -303,7 +325,10 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("テスト@ドメイン.テスト", dummy=True).data == "テスト@xn--eckwd4c7c.xn--zckzah"
     assert scan.make_event("ドメイン.テスト:80", dummy=True).data == "xn--eckwd4c7c.xn--zckzah:80"
     assert scan.make_event("http://ドメイン.テスト:80", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/"
-    assert scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).data == "http://xn--eckwd4c7c.xn--zckzah/テスト"
+    assert (
+        scan.make_event("http://ドメイン.テスト:80/テスト", dummy=True).data
+        == "http://xn--eckwd4c7c.xn--zckzah/テスト"
+    )
     # thai
     assert (
         scan.make_event("xn--12c1bik6bbd8ab6hd1b5jc6jta.com", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
@@ -334,8 +359,7 @@ async def test_events(events, scan, helpers, bbot_config):
     assert scan.make_event("ทดสอบ@เราเที่ยวด้วยกัน.com", dummy=True).data == "ทดสอบ@xn--12c1bik6bbd8ab6hd1b5jc6jta.com"
     assert scan.make_event("เราเที่ยวด้วยกัน.com:80", dummy=True).data == "xn--12c1bik6bbd8ab6hd1b5jc6jta.com:80"
     assert (
-        scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).data
-        == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
+        scan.make_event("http://เราเที่ยวด้วยกัน.com:80", dummy=True).data == "http://xn--12c1bik6bbd8ab6hd1b5jc6jta.com/"
     )
     assert (
         scan.make_event("http://เราเที่ยวด้วยกัน.com:80/ทดสอบ", dummy=True).data
@@ -360,6 +384,19 @@ async def test_events(events, scan, helpers, bbot_config):
     assert reconstituted_event.data == "evilcorp.com"
     assert reconstituted_event.type == "DNS_NAME"
     assert "127.0.0.1" in reconstituted_event.resolved_hosts
+
+    # SIEM-friendly serialize/deserialize
+    json_event_siemfriendly = db_event.json(siem_friendly=True)
+    assert json_event_siemfriendly["scope_distance"] == 1
+    assert json_event_siemfriendly["data"] == {"DNS_NAME": "evilcorp.com"}
+    assert json_event_siemfriendly["type"] == "DNS_NAME"
+    assert json_event_siemfriendly["timestamp"] == timestamp
+    reconstituted_event2 = event_from_json(json_event_siemfriendly, siem_friendly=True)
+    assert reconstituted_event2.scope_distance == 1
+    assert reconstituted_event2.timestamp.timestamp() == timestamp
+    assert reconstituted_event2.data == "evilcorp.com"
+    assert reconstituted_event2.type == "DNS_NAME"
+    assert "127.0.0.1" in reconstituted_event2.resolved_hosts
 
     http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
     assert http_response.source_id == scan.root_event.id

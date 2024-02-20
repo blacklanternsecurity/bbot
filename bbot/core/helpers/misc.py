@@ -66,9 +66,14 @@ def is_domain(d):
         - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
+    if is_ip(d):
+        return False
     extracted = tldextract(d)
-    if extracted.domain and not extracted.subdomain:
-        return True
+    if extracted.registered_domain:
+        if not extracted.subdomain:
+            return True
+    else:
+        return d.count(".") == 1
     return False
 
 
@@ -96,9 +101,14 @@ def is_subdomain(d):
         - Port, if present in input, is ignored.
     """
     d, _ = split_host_port(d)
+    if is_ip(d):
+        return False
     extracted = tldextract(d)
-    if extracted.domain and extracted.subdomain:
-        return True
+    if extracted.registered_domain:
+        if extracted.subdomain:
+            return True
+    else:
+        return d.count(".") > 1
     return False
 
 
@@ -327,6 +337,23 @@ def domain_parents(d, include_self=False):
         break
 
 
+def subdomain_depth(d):
+    """
+    Calculate the depth of subdomains within a given domain name.
+
+    Args:
+        d (str): The domain name to analyze.
+
+    Returns:
+        int: The depth of the subdomain. For example, a hostname "5.4.3.2.1.evilcorp.com"
+        has a subdomain depth of 5.
+    """
+    subdomain, domain = split_domain(d)
+    if not subdomain:
+        return 0
+    return subdomain.count(".") + 1
+
+
 def parent_url(u):
     """
     Retrieve the parent URL of a given URL.
@@ -387,6 +414,50 @@ def url_parents(u):
         elif parent not in parent_list:
             parent_list.append(parent)
             u = parent
+
+
+def best_http_status(code1, code2):
+    """
+    Determine the better HTTP status code between two given codes.
+
+    The 'better' status code is considered based on typical usage and priority in HTTP communication.
+    Lower codes are generally better than higher codes. Within the same class (e.g., 2xx), a lower code is better.
+    Between different classes, the order of preference is 2xx > 3xx > 1xx > 4xx > 5xx.
+
+    Args:
+        code1 (int): The first HTTP status code.
+        code2 (int): The second HTTP status code.
+
+    Returns:
+        int: The better HTTP status code between the two provided codes.
+
+    Examples:
+        >>> better_http_status(200, 404)
+        200
+        >>> better_http_status(500, 400)
+        400
+        >>> better_http_status(301, 302)
+        301
+    """
+
+    # Classify the codes into their respective categories (1xx, 2xx, 3xx, 4xx, 5xx)
+    def classify_code(code):
+        return int(code) // 100
+
+    class1 = classify_code(code1)
+    class2 = classify_code(code2)
+
+    # Priority order for classes
+    priority_order = {2: 1, 3: 2, 1: 3, 4: 4, 5: 5}
+
+    # Compare based on class priority
+    p1 = priority_order.get(class1, 10)
+    p2 = priority_order.get(class2, 10)
+    if p1 != p2:
+        return code1 if p1 < p2 else code2
+
+    # If in the same class, the lower code is better
+    return min(code1, code2)
 
 
 def tldextract(data):
@@ -557,9 +628,6 @@ def is_ip(d, version=None):
         >>> is_ip('evilcorp.com')
         False
     """
-    if isinstance(d, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
-        if version is None or version == d.version:
-            return True
     try:
         ip = ipaddress.ip_address(d)
         if version is None or ip.version == version:
@@ -1121,6 +1189,8 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
     This function takes a list `l` and flattens it by splitting its entries on commas.
     It also allows you to optionally open entries as files and add their contents to the list.
 
+    The order of entries is preserved, and deduplication is performed automatically.
+
     Args:
         l (list): The list of strings to chain together.
         try_files (bool, optional): Whether to try to open entries as files. Defaults to False.
@@ -1137,6 +1207,8 @@ def chain_lists(l, try_files=False, msg=None, remove_blank=True):
         >>> chain_lists(["a,file.txt", "c,d"], try_files=True)
         ['a', 'f_line1', 'f_line2', 'f_line3', 'c', 'd']
     """
+    if isinstance(l, str):
+        l = [l]
     final_list = dict()
     for entry in l:
         for s in entry.split(","):
@@ -1379,7 +1451,7 @@ def search_dict_values(d, *regexes):
         ...         ]
         ...     }
         ... }
-        >>> url_regexes = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+        >>> url_regexes = re.compile(r'https?://[^\\s<>"]+|www\.[^\\s<>"]+')
         >>> list(search_dict_values(dict_to_search, url_regexes))
         ["https://www.evilcorp.com"]
     """

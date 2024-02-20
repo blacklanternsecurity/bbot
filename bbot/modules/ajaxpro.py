@@ -17,22 +17,23 @@ class ajaxpro(BaseModule):
         if event.type == "URL":
             if "dir" not in event.tags:
                 return False
-            probe_url = f"{event.data}ajaxpro/whatever.ashx"
-            probe = await self.helpers.request(probe_url)
-            if probe:
-                if probe.status_code == 200:
-                    probe_confirm = await self.helpers.request(f"{event.data}a/whatever.ashx")
-                    if probe_confirm:
-                        if probe_confirm.status_code != 200:
-                            self.emit_event(
-                                {
-                                    "host": str(event.host),
-                                    "url": event.data,
-                                    "description": f"Ajaxpro Detected (Version Unconfirmed) Trigger: [{probe_url}]",
-                                },
-                                "FINDING",
-                                event,
-                            )
+            for stem in ["ajax", "ajaxpro"]:
+                probe_url = f"{event.data}{stem}/whatever.ashx"
+                probe = await self.helpers.request(probe_url)
+                if probe:
+                    if probe.status_code == 200:
+                        probe_confirm = await self.helpers.request(f"{event.data}a/whatever.ashx")
+                        if probe_confirm:
+                            if probe_confirm.status_code != 200:
+                                await self.emit_event(
+                                    {
+                                        "host": str(event.host),
+                                        "url": event.data,
+                                        "description": f"Ajaxpro Detected (Version Unconfirmed) Trigger: [{probe_url}]",
+                                    },
+                                    "FINDING",
+                                    event,
+                                )
 
         elif event.type == "HTTP_RESPONSE":
             resp_body = event.data.get("body", None)
@@ -40,7 +41,7 @@ class ajaxpro(BaseModule):
                 ajaxpro_regex_result = self.ajaxpro_regex.search(resp_body)
                 if ajaxpro_regex_result:
                     ajax_pro_path = ajaxpro_regex_result.group(0)
-                    self.emit_event(
+                    await self.emit_event(
                         {
                             "host": str(event.host),
                             "url": event.data["url"],

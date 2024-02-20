@@ -13,12 +13,19 @@ class httpx(BaseModule):
     flags = ["active", "safe", "web-basic", "web-thorough", "social-enum", "subdomain-enum", "cloud-enum"]
     meta = {"description": "Visit webpages. Many other modules rely on httpx"}
 
-    options = {"threads": 50, "in_scope_only": True, "version": "1.2.5", "max_response_size": 5242880}
+    options = {
+        "threads": 50,
+        "in_scope_only": True,
+        "version": "1.2.5",
+        "max_response_size": 5242880,
+        "store_responses": False,
+    }
     options_desc = {
         "threads": "Number of httpx threads to use",
         "in_scope_only": "Only visit web resources that are in scope.",
         "version": "httpx version",
         "max_response_size": "Max response size in bytes",
+        "store_responses": "Save raw HTTP responses to scan folder",
     }
     deps_ansible = [
         {
@@ -41,6 +48,7 @@ class httpx(BaseModule):
         self.timeout = self.scan.config.get("httpx_timeout", 5)
         self.retries = self.scan.config.get("httpx_retries", 1)
         self.max_response_size = self.config.get("max_response_size", 5242880)
+        self.store_responses = self.config.get("store_responses", False)
         self.visited = set()
         self.httpx_tempdir_regex = re.compile(r"^httpx\d+$")
         return True
@@ -104,6 +112,11 @@ class httpx(BaseModule):
             f"{self.max_response_size}",
         ]
 
+        if self.store_responses:
+            response_dir = self.scan.home / "httpx"
+            self.helpers.mkdir(response_dir)
+            command += ["-srd", str(response_dir)]
+
         dns_resolvers = ",".join(self.helpers.system_resolvers)
         if dns_resolvers:
             command += ["-r", dns_resolvers]
@@ -153,11 +166,11 @@ class httpx(BaseModule):
             url_event = self.make_event(url, "URL", source_event, tags=tags)
             if url_event:
                 if url_event != source_event:
-                    self.emit_event(url_event)
+                    await self.emit_event(url_event)
                 else:
                     url_event._resolved.set()
                 # HTTP response
-                self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags)
+                await self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags)
 
         for tempdir in Path(tempfile.gettempdir()).iterdir():
             if tempdir.is_dir() and self.httpx_tempdir_regex.match(tempdir.name):

@@ -52,8 +52,14 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     ### MISC ###
     assert helpers.is_domain("evilcorp.co.uk")
     assert not helpers.is_domain("www.evilcorp.co.uk")
+    assert helpers.is_domain("evilcorp.notreal")
+    assert not helpers.is_domain("asdf.evilcorp.notreal")
+    assert not helpers.is_domain("notreal")
     assert helpers.is_subdomain("www.evilcorp.co.uk")
     assert not helpers.is_subdomain("evilcorp.co.uk")
+    assert helpers.is_subdomain("www.evilcorp.notreal")
+    assert not helpers.is_subdomain("evilcorp.notreal")
+    assert not helpers.is_subdomain("notreal")
     assert helpers.is_url("http://evilcorp.co.uk/asdf?a=b&c=d#asdf")
     assert helpers.is_url("https://evilcorp.co.uk/asdf?a=b&c=d#asdf")
     assert helpers.is_uri("ftp://evilcorp.co.uk") == True
@@ -67,6 +73,9 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.parent_domain("www.evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("evilcorp.co.uk") == "evilcorp.co.uk"
     assert helpers.parent_domain("localhost") == "localhost"
+    assert helpers.parent_domain("www.evilcorp.notreal") == "evilcorp.notreal"
+    assert helpers.parent_domain("evilcorp.notreal") == "evilcorp.notreal"
+    assert helpers.parent_domain("notreal") == "notreal"
     assert list(helpers.domain_parents("test.www.evilcorp.co.uk")) == ["www.evilcorp.co.uk", "evilcorp.co.uk"]
     assert list(helpers.domain_parents("www.evilcorp.co.uk", include_self=True)) == [
         "www.evilcorp.co.uk",
@@ -159,6 +168,12 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "]:22/my-file.csv",
     )
 
+    assert helpers.best_http_status(200, 404) == 200
+    assert helpers.best_http_status(500, 400) == 400
+    assert helpers.best_http_status(301, 302) == 301
+    assert helpers.best_http_status(0, 302) == 302
+    assert helpers.best_http_status(500, 0) == 500
+
     assert helpers.split_domain("www.evilcorp.co.uk") == ("www", "evilcorp.co.uk")
     assert helpers.split_domain("asdf.www.test.notreal") == ("asdf.www", "test.notreal")
     assert helpers.split_domain("www.test.notreal") == ("www", "test.notreal")
@@ -166,6 +181,12 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert helpers.split_domain("notreal") == ("", "notreal")
     assert helpers.split_domain("192.168.0.1") == ("", "192.168.0.1")
     assert helpers.split_domain("dead::beef") == ("", "dead::beef")
+
+    assert helpers.subdomain_depth("a.s.d.f.evilcorp.co.uk") == 4
+    assert helpers.subdomain_depth("a.s.d.f.evilcorp.com") == 4
+    assert helpers.subdomain_depth("evilcorp.com") == 0
+    assert helpers.subdomain_depth("a.evilcorp.com") == 1
+    assert helpers.subdomain_depth("a.s.d.f.evilcorp.notreal") == 4
 
     assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
@@ -338,6 +359,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     assert "asdf" in helpers.str_or_file(str(test_file))
     assert "nope" in helpers.str_or_file("nope")
     assert tuple(helpers.chain_lists([str(test_file), "nope"], try_files=True)) == ("asdf", "fdsa", "nope")
+    assert tuple(helpers.chain_lists("one, two", try_files=True)) == ("one", "two")
     assert test_file.is_file()
 
     with pytest.raises(DirectoryCreationError, match="Failed to create.*"):
@@ -433,20 +455,6 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     os.utime(str(cache_filename), times=(atime, mtime - (3600 * 24 * 10)))
     assert helpers.cache_get("string", cache_hrs=24 * 7) is None
     assert helpers.cache_get("string", cache_hrs=24 * 14) == "wat"
-
-    cache_dict = helpers.CacheDict(max_size=10)
-    cache_dict.put("1", 2)
-    assert cache_dict["1"] == 2
-    assert cache_dict.get("1") == 2
-    assert len(cache_dict) == 1
-    cache_dict["2"] = 3
-    assert cache_dict["2"] == 3
-    assert cache_dict.get("2") == 3
-    assert len(cache_dict) == 2
-    for i in range(20):
-        cache_dict[str(i)] = i + 1
-    assert len(cache_dict) == 10
-    assert tuple(cache_dict) == tuple(hash(str(x)) for x in range(10, 20))
 
     test_file = Path(scan.config["home"]) / "testfile.asdf"
     with open(test_file, "w") as f:

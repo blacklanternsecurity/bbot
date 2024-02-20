@@ -19,7 +19,7 @@ class sitedossier(subdomain_enum):
                 self.verbose(e)
                 continue
             if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
-                await self.emit_event_wait(hostname, "DNS_NAME", event, abort_if=self.abort_if)
+                await self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
 
     async def query(self, query, parse_fn=None, request_fn=None):
         results = set()
@@ -43,5 +43,5 @@ class sitedossier(subdomain_enum):
                         results.add(hostname)
                         yield hostname
             if '<a href="/parentdomain/' not in response.text:
-                self.verbose(f"Next page not found in {response.text}")
+                self.debug(f"Next page not found")
                 break

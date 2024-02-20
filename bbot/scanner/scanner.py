@@ -1,4 +1,5 @@
 import re
+import sys
 import asyncio
 import logging
 import traceback
@@ -12,6 +13,7 @@ from omegaconf import OmegaConf
 from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
 
+from bbot import __version__
 from bbot import config as bbot_config
 
 from .target import Target
@@ -329,6 +331,7 @@ class Scanner:
             await self._prep()
 
             self._start_log_handlers()
+            self.trace(f'Ran BBOT {__version__} at {scan_start_time}, command: {" ".join(sys.argv)}')
 
             if not self.target:
                 self.warning(f"No scan targets specified")
@@ -931,10 +934,13 @@ class Scanner:
         if trace:
             self.trace()
 
-    def trace(self):
-        e_type, e_val, e_traceback = exc_info()
-        if e_type is not None:
-            log.trace(traceback.format_exc())
+    def trace(self, msg=None):
+        if msg is None:
+            e_type, e_val, e_traceback = exc_info()
+            if e_type is not None:
+                log.trace(traceback.format_exc())
+        else:
+            log.trace(msg)
 
     def critical(self, *args, trace=True, **kwargs):
         log.critical(*args, extra={"scan_id": self.id}, **kwargs)

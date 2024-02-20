@@ -188,7 +188,7 @@ class generic_ssrf(BaseModule):
         for s in self.submodules.values():
             await s.test(event)
 
-    def interactsh_callback(self, r):
+    async def interactsh_callback(self, r):
         full_id = r.get("full-id", None)
         if full_id:
             if "." in full_id:
@@ -200,7 +200,7 @@ class generic_ssrf(BaseModule):
                 matched_severity = match[2]
                 matched_read_response = str(match[3])
 
-                self.emit_event(
+                await self.emit_event(
                     {
                         "severity": matched_severity,
                         "host": str(matched_event.host),
@@ -229,6 +229,6 @@ class generic_ssrf(BaseModule):
             await self.helpers.sleep(5)
             try:
                 for r in await self.interactsh_instance.poll():
-                    self.interactsh_callback(r)
+                    await self.interactsh_callback(r)
             except InteractshError as e:
                 self.debug(f"Error in interact.sh: {e}")
