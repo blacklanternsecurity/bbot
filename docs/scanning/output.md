@@ -1,6 +1,6 @@
 # Output
 
-By default, BBOT saves its output in TXT, JSON, and CSV formats:
+By default, BBOT saves its output in TXT, JSON, and CSV formats. The filenames are logged at the end of each scan:
 ![bbot output](https://github.com/blacklanternsecurity/bbot/assets/20261699/bb3da441-2682-408f-b955-19b268823b82)
 
 Every BBOT scan gets a unique and mildly-entertaining name like **`demonic_jimmy`**. Output for that scan, including scan stats and any web screenshots, etc., are saved to a folder by that name in `~/.bbot/scans`. The most recent 20 scans are kept, and older ones are removed. You can change the location of BBOT's output with `--output`, and you can also pick a custom scan name with `--name`.
@@ -133,6 +133,25 @@ output_modules:
     # OR
     username: bob
     password: P@ssw0rd
+```
+
+### Splunk
+
+The `splunk` output module sends [events](events.md) in JSON format to a desired splunk instance via [HEC](https://docs.splunk.com/Documentation/Splunk/9.2.0/Data/UsetheHTTPEventCollector).
+
+You can customize this output with the following config options:
+
+```yaml title="~/.bbot/config/bbot.yml"
+output_modules:
+  splunk:
+    # The full URL with the URI `/services/collector/event`
+    url: https://localhost:8088/services/collector/event
+    # Generated from splunk webui
+    hectoken: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    # Defaults to `main` if not set
+    index: my-specific-index
+    # Defaults to `bbot` if not set
+    source: /my/source.json
 ```
 
 ### Asset Inventory
