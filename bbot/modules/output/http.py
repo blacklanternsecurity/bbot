@@ -13,6 +13,7 @@ class HTTP(BaseOutputModule):
         "username": "",
         "password": "",
         "timeout": 10,
+        "siem_friendly": False,
     }
     options_desc = {
         "url": "Web URL",
@@ -21,12 +22,14 @@ class HTTP(BaseOutputModule):
         "username": "Username (basic auth)",
         "password": "Password (basic auth)",
         "timeout": "HTTP timeout",
+        "siem_friendly": "Format JSON in a SIEM-friendly way for ingestion into Elastic, Splunk, etc.",
     }
 
     async def setup(self):
         self.url = self.config.get("url", "")
         self.method = self.config.get("method", "POST")
         self.timeout = self.config.get("timeout", 10)
+        self.siem_friendly = self.config.get("siem_friendly", False)
         self.headers = {}
         bearer = self.config.get("bearer", "")
         if bearer:
@@ -52,7 +55,7 @@ class HTTP(BaseOutputModule):
                     method=self.method,
                     auth=self.auth,
                     headers=self.headers,
-                    json=dict(event),
+                    json=event.json(siem_friendly=self.siem_friendly),
                     raise_error=True,
                 )
                 break
