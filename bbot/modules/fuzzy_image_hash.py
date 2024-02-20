@@ -1,9 +1,3 @@
-'''# Example usage
-image_url = "http://example.com/image.jpg"
-provided_hash = "3:hQFtqkN6x6lWifRtC6sXxPwlAO5JngRc:hMtqkN6RlWiC6Pwl2Jn"
-is_similar = is_image_hash_similar(image_url, provided_hash)
-print(f"Is the image hash similar? {is_similar}")'''
-
 from bbot.modules.base import BaseModule
 import xml.etree.ElementTree as ET
 import requests
@@ -31,8 +25,11 @@ class fuzzy_image_hash(BaseModule):
     scope_distance_modifier = 2
 
     async def setup(self):
-        self.fuzzy_hash = self.config.get("fuzzy_hash", "1234")
-        return True
+        self.fuzzy_hash = self.config.get("fuzzy_hash")
+        if not self.fuzzy_hash:
+            return None, "Must set fuzzy hash value"
+        else:
+            return True
 
     async def handle_event(self, event):
         cloud_tags = (t for t in event.tags if t.startswith("cloud-"))
