@@ -21,7 +21,7 @@ class fuzzy_image_hash(BaseModule):
         "fuzzy_hash": "",
         "confidence": 90,
     }
-    options_desc = {"fuzzy_hash": "Provided CTPH hash to compare to"}
+    options_desc = {"fuzzy_hash": "Provided CTPH hash to compare to", "confidence": "Confidence level threshold for comparing hashes."}
     scope_distance_modifier = 2
 
     async def setup(self):
@@ -32,13 +32,11 @@ class fuzzy_image_hash(BaseModule):
             return True
 
     async def handle_event(self, event):
-        cloud_tags = (t for t in event.tags if t.startswith("cloud-"))
-        if any(t.endswith("-amazon") or t.endswith("-digitalocean") for t in cloud_tags):
-            await self.handle_url(event)
+        await self.handle_url(event)
 
     async def handle_url(self, event):
         resp_body = event.data.get("body", None)
-        url_list = get_image_urls(resp_body)
+        url_list = self.get_image_urls(resp_body)
         for url in url_list:
             similar_score = is_image_hash_similar(url, self.fuzzy_hash)
             if similar_score >= self.confidence:
@@ -46,7 +44,7 @@ class fuzzy_image_hash(BaseModule):
                 "description": f"Identified matched similar score above {self.confidence}",
                 "url": url
                 }
-                self.emit_event("data", "FIDNING", event)
+                self.emit_event("data", "FINDING", event)
 
     def get_image_urls(response_body):
         """
