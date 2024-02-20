@@ -56,7 +56,7 @@ class wayback(subdomain_enum):
         dns_names = set()
         collapsed_urls = 0
         start_time = datetime.now()
-        parsed_urls = await self.scan.run_in_executor(
+        parsed_urls = await self.scan.run_in_executor_mp(
             self.helpers.validators.collapse_urls,
             urls,
             threshold=self.garbage_threshold,

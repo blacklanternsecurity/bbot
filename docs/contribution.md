@@ -134,7 +134,6 @@ BBOT automates module dependencies with **Ansible**. If your module relies on a 
 ```python
 class MyModule(BaseModule):
     ...
-    deps_pip = ["beautifulsoup4"]
     deps_apt = ["chromium-browser"]
     deps_ansible = [
         {

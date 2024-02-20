@@ -177,9 +177,9 @@ class TestFFUFShortnames(ModuleTestBase):
         basic_detection = False
         directory_detection = False
         prefix_detection = False
-        delimeter_detection = False
-        directory_delimeter_detection = False
-        prefix_delimeter_detection = False
+        delimiter_detection = False
+        directory_delimiter_detection = False
+        prefix_delimiter_detection = False
         short_extensions_detection = False
 
         for e in events:
@@ -191,18 +191,18 @@ class TestFFUFShortnames(ModuleTestBase):
                 if e.data == "http://127.0.0.1:8888/adm_portal.aspx":
                     prefix_detection = True
                 if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
-                    delimeter_detection = True
+                    delimiter_detection = True
                 if e.data == "http://127.0.0.1:8888/abcconsole.aspx":
-                    directory_delimeter_detection = True
+                    directory_delimiter_detection = True
                 if e.data == "http://127.0.0.1:8888/xyzdirectory/":
-                    prefix_delimeter_detection = True
+                    prefix_delimiter_detection = True
                 if e.data == "http://127.0.0.1:8888/short.pl":
                     short_extensions_detection = True
 
         assert basic_detection
         assert directory_detection
         assert prefix_detection
-        assert delimeter_detection
-        assert directory_delimeter_detection
-        assert prefix_delimeter_detection
+        assert delimiter_detection
+        assert directory_delimiter_detection
+        assert prefix_delimiter_detection
         assert short_extensions_detection

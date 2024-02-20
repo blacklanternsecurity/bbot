@@ -385,6 +385,19 @@ async def test_events(events, scan, helpers, bbot_config):
     assert reconstituted_event.type == "DNS_NAME"
     assert "127.0.0.1" in reconstituted_event.resolved_hosts
 
+    # SIEM-friendly serialize/deserialize
+    json_event_siemfriendly = db_event.json(siem_friendly=True)
+    assert json_event_siemfriendly["scope_distance"] == 1
+    assert json_event_siemfriendly["data"] == {"DNS_NAME": "evilcorp.com"}
+    assert json_event_siemfriendly["type"] == "DNS_NAME"
+    assert json_event_siemfriendly["timestamp"] == timestamp
+    reconstituted_event2 = event_from_json(json_event_siemfriendly, siem_friendly=True)
+    assert reconstituted_event2.scope_distance == 1
+    assert reconstituted_event2.timestamp.timestamp() == timestamp
+    assert reconstituted_event2.data == "evilcorp.com"
+    assert reconstituted_event2.type == "DNS_NAME"
+    assert "127.0.0.1" in reconstituted_event2.resolved_hosts
+
     http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
     assert http_response.source_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com:80"

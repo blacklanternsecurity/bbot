@@ -4,7 +4,7 @@
 
 ### A Recursive Internet Scanner for Hackers.
 
-[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Pypi Downloads](https://img.shields.io/pypi/dm/bbot)](https://pypistats.org/packages/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
+[![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
 BBOT (Bighuge BLS OSINT Tool) is a recursive internet scanner inspired by [Spiderfoot](https://github.com/smicallef/spiderfoot), but designed to be faster, more reliable, and friendlier to pentesters, bug bounty hunters, and developers.
 
@@ -62,7 +62,7 @@ git clone https://github.com/blacklanternsecurity/bbot && cd bbot
 </details>
 
 <details>
-<summary><b>Usage</b></summary>
+<summary><b>Example Usage</b></summary>
 
 ## Example Commands
 
@@ -114,7 +114,13 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 
 ## Targets
 
-BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
+BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!):
+
+```bash
+bbot -t evilcorp.com evilcorp.org 1.2.3.0/24 -f subdomain-enum
+```
+
+Targets can be any of the following:
 
 - `DNS_NAME` (`evilcorp.com`)
 - `IP_ADDRESS` (`1.2.3.4`)
@@ -280,4 +286,26 @@ For a full list of modules, including the data types consumed and emitted by eac
 | subdomain-hijack | 1           | Detects hijackable subdomains                 | subdomain_hijack                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | web-screenshots  | 1           | Takes screenshots of web pages                | gowitness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 <!-- END BBOT MODULE FLAGS -->
-</details>
+
+## BBOT Output Modules
+BBOT can save its data to TXT, CSV, JSON, and tons of other destinations including [Neo4j](https://www.blacklanternsecurity.com/bbot/scanning/output/#neo4j), [Splunk](https://www.blacklanternsecurity.com/bbot/scanning/output/#splunk), and [Discord](https://www.blacklanternsecurity.com/bbot/scanning/output/#discord-slack-teams). For instructions on how to use these, see [Output Modules](https://www.blacklanternsecurity.com/bbot/scanning/output). 
+
+<!-- BBOT OUTPUT MODULES -->
+| Module          | Type   | Needs API Key   | Description                                                                             | Flags          | Consumed Events                                                                                  | Produced Events           |
+|-----------------|--------|-----------------|-----------------------------------------------------------------------------------------|----------------|--------------------------------------------------------------------------------------------------|---------------------------|
+| asset_inventory | output | No              | Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV |                | DNS_NAME, FINDING, HTTP_RESPONSE, IP_ADDRESS, OPEN_TCP_PORT, TECHNOLOGY, URL, VULNERABILITY, WAF | IP_ADDRESS, OPEN_TCP_PORT |
+| csv             | output | No              | Output to CSV                                                                           |                | *                                                                                                |                           |
+| discord         | output | No              | Message a Discord channel when certain events are encountered                           |                | *                                                                                                |                           |
+| emails          | output | No              | Output any email addresses found belonging to the target domain                         | email-enum     | EMAIL_ADDRESS                                                                                    |                           |
+| http            | output | No              | Send every event to a custom URL via a web request                                      |                | *                                                                                                |                           |
+| human           | output | No              | Output to text                                                                          |                | *                                                                                                |                           |
+| json            | output | No              | Output to Newline-Delimited JSON (NDJSON)                                               |                | *                                                                                                |                           |
+| neo4j           | output | No              | Output to Neo4j                                                                         |                | *                                                                                                |                           |
+| python          | output | No              | Output via Python API                                                                   |                | *                                                                                                |                           |
+| slack           | output | No              | Message a Slack channel when certain events are encountered                             |                | *                                                                                                |                           |
+| splunk          | output | No              | Send every event to a splunk instance through HTTP Event Collector                      |                | *                                                                                                |                           |
+| subdomains      | output | No              | Output only resolved, in-scope subdomains                                               | subdomain-enum | DNS_NAME, DNS_NAME_UNRESOLVED                                                                    |                           |
+| teams           | output | No              | Message a Teams channel when certain events are encountered                             |                | *                                                                                                |                           |
+| web_report      | output | No              | Create a markdown report with web assets                                                |                | FINDING, TECHNOLOGY, URL, VHOST, VULNERABILITY                                                   |                           |
+| websocket       | output | No              | Output to websockets                                                                    |                | *                                                                                                |                           |
+<!-- END BBOT OUTPUT MODULES -->

@@ -21,9 +21,7 @@ class JSON(BaseOutputModule):
         return True
 
     async def handle_event(self, event):
-        event_json = dict(event)
-        if self.siem_friendly:
-            event_json["data"] = {event.type: event_json.pop("data", "")}
+        event_json = event.json(siem_friendly=self.siem_friendly)
         event_str = json.dumps(event_json)
         if self.file is not None:
             self.file.write(event_str + "\n")
