@@ -35,8 +35,11 @@ class fuzzy_image_hash(BaseModule):
         await self.handle_url(event)
 
     async def handle_url(self, event):
-        resp_body = event.data.get("body", None)
-        url_list = self.get_image_urls(resp_body)
+        #resp_body = event.data.get("body", None)
+        #url_list = self.get_image_urls(resp_body)
+        url_list = self.get_image_urls(event.data)
+        if url_list == None or url_list == [] or url_list == False:
+            return False
         for url in url_list:
             similar_score = is_image_hash_similar(url, self.fuzzy_hash)
             if similar_score >= self.confidence:
@@ -46,7 +49,7 @@ class fuzzy_image_hash(BaseModule):
                 }
                 self.emit_event("data", "FINDING", event)
 
-    def get_image_urls(response_body):
+    def get_image_urls(self, data):
         """
         Extracts all image URLs from an HTTP response.
 
@@ -57,7 +60,10 @@ class fuzzy_image_hash(BaseModule):
         - A list of strings, where each string is the URL of an image found in the response.
         """
         # Parse the HTML content of the response
-        soup = BeautifulSoup(response.content, 'html.parser')
+        content = data.get("body", None)
+        if content == None:
+            return False
+        soup = BeautifulSoup(content, 'html.parser')
         
         # Find all <img> tags in the HTML
         img_tags = soup.find_all('img')
@@ -68,9 +74,8 @@ class fuzzy_image_hash(BaseModule):
             src = img.get('src')
             if src:
                 # Convert relative URLs to absolute URLs
-                absolute_src = urljoin(response.url, src)
+                absolute_src = urljoin(data["url"], src)
                 image_urls.append(absolute_src)
-        
         return image_urls
 
     def download_image(url):
