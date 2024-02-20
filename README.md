@@ -62,7 +62,7 @@ git clone https://github.com/blacklanternsecurity/bbot && cd bbot
 </details>
 
 <details>
-<summary><b>Usage</b></summary>
+<summary><b>Example Usage</b></summary>
 
 ## Example Commands
 
@@ -114,7 +114,13 @@ bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap g
 
 ## Targets
 
-BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!). Targets can be any of the following:
+BBOT accepts an unlimited number of targets via `-t`. You can specify targets either directly on the command line or in files (or both!):
+
+```bash
+bbot -t evilcorp.com evilcorp.org 1.2.3.0/24 -f subdomain-enum
+```
+
+Targets can be any of the following:
 
 - `DNS_NAME` (`evilcorp.com`)
 - `IP_ADDRESS` (`1.2.3.4`)
