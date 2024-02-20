@@ -20,10 +20,13 @@ class bucket_firebase(bucket_template):
         if not any(host.endswith(f".{d}") for d in self.base_domains):
             return False, "bucket belongs to a different cloud provider"
         return True, ""
-
+        
     async def check_bucket_exists(self, bucket_name, url):
         url = url.strip("/") + "/.json"
-        return await super().check_bucket_exists(bucket_name, url)
+        if "_" in bucket_name:
+            return False, set(), bucket_name, url
+        else:
+            return await super().check_bucket_exists(bucket_name, url)
 
     async def check_bucket_open(self, bucket_name, url):
         url = url.strip("/") + "/.json"
