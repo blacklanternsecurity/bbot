@@ -35,11 +35,6 @@ class fuzzy_image_hash(BaseModule):
             return True
 
     async def handle_event(self, event):
-        await self.handle_url(event)
-
-    async def handle_url(self, event):
-        #resp_body = event.data.get("body", None)
-        #url_list = self.get_image_urls(resp_body)
         url_list = self.get_image_urls(event.data)
         if url_list == None or url_list == [] or url_list == False:
             return False
