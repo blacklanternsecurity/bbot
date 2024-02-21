@@ -303,7 +303,7 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, b
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch, mock_dns):
     from bbot.modules.base import BaseModule
 
     class dummy(BaseModule):
@@ -311,23 +311,50 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
         watched_events = ["*"]
 
         async def handle_event(self, event):
+            # quick emit events like FINDINGS behave differently than normal ones
+            # hosts are not speculated from them
             await self.emit_event(
                 {"host": "www.evilcorp.com", "url": "http://www.evilcorp.com", "description": "asdf"}, "FINDING", event
             )
+            await self.emit_event("https://asdf.evilcorp.com", "URL", event, tags=["status-200"])
 
     scan = bbot_scanner(
         "evilcorp.com",
+        modules=["speculate"],
         config=bbot_config,
         force_start=True,
     )
-    scan.helpers.dns.mock_dns({("evilcorp.com", "A"): "127.0.254.1", ("www.evilcorp.com", "A"): "127.0.254.2"})
+    mock_dns(
+        scan,
+        {
+            "evilcorp.com": {"A": ["127.0.254.1"]},
+            "www.evilcorp.com": {"A": ["127.0.254.2"]},
+            "asdf.evilcorp.com": {"A": ["127.0.254.3"]},
+        },
+    )
 
     scan.modules["dummy"] = dummy(scan)
     events = [e async for e in scan.async_start()]
 
-    assert len(events) == 3
+    assert len(events) == 6
+    assert 1 == len([e for e in events if e.type == "SCAN"])
+    assert 2 == len([e for e in events if e.type == "DNS_NAME"])
+    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com"])
+    # the reason we don't have a DNS_NAME for www.evilcorp.com is because FINDING.quick_emit = True
+    assert 0 == len([e for e in events if e.type == "DNS_NAME" and e.data == "www.evilcorp.com"])
+    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.com"])
+    assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp"])
+    assert 1 == len([e for e in events if e.type == "FINDING"])
 
-    assert set(scan.stats.module_stats) == {"dummy", "python", "TARGET"}
+    assert scan.stats.events_emitted_by_type == {
+        "SCAN": 1,
+        "DNS_NAME": 2,
+        "URL": 1,
+        "FINDING": 1,
+        "ORG_STUB": 1,
+    }
+
+    assert set(scan.stats.module_stats) == {"host", "speculate", "python", "dummy", "TARGET"}
 
     target_stats = scan.stats.module_stats["TARGET"]
     assert target_stats.emitted == {"SCAN": 1, "DNS_NAME": 1}
@@ -338,19 +365,17 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
     assert target_stats.consumed_total == 0
 
     dummy_stats = scan.stats.module_stats["dummy"]
-    assert dummy_stats.emitted == {"FINDING": 1}
-    assert dummy_stats.emitted_total == 1
-    assert dummy_stats.produced == {"FINDING": 1}
-    assert dummy_stats.produced_total == 1
-    assert dummy_stats.consumed == {"SCAN": 1, "DNS_NAME": 1}
-    assert dummy_stats.consumed_total == 2
+    assert dummy_stats.emitted == {"FINDING": 1, "URL": 1}
+    assert dummy_stats.emitted_total == 2
+    assert dummy_stats.produced == {"FINDING": 1, "URL": 1}
+    assert dummy_stats.produced_total == 2
+    assert dummy_stats.consumed == {"DNS_NAME": 2, "OPEN_TCP_PORT": 1, "SCAN": 1, "URL": 1}
+    assert dummy_stats.consumed_total == 5
 
     python_stats = scan.stats.module_stats["python"]
     assert python_stats.emitted == {}
     assert python_stats.emitted_total == 0
     assert python_stats.produced == {}
     assert python_stats.produced_total == 0
-    assert python_stats.consumed == {"SCAN": 1, "FINDING": 1, "DNS_NAME": 1}
-    assert python_stats.consumed_total == 3
-
-    assert scan.stats.events_emitted_by_type == {"SCAN": 1, "FINDING": 1, "DNS_NAME": 1}
+    assert python_stats.consumed == {"DNS_NAME": 2, "FINDING": 1, "ORG_STUB": 1, "SCAN": 1, "URL": 1}
+    assert python_stats.consumed_total == 6

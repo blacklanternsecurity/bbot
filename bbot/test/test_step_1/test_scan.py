@@ -9,6 +9,7 @@ async def test_scan(
     neograph,
     monkeypatch,
     bbot_scanner,
+    mock_dns,
 ):
     scan0 = bbot_scanner(
         "1.1.1.1/31",
@@ -55,15 +56,15 @@ async def test_scan(
     assert not scan2.in_scope("1.0.0.1")
 
     dns_table = {
-        ("1.1.1.1", "PTR"): "one.one.one.one",
-        ("one.one.one.one", "A"): "1.1.1.1",
+        "1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one"]},
+        "one.one.one.one": {"A": ["1.1.1.1"]},
     }
 
     # make sure DNS resolution works
     dns_config = OmegaConf.create({"dns_resolution": True})
     dns_config = OmegaConf.merge(bbot_config, dns_config)
     scan4 = bbot_scanner("1.1.1.1", config=dns_config)
-    scan4.helpers.dns.mock_dns(dns_table)
+    mock_dns(scan4, dns_table)
     events = []
     async for event in scan4.async_start():
         events.append(event)
@@ -74,7 +75,7 @@ async def test_scan(
     no_dns_config = OmegaConf.create({"dns_resolution": False})
     no_dns_config = OmegaConf.merge(bbot_config, no_dns_config)
     scan5 = bbot_scanner("1.1.1.1", config=no_dns_config)
-    scan5.helpers.dns.mock_dns(dns_table)
+    mock_dns(scan5, dns_table)
     events = []
     async for event in scan5.async_start():
         events.append(event)

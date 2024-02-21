@@ -235,7 +235,7 @@ class TestPostman(ModuleTestBase):
             await old_emit_event(event_data, event_type, **kwargs)
 
         module_test.monkeypatch.setattr(module_test.module, "emit_event", new_emit_event)
-        module_test.scan.helpers.dns.mock_dns({("asdf.blacklanternsecurity.com", "A"): "127.0.0.1"})
+        module_test.mock_dns({"asdf.blacklanternsecurity.com": {"A": ["127.0.0.1"]}})
 
         request_args = dict(uri="/_api/request/28129865-987c8ac8-bfa9-4bab-ade9-88ccf0597862")
         respond_args = dict(response_data="https://asdf.blacklanternsecurity.com")
