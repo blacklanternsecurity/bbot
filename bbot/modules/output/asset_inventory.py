@@ -239,7 +239,7 @@ class Asset:
         # ips
         self.ip_addresses = set(_make_ip_list(row.get("IP (External)", "")))
         self.ip_addresses.update(set(_make_ip_list(row.get("IP (Internal)", ""))))
-        # If user reqests a recheck dont use the following fields
+        # If user reqests a recheck dont import the following fields to force them to be rechecked
         if not self.recheck:
             # ports
             ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
@@ -247,17 +247,17 @@ class Asset:
             # findings
             findings = [i.strip() for i in row.get("Findings", "").splitlines()]
             self.findings.update(set(i for i in findings if i))
+            # technologies
+            technologies = [i.strip() for i in row.get("Technologies", "").splitlines()]
+            self.technologies.update(set(i for i in technologies if i))
             # risk rating
             risk_rating = row.get("Risk Rating", "").strip()
             if risk_rating and risk_rating.isdigit() and int(risk_rating) > self.risk_rating:
                 self.risk_rating = int(risk_rating)
-        # technologies
-        technologies = [i.strip() for i in row.get("Technologies", "").splitlines()]
-        self.technologies.update(set(i for i in technologies if i))
-        # provider
-        provider = row.get("Provider", "").strip()
-        if provider:
-            self.provider = provider
+            # provider
+            provider = row.get("Provider", "").strip()
+            if provider:
+                self.provider = provider
         # custom fields
         for k, v in row.items():
             v = str(v)
