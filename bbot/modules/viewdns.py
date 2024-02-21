@@ -26,7 +26,7 @@ class viewdns(BaseModule):
     async def handle_event(self, event):
         _, query = self.helpers.split_domain(event.data)
         for domain, _ in await self.query(query):
-            self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
+            await self.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
 
     async def query(self, query):
         results = set()
@@ -37,9 +37,8 @@ class viewdns(BaseModule):
             self.verbose(f"Error retrieving reverse whois results (status code: {status_code})")
 
         content = getattr(r, "content", b"")
-        from bs4 import BeautifulSoup
 
-        html = BeautifulSoup(content, "html.parser")
+        html = self.helpers.beautifulsoup(content, "html.parser")
         found = set()
         for table_row in html.findAll("tr"):
             table_cells = table_row.findAll("td")

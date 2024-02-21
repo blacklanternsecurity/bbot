@@ -1,3 +1,68 @@
+## v1.1.6
+February 21, 2024
+
+## Improvements
+- https://github.com/blacklanternsecurity/bbot/pull/1001
+- https://github.com/blacklanternsecurity/bbot/pull/1006
+- https://github.com/blacklanternsecurity/bbot/pull/1010
+- https://github.com/blacklanternsecurity/bbot/pull/1013
+- https://github.com/blacklanternsecurity/bbot/pull/1014
+- https://github.com/blacklanternsecurity/bbot/pull/1015
+- https://github.com/blacklanternsecurity/bbot/pull/1032
+- https://github.com/blacklanternsecurity/bbot/pull/1043
+- https://github.com/blacklanternsecurity/bbot/pull/1047
+- https://github.com/blacklanternsecurity/bbot/pull/1048
+- https://github.com/blacklanternsecurity/bbot/pull/1049
+- https://github.com/blacklanternsecurity/bbot/pull/1051
+- https://github.com/blacklanternsecurity/bbot/pull/1065
+- https://github.com/blacklanternsecurity/bbot/pull/1070
+- https://github.com/blacklanternsecurity/bbot/pull/1076
+- https://github.com/blacklanternsecurity/bbot/pull/1077
+- https://github.com/blacklanternsecurity/bbot/pull/1095
+- https://github.com/blacklanternsecurity/bbot/pull/1101
+- https://github.com/blacklanternsecurity/bbot/pull/1103
+
+## Bigfixes
+- https://github.com/blacklanternsecurity/bbot/pull/1005
+- https://github.com/blacklanternsecurity/bbot/pull/1022
+- https://github.com/blacklanternsecurity/bbot/pull/1030
+- https://github.com/blacklanternsecurity/bbot/pull/1033
+- https://github.com/blacklanternsecurity/bbot/pull/1034
+- https://github.com/blacklanternsecurity/bbot/pull/1042
+- https://github.com/blacklanternsecurity/bbot/pull/1066
+- https://github.com/blacklanternsecurity/bbot/pull/1067
+- https://github.com/blacklanternsecurity/bbot/pull/1073
+- https://github.com/blacklanternsecurity/bbot/pull/1086
+- https://github.com/blacklanternsecurity/bbot/pull/1089
+- https://github.com/blacklanternsecurity/bbot/pull/1094
+- https://github.com/blacklanternsecurity/bbot/pull/1098
+
+## New Modules
+- https://github.com/blacklanternsecurity/bbot/pull/1072
+- https://github.com/blacklanternsecurity/bbot/pull/1091
+
+
+## v1.1.5
+January 29, 2024
+
+## Improvements
+- https://github.com/blacklanternsecurity/bbot/pull/1001
+- https://github.com/blacklanternsecurity/bbot/pull/1006
+- https://github.com/blacklanternsecurity/bbot/pull/1010
+- https://github.com/blacklanternsecurity/bbot/pull/1013
+- https://github.com/blacklanternsecurity/bbot/pull/1014
+- https://github.com/blacklanternsecurity/bbot/pull/1015
+- https://github.com/blacklanternsecurity/bbot/pull/1032
+- https://github.com/blacklanternsecurity/bbot/pull/1040
+
+## Bugfixes
+- https://github.com/blacklanternsecurity/bbot/pull/1005
+- https://github.com/blacklanternsecurity/bbot/pull/1022
+- https://github.com/blacklanternsecurity/bbot/pull/1030
+- https://github.com/blacklanternsecurity/bbot/pull/1033
+- https://github.com/blacklanternsecurity/bbot/pull/1034
+
+
 ## v1.1.4
 January 11, 2024
 

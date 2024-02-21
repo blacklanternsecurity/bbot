@@ -7,13 +7,14 @@ import traceback
 import contextlib
 import dns.exception
 import dns.asyncresolver
+from cachetools import LRUCache
 from contextlib import suppress
 
 from .regexes import dns_name_regex
 from bbot.core.helpers.ratelimiter import RateLimiter
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.errors import ValidationError, DNSError, DNSWildcardBreak
-from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck, as_completed
+from .misc import is_ip, is_domain, is_dns_name, domain_parents, parent_domain, rand_string, cloudcheck
 
 log = logging.getLogger("bbot.core.helpers.dns")
 
@@ -64,8 +65,8 @@ class DNSHelper:
         wildcard_ignore (tuple): Domains to be ignored during wildcard detection.
         wildcard_tests (int): Number of tests to be run for wildcard detection. Defaults to 5.
         _wildcard_cache (dict): Cache for wildcard detection results.
-        _dns_cache (CacheDict): Cache for DNS resolution results, limited in size.
-        _event_cache (CacheDict): Cache for event resolution results, tags. Limited in size.
+        _dns_cache (LRUCache): Cache for DNS resolution results, limited in size.
+        _event_cache (LRUCache): Cache for event resolution results, tags. Limited in size.
         resolver_file (Path): File containing system's current resolver nameservers.
         filter_bad_ptrs (bool): Whether to filter out DNS names that appear to be auto-generated PTR records. Defaults to True.
 
@@ -130,8 +131,8 @@ class DNSHelper:
         self.fallback_nameservers_file = self.parent_helper.wordlist_dir / "nameservers.txt"
         self._debug = self.parent_helper.config.get("dns_debug", False)
         self._dummy_modules = dict()
-        self._dns_cache = self.parent_helper.CacheDict(max_size=100000)
-        self._event_cache = self.parent_helper.CacheDict(max_size=10000)
+        self._dns_cache = LRUCache(maxsize=10000)
+        self._event_cache = LRUCache(maxsize=10000)
         self._event_cache_locks = NamedLock()
 
         # for mocking DNS queries
@@ -334,6 +335,10 @@ class DNSHelper:
 
         if results:
             self._last_dns_success = time.time()
+            self.debug(f"Answers for {query} with kwargs={kwargs}: {list(results)}")
+
+        if errors:
+            self.debug(f"Errors for {query} with kwargs={kwargs}: {errors}")
 
         return results, errors
 
@@ -526,9 +531,8 @@ class DNSHelper:
                         types = ("A", "AAAA")
 
                 if types:
-                    tasks = [self.resolve_raw(event_host, type=t, use_cache=True) for t in types]
-                    async for task in as_completed(tasks):
-                        resolved_raw, errors = await task
+                    for t in types:
+                        resolved_raw, errors = await self.resolve_raw(event_host, type=t, use_cache=True)
                         for rdtype, e in errors:
                             if rdtype not in resolved_raw:
                                 event_tags.add(f"{rdtype.lower()}-error")
@@ -627,24 +631,13 @@ class DNSHelper:
         except KeyError:
             return set(), None, None, set()
 
-    async def _resolve_batch_coro_wrapper(self, q, **kwargs):
-        """
-        Helps us correlate task results back to their original arguments
-        """
-        result = await self.resolve(q, **kwargs)
-        return (q, result)
-
     async def resolve_batch(self, queries, **kwargs):
         """
-        Asynchronously resolves a batch of queries in parallel and yields the results as they are completed.
-
-        This method wraps around `_resolve_batch_coro_wrapper` to resolve a list of queries in parallel.
-        It batches the queries to a manageable size and executes them asynchronously, respecting
-        global rate limits.
+        A helper to execute a bunch of DNS requests.
 
         Args:
             queries (list): List of queries to resolve.
-            **kwargs: Additional keyword arguments to pass to `_resolve_batch_coro_wrapper`.
+            **kwargs: Additional keyword arguments to pass to `resolve()`.
 
         Yields:
             tuple: A tuple containing the original query and its resolved value.
@@ -658,13 +651,8 @@ class DNSHelper:
             ('evilcorp.com', {'2.2.2.2'})
 
         """
-        queries = list(queries)
-        batch_size = 250
-        for i in range(0, len(queries), batch_size):
-            batch = queries[i : i + batch_size]
-            tasks = [asyncio.create_task(self._resolve_batch_coro_wrapper(q, **kwargs)) for q in batch]
-            async for task in as_completed(tasks):
-                yield await task
+        for q in queries:
+            yield (q, await self.resolve(q, **kwargs))
 
     def extract_targets(self, record):
         """
@@ -837,14 +825,11 @@ class DNSHelper:
         # if the caller hasn't already done the work of resolving the IPs
         if ips is None:
             # then resolve the query for all rdtypes
-            base_query_tasks = {
-                t: asyncio.create_task(self.resolve_raw(query, type=t, use_cache=True)) for t in rdtypes_to_check
-            }
-            for _rdtype, task in base_query_tasks.items():
-                raw_results, errors = await task
+            for t in rdtypes_to_check:
+                raw_results, errors = await self.resolve_raw(query, type=t, use_cache=True)
                 if errors and not raw_results:
-                    self.debug(f"Failed to resolve {query} ({_rdtype}) during wildcard detection")
-                    result[_rdtype] = (None, parent)
+                    self.debug(f"Failed to resolve {query} ({t}) during wildcard detection")
+                    result[t] = (None, parent)
                     continue
                 for __rdtype, answers in raw_results:
                     base_query_results = set()
@@ -868,12 +853,13 @@ class DNSHelper:
         # for every parent domain, starting with the shortest
         try:
             for host in parents[::-1]:
+                # make sure we've checked that domain for wildcards
+                await self.is_wildcard_domain(host)
+
                 # for every rdtype
                 for _rdtype in list(base_query_ips):
                     # get the IPs from above
                     query_ips = base_query_ips.get(_rdtype, set())
-                    # make sure we've checked that domain for wildcards
-                    await self.is_wildcard_domain(host)
                     host_hash = hash(host)
 
                     if host_hash in self._wildcard_cache:
@@ -949,24 +935,20 @@ class DNSHelper:
                     wildcard_domain_results[host] = self._wildcard_cache[host_hash]
                     continue
 
+                log.verbose(f"Checking if {host} is a wildcard")
+
                 # determine if this is a wildcard domain
-                wildcard_tasks = {t: [] for t in rdtypes_to_check}
+
                 # resolve a bunch of random subdomains of the same parent
-                for rdtype in rdtypes_to_check:
+                is_wildcard = False
+                wildcard_results = dict()
+                for rdtype in list(rdtypes_to_check):
                     # continue if a wildcard was already found for this rdtype
                     # if rdtype in self._wildcard_cache[host_hash]:
                     #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        wildcard_task = asyncio.create_task(self.resolve(rand_query, type=rdtype, use_cache=False))
-                        wildcard_tasks[rdtype].append(wildcard_task)
-
-                # combine the random results
-                is_wildcard = False
-                wildcard_results = dict()
-                for rdtype, tasks in wildcard_tasks.items():
-                    async for task in as_completed(tasks):
-                        results = await task
+                        results = await self.resolve(rand_query, type=rdtype, use_cache=False)
                         if results:
                             is_wildcard = True
                             if not rdtype in wildcard_results:
@@ -985,6 +967,8 @@ class DNSHelper:
                     if log_info:
                         log_fn = log.info
                     log_fn(f"Encountered domain with wildcard DNS ({wildcard_rdtypes_str}): {host}")
+                else:
+                    log.verbose(f"Finished checking {host}, it is not a wildcard")
 
         return wildcard_domain_results
 
@@ -1031,13 +1015,14 @@ class DNSHelper:
 
     def debug(self, *args, **kwargs):
         if self._debug:
-            log.debug(*args, **kwargs)
+            log.trace(*args, **kwargs)
 
     def _get_dummy_module(self, name):
         try:
             dummy_module = self._dummy_modules[name]
         except KeyError:
             dummy_module = self.parent_helper._make_dummy_module(name=name, _type="DNS")
+            dummy_module.suppress_dupes = False
             self._dummy_modules[name] = dummy_module
         return dummy_module
 

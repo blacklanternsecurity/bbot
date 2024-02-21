@@ -3,6 +3,7 @@ from .base import ModuleTestBase
 
 class TestHTTPX(ModuleTestBase):
     targets = ["http://127.0.0.1:8888/url", "127.0.0.1:8888"]
+    config_overrides = {"modules": {"httpx": {"store_responses": True}}}
 
     # HTML for a page with a login form
     html_with_login = """
@@ -48,6 +49,8 @@ class TestHTTPX(ModuleTestBase):
                     url = True
         assert url, "Failed to visit target URL"
         assert open_port, "Failed to visit target OPEN_TCP_PORT"
+        saved_response = module_test.scan.home / "httpx" / "127.0.0.1.8888[slash]url.txt"
+        assert saved_response.is_file(), "Failed to save raw httpx response"
 
 
 class TestHTTPX_404(ModuleTestBase):

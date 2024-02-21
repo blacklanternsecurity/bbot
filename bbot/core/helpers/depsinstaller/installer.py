@@ -157,9 +157,9 @@ class DepsInstaller:
         command = [sys.executable, "-m", "pip", "install", "--upgrade"] + packages
 
         if constraints:
-            contraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)
+            constraints_tempfile = self.parent_helper.tempfile(constraints, pipe=False)
             command.append("--constraint")
-            command.append(contraints_tempfile)
+            command.append(constraints_tempfile)
 
         process = None
         try:

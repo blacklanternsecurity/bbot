@@ -27,7 +27,7 @@ class wayback(subdomain_enum):
     async def handle_event(self, event):
         query = self.make_query(event)
         for result, event_type in await self.query(query):
-            self.emit_event(result, event_type, event, abort_if=self.abort_if)
+            await self.emit_event(result, event_type, event, abort_if=self.abort_if)
 
     async def query(self, query):
         results = set()
@@ -56,7 +56,7 @@ class wayback(subdomain_enum):
         dns_names = set()
         collapsed_urls = 0
         start_time = datetime.now()
-        parsed_urls = await self.scan.run_in_executor(
+        parsed_urls = await self.scan.run_in_executor_mp(
             self.helpers.validators.collapse_urls,
             urls,
             threshold=self.garbage_threshold,

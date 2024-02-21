@@ -4,34 +4,40 @@ import httpx
 from .base import ModuleTestBase
 
 
-class TestHTTP(ModuleTestBase):
-    downstream_url = "https://blacklanternsecurity.fakedomain:1234/events"
+class TestSplunk(ModuleTestBase):
+    downstream_url = "https://splunk.blacklanternsecurity.fakedomain:1234/services/collector"
     config_overrides = {
         "output_modules": {
-            "http": {
+            "splunk": {
                 "url": downstream_url,
-                "method": "PUT",
-                "bearer": "auth_token",
-                "username": "bbot_user",
-                "password": "bbot_password",
+                "hectoken": "HECTOKEN",
+                "index": "bbot_index",
+                "source": "bbot_source",
             }
         }
     }
 
     def verify_data(self, j):
-        return j["data"] == "blacklanternsecurity.com" and j["type"] == "DNS_NAME"
+        if not j["source"] == "bbot_source":
+            return False
+        if not j["index"] == "bbot_index":
+            return False
+        data = j["event"]
+        if not data["data"] == "blacklanternsecurity.com" and data["type"] == "DNS_NAME":
+            return False
+        return True
 
     async def setup_after_prep(self, module_test):
+        self.url_correct = False
+        self.method_correct = False
         self.got_event = False
         self.headers_correct = False
-        self.method_correct = False
-        self.url_correct = False
 
         async def custom_callback(request):
             j = json.loads(request.content)
             if request.url == self.downstream_url:
                 self.url_correct = True
-            if request.method == "PUT":
+            if request.method == "POST":
                 self.method_correct = True
             if "Authorization" in request.headers:
                 self.headers_correct = True
@@ -43,21 +49,10 @@ class TestHTTP(ModuleTestBase):
 
         module_test.httpx_mock.add_callback(custom_callback)
         module_test.httpx_mock.add_callback(custom_callback)
-        module_test.httpx_mock.add_response(
-            method="PUT", headers={"Authorization": "bearer auth_token"}, url=self.downstream_url
-        )
+        module_test.httpx_mock.add_response()
 
     def check(self, module_test, events):
         assert self.got_event == True
         assert self.headers_correct == True
         assert self.method_correct == True
         assert self.url_correct == True
-
-
-class TestHTTPSIEMFriendly(TestHTTP):
-    modules_overrides = ["http"]
-    config_overrides = {"output_modules": {"http": dict(TestHTTP.config_overrides["output_modules"]["http"])}}
-    config_overrides["output_modules"]["http"]["siem_friendly"] = True
-
-    def verify_data(self, j):
-        return j["data"] == {"DNS_NAME": "blacklanternsecurity.com"} and j["type"] == "DNS_NAME"

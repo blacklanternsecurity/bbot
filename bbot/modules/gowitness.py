@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 
 
 class gowitness(BaseModule):
-    watched_events = ["URL"]
+    watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["active", "safe", "web-screenshots"]
     meta = {"description": "Take screenshots of webpages"}
@@ -76,9 +76,8 @@ class gowitness(BaseModule):
         },
     ]
     _batch_size = 100
-    # visit up to and including the scan's configured search distance plus one
-    # this is one hop further than the default
-    scope_distance_modifier = 1
+    # gowitness accepts SOCIAL events up to distance 2, otherwise it is in-scope-only
+    scope_distance_modifier = 2
 
     async def setup(self):
         self.timeout = self.config.get("timeout", 10)
@@ -95,6 +94,20 @@ class gowitness(BaseModule):
         custom_chrome_path = self.helpers.tools_dir / "chrome-linux" / "chrome"
         if custom_chrome_path.is_file():
             self.chrome_path = custom_chrome_path
+
+        # make sure we have a working chrome install
+        chrome_test_pass = False
+        for binary in ("chrome", "chromium", custom_chrome_path):
+            binary_path = self.helpers.which(binary)
+            if binary_path and Path(binary_path).is_file():
+                chrome_test_proc = await self.helpers.run([binary_path, "--version"])
+                if getattr(chrome_test_proc, "returncode", 1) == 0:
+                    self.verbose(f"Found chrome executable at {binary_path}")
+                    chrome_test_pass = True
+                    break
+        if not chrome_test_pass:
+            return False, "Failed to set up Google chrome. Please install manually or try again with --force-deps."
+
         self.db_path = self.base_path / "gowitness.sqlite3"
         self.screenshot_path = self.base_path / "screenshots"
         self.command = self.construct_command()
@@ -120,12 +133,21 @@ class gowitness(BaseModule):
         # ignore events from self
         if event.type == "URL" and event.module == self:
             return False, "event is from self"
+        # Accept out-of-scope SOCIAL pages, but not URLs
+        if event.scope_distance > 0:
+            if event.type != "SOCIAL":
+                return False, "event is not in-scope"
         return True
 
     async def handle_batch(self, *events):
         self.prep()
-        stdin = "\n".join([str(e.data) for e in events])
-        events = {e.data: e for e in events}
+        event_dict = {}
+        for e in events:
+            key = e.data
+            if e.type == "SOCIAL":
+                key = e.data["url"]
+            event_dict[key] = e
+        stdin = "\n".join(list(event_dict))
 
         async for line in self.helpers.run_live(self.command, input=stdin):
             self.debug(line)
@@ -136,8 +158,8 @@ class gowitness(BaseModule):
             final_url = screenshot["final_url"]
             filename = screenshot["filename"]
             webscreenshot_data = {"filename": filename, "url": final_url}
-            source_event = events[url]
-            self.emit_event(webscreenshot_data, "WEBSCREENSHOT", source=source_event)
+            source_event = event_dict[url]
+            await self.emit_event(webscreenshot_data, "WEBSCREENSHOT", source=source_event)
 
         # emit URLs
         for url, row in self.new_network_logs.items():
@@ -147,20 +169,20 @@ class gowitness(BaseModule):
 
             _id = row["url_id"]
             source_url = self.screenshots_taken[_id]
-            source_event = events[source_url]
+            source_event = event_dict[source_url]
             if self.helpers.is_spider_danger(source_event, url):
                 tags.append("spider-danger")
             if url and url.startswith("http"):
-                self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
+                await self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
 
         # emit technologies
         for _, row in self.new_technologies.items():
             source_id = row["url_id"]
             source_url = self.screenshots_taken[source_id]
-            source_event = events[source_url]
+            source_event = event_dict[source_url]
             technology = row["value"]
             tech_data = {"technology": technology, "url": source_url, "host": str(source_event.host)}
-            self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
+            await self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
 
     def construct_command(self):
         # base executable
@@ -192,6 +214,7 @@ class gowitness(BaseModule):
         if self.db_path.is_file():
             with sqlite3.connect(str(self.db_path)) as con:
                 con.row_factory = sqlite3.Row
+                con.text_factory = self.helpers.smart_decode
                 cur = con.cursor()
                 res = self.cur_execute(cur, "SELECT * FROM urls")
                 for row in res:

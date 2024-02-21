@@ -70,7 +70,7 @@ class nuclei(BaseModule):
         else:
             self.warning("Error running nuclei template update command")
         self.proxy = self.scan.config.get("http_proxy", "")
-        self.mode = self.config.get("mode", "severe")
+        self.mode = self.config.get("mode", "severe").lower()
         self.ratelimit = int(self.config.get("ratelimit", 150))
         self.concurrency = int(self.config.get("concurrency", 25))
         self.budget = int(self.config.get("budget", 1))
@@ -85,7 +85,7 @@ class nuclei(BaseModule):
             self.info(f"Excluding the following nuclei tags: [{self.etags}]")
         self.severity = self.config.get("severity")
         if self.mode != "severe" and self.severity != "":
-            self.info(f"Limiting nuclei templates to the following severites: [{self.severity}]")
+            self.info(f"Limiting nuclei templates to the following severities: [{self.severity}]")
         self.iserver = self.scan.config.get("interactsh_server", None)
         self.itoken = self.scan.config.get("interactsh_token", None)
         self.retries = int(self.config.get("retries", 0))
@@ -120,7 +120,7 @@ class nuclei(BaseModule):
             self.info("Processing nuclei templates to perform budget calculations...")
 
             self.nucleibudget = NucleiBudget(self)
-            self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsable_templates, pipe=False)
+            self.budget_templates_file = self.helpers.tempfile(self.nucleibudget.collapsible_templates, pipe=False)
 
             self.info(
                 f"Loaded [{str(sum(self.nucleibudget.severity_stats.values()))}] templates based on a budget of [{str(self.budget)}] request(s)"
@@ -150,7 +150,7 @@ class nuclei(BaseModule):
                 description_string += f" Extracted Data: [{','.join(extracted_results)}]"
 
             if severity in ["INFO", "UNKNOWN"]:
-                self.emit_event(
+                await self.emit_event(
                     {
                         "host": str(source_event.host),
                         "url": url,
@@ -160,7 +160,7 @@ class nuclei(BaseModule):
                     source_event,
                 )
             else:
-                self.emit_event(
+                await self.emit_event(
                     {
                         "severity": severity,
                         "host": str(source_event.host),
@@ -295,7 +295,7 @@ class NucleiBudget:
         self.templates_dir = nuclei_module.nuclei_templates_dir
         self.yaml_list = self.get_yaml_list()
         self.budget_paths = self.find_budget_paths(nuclei_module.budget)
-        self.collapsable_templates, self.severity_stats = self.find_collapsable_templates()
+        self.collapsible_templates, self.severity_stats = self.find_collapsible_templates()
 
     def get_yaml_list(self):
         return list(self.templates_dir.rglob("*.yaml"))
@@ -331,8 +331,8 @@ class NucleiBudget:
         yield res
 
     # Parse through all templates and locate those which match the conditions necessary to collapse down to the budget setting
-    def find_collapsable_templates(self):
-        collapsable_templates = []
+    def find_collapsible_templates(self):
+        collapsible_templates = []
         severity_dict = {}
         for yf in self.yaml_list:
             valid = True
@@ -365,14 +365,14 @@ class NucleiBudget:
                                 valid = False
 
                         if valid:
-                            collapsable_templates.append(str(yf))
+                            collapsible_templates.append(str(yf))
                             severity_gen = self.get_yaml_info_attr(yf, "severity")
                             severity = next(severity_gen)
                             if severity in severity_dict.keys():
                                 severity_dict[severity] += 1
                             else:
                                 severity_dict[severity] = 1
-        return collapsable_templates, severity_dict
+        return collapsible_templates, severity_dict
 
     def parse_yaml(self, yamlfile):
         if yamlfile not in self._yaml_files:

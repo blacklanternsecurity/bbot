@@ -6,7 +6,7 @@ from .base import BaseModule
 class OAUTH(BaseModule):
     watched_events = ["DNS_NAME", "URL_UNVERIFIED"]
     produced_events = ["DNS_NAME"]
-    flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "active", "safe"]
+    flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "web-thorough", "active", "safe"]
     meta = {"description": "Enumerate OAUTH and OpenID Connect services"}
     options = {"try_all": False}
     options_desc = {"try_all": "Check for OAUTH/IODC on every subdomain and URL."}
@@ -66,16 +66,16 @@ class OAUTH(BaseModule):
                     source=event,
                 )
                 finding_event.source_domain = source_domain
-                self.emit_event(finding_event)
+                await self.emit_event(finding_event)
                 url_event = self.make_event(
                     token_endpoint, "URL_UNVERIFIED", source=event, tags=["affiliate", "oauth-token-endpoint"]
                 )
                 url_event.source_domain = source_domain
-                self.emit_event(url_event)
+                await self.emit_event(url_event)
             for result in oidc_results:
                 if result not in (domain, event.data):
                     event_type = "URL_UNVERIFIED" if self.helpers.is_url(result) else "DNS_NAME"
-                    self.emit_event(result, event_type, source=event, tags=["affiliate"])
+                    await self.emit_event(result, event_type, source=event, tags=["affiliate"])
 
         for oauth_task in oauth_tasks:
             url = await oauth_task
@@ -90,7 +90,7 @@ class OAUTH(BaseModule):
                     source=event,
                 )
                 oauth_finding.source_domain = source_domain
-                self.emit_event(oauth_finding)
+                await self.emit_event(oauth_finding)
 
     def url_and_base(self, url):
         yield url

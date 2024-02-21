@@ -54,7 +54,7 @@ class secretsdb(BaseModule):
             parsed_url = getattr(event, "parsed", None)
             if parsed_url:
                 event_data["url"] = parsed_url.geturl()
-            self.emit_event(
+            await self.emit_event(
                 event_data,
                 "FINDING",
                 source=event,
