@@ -38,7 +38,7 @@ class asset_inventory(CSV):
     options_desc = {
         "output_file": "Set a custom output file",
         "use_previous": "Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)",
-        "recheck": "recheck the open ports and findings from the previous asset inventory (use in conjunction with use_previous)",
+        "recheck": "When use_previous=True, don't retain past details like open ports or findings. Instead, allow them to be rediscovered by the new scan",
         "summary_netmask": "Subnet mask to use when summarizing IP addresses at end of scan",
     }
 

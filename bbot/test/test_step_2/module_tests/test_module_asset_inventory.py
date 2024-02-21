@@ -49,3 +49,19 @@ class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
         with open(filename) as f:
             content = f.read()
             assert "bbottest.notreal" in content
+
+
+class TestAsset_InventoryRecheck(TestAsset_Inventory):
+    config_overrides = {
+        "dns_resolution": True,
+        "output_modules": {"asset_inventory": {"use_previous": True, "recheck": True}},
+    }
+    modules_overrides = ["asset_inventory"]
+
+    def check(self, module_test, events):
+        assert not any(e.type == "OPEN_TCP_PORT" for e in events), "Open port was emitted"
+        assert any(e.data == "www.bbottest.notreal" for e in events), "No DNS name found"
+        filename = next(module_test.scan.home.glob("asset-inventory.csv"))
+        with open(filename) as f:
+            content = f.read()
+            assert "www.bbottest.notreal,,,127.0.0.1" in content
