@@ -25,7 +25,6 @@ class fuzzy_image_hash(BaseModule):
         "fuzzy_hashes": "Provided CTPH hash(es) to compare to",
         "confidence": "Confidence level threshold for comparing hashes."
      }
-    scope_distance_modifier = 1
 
     async def setup(self):
         try:
