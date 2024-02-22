@@ -1,4 +1,5 @@
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.misc import parse_list_string
 import xml.etree.ElementTree as ET
 import ssdeep
 from bs4 import BeautifulSoup
@@ -17,15 +18,21 @@ class fuzzy_image_hash(BaseModule):
     }
     flags = ["passive", "safe"]
     options = {
-        "fuzzy_hash": "",
+        "fuzzy_hashes": "",
         "confidence": 90,
     }
-    options_desc = {"fuzzy_hash": "Provided CTPH hash to compare to", "confidence": "Confidence level threshold for comparing hashes."}
+    options_desc = {
+        "fuzzy_hashes": "Provided CTPH hash(es) to compare to",
+        "confidence": "Confidence level threshold for comparing hashes."
+     }
     scope_distance_modifier = 2
 
     async def setup(self):
-        self.fuzzy_hash = self.config.get("fuzzy_hash")
-        if not self.fuzzy_hash:
+        try:
+            self.fuzzy_hashes = parse_list_string(self.config.get("fuzzy_hashes", ""))
+        except ValueError as e:
+            self.warning(f"Error parsing hashes: {e}")
+        if not self.fuzzy_hashes:
             return None, "Must set fuzzy hash value"
         self.confidence = self.config.get("confidence")
         if not self.confidence:
@@ -38,14 +45,17 @@ class fuzzy_image_hash(BaseModule):
         if url_list == None or url_list == [] or url_list == False:
             return False
         for url in url_list:
-            similar_score = await self.is_image_hash_similar(url, self.fuzzy_hash)
-            if similar_score >= self.confidence:
-                data = {
-                "description": f"Identified matched similar score above {self.confidence}",
-                "url": url,
-                "host": event.host
-                }
-                await self.emit_event(data, "FINDING", event)
+            image = await self.helpers.request(url, allow_redirects=True)
+            image_hash = ssdeep.hash(image.content)
+            for fuzzy_hash in self.fuzzy_hashes:
+                similar_score = ssdeep.compare(image_hash, fuzzy_hash)
+                if similar_score >= self.confidence:
+                    data = {
+                    "description": f"Identified matched similar score above {self.confidence}, matching hash: {fuzzy_hash}",
+                    "url": url,
+                    "host": event.host
+                    }
+                    await self.emit_event(data, "FINDING", event)
 
     def get_image_urls(self, data):
         """
@@ -75,29 +85,3 @@ class fuzzy_image_hash(BaseModule):
                 absolute_src = urljoin(data["url"], src)
                 image_urls.append(absolute_src)
         return image_urls
-
-    async def download_image(self, url):
-        """Download image and return its content."""
-        response = await self.helpers.request(url)
-        # Might need to refactor this to check for HTTP rerrors since helpers doesn't have a raise_for_status function
-        # response.raise_for_status()  # Raises an exception for HTTP errors.
-        return response.content
-
-    def compute_hash(self, image_content):
-        """Compute the ssdeep hash of the given image content."""
-        # ssdeep.hash() expects a string or bytes, so ensure the input is correctly formatted.
-        return ssdeep.hash(image_content)
-
-    def compare_hashes(self, hash1, hash2):
-        """Compare two ssdeep hashes and return their similarity score."""
-        return ssdeep.compare(hash1, hash2)
-
-    async def is_image_hash_similar(self, image_url, provided_hash):
-        """Determine if the hash of the image at the given URL is similar to the provided hash."""
-        image_content = await self.download_image(image_url)
-        image_hash = self.compute_hash(image_content)
-        similarity_score = self.compare_hashes(image_hash, provided_hash)
-        
-        # You may choose a threshold for similarity; the exact value depends on your requirements.
-        # ssdeep.compare() returns a value from 0 to 100 indicating the percentage of similarity.
-        return similarity_score
