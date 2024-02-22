@@ -43,9 +43,10 @@ class fuzzy_image_hash(BaseModule):
             if similar_score >= self.confidence:
                 data = {
                 "description": f"Identified matched similar score above {self.confidence}",
-                "url": url
+                "url": url,
+                "host": event.host
                 }
-                self.emit_event("data", "FINDING", event)
+                await self.emit_event(data, "FINDING", event)
 
     def get_image_urls(self, data):
         """
