@@ -29,10 +29,12 @@ class fuzzy_image_hash(BaseModule):
     async def setup(self):
         try:
             self.fuzzy_hashes = parse_list_string(self.config.get("fuzzy_hashes", ""))
+            self.critical(self.fuzzy_hashes)
         except ValueError as e:
             self.warning(f"Error parsing hashes: {e}")
-        if not self.fuzzy_hashes:
-            return None, "Must set fuzzy hash value"
+            return False, "Must set fuzzy hash value"
+        #if not self.fuzzy_hashes:
+        #    return None, "Must set fuzzy hash value"
         self.confidence = self.config.get("confidence")
         if not self.confidence:
             self.confidence = 90

@@ -2625,7 +2625,7 @@ def parse_list_string(list_string):
     result = []
 
     for element in elements:
-        if any((c in '<>"/\\|?*') or (ord(c) < 32 and c != " ") for c in element):
+        if any((c in '<>"|?*') or (ord(c) < 32 and c != " ") for c in element):
             raise ValueError(f"Invalid character in string: {element}")
         result.append(element)
     return result

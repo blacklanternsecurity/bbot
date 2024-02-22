@@ -21,8 +21,16 @@ class Testfuzzy_image_hash(ModuleTestBase):
     """
 
     testimage = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg=="
+    config_overrides = {
+        "modules": {
+            "fuzzy_image_hash": {
+                "fuzzy_hashes": "3:yionv//thPlE+tnM1AsGlk4hvM/jp:6v/lhPfZMWn+4hvsjp",
+            }
+        }
+    }
+    modules_overrides = ["fuzzy_image_hash", "httpx"]
 
-    async def setup_after_prep(self, module_test):
+    async def setup_before_prep(self, module_test):
         # Add a response to the httpx_mock to return the image content when the image URL is requested.
         module_test.httpx_mock.add_response(
             method="GET",
@@ -46,5 +54,7 @@ class Testfuzzy_image_hash(ModuleTestBase):
                 and "3:yionv//thPlE+tnM1AsGlk4hvM/jp:6v/lhPfZMWn+4hvsjp"
                 in e.data["description"]
                 ):
+                    print(e.data["desecription"])
                     validHash = True
         assert validHash, "Invalid Hash"
+        assert 1==2, "Test fail"
