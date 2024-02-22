@@ -29,7 +29,6 @@ class fuzzy_image_hash(BaseModule):
     async def setup(self):
         try:
             self.fuzzy_hashes = parse_list_string(self.config.get("fuzzy_hashes", ""))
-            self.critical(self.fuzzy_hashes)
         except ValueError as e:
             self.warning(f"Error parsing hashes: {e}")
             return False, "Must set fuzzy hash value"
@@ -52,9 +51,9 @@ class fuzzy_image_hash(BaseModule):
                 similar_score = ssdeep.compare(image_hash, fuzzy_hash)
                 if similar_score >= self.confidence:
                     data = {
-                    "description": f"Identified matched similar score above {self.confidence}, matching hash: {fuzzy_hash}",
-                    "url": url,
-                    "host": event.host
+                    "description": f"Identified matched similar score above {self.confidence}, matching hash: {fuzzy_hash} at {url}",
+                    "url": event.data["url"],
+                    "host": str(event.host),
                     }
                     await self.emit_event(data, "FINDING", event)
 

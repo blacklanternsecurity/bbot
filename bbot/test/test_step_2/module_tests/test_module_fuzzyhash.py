@@ -30,31 +30,23 @@ class Testfuzzy_image_hash(ModuleTestBase):
     }
     modules_overrides = ["fuzzy_image_hash", "httpx"]
 
-    async def setup_before_prep(self, module_test):
-        # Add a response to the httpx_mock to return the image content when the image URL is requested.
-        module_test.httpx_mock.add_response(
-            method="GET",
-            url="/",
-            content=self.sample_page
-        )
+    async def setup_after_prep(self, module_test):
+        expect_args = {"method": "GET", "uri": "/"}
+        respond_args = {"response_data": self.sample_page}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        module_test.httpx_mock.add_response(
-            method="GET",
-            url="/testimage.png",
-            content=base64.b64decode(self.testimage)
-        )
+        expect_args = {"method": "GET", "uri": "/testimage.png"}
+        respond_args = {"response_data": base64.b64decode(self.testimage)}
+        module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-    async def check(self, module_test, events):
+    def check(self, module_test, events):
         validHash = False
         for e in events:
-            print(e)
             if (
                 e.type == "FINDING"
                 and "Identified matched similar score above"
                 and "3:yionv//thPlE+tnM1AsGlk4hvM/jp:6v/lhPfZMWn+4hvsjp"
                 in e.data["description"]
                 ):
-                    print(e.data["desecription"])
                     validHash = True
         assert validHash, "Invalid Hash"
-        assert 1==2, "Test fail"
