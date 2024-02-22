@@ -1,6 +1,5 @@
 from bbot.modules.base import BaseModule
 import xml.etree.ElementTree as ET
-import requests
 import ssdeep
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -39,7 +38,7 @@ class fuzzy_image_hash(BaseModule):
         if url_list == None or url_list == [] or url_list == False:
             return False
         for url in url_list:
-            similar_score = self.is_image_hash_similar(url, self.fuzzy_hash)
+            similar_score = await self.is_image_hash_similar(url, self.fuzzy_hash)
             if similar_score >= self.confidence:
                 data = {
                 "description": f"Identified matched similar score above {self.confidence}",
@@ -77,10 +76,11 @@ class fuzzy_image_hash(BaseModule):
                 image_urls.append(absolute_src)
         return image_urls
 
-    def download_image(self, url):
+    async def download_image(self, url):
         """Download image and return its content."""
-        response = requests.get(url)
-        response.raise_for_status()  # Raises an exception for HTTP errors.
+        response = await self.helpers.request(url)
+        # Might need to refactor this to check for HTTP rerrors since helpers doesn't have a raise_for_status function
+        # response.raise_for_status()  # Raises an exception for HTTP errors.
         return response.content
 
     def compute_hash(self, image_content):
@@ -92,9 +92,9 @@ class fuzzy_image_hash(BaseModule):
         """Compare two ssdeep hashes and return their similarity score."""
         return ssdeep.compare(hash1, hash2)
 
-    def is_image_hash_similar(self, image_url, provided_hash):
+    async def is_image_hash_similar(self, image_url, provided_hash):
         """Determine if the hash of the image at the given URL is similar to the provided hash."""
-        image_content = self.download_image(image_url)
+        image_content = await self.download_image(image_url)
         image_hash = self.compute_hash(image_content)
         similarity_score = self.compare_hashes(image_hash, provided_hash)
         
