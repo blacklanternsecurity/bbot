@@ -10,11 +10,8 @@ class BBOTCore:
     default_module_dir = bbot_code_dir / "modules"
 
     def __init__(self):
-        self._args = None
         self._logger = None
-        self._environ = None
         self._files_config = None
-        self._module_loader = None
 
         self.bbot_sudo_pass = None
         self.cli_execution = False
@@ -22,11 +19,6 @@ class BBOTCore:
         self._config = None
         self._default_config = None
         self._custom_config = None
-
-        # where to load modules from
-        self.module_dirs = self.config.get("module_dirs", [])
-        self.module_dirs = [Path(p) for p in self.module_dirs] + [self.default_module_dir]
-        self.module_dirs = sorted(set(self.module_dirs))
 
         # ensure bbot home dir
         if not "home" in self.config:
@@ -111,6 +103,12 @@ class BBOTCore:
         self._config = None
         self._custom_config = value
 
+    def merge_custom(self, config):
+        self.custom_config = Omegaconf.merge(self.custom_config, OmegaConf.create(config))
+
+    def merge_default(self, config):
+        self.default_config = Omegaconf.merge(self.default_config, OmegaConf.create(config))
+
     @property
     def logger(self):
         self.config
@@ -119,42 +117,3 @@ class BBOTCore:
 
             self._logger = BBOTLogger(self)
         return self._logger
-
-    @property
-    def module_loader(self):
-        # module loader depends on environment to be set up
-        # or is it the other way around
-        # PRESET TODO
-        self.environ
-        if self._module_loader is None:
-            from .modules import ModuleLoader
-
-            self._module_loader = ModuleLoader(self)
-
-            # update default config with module defaults
-            module_config = OmegaConf.create(
-                {
-                    "modules": self._module_loader.configs(type="scan"),
-                    "output_modules": self._module_loader.configs(type="output"),
-                    "internal_modules": self._module_loader.configs(type="internal"),
-                }
-            )
-            self.default_config = OmegaConf.merge(self.default_config, module_config)
-
-        return self._module_loader
-
-    @property
-    def environ(self):
-        if self._environ is None:
-            from .config.environ import BBOTEnviron
-
-            self._environ = BBOTEnviron(self)
-        return self._environ
-
-    @property
-    def args(self):
-        if self._args is None:
-            from .config.args import BBOTArgs
-
-            self._args = BBOTArgs(self)
-        return self._args

@@ -90,15 +90,15 @@ class BBOTEnviron:
 
         # exchange certain options between CLI args and config
         # PRESET TODO: do we even need this?
-        if self.core.cli_execution and self.core.args.cli_config:
-            # deps
-            self.core.custom_config["retry_deps"] = self.core.args.cli_options.retry_deps
-            self.core.custom_config["force_deps"] = self.core.args.cli_options.force_deps
-            self.core.custom_config["no_deps"] = self.core.args.cli_options.no_deps
-            self.core.custom_config["ignore_failed_deps"] = self.core.args.cli_options.ignore_failed_deps
-            # debug
-            self.core.custom_config["debug"] = self.core.args.cli_options.debug
-            self.core.custom_config["silent"] = self.core.args.cli_options.silent
+        # if self.core.cli_execution and self.core.args.cli_config:
+        #     # deps
+        #     self.core.custom_config["retry_deps"] = self.core.args.cli_options.retry_deps
+        #     self.core.custom_config["force_deps"] = self.core.args.cli_options.force_deps
+        #     self.core.custom_config["no_deps"] = self.core.args.cli_options.no_deps
+        #     self.core.custom_config["ignore_failed_deps"] = self.core.args.cli_options.ignore_failed_deps
+        #     # debug
+        #     self.core.custom_config["debug"] = self.core.args.cli_options.debug
+        #     self.core.custom_config["silent"] = self.core.args.cli_options.silent
 
         import logging
 
@@ -126,7 +126,8 @@ class BBOTEnviron:
             os.environ.pop("HTTPS_PROXY", None)
 
         # replace environment variables in preloaded modules
-        self.core.module_loader.find_and_replace(**os.environ)
+        # PRESET TODO: move this
+        # self.core.module_loader.find_and_replace(**os.environ)
 
         # ssl verification
         import urllib3

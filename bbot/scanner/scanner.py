@@ -19,6 +19,7 @@ from bbot import __version__
 
 from .target import Target
 from .stats import ScanStats
+from bbot.presets import Preset
 from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.core.event import make_event
@@ -102,21 +103,7 @@ class Scanner:
         "FINISHED": 8,
     }
 
-    def __init__(
-        self,
-        *targets,
-        whitelist=None,
-        blacklist=None,
-        scan_id=None,
-        name=None,
-        modules=None,
-        output_modules=None,
-        output_dir=None,
-        config=None,
-        dispatcher=None,
-        strict_scope=False,
-        force_start=False,
-    ):
+    def __init__(self, *targets, force_start=False, **preset_kwargs):
         """
         Initializes the Scanner class.
 
@@ -134,6 +121,9 @@ class Scanner:
             strict_scope (bool, optional): If True, only targets explicitly in whitelist are scanned. Defaults to False.
             force_start (bool, optional): If True, allows the scan to start even when module setups hard-fail. Defaults to False.
         """
+
+        self.preset = Preset(*targets, **preset_kwargs)
+
         if modules is None:
             modules = []
         if output_modules is None:
@@ -143,12 +133,6 @@ class Scanner:
             modules = [modules]
         if isinstance(output_modules, str):
             output_modules = [output_modules]
-
-        if config is None:
-            config = OmegaConf.create({})
-        else:
-            config = OmegaConf.create(config)
-        self.config = OmegaConf.merge(CORE.config, config)
 
         # PRESET TODO: revisit this
         CORE.environ.prepare()

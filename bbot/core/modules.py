@@ -24,18 +24,18 @@ class ModuleLoader:
 
     module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
 
-    def __init__(self, core):
-        self.core = core
+    def __init__(self, preset):
+        self.preset = preset
         self.__preloaded = None
         self._preloaded_orig = None
         self._modules = {}
         self._configs = {}
 
-        self.preload_cache_file = self.core.cache_dir / "preloaded"
+        self.preload_cache_file = self.preset.core.cache_dir / "preloaded"
         self._preload_cache = None
 
         # expand to include all recursive dirs
-        self.module_dirs = self.get_recursive_dirs(*self.core.module_dirs)
+        self.module_dirs = self.get_recursive_dirs(*self.preset.module_dirs)
 
     def file_filter(self, file):
         file = file.resolve()

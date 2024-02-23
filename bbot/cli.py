@@ -38,6 +38,11 @@ async def _main():
     # log.hugesuccess(CORE.default_config)
     print(CORE.module_loader)
 
+    # 1) load core (environment variables, modules)
+    # 2) instantiate god preset
+    # 3)    pull in command line arguments (this adds targets, configs, presets, etc.)
+    # 4)    pass preset to scan
+
     return
 
     # async def monitor_tasks():

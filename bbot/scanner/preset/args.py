@@ -92,15 +92,16 @@ class BBOTArgs:
         for title, description, command in example:
             epilog += f"\n    {title}:\n        {command}\n"
 
-    def __init__(self, core):
-        self.core = core
+    def __init__(self, preset):
+        self.preset = preset
         self._parsed = None
         self._cli_config = None
 
-        self._module_choices = sorted(set(self.core.module_loader.preloaded(type="scan")))
-        self._output_module_choices = sorted(set(self.core.module_loader.preloaded(type="output")))
+        # PRESET TODO: revisit this
+        self._module_choices = sorted(set(self.preset.module_loader.preloaded(type="scan")))
+        self._output_module_choices = sorted(set(self.preset.module_loader.preloaded(type="output")))
         self._flag_choices = set()
-        for m, c in self.core.module_loader.preloaded().items():
+        for m, c in self.preset.module_loader.preloaded().items():
             self._flag_choices.update(set(c.get("flags", [])))
         self._flag_choices = sorted(self._flag_choices)
 
@@ -280,7 +281,7 @@ class BBOTArgs:
         all_options = None
         for c in conf:
             c = c.split("=")[0].strip()
-            v = OmegaConf.select(self.core.default_config, c, default=sentinel)
+            v = OmegaConf.select(self.preset.core.default_config, c, default=sentinel)
             # if option isn't in the default config
             if v is sentinel:
                 if self.exclude_from_validation.match(c):
@@ -291,6 +292,6 @@ class BBOTArgs:
                     modules_options = set()
                     for module_options in module_loader.modules_options().values():
                         modules_options.update(set(o[0] for o in module_options))
-                    global_options = set(self.core.default_config.keys()) - {"modules", "output_modules"}
+                    global_options = set(self.preset.core.default_config.keys()) - {"modules", "output_modules"}
                     all_options = global_options.union(modules_options)
                 match_and_exit(c, all_options, msg="module option")
