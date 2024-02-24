@@ -22,17 +22,42 @@ class dotnetnuke(BaseModule):
     flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Scan for critical DotNetNuke (DNN) vulnerabilities"}
 
-    def interactsh_callback(self, event):
-        self.emit_event(
-            {
-                "severity": "MEDIUM",
-                "host": str(event.host),
-                "url": event.data["url"],
-                "description": f"DotNetNuke Blind-SSRF (CVE 2017-0929)",
-            },
-            "VULNERABILITY",
-            event,
-        )
+    async def setup(self):
+        self.event_dict = {}
+        self.interactsh_subdomain_tags = {}
+
+        self.interactsh_instance = None
+        subdomain_tag = self.helpers.rand_string(4, digits=False)
+        if self.scan.config.get("interactsh_disable", False) == False:
+
+            try:
+                self.interactsh_instance = self.helpers.interactsh()
+                self.interactsh_domain = await self.interactsh_instance.register(callback=self.interactsh_callback)
+            except InteractshError as e:
+                self.warning(f"Interactsh failure: {e}")
+
+        return True
+
+    async def interactsh_callback(self, r):
+        full_id = r.get("full-id", None)
+        if full_id:
+            if "." in full_id:
+                event = self.interactsh_subdomain_tags.get(full_id.split(".")[0])
+                if not event:
+                    return
+                await self.emit_event(
+                    {
+                        "severity": "MEDIUM",
+                        "host": str(event.host),
+                        "url": event.data["url"],
+                        "description": f"DotNetNuke Blind-SSRF (CVE 2017-0929)",
+                    },
+                    "VULNERABILITY",
+                    event,
+                )
+            else:
+                # this is likely caused by something trying to resolve the base domain first and can be ignored
+                self.debug("skipping result because subdomain tag was missing")
 
     async def handle_event(self, event):
         detected = False
@@ -41,7 +66,7 @@ class dotnetnuke(BaseModule):
         if raw_headers:
             for header_signature in self.DNN_signatures_header:
                 if header_signature in raw_headers:
-                    self.emit_event(
+                    await self.emit_event(
                         {"technology": "DotNetNuke", "url": event.data["url"], "host": str(event.host)},
                         "TECHNOLOGY",
                         event,
@@ -52,7 +77,7 @@ class dotnetnuke(BaseModule):
         if resp_body:
             for body_signature in self.DNN_signatures_body:
                 if body_signature in resp_body:
-                    self.emit_event(
+                    await self.emit_event(
                         {"technology": "DotNetNuke", "url": event.data["url"], "host": str(event.host)},
                         "TECHNOLOGY",
                         event,
@@ -66,7 +91,7 @@ class dotnetnuke(BaseModule):
                 result = await self.helpers.request(probe_url, cookies=self.exploit_probe)
                 if result:
                     if "for 16-bit app support" in result.text and "[extensions]" in result.text:
-                        self.emit_event(
+                        await self.emit_event(
                             {
                                 "severity": "CRITICAL",
                                 "description": "DotNetNuke Personalization Cookie Deserialization",
@@ -76,7 +101,6 @@ class dotnetnuke(BaseModule):
                             "VULNERABILITY",
                             event,
                         )
-                        return
 
             if "endpoint" not in event.tags:
 
@@ -86,7 +110,7 @@ class dotnetnuke(BaseModule):
                 )
                 if result:
                     if "<configuration>" in result.text:
-                        self.emit_event(
+                        await self.emit_event(
                             {
                                 "severity": "CRITICAL",
                                 "description": "DotNetNuke dnnUI_NewsArticlesSlider Module Arbitrary File Read",
@@ -103,7 +127,7 @@ class dotnetnuke(BaseModule):
                 )
                 if result:
                     if "<configuration>" in result.text:
-                        self.emit_event(
+                        await self.emit_event(
                             {
                                 "severity": "CRITICAL",
                                 "description": "DotNetNuke DNNArticle Module GetCSS.ashx Arbitrary File Read",
@@ -114,13 +138,14 @@ class dotnetnuke(BaseModule):
                             event,
                         )
 
+                # InstallWizard SuperUser Privilege Escalation
                 result = await self.helpers.request(f'{event.data["url"]}/Install/InstallWizard.aspx')
                 if result.status_code == 200:
                     result_confirm = await self.helpers.request(
                         f'{event.data["url"]}/Install/InstallWizard.aspx?__viewstate=1'
                     )
                     if result_confirm.status_code == 500:
-                        self.emit_event(
+                        await self.emit_event(
                             {
                                 "severity": "CRITICAL",
                                 "description": "DotNetNuke InstallWizard SuperUser Privilege Escalation",
@@ -132,29 +157,36 @@ class dotnetnuke(BaseModule):
                         )
                         return
 
-                subdomain_tag = self.helpers.rand_string(4, digits=False)
-                if self.scan.config.get("interactsh_disable", False) == False:
-                    try:
-                        interactsh_instance = self.helpers.interactsh()
-                        interactsh_domain = await interactsh_instance.register(
-                            callback=self.interactsh_callback(event)
-                        )
-                    except InteractshError as e:
-                        self.warning(f"Interactsh failure: {e}")
-                        return False
+                # DNNImageHandler.ashx Blind SSRF
+                self.event_dict[event.data["url"]] = event
+                if self.interactsh_instance:
+                    subdomain_tag = self.helpers.rand_string(4, digits=False)
+                    self.interactsh_subdomain_tags[subdomain_tag] = event
 
                     await self.helpers.request(
-                        f'{event.data["url"]}/DnnImageHandler.ashx?mode=file&url=http://{subdomain_tag}.{interactsh_domain}'
+                        f'{event.data["url"]}/DnnImageHandler.ashx?mode=file&url=http://{subdomain_tag}.{self.interactsh_domain}'
                     )
-
-                    try:
-                        await interactsh_instance.deregister()
-                        self.debug(
-                            f"successfully deregistered interactsh session with correlation_id {interactsh_instance.correlation_id}"
-                        )
-                    except InteractshError as e:
-                        self.warning(f"Interactsh failure: {e}")
-
                 else:
-                    self.debug("Aborting DNNImageHandler SSRF check due to interactsh global disable")
+                    self.debug(
+                        "Aborting DNNImageHandler SSRF check due to interactsh global disable or interactsh setup failure"
+                    )
                     return None
+
+    async def cleanup(self):
+        if self.interactsh_instance:
+            try:
+                await self.interactsh_instance.deregister()
+                self.debug(
+                    f"successfully deregistered interactsh session with correlation_id {self.interactsh_instance.correlation_id}"
+                )
+            except InteractshError as e:
+                self.warning(f"Interactsh failure: {e}")
+
+    async def finish(self):
+        if self.interactsh_instance:
+            await self.helpers.sleep(5)
+            try:
+                for r in await self.interactsh_instance.poll():
+                    await self.interactsh_callback(r)
+            except InteractshError as e:
+                self.debug(f"Error in interact.sh: {e}")
