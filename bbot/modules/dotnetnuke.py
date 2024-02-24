@@ -26,7 +26,7 @@ class dotnetnuke(BaseModule):
         self.event_dict = {}
         self.interactsh_subdomain_tags = {}
         self.interactsh_instance = None
-        
+
         if self.scan.config.get("interactsh_disable", False) == False:
 
             try:
