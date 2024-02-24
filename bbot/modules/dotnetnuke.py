@@ -25,9 +25,8 @@ class dotnetnuke(BaseModule):
     async def setup(self):
         self.event_dict = {}
         self.interactsh_subdomain_tags = {}
-
         self.interactsh_instance = None
-        subdomain_tag = self.helpers.rand_string(4, digits=False)
+        
         if self.scan.config.get("interactsh_disable", False) == False:
 
             try:

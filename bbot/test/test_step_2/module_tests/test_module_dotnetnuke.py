@@ -1,5 +1,6 @@
 import re
 from .base import ModuleTestBase
+from werkzeug.wrappers import Response
 
 
 dotnetnuke_http_response = """
