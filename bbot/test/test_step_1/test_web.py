@@ -24,7 +24,7 @@ async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     # should fail because URL is not in-scope
     assert response.status_code == 500
     response = await scan2.helpers.request(url)
-    # should suceed because URL is in-scope
+    # should succeed because URL is in-scope
     assert response.status_code == 200
     assert response.text == "test_http_helpers_yep"
 
@@ -45,6 +45,30 @@ async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
     assert filename2.is_file()
     with open(filename2) as f:
         assert f.read() == download_content
+
+    # beautifulsoup
+    download_content = """
+    <div>
+    <h1>Example Domain</h1>
+    <p>This domain is for use in illustrative examples in documents. You may use this
+    domain in literature without prior coordination or asking for permission.</p>
+    <p><a href="https://www.iana.org/domains/example">More information...</a></p>
+    </div>
+    """
+
+    path = "/test_http_helpers_beautifulsoup"
+    url = bbot_httpserver.url_for(path)
+    bbot_httpserver.expect_request(uri=path).respond_with_data(download_content, status=200)
+    webpage = await scan1.helpers.request(url)
+    assert webpage, f"Webpage is False"
+    soup = scan1.helpers.beautifulsoup(webpage, "html.parser")
+    assert soup, f"Soup is False"
+    # pretty_print = soup.prettify()
+    # assert pretty_print, f"PrettyPrint is False"
+    # scan1.helpers.log.info(f"{pretty_print}")
+    html_text = soup.find(text="Example Domain")
+    assert html_text, f"Find HTML Text is False"
+
     # 404
     path = "/test_http_helpers_download_404"
     url = bbot_httpserver.url_for(path)
@@ -104,23 +128,61 @@ async def test_web_helpers(bbot_scanner, bbot_config, bbot_httpserver):
 async def test_web_interactsh(bbot_scanner, bbot_config, bbot_httpserver):
     from bbot.core.helpers.interactsh import server_list
 
-    scan1 = bbot_scanner("8.8.8.8", config=bbot_config)
+    sync_called = False
+    async_called = False
 
-    interactsh_client = scan1.helpers.interactsh()
+    sync_correct_url = False
+    async_correct_url = False
+
+    scan1 = bbot_scanner("8.8.8.8", config=bbot_config)
+    scan1.status = "RUNNING"
+
+    interactsh_client = scan1.helpers.interactsh(poll_interval=3)
+    interactsh_client2 = scan1.helpers.interactsh(poll_interval=3)
 
     async def async_callback(data):
-        log.debug(f"interactsh poll: {data}")
+        nonlocal async_called
+        nonlocal async_correct_url
+        async_called = True
+        d = data.get("raw-request", "")
+        async_correct_url |= "bbot_interactsh_test" in d
+        log.debug(f"interactsh poll (async): {d}")
+
+    def sync_callback(data):
+        nonlocal sync_called
+        nonlocal sync_correct_url
+        sync_called = True
+        d = data.get("raw-request", "")
+        sync_correct_url |= "bbot_interactsh_test" in d
+        log.debug(f"interactsh poll (sync): {d}")
 
     interactsh_domain = await interactsh_client.register(callback=async_callback)
-    url = f"https://{interactsh_domain}/bbot_interactsh_test"
+    url = f"http://{interactsh_domain}/bbot_interactsh_test"
     response = await scan1.helpers.request(url)
     assert response.status_code == 200
-    await asyncio.sleep(10)
     assert any(interactsh_domain.endswith(f"{s}") for s in server_list)
+
+    interactsh_domain2 = await interactsh_client2.register(callback=sync_callback)
+    url2 = f"http://{interactsh_domain2}/bbot_interactsh_test"
+    response2 = await scan1.helpers.request(url2)
+    assert response2.status_code == 200
+    assert any(interactsh_domain2.endswith(f"{s}") for s in server_list)
+
+    await asyncio.sleep(10)
+
     data_list = await interactsh_client.poll()
+    data_list2 = await interactsh_client2.poll()
     assert isinstance(data_list, list)
-    assert any("bbot_interactsh_test" in d.get("raw-request", "") for d in data_list)
+    assert isinstance(data_list2, list)
+
     assert await interactsh_client.deregister() is None
+    assert await interactsh_client2.deregister() is None
+
+    assert sync_called, "Interactsh synchrononous callback was not called"
+    assert async_called, "Interactsh async callback was not called"
+
+    assert sync_correct_url, f"Data content was not correct for {url2}"
+    assert async_correct_url, f"Data content was not correct for {url}"
 
 
 @pytest.mark.asyncio

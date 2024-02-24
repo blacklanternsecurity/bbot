@@ -114,7 +114,7 @@ class ffuf_shortnames(ffuf):
         else:
             return [extension_hint]
 
-    def find_delimeter(self, hint):
+    def find_delimiter(self, hint):
         delimiters = ["_", "-"]
         for d in delimiters:
             if d in hint:
@@ -158,36 +158,40 @@ class ffuf_shortnames(ffuf):
                 if "shortname-file" in event.tags:
                     for ext in used_extensions:
                         async for r in self.execute_ffuf(tempfile, root_url, suffix=f".{ext}"):
-                            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                            await self.emit_event(
+                                r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
+                            )
 
                 elif "shortname-directory" in event.tags:
                     async for r in self.execute_ffuf(tempfile, root_url, exts=["/"]):
                         r_url = f"{r['url'].rstrip('/')}/"
-                        self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                        await self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
             if self.config.get("find_delimiters"):
                 if "shortname-directory" in event.tags:
-                    delimeter_r = self.find_delimeter(filename_hint)
-                    if delimeter_r:
-                        delimeter, prefix, partial_hint = delimeter_r
-                        self.verbose(f"Detected delimeter [{delimeter}] in hint [{filename_hint}]")
+                    delimiter_r = self.find_delimiter(filename_hint)
+                    if delimiter_r:
+                        delimiter, prefix, partial_hint = delimiter_r
+                        self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                         tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
                         async for r in self.execute_ffuf(
-                            tempfile, root_url, prefix=f"{prefix}{delimeter}", exts=["/"]
+                            tempfile, root_url, prefix=f"{prefix}{delimiter}", exts=["/"]
                         ):
-                            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                            await self.emit_event(
+                                r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
+                            )
 
                 elif "shortname-file" in event.tags:
                     for ext in used_extensions:
-                        delimeter_r = self.find_delimeter(filename_hint)
-                        if delimeter_r:
-                            delimeter, prefix, partial_hint = delimeter_r
-                            self.verbose(f"Detected delimeter [{delimeter}] in hint [{filename_hint}]")
+                        delimiter_r = self.find_delimiter(filename_hint)
+                        if delimiter_r:
+                            delimiter, prefix, partial_hint = delimiter_r
+                            self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                             tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
                             async for r in self.execute_ffuf(
-                                tempfile, root_url, prefix=f"{prefix}{delimeter}", suffix=f".{ext}"
+                                tempfile, root_url, prefix=f"{prefix}{delimiter}", suffix=f".{ext}"
                             ):
-                                self.emit_event(
+                                await self.emit_event(
                                     r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
                                 )
 
@@ -217,7 +221,7 @@ class ffuf_shortnames(ffuf):
                                     )
 
                                     async for r in self.execute_ffuf(tempfile, url, prefix=prefix, exts=["/"]):
-                                        self.emit_event(
+                                        await self.emit_event(
                                             r["url"],
                                             "URL_UNVERIFIED",
                                             source=self.shortname_to_event[hint],
@@ -233,7 +237,7 @@ class ffuf_shortnames(ffuf):
                                         async for r in self.execute_ffuf(
                                             tempfile, url, prefix=prefix, suffix=f".{ext}"
                                         ):
-                                            self.emit_event(
+                                            await self.emit_event(
                                                 r["url"],
                                                 "URL_UNVERIFIED",
                                                 source=self.shortname_to_event[hint],

@@ -8,8 +8,12 @@ from bbot.modules.output.base import BaseOutputModule
 class Websocket(BaseOutputModule):
     watched_events = ["*"]
     meta = {"description": "Output to websockets"}
-    options = {"url": "", "token": ""}
-    options_desc = {"url": "Web URL", "token": "Authorization Bearer token"}
+    options = {"url": "", "token": "", "preserve_graph": True}
+    options_desc = {
+        "url": "Web URL",
+        "token": "Authorization Bearer token",
+        "preserve_graph": "Preserve full chains of events in the graph (prevents orphans)",
+    }
 
     async def setup(self):
         self.url = self.config.get("url", "")

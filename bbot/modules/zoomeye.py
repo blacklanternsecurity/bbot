@@ -36,7 +36,7 @@ class zoomeye(subdomain_enum_apikey):
                 tags = []
                 if not hostname.endswith(f".{query}"):
                     tags = ["affiliate"]
-                self.emit_event(hostname, "DNS_NAME", event, tags=tags)
+                await self.emit_event(hostname, "DNS_NAME", event, tags=tags)
 
     async def query(self, query):
         results = set()

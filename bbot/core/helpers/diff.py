@@ -19,7 +19,6 @@ class HttpCompare:
 
     async def _baseline(self):
         if not self._baselined:
-            self._baselined = True
             # vanilla URL
             if self.include_cache_buster:
                 url_1 = self.parent_helper.add_get_params(self.baseline_url, self.gen_cache_buster()).geturl()
@@ -86,6 +85,7 @@ class HttpCompare:
 
             self.baseline_ignore_headers += [x.lower() for x in dynamic_headers]
             self.baseline_body_distance = self.compare_body(baseline_1_json, baseline_2_json)
+            self._baselined = True
 
     def gen_cache_buster(self):
         return {self.parent_helper.rand_string(6): "1"}
@@ -182,7 +182,7 @@ class HttpCompare:
 
         different_headers = self.compare_headers(self.baseline.headers, subject_response.headers)
         if different_headers:
-            log.debug(f"headers were different, no match [{different_headers}]")
+            log.debug(f"headers were different, no match")
             diff_reasons.append("header")
 
         if self.compare_body(self.baseline_json, subject_json) == False:

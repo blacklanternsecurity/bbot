@@ -38,7 +38,7 @@ class subdomain_enum(BaseModule):
                         self.verbose(e)
                         continue
                     if hostname and hostname.endswith(f".{query}") and not hostname == event.data:
-                        self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
+                        await self.emit_event(hostname, "DNS_NAME", event, abort_if=self.abort_if)
 
     async def request_url(self, query):
         url = f"{self.base_url}/subdomains/{self.helpers.quote(query)}"

@@ -15,7 +15,7 @@ class robots(BaseModule):
     }
 
     in_scope_only = True
-    per_host_only = True
+    per_hostport_only = True
 
     async def setup(self):
         return True
@@ -48,4 +48,4 @@ class robots(BaseModule):
                         tags = []
                         if self.helpers.is_spider_danger(event, unverified_url):
                             tags.append("spider-danger")
-                        self.emit_event(unverified_url, "URL_UNVERIFIED", source=event, tags=tags)
+                        await self.emit_event(unverified_url, "URL_UNVERIFIED", source=event, tags=tags)

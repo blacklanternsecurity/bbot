@@ -83,7 +83,7 @@ class ffuf(BaseModule):
 
         filters = await self.baseline_ffuf(fixed_url, exts=exts)
         async for r in self.execute_ffuf(self.tempfile, fixed_url, exts=exts, filters=filters):
-            self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+            await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
     async def filter_event(self, event):
         if "endpoint" in event.tags:
@@ -143,7 +143,7 @@ class ffuf(BaseModule):
             # if we only got 403, we might already be blocked by a WAF. Issue a warning, but it's possible all 'not founds' are given 403
             if canary_results[0]["status"] == 403:
                 self.warning(
-                    "All requests of the baseline recieved a 403 response. It is possible a WAF is actively blocking your traffic."
+                    "All requests of the baseline received a 403 response. It is possible a WAF is actively blocking your traffic."
                 )
 
             # if we only got 429, we are almost certainly getting blocked by a WAF or rate-limiting. Specifically with 429, we should respect them and abort the scan.
@@ -264,6 +264,9 @@ class ffuf(BaseModule):
             else:
                 command.append("-mc")
                 command.append("all")
+
+            for hk, hv in self.scan.config.get("http_headers", {}).items():
+                command += ["-H", f"{hk}: {hv}"]
 
             async for found in self.helpers.run_live(command):
                 try:

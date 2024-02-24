@@ -20,7 +20,7 @@ class pgp(subdomain_enum):
         if results:
             for hostname in results:
                 if not hostname == event:
-                    self.emit_event(hostname, "EMAIL_ADDRESS", event, abort_if=self.abort_if)
+                    await self.emit_event(hostname, "EMAIL_ADDRESS", event, abort_if=self.abort_if)
 
     async def query(self, query):
         results = set()

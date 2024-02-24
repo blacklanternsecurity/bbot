@@ -280,3 +280,40 @@ class TestExcavateURL(TestExcavate):
     def check(self, module_test, events):
         assert any(e.data == "asdffoo.test.notreal" for e in events)
         assert any(e.data == "https://asdffoo.test.notreal/some/path" for e in events)
+
+
+class TestExcavateSerializationNegative(TestExcavate):
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            "<html><p>llsdtVVFlJxhcGGYTo2PMGTRNFVKZxeKTVbhyosM3Sm/5apoY1/yUmN6HVcn+Xt798SPzgXQlZMttsqp1U1iJFmFO2aCGL/v3tmm/fs7itYsoNnJCelWvm9P4ic1nlKTBOpMjT5B5NmriZwTAzZ5ASjCKcmN8Vh=</p></html>"
+        )
+
+    def check(self, module_test, events):
+        assert not any(e.type == "FINDING" for e in events), "Found Results without word boundary"
+
+
+class TestExcavateSerializationPositive(TestExcavate):
+    async def setup_before_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            """<html>
+<h1>.NET</h1>
+<p>AAEAAAD/////AQAAAAAAAAAMAgAAAFJTeXN0ZW0uQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0YDFbW1N5c3RlbS5TdHJpbmddXSwgU3lzdGVtLCBWZXJzaW9uPTQuMC4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49YjAzZjVmN2YxMWQ1MGFlMwEAAAAIQ29tcGFyZXIQSXRlbUNvdW50AQMAAAAJAwAAAAlTeXN0ZW0uU3RyaW5nW10FAAAACQIAAAAJBAAAAAkFAAAACRcAAAAJCgAAAAkLAAAACQwAAAAJDQAAAAkOAAAACQ8AAAAJEAAAAAkRAAAACRIAAAAJEwAAAA==</p>
+<h1>Java</h1>
+<p>rO0ABXQADUhlbGxvLCB3b3JsZCE=</p>
+<h1>PHP (string)</h1>
+<p>czoyNDoiSGVsbG8sIHdvcmxkISBNb3JlIHRleHQuIjs=</p>
+<h1>PHP (array)</h1>
+<p>YTo0OntpOjA7aToxO2k6MTtzOjE0OiJzZWNvbmQgZWxlbWVudCI7aToyO2k6MztpOjM7czoxODoiTW9yZSB0ZXh0IGluIGFycmF5Ijt9</p>
+<h1>PHP (object)</h1>
+<p>TzoxMjoiU2FtcGxlT2JqZWN0IjoyOntzOjg6InByb3BlcnR5IjtzOjEzOiJJbml0aWFsIHZhbHVlIjtzOjE2OiJhZGRpdGlvbmFsU3RyaW5nIjtzOjIxOiJFeHRyYSB0ZXh0IGluIG9iamVjdC4iO30=</p>
+<h1>Compression</h1>
+<p>H4sIAAAAAAAA/yu2MjS2UvJIzcnJ11Eozy/KSVFUsgYAZN5upRUAAAA=</p>
+</html>
+"""
+        )
+
+    def check(self, module_test, events):
+        for serialize_type in ["Java", ".NET", "PHP (Array)", "PHP (String)", "PHP (Object)", "Possible Compressed"]:
+            assert any(
+                e.type == "FINDING" and serialize_type in e.data["description"] for e in events
+            ), f"Did not find {serialize_type} Serialized Object"

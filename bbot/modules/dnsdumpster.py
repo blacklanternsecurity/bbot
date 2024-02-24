@@ -1,5 +1,4 @@
 import re
-from bs4 import BeautifulSoup
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
 
@@ -25,7 +24,7 @@ class dnsdumpster(subdomain_enum):
             return ret
         else:
             self.debug(f'Valid response code "{status_code}" from DNSDumpster')
-        html = BeautifulSoup(res1.content, "html.parser")
+        html = self.helpers.beautifulsoup(res1.content, "html.parser")
         csrftoken = None
         csrfmiddlewaretoken = None
         try:
@@ -73,7 +72,7 @@ class dnsdumpster(subdomain_enum):
             self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
 
-        html = BeautifulSoup(res2.content, "html.parser")
+        html = self.helpers.beautifulsoup(res2.content, "html.parser")
         escaped_domain = re.escape(domain)
         match_pattern = re.compile(r"^[\w\.-]+\." + escaped_domain + r"$")
         for subdomain in html.findAll(text=match_pattern):

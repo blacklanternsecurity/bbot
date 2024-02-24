@@ -33,7 +33,9 @@ class BaseModule:
 
         suppress_dupes (bool): Whether to suppress outgoing duplicate events. Default is True.
 
-        per_host_only (bool): Limit the module to only scanning once per host:port. Default is False.
+        per_host_only (bool): Limit the module to only scanning once per host. Default is False.
+
+        per_hostport_only (bool): Limit the module to only scanning once per host:port. Default is False.
 
         per_domain_only (bool): Limit the module to only scanning once per domain. Default is False.
 
@@ -89,6 +91,7 @@ class BaseModule:
     accept_dupes = False
     suppress_dupes = True
     per_host_only = False
+    per_hostport_only = False
     per_domain_only = False
     scope_distance_modifier = 0
     target_only = False
@@ -101,7 +104,7 @@ class BaseModule:
 
     _preserve_graph = False
     _stats_exclude = False
-    _qsize = 0
+    _qsize = 1000
     _priority = 3
     _name = "base"
     _type = "scan"
@@ -172,7 +175,7 @@ class BaseModule:
         """
         pass
 
-    def handle_batch(self, *events):
+    async def handle_batch(self, *events):
         """Handles incoming events in batches for optimized processing.
 
         This method is automatically called when multiple events that match any in `watched_events` are encountered and the `batch_size` attribute is set to a value greater than 1. Override this method to implement custom batch event-handling logic for your module.
@@ -294,7 +297,7 @@ class BaseModule:
     def batch_size(self):
         batch_size = self.config.get("batch_size", None)
         # only allow overriding the batch size if its default value is greater than 1
-        # this prevents modules from being accidentally neutered by an incorect batch_size setting
+        # this prevents modules from being accidentally neutered by an incorrect batch_size setting
         if batch_size is None or self._batch_size == 1:
             batch_size = self._batch_size
         return batch_size
@@ -347,19 +350,20 @@ class BaseModule:
             - If a "FINISHED" event is found, invokes 'finish()' method of the module.
         """
         finish = False
-        async with self._task_counter.count(f"{self.name}.handle_batch()"):
+        async with self._task_counter.count(f"{self.name}.handle_batch()") as counter:
             submitted = False
             if self.batch_size <= 1:
                 return
             if self.num_incoming_events > 0:
                 events, finish = await self._events_waiting()
                 if events and not self.errored:
-                    self.debug(f"Handling batch of {len(events):,} events")
+                    counter.n = len(events)
+                    self.verbose(f"Handling batch of {len(events):,} events")
                     submitted = True
                     async with self.scan._acatch(f"{self.name}.handle_batch()"):
                         handle_batch_task = asyncio.create_task(self.handle_batch(*events))
                         await handle_batch_task
-                    self.debug(f"Finished handling batch of {len(events):,} events")
+                    self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
             async with self.scan._acatch(context), self._task_counter.count(context):
@@ -378,7 +382,7 @@ class BaseModule:
 
         Examples:
             >>> new_event = self.make_event("1.2.3.4", source=event)
-            >>> self.emit_event(new_event)
+            >>> await self.emit_event(new_event)
 
         Returns:
             Event or None: The created event, or None if a validation error occurred and raise_error was False.
@@ -398,7 +402,7 @@ class BaseModule:
             event.module = self
         return event
 
-    def emit_event(self, *args, **kwargs):
+    async def emit_event(self, *args, **kwargs):
         """Emit an event to the event queue and distribute it to interested modules.
 
         This is how modules "return" data.
@@ -416,10 +420,10 @@ class BaseModule:
                 ```
 
         Examples:
-            >>> self.emit_event("www.evilcorp.com", source=event, tags=["affiliate"])
+            >>> await self.emit_event("www.evilcorp.com", source=event, tags=["affiliate"])
 
             >>> new_event = self.make_event("1.2.3.4", source=event)
-            >>> self.emit_event(new_event)
+            >>> await self.emit_event(new_event)
 
         Returns:
             None
@@ -435,27 +439,7 @@ class BaseModule:
                 emit_kwargs[o] = v
         event = self.make_event(*args, **event_kwargs)
         if event:
-            self.queue_outgoing_event(event, **emit_kwargs)
-
-    async def emit_event_wait(self, *args, **kwargs):
-        """Emit an event to the event queue and await until there is space in the outgoing queue.
-
-        This method is similar to `emit_event`, but it waits until there's sufficient space in the outgoing
-        event queue before emitting the event. It utilizes the queue size threshold defined in `self._qsize`.
-
-        Args:
-            *args: Positional arguments to be passed to `emit_event()` for event creation.
-            **kwargs: Keyword arguments to be passed to `emit_event()` for event creation or configuration.
-
-        Returns:
-            None
-
-        See Also:
-            emit_event: For emitting an event without waiting on the queue size.
-        """
-        while self.outgoing_event_queue.qsize() > self._qsize:
-            await self.helpers.sleep(0.2)
-        return self.emit_event(*args, **kwargs)
+            await self.queue_outgoing_event(event, **emit_kwargs)
 
     async def _events_waiting(self):
         """
@@ -504,7 +488,9 @@ class BaseModule:
         return ret
 
     def start(self):
-        self._tasks = [asyncio.create_task(self._worker()) for _ in range(self.max_event_handlers)]
+        self._tasks = [
+            asyncio.create_task(self._worker(), name=f"{self.name}._worker()") for _ in range(self.max_event_handlers)
+        ]
 
     async def _setup(self):
         """
@@ -678,9 +664,9 @@ class BaseModule:
         acceptable, reason = await self.__event_postcheck(event)
         if acceptable:
             # check duplicates
-            is_incoming_duplicate = self.is_incoming_duplicate(event, add=True)
+            is_incoming_duplicate, reason = self.is_incoming_duplicate(event, add=True)
             if is_incoming_duplicate and not self.accept_dupes:
-                return False, f"module has already seen {event}"
+                return False, f"module has already seen {event}" + (f" ({reason})" if reason else "")
 
         return acceptable, reason
 
@@ -699,7 +685,7 @@ class BaseModule:
 
         Notes:
             - Override the `filter_event` method for custom filtering logic.
-            - This method also maintains host-based tracking when the `per_host_only` flag is set.
+            - This method also maintains host-based tracking when the `per_host_only` or similar flags are set.
             - The method will also update event production stats for output modules.
         """
         # special exception for "FINISHED" event
@@ -731,24 +717,6 @@ class BaseModule:
                 msg += f": {reason}"
             if not filter_result:
                 return False, msg
-
-        if self.per_host_only:
-            _hash = self.get_per_host_hash(event)
-            if _hash in self._per_host_tracker:
-                return False, "per_host_only enabled and already seen host"
-            else:
-                self._per_host_tracker.add(_hash)
-
-        if self.per_domain_only:
-            _hash = self.get_per_domain_hash(event)
-            if _hash in self._per_host_tracker:
-                return False, "per_domain_only enabled and already seen domain"
-            else:
-                self._per_host_tracker.add(_hash)
-
-        if self._type == "output" and not event._stats_recorded:
-            event._stats_recorded = True
-            self.scan.stats.event_produced(event)
 
         self.debug(f"{event} passed post-check")
         return True, ""
@@ -817,7 +785,7 @@ class BaseModule:
             except AttributeError:
                 self.debug(f"Not in an acceptable state to queue incoming event")
 
-    def queue_outgoing_event(self, event, **kwargs):
+    async def queue_outgoing_event(self, event, **kwargs):
         """
         Queues an outgoing event to the module's outgoing event queue for further processing.
 
@@ -838,7 +806,7 @@ class BaseModule:
             AttributeError: If the module is not in an acceptable state to queue outgoing events.
         """
         try:
-            self.outgoing_event_queue.put_nowait((event, kwargs))
+            await self.outgoing_event_queue.put((event, kwargs))
         except AttributeError:
             self.debug(f"Not in an acceptable state to queue outgoing event")
 
@@ -864,7 +832,7 @@ class BaseModule:
             - If the module was already in an errored state, the function will not reset the error state or the queue.
         """
         if not self.errored:
-            log_msg = f"Setting error state for module {self.name}"
+            log_msg = "Setting error state"
             if message is not None:
                 log_msg += f": {message}"
             self.warning(log_msg)
@@ -886,22 +854,27 @@ class BaseModule:
 
     def is_incoming_duplicate(self, event, add=False):
         if event.type in ("FINISHED",):
-            return False
+            return False, ""
+        reason = ""
         event_hash = self._incoming_dedup_hash(event)
+        with suppress(TypeError, ValueError):
+            event_hash, reason = event_hash
         is_dup = event_hash in self._incoming_dup_tracker
         if add:
             self._incoming_dup_tracker.add(event_hash)
-        return is_dup
+        return is_dup, reason
 
     def _incoming_dedup_hash(self, event):
         """
         Determines the criteria for what is considered to be a duplicate event if `accept_dupes` is False.
         """
         if self.per_host_only:
-            return self.get_per_host_hash(event)
+            return self.get_per_host_hash(event), "per_host_only=True"
+        if self.per_hostport_only:
+            return self.get_per_hostport_hash(event), "per_hostport_only=True"
         elif self.per_domain_only:
-            return self.get_per_domain_hash(event)
-        return hash(event)
+            return self.get_per_domain_hash(event), "per_domain_only=True"
+        return hash(event), ""
 
     def _outgoing_dedup_hash(self, event):
         """
@@ -913,7 +886,25 @@ class BaseModule:
         """
         Computes a per-host hash value for a given event. This method may be optionally overridden in subclasses.
 
-        The function uses the event's `host` and `port` or the parsed URL to create a string to be hashed.
+        The function uses the event's `host` to create a string to be hashed.
+
+        Args:
+            event (Event): The event object containing host information.
+
+        Returns:
+            int: The hash value computed for the host.
+
+        Examples:
+            >>> event = self.make_event("https://example.com:8443")
+            >>> self.get_per_host_hash(event)
+        """
+        return hash(event.host)
+
+    def get_per_hostport_hash(self, event):
+        """
+        Computes a per-host:port hash value for a given event. This method may be optionally overridden in subclasses.
+
+        The function uses the event's `host`, `port`, and `scheme` (for URLs) to create a string to be hashed.
         The hash value is used for distinguishing events related to the same host.
 
         Args:
@@ -924,11 +915,7 @@ class BaseModule:
 
         Examples:
             >>> event = self.make_event("https://example.com:8443")
-            >>> self.get_per_host_hash(event)
-
-        Notes:
-            - To change the behavior, override this method in your custom module.
-            - The hash value is dependent on the `host` and `port` or the `parsed` attribute in the event object.
+            >>> self.get_per_hostport_hash(event)
         """
         parsed = getattr(event, "parsed", None)
         if parsed is None:
@@ -1066,7 +1053,7 @@ class BaseModule:
     @property
     def outgoing_event_queue(self):
         if self._outgoing_event_queue is None:
-            self._outgoing_event_queue = ShuffleQueue()
+            self._outgoing_event_queue = ShuffleQueue(self._qsize)
         return self._outgoing_event_queue
 
     @property
@@ -1150,7 +1137,14 @@ class BaseModule:
         return table
 
     def _is_graph_important(self, event):
-        return self._preserve_graph and getattr(event, "_graph_important", False)
+        return self.preserve_graph and getattr(event, "_graph_important", False)
+
+    @property
+    def preserve_graph(self):
+        preserve_graph = self.config.get("preserve_graph", None)
+        if preserve_graph is None:
+            preserve_graph = self._preserve_graph
+        return preserve_graph
 
     def stdout(self, *args, **kwargs):
         """Writes log messages directly to standard output.

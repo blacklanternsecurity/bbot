@@ -4,7 +4,7 @@ from .base import BaseModule
 class azure_realm(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "passive", "safe"]
+    flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "web-thorough", "passive", "safe"]
     meta = {"description": 'Retrieves the "AuthURL" from login.microsoftonline.com/getuserrealm'}
 
     async def setup(self):
@@ -22,7 +22,7 @@ class azure_realm(BaseModule):
                     auth_url, "URL_UNVERIFIED", source=event, tags=["affiliate", "ms-auth-url"]
                 )
                 url_event.source_domain = domain
-                self.emit_event(url_event)
+                await self.emit_event(url_event)
 
     async def getuserrealm(self, domain):
         url = f"https://login.microsoftonline.com/getuserrealm.srf?login=test@{domain}"

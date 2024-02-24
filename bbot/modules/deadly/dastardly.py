@@ -32,7 +32,7 @@ class dastardly(BaseModule):
             "when": "ansible_facts['os_family'] == 'Debian' and docker_installed.rc != 0",
         },
     ]
-    per_host_only = True
+    per_hostport_only = True
 
     async def setup(self):
         await self.helpers.run("systemctl", "start", "docker", sudo=True)
@@ -60,7 +60,7 @@ class dastardly(BaseModule):
             for testcase in testsuite.testcases:
                 for failure in testcase.failures:
                     if failure.severity == "Info":
-                        self.emit_event(
+                        await self.emit_event(
                             {
                                 "host": str(event.host),
                                 "url": url,
@@ -70,7 +70,7 @@ class dastardly(BaseModule):
                             event,
                         )
                     else:
-                        self.emit_event(
+                        await self.emit_event(
                             {
                                 "severity": failure.severity,
                                 "host": str(event.host),
