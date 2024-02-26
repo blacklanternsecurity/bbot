@@ -398,18 +398,20 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "2.2.0.203"
+version = "3.0.0.275"
 description = "Check whether an IP address belongs to a cloud provider"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "cloudcheck-2.2.0.203-py3-none-any.whl", hash = "sha256:8f17944c6183c7ad96b031c4cc3efb1c1addaa23c2d17f3c81ff54c4cd494716"},
-    {file = "cloudcheck-2.2.0.203.tar.gz", hash = "sha256:83eb239b024579712a19d736dc9649eff4a3f6e9314db3cd94faa883adbfe46c"},
+    {file = "cloudcheck-3.0.0.275-py3-none-any.whl", hash = "sha256:0929bac3ffc8b0c7ad9b5348e8511893665acfc93a33e03367e953f277083ee6"},
+    {file = "cloudcheck-3.0.0.275.tar.gz", hash = "sha256:f6c8ba64925e7f6c4e0ac1eaf0b0efa7d1199964b7a11f1a3998d91c42f4c8f5"},
 ]
 
 [package.dependencies]
-httpx = ">=0.26.0,<0.27.0"
+httpx = ">=0.26,<0.28"
+pyasn = ">=1.6.2,<2.0.0"
 pydantic = ">=2.4.2,<3.0.0"
+pytest = ">=7.0,<8.0"
 
 [[package]]
 name = "colorama"
@@ -1430,6 +1432,19 @@ files = [
 ]
 
 [[package]]
+name = "pyasn"
+version = "1.6.2"
+description = "Offline IP address to Autonomous System Number lookup module."
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyasn-1.6.2.tar.gz", hash = "sha256:a2d55fb3ee47947609f50211ca5b0bac411a86f3c935fb92ca4b0b8ab7c668ff"},
+]
+
+[package.extras]
+test = ["pytest"]
+
+[[package]]
 name = "pycodestyle"
 version = "2.11.1"
 description = "Python style guide checker"
@@ -2435,4 +2450,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "d52560a5268f83b19673792774c7d966013719ae2bc657402667f44466cf2684"
+content-hash = "87a0a61ee86c168b8f3ddc5727409f448d20cf772d09211459caffde618a52ea"
