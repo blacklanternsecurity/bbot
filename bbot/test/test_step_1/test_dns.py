@@ -2,7 +2,7 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_dns(bbot_scanner, bbot_config):
+async def test_dns(bbot_scanner, bbot_config, mock_dns):
     scan = bbot_scanner("1.1.1.1", config=bbot_config)
     helpers = scan.helpers
 
@@ -85,8 +85,12 @@ async def test_dns(bbot_scanner, bbot_config):
     dns_config = OmegaConf.create({"dns_resolution": True})
     dns_config = OmegaConf.merge(bbot_config, dns_config)
     scan2 = bbot_scanner("evilcorp.com", config=dns_config)
-    scan2.helpers.dns.mock_dns(
-        {("evilcorp.com", "TXT"): '"v=spf1 include:cloudprovider.com ~all"', ("cloudprovider.com", "A"): "1.2.3.4"}
+    mock_dns(
+        scan2,
+        {
+            "evilcorp.com": {"TXT": ['"v=spf1 include:cloudprovider.com ~all"']},
+            "cloudprovider.com": {"A": ["1.2.3.4"]},
+        },
     )
     events = [e async for e in scan2.async_start()]
     assert 1 == len(

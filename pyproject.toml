@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bbot"
-version = "1.0.3"
+version = "1.0.0"
 description = "OSINT automation for hackers."
 authors = [
     "TheTechromancer",
@@ -44,7 +44,7 @@ dnspython = "^2.4.2"
 aioconsole = "^0.6.2"
 pydantic = "^2.4.2"
 httpx = "^0.26.0"
-cloudcheck = "^2.1.0.181"
+cloudcheck = ">=2.1.0.181,<4.0.0.0"
 tldextract = "^5.1.1"
 cachetools = "^5.3.2"
 socksio = "^1.0.0"
@@ -53,10 +53,10 @@ socksio = "^1.0.0"
 flake8 = "^6.0.0"
 pytest-cov = "^4.0.0"
 poetry-dynamic-versioning = "^0.21.4"
-pytest-rerunfailures = "^11.1.2"
+pytest-rerunfailures = ">=11.1.2,<14.0.0"
 pytest-asyncio = "^0.21.0"
 urllib3 = "^2.0.2"
-werkzeug = "^2.3.4"
+werkzeug = ">=2.3.4,<4.0.0"
 pytest-httpserver = "^1.0.8"
 pytest-env = "^0.8.2"
 pytest-timeout = "^2.1.0"
@@ -91,7 +91,7 @@ extend-exclude = "(test_step_1/test_manager_*)"
 [tool.poetry-dynamic-versioning]
 enable = true
 metadata = false
-format-jinja = 'v1.1.6{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
+format-jinja = 'v1.1.7{% if branch == "dev" %}.{{ distance }}rc{% endif %}'
 
 [tool.poetry-dynamic-versioning.substitution]
 files = ["*/__init__.py"]

@@ -6,12 +6,11 @@ class TestAffiliates(ModuleTestBase):
     config_overrides = {"dns_resolution": True}
 
     async def setup_before_prep(self, module_test):
-        module_test.scan.helpers.dns.mock_dns(
+        module_test.mock_dns(
             {
-                ("8.8.8.8", "PTR"): "dns.google",
-                ("dns.google", "A"): "8.8.8.8",
-                ("dns.google", "NS"): "ns1.zdns.google",
-                ("ns1.zdns.google", "A"): "1.2.3.4",
+                "8.8.8.8.in-addr.arpa": {"PTR": ["dns.google"]},
+                "dns.google": {"A": ["8.8.8.8"], "NS": ["ns1.zdns.google"]},
+                "ns1.zdns.google": {"A": ["1.2.3.4"]},
             }
         )
 

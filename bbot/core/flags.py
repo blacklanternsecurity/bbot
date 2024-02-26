@@ -2,6 +2,7 @@ flag_descriptions = {
     "active": "Makes active connections to target systems",
     "affiliates": "Discovers affiliated hostnames/domains",
     "aggressive": "Generates a large amount of network traffic",
+    "baddns": "Runs all modules from the DNS auditing tool BadDNS",
     "cloud-enum": "Enumerates cloud resources",
     "deadly": "Highly aggressive",
     "email-enum": "Enumerates email addresses",
