@@ -50,18 +50,19 @@ class BBOTAsyncClient(httpx.AsyncClient):
     """
 
     def __init__(self, *args, **kwargs):
-        self._bbot_scan = kwargs.pop("_bbot_scan")
-        web_requests_per_second = self._bbot_scan.config.get("web_requests_per_second", 100)
+        self._preset = kwargs.pop("_preset")
+        self._bbot_scan = self._preset.scan
+        web_requests_per_second = self._preset.config.get("web_requests_per_second", 100)
         self._rate_limiter = RateLimiter(web_requests_per_second, "Web")
 
-        http_debug = self._bbot_scan.config.get("http_debug", None)
+        http_debug = self._preset.config.get("http_debug", None)
         if http_debug:
             log.trace(f"Creating AsyncClient: {args}, {kwargs}")
 
         self._persist_cookies = kwargs.pop("persist_cookies", True)
 
         # timeout
-        http_timeout = self._bbot_scan.config.get("http_timeout", 20)
+        http_timeout = self._preset.config.get("http_timeout", 20)
         if not "timeout" in kwargs:
             kwargs["timeout"] = http_timeout
 
@@ -70,12 +71,12 @@ class BBOTAsyncClient(httpx.AsyncClient):
         if headers is None:
             headers = {}
         # user agent
-        user_agent = self._bbot_scan.config.get("user_agent", "BBOT")
+        user_agent = self._preset.config.get("user_agent", "BBOT")
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
         kwargs["headers"] = headers
         # proxy
-        proxies = self._bbot_scan.config.get("http_proxy", None)
+        proxies = self._preset.config.get("http_proxy", None)
         kwargs["proxies"] = proxies
 
         super().__init__(*args, **kwargs)
@@ -90,7 +91,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
         request = super().build_request(*args, **kwargs)
         # add custom headers if the URL is in-scope
         if self._bbot_scan.in_scope(str(request.url)):
-            for hk, hv in self._bbot_scan.config.get("http_headers", {}).items():
+            for hk, hv in self._preset.config.get("http_headers", {}).items():
                 # don't clobber headers
                 if hk not in request.headers:
                     request.headers[hk] = hv
@@ -141,7 +142,7 @@ class WebHelper:
         self.web_client = self.AsyncClient(persist_cookies=False)
 
     def AsyncClient(self, *args, **kwargs):
-        kwargs["_bbot_scan"] = self.parent_helper.scan
+        kwargs["_preset"] = self.parent_helper.preset
         retries = kwargs.pop("retries", self.parent_helper.config.get("http_retries", 1))
         kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=self.ssl_verify)
         kwargs["verify"] = self.ssl_verify

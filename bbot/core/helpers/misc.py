@@ -2174,6 +2174,8 @@ def os_platform():
         >>> os_platform()
         'linux'
     """
+    import platform
+
     return platform.system().lower()
 
 

@@ -15,6 +15,8 @@ sys.stdout.reconfigure(line_buffering=True)
 
 from bbot.core import CORE
 
+CORE.logger.set_log_level("DEBUG")
+
 from bbot.core import errors
 from bbot import __version__
 from bbot.core.helpers.misc import smart_decode
@@ -30,13 +32,17 @@ async def _main():
     global err
     global scan_name
 
-    CORE.cli_execution = True
+    from bbot.scanner import Scanner
+
+    scan = Scanner("www.example.com", _cli_execution=True)
+    async for event in scan.async_start():
+        print(event)
 
     # log.hugesuccess(CORE.default_config)
     # log.hugeinfo(CORE.custom_config)
     # log.hugewarning(CORE.module_loader.configs())
     # log.hugesuccess(CORE.default_config)
-    print(CORE.module_loader)
+    # print(CORE.module_loader)
 
     # 1) load core (environment variables, modules)
     # 2) instantiate god preset
@@ -44,30 +50,6 @@ async def _main():
     # 4)    pass preset to scan
 
     return
-
-    # async def monitor_tasks():
-    #     in_row = 0
-    #     while 1:
-    #         try:
-    #             print('looooping')
-    #             tasks = asyncio.all_tasks()
-    #             current_task = asyncio.current_task()
-    #             if len(tasks) == 1 and list(tasks)[0] == current_task:
-    #                 print('no tasks')
-    #                 in_row += 1
-    #             else:
-    #                 in_row = 0
-    #             for t in tasks:
-    #                 print(t)
-    #             if in_row > 2:
-    #                 break
-    #             await asyncio.sleep(1)
-    #         except BaseException as e:
-    #             print(traceback.format_exc())
-    #             with suppress(BaseException):
-    #                 await asyncio.sleep(.1)
-
-    # monitor_tasks_task = asyncio.create_task(monitor_tasks())
 
     try:
 

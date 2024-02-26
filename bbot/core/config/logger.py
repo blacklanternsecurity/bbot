@@ -210,9 +210,11 @@ class BBOTLogger:
         return loglevel
 
     def set_log_level(self, level, logger=None):
+        if isinstance(level, str):
+            level = logging.getLevelName(level)
         if logger is not None:
             logger.hugeinfo(f"Setting log level to {logging.getLevelName(level)}")
-        self.core.config["silent"] = False
+        self.core.custom_config["silent"] = False
         self._log_level_override = level
         for logger in self.loggers:
             logger.setLevel(level)

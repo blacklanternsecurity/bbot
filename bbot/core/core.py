@@ -2,12 +2,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 
-bbot_code_dir = Path(__file__).parent.parent
-
-
 class BBOTCore:
-
-    default_module_dir = bbot_code_dir / "modules"
 
     def __init__(self):
         self._logger = None
@@ -104,10 +99,10 @@ class BBOTCore:
         self._custom_config = value
 
     def merge_custom(self, config):
-        self.custom_config = Omegaconf.merge(self.custom_config, OmegaConf.create(config))
+        self.custom_config = OmegaConf.merge(self.custom_config, OmegaConf.create(config))
 
     def merge_default(self, config):
-        self.default_config = Omegaconf.merge(self.default_config, OmegaConf.create(config))
+        self.default_config = OmegaConf.merge(self.default_config, OmegaConf.create(config))
 
     @property
     def logger(self):

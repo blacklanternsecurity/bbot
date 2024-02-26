@@ -51,9 +51,8 @@ class ConfigAwareHelper:
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from .command import run, run_live, _spawn_proc, _prepare_command_kwargs
 
-    def __init__(self, config, scan=None):
-        self.config = config
-        self._scan = scan
+    def __init__(self, preset):
+        self.preset = preset
         self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
         self.cache_dir = self.bbot_home / "cache"
         self.temp_dir = self.bbot_home / "temp"
@@ -100,12 +99,12 @@ class ConfigAwareHelper:
         return Target(self.scan, *events)
 
     @property
-    def scan(self):
-        if self._scan is None:
-            from bbot.scanner import Scanner
+    def config(self):
+        return self.preset.core.config
 
-            self._scan = Scanner()
-        return self._scan
+    @property
+    def scan(self):
+        return self.preset.scan
 
     @property
     def in_tests(self):

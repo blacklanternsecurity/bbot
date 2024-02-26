@@ -62,7 +62,7 @@ class Target:
         - If you do not want to include child subdomains, use `strict_scope=True`
     """
 
-    def __init__(self, scan, *targets, strict_scope=False, make_in_scope=False):
+    def __init__(self, preset, *targets, strict_scope=False, make_in_scope=False):
         """
         Initialize a Target object.
 
@@ -83,11 +83,12 @@ class Target:
             - The strict_scope flag can be set to restrict scope calculation to only exactly-matching hosts and not their child subdomains.
             - Each target is processed and stored as an `Event` in the '_events' dictionary.
         """
-        self.scan = scan
+        self.preset = preset
+        self.scan = self.preset.scan
         self.strict_scope = strict_scope
         self.make_in_scope = make_in_scope
 
-        self._dummy_module = TargetDummyModule(scan)
+        self._dummy_module = TargetDummyModule(self.scan)
         self._events = dict()
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
@@ -179,7 +180,7 @@ class Target:
         Notes:
             - The `scan` object reference is kept intact in the copied Target object.
         """
-        self_copy = self.__class__(self.scan, strict_scope=self.strict_scope)
+        self_copy = self.__class__(self.preset, strict_scope=self.strict_scope)
         self_copy._events = dict(self._events)
         return self_copy
 
@@ -212,12 +213,12 @@ class Target:
         if other.host:
             with suppress(KeyError, StopIteration):
                 return next(iter(self._events[other.host]))
-            if self.scan.helpers.is_ip_type(other.host):
-                for n in self.scan.helpers.ip_network_parents(other.host, include_self=True):
+            if self.preset.helpers.is_ip_type(other.host):
+                for n in self.preset.helpers.ip_network_parents(other.host, include_self=True):
                     with suppress(KeyError, StopIteration):
                         return next(iter(self._events[n]))
             elif not self.strict_scope:
-                for h in self.scan.helpers.domain_parents(other.host):
+                for h in self.preset.helpers.domain_parents(other.host):
                     with suppress(KeyError, StopIteration):
                         return next(iter(self._events[h]))
 

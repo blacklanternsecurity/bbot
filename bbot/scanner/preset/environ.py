@@ -3,7 +3,7 @@ import sys
 import omegaconf
 from pathlib import Path
 
-from ..helpers.misc import cpu_architecture, os_platform, os_platform_friendly
+from bbot.core.helpers.misc import cpu_architecture, os_platform, os_platform_friendly
 
 
 def increase_limit(new_limit):

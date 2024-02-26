@@ -13,8 +13,6 @@ from contextlib import suppress
 from ansible_runner.interface import run
 from subprocess import CalledProcessError
 
-from bbot.core import CORE
-
 from ..misc import can_sudo_without_password, os_platform
 
 log = logging.getLogger("bbot.core.helpers.depsinstaller")
@@ -23,6 +21,8 @@ log = logging.getLogger("bbot.core.helpers.depsinstaller")
 class DepsInstaller:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
+        self.preset = self.parent_helper.preset
+        self.core = self.preset.core
 
         # respect BBOT's http timeout
         http_timeout = self.parent_helper.config.get("http_timeout", 30)
@@ -32,8 +32,8 @@ class DepsInstaller:
         self._installed_sudo_askpass = False
         self._sudo_password = os.environ.get("BBOT_SUDO_PASS", None)
         if self._sudo_password is None:
-            if CORE.bbot_sudo_pass is not None:
-                self._sudo_password = CORE.bbot_sudo_pass
+            if self.core.bbot_sudo_pass is not None:
+                self._sudo_password = self.core.bbot_sudo_pass
             elif can_sudo_without_password():
                 self._sudo_password = ""
         self.data_dir = self.parent_helper.cache_dir / "depsinstaller"
@@ -51,9 +51,6 @@ class DepsInstaller:
         self.venv = ""
         if sys.prefix != sys.base_prefix:
             self.venv = sys.prefix
-
-        # PRESET TODO: revisit this
-        self.all_modules_preloaded = CORE.module_loader.preloaded()
 
         self.ensure_root_lock = Lock()
 
@@ -311,7 +308,7 @@ class DepsInstaller:
                     if self.parent_helper.verify_sudo_password(password):
                         log.success("Authentication successful")
                         self._sudo_password = password
-                        CORE.bbot_sudo_pass = password
+                        self.core.bbot_sudo_pass = password
                     else:
                         log.warning("Incorrect password")
 
@@ -337,3 +334,7 @@ class DepsInstaller:
             askpass_dst = self.parent_helper.tools_dir / self.askpass_filename
             shutil.copy(askpass_src, askpass_dst)
             askpass_dst.chmod(askpass_dst.stat().st_mode | stat.S_IEXEC)
+
+    @property
+    def all_modules_preloaded(self):
+        return self.preset.module_loader.preloaded()
