@@ -50,7 +50,7 @@ cachetools = "^5.3.2"
 socksio = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
-flake8 = "^6.0.0"
+flake8 = ">=6,<8"
 pytest-cov = "^4.0.0"
 poetry-dynamic-versioning = "^0.21.4"
 pytest-rerunfailures = ">=11.1.2,<14.0.0"
