@@ -18,7 +18,7 @@ class dotnetnuke(BaseModule):
     }
 
     watched_events = ["HTTP_RESPONSE"]
-    produced_events = ["VULNERABILITY", "FINDING"]
+    produced_events = ["VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "aggressive", "web-thorough"]
     meta = {"description": "Scan for critical DotNetNuke (DNN) vulnerabilities"}
 
