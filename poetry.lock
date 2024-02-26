@@ -1755,13 +1755,13 @@ test = ["coverage (>=7.2.7)", "pytest-mock (>=3.10)"]
 
 [[package]]
 name = "pytest-httpserver"
-version = "1.0.8"
+version = "1.0.10"
 description = "pytest-httpserver is a httpserver for pytest"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8"
 files = [
-    {file = "pytest_httpserver-1.0.8-py3-none-any.whl", hash = "sha256:24cd3d9f6a0b927c7bfc400d0b3fda7442721b8267ce29942bf307b190f0bb09"},
-    {file = "pytest_httpserver-1.0.8.tar.gz", hash = "sha256:e052f69bc8a9073db02484681e8e47004dd1fb3763b0ae833bd899e5895c559a"},
+    {file = "pytest_httpserver-1.0.10-py3-none-any.whl", hash = "sha256:d40e0cc3d61ed6e4d80f52a796926d557a7db62b17e43b3e258a78a3c34becb9"},
+    {file = "pytest_httpserver-1.0.10.tar.gz", hash = "sha256:77b9fbc2eb0a129cfbbacc8fe57e8cafe071d506489f31fe31e62f1b332d9905"},
 ]
 
 [package.dependencies]
