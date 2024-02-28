@@ -1160,7 +1160,7 @@ class USERNAME(BaseEvent):
     _quick_emit = True
 
 
-class SOCIAL(DictEvent):
+class SOCIAL(DictHostEvent):
     _always_emit = True
     _quick_emit = True
 
