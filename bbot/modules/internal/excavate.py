@@ -184,9 +184,6 @@ class URLExtractor(BaseExtractor):
                 source=event,
                 abort_if=abort_if,
             )
-            return
-
-        return self.excavate.make_event(result, "URL_UNVERIFIED", source=event)
 
 
 class EmailExtractor(BaseExtractor):

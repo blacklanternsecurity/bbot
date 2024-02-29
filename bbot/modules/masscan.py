@@ -193,14 +193,17 @@ class masscan(portscanner):
                 result = self.helpers.make_netloc(result, port_number)
                 if source is None:
                     source = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
+                    if not source:
+                        continue
                     await self.emit_event(source)
             await result_callback(result, source=source)
 
     async def append_alive_host(self, host, source):
         host_event = self.make_event(host, "IP_ADDRESS", source=self.get_source_event(host))
-        self.alive_hosts[host] = host_event
-        self._write_ping_result(host)
-        await self.emit_event(host_event)
+        if host_event:
+            self.alive_hosts[host] = host_event
+            self._write_ping_result(host)
+            await self.emit_event(host_event)
 
     async def emit_open_tcp_port(self, data, source):
         self._write_syn_result(data)
@@ -219,8 +222,9 @@ class masscan(portscanner):
                 if self.scan.stopping:
                     break
                 ip_event = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
-                ip_events[ip] = ip_event
-                await self.emit_event(ip_event)
+                if ip_event:
+                    ip_events[ip] = ip_event
+                    await self.emit_event(ip_event)
         # syn scan
         if self.syn_cache.is_file():
             cached_syns = list(self.helpers.read_file(self.syn_cache))
@@ -237,6 +241,8 @@ class masscan(portscanner):
                 if source_event is None:
                     self.verbose(f"Source event not found for {line}")
                     source_event = self.make_event(line, "IP_ADDRESS", source=self.get_source_event(line))
+                    if not source_event:
+                        continue
                     await self.emit_event(source_event)
                 await self.emit_event(line, "OPEN_TCP_PORT", source=source_event)
 
