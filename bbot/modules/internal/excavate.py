@@ -188,6 +188,7 @@ class URLExtractor(BaseExtractor):
 
         return self.excavate.make_event(result, "URL_UNVERIFIED", source=event)
 
+
 class EmailExtractor(BaseExtractor):
     regexes = {"email": _email_regex}
     tld_blacklist = ["png", "jpg", "jpeg", "bmp", "ico", "gif", "svg", "css", "ttf", "woff", "woff2"]
