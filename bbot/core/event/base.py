@@ -29,7 +29,6 @@ from bbot.core.helpers import (
     split_host_port,
     tagify,
     validators,
-    truncate_string,
 )
 
 
@@ -490,7 +489,10 @@ class BaseEvent:
         return self._data_human()
 
     def _data_human(self):
-        return truncate_string(str(self.data), n=2000)
+        if isinstance(self.data, (dict, list)):
+            with suppress(Exception):
+                return json.dumps(self.data, sort_keys=True)
+        return smart_decode(self.data)
 
     def _data_load(self, data):
         """
@@ -524,10 +526,7 @@ class BaseEvent:
         return self._pretty_string()
 
     def _pretty_string(self):
-        if isinstance(self.data, dict):
-            with suppress(Exception):
-                return json.dumps(self.data, sort_keys=True)
-        return smart_decode(self.data)
+        return self._data_human()
 
     @property
     def data_graph(self):
@@ -752,9 +751,6 @@ class DictEvent(BaseEvent):
         if url:
             self.parsed = validators.validate_url_parsed(url)
         return data
-
-    def _data_human(self):
-        return json.dumps(self.data, sort_keys=True)
 
     def _data_load(self, data):
         if isinstance(data, str):
