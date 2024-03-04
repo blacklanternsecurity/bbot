@@ -18,6 +18,7 @@ class gowitness(BaseModule):
         "resolution_x": 1440,
         "resolution_y": 900,
         "output_path": "",
+        "social": True,
     }
     options_desc = {
         "version": "gowitness version",
@@ -26,6 +27,7 @@ class gowitness(BaseModule):
         "resolution_x": "screenshot resolution x",
         "resolution_y": "screenshot resolution y",
         "output_path": "where to save screenshots",
+        "social": "Whether to screenshot social media webpages",
     }
     deps_ansible = [
         {
@@ -85,6 +87,7 @@ class gowitness(BaseModule):
         self.proxy = self.scan.config.get("http_proxy", "")
         self.resolution_x = self.config.get("resolution_x")
         self.resolution_y = self.config.get("resolution_y")
+        self.visit_social = self.config.get("social", True)
         output_path = self.config.get("output_path")
         if output_path:
             self.base_path = Path(output_path) / "gowitness"
@@ -133,9 +136,12 @@ class gowitness(BaseModule):
         # ignore events from self
         if event.type == "URL" and event.module == self:
             return False, "event is from self"
-        # Accept out-of-scope SOCIAL pages, but not URLs
-        if event.scope_distance > 0:
-            if event.type != "SOCIAL":
+        if event.type == "SOCIAL":
+            if not self.visit_social:
+                return False, "visit_social=False"
+        else:
+            # Accept out-of-scope SOCIAL pages, but not URLs
+            if event.scope_distance > 0:
                 return False, "event is not in-scope"
         return True
 

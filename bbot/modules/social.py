@@ -14,7 +14,7 @@ class social(BaseModule):
         "twitter": r"(?:https?://)?(?:www.)?twitter.com/([a-zA-Z0-9_]{1,15})/?",
         "github": r"(?:https?://)?(?:www.)?github.com/([a-zA-Z0-9_-]+)/?",
         "instagram": r"(?:https?://)?(?:www.)?instagram.com/([a-zA-Z0-9_.]+)/?",
-        "youtube": r"(?:https?://)?(?:www.)?youtube.com/([a-zA-Z0-9_]+)/?",
+        "youtube": r"(?:https?://)?(?:www.)?youtube.com/@([a-zA-Z0-9_]+)/?",
         "bitbucket": r"(?:https?://)?(?:www.)?bitbucket.org/([a-zA-Z0-9_-]+)/?",
         "gitlab": r"(?:https?://)?(?:www.)?gitlab.com/([a-zA-Z0-9_-]+)/?",
         "discord": r"(?:https?://)?(?:www.)?discord.gg/([a-zA-Z0-9_-]+)/?",

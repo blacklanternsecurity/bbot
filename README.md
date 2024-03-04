@@ -249,6 +249,7 @@ Special thanks to the following people who made BBOT possible:
 - @liquidsec for his extensive work on BBOT's web hacking features, including [badsecrets](https://github.com/blacklanternsecurity/badsecrets)
 - Steve Micallef (@smicallef) for creating Spiderfoot
 - @kerrymilan for his Neo4j and Ansible expertise
+- @aconite33 and @amiremami for their ruthless testing
 - Aleksei Kornev (@alekseiko) for allowing us ownership of the bbot Pypi repository <3
 
 </details>
