@@ -57,9 +57,9 @@ Writing a module is easy and requires only a basic understanding of Python. It c
 1. Define (via `flags`) whether your module is `active` or `passive`, and whether it's `safe` or `aggressive`
 1. **Override `.handle_event()`** (see [`handle_event()` and `emit_event()`](#handle_event-and-emit_event))
 
-Here is a simple example of a working module (`bbot/modules/mymodule.py`):
+Here is a simple example of a working module:
 
-```python
+```python title="bbot/modules/mymodule.py"
 from bbot.modules.base import BaseModule
 
 class MyModule(BaseModule):
@@ -77,7 +77,7 @@ class MyModule(BaseModule):
             await self.emit_event(ip, "IP_ADDRESS", source=event)
 ```
 
-After saving the module, you can run it simply by specifying it with `-m`:
+After saving the module, you can run it with `-m`:
 
 ```bash
 # run a scan enabling the module in bbot/modules/mymodule.py
@@ -126,6 +126,35 @@ Now, with the `report_distance=1`:
 The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events.md) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that event.
 
 The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events.md) and prints it to the console. It also distributes it any modules that are interested in that data type.
+
+### `setup()`
+
+A module's `setup()` method is used for performing any one-time setup tasks such as downloading a wordlist or checking to make sure an API key is valid. It must return either:
+
+1. `True` - module setup succeeded
+2. `None` - module setup soft-failed (scan will continue but module will be disabled)
+3. `False` - module setup hard-failed (scan will abort)
+
+Optionally, it can also return a reason. Here are some examples:
+
+```python
+async def setup(self):
+    if not self.config.get("api_key"):
+        # soft-fail
+        return None, "No API key specified"
+
+async def setup(self):
+    try:
+        wordlist = self.helpers.wordlist("https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/tlds.txt")
+    except WordlistError as e:
+        # hard-fail
+        return False, f"Error retrieving wordlist: {e}"
+
+async def setup(self):
+    self.timeout = self.config.get("timeout", 5)
+    # success
+    return True
+```
 
 ### Module Dependencies
 
