@@ -55,81 +55,57 @@ Writing a module is easy and requires only a basic understanding of Python. It c
 1. Define in `watched_events` what type of data your module will consume
 1. Define in `produced_events` what type of data your module will produce
 1. Define (via `flags`) whether your module is `active` or `passive`, and whether it's `safe` or `aggressive`
-1. **Override `.handle_event()`** (see [`handle_event()` and `emit_event()`](#handle_event-and-emit_event))
+1. **Put your main logic in `.handle_event()`**
 
-Here is a simple example of a working module:
+Here is an example of a simple module that performs whois lookups:
 
-```python title="bbot/modules/mymodule.py"
+```python title="bbot/modules/whois.py"
 from bbot.modules.base import BaseModule
 
-class MyModule(BaseModule):
-    """
-    Resolve DNS_NAMEs to IPs
-    """
-    watched_events = ["DNS_NAME"]
-    produced_events = ["IP_ADDRESS"]
+class whois(BaseModule):
+    watched_events = ["DNS_NAME"] # watch for DNS_NAME events
+    produced_events = ["WHOIS"] # we produce WHOIS events
     flags = ["passive", "safe"]
+    meta = {"description": "Query WhoisXMLAPI for WHOIS data"}
+    options = {"api_key": ""} # module config options
+    options_desc = {"api_key": "WhoisXMLAPI Key"}
+    per_domain_only = True # only run once per domain
+
+    base_url = "https://www.whoisxmlapi.com/whoisserver/WhoisService"
+
+    # one-time setup - runs at the beginning of the scan
+    async def setup(self):
+        self.api_key = self.config.get("api_key")
+        if not self.api_key:
+            # soft-fail if no API key is set
+            return None, "Must set API key"
 
     async def handle_event(self, event):
-        self.hugeinfo(f"GOT EVENT: {event}")
-        for ip in await self.helpers.resolve(event.data):
-            self.hugesuccess(f"EMITTING IP_ADDRESS: {ip}")
-            await self.emit_event(ip, "IP_ADDRESS", source=event)
+        self.hugesuccess(f"Got {event} (event.data: {event.data})")
+        _, domain = self.helpers.split_domain(event.data)
+        url = f"{self.base_url}?apiKey={self.api_key}&domainName={domain}&outputFormat=JSON"
+        self.hugeinfo(f"Visiting {url}")
+        response = await self.helpers.request(url)
+        if response is not None:
+            await self.emit_event(response.json(), "WHOIS", source=event)
 ```
 
 After saving the module, you can run it with `-m`:
 
 ```bash
 # run a scan enabling the module in bbot/modules/mymodule.py
-bbot -t evilcorp.com -m mymodule
-```
-
-This will produce the output:
-
-```text
-[SUCC] Starting scan satanic_linda
-[SCAN]                  satanic_linda (SCAN:2e9ec8b6f06875bcf7980eea4c150754b53a6049)  TARGET  (distance-0)
-[INFO] mymodule: GOT EVENT: DNS_NAME("dns.google", module=TARGET, tags={'aaaa-record', 'ns-record', 'target', 'domain', 'a-record', 'resolved', 'txt-record', 'soa-record', 'distance-0', 'in-scope'})
-[DNS_NAME]              dns.google  TARGET  (a-record, aaaa-record, distance-0, domain, in-scope, ns-record, resolved, soa-record, target, txt-record)
-[INFO] Finishing scan
-```
-
-But something's wrong! We're emitting `IP_ADDRESS` [events](./scanning/events.md), but they're not showing up in the output. This is because by default, BBOT only shows in-scope [events](./scanning/events.md). To see them, we need to increase the report distance:
-
-```bash
-# run the module again but with a higher report distance
-# this lets us see out-of-scope events (up to distance 1)
-bbot -t evilcorp.com -m mymodule -c scope_report_distance=1
-```
-
-Now, with the `report_distance=1`:
-
-```text
-[SUCC] Starting scan suspicious_dobby
-[SCAN]                  suspicious_dobby (SCAN:e9d28f64527da53eaffc16f46f5deb20103bc78b)    TARGET  (distance-0)
-[INFO] mymodule: GOT EVENT: DNS_NAME("dns.google", module=TARGET, tags={'soa-record', 'aaaa-record', 'ns-record', 'txt-record', 'distance-0', 'in-scope', 'resolved', 'domain', 'a-record', 'target'})
-[DNS_NAME]              dns.google  TARGET  (a-record, aaaa-record, distance-0, domain, in-scope, ns-record, resolved, soa-record, target, txt-record)
-[IP_ADDRESS]            8.8.4.4 mymodule   (distance-1, ipv4, ptr-record, resolved)
-[IP_ADDRESS]            2001:4860:4860::8888    mymodule    (distance-1, ipv6, ptr-record, resolved)
-[IP_ADDRESS]            8.8.8.8 mymodule   (distance-1, ipv4, ptr-record, resolved)
-[IP_ADDRESS]            2001:4860:4860::8844    mymodule    (distance-1, ipv6, ptr-record, resolved)
-[DNS_NAME]              ns3.zdns.google NS  (a-record, aaaa-record, distance-1, resolved, subdomain)
-[DNS_NAME]              ns1.zdns.google NS  (a-record, aaaa-record, distance-1, resolved, subdomain)
-[DNS_NAME]              ns4.zdns.google NS  (a-record, aaaa-record, distance-1, resolved, subdomain)
-[DNS_NAME]              ns2.zdns.google NS  (a-record, aaaa-record, distance-1, resolved, subdomain)
-[DNS_NAME]              xkcd.com    TXT (a-record, aaaa-record, distance-1, domain, mx-record, ns-record, resolved, soa-record, txt-record)
-[INFO] Finishing scan
+bbot -t evilcorp.com -m whois
 ```
 
 ### `handle_event()` and `emit_event()`
 
-The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events.md) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that event.
+The `handle_event()` method is the most important part of the module. By overriding this method, you control what the module does. During a scan, when an [event](./scanning/events.md) from your `watched_events` is encountered (a `DNS_NAME` in this example), `handle_event()` is automatically called with that event as its argument.
 
-The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events.md) and prints it to the console. It also distributes it any modules that are interested in that data type.
+The `emit_event()` method is how modules return data. When you call `emit_event()`, it creates an [event](./scanning/events.md) and outputs it, sending it any modules that are interested in that data type.
 
 ### `setup()`
 
-A module's `setup()` method is used for performing any one-time setup tasks such as downloading a wordlist or checking to make sure an API key is valid. It must return either:
+A module's `setup()` method is used for performing one-time setup at the start of the scan, like downloading a wordlist or checking to make sure an API key is valid. It needs to return either:
 
 1. `True` - module setup succeeded
 2. `None` - module setup soft-failed (scan will continue but module will be disabled)
@@ -145,15 +121,62 @@ async def setup(self):
 
 async def setup(self):
     try:
-        wordlist = self.helpers.wordlist("https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/tlds.txt")
+        wordlist = self.helpers.wordlist("https://raw.githubusercontent.com/user/wordlist.txt")
     except WordlistError as e:
         # hard-fail
-        return False, f"Error retrieving wordlist: {e}"
+        return False, f"Error downloading wordlist: {e}"
 
 async def setup(self):
     self.timeout = self.config.get("timeout", 5)
     # success
     return True
+```
+
+### Module Config Options
+
+Each module can have its own set of config options. These live in the `options` and `options_desc` attributes on your class. Both are dictionaries; `options` is for defaults and `options_desc` is for descriptions. Here is a typical example:
+
+```python title="bbot/modules/nmap.py"
+class nmap(BaseModule):
+    # ...
+    options = {
+        "top_ports": 100,
+        "ports": "",
+        "timing": "T4",
+        "skip_host_discovery": True,
+    }
+    options_desc = {
+        "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
+        "ports": "Ports to scan",
+        "timing": "-T<0-5>: Set timing template (higher is faster)",
+        "skip_host_discovery": "skip host discovery (-Pn)",
+    }
+
+    async def setup(self):
+        self.ports = self.config.get("ports", "")
+        self.timing = self.config.get("timing", "T4")
+        self.top_ports = self.config.get("top_ports", 100)
+        self.skip_host_discovery = self.config.get("skip_host_discovery", True)
+```
+
+Once you've defined these variables, you can pass in the options via `-c`:
+
+```bash
+bbot -m mymodule -c modules.nmap.top_ports=250
+```
+
+... or via the config:
+
+```yaml title="~/.config/bbot/bbot.yml"
+modules:
+  nmap:
+    top_ports: 250
+```
+
+Inside the module, you access them via `self.config`, e.g.:
+
+```python
+self.config.get("top_ports")
 ```
 
 ### Module Dependencies
