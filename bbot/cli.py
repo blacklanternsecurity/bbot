@@ -304,11 +304,15 @@ async def _main():
 
                     # if we're on the terminal, enable keyboard interaction
                     if sys.stdin.isatty():
+
+                        import select
+                        from threading import Thread
+
                         if not options.agent_mode and not options.yes:
                             log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                             input()
 
-                        def handle_keyboard_input(keyboard_input):
+                        async def handle_keyboard_input(keyboard_input):
                             """Enable toggling log level, killing individual bbot modules during scan"""
                             kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
                             if keyboard_input:
@@ -325,25 +329,16 @@ async def _main():
                                 toggle_log_level(logger=log)
                                 scanner.manager.modules_status(_log=True)
 
-                        def stdin_reader(queue):
-                            """Reads from stdin and puts lines into a queue."""
-                            for line in sys.stdin:
-                                queue.put_nowait(line)
-
-                        from threading import Thread
-
-                        input_queue = asyncio.Queue()
+                        def stdin_reader(loop):
+                            """Thread target for handling stdin input with minimal blocking."""
+                            while True:
+                                readable, _, _ = select.select([sys.stdin], [], [], 0.1)
+                                if readable:
+                                    input_data = sys.stdin.readline().strip()
+                                    asyncio.run_coroutine_threadsafe(handle_keyboard_input(input_data), loop)
 
                         # Start the stdin reader thread
-                        reader_thread = Thread(target=stdin_reader, args=(input_queue,), daemon=True)
-                        reader_thread.start()
-
-                        async def akeyboard_listen():
-                            while True:
-                                line = (await input_queue.get()).strip()
-                                handle_keyboard_input(line)
-
-                        asyncio.create_task(akeyboard_listen())
+                        Thread(target=stdin_reader, args=(asyncio.get_event_loop(),), daemon=True).start()
 
                     await scanner.async_start_without_generator()
 
