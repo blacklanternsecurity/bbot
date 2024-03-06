@@ -38,7 +38,9 @@ class newsletters(BaseModule):
                 if soup:
                     result = self.find_type(soup)
                     if result:
-                        description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
+                        description = (
+                            f"Found a Newsletter Submission Form that could be used for email bombing attacks"
+                        )
                         data = {"host": str(event.host), "description": description, "url": event.data["url"]}
                         await self.emit_event(data, "FINDING", event)
             # If BeautifulSoup Fails, we will return back to the calling function with no action taken

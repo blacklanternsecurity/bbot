@@ -62,6 +62,5 @@ class viewdns(BaseModule):
             return results
         # If BeautifulSoup Fails, we will return blank results set
         except Exception:
-                self.debug(f"BeautifulSoup returned False")
-                return results      
-
+            self.debug(f"BeautifulSoup returned False")
+            return results
