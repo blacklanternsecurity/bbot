@@ -8,7 +8,8 @@ import logging
 import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
-from aioconsole import stream
+
+# from aioconsole import stream
 
 # fix tee buffering
 sys.stdout.reconfigure(line_buffering=True)
@@ -19,10 +20,16 @@ CORE.logger.set_log_level("DEBUG")
 
 from bbot.core import errors
 from bbot import __version__
+from bbot.modules import module_loader
+from bbot.core.configurator.args import parser
 from bbot.core.helpers.misc import smart_decode
 from bbot.core.helpers.logger import log_to_stderr
 
 log = logging.getLogger("bbot.cli")
+log_level = get_log_level()
+
+
+from . import config
 
 err = False
 scan_name = ""
@@ -287,12 +294,14 @@ async def _main():
                 if not options.dry_run:
                     log.trace(f"Command: {' '.join(sys.argv)}")
 
+                    # if we're on the terminal, enable keyboard interaction
                     if sys.stdin.isatty():
                         if not options.agent_mode and not options.yes:
                             log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                             input()
 
                         def handle_keyboard_input(keyboard_input):
+                            """Enable toggling log level, killing individual bbot modules during scan"""
                             kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
                             if keyboard_input:
                                 log.verbose(f'Got keyboard input: "{keyboard_input}"')
@@ -308,30 +317,23 @@ async def _main():
                                 CORE.logger.toggle_log_level(logger=log)
                                 scanner.manager.modules_status(_log=True)
 
-                        # Reader
-                        reader = stream.StandardStreamReader()
-                        protocol = stream.StandardStreamReaderProtocol(reader)
-                        await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
+                        def stdin_reader(queue):
+                            """Reads from stdin and puts lines into a queue."""
+                            for line in sys.stdin:
+                                queue.put_nowait(line)
+
+                        from threading import Thread
+
+                        input_queue = asyncio.Queue()
+
+                        # Start the stdin reader thread
+                        reader_thread = Thread(target=stdin_reader, args=(input_queue,), daemon=True)
+                        reader_thread.start()
 
                         async def akeyboard_listen():
-                            try:
-                                allowed_errors = 10
-                                while 1:
-                                    keyboard_input = None
-                                    try:
-                                        keyboard_input = smart_decode((await reader.readline()).strip())
-                                        allowed_errors = 10
-                                    except Exception as e:
-                                        log_to_stderr(f"Error in keyboard listen loop: {e}", level="TRACE")
-                                        log_to_stderr(traceback.format_exc(), level="TRACE")
-                                        allowed_errors -= 1
-                                    if keyboard_input is not None:
-                                        handle_keyboard_input(keyboard_input)
-                                    if allowed_errors <= 0:
-                                        break
-                            except Exception as e:
-                                log_to_stderr(f"Error in keyboard listen task: {e}", level="ERROR")
-                                log_to_stderr(traceback.format_exc(), level="TRACE")
+                            while True:
+                                line = (await input_queue.get()).strip()
+                                handle_keyboard_input(line)
 
                         asyncio.create_task(akeyboard_listen())
 

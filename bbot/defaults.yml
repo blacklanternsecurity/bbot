@@ -96,6 +96,7 @@ url_extension_blacklist:
     - jpeg
     - gif
     - svg
+    - webp
     # web/fonts
     - css
     - woff

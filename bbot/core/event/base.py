@@ -29,7 +29,6 @@ from bbot.core.helpers import (
     split_host_port,
     tagify,
     validators,
-    truncate_string,
 )
 
 
@@ -106,6 +105,8 @@ class BaseEvent:
     _dummy = False
     # Data validation, if data is a dictionary
     _data_validator = None
+    # Whether to increment scope distance if the child and parent hosts are the same
+    _scope_distance_increment_same_host = False
 
     def __init__(
         self,
@@ -413,7 +414,7 @@ class BaseEvent:
             if source.scope_distance >= 0:
                 new_scope_distance = int(source.scope_distance)
                 # only increment the scope distance if the host changes
-                if not hosts_are_same:
+                if self._scope_distance_increment_same_host or not hosts_are_same:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
             # inherit certain tags
@@ -490,7 +491,10 @@ class BaseEvent:
         return self._data_human()
 
     def _data_human(self):
-        return truncate_string(str(self.data), n=2000)
+        if isinstance(self.data, (dict, list)):
+            with suppress(Exception):
+                return json.dumps(self.data, sort_keys=True)
+        return smart_decode(self.data)
 
     def _data_load(self, data):
         """
@@ -524,10 +528,7 @@ class BaseEvent:
         return self._pretty_string()
 
     def _pretty_string(self):
-        if isinstance(self.data, dict):
-            with suppress(Exception):
-                return json.dumps(self.data, sort_keys=True)
-        return smart_decode(self.data)
+        return self._data_human()
 
     @property
     def data_graph(self):
@@ -752,9 +753,6 @@ class DictEvent(BaseEvent):
         if url:
             self.parsed = validators.validate_url_parsed(url)
         return data
-
-    def _data_human(self):
-        return json.dumps(self.data, sort_keys=True)
 
     def _data_load(self, data):
         if isinstance(data, str):
@@ -1164,9 +1162,10 @@ class USERNAME(BaseEvent):
     _quick_emit = True
 
 
-class SOCIAL(DictEvent):
+class SOCIAL(DictHostEvent):
     _always_emit = True
     _quick_emit = True
+    _scope_distance_increment_same_host = True
 
 
 class WEBSCREENSHOT(DictHostEvent):
