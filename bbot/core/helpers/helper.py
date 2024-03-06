@@ -10,7 +10,6 @@ from .cloud import CloudHelper
 from .wordcloud import WordCloud
 from .interactsh import Interactsh
 from ...scanner.target import Target
-from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
 
 
@@ -110,17 +109,6 @@ class ConfigAwareHelper:
     def in_tests(self):
         return os.environ.get("BBOT_TESTING", "") == "True"
 
-    def _make_dummy_module(self, name, _type="scan"):
-        """
-        Construct a dummy module, for attachment to events
-        """
-        try:
-            return self.dummy_modules[name]
-        except KeyError:
-            dummy = DummyModule(scan=self.scan, name=name, _type=_type)
-            self.dummy_modules[name] = dummy
-            return dummy
-
     def __getattribute__(self, attr):
         """
         Do not be afraid, the angel said.
@@ -162,12 +150,3 @@ class ConfigAwareHelper:
                         except AttributeError:
                             # then die
                             raise AttributeError(f'Helper has no attribute "{attr}"')
-
-
-class DummyModule(BaseModule):
-    _priority = 4
-
-    def __init__(self, *args, **kwargs):
-        self._name = kwargs.pop("name")
-        self._type = kwargs.pop("_type")
-        super().__init__(*args, **kwargs)

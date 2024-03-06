@@ -136,6 +136,7 @@ class Scanner:
 
         self.modules = OrderedDict({})
         self._modules_loaded = False
+        self.dummy_modules = {}
 
         if dispatcher is None:
             self.dispatcher = Dispatcher()
@@ -1013,3 +1014,25 @@ class Scanner:
             log.trace(traceback.format_exc())
         if callable(finally_callback):
             finally_callback(e)
+
+    def _make_dummy_module(self, name, _type="scan"):
+        """
+        Construct a dummy module, for attachment to events
+        """
+        try:
+            return self.dummy_modules[name]
+        except KeyError:
+            dummy = DummyModule(scan=self, name=name, _type=_type)
+            self.dummy_modules[name] = dummy
+            return dummy
+
+
+from bbot.modules.base import BaseModule
+
+class DummyModule(BaseModule):
+    _priority = 4
+
+    def __init__(self, *args, **kwargs):
+        self._name = kwargs.pop("name")
+        self._type = kwargs.pop("_type")
+        super().__init__(*args, **kwargs)

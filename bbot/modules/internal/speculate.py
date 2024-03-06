@@ -131,7 +131,12 @@ class speculate(BaseInternalModule):
                     )
 
         # storage buckets etc.
-        self.helpers.cloud.speculate(event)
+        for cloud_kwargs in self.helpers.cloud.speculate(event):
+            module = None
+            provider = kwargs.pop("_provider", "")
+            if provider:
+                module = self.scan._make_dummy_module(provider)
+            await self.emit_event(module=module, **kwargs)
 
         # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
         org_stubs = set()

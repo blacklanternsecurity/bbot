@@ -10,11 +10,6 @@ class CloudHelper:
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
         self.providers = cloud_providers
-        self.dummy_modules = {}
-        for provider_name in self.providers.providers:
-            self.dummy_modules[provider_name] = self.parent_helper._make_dummy_module(
-                f"{provider_name}_cloud", _type="scan"
-            )
         self._updated = False
         self._update_lock = asyncio.Lock()
 
@@ -36,7 +31,7 @@ class CloudHelper:
                             if event_type == "STORAGE_BUCKET":
                                 self.emit_bucket(match, **kwargs)
                             else:
-                                self.emit_event(**kwargs)
+                                yield kwargs
 
     def speculate(self, event):
         """
@@ -58,21 +53,14 @@ class CloudHelper:
                             if not event.data in found:
                                 found.add(event.data)
                                 if event_type == "STORAGE_BUCKET":
-                                    self.emit_bucket(match.groups(), **kwargs)
+                                    yield self.emit_bucket(match.groups(), **kwargs)
                                 else:
-                                    self.emit_event(**kwargs)
+                                    yield kwargs
 
-    def emit_bucket(self, match, **kwargs):
+    async def emit_bucket(self, match, **kwargs):
         bucket_name, bucket_domain = match
         kwargs["data"] = {"name": bucket_name, "url": f"https://{bucket_name}.{bucket_domain}"}
-        self.emit_event(**kwargs)
-
-    def emit_event(self, *args, **kwargs):
-        provider_name = kwargs.pop("_provider")
-        dummy_module = self.dummy_modules[provider_name]
-        event = dummy_module.make_event(*args, **kwargs)
-        if event:
-            self.parent_helper.scan.manager.queue_event(event)
+        return kwargs
 
     async def tag_event(self, event):
         """
