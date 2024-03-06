@@ -1158,6 +1158,20 @@ class BaseModule:
         Examples:
             >>> self.stdout("This will be printed to stdout")
         """
+        import os
+        import sys
+        import fcntl
+
+        # Get the file descriptor for stdout
+        fd = sys.stdout.fileno()
+
+        # Use fcntl to get the file status flags for stdout
+        flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+
+        # Check if the O_NONBLOCK flag is set
+        is_non_blocking = flags & os.O_NONBLOCK
+
+        print(f"stdout is {'non-blocking' if is_non_blocking else 'blocking'}")
         self.log.stdout(*args, extra={"scan_id": self.scan.id}, **kwargs)
 
     def debug(self, *args, trace=False, **kwargs):
