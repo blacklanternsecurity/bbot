@@ -20,16 +20,9 @@ CORE.logger.set_log_level("DEBUG")
 
 from bbot.core import errors
 from bbot import __version__
-from bbot.modules import module_loader
-from bbot.core.configurator.args import parser
-from bbot.core.helpers.misc import smart_decode
 from bbot.core.helpers.logger import log_to_stderr
 
 log = logging.getLogger("bbot.cli")
-log_level = get_log_level()
-
-
-from . import config
 
 err = False
 scan_name = ""
@@ -40,8 +33,25 @@ async def _main():
     global scan_name
 
     from bbot.scanner import Scanner
+    from bbot.scanner.preset import Preset
 
-    scan = Scanner("www.example.com", _cli_execution=True)
+    preset = Preset("www.example.com")
+    preset.parse_args()
+
+    # --version
+    if preset.args.parsed.version:
+        log.stdout(__version__)
+        sys.exit(0)
+        return
+
+    # --current-config
+    if preset.args.parsed.current_config:
+        log.stdout(f"{OmegaConf.to_yaml(CORE.config)}")
+        sys.exit(0)
+        return
+
+    scan = Scanner(preset=preset)
+
     async for event in scan.async_start():
         print(event)
 
@@ -67,18 +77,6 @@ async def _main():
         # command-line options are in bbot/core/config/args.py
         CORE.args.validate()
         options = CORE.args.parsed
-
-        # --version
-        if options.version:
-            log.stdout(__version__)
-            sys.exit(0)
-            return
-
-        # --current-config
-        if options.current_config:
-            log.stdout(f"{OmegaConf.to_yaml(CORE.config)}")
-            sys.exit(0)
-            return
 
         if options.agent_mode:
             from bbot.agent import Agent

@@ -2,6 +2,8 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from bbot.core import CORE
+from bbot.core.event.base import make_event
+from bbot.core.errors import ValidationError
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
 
@@ -21,7 +23,6 @@ class Preset:
     def __init__(
         self,
         *targets,
-        scan=None,
         whitelist=None,
         blacklist=None,
         scan_id=None,
@@ -34,8 +35,6 @@ class Preset:
         strict_scope=False,
         _cli_execution=False,
     ):
-        self._scan = scan
-
         self._args = None
         self._environ = None
         self._module_loader = None
@@ -48,6 +47,7 @@ class Preset:
         # merge any custom configs
         self.core.merge_custom(config)
 
+        # modules
         if modules is None:
             modules = []
         if output_modules is None:
@@ -74,6 +74,7 @@ class Preset:
 
         self.helpers = ConfigAwareHelper(preset=self)
 
+        # scan ID
         if scan_id is not None:
             self.scan_id = str(scan_id)
         else:
@@ -103,7 +104,6 @@ class Preset:
         else:
             self.scan_home = self.helpers.bbot_home / "scans" / self.scan_name
 
-    def set_scope(self, targets, whitelist, blacklist, strict_scope=False):
         self.strict_scope = strict_scope
 
         # target / whitelist / blacklist
@@ -118,20 +118,26 @@ class Preset:
             blacklist = []
         self.blacklist = Target(self, *blacklist)
 
-    def process_cli_args(self):
-        pass
+    def parse_args(self):
+
+        from .args import BBOTArgs
+
+        self._args = BBOTArgs(self)
+
+        # bring in presets
+        # self.merge(self.args.presets)
+
+        # bring in config
+        self.core.merge_custom(self.args.config)
+
+        # bring in misc cli arguments
+
+        # validate config / modules / flags
+        # self.args.validate()
 
     @property
     def config(self):
         return self.core.config
-
-    @property
-    def scan(self):
-        if self._scan is None:
-            from bbot.scanner import Scanner
-
-            self._scan = Scanner()
-        return self._scan
 
     @property
     def module_loader(self):
@@ -174,8 +180,38 @@ class Preset:
 
     @property
     def args(self):
-        if self._args is None:
-            from .args import BBOTArgs
-
-            self._args = BBOTArgs(self)
         return self._args
+
+    def in_scope(self, e):
+        """
+        Check whether a hostname, url, IP, etc. is in scope.
+        Accepts either events or string data.
+
+        Checks whitelist and blacklist.
+        If `e` is an event and its scope distance is zero, it will be considered in-scope.
+
+        Examples:
+            Check if a URL is in scope:
+            >>> scan.in_scope("http://www.evilcorp.com")
+            True
+        """
+        try:
+            e = make_event(e, dummy=True)
+        except ValidationError:
+            return False
+        in_scope = e.scope_distance == 0 or self.whitelisted(e)
+        return in_scope and not self.blacklisted(e)
+
+    def blacklisted(self, e):
+        """
+        Check whether a hostname, url, IP, etc. is blacklisted.
+        """
+        e = make_event(e, dummy=True)
+        return e in self.blacklist
+
+    def whitelisted(self, e):
+        """
+        Check whether a hostname, url, IP, etc. is whitelisted.
+        """
+        e = make_event(e, dummy=True)
+        return e in self.whitelist

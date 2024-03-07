@@ -391,10 +391,10 @@ class excavate(BaseInternalModule):
             # Cloud extractors
             for cloud_kwargs in self.helpers.cloud.excavate(event, body):
                 module = None
-                provider = kwargs.pop("_provider", "")
+                provider = cloud_kwargs.pop("_provider", "")
                 if provider:
                     module = self.scan._make_dummy_module(provider)
-                await self.emit_event(module=module, **kwargs)
+                await self.emit_event(module=module, **cloud_kwargs)
 
             await self.search(
                 body,

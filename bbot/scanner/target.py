@@ -84,11 +84,9 @@ class Target:
             - Each target is processed and stored as an `Event` in the '_events' dictionary.
         """
         self.preset = preset
-        self.scan = self.preset.scan
         self.strict_scope = strict_scope
         self.make_in_scope = make_in_scope
 
-        self._dummy_module = TargetDummyModule(self.scan)
         self._events = dict()
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
@@ -125,9 +123,7 @@ class Target:
             if is_event(t):
                 event = t
             else:
-                event = self.scan.make_event(
-                    t, source=self.scan.root_event, module=self._dummy_module, tags=["target"]
-                )
+                event = make_event(t, tags=["target"], dummy=True)
             if self.make_in_scope:
                 event.scope_distance = 0
             try:

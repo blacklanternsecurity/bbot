@@ -19,8 +19,8 @@ from .stats import ScanStats
 from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.core.event import make_event
+from bbot.core.errors import BBOTError, ScanError
 from bbot.core.helpers.async_helpers import async_to_sync_gen
-from bbot.core.errors import BBOTError, ScanError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
 
@@ -99,10 +99,7 @@ class Scanner:
 
     def __init__(
         self,
-        *targets,
-        whitelist=None,
-        blacklist=None,
-        strict_scope=False,
+        *args,
         dispatcher=None,
         force_start=False,
         **preset_kwargs,
@@ -125,8 +122,11 @@ class Scanner:
             force_start (bool, optional): If True, allows the scan to start even when module setups hard-fail. Defaults to False.
         """
 
-        self.preset = Preset(scan=self, **preset_kwargs)
-        self.preset.set_scope(targets, whitelist, blacklist, strict_scope=strict_scope)
+        preset = preset_kwargs.pop("preset", None)
+        if preset is not None:
+            self.preset = preset
+        else:
+            self.preset = Preset(*args, **preset_kwargs)
 
         self.force_start = force_start
         self._status = "NOT_STARTED"
@@ -613,39 +613,14 @@ class Scanner:
                 self.home.rmdir()
             self.helpers.clean_old_scans()
 
-    def in_scope(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is in scope.
-        Accepts either events or string data.
+    def in_scope(self, *args, **kwargs):
+        return self.preset.in_scope(*args, **kwargs)
 
-        Checks whitelist and blacklist.
-        If `e` is an event and its scope distance is zero, it will be considered in-scope.
+    def whitelisted(self, *args, **kwargs):
+        return self.preset.whitelisted(*args, **kwargs)
 
-        Examples:
-            Check if a URL is in scope:
-            >>> scan.in_scope("http://www.evilcorp.com")
-            True
-        """
-        try:
-            e = make_event(e, dummy=True)
-        except ValidationError:
-            return False
-        in_scope = e.scope_distance == 0 or self.whitelisted(e)
-        return in_scope and not self.blacklisted(e)
-
-    def blacklisted(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is blacklisted.
-        """
-        e = make_event(e, dummy=True)
-        return e in self.blacklist
-
-    def whitelisted(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is whitelisted.
-        """
-        e = make_event(e, dummy=True)
-        return e in self.whitelist
+    def blacklisted(self, *args, **kwargs):
+        return self.preset.blacklisted(*args, **kwargs)
 
     @property
     def core(self):
@@ -759,7 +734,7 @@ class Scanner:
         root_event.scope_distance = 0
         root_event._resolved.set()
         root_event.source = root_event
-        root_event.module = self.helpers._make_dummy_module(name="TARGET", _type="TARGET")
+        root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
         return root_event
 
     def run_in_executor(self, callback, *args, **kwargs):
@@ -1026,8 +1001,18 @@ class Scanner:
             self.dummy_modules[name] = dummy
             return dummy
 
+    def _make_dummy_module_dns(self, name):
+        try:
+            dummy_module = self.dummy_modules[name]
+        except KeyError:
+            dummy_module = self._make_dummy_module(name=name, _type="DNS")
+            dummy_module.suppress_dupes = False
+            self.dummy_modules[name] = dummy_module
+        return dummy_module
+
 
 from bbot.modules.base import BaseModule
+
 
 class DummyModule(BaseModule):
     _priority = 4

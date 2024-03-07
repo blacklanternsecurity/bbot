@@ -72,6 +72,10 @@ class ScanManager:
             await self.distribute_event(self.scan.root_event)
             sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
             for event in sorted_events:
+                event._dummy = False
+                event.scan = self.scan
+                event.source = self.scan.root_event
+                event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
                 self.scan.verbose(f"Target: {event}")
                 self.queue_event(event)
             await asyncio.sleep(0.1)
@@ -277,7 +281,7 @@ class ScanManager:
                 and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
                 and not (event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate")
             ):
-                source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
+                source_module = self.scan._make_dummy_module("host", _type="internal")
                 source_module._priority = 4
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 # only emit the event if it's not already in the parent chain
@@ -301,7 +305,7 @@ class ScanManager:
                     dns_child_events = []
                     if dns_children:
                         for rdtype, records in dns_children.items():
-                            module = self.scan.helpers.dns._get_dummy_module(rdtype)
+                            module = self.scan._make_dummy_module_dns(rdtype)
                             module._priority = 4
                             for record in records:
                                 try:

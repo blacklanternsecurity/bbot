@@ -4,43 +4,15 @@ import argparse
 from pathlib import Path
 from omegaconf import OmegaConf
 
-from ..helpers.logger import log_to_stderr
-from ..helpers.misc import chain_lists, match_and_exit, is_file
+from bbot.core.helpers.logger import log_to_stderr
+from bbot.core.helpers.misc import chain_lists, match_and_exit, is_file
 
 
-class BBOTArgumentParser(argparse.ArgumentParser):
-    """
-    A subclass of argparse.ArgumentParser with several extra features:
-        - permissive parsing of modules/flags, allowing either space or comma-separated entries
-        - loading targets / config from files
-        - option to *not* exit on error
-    """
+class BBOTArgs:
 
     # module config options to exclude from validation
     exclude_from_validation = re.compile(r".*modules\.[a-z0-9_]+\.(?:batch_size|max_event_handlers)$")
 
-    def parse_args(self, *args, **kwargs):
-        """
-        Allow space or comma-separated entries for modules and targets
-        For targets, also allow input files containing additional targets
-        """
-        ret = super().parse_args(*args, **kwargs)
-        # silent implies -y
-        if ret.silent:
-            ret.yes = True
-        ret.modules = chain_lists(ret.modules)
-        ret.exclude_modules = chain_lists(ret.exclude_modules)
-        ret.output_modules = chain_lists(ret.output_modules)
-        ret.targets = chain_lists(ret.targets, try_files=True, msg="Reading targets from file: {filename}")
-        ret.whitelist = chain_lists(ret.whitelist, try_files=True, msg="Reading whitelist from file: {filename}")
-        ret.blacklist = chain_lists(ret.blacklist, try_files=True, msg="Reading blacklist from file: {filename}")
-        ret.flags = chain_lists(ret.flags)
-        ret.exclude_flags = chain_lists(ret.exclude_flags)
-        ret.require_flags = chain_lists(ret.require_flags)
-        return ret
-
-
-class BBOTArgs:
     scan_examples = [
         (
             "Subdomains",
@@ -94,10 +66,9 @@ class BBOTArgs:
 
     def __init__(self, preset):
         self.preset = preset
-        self._parsed = None
-        self._cli_config = None
+        self._config = None
 
-        # PRESET TODO: revisit this
+        # validate module choices
         self._module_choices = sorted(set(self.preset.module_loader.preloaded(type="scan")))
         self._output_module_choices = sorted(set(self.preset.module_loader.preloaded(type="output")))
         self._flag_choices = set()
@@ -106,20 +77,18 @@ class BBOTArgs:
         self._flag_choices = sorted(self._flag_choices)
 
         self.parser = self.create_parser()
+        self._parsed = None
 
     @property
     def parsed(self):
-        """
-        Returns the parsed BBOT Argument Parser.
-        """
         if self._parsed is None:
             self._parsed = self.parser.parse_args()
         return self._parsed
 
     @property
-    def cli_config(self):
-        if self._cli_config is None:
-            self._cli_config = OmegaConf.create({})
+    def config(self):
+        if self._config is None:
+            self._config = OmegaConf.create({})
             if self.parsed.config:
                 for c in self.parsed.config:
                     config_file = Path(c).resolve()
@@ -136,8 +105,8 @@ class BBOTArgs:
                         except Exception as e:
                             log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
                             sys.exit(2)
-                    self._cli_config = OmegaConf.merge(self._cli_config, cli_config)
-        return self._cli_config
+                    self._config = OmegaConf.merge(self._config, cli_config)
+        return self._config
 
     def create_parser(self, *args, **kwargs):
         kwargs.update(
@@ -145,7 +114,7 @@ class BBOTArgs:
                 description="Bighuge BLS OSINT Tool", formatter_class=argparse.RawTextHelpFormatter, epilog=self.epilog
             )
         )
-        p = BBOTArgumentParser(*args, **kwargs)
+        p = argparse.ArgumentParser(*args, **kwargs)
         p.add_argument("--help-all", action="store_true", help="Display full help including module config options")
         target = p.add_argument_group(title="Target")
         target.add_argument(
@@ -254,28 +223,29 @@ class BBOTArgs:
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
         return p
 
-    def validate(self):
-        """
-        Validate command line arguments
-            - Validate modules/flags to make sure they exist
-            - If --config was specified, check the config options to make sure they exist
-        """
-        # modules
-        for m in self.parsed.modules:
-            if m not in self._module_choices:
-                match_and_exit(m, self._module_choices, msg="module")
-        for m in self.parsed.exclude_modules:
-            if m not in self._module_choices:
-                match_and_exit(m, self._module_choices, msg="module")
-        for m in self.parsed.output_modules:
-            if m not in self._output_module_choices:
-                match_and_exit(m, self._output_module_choices, msg="output module")
-        # flags
-        for f in set(self.parsed.flags + self.parsed.require_flags + self.parsed.exclude_flags):
-            if f not in self._flag_choices:
-                match_and_exit(f, self._flag_choices, msg="flag")
+    def sanitize_args(self):
+        # silent implies -y
+        if self.parsed.silent:
+            self.parsed.yes = True
+        # chain_lists allows either comma-separated or space-separated lists
+        self.parsed.modules = chain_lists(self.parsed.modules)
+        self.parsed.exclude_modules = chain_lists(self.parsed.exclude_modules)
+        self.parsed.output_modules = chain_lists(self.parsed.output_modules)
+        self.parsed.targets = chain_lists(
+            self.parsed.targets, try_files=True, msg="Reading targets from file: {filename}"
+        )
+        self.parsed.whitelist = chain_lists(
+            self.parsed.whitelist, try_files=True, msg="Reading whitelist from file: {filename}"
+        )
+        self.parsed.blacklist = chain_lists(
+            self.parsed.blacklist, try_files=True, msg="Reading blacklist from file: {filename}"
+        )
+        self.parsed.flags = chain_lists(self.parsed.flags)
+        self.parsed.exclude_flags = chain_lists(self.parsed.exclude_flags)
+        self.parsed.require_flags = chain_lists(self.parsed.require_flags)
 
-        # config options
+    def validate(self):
+        # validate config options
         sentinel = object()
         conf = [a for a in self.parsed.config if not is_file(a)]
         all_options = None
@@ -295,3 +265,21 @@ class BBOTArgs:
                     global_options = set(self.preset.core.default_config.keys()) - {"modules", "output_modules"}
                     all_options = global_options.union(modules_options)
                 match_and_exit(c, all_options, msg="module option")
+
+        # PRESET TODO: if custom module dir, pull in new module choices
+
+        # validate modules
+        for m in self.parser.modules:
+            if m not in self._module_choices:
+                match_and_exit(m, self._module_choices, msg="module")
+        for m in self.parser.exclude_modules:
+            if m not in self._module_choices:
+                match_and_exit(m, self._module_choices, msg="module")
+        for m in self.parser.output_modules:
+            if m not in self._output_module_choices:
+                match_and_exit(m, self._output_module_choices, msg="output module")
+
+        # validate flags
+        for f in set(self.parser.flags + self.parser.require_flags + self.parser.exclude_flags):
+            if f not in self._flag_choices:
+                match_and_exit(f, self._flag_choices, msg="flag")

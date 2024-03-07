@@ -51,7 +51,6 @@ class BBOTAsyncClient(httpx.AsyncClient):
 
     def __init__(self, *args, **kwargs):
         self._preset = kwargs.pop("_preset")
-        self._bbot_scan = self._preset.scan
         web_requests_per_second = self._preset.config.get("web_requests_per_second", 100)
         self._rate_limiter = RateLimiter(web_requests_per_second, "Web")
 
@@ -90,7 +89,7 @@ class BBOTAsyncClient(httpx.AsyncClient):
     def build_request(self, *args, **kwargs):
         request = super().build_request(*args, **kwargs)
         # add custom headers if the URL is in-scope
-        if self._bbot_scan.in_scope(str(request.url)):
+        if self._preset.in_scope(str(request.url)):
             for hk, hv in self._preset.config.get("http_headers", {}).items():
                 # don't clobber headers
                 if hk not in request.headers:
