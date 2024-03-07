@@ -159,10 +159,10 @@ class nmap(BaseModule):
         self.skip_host_discovery = self.config.get("skip_host_discovery", True)
 ```
 
-Once you've defined these variables, you can pass in the options via `-c`:
+Once you've defined these variables, you can pass the options via `-c`:
 
 ```bash
-bbot -m mymodule -c modules.nmap.top_ports=250
+bbot -m nmap -c modules.nmap.top_ports=250
 ```
 
 ... or via the config:
