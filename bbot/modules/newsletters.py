@@ -33,17 +33,12 @@ class newsletters(BaseModule):
 
     async def handle_event(self, event):
         if event.data["status_code"] == 200:
-            try:
-                soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
-                if soup:
-                    result = self.find_type(soup)
-                    if result:
-                        description = (
-                            f"Found a Newsletter Submission Form that could be used for email bombing attacks"
-                        )
-                        data = {"host": str(event.host), "description": description, "url": event.data["url"]}
-                        await self.emit_event(data, "FINDING", event)
-            # If BeautifulSoup Fails, we will return back to the calling function with no action taken
-            except Exception:
+            soup = self.helpers.beautifulsoup(event.data["body"], "html.parser")
+            if soup is False:
                 self.debug(f"BeautifulSoup returned False")
-                pass
+                return
+            result = self.find_type(soup)
+            if result:
+                description = f"Found a Newsletter Submission Form that could be used for email bombing attacks"
+                data = {"host": str(event.host), "description": description, "url": event.data["url"]}
+                await self.emit_event(data, "FINDING", event)
