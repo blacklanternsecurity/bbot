@@ -150,13 +150,41 @@ class BaseModule:
         self._per_host_tracker = set()
 
     async def setup(self):
-        """Asynchronously sets up the module at the beginning of the scan.
+        """
+        Performs one-time setup tasks for the module.
 
-        This method can be overridden to perform any necessary setup logic.
+        This method is responsible for preparing the module for its operation, which may include tasks
+        such as downloading necessary resources, validating configuration parameters, or other preliminary
+        checks.
 
         Returns:
-            bool or None: True if setup was successful. None for a soft-fail, which will produce a warning but not abort the scan. False for a hard-fail, which will abort the scan.
+            tuple:
+                - bool or None: A status indicating the outcome of the setup process. Returns `True` if
+                the setup was successful, `None` for a soft-fail where the module setup did not succeed
+                but the scan will continue with the module disabled, and `False` for a hard-fail where
+                the setup failure causes the scan to abort.
+                - str, optional: A reason for the setup failure, provided only when the setup does not
+                succeed (i.e., returns `None` or `False`).
+
+        Examples:
+            >>> async def setup(self):
+            >>>     if not self.config.get("api_key"):
+            >>>         # Soft-fail: Configuration missing an API key
+            >>>         return None, "No API key specified"
+
+            >>> async def setup(self):
+            >>>     try:
+            >>>         wordlist = await self.helpers.wordlist("https://raw.githubusercontent.com/user/wordlist.txt")
+            >>>     except WordlistError as e:
+            >>>         # Hard-fail: Error retrieving wordlist
+            >>>         return False, f"Error retrieving wordlist: {e}"
+
+            >>> async def setup(self):
+            >>>     self.timeout = self.config.get("timeout", 5)
+            >>>     # Success: Setup completed without issues
+            >>>     return True
         """
+
         return True
 
     async def handle_event(self, event):
