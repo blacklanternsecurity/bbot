@@ -78,14 +78,14 @@ Flags are how BBOT categorizes its modules. In a way, you can think of them as g
 bbot -f subdomain-enum -l
 ```
 
-### Filtering by Flag
+### Filtering Modules
 
-Modules can be easily filtered based on their flags:
+Modules can be easily enabled/disabled based on their flags:
 
-- `-f` Enable modules with this flag
-- `-rf` Require modules to have this flag
-- `-ef` Exclude modules with this flag
-- `-em` Exclude these individual modules
+- `-f` Enable these flags (e.g. `-f subdomain-enum`)
+- `-rf` Require modules to have this flag (e.g. `-rf safe`)
+- `-ef` Exclude these flags (e.g. `-ef slow`)
+- `-em` Exclude these individual modules (e.g. `-em ipneighbor`)
 - `-lf` List all available flags
 
 Every module is either `safe` or `aggressive`, and either `active` or `passive`. These can be useful for filtering. For example, if you wanted to enable all the `safe` modules, but exclude active ones, you could do:
