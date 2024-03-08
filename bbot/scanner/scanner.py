@@ -100,6 +100,7 @@ class Scanner:
     def __init__(
         self,
         *args,
+        scan_id=None,
         dispatcher=None,
         force_start=False,
         **preset_kwargs,
@@ -121,6 +122,10 @@ class Scanner:
             strict_scope (bool, optional): If True, only targets explicitly in whitelist are scanned. Defaults to False.
             force_start (bool, optional): If True, allows the scan to start even when module setups hard-fail. Defaults to False.
         """
+        if scan_id is not None:
+            self.scan_id = str(scan_id)
+        else:
+            self.scan_id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
 
         preset = preset_kwargs.pop("preset", None)
         if preset is not None:

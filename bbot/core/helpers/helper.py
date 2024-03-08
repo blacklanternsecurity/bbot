@@ -52,7 +52,7 @@ class ConfigAwareHelper:
 
     def __init__(self, preset):
         self.preset = preset
-        self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
+        self.bbot_home = self.preset.bbot_home
         self.cache_dir = self.bbot_home / "cache"
         self.temp_dir = self.bbot_home / "temp"
         self.tools_dir = self.bbot_home / "tools"

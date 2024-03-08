@@ -85,28 +85,26 @@ class BBOTArgs:
             self._parsed = self.parser.parse_args()
         return self._parsed
 
-    @property
-    def config(self):
-        if self._config is None:
-            self._config = OmegaConf.create({})
-            if self.parsed.config:
-                for c in self.parsed.config:
-                    config_file = Path(c).resolve()
-                    if config_file.is_file():
-                        try:
-                            cli_config = OmegaConf.load(str(config_file))
-                            log_to_stderr(f"Loaded custom config from {config_file}")
-                        except Exception as e:
-                            log_to_stderr(f"Error parsing custom config at {config_file}: {e}", level="ERROR")
-                            sys.exit(2)
-                    else:
-                        try:
-                            cli_config = OmegaConf.from_cli(cli_config)
-                        except Exception as e:
-                            log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
-                            sys.exit(2)
-                    self._config = OmegaConf.merge(self._config, cli_config)
-        return self._config
+    def preset_from_args(self, args=None):
+        if args is None:
+            args = self.parsed.preset
+        args_preset = self.preset.__class__()
+        for preset in args:
+            if Path(preset).is_file():
+                try:
+                    custom_preset = self.preset.from_yaml(preset)
+                except Exception as e:
+                    log_to_stderr(f"Error parsing custom config at {config_file}: {e}", level="ERROR")
+                    sys.exit(2)
+                args_preset.merge(custom_preset)
+            else:
+                try:
+                    cli_config = OmegaConf.from_cli([preset])
+                except Exception as e:
+                    log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
+                    sys.exit(2)
+                args_preset.core.merge_custom(cli_config)
+        return args_preset
 
     def create_parser(self, *args, **kwargs):
         kwargs.update(
@@ -188,10 +186,10 @@ class BBOTArgs:
             metavar="DIR",
         )
         scan.add_argument(
-            "-c",
-            "--config",
+            "-p", "--preset",
+            "-c", "--config",
             nargs="*",
-            help="custom config file, or configuration options in key=value format: 'modules.shodan.api_key=1234'",
+            help="Custom preset file(s), or config options in key=value format: 'modules.shodan.api_key=1234'",
             metavar="CONFIG",
             default=[],
         )
@@ -202,9 +200,14 @@ class BBOTArgs:
         scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
         scan.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
         scan.add_argument(
-            "--current-config",
+            "--current-preset",
             action="store_true",
-            help="Show current config in YAML format",
+            help="Show the current preset in YAML format",
+        )
+        scan.add_argument(
+            "--current-preset-full",
+            action="store_true",
+            help="Show the current preset in its full form, including defaults",
         )
         deps = p.add_argument_group(
             title="Module dependencies", description="Control how modules install their dependencies"
@@ -247,13 +250,14 @@ class BBOTArgs:
     def validate(self):
         # validate config options
         sentinel = object()
-        conf = [a for a in self.parsed.config if not is_file(a)]
+        conf = [a for a in self.parsed.preset if not is_file(a)]
         all_options = None
         for c in conf:
             c = c.split("=")[0].strip()
             v = OmegaConf.select(self.preset.core.default_config, c, default=sentinel)
             # if option isn't in the default config
             if v is sentinel:
+                # skip if it's excluded from validation
                 if self.exclude_from_validation.match(c):
                     continue
                 if all_options is None:
@@ -264,6 +268,7 @@ class BBOTArgs:
                         modules_options.update(set(o[0] for o in module_options))
                     global_options = set(self.preset.core.default_config.keys()) - {"modules", "output_modules"}
                     all_options = global_options.union(modules_options)
+                # otherwise, ensure it exists as a module option
                 match_and_exit(c, all_options, msg="module option")
 
         # PRESET TODO: if custom module dir, pull in new module choices

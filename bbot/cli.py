@@ -9,8 +9,6 @@ import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-# from aioconsole import stream
-
 # fix tee buffering
 sys.stdout.reconfigure(line_buffering=True)
 
@@ -35,7 +33,7 @@ async def _main():
     from bbot.scanner import Scanner
     from bbot.scanner.preset import Preset
 
-    preset = Preset("www.example.com")
+    preset = Preset()
     preset.parse_args()
 
     # --version
@@ -44,9 +42,15 @@ async def _main():
         sys.exit(0)
         return
 
-    # --current-config
-    if preset.args.parsed.current_config:
-        log.stdout(f"{OmegaConf.to_yaml(CORE.config)}")
+    # --current-preset
+    if preset.args.parsed.current_preset:
+        log.stdout(preset.to_yaml())
+        sys.exit(0)
+        return
+
+    # --current-preset-full
+    if preset.args.parsed.current_preset_full:
+        log.stdout(preset.to_yaml(full_config=True))
         sys.exit(0)
         return
 

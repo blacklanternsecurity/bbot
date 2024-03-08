@@ -1,3 +1,4 @@
+import yaml
 from pathlib import Path
 from omegaconf import OmegaConf
 
@@ -25,7 +26,6 @@ class Preset:
         *targets,
         whitelist=None,
         blacklist=None,
-        scan_id=None,
         scan_name=None,
         modules=None,
         output_modules=None,
@@ -33,12 +33,11 @@ class Preset:
         config=None,
         dispatcher=None,
         strict_scope=False,
-        _cli_execution=False,
+        helper=None,
     ):
         self._args = None
         self._environ = None
         self._module_loader = None
-        self._cli_execution = _cli_execution
 
         # bbot core config
         self.core = CORE
@@ -70,22 +69,18 @@ class Preset:
         self.module_dirs = sorted(set(self.module_dirs))
 
         # config-aware helper
-        from bbot.core.helpers.helper import ConfigAwareHelper
+        if helper is not None:
+            self._helpers = helper
 
-        self.helpers = ConfigAwareHelper(preset=self)
-
-        # scan ID
-        if scan_id is not None:
-            self.scan_id = str(scan_id)
-        else:
-            self.scan_id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
+        self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
 
         # scan name
+        self._custom_scan_name = False
         if scan_name is None:
             tries = 0
             while 1:
                 if tries > 5:
-                    self.scan_name = f"{self.helpers.rand_string(4)}_{self.helpers.rand_string(4)}"
+                    self.scan_name = f"{rand_string(4)}_{rand_string(4)}"
                     break
                 self.scan_name = random_name()
                 if output_dir is not None:
@@ -97,12 +92,17 @@ class Preset:
                 tries += 1
         else:
             self.scan_name = str(scan_name)
+            self._custom_scan_name = True
 
         # scan output dir
+        self._custom_output_dir = False
         if output_dir is not None:
             self.scan_home = Path(output_dir).resolve() / self.scan_name
+            self._custom_output_dir = False
         else:
             self.scan_home = self.helpers.bbot_home / "scans" / self.scan_name
+            if self._custom_scan_name:
+                self._custom_output_dir = True
 
         self.strict_scope = strict_scope
 
@@ -118,17 +118,36 @@ class Preset:
             blacklist = []
         self.blacklist = Target(self, *blacklist)
 
+    def merge(self, other):
+        # module dirs
+        self.module_dirs = sorted(set(self.module_dirs).union(set(other.module_dirs)))
+        # scan name
+        if other.scan_name and other._custom_scan_name:
+            self.scan_name = other.scan_name
+        # scan output dir
+        if other.scan_home and other._custom_output_dir:
+            self.scan_home = other.scan_home
+        # merge target / whitelist / blacklist
+        self.target.add_target(other.target)
+        self.whitelist.add_target(other.whitelist)
+        self.blacklist.add_target(other.blacklist)
+        # scope
+        self.strict_scope = self.strict_scope or other.strict_scope
+        # config
+        self.core.merge_custom(other.core.custom_config)
+
     def parse_args(self):
 
         from .args import BBOTArgs
 
         self._args = BBOTArgs(self)
+        self.merge(self.args.preset_from_args())
 
         # bring in presets
         # self.merge(self.args.presets)
 
         # bring in config
-        self.core.merge_custom(self.args.config)
+        # self.core.merge_custom(self.args.config)
 
         # bring in misc cli arguments
 
@@ -138,6 +157,14 @@ class Preset:
     @property
     def config(self):
         return self.core.config
+
+    @property
+    def helpers(self):
+        if self._helpers is None:
+            from bbot.core.helpers.helper import ConfigAwareHelper
+
+            self._helpers = ConfigAwareHelper(preset=self)
+        return self._helpers
 
     @property
     def module_loader(self):
@@ -215,3 +242,39 @@ class Preset:
         """
         e = make_event(e, dummy=True)
         return e in self.whitelist
+
+    @classmethod
+    def from_yaml(cls, filename):
+        preset_dict = OmegaConf.load(filename)
+        new_preset = cls(
+            *preset_dict.get("targets", []),
+            whitelist=preset_dict.get("whitelist", []),
+            blacklist=preset_dict.get("blacklist", []),
+            scan_name=preset_dict.get("scan_name", None),
+            modules=preset_dict.get("modules", []),
+            output_modules=preset_dict.get("output_modules", []),
+            output_dir=preset_dict.get("output_dir", None),
+            config=preset_dict.get("config", None),
+            strict_scope=preset_dict.get("strict_scope", False),
+        )
+        return new_preset
+
+    def to_yaml(self, full_config=False):
+        if full_config:
+            config = self.core.config
+        else:
+            config = self.core.custom_config
+        target = sorted(str(t.data) for t in self.target)
+        whitelist = sorted(str(t.data) for t in self.whitelist)
+        blacklist = sorted(str(t.data) for t in self.blacklist)
+        preset_dict = {
+            "target": target,
+            "config": OmegaConf.to_container(config),
+        }
+        if whitelist and whitelist != target:
+            preset_dict["whitelist"] = whitelist
+        if blacklist:
+            preset_dict["blacklist"] = blacklist
+        if self.strict_scope:
+            preset_dict["strict_scope"] = True
+        return yaml.dump(preset_dict)
