@@ -96,7 +96,7 @@ class Target:
 
         self._hash = None
 
-    def add_target(self, t):
+    def add_target(self, t, event_type=None):
         """
         Add a target or merge events from another Target object into this Target.
 
@@ -126,10 +126,16 @@ class Target:
             else:
                 try:
                     event = self.scan.make_event(
-                        t, source=self.scan.root_event, module=self._dummy_module, tags=["target"]
+                        t,
+                        event_type=event_type,
+                        source=self.scan.root_event,
+                        module=self._dummy_module,
+                        tags=["target"],
                     )
                 except ValidationError as e:
-                    log.warning(f'Error adding target "{t}": {e}')
+                    # allow commented lines
+                    if not str(t).startswith("#"):
+                        raise ValidationError(f'Could not add target "{t}": {e}')
             if self.make_in_scope:
                 event.scope_distance = 0
             try:
