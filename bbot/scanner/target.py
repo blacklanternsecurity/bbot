@@ -124,9 +124,12 @@ class Target:
             if is_event(t):
                 event = t
             else:
-                event = self.scan.make_event(
-                    t, source=self.scan.root_event, module=self._dummy_module, tags=["target"]
-                )
+                try:
+                    event = self.scan.make_event(
+                        t, source=self.scan.root_event, module=self._dummy_module, tags=["target"]
+                    )
+                except ValidationError as e:
+                    log.warning(f"Error adding target \"{t}\": {e}")
             if self.make_in_scope:
                 event.scope_distance = 0
             try:
