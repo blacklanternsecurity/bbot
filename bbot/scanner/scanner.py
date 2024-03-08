@@ -4,6 +4,7 @@ import asyncio
 import logging
 import traceback
 import contextlib
+from pathlib import Path
 from sys import exc_info
 import multiprocessing as mp
 from datetime import datetime
@@ -20,6 +21,8 @@ from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.core.event import make_event
 from bbot.core.errors import BBOTError, ScanError
+from bbot.core.helpers.misc import sha1, rand_string
+from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
 
 log = logging.getLogger("bbot.scanner")
@@ -101,6 +104,8 @@ class Scanner:
         self,
         *args,
         scan_id=None,
+        scan_name=None,
+        output_dir=None,
         dispatcher=None,
         force_start=False,
         **preset_kwargs,
@@ -123,15 +128,39 @@ class Scanner:
             force_start (bool, optional): If True, allows the scan to start even when module setups hard-fail. Defaults to False.
         """
         if scan_id is not None:
-            self.scan_id = str(scan_id)
+            self.id = str(id)
         else:
-            self.scan_id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
+            self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
 
         preset = preset_kwargs.pop("preset", None)
         if preset is not None:
             self.preset = preset
         else:
             self.preset = Preset(*args, **preset_kwargs)
+
+        # scan name
+        if scan_name is None:
+            tries = 0
+            while 1:
+                if tries > 5:
+                    self.name = f"{rand_string(4)}_{rand_string(4)}"
+                    break
+                self.name = random_name()
+                if output_dir is not None:
+                    home_path = Path(output_dir).resolve() / self.name
+                else:
+                    home_path = self.preset.bbot_home / "scans" / self.name
+                if not home_path.exists():
+                    break
+                tries += 1
+        else:
+            self.name = str(scan_name)
+
+        # scan output dir
+        if output_dir is not None:
+            self.home = Path(output_dir).resolve() / self.name
+        else:
+            self.home = self.preset.bbot_home / "scans" / self.name
 
         self.force_start = force_start
         self._status = "NOT_STARTED"
@@ -646,18 +675,6 @@ class Scanner:
     @property
     def blacklist(self):
         return self.preset.blacklist
-
-    @property
-    def home(self):
-        return self.preset.scan_home
-
-    @property
-    def name(self):
-        return self.preset.scan_name
-
-    @property
-    def id(self):
-        return self.preset.scan_id
 
     @property
     def helpers(self):

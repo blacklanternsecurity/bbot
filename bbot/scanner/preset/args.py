@@ -83,23 +83,31 @@ class BBOTArgs:
     def parsed(self):
         if self._parsed is None:
             self._parsed = self.parser.parse_args()
+            self.sanitize_args()
         return self._parsed
 
-    def preset_from_args(self, args=None):
-        if args is None:
-            args = self.parsed.preset
+    def preset_from_args(self):
         args_preset = self.preset.__class__()
-        for preset in args:
-            if Path(preset).is_file():
+        # scope
+        args_preset.target.add_target(self.parsed.targets)
+        args_preset.whitelist.add_target(self.parsed.whitelist)
+        args_preset.blacklist.add_target(self.parsed.blacklist)
+        args_preset.strict_scope = self.parsed.strict_scope
+        # modules
+        args_preset.scan_modules = self.parsed.modules
+        args_preset.output_modules = self.parsed.output_modules
+        # additional custom presets / config options
+        for preset_param in self.parsed.preset:
+            if Path(preset_param).is_file():
                 try:
-                    custom_preset = self.preset.from_yaml(preset)
+                    custom_preset = self.preset.from_yaml(preset_param)
                 except Exception as e:
-                    log_to_stderr(f"Error parsing custom config at {config_file}: {e}", level="ERROR")
+                    log_to_stderr(f"Error parsing custom config at {preset_param}: {e}", level="ERROR")
                     sys.exit(2)
                 args_preset.merge(custom_preset)
             else:
                 try:
-                    cli_config = OmegaConf.from_cli([preset])
+                    cli_config = OmegaConf.from_cli([preset_param])
                 except Exception as e:
                     log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
                     sys.exit(2)
@@ -186,8 +194,10 @@ class BBOTArgs:
             metavar="DIR",
         )
         scan.add_argument(
-            "-p", "--preset",
-            "-c", "--config",
+            "-p",
+            "--preset",
+            "-c",
+            "--config",
             nargs="*",
             help="Custom preset file(s), or config options in key=value format: 'modules.shodan.api_key=1234'",
             metavar="CONFIG",

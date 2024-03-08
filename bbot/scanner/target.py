@@ -113,25 +113,28 @@ class Target:
             - If `t` is an event, it is directly added to `_events`.
             - If `make_in_scope` is True, the scope distance of the event is set to 0.
         """
-        if type(t) == self.__class__:
-            for k, v in t._events.items():
-                try:
-                    self._events[k].update(v)
-                except KeyError:
-                    self._events[k] = set(t._events[k])
-        else:
-            if is_event(t):
-                event = t
+        if not isinstance(t, (list, tuple, set)):
+            t = [t]
+        for single_target in t:
+            if type(single_target) == self.__class__:
+                for k, v in single_target._events.items():
+                    try:
+                        self._events[k].update(v)
+                    except KeyError:
+                        self._events[k] = set(single_target._events[k])
             else:
-                event = make_event(t, tags=["target"], dummy=True)
-            if self.make_in_scope:
-                event.scope_distance = 0
-            try:
-                self._events[event.host].add(event)
-            except KeyError:
-                self._events[event.host] = {
-                    event,
-                }
+                if is_event(single_target):
+                    event = single_target
+                else:
+                    event = make_event(single_target, tags=["target"], dummy=True)
+                if self.make_in_scope:
+                    event.scope_distance = 0
+                try:
+                    self._events[event.host].add(event)
+                except KeyError:
+                    self._events[event.host] = {
+                        event,
+                    }
 
     @property
     def events(self):

@@ -6,7 +6,6 @@ import sys
 import asyncio
 import logging
 import traceback
-from omegaconf import OmegaConf
 from contextlib import suppress
 
 # fix tee buffering

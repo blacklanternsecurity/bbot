@@ -82,7 +82,7 @@ class DepsInstaller:
                 success = self.setup_status.get(module_hash, None)
                 dependencies = list(chain(*preloaded["deps"].values()))
                 if len(dependencies) <= 0:
-                    log.debug(f'No setup to do for module "{m}"')
+                    log.debug(f'No dependency work to do for module "{m}"')
                     succeeded.append(m)
                     continue
                 else:

@@ -5,19 +5,12 @@ from omegaconf import OmegaConf
 from bbot.core import CORE
 from bbot.core.event.base import make_event
 from bbot.core.errors import ValidationError
-from bbot.core.helpers.misc import sha1, rand_string
-from bbot.core.helpers.names_generator import random_name
 
 
 bbot_code_dir = Path(__file__).parent.parent.parent
 
 
 class Preset:
-    """
-    CORE should not handle arguments
-        which means it shouldn't need access to the module loader
-
-    """
 
     default_module_dir = bbot_code_dir / "modules"
 
@@ -26,17 +19,14 @@ class Preset:
         *targets,
         whitelist=None,
         blacklist=None,
-        scan_name=None,
         modules=None,
         output_modules=None,
-        output_dir=None,
         config=None,
-        dispatcher=None,
         strict_scope=False,
-        helper=None,
     ):
         self._args = None
         self._environ = None
+        self._helpers = None
         self._module_loader = None
 
         # bbot core config
@@ -68,42 +58,6 @@ class Preset:
         self.module_dirs = [Path(p) for p in self.module_dirs] + [self.default_module_dir]
         self.module_dirs = sorted(set(self.module_dirs))
 
-        # config-aware helper
-        if helper is not None:
-            self._helpers = helper
-
-        self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
-
-        # scan name
-        self._custom_scan_name = False
-        if scan_name is None:
-            tries = 0
-            while 1:
-                if tries > 5:
-                    self.scan_name = f"{rand_string(4)}_{rand_string(4)}"
-                    break
-                self.scan_name = random_name()
-                if output_dir is not None:
-                    home_path = Path(output_dir).resolve() / self.scan_name
-                else:
-                    home_path = self.helpers.bbot_home / "scans" / self.scan_name
-                if not home_path.exists():
-                    break
-                tries += 1
-        else:
-            self.scan_name = str(scan_name)
-            self._custom_scan_name = True
-
-        # scan output dir
-        self._custom_output_dir = False
-        if output_dir is not None:
-            self.scan_home = Path(output_dir).resolve() / self.scan_name
-            self._custom_output_dir = False
-        else:
-            self.scan_home = self.helpers.bbot_home / "scans" / self.scan_name
-            if self._custom_scan_name:
-                self._custom_output_dir = True
-
         self.strict_scope = strict_scope
 
         # target / whitelist / blacklist
@@ -118,15 +72,19 @@ class Preset:
             blacklist = []
         self.blacklist = Target(self, *blacklist)
 
+        self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
+
     def merge(self, other):
         # module dirs
-        self.module_dirs = sorted(set(self.module_dirs).union(set(other.module_dirs)))
-        # scan name
-        if other.scan_name and other._custom_scan_name:
-            self.scan_name = other.scan_name
-        # scan output dir
-        if other.scan_home and other._custom_output_dir:
-            self.scan_home = other.scan_home
+        current_module_dirs = set(self.module_dirs)
+        other_module_dirs = set(other.module_dirs)
+        combined_module_dirs = current_module_dirs.union(other_module_dirs)
+        if combined_module_dirs != current_module_dirs:
+            self.module_dirs = combined_module_dirs
+            # TODO: refresh module dirs
+        # modules
+        self.scan_modules = sorted(set(self.scan_modules).union(set(other.scan_modules)))
+        self.output_modules = sorted(set(self.output_modules).union(set(other.output_modules)))
         # merge target / whitelist / blacklist
         self.target.add_target(other.target)
         self.whitelist.add_target(other.whitelist)
@@ -244,22 +202,23 @@ class Preset:
         return e in self.whitelist
 
     @classmethod
-    def from_yaml(cls, filename):
-        preset_dict = OmegaConf.load(filename)
+    def from_yaml(cls, yaml_preset):
+        if Path(yaml_preset).is_file():
+            preset_dict = OmegaConf.load(yaml_preset)
+        else:
+            preset_dict = OmegaConf.create(yaml_preset)
         new_preset = cls(
             *preset_dict.get("targets", []),
             whitelist=preset_dict.get("whitelist", []),
             blacklist=preset_dict.get("blacklist", []),
-            scan_name=preset_dict.get("scan_name", None),
-            modules=preset_dict.get("modules", []),
+            modules=preset_dict.get("scan_modules", []),
             output_modules=preset_dict.get("output_modules", []),
-            output_dir=preset_dict.get("output_dir", None),
             config=preset_dict.get("config", None),
             strict_scope=preset_dict.get("strict_scope", False),
         )
         return new_preset
 
-    def to_yaml(self, full_config=False):
+    def to_yaml(self, full_config=False, sort_keys=False):
         if full_config:
             config = self.core.config
         else:
@@ -270,6 +229,8 @@ class Preset:
         preset_dict = {
             "target": target,
             "config": OmegaConf.to_container(config),
+            "modules": self.scan_modules,
+            "output_modules": self.output_modules,
         }
         if whitelist and whitelist != target:
             preset_dict["whitelist"] = whitelist
@@ -277,4 +238,4 @@ class Preset:
             preset_dict["blacklist"] = blacklist
         if self.strict_scope:
             preset_dict["strict_scope"] = True
-        return yaml.dump(preset_dict)
+        return yaml.dump(preset_dict, sort_keys=sort_keys)
