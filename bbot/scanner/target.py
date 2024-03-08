@@ -129,7 +129,7 @@ class Target:
                         t, source=self.scan.root_event, module=self._dummy_module, tags=["target"]
                     )
                 except ValidationError as e:
-                    log.warning(f"Error adding target \"{t}\": {e}")
+                    log.warning(f'Error adding target "{t}": {e}')
             if self.make_in_scope:
                 event.scope_distance = 0
             try:
