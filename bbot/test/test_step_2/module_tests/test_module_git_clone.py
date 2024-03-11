@@ -157,7 +157,7 @@ class TestGit_Clone(ModuleTestBase):
         with open(os.path.join(module_test.scan.home, "test_keys", "keys.txt"), "w") as f:
             f.write("https://admin:admin@the-internet.herokuapp.com/basic_auth")
         subprocess.run(["git", "add", "."])
-        subprocess.run(["git", "commit", "-m", "Initial commit"], check=True)
+        subprocess.run(["git", "-c", "user.name='BBOT Test'", "-c", "user.email='bbot@blacklanternsecurity.com'", "commit", "-m", "Initial commit"], check=True)
 
         old_filter_event = module_test.module.filter_event
 
