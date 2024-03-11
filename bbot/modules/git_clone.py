@@ -42,7 +42,7 @@ class git_clone(github):
 
     async def clone_git_repository(self, repository_url):
         if self.api_key:
-            url = repository_url.replace("https://github.com", f"https://{self.api_key}@github.com")
+            url = repository_url.replace("https://github.com", f"https://user:{self.api_key}@github.com")
         else:
             url = repository_url
         command = ["git", "-C", self.output_dir, "clone", url]

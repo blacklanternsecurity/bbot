@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 
 
 class TestGit_Clone(ModuleTestBase):
-    # config_overrides = {"modules": {"git_clone": {"api_key": "asdf"}}}
+    config_overrides = {"modules": {"git_clone": {"api_key": "asdf"}}}
     modules_overrides = ["github_org", "speculate", "git_clone"]
 
     async def setup_before_prep(self, module_test):
