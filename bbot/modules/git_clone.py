@@ -28,8 +28,8 @@ class git_clone(github):
 
     async def filter_event(self, event):
         if event.type == "CODE_REPOSITORY":
-            if "github" not in event.tags:
-                return False, "event is not a github repository"
+            if "git" not in event.tags:
+                return False, "event is not a git repository"
         return True
 
     async def handle_event(self, event):
