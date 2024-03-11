@@ -198,6 +198,23 @@ async def test_events(events, scan, helpers, bbot_config):
         assert tag in affiliate_event2.tags
         assert tag not in affiliate_event3.tags
 
+    # updating an already-created event with make_event()
+    # updating tags
+    event1 = scan.make_event("127.0.0.1", source=scan.root_event)
+    updated_event = scan.make_event(event1, tags="asdf")
+    assert "asdf" not in event1.tags
+    assert "asdf" in updated_event.tags
+    # updating source
+    event2 = scan.make_event("127.0.0.1", source=scan.root_event)
+    updated_event = scan.make_event(event2, source=event1)
+    assert event2.source == scan.root_event
+    assert updated_event.source == event1
+    # updating module
+    event3 = scan.make_event("127.0.0.1", source=scan.root_event)
+    updated_event = scan.make_event(event3, internal=True)
+    assert event3.internal == False
+    assert updated_event.internal == True
+
     # event sorting
     parent1 = scan.make_event("127.0.0.1", source=scan.root_event)
     parent2 = scan.make_event("127.0.0.1", source=scan.root_event)

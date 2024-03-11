@@ -112,6 +112,14 @@ class speculate(BaseInternalModule):
                     url_event.web_spider_distance = source_web_spider_distance
                     await self.emit_event(url_event)
 
+        # URLs from any event with URL attribute
+        if isinstance(event.data, dict) and "url" in event.data:
+            url = event.data["url"]
+            tags = None
+            if self.helpers.is_spider_danger(event.source, url):
+                tags = ["spider-danger"]
+            await self.emit_event(url, "URL_UNVERIFIED", tags=tags, source=event)
+
         # from hosts
         if speculate_open_ports:
             # don't act on unresolved DNS_NAMEs
