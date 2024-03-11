@@ -128,11 +128,10 @@ class Target:
                 else:
                     try:
                         event = make_event(
-                            single_target
+                            single_target,
                             event_type=event_type,
-                            source=self.scan.root_event,
-                            module=self._dummy_module,
-                            tags=["target"],    
+                            dummy=True,
+                            tags=["target"],
                         )
                     except ValidationError as e:
                         # allow commented lines

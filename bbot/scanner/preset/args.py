@@ -88,14 +88,23 @@ class BBOTArgs:
 
     def preset_from_args(self):
         args_preset = self.preset.__class__()
+
         # scope
         args_preset.target.add_target(self.parsed.targets)
         args_preset.whitelist.add_target(self.parsed.whitelist)
         args_preset.blacklist.add_target(self.parsed.blacklist)
         args_preset.strict_scope = self.parsed.strict_scope
+
         # modules
         args_preset.scan_modules = self.parsed.modules
         args_preset.output_modules = self.parsed.output_modules
+        args_preset.exclude_modules = self.parsed.exclude_modules
+
+        # flags
+        args_preset.flags = self.parsed.flags
+        args_preset.require_flags = self.parsed.require_flags
+        args_preset.exclude_flags = self.parsed.exclude_flags
+
         # additional custom presets / config options
         for preset_param in self.parsed.preset:
             if Path(preset_param).is_file():
@@ -112,6 +121,11 @@ class BBOTArgs:
                     log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
                     sys.exit(2)
                 args_preset.core.merge_custom(cli_config)
+
+        # verbosity levels
+        args_preset.silent = self.parsed.silent
+        args_preset.verbose = self.parsed.verbose
+        args_preset.debug = self.parsed.debug
         return args_preset
 
     def create_parser(self, *args, **kwargs):

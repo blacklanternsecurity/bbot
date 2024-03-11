@@ -1,5 +1,7 @@
 from pathlib import Path
+from contextlib import suppress
 from omegaconf import OmegaConf
+from omegaconf.errors import ConfigKeyError
 
 
 class BBOTCore:
@@ -9,7 +11,6 @@ class BBOTCore:
         self._files_config = None
 
         self.bbot_sudo_pass = None
-        self.cli_execution = False
 
         self._config = None
         self._default_config = None
@@ -97,6 +98,10 @@ class BBOTCore:
         # we temporarily clear out the config so it can be refreshed if/when custom_config changes
         self._config = None
         self._custom_config = value
+
+    def del_config_item(self, item):
+        with suppress(ConfigKeyError):
+            del self.custom_config[item]
 
     def merge_custom(self, config):
         self.custom_config = OmegaConf.merge(self.custom_config, OmegaConf.create(config))

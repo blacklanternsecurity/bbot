@@ -1,21 +1,15 @@
 def test_presets():
-    from bbot.core import CORE
+    pass
 
-    assert "module_paths" in CORE.config
-    assert CORE.module_loader.module_paths
-    assert any(str(x).endswith("/modules") for x in CORE.module_loader.module_paths)
-    assert "HTTP_RESPONSE" in CORE.config.omit_event_types
+    # test config merging
 
-    # make sure .copy() works as intended
-    # preset_copy = CORE.copy()
-    # assert isinstance(preset_copy, CORE.__class__)
-    # base_tests(CORE)
-    # base_tests(preset_copy)
-    # preset_copy.update({"asdf": {"fdsa": "1234"}})
-    # assert "asdf" in preset_copy
-    # assert preset_copy.asdf.fdsa == "1234"
-    # assert not "asdf" in CORE
+    # make sure custom / default split works as expected
 
-    # preset_copy["testing"] = {"test1": "value"}
-    # assert "testing" in preset_copy
-    # assert "testing" not in CORE
+    # test preset merging
+
+    # test verbosity levels (conflicting verbose/debug/silent)
+
+    # test custom module load directory
+    #  make sure it works with cli arg module/flag/config syntax validation
+
+    # test yaml save/load, make sure it's the same

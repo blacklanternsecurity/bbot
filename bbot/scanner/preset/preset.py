@@ -1,4 +1,5 @@
 import yaml
+from copy import copy
 from pathlib import Path
 from omegaconf import OmegaConf
 
@@ -21,6 +22,13 @@ class Preset:
         blacklist=None,
         modules=None,
         output_modules=None,
+        exclude_modules=None,
+        flags=None,
+        require_flags=None,
+        exclude_flags=None,
+        verbose=False,
+        debug=False,
+        silent=False,
         config=None,
         strict_scope=False,
     ):
@@ -30,7 +38,7 @@ class Preset:
         self._module_loader = None
 
         # bbot core config
-        self.core = CORE
+        self.core = copy(CORE)
         if config is None:
             config = OmegaConf.create({})
         # merge any custom configs
@@ -45,8 +53,14 @@ class Preset:
             modules = [modules]
         if isinstance(output_modules, str):
             output_modules = [output_modules]
-        self.scan_modules = modules
-        self.output_modules = output_modules
+        self.scan_modules = set(modules if modules is not None else [])
+        self.output_modules = set(output_modules if output_modules is not None else [])
+        self.exclude_modules = set(exclude_modules if exclude_modules is not None else [])
+
+        # module flags
+        self.flags = set(flags if flags is not None else [])
+        self.require_flags = set(require_flags if require_flags is not None else [])
+        self.exclude_flags = set(exclude_flags if exclude_flags is not None else [])
 
         # PRESET TODO: preparation of environment
         # self.core.environ.prepare()
@@ -56,7 +70,7 @@ class Preset:
         # dirs to load modules from
         self.module_dirs = self.core.config.get("module_dirs", [])
         self.module_dirs = [Path(p) for p in self.module_dirs] + [self.default_module_dir]
-        self.module_dirs = sorted(set(self.module_dirs))
+        self.module_dirs = set(self.module_dirs)
 
         self.strict_scope = strict_scope
 
@@ -72,6 +86,11 @@ class Preset:
             blacklist = []
         self.blacklist = Target(self, *blacklist)
 
+        # log verbosity
+        self._verbose = verbose
+        self._debug = debug
+        self._silent = silent
+
         self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
 
     def merge(self, other):
@@ -83,8 +102,13 @@ class Preset:
             self.module_dirs = combined_module_dirs
             # TODO: refresh module dirs
         # modules
-        self.scan_modules = sorted(set(self.scan_modules).union(set(other.scan_modules)))
-        self.output_modules = sorted(set(self.output_modules).union(set(other.output_modules)))
+        self.scan_modules = set(self.scan_modules).union(set(other.scan_modules))
+        self.output_modules = set(self.output_modules).union(set(other.output_modules))
+        self.exclude_modules = set(self.exclude_modules).union(set(other.exclude_modules))
+        # flags
+        self.flags = set(self.flags).union(set(other.flags))
+        self.require_flags = set(self.require_flags).union(set(other.require_flags))
+        self.exclude_flags = set(self.exclude_flags).union(set(other.exclude_flags))
         # merge target / whitelist / blacklist
         self.target.add_target(other.target)
         self.whitelist.add_target(other.whitelist)
@@ -93,6 +117,10 @@ class Preset:
         self.strict_scope = self.strict_scope or other.strict_scope
         # config
         self.core.merge_custom(other.core.custom_config)
+        # log verbosity
+        self.silent = other.silent
+        self.verbose = other.verbose
+        self.debug = other.debug
 
     def parse_args(self):
 
@@ -115,6 +143,51 @@ class Preset:
     @property
     def config(self):
         return self.core.config
+
+    @property
+    def verbose(self):
+        return self._verbose
+
+    @property
+    def debug(self):
+        return self._debug
+
+    @property
+    def silent(self):
+        return self._silent
+
+    @verbose.setter
+    def verbose(self, value):
+        if value:
+            self.debug = False
+            self.silent = False
+            self.core.merge_custom({"verbose": True})
+            self.core.logger.set_log_level("VERBOSE")
+        else:
+            self.core.del_config_item("verbose")
+            self.core.logger.set_log_level("INFO")
+
+    @debug.setter
+    def debug(self, value):
+        if value:
+            self.verbose = False
+            self.silent = False
+            self.core.merge_custom({"debug": True})
+            self.core.logger.set_log_level("DEBUG")
+        else:
+            self.core.del_config_item("debug")
+            self.core.logger.set_log_level("INFO")
+
+    @silent.setter
+    def silent(self, value):
+        if value:
+            self.verbose = False
+            self.debug = False
+            self.core.merge_custom({"silent": True})
+            self.core.logger.set_log_level("CRITICAL")
+        else:
+            self.core.del_config_item("silent")
+            self.core.logger.set_log_level("INFO")
 
     @property
     def helpers(self):
@@ -153,7 +226,7 @@ class Preset:
 
     @property
     def all_modules(self):
-        return sorted(set(self.scan_modules + self.output_modules + self.internal_modules))
+        return sorted(self.scan_modules.union(self.output_modules).union(self.internal_modules))
 
     @property
     def environ(self):
@@ -208,34 +281,70 @@ class Preset:
         else:
             preset_dict = OmegaConf.create(yaml_preset)
         new_preset = cls(
-            *preset_dict.get("targets", []),
-            whitelist=preset_dict.get("whitelist", []),
-            blacklist=preset_dict.get("blacklist", []),
-            modules=preset_dict.get("scan_modules", []),
-            output_modules=preset_dict.get("output_modules", []),
-            config=preset_dict.get("config", None),
+            *preset_dict.get("targets"),
+            whitelist=preset_dict.get("whitelist"),
+            blacklist=preset_dict.get("blacklist"),
+            modules=preset_dict.get("scan_modules"),
+            output_modules=preset_dict.get("output_modules"),
+            exclude_modules=preset_dict.get("exclude_modules"),
+            flags=preset_dict.get("flags"),
+            require_flags=preset_dict.get("require_flags"),
+            exclude_flags=preset_dict.get("exclude_flags"),
+            verbose=preset_dict.get("verbose", False),
+            debug=preset_dict.get("debug", False),
+            silent=preset_dict.get("silent", False),
+            config=preset_dict.get("config"),
             strict_scope=preset_dict.get("strict_scope", False),
         )
         return new_preset
 
     def to_yaml(self, full_config=False, sort_keys=False):
+        preset_dict = {}
+
+        # config
         if full_config:
             config = self.core.config
         else:
             config = self.core.custom_config
+        config = OmegaConf.to_container(config)
+        if config:
+            preset_dict["config"] = config
+
+        # scope
         target = sorted(str(t.data) for t in self.target)
         whitelist = sorted(str(t.data) for t in self.whitelist)
         blacklist = sorted(str(t.data) for t in self.blacklist)
-        preset_dict = {
-            "target": target,
-            "config": OmegaConf.to_container(config),
-            "modules": self.scan_modules,
-            "output_modules": self.output_modules,
-        }
+        if target:
+            preset_dict["target"] = target
         if whitelist and whitelist != target:
             preset_dict["whitelist"] = whitelist
         if blacklist:
             preset_dict["blacklist"] = blacklist
         if self.strict_scope:
             preset_dict["strict_scope"] = True
+
+        # modules
+        if self.scan_modules:
+            preset_dict["modules"] = sorted(self.scan_modules)
+        if self.output_modules:
+            preset_dict["output_modules"] = sorted(self.output_modules)
+        if self.exclude_modules:
+            preset_dict["exclude_modules"] = sorted(self.exclude_modules)
+
+        # flags
+        if self.flags:
+            preset_dict["flags"] = sorted(self.flags)
+        if self.require_flags:
+            preset_dict["require_flags"] = sorted(self.require_flags)
+        if self.exclude_flags:
+            preset_dict["exclude_flags"] = sorted(self.exclude_flags)
+
+        # log verbosity
+        if self.verbose:
+            preset_dict["verbose"] = True
+        if self.debug:
+            preset_dict["debug"] = True
+        if self.silent:
+            preset_dict["silent"] = True
+
         return yaml.dump(preset_dict, sort_keys=sort_keys)
