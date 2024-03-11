@@ -8,10 +8,7 @@ class git_clone(github):
     flags = ["passive", "safe", "slow"]
     meta = {"description": "Clone code github repositories"}
     options = {"api_key": "", "output_folder": ""}
-    options_desc = {
-        "api_key": "Github token",
-        "output_folder": "Folder to clone repositories to"
-    }
+    options_desc = {"api_key": "Github token", "output_folder": "Folder to clone repositories to"}
 
     deps_apt = ["git"]
 
@@ -37,7 +34,9 @@ class git_clone(github):
         repo_path = await self.clone_git_repository(repo_url)
         if repo_path:
             self.verbose(f"Cloned {repo_url} to {repo_path}")
-            codebase_event = self.make_event({"path": str(repo_path)}, "FILESYSTEM", tags=["git", "folder"], source=event)
+            codebase_event = self.make_event(
+                {"path": str(repo_path)}, "FILESYSTEM", tags=["git", "folder"], source=event
+            )
             codebase_event.scope_distance = event.scope_distance
             await self.emit_event(codebase_event)
 
@@ -46,13 +45,7 @@ class git_clone(github):
             url = repository_url.replace("https://github.com", f"https://{self.api_key}@github.com")
         else:
             url = repository_url
-        command = [
-            "git",
-            "-C",
-            self.output_dir,
-            "clone",
-            url
-        ]
+        command = ["git", "-C", self.output_dir, "clone", url]
         output = await self.helpers.run(command)
         if output.returncode == 0:
             folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
