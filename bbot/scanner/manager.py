@@ -73,6 +73,7 @@ class ScanManager:
             sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
             for event in sorted_events:
                 event._dummy = False
+                event.scope_distance = 0
                 event.scan = self.scan
                 event.source = self.scan.root_event
                 event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")

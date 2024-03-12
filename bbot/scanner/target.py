@@ -5,6 +5,7 @@ from contextlib import suppress
 from bbot.core.errors import *
 from bbot.modules.base import BaseModule
 from bbot.core.event import make_event, is_event
+from bbot.core.helpers.misc import ip_network_parents, is_ip_type, domain_parents
 
 log = logging.getLogger("bbot.core.target")
 
@@ -14,11 +15,10 @@ class Target:
     A class representing a target. Can contain an unlimited number of hosts, IP or IP ranges, URLs, etc.
 
     Attributes:
-        make_in_scope (bool): Specifies whether to mark contained events as in-scope.
-        scan (Scan): Reference to the Scan object that instantiated the Target.
-        _events (dict): Dictionary mapping hosts to events related to the target.
         strict_scope (bool): Flag indicating whether to consider child domains in-scope.
             If set to True, only the exact hosts specified and not their children are considered part of the target.
+
+        _events (dict): Dictionary mapping hosts to events related to the target.
 
     Examples:
         Basic usage
@@ -62,17 +62,13 @@ class Target:
         - If you do not want to include child subdomains, use `strict_scope=True`
     """
 
-    def __init__(self, preset, *targets, strict_scope=False, make_in_scope=False):
+    def __init__(self, *targets, strict_scope=False):
         """
         Initialize a Target object.
 
         Args:
             scan (Scan): Reference to the Scan object that instantiated the Target.
             *targets: One or more targets (e.g., domain names, IP ranges) to be included in this Target.
-            strict_scope (bool, optional): Flag to control whether only the exact hosts are considered in-scope.
-                                           Defaults to False.
-            make_in_scope (bool, optional): Flag to control whether contained events are marked as in-scope.
-                                            Defaults to False.
 
         Attributes:
             scan (Scan): Reference to the Scan object.
@@ -83,10 +79,7 @@ class Target:
             - The strict_scope flag can be set to restrict scope calculation to only exactly-matching hosts and not their child subdomains.
             - Each target is processed and stored as an `Event` in the '_events' dictionary.
         """
-        self.preset = preset
         self.strict_scope = strict_scope
-        self.make_in_scope = make_in_scope
-
         self._events = dict()
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
@@ -111,7 +104,6 @@ class Target:
         Notes:
             - If `t` is of the same class as this Target, all its events are merged.
             - If `t` is an event, it is directly added to `_events`.
-            - If `make_in_scope` is True, the scope distance of the event is set to 0.
         """
         if not isinstance(t, (list, tuple, set)):
             t = [t]
@@ -137,8 +129,6 @@ class Target:
                         # allow commented lines
                         if not str(t).startswith("#"):
                             raise ValidationError(f'Could not add target "{t}": {e}')
-                if self.make_in_scope:
-                    event.scope_distance = 0
                 try:
                     self._events[event.host].add(event)
                 except KeyError:
@@ -171,7 +161,7 @@ class Target:
         Creates and returns a copy of the Target object, including a shallow copy of the `_events` attribute.
 
         Returns:
-            Target: A new Target object with the same `scan` and `strict_scope` attributes as the original.
+            Target: A new Target object with the sameattributes as the original.
                     A shallow copy of the `_events` dictionary is made.
 
         Examples:
@@ -189,7 +179,7 @@ class Target:
         Notes:
             - The `scan` object reference is kept intact in the copied Target object.
         """
-        self_copy = self.__class__(self.preset, strict_scope=self.strict_scope)
+        self_copy = self.__class__()
         self_copy._events = dict(self._events)
         return self_copy
 
@@ -222,12 +212,12 @@ class Target:
         if other.host:
             with suppress(KeyError, StopIteration):
                 return next(iter(self._events[other.host]))
-            if self.preset.helpers.is_ip_type(other.host):
-                for n in self.preset.helpers.ip_network_parents(other.host, include_self=True):
+            if is_ip_type(other.host):
+                for n in ip_network_parents(other.host, include_self=True):
                     with suppress(KeyError, StopIteration):
                         return next(iter(self._events[n]))
             elif not self.strict_scope:
-                for h in self.preset.helpers.domain_parents(other.host):
+                for h in domain_parents(other.host):
                     with suppress(KeyError, StopIteration):
                         return next(iter(self._events[h]))
 

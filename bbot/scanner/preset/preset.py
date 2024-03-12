@@ -77,14 +77,14 @@ class Preset:
         # target / whitelist / blacklist
         from bbot.scanner.target import Target
 
-        self.target = Target(self, *targets, strict_scope=strict_scope, make_in_scope=True)
+        self.target = Target(*targets, strict_scope=self.strict_scope)
         if not whitelist:
             self.whitelist = self.target.copy()
         else:
-            self.whitelist = Target(self, *whitelist, strict_scope=self.strict_scope)
+            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
         if not blacklist:
             blacklist = []
-        self.blacklist = Target(self, *blacklist)
+        self.blacklist = Target(*blacklist)
 
         # log verbosity
         self._verbose = verbose
@@ -109,12 +109,13 @@ class Preset:
         self.flags = set(self.flags).union(set(other.flags))
         self.require_flags = set(self.require_flags).union(set(other.require_flags))
         self.exclude_flags = set(self.exclude_flags).union(set(other.exclude_flags))
-        # merge target / whitelist / blacklist
-        self.target.add_target(other.target)
-        self.whitelist.add_target(other.whitelist)
-        self.blacklist.add_target(other.blacklist)
         # scope
+        self.target.add_target(other.target)
+        self.whitelist = other.whitelist
+        self.blacklist.add_target(other.blacklist)
         self.strict_scope = self.strict_scope or other.strict_scope
+        for t in (self.target, self.whitelist):
+            t.strict_scope = self.strict_scope
         # config
         self.core.merge_custom(other.core.custom_config)
         # log verbosity
