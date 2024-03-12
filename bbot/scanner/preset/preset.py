@@ -281,10 +281,10 @@ class Preset:
         else:
             preset_dict = OmegaConf.create(yaml_preset)
         new_preset = cls(
-            *preset_dict.get("targets"),
+            *preset_dict.get("target", []),
             whitelist=preset_dict.get("whitelist"),
             blacklist=preset_dict.get("blacklist"),
-            modules=preset_dict.get("scan_modules"),
+            modules=preset_dict.get("modules"),
             output_modules=preset_dict.get("output_modules"),
             exclude_modules=preset_dict.get("exclude_modules"),
             flags=preset_dict.get("flags"),
@@ -298,7 +298,7 @@ class Preset:
         )
         return new_preset
 
-    def to_yaml(self, full_config=False, sort_keys=False):
+    def to_dict(self, include_target=False, full_config=False):
         preset_dict = {}
 
         # config
@@ -311,15 +311,16 @@ class Preset:
             preset_dict["config"] = config
 
         # scope
-        target = sorted(str(t.data) for t in self.target)
-        whitelist = sorted(str(t.data) for t in self.whitelist)
-        blacklist = sorted(str(t.data) for t in self.blacklist)
-        if target:
-            preset_dict["target"] = target
-        if whitelist and whitelist != target:
-            preset_dict["whitelist"] = whitelist
-        if blacklist:
-            preset_dict["blacklist"] = blacklist
+        if include_target:
+            target = sorted(str(t.data) for t in self.target)
+            whitelist = sorted(str(t.data) for t in self.whitelist)
+            blacklist = sorted(str(t.data) for t in self.blacklist)
+            if target:
+                preset_dict["target"] = target
+            if whitelist and whitelist != target:
+                preset_dict["whitelist"] = whitelist
+            if blacklist:
+                preset_dict["blacklist"] = blacklist
         if self.strict_scope:
             preset_dict["strict_scope"] = True
 
@@ -347,4 +348,8 @@ class Preset:
         if self.silent:
             preset_dict["silent"] = True
 
+        return preset_dict
+
+    def to_yaml(self, include_target=False, full_config=False, sort_keys=False):
+        preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
         return yaml.dump(preset_dict, sort_keys=sort_keys)

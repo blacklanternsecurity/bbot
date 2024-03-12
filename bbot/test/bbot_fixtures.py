@@ -225,12 +225,15 @@ def agent(monkeypatch, bbot_config):
 
 
 # bbot config
-from bbot.core import CORE
+from bbot.scanner import Preset
 
-# PRESET TODO: revisit this
-default_config = CORE.config
-test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
-test_config = OmegaConf.merge(default_config, test_config)
+default_preset = Preset.from_yaml(Path(__file__).parent / "test.conf")
+test_config = default_preset.config
+
+available_modules = list(default_preset.module_loader.configs(type="scan"))
+available_output_modules = list(default_preset.module_loader.configs(type="output"))
+available_internal_modules = list(default_preset.module_loader.configs(type="internal"))
+
 
 if test_config.get("debug", False):
     logging.getLogger("bbot").setLevel(logging.DEBUG)
@@ -241,16 +244,10 @@ def bbot_config():
     return test_config
 
 
-# PRESET TODO: revisit this
-available_modules = list(CORE.module_loader.configs(type="scan"))
-available_output_modules = list(CORE.module_loader.configs(type="output"))
-available_internal_modules = list(CORE.module_loader.configs(type="internal"))
-
-
 @pytest.fixture(autouse=True)
 def install_all_python_deps():
     deps_pip = set()
-    for module in module_loader.preloaded().values():
+    for module in default_preset.module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
 
