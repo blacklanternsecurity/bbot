@@ -25,15 +25,14 @@ async def _main():
 
     # start by creating a default scan preset
     preset = Preset()
+    # parse command line arguments and merge into preset
+    preset.parse_args()
 
     # print help if no arguments
     if len(sys.argv) == 1:
         preset.args.parser.print_help()
         sys.exit(1)
         return
-
-    # parse command line arguments and merge into preset
-    preset.parse_args()
 
     # --version
     if preset.args.parsed.version:
