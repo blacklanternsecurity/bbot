@@ -904,7 +904,7 @@ class Scanner:
         """
         Return the current log level, e.g. logging.INFO
         """
-        return self.core.log_level
+        return self.core.logger.log_level
 
     @property
     def _log_handlers(self):
