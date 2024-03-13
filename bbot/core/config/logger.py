@@ -148,7 +148,7 @@ class BBOTLogger:
     @property
     def log_handlers(self):
         if self._log_handlers is None:
-            log_dir = Path(self.core.config["home"]) / "logs"
+            log_dir = Path(self.core.home) / "logs"
             if not mkdir(log_dir, raise_error=False):
                 error_and_exit(f"Failure creating or error writing to BBOT logs directory ({log_dir})")
 
