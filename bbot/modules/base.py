@@ -21,6 +21,8 @@ class BaseModule:
 
         flags (List): Flags indicating the type of module (must have at least "safe" or "aggressive" and "passive" or "active").
 
+        deps_modules (List): Other BBOT modules this module depends on. Empty list by default.
+
         deps_pip (List): Python dependencies to install via pip. Empty list by default.
 
         deps_apt (List): APT package dependencies to install. Empty list by default.
@@ -83,6 +85,7 @@ class BaseModule:
     options = {}
     options_desc = {}
 
+    deps_modules = []
     deps_pip = []
     deps_apt = []
     deps_shell = []

@@ -15,7 +15,7 @@ from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_di
 
 class ModuleLoader:
     """
-    Main class responsible for loading BBOT modules.
+    Main class responsible for preloading BBOT modules.
 
     This class is in charge of preloading modules to determine their dependencies.
     Once dependencies are identified, they are installed before the actual module is imported.
@@ -23,6 +23,9 @@ class ModuleLoader:
     """
 
     module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
+
+    # if a module consumes these event types, automatically assume these dependencies
+    default_module_deps = {"HTTP_RESPONSE": "httpx", "URL": "httpx"}
 
     def __init__(self, preset):
         self.preset = preset
@@ -197,6 +200,9 @@ class ModuleLoader:
                 "options_desc": {},
                 "hash": "d5a88dd3866c876b81939c920bf4959716e2a374",
                 "deps": {
+                    "modules": [
+                        "httpx"
+                    ]
                     "pip": [
                         "python-Wappalyzer~=0.3.1"
                     ],
@@ -208,14 +214,15 @@ class ModuleLoader:
                 "sudo": false
             }
         """
-        watched_events = []
-        produced_events = []
-        flags = []
+        watched_events = set()
+        produced_events = set()
+        flags = set()
         meta = {}
-        pip_deps = []
-        pip_deps_constraints = []
-        shell_deps = []
-        apt_deps = []
+        deps_modules = set()
+        deps_pip = []
+        deps_pip_constraints = []
+        deps_shell = []
+        deps_apt = []
         ansible_tasks = []
         python_code = open(module_file).read()
         # take a hash of the code so we can keep track of when it changes
@@ -227,6 +234,7 @@ class ModuleLoader:
             # look for classes
             if type(root_element) == ast.ClassDef:
                 for class_attr in root_element.body:
+
                     # class attributes that are dictionaries
                     if type(class_attr) == ast.Assign and type(class_attr.value) == ast.Dict:
                         # module options
@@ -238,68 +246,81 @@ class ModuleLoader:
                         # module metadata
                         if any([target.id == "meta" for target in class_attr.targets]):
                             meta = ast.literal_eval(class_attr.value)
+
                     # class attributes that are lists
                     if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
                         # flags
                         if any([target.id == "flags" for target in class_attr.targets]):
                             for flag in class_attr.value.elts:
                                 if type(flag.value) == str:
-                                    flags.append(flag.value)
+                                    flags.add(flag.value)
                         # watched events
                         if any([target.id == "watched_events" for target in class_attr.targets]):
                             for event_type in class_attr.value.elts:
                                 if type(event_type.value) == str:
-                                    watched_events.append(event_type.value)
+                                    watched_events.add(event_type.value)
                         # produced events
                         if any([target.id == "produced_events" for target in class_attr.targets]):
                             for event_type in class_attr.value.elts:
                                 if type(event_type.value) == str:
-                                    produced_events.append(event_type.value)
+                                    produced_events.add(event_type.value)
+
+                        # bbot module dependencies
+                        if any([target.id == "deps_modules" for target in class_attr.targets]):
+                            for dep_module in class_attr.value.elts:
+                                if type(dep_module.value) == str:
+                                    deps_modules.add(dep_module.value)
                         # python dependencies
                         if any([target.id == "deps_pip" for target in class_attr.targets]):
-                            for python_dep in class_attr.value.elts:
-                                if type(python_dep.value) == str:
-                                    pip_deps.append(python_dep.value)
-
+                            for dep_pip in class_attr.value.elts:
+                                if type(dep_pip.value) == str:
+                                    deps_pip.append(dep_pip.value)
                         if any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
-                            for python_dep in class_attr.value.elts:
-                                if type(python_dep.value) == str:
-                                    pip_deps_constraints.append(python_dep.value)
-
+                            for dep_pip in class_attr.value.elts:
+                                if type(dep_pip.value) == str:
+                                    deps_pip_constraints.append(dep_pip.value)
                         # apt dependencies
                         elif any([target.id == "deps_apt" for target in class_attr.targets]):
-                            for apt_dep in class_attr.value.elts:
-                                if type(apt_dep.value) == str:
-                                    apt_deps.append(apt_dep.value)
+                            for dep_apt in class_attr.value.elts:
+                                if type(dep_apt.value) == str:
+                                    deps_apt.append(dep_apt.value)
                         # bash dependencies
                         elif any([target.id == "deps_shell" for target in class_attr.targets]):
-                            for shell_dep in class_attr.value.elts:
-                                shell_deps.append(ast.literal_eval(shell_dep))
+                            for dep_shell in class_attr.value.elts:
+                                deps_shell.append(ast.literal_eval(dep_shell))
                         # ansible playbook
                         elif any([target.id == "deps_ansible" for target in class_attr.targets]):
                             ansible_tasks = ast.literal_eval(class_attr.value)
+
         for task in ansible_tasks:
             if not "become" in task:
                 task["become"] = False
             # don't sudo brew
             elif os_platform() == "darwin" and ("package" in task and task.get("become", False) == True):
                 task["become"] = False
+
+        # derive module dependencies from watched event types
+        for event_type in watched_events:
+            if event_type in self.default_module_deps:
+                deps_modules.add(self.default_module_deps[event_type])
+
         preloaded_data = {
-            "watched_events": watched_events,
-            "produced_events": produced_events,
-            "flags": flags,
+            "watched_events": sorted(watched_events),
+            "produced_events": sorted(produced_events),
+            "flags": sorted(flags),
             "meta": meta,
             "config": config,
             "options_desc": options_desc,
             "hash": module_hash,
             "deps": {
-                "pip": pip_deps,
-                "pip_constraints": pip_deps_constraints,
-                "shell": shell_deps,
-                "apt": apt_deps,
+                "modules": sorted(deps_modules),
+                "pip": deps_pip,
+                "pip_constraints": deps_pip_constraints,
+                "shell": deps_shell,
+                "apt": deps_apt,
                 "ansible": ansible_tasks,
             },
-            "sudo": len(apt_deps) > 0,
+            "sudo": len(deps_apt) > 0,
             "code": python_code,
         }
         if any(x == True for x in search_dict_by_key("become", ansible_tasks)) or any(
