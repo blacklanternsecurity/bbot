@@ -1,7 +1,6 @@
+from copy import copy
 from pathlib import Path
-from contextlib import suppress
 from omegaconf import OmegaConf
-from omegaconf.errors import ConfigKeyError
 
 
 class BBOTCore:
@@ -30,33 +29,6 @@ class BBOTCore:
         # PRESET TODO: add back in bbot/core/configurator/__init__.py
         # - check_cli_args
         # - ensure_config_files
-
-        # first, we load config files
-        #    - ensure bbot home directory (needed for logging)
-        #    - ensure module load directories (needed for preloading modules)
-
-        ### to save on performance, we stop here
-        ### the rest of the attributes populate lazily only when accessed
-        ### we do this to minimize the time it takes to import bbot as a code library
-
-        # next, we preload modules (needed for parsing CLI args)
-        # self.load_module_configs()
-
-        # next, we load environment variables
-        # todo: automatically propagate config values to environ? (would require __setitem__ hooks)
-        # self.load_environ()
-
-        # finally, we parse CLI args
-        # self.parse_cli_args()
-
-    @property
-    def files_config(self):
-        if self._files_config is None:
-            from .config import files
-
-            self.files = files
-            self._files_config = files.BBOTConfigFiles(self)
-        return self._files_config
 
     @property
     def config(self):
@@ -99,15 +71,26 @@ class BBOTCore:
         self._config = None
         self._custom_config = value
 
-    def del_config_item(self, item):
-        with suppress(ConfigKeyError):
-            del self.custom_config[item]
-
     def merge_custom(self, config):
         self.custom_config = OmegaConf.merge(self.custom_config, OmegaConf.create(config))
 
     def merge_default(self, config):
         self.default_config = OmegaConf.merge(self.default_config, OmegaConf.create(config))
+
+    def copy(self):
+        core_copy = copy(self)
+        core_copy._default_config = self._default_config.copy()
+        core_copy._custom_config = self._custom_config.copy()
+        return core_copy
+
+    @property
+    def files_config(self):
+        if self._files_config is None:
+            from .config import files
+
+            self.files = files
+            self._files_config = files.BBOTConfigFiles(self)
+        return self._files_config
 
     @property
     def logger(self):

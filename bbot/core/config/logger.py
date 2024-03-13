@@ -1,4 +1,3 @@
-import os
 import sys
 import logging
 from copy import copy
@@ -51,7 +50,7 @@ class BBOTLogger:
 
         self._loggers = None
         self._log_handlers = None
-        self._log_level_override = None
+        self._log_level = None
         self.core_logger = logging.getLogger("bbot")
         self.core = core
 
@@ -59,6 +58,13 @@ class BBOTLogger:
         if len(self.core_logger.handlers) == 0:
             for logger in self.loggers:
                 self.include_logger(logger)
+
+        if core.config.get("verbose", False):
+            self.log_level = logging.VERBOSE
+        elif core.config.get("debug", False):
+            self.log_level = logging.DEBUG
+        else:
+            self.log_level = logging.INFO
 
     def addLoggingLevel(self, levelName, levelNum, methodName=None):
         """
@@ -134,7 +140,8 @@ class BBOTLogger:
     def include_logger(self, logger):
         if logger not in self.loggers:
             self.loggers.append(logger)
-        logger.setLevel(self.log_level)
+        if self.log_level is not None:
+            logger.setLevel(self.log_level)
         for handler in self.log_handlers.values():
             logger.addHandler(handler)
 
@@ -194,28 +201,20 @@ class BBOTLogger:
 
     @property
     def log_level(self):
-        if self._log_level_override is not None:
-            return self._log_level_override
+        if self._log_level is None:
+            return logging.INFO
+        return self._log_level
 
-        if self.core.config.get("debug", False) or os.environ.get("BBOT_DEBUG", "").lower() in ("true", "yes"):
-            return logging.DEBUG
-
-        loglevel = logging.INFO
-        # PRESET TODO: delete / move this
-        # if self.core.cli_execution:
-        #     if self.core.args.parsed.verbose:
-        #         loglevel = logging.VERBOSE
-        #     if self.core.args.parsed.debug:
-        #         loglevel = logging.DEBUG
-        return loglevel
+    @log_level.setter
+    def log_level(self, level):
+        self.set_log_level(level)
 
     def set_log_level(self, level, logger=None):
         if isinstance(level, str):
             level = logging.getLevelName(level)
         if logger is not None:
             logger.hugeinfo(f"Setting log level to {logging.getLevelName(level)}")
-        self.core.custom_config["silent"] = False
-        self._log_level_override = level
+        self._log_level = level
         for logger in self.loggers:
             logger.setLevel(level)
 

@@ -1,7 +1,7 @@
 import yaml
-from copy import copy
+import omegaconf
 from pathlib import Path
-from omegaconf import OmegaConf
+from contextlib import suppress
 
 from bbot.core import CORE
 from bbot.core.event.base import make_event
@@ -37,10 +37,14 @@ class Preset:
         self._helpers = None
         self._module_loader = None
 
+        self._verbose = False
+        self._debug = False
+        self._silent = False
+
         # bbot core config
-        self.core = copy(CORE)
+        self.core = CORE.copy()
         if config is None:
-            config = OmegaConf.create({})
+            config = omegaconf.OmegaConf.create({})
         # merge any custom configs
         self.core.merge_custom(config)
 
@@ -64,8 +68,6 @@ class Preset:
 
         # PRESET TODO: preparation of environment
         # self.core.environ.prepare()
-        if self.core.config.get("debug", False):
-            self.core.logger.set_log_level("DEBUG")
 
         # dirs to load modules from
         self.module_dirs = self.core.config.get("module_dirs", [])
@@ -87,9 +89,12 @@ class Preset:
         self.blacklist = Target(*blacklist)
 
         # log verbosity
-        self._verbose = verbose
-        self._debug = debug
-        self._silent = silent
+        if verbose:
+            self.verbose = verbose
+        if debug:
+            self.debug = debug
+        if silent:
+            self.silent = silent
 
         self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
 
@@ -163,10 +168,12 @@ class Preset:
             self.debug = False
             self.silent = False
             self.core.merge_custom({"verbose": True})
-            self.core.logger.set_log_level("VERBOSE")
+            self.core.logger.log_level = "VERBOSE"
         else:
-            self.core.del_config_item("verbose")
-            self.core.logger.set_log_level("INFO")
+            with suppress(omegaconf.errors.ConfigKeyError):
+                del self.core.custom_config["verbose"]
+            self.core.logger.log_level = "INFO"
+        self._verbose = value
 
     @debug.setter
     def debug(self, value):
@@ -174,10 +181,12 @@ class Preset:
             self.verbose = False
             self.silent = False
             self.core.merge_custom({"debug": True})
-            self.core.logger.set_log_level("DEBUG")
+            self.core.logger.log_level = "DEBUG"
         else:
-            self.core.del_config_item("debug")
-            self.core.logger.set_log_level("INFO")
+            with suppress(omegaconf.errors.ConfigKeyError):
+                del self.core.custom_config["debug"]
+            self.core.logger.log_level = "INFO"
+        self._debug = value
 
     @silent.setter
     def silent(self, value):
@@ -185,10 +194,12 @@ class Preset:
             self.verbose = False
             self.debug = False
             self.core.merge_custom({"silent": True})
-            self.core.logger.set_log_level("CRITICAL")
+            self.core.logger.log_level = "CRITICAL"
         else:
-            self.core.del_config_item("silent")
-            self.core.logger.set_log_level("INFO")
+            with suppress(omegaconf.errors.ConfigKeyError):
+                del self.core.custom_config["silent"]
+            self.core.logger.log_level = "INFO"
+        self._silent = value
 
     @property
     def helpers(self):
@@ -210,7 +221,7 @@ class Preset:
             self._module_loader = ModuleLoader(self)
 
             # update default config with module defaults
-            module_config = OmegaConf.create(
+            module_config = omegaconf.OmegaConf.create(
                 {
                     "modules": self._module_loader.configs(type="scan"),
                     "output_modules": self._module_loader.configs(type="output"),
@@ -278,9 +289,9 @@ class Preset:
     @classmethod
     def from_yaml(cls, yaml_preset):
         if Path(yaml_preset).is_file():
-            preset_dict = OmegaConf.load(yaml_preset)
+            preset_dict = omegaconf.OmegaConf.load(yaml_preset)
         else:
-            preset_dict = OmegaConf.create(yaml_preset)
+            preset_dict = omegaconf.OmegaConf.create(yaml_preset)
         new_preset = cls(
             *preset_dict.get("target", []),
             whitelist=preset_dict.get("whitelist"),
@@ -307,7 +318,7 @@ class Preset:
             config = self.core.config
         else:
             config = self.core.custom_config
-        config = OmegaConf.to_container(config)
+        config = omegaconf.OmegaConf.to_container(config)
         if config:
             preset_dict["config"] = config
 

@@ -3,6 +3,51 @@ from ..bbot_fixtures import *  # noqa F401
 from bbot.scanner import Preset
 
 
+def test_core():
+    from bbot.core import CORE
+
+    import omegaconf
+
+    assert "testasdf" not in CORE.default_config
+    assert "testasdf" not in CORE.custom_config
+    assert "testasdf" not in CORE.config
+
+    core_copy = CORE.copy()
+    # make sure our default config is read-only
+    with pytest.raises(omegaconf.errors.ReadonlyConfigError):
+        core_copy.default_config["testasdf"] = "test"
+    # same for merged config
+    with pytest.raises(omegaconf.errors.ReadonlyConfigError):
+        core_copy.config["testasdf"] = "test"
+
+    assert "testasdf" not in core_copy.default_config
+    assert "testasdf" not in core_copy.custom_config
+    assert "testasdf" not in core_copy.config
+
+    core_copy.custom_config["testasdf"] = "test"
+    assert "testasdf" not in core_copy.default_config
+    assert "testasdf" in core_copy.custom_config
+    assert "testasdf" in core_copy.config
+
+    # test config merging
+    config_to_merge = omegaconf.OmegaConf.create({"test123": {"test321": [3, 2, 1], "test456": [4, 5, 6]}})
+    core_copy.merge_custom(config_to_merge)
+    assert "test123" not in core_copy.default_config
+    assert "test123" in core_copy.custom_config
+    assert "test123" in core_copy.config
+    assert "test321" in core_copy.custom_config["test123"]
+    assert "test321" in core_copy.config["test123"]
+
+    # test deletion
+    del core_copy.custom_config.test123.test321
+    assert "test123" in core_copy.custom_config
+    assert "test123" in core_copy.config
+    assert "test321" not in core_copy.custom_config["test123"]
+    assert "test321" not in core_copy.config["test123"]
+    assert "test456" in core_copy.custom_config["test123"]
+    assert "test456" in core_copy.config["test123"]
+
+
 def test_preset_yaml():
 
     preset1 = Preset(
@@ -97,13 +142,18 @@ def test_preset_scope():
     assert not preset1.in_scope("evilcorp.com")
     assert not preset1.in_scope("asdf.test.www.evilcorp.ce")
 
-    # test config merging
 
-    # make sure custom / default split works as expected
-
-    # test preset merging
-
+def test_preset_misc():
     # test verbosity levels (conflicting verbose/debug/silent)
+    preset = Preset(verbose=True)
+    assert preset.verbose == True
+    assert preset.debug == False
+    assert preset.silent == False
+    assert preset.core.logger.log_level == logging.VERBOSE
+    preset.debug = True
+    assert preset.verbose == False
+    assert preset.debug == True
+    assert preset.silent == False
 
     # test custom module load directory
     #  make sure it works with cli arg module/flag/config syntax validation
