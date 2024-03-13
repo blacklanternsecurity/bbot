@@ -147,7 +147,9 @@ class nuclei(BaseModule):
 
             if severity == "INFO" and "tech" in tags:
                 await self.emit_event(
-                    {"technology": str(name).lower(), "url": url, "host": str(source_event.host)}, "TECHNOLOGY", source_event
+                    {"technology": str(name).lower(), "url": url, "host": str(source_event.host)},
+                    "TECHNOLOGY",
+                    source_event,
                 )
                 continue
 
