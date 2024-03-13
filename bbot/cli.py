@@ -52,6 +52,24 @@ async def _main():
         sys.exit(0)
         return
 
+    # --list-modules
+    if preset.args.parsed.list_modules:
+        log.stdout("")
+        log.stdout("### MODULES ###")
+        log.stdout("")
+        for row in preset.module_loader.modules_table(preset.modules).splitlines():
+            log.stdout(row)
+        return
+
+    # --list-flags
+    if preset.args.parsed.list_flags:
+        log.stdout("")
+        log.stdout("### FLAGS ###")
+        log.stdout("")
+        for row in preset.module_loader.flags_table(flags=preset.flags).splitlines():
+            log.stdout(row)
+        return
+
     scan = Scanner(preset=preset)
 
     await scan.async_start_without_generator()

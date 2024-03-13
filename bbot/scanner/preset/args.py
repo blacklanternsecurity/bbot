@@ -95,21 +95,24 @@ class BBOTArgs:
         args_preset.blacklist.add_target(self.parsed.blacklist)
         args_preset.strict_scope = self.parsed.strict_scope
 
-        # modules
-        args_preset.scan_modules = self.parsed.modules
-        args_preset.output_modules = self.parsed.output_modules
+        # modules && flags (excluded then required then all others)
         args_preset.exclude_modules = self.parsed.exclude_modules
-
-        # flags
-        args_preset.flags = self.parsed.flags
-        args_preset.require_flags = self.parsed.require_flags
         args_preset.exclude_flags = self.parsed.exclude_flags
+        args_preset.require_flags = self.parsed.require_flags
+        args_preset.modules = self.parsed.modules
+
+        for output_module in self.parsed.output_modules:
+            args_preset.add_module(output_module)
+        
+        args_preset.flags = self.parsed.flags
+
+        
 
         # additional custom presets / config options
         for preset_param in self.parsed.preset:
             if Path(preset_param).is_file():
                 try:
-                    custom_preset = self.preset.from_yaml(preset_param)
+                    custom_preset = self.preset.from_yaml_file(preset_param)
                 except Exception as e:
                     log_to_stderr(f"Error parsing custom config at {preset_param}: {e}", level="ERROR")
                     sys.exit(2)

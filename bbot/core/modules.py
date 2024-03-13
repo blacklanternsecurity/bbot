@@ -25,7 +25,10 @@ class ModuleLoader:
     module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
 
     # if a module consumes these event types, automatically assume these dependencies
-    default_module_deps = {"HTTP_RESPONSE": "httpx", "URL": "httpx"}
+    default_module_deps = {
+        "HTTP_RESPONSE": "httpx",
+        "URL": "httpx"
+    }
 
     def __init__(self, preset):
         self.preset = preset

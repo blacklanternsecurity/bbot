@@ -74,7 +74,7 @@ def test_preset_yaml():
 
     # test yaml save/load
     yaml1 = preset1.to_yaml(sort_keys=True)
-    preset2 = Preset.from_yaml(yaml1)
+    preset2 = Preset.from_yaml_string(yaml1)
     yaml2 = preset2.to_yaml(sort_keys=True)
     assert yaml1 == yaml2
 
@@ -106,7 +106,7 @@ def test_preset_scope():
 
     # test yaml save/load
     yaml1 = preset1.to_yaml(sort_keys=True)
-    preset2 = Preset.from_yaml(yaml1)
+    preset2 = Preset.from_yaml_string(yaml1)
     yaml2 = preset2.to_yaml(sort_keys=True)
     assert yaml1 == yaml2
 
@@ -143,7 +143,7 @@ def test_preset_scope():
     assert not preset1.in_scope("asdf.test.www.evilcorp.ce")
 
 
-def test_preset_misc():
+def test_preset_logging():
     # test verbosity levels (conflicting verbose/debug/silent)
     preset = Preset(verbose=True)
     assert preset.verbose == True
@@ -154,6 +154,36 @@ def test_preset_misc():
     assert preset.verbose == False
     assert preset.debug == True
     assert preset.silent == False
+    assert preset.core.logger.log_level == logging.DEBUG
+    preset.silent = True
+    assert preset.verbose == False
+    assert preset.debug == False
+    assert preset.silent == True
+    assert preset.core.logger.log_level == logging.CRITICAL
+
+
+def test_preset_module_resolution():
+
+    # make sure module dependency resolution works as expected
+    preset = Preset()
+    assert not preset.scan_modules
+    preset.scan_modules = ["wappalyzer"]
+    assert preset.scan_modules == {"wappalyzer", "httpx"}
+
+    # make sure flags work as expected
+    preset = Preset()
+    assert not preset.flags
+    assert not preset.scan_modules
+    preset.require_flags = ["safe"]
+    preset.exclude_flags = ["slow"]
+    preset.exclude_modules = ["c99"]
+    preset.flags = ["subdomain-enum"]
+
+    assert preset.scan_modules
+    # test exclude_modules
+    # test exclude_flags
+    # test require_flags
+
 
     # test custom module load directory
     #  make sure it works with cli arg module/flag/config syntax validation

@@ -227,7 +227,7 @@ def agent(monkeypatch, bbot_config):
 # bbot config
 from bbot.scanner import Preset
 
-default_preset = Preset.from_yaml(Path(__file__).parent / "test.conf")
+default_preset = Preset.from_yaml_file(Path(__file__).parent / "test.conf")
 test_config = default_preset.config
 
 available_modules = list(default_preset.module_loader.configs(type="scan"))
