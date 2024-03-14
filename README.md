@@ -15,7 +15,7 @@ Special features include:
 - Suite of Offensive Web Modules
 - AI-powered Subdomain Mutations
 - Native Output to Neo4j (and more)
-- Python API + Developer Documentation
+- Python API + Developer [Documentation](https://www.blacklanternsecurity.com/bbot/)
 
 https://github.com/blacklanternsecurity/bbot/assets/20261699/742df3fe-5d1f-4aea-83f6-f990657bf695
 

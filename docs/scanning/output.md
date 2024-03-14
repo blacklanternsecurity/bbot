@@ -79,7 +79,7 @@ BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use the
 ```yaml title="~/.bbot/config/bbot.yml"
 output_modules:
   discord:
-    webhook_url: output_modules.discord.webhook_url=https://discord.com/api/webhooks/1234/deadbeef
+    webhook_url: https://discord.com/api/webhooks/1234/deadbeef
 ```
 
 ...or on the command line:
