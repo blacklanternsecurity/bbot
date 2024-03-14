@@ -122,7 +122,7 @@ class TestNucleiBudget(TestNucleiManual):
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(e.type == "FINDING" and "SpiderFoot" in e.data["description"] for e in events)
+        assert any(e.type == "TECHNOLOGY" and "spider" in e.data["technology"] for e in events)
 
 
 class TestNucleiRetries(TestNucleiManual):
