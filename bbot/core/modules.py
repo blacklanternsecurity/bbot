@@ -2,15 +2,23 @@ import re
 import ast
 import sys
 import pickle
+import logging
 import importlib
 import traceback
 from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
+from bbot.core import CORE
+
 from .flags import flag_descriptions
 from .helpers.logger import log_to_stderr
 from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
+
+
+log = logging.getLogger("bbot.module_loader")
+
+bbot_code_dir = Path(__file__).parent.parent
 
 
 class ModuleLoader:
@@ -22,26 +30,42 @@ class ModuleLoader:
     This ensures that all requisite libraries and components are available for the module to function correctly.
     """
 
+    default_module_dir = bbot_code_dir / "modules"
+
     module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
 
     # if a module consumes these event types, automatically assume these dependencies
-    default_module_deps = {
-        "HTTP_RESPONSE": "httpx",
-        "URL": "httpx"
-    }
+    default_module_deps = {"HTTP_RESPONSE": "httpx", "URL": "httpx"}
 
-    def __init__(self, preset):
-        self.preset = preset
-        self.__preloaded = None
+    def __init__(self):
+        self.__preloaded = {}
         self._preloaded_orig = None
         self._modules = {}
         self._configs = {}
 
-        self.preload_cache_file = self.preset.core.cache_dir / "preloaded"
+        self.preload_cache_file = CORE.cache_dir / "preloaded"
         self._preload_cache = None
 
-        # expand to include all recursive dirs
-        self.module_dirs = self.get_recursive_dirs(*self.preset.module_dirs)
+        self._module_dirs = set()
+        self._module_dirs_preloaded = set()
+        self.add_module_dir(self.default_module_dir)
+
+    @property
+    def module_dirs(self):
+        return self._module_dirs
+
+    def add_module_dir(self, module_dir):
+        module_dir = Path(module_dir).resolve()
+        if not module_dir.is_dir():
+            log.warning(f'Failed to add custom module dir "{module_dir}", please make sure it exists')
+            return
+        new_module_dirs = set()
+        for _module_dir in self.get_recursive_dirs(module_dir):
+            _module_dir = Path(_module_dir).resolve()
+            if _module_dir not in self._module_dirs:
+                self._module_dirs.add(_module_dir)
+                new_module_dirs.add(_module_dir)
+        self.preload(module_dirs=new_module_dirs)
 
     def file_filter(self, file):
         file = file.resolve()
@@ -49,7 +73,7 @@ class ModuleLoader:
             return False
         return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
 
-    def preload(self):
+    def preload(self, module_dirs=None):
         """Preloads all BBOT modules.
 
         This function recursively iterates through each file in the module directories
@@ -70,47 +94,58 @@ class ModuleLoader:
                 ...
             }
         """
-        if self.__preloaded is None:
-            self.__preloaded = {}
-            for module_dir in self.module_dirs:
-                for module_file in list_files(module_dir, filter=self.file_filter):
-                    module_name = module_file.stem
-                    module_file = module_file.resolve()
+        if module_dirs is None:
+            module_dirs = self.module_dirs
 
-                    # try to load from cache
-                    module_cache_key = (str(module_file), tuple(module_file.stat()))
-                    cache_key = self.preload_cache.get(module_name, {}).get("cache_key", ())
-                    if module_cache_key == cache_key:
-                        preloaded = self.preload_cache[module_name]
+        for module_dir in module_dirs:
+            if module_dir in self._module_dirs_preloaded:
+                log.debug(f'Custom module dir "{module_dir}" was already added')
+                continue
+
+            for module_file in list_files(module_dir, filter=self.file_filter):
+                module_name = module_file.stem
+                module_file = module_file.resolve()
+
+                # try to load from cache
+                module_cache_key = (str(module_file), tuple(module_file.stat()))
+                cache_key = self.preload_cache.get(module_name, {}).get("cache_key", ())
+                if module_cache_key == cache_key:
+                    preloaded = self.preload_cache[module_name]
+                else:
+                    if module_dir.name == "modules":
+                        namespace = f"bbot.modules"
                     else:
-                        if module_dir.name == "modules":
-                            namespace = f"bbot.modules"
-                        else:
-                            namespace = f"bbot.modules.{module_dir.name}"
-                        try:
-                            preloaded = self.preload_module(module_file)
-                            module_type = "scan"
-                            if module_dir.name in ("output", "internal"):
-                                module_type = str(module_dir.name)
-                            elif module_dir.name not in ("modules"):
-                                preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
-                            preloaded["type"] = module_type
-                            preloaded["namespace"] = namespace
-                            preloaded["cache_key"] = module_cache_key
+                        namespace = f"bbot.modules.{module_dir.name}"
+                    try:
+                        preloaded = self.preload_module(module_file)
+                        module_type = "scan"
+                        if module_dir.name in ("output", "internal"):
+                            module_type = str(module_dir.name)
+                        elif module_dir.name not in ("modules"):
+                            preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
+                        # derive module dependencies from watched event types (only for scan modules)
+                        if module_type == "scan":
+                            for event_type in preloaded["watched_events"]:
+                                if event_type in self.default_module_deps:
+                                    deps_modules = set(preloaded.get("deps", {}).get("modules", []))
+                                    deps_modules.add(self.default_module_deps[event_type])
+                                    preloaded["deps"]["modules"] = deps_modules
+                        preloaded["type"] = module_type
+                        preloaded["namespace"] = namespace
+                        preloaded["cache_key"] = module_cache_key
 
-                        except Exception:
-                            log_to_stderr(
-                                f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL"
-                            )
-                            log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
-                            sys.exit(1)
+                    except Exception:
+                        log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
+                        log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
+                        sys.exit(1)
 
-                    self.__preloaded[module_name] = preloaded
-                    config = OmegaConf.create(preloaded.get("config", {}))
-                    self._configs[module_name] = config
+                self.__preloaded[module_name] = preloaded
+                config = OmegaConf.create(preloaded.get("config", {}))
+                self._configs[module_name] = config
 
-            self.preload_cache = self.__preloaded
+            self._module_dirs_preloaded.add(module_dir)
 
+        self.save_preload_cache()
         return self.__preloaded
 
     @property
@@ -129,12 +164,15 @@ class ModuleLoader:
         with open(self.preload_cache_file, "wb") as f:
             pickle.dump(self._preload_cache, f)
 
+    def save_preload_cache(self):
+        self.preload_cache = self.__preloaded
+
     @property
     def _preloaded(self):
-        return self.preload()
+        return self.__preloaded
 
     def get_recursive_dirs(self, *dirs):
-        dirs = set(Path(d) for d in dirs)
+        dirs = set(Path(d).resolve() for d in dirs)
         for d in list(dirs):
             if not d.is_dir():
                 continue
@@ -152,7 +190,6 @@ class ModuleLoader:
         return preloaded
 
     def configs(self, type=None):
-        self.preload()
         configs = {}
         if type is not None:
             configs = {k: v for k, v in self._configs.items() if self.check_type(k, type)}
@@ -301,11 +338,6 @@ class ModuleLoader:
             # don't sudo brew
             elif os_platform() == "darwin" and ("package" in task and task.get("become", False) == True):
                 task["become"] = False
-
-        # derive module dependencies from watched event types
-        for event_type in watched_events:
-            if event_type in self.default_module_deps:
-                deps_modules.add(self.default_module_deps[event_type])
 
         preloaded_data = {
             "watched_events": sorted(watched_events),
@@ -581,3 +613,6 @@ class ModuleLoader:
         module_list.sort(key=lambda x: "passive" in x[-1]["flags"])
         module_list.sort(key=lambda x: x[-1]["type"], reverse=True)
         return module_list
+
+
+module_loader = ModuleLoader()

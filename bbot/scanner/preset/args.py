@@ -103,10 +103,8 @@ class BBOTArgs:
 
         for output_module in self.parsed.output_modules:
             args_preset.add_module(output_module)
-        
-        args_preset.flags = self.parsed.flags
 
-        
+        args_preset.flags = self.parsed.flags
 
         # additional custom presets / config options
         for preset_param in self.parsed.preset:
@@ -126,9 +124,12 @@ class BBOTArgs:
                 args_preset.core.merge_custom(cli_config)
 
         # verbosity levels
-        args_preset.silent = self.parsed.silent
-        args_preset.verbose = self.parsed.verbose
-        args_preset.debug = self.parsed.debug
+        if self.parsed.silent:
+            args_preset.silent = self.parsed.silent
+        if self.parsed.verbose:
+            args_preset.verbose = self.parsed.verbose
+        if self.parsed.debug:
+            args_preset.debug = self.parsed.debug
         return args_preset
 
     def create_parser(self, *args, **kwargs):
@@ -198,7 +199,7 @@ class BBOTArgs:
             "-om",
             "--output-modules",
             nargs="+",
-            default=["human", "json", "csv"],
+            default=[],
             help=f'Output module(s). Choices: {",".join(self._output_module_choices)}',
             metavar="MODULE",
         )

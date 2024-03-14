@@ -142,6 +142,11 @@ def test_preset_scope():
     assert not preset1.in_scope("evilcorp.com")
     assert not preset1.in_scope("asdf.test.www.evilcorp.ce")
 
+    preset4 = Preset(output_modules="neo4j")
+    set(preset1.output_modules) == {"python", "csv", "human", "json"}
+    preset1.merge(preset4)
+    set(preset1.output_modules) == {"python", "csv", "human", "json", "neo4j"}
+
 
 def test_preset_logging():
     # test verbosity levels (conflicting verbose/debug/silent)
@@ -163,27 +168,145 @@ def test_preset_logging():
 
 
 def test_preset_module_resolution():
-
-    # make sure module dependency resolution works as expected
     preset = Preset()
+    sslcert_preloaded = preset.preloaded_module("sslcert")
+    wayback_preloaded = preset.preloaded_module("wayback")
+    wappalyzer_preloaded = preset.preloaded_module("wappalyzer")
+    sslcert_flags = sslcert_preloaded.get("flags", [])
+    wayback_flags = wayback_preloaded.get("flags", [])
+    wappalyzer_flags = wappalyzer_preloaded.get("flags", [])
+    assert "active" in sslcert_flags
+    assert "passive" in wayback_flags
+    assert "active" in wappalyzer_flags
+    assert "subdomain-enum" in sslcert_flags
+    assert "subdomain-enum" in wayback_flags
+    assert "httpx" in wappalyzer_preloaded["deps"]["modules"]
+
+    # make sure we have the expected defaults
     assert not preset.scan_modules
-    preset.scan_modules = ["wappalyzer"]
-    assert preset.scan_modules == {"wappalyzer", "httpx"}
+    assert set(preset.output_modules) == {"python", "csv", "human", "json"}
+    assert set(preset.internal_modules) == {"aggregate", "excavate", "speculate"}
+    assert preset.modules == set(preset.output_modules).union(set(preset.internal_modules))
+
+    # make sure dependency resolution works as expected
+    preset.modules = ["wappalyzer"]
+    assert set(preset.scan_modules) == {"wappalyzer", "httpx"}
 
     # make sure flags work as expected
     preset = Preset()
     assert not preset.flags
     assert not preset.scan_modules
-    preset.require_flags = ["safe"]
-    preset.exclude_flags = ["slow"]
-    preset.exclude_modules = ["c99"]
     preset.flags = ["subdomain-enum"]
+    assert "sslcert" in preset.modules
+    assert "wayback" in preset.modules
+    assert "sslcert" in preset.scan_modules
+    assert "wayback" in preset.scan_modules
 
-    assert preset.scan_modules
-    # test exclude_modules
-    # test exclude_flags
-    # test require_flags
+    # make sure module exclusions work as expected
+    preset.exclude_modules = ["sslcert"]
+    assert "sslcert" not in preset.modules
+    assert "wayback" in preset.modules
+    assert "sslcert" not in preset.scan_modules
+    assert "wayback" in preset.scan_modules
+    preset.scan_modules = ["sslcert"]
+    assert "sslcert" not in preset.modules
+    assert "wayback" not in preset.modules
+    assert "sslcert" not in preset.scan_modules
+    assert "wayback" not in preset.scan_modules
+    preset.exclude_modules = []
+    preset.scan_modules = ["sslcert"]
+    assert "sslcert" in preset.modules
+    assert "wayback" not in preset.modules
+    assert "sslcert" in preset.scan_modules
+    assert "wayback" not in preset.scan_modules
+    preset.add_module("wayback")
+    assert "sslcert" in preset.modules
+    assert "wayback" in preset.modules
+    assert "sslcert" in preset.scan_modules
+    assert "wayback" in preset.scan_modules
+    preset.exclude_modules = ["sslcert"]
+    assert "sslcert" not in preset.modules
+    assert "wayback" in preset.modules
+    assert "sslcert" not in preset.scan_modules
+    assert "wayback" in preset.scan_modules
+
+    # make sure flag requirements work as expected
+    preset = Preset()
+    preset.require_flags = ["passive"]
+    preset.scan_modules = ["sslcert"]
+    assert not preset.scan_modules
+    preset.scan_modules = ["wappalyzer"]
+    assert not preset.scan_modules
+    preset.flags = ["subdomain-enum"]
+    assert "wayback" in preset.modules
+    assert "wayback" in preset.scan_modules
+    assert "sslcert" not in preset.modules
+    assert "sslcert" not in preset.scan_modules
+    preset.require_flags = []
+    assert "wayback" in preset.modules
+    assert "wayback" in preset.scan_modules
+    assert "sslcert" not in preset.modules
+    assert "sslcert" not in preset.scan_modules
+    assert not preset.require_flags
+    preset.flags = []
+    preset.scan_modules = []
+    assert not preset.flags
+    assert not preset.scan_modules
+    preset.scan_modules = ["sslcert", "wayback"]
+    assert "wayback" in preset.modules
+    assert "wayback" in preset.scan_modules
+    assert "sslcert" in preset.modules
+    assert "sslcert" in preset.scan_modules
+    preset.require_flags = ["passive"]
+    assert "wayback" in preset.modules
+    assert "wayback" in preset.scan_modules
+    assert "sslcert" not in preset.modules
+    assert "sslcert" not in preset.scan_modules
+
+    # make sure flag exclusions work as expected
+    preset = Preset()
+    preset.exclude_flags = ["active"]
+    preset.scan_modules = ["sslcert"]
+    assert not preset.scan_modules
+    preset.scan_modules = ["wappalyzer"]
+    assert not preset.scan_modules
+    preset.flags = ["subdomain-enum"]
+    assert "wayback" in preset.modules
+    assert "wayback" in preset.scan_modules
+    assert "sslcert" not in preset.modules
+    assert "sslcert" not in preset.scan_modules
+    preset.exclude_flags = []
+    assert "wayback" in preset.modules
+    assert "wayback" in preset.scan_modules
+    assert "sslcert" not in preset.modules
+    assert "sslcert" not in preset.scan_modules
+    assert not preset.require_flags
+    preset.flags = []
+    preset.scan_modules = []
+    assert not preset.flags
+    assert not preset.scan_modules
+    preset.scan_modules = ["sslcert", "wayback"]
+    assert "wayback" in preset.modules
+    assert "wayback" in preset.scan_modules
+    assert "sslcert" in preset.modules
+    assert "sslcert" in preset.scan_modules
+    preset.exclude_flags = ["active"]
+    assert "wayback" in preset.modules
+    assert "wayback" in preset.scan_modules
+    assert "sslcert" not in preset.modules
+    assert "sslcert" not in preset.scan_modules
 
 
-    # test custom module load directory
-    #  make sure it works with cli arg module/flag/config syntax validation
+def test_preset_module_loader():
+    # preset = Preset()
+    # ensure custom module dir works
+    # ensure default configs are refreshed
+    # ensure find-and-replace happens
+    # ensure
+
+
+# test recursive include
+
+
+# test custom module load directory
+#  make sure it works with cli arg module/flag/config syntax validation

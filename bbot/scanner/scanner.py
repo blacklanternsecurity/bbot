@@ -455,7 +455,7 @@ class Scanner:
             After all modules are loaded, they are sorted by `_priority` and stored in the `modules` dictionary.
         """
         if not self._modules_loaded:
-            if not self.preset.all_modules:
+            if not self.preset.modules:
                 self.warning(f"No modules to load")
                 return
 
@@ -463,7 +463,7 @@ class Scanner:
                 self.warning(f"No scan modules to load")
 
             # install module dependencies
-            succeeded, failed = await self.helpers.depsinstaller.install(*self.preset.all_modules)
+            succeeded, failed = await self.helpers.depsinstaller.install(*self.preset.modules)
             if failed:
                 msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
                 self._fail_setup(msg)
