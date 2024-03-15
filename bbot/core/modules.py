@@ -141,7 +141,7 @@ class ModuleLoader:
                                 if event_type in self.default_module_deps:
                                     deps_modules = set(preloaded.get("deps", {}).get("modules", []))
                                     deps_modules.add(self.default_module_deps[event_type])
-                                    preloaded["deps"]["modules"] = deps_modules
+                                    preloaded["deps"]["modules"] = sorted(deps_modules)
                         preloaded["type"] = module_type
                         preloaded["namespace"] = namespace
                         preloaded["cache_key"] = module_cache_key
