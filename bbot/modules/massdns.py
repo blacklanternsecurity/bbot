@@ -311,7 +311,7 @@ class massdns(subdomain_enum):
         )
         subdomains = self.gen_subdomains(subdomains, domain)
         hosts_yielded = set()
-        async for line in self.helpers.run_live(command, stderr=subprocess.DEVNULL, input=subdomains):
+        async for line in self.run_process_live(command, stderr=subprocess.DEVNULL, input=subdomains):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:

@@ -59,7 +59,7 @@ class nuclei(BaseModule):
         # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
         self.info("Updating Nuclei templates")
-        update_results = await self.helpers.run(
+        update_results = await self.run_process(
             ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"]
         )
         if update_results.stderr:
@@ -234,7 +234,7 @@ class nuclei(BaseModule):
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
             with open(stats_file, "w") as stats_fh:
-                async for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_fh):
+                async for line in self.run_process_live(command, input=nuclei_input, stderr=stats_fh):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
