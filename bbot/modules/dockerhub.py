@@ -29,7 +29,6 @@ class dockerhub(BaseModule):
         profiles_to_check = set([profile_name, profile_name.lower()])
         for p in profiles_to_check:
             profile_url = f"{self.base_url}/users/{p}"
-            self.critical(profile_url)
             api_result = await self.helpers.request(profile_url)
             status_code = getattr(api_result, "status_code", 0)
             if status_code == 200:
