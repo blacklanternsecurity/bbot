@@ -71,6 +71,7 @@ class DepsInstaller:
                     failed.append(m)
                     continue
                 preloaded = self.all_modules_preloaded[m]
+                log.debug(f"Installing {m} - Preloaded Deps {preloaded['deps']}")
                 # make a hash of the dependencies and check if it's already been handled
                 # take into consideration whether the venv or bbot home directory changes
                 module_hash = self.parent_helper.sha1(
