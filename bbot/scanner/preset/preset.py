@@ -205,6 +205,7 @@ class Preset:
             self.add_module(module_name, module_type=module_type)
 
     def add_module(self, module_name, module_type="scan"):
+        # log.info(f'Adding "{module_name}": {module_type}')
         if module_name in self.exclude_modules:
             log.verbose(f'Skipping module "{module_name}" because it\'s excluded')
             return

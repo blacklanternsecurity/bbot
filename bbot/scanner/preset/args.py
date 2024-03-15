@@ -102,7 +102,7 @@ class BBOTArgs:
         args_preset.modules = self.parsed.modules
 
         for output_module in self.parsed.output_modules:
-            args_preset.add_module(output_module)
+            args_preset.add_module(output_module, module_type="output")
 
         args_preset.flags = self.parsed.flags
 
