@@ -137,7 +137,7 @@ class masscan(portscanner):
         stats_file = self.helpers.tempfile_tail(callback=self.verbose)
         try:
             with open(stats_file, "w") as stats_fh:
-                async for line in self.helpers.run_live(command, sudo=True, stderr=stats_fh):
+                async for line in self.run_process_live(command, sudo=True, stderr=stats_fh):
                     await self.process_output(line, result_callback=result_callback)
         finally:
             for file in (stats_file, target_file):

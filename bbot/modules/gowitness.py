@@ -103,7 +103,7 @@ class gowitness(BaseModule):
         for binary in ("chrome", "chromium", custom_chrome_path):
             binary_path = self.helpers.which(binary)
             if binary_path and Path(binary_path).is_file():
-                chrome_test_proc = await self.helpers.run([binary_path, "--version"])
+                chrome_test_proc = await self.run_process([binary_path, "--version"])
                 if getattr(chrome_test_proc, "returncode", 1) == 0:
                     self.verbose(f"Found chrome executable at {binary_path}")
                     chrome_test_pass = True
@@ -155,7 +155,7 @@ class gowitness(BaseModule):
             event_dict[key] = e
         stdin = "\n".join(list(event_dict))
 
-        async for line in self.helpers.run_live(self.command, input=stdin):
+        async for line in self.run_process_live(self.command, input=stdin):
             self.debug(line)
 
         # emit web screenshots
