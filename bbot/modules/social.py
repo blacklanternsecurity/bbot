@@ -18,6 +18,7 @@ class social(BaseModule):
         "bitbucket": r"(?:https?://)?(?:www.)?bitbucket.org/([a-zA-Z0-9_-]+)/?",
         "gitlab": r"(?:https?://)?(?:www.)?gitlab.com/([a-zA-Z0-9_-]+)/?",
         "discord": r"(?:https?://)?(?:www.)?discord.gg/([a-zA-Z0-9_-]+)/?",
+        "docker": r"(?:https?://)?hub.docker.com/[ur]/([a-zA-Z0-9_-]+)/?",
     }
 
     scope_distance_modifier = 1
