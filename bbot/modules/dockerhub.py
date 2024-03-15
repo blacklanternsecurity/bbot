@@ -33,9 +33,9 @@ class dockerhub(BaseModule):
             api_result = await self.helpers.request(profile_url)
             status_code = getattr(api_result, "status_code", 0)
             if status_code == 200:
-                url = "https://hub.docker.com/u/" + profile_name
+                url = "https://hub.docker.com/u/" + p
                 await self.emit_event(
-                    {"platform": "docker", "url": url, "profile_name": profile_name}, "SOCIAL", source=event
+                    {"platform": "docker", "url": url, "profile_name": p}, "SOCIAL", source=event
                 )
 
     async def handle_social(self, event):
