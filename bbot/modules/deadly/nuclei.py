@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 
 class nuclei(BaseModule):
     watched_events = ["URL"]
-    produced_events = ["FINDING", "VULNERABILITY"]
+    produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "aggressive"]
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
@@ -134,7 +134,7 @@ class nuclei(BaseModule):
     async def handle_batch(self, *events):
         temp_target = self.helpers.make_target(*events)
         nuclei_input = [str(e.data) for e in events]
-        async for severity, template, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
+        async for severity, template, tags, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
             cleaned_host = temp_target.get(host)
             source_event = self.correlate_event(events, cleaned_host)
@@ -144,6 +144,14 @@ class nuclei(BaseModule):
 
             if url == "":
                 url = str(source_event.data)
+
+            if severity == "INFO" and "tech" in tags:
+                await self.emit_event(
+                    {"technology": str(name).lower(), "url": url, "host": str(source_event.host)},
+                    "TECHNOLOGY",
+                    source_event,
+                )
+                continue
 
             description_string = f"template: [{template}], name: [{name}]"
             if len(extracted_results) > 0:
@@ -235,13 +243,16 @@ class nuclei(BaseModule):
                     # try to get the specific matcher name
                     name = j.get("matcher-name", "")
 
+                    info = j.get("info", {})
+
                     # fall back to regular name
                     if not name:
                         self.debug(
                             f"Couldn't get matcher-name from nuclei json, falling back to regular name. Template: [{template}]"
                         )
-                        name = j.get("info", {}).get("name", "")
-                    severity = j.get("info", {}).get("severity", "").upper()
+                        name = info.get("name", "")
+                    severity = info.get("severity", "").upper()
+                    tags = info.get("tags", [])
                     host = j.get("host", "")
                     url = j.get("matched-at", "")
                     if not self.helpers.is_url(url):
@@ -250,7 +261,7 @@ class nuclei(BaseModule):
                     extracted_results = j.get("extracted-results", [])
 
                     if template and name and severity:
-                        yield (severity, template, host, url, name, extracted_results)
+                        yield (severity, template, tags, host, url, name, extracted_results)
                     else:
                         self.debug("Nuclei result missing one or more required elements, not reporting. JSON: ({j})")
         finally:
