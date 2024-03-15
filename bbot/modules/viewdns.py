@@ -39,6 +39,9 @@ class viewdns(BaseModule):
         content = getattr(r, "content", b"")
 
         html = self.helpers.beautifulsoup(content, "html.parser")
+        if html is False:
+            self.debug(f"BeautifulSoup returned False")
+            return results
         found = set()
         for table_row in html.findAll("tr"):
             table_cells = table_row.findAll("td")
