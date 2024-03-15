@@ -153,10 +153,10 @@ class TestGit_Clone(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         subprocess.run(["git", "init", "test_keys"], cwd=os.path.join(module_test.scan.home))
-        os.chdir(os.path.join(module_test.scan.home, "test_keys"))
-        with open(os.path.join(module_test.scan.home, "test_keys", "keys.txt"), "w") as f:
+        temp_repo_path = os.path.join(module_test.scan.home, "test_keys")
+        with open(os.path.join(temp_repo_path, "keys.txt"), "w") as f:
             f.write("https://admin:admin@the-internet.herokuapp.com/basic_auth")
-        subprocess.run(["git", "add", "."])
+        subprocess.run(["git", "add", "."], cwd=temp_repo_path)
         subprocess.run(
             [
                 "git",
@@ -169,6 +169,7 @@ class TestGit_Clone(ModuleTestBase):
                 "Initial commit",
             ],
             check=True,
+            cwd=temp_repo_path,
         )
 
         old_filter_event = module_test.module.filter_event
