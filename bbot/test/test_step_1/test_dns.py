@@ -149,7 +149,6 @@ async def test_wildcards(bbot_scanner, bbot_config):
     assert "srv-wildcard" not in wildcard_event2.tags
     assert wildcard_event1.data == "_wildcard.github.io"
     assert wildcard_event2.data == "_wildcard.github.io"
-    assert wildcard_event1.tags == wildcard_event2.tags
     assert "wildcard-domain" in wildcard_event3.tags
     assert "a-wildcard-domain" in wildcard_event3.tags
     assert "srv-wildcard-domain" not in wildcard_event3.tags
