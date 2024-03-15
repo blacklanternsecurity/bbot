@@ -11,7 +11,7 @@ class nuclei(BaseModule):
     meta = {"description": "Fast and customisable vulnerability scanner"}
 
     options = {
-        "version": "3.0.4",
+        "version": "3.2.0",
         "tags": "",
         "templates": "",
         "severity": "",
@@ -20,6 +20,7 @@ class nuclei(BaseModule):
         "mode": "manual",
         "etags": "",
         "budget": 1,
+        "silent": False,
         "directory_only": True,
         "retries": 0,
         "batch_size": 200,
@@ -34,6 +35,7 @@ class nuclei(BaseModule):
         "mode": "manual | technology | severe | budget. Technology: Only activate based on technology events that match nuclei tags (nuclei -as mode). Manual (DEFAULT): Fully manual settings. Severe: Only critical and high severity templates without intrusive. Budget: Limit Nuclei to a specified number of HTTP requests",
         "etags": "tags to exclude from the scan",
         "budget": "Used in budget mode to set the number of requests which will be allotted to the nuclei scan",
+        "silent": "Don't display nuclei's banner or status messages",
         "directory_only": "Filter out 'file' URL event (default True)",
         "retries": "number of times to retry a failed request (default 0)",
         "batch_size": "Number of targets to send to Nuclei per batch (default 200)",
@@ -57,7 +59,7 @@ class nuclei(BaseModule):
         # attempt to update nuclei templates
         self.nuclei_templates_dir = self.helpers.tools_dir / "nuclei-templates"
         self.info("Updating Nuclei templates")
-        update_results = await self.helpers.run(
+        update_results = await self.run_process(
             ["nuclei", "-update-template-dir", self.nuclei_templates_dir, "-update-templates"]
         )
         if update_results.stderr:
@@ -74,6 +76,7 @@ class nuclei(BaseModule):
         self.ratelimit = int(self.config.get("ratelimit", 150))
         self.concurrency = int(self.config.get("concurrency", 25))
         self.budget = int(self.config.get("budget", 1))
+        self.silent = self.config.get("silent", False)
         self.templates = self.config.get("templates")
         if self.templates:
             self.info(f"Using custom template(s) at: [{self.templates}]")
@@ -231,7 +234,7 @@ class nuclei(BaseModule):
         stats_file = self.helpers.tempfile_tail(callback=self.log_nuclei_status)
         try:
             with open(stats_file, "w") as stats_fh:
-                async for line in self.helpers.run_live(command, input=nuclei_input, stderr=stats_fh):
+                async for line in self.run_process_live(command, input=nuclei_input, stderr=stats_fh):
                     try:
                         j = json.loads(line)
                     except json.decoder.JSONDecodeError:
@@ -268,6 +271,8 @@ class nuclei(BaseModule):
             stats_file.unlink()
 
     def log_nuclei_status(self, line):
+        if self.silent:
+            return
         try:
             line = json.loads(line)
         except Exception:

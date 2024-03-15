@@ -130,6 +130,8 @@ class BaseModule:
         self._outgoing_event_queue = None
         # track incoming events to prevent unwanted duplicates
         self._incoming_dup_tracker = set()
+        # tracks which subprocesses are running under this module
+        self._proc_tracker = set()
         # seconds since we've submitted a batch
         self._last_submitted_batch = None
         # additional callbacks to be executed alongside self.cleanup()
@@ -1033,6 +1035,15 @@ class BaseModule:
             bool: True if the module has finished processing, False otherwise.
         """
         return not self.running and self.num_incoming_events <= 0 and self.outgoing_event_queue.qsize() <= 0
+
+    async def run_process(self, *args, **kwargs):
+        kwargs["_proc_tracker"] = self._proc_tracker
+        return await self.helpers.run(*args, **kwargs)
+
+    async def run_process_live(self, *args, **kwargs):
+        kwargs["_proc_tracker"] = self._proc_tracker
+        async for line in self.helpers.run_live(*args, **kwargs):
+            yield line
 
     async def request_with_fail_count(self, *args, **kwargs):
         """Asynchronously perform an HTTP request while keeping track of consecutive failures.

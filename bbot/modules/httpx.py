@@ -132,7 +132,7 @@ class httpx(BaseModule):
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:
             command += ["-http-proxy", proxy]
-        async for line in self.helpers.run_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
+        async for line in self.run_process_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:

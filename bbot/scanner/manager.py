@@ -437,8 +437,13 @@ class ScanManager:
             log.critical(traceback.format_exc())
 
     def kill_module(self, module_name, message=None):
+        from signal import SIGINT
+
         module = self.scan.modules[module_name]
         module.set_error_state(message=message, clear_outgoing_queue=True)
+        for proc in module._proc_tracker:
+            with suppress(Exception):
+                proc.send_signal(SIGINT)
         self.scan.helpers.cancel_tasks_sync(module._tasks)
 
     @property
