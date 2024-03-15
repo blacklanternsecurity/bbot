@@ -38,13 +38,13 @@ class dockerhub(BaseModule):
                 await self.emit_event(
                     {"platform": "docker", "url": site_url, "profile_name": p}, "SOCIAL", source=event
                 )
-                # emit API endpoint to be visited by httpx (for url/email extraction, etc.)
-                await self.emit_event(api_url, "URL_UNVERIFIED", source=event, tags="httpx-safe")
 
     async def handle_social(self, event):
         username = event.data.get("profile_name", "")
         if not username:
             return
+        # emit API endpoint to be visited by httpx (for url/email extraction, etc.)
+        await self.emit_event(f"{self.api_url}/users/{p}", "URL_UNVERIFIED", source=event, tags="httpx-safe")
         self.verbose(f"Searching for docker images belonging to {username}")
         repos = await self.get_repos(username)
         for repo in repos:
