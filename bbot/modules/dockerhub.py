@@ -44,7 +44,7 @@ class dockerhub(BaseModule):
         if not username:
             return
         # emit API endpoint to be visited by httpx (for url/email extraction, etc.)
-        await self.emit_event(f"{self.api_url}/users/{p}", "URL_UNVERIFIED", source=event, tags="httpx-safe")
+        await self.emit_event(f"{self.api_url}/users/{username}", "URL_UNVERIFIED", source=event, tags="httpx-safe")
         self.verbose(f"Searching for docker images belonging to {username}")
         repos = await self.get_repos(username)
         for repo in repos:
