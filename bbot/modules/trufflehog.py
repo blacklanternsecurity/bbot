@@ -5,7 +5,7 @@ from bbot.modules.base import BaseModule
 class trufflehog(BaseModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["FINDING", "VULNERABILITY"]
-    flags = ["safe"]
+    flags = ["passive", "safe"]
     meta = {"description": "TruffleHog is a tool for finding credentials"}
 
     options = {
