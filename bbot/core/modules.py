@@ -367,7 +367,6 @@ class ModuleLoader:
                 "ansible": ansible_tasks,
             },
             "sudo": len(deps_apt) > 0,
-            "code": python_code,
         }
         if any(x == True for x in search_dict_by_key("become", ansible_tasks)) or any(
             x == True for x in search_dict_by_key("ansible_become", ansible_tasks)
