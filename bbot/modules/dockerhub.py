@@ -7,7 +7,8 @@ class dockerhub(BaseModule):
     flags = ["active", "safe"]
     meta = {"description": "Search for docker repositories of discovered orgs/usernames"}
 
-    base_url = "https://hub.docker.com/v2"
+    site_url = "https://hub.docker.com"
+    api_url = f"{site_url}/v2"
 
     scope_distance_modifier = 2
 
@@ -28,20 +29,22 @@ class dockerhub(BaseModule):
         # docker usernames are case sensitive, so if there are capitalizations we also try a lowercase variation
         profiles_to_check = set([profile_name, profile_name.lower()])
         for p in profiles_to_check:
-            profile_url = f"{self.base_url}/users/{p}"
-            api_result = await self.helpers.request(profile_url)
+            api_url = f"{self.api_url}/users/{p}"
+            api_result = await self.helpers.request(api_url)
             status_code = getattr(api_result, "status_code", 0)
             if status_code == 200:
-                url = "https://hub.docker.com/u/" + p
+                site_url = f"{self.site_url}/u/{p}"
+                # emit social event
                 await self.emit_event(
-                    {"platform": "docker", "url": url, "profile_name": p}, "SOCIAL", source=event
+                    {"platform": "docker", "url": site_url, "profile_name": p}, "SOCIAL", source=event
                 )
+                # emit API endpoint to be visited by httpx (for url/email extraction, etc.)
+                await self.emit_event(api_url, "URL_UNVERIFIED", source=event, tags="httpx-safe")
 
     async def handle_social(self, event):
         username = event.data.get("profile_name", "")
         if not username:
             return
-        await self.emit_event(f"{self.base_url}/users/" + username, "URL_UNVERIFIED", source=event, tags="httpx-safe")
         self.verbose(f"Searching for docker images belonging to {username}")
         repos = await self.get_repos(username)
         for repo in repos:
@@ -49,7 +52,7 @@ class dockerhub(BaseModule):
 
     async def get_repos(self, username):
         repos = []
-        url = f"{self.base_url}/repositories/{username}?page_size=25&page=" + "{page}"
+        url = f"{self.api_url}/repositories/{username}?page_size=25&page=" + "{page}"
         agen = self.helpers.api_page_iter(url, json=False)
         try:
             async for r in agen:
