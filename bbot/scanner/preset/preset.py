@@ -50,10 +50,8 @@ class Preset:
         self._silent = False
 
         # custom module directories
+        self._module_dirs = set()
         self.module_dirs = module_dirs
-        if self.module_dirs is not None:
-            for m in self.module_dirs:
-                self.module_loader.add_module_dir(m)
 
         # bbot core config
         self.core = CORE.copy()
@@ -106,9 +104,14 @@ class Preset:
         if silent:
             self.silent = silent
 
-        self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
+    @property
+    def bbot_home(self):
+        return Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
 
     def merge(self, other):
+        # config
+        self.core.merge_custom(other.core.custom_config)
+        self.module_loader.core = self.core
         # module dirs
         if other.module_dirs:
             self.refresh_module_loader()
@@ -130,8 +133,6 @@ class Preset:
         self.strict_scope = self.strict_scope or other.strict_scope
         for t in (self.target, self.whitelist):
             t.strict_scope = self.strict_scope
-        # config
-        self.core.merge_custom(other.core.custom_config)
         # log verbosity
         if other.silent:
             self.silent = other.silent
@@ -157,6 +158,19 @@ class Preset:
 
         # validate config / modules / flags
         # self.args.validate()
+
+    @property
+    def module_dirs(self):
+        return self.module_loader.module_dirs
+
+    @module_dirs.setter
+    def module_dirs(self, module_dirs):
+        if module_dirs:
+            if isinstance(module_dirs, str):
+                module_dirs = [module_dirs]
+            for m in module_dirs:
+                self.module_loader.add_module_dir(m)
+                self._module_dirs.add(m)
 
     @property
     def modules(self):

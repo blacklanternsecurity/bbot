@@ -18,10 +18,6 @@ class BBOTCore:
         # ensure bbot home dir
         if not "home" in self.config:
             self.custom_config["home"] = "~/.bbot"
-        self.home = Path(self.config["home"]).expanduser().resolve()
-        self.cache_dir = self.home / "cache"
-        self.tools_dir = self.home / "tools"
-        self.scans_dir = self.home / "scans"
 
         # bare minimum == logging
         self.logger
@@ -29,6 +25,22 @@ class BBOTCore:
         # PRESET TODO: add back in bbot/core/configurator/__init__.py
         # - check_cli_args
         # - ensure_config_files
+
+    @property
+    def home(self):
+        return Path(self.config["home"]).expanduser().resolve()
+
+    @property
+    def cache_dir(self):
+        return self.home / "cache"
+
+    @property
+    def tools_dir(self):
+        return self.home / "tools"
+
+    @property
+    def scans_dir(self):
+        return self.home / "scans"
 
     @property
     def config(self):

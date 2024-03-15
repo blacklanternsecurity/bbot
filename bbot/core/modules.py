@@ -1,6 +1,7 @@
 import re
 import ast
 import sys
+import atexit
 import pickle
 import logging
 import importlib
@@ -38,17 +39,25 @@ class ModuleLoader:
     default_module_deps = {"HTTP_RESPONSE": "httpx", "URL": "httpx"}
 
     def __init__(self):
+        self.core = CORE
+
         self.__preloaded = {}
         self._preloaded_orig = None
         self._modules = {}
         self._configs = {}
 
-        self.preload_cache_file = CORE.cache_dir / "preloaded"
         self._preload_cache = None
 
         self._module_dirs = set()
         self._module_dirs_preloaded = set()
         self.add_module_dir(self.default_module_dir)
+
+        # save preload cache before exiting
+        atexit.register(self.save_preload_cache)
+
+    @property
+    def preload_cache_file(self):
+        return self.core.cache_dir / "module_preload_cache"
 
     @property
     def module_dirs(self):
@@ -56,6 +65,9 @@ class ModuleLoader:
 
     def add_module_dir(self, module_dir):
         module_dir = Path(module_dir).resolve()
+        if module_dir in self._module_dirs:
+            log.debug(f'Already added custom module dir "{module_dir}"')
+            return
         if not module_dir.is_dir():
             log.warning(f'Failed to add custom module dir "{module_dir}", please make sure it exists')
             return
@@ -145,7 +157,6 @@ class ModuleLoader:
 
             self._module_dirs_preloaded.add(module_dir)
 
-        self.save_preload_cache()
         return self.__preloaded
 
     @property

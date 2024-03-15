@@ -298,11 +298,112 @@ def test_preset_module_resolution():
 
 
 def test_preset_module_loader():
-    # preset = Preset()
-    # ensure custom module dir works
-    # ensure default configs are refreshed
-    # ensure find-and-replace happens
-    # ensure
+
+    from pathlib import Path
+
+    custom_module_dir = Path("/tmp/.bbot_test/custom_module_dir")
+    custom_module_dir_2 = custom_module_dir / "asdf"
+    custom_output_module_dir = custom_module_dir / "output"
+    custom_internal_module_dir = custom_module_dir / "internal"
+    for d in [custom_module_dir, custom_module_dir_2, custom_output_module_dir, custom_internal_module_dir]:
+        d.mkdir(parents=True, exist_ok=True)
+        assert d.is_dir()
+    custom_module_1 = custom_module_dir / "testmodule1.py"
+    with open(custom_module_1, "w") as f:
+        f.write(
+            """
+from bbot.modules.base import BaseModule
+
+class TestModule1(BaseModule):
+    watched_events = ["URL", "HTTP_RESPONSE"]
+    produced_events = ["VULNERABILITY"]
+"""
+        )
+
+    custom_module_2 = custom_output_module_dir / "testmodule2.py"
+    with open(custom_module_2, "w") as f:
+        f.write(
+            """
+from bbot.modules.output.base import BaseOutputModule
+
+class TestModule2(BaseOutputModule):
+    pass
+"""
+        )
+
+    custom_module_3 = custom_internal_module_dir / "testmodule3.py"
+    with open(custom_module_3, "w") as f:
+        f.write(
+            """
+from bbot.modules.internal.base import BaseInternalModule
+
+class TestModule3(BaseInternalModule):
+    pass
+"""
+        )
+
+    custom_module_4 = custom_module_dir_2 / "testmodule4.py"
+    with open(custom_module_4, "w") as f:
+        f.write(
+            """
+from bbot.modules.base import BaseModule
+
+class TestModule4(BaseModule):
+    watched_events = ["TECHNOLOGY"]
+    produced_events = ["FINDING"]
+"""
+        )
+
+    assert custom_module_1.is_file()
+    assert custom_module_2.is_file()
+    assert custom_module_3.is_file()
+    assert custom_module_4.is_file()
+
+    preset = Preset()
+    preset.module_loader.save_preload_cache()
+    assert preset.module_loader.preload_cache_file.is_file()
+
+    # at this point, core modules should be loaded, but not custom ones
+    assert "wappalyzer" in preset.module_loader.preloaded()
+    assert "testmodule1" not in preset.module_loader.preloaded()
+
+    import pickle
+
+    with open(preset.module_loader.preload_cache_file, "rb") as f:
+        preloaded = pickle.load(f)
+    assert "wappalyzer" in preloaded
+    assert "testmodule1" not in preloaded
+
+    # add custom module dir
+    preset.module_dirs = [str(custom_module_dir)]
+    assert custom_module_dir in preset.module_dirs
+    assert custom_module_dir_2 in preset.module_dirs
+    assert custom_output_module_dir in preset.module_dirs
+    assert custom_internal_module_dir in preset.module_dirs
+
+    # now our custom modules should be loaded
+    assert "wappalyzer" in preset.module_loader.preloaded()
+    assert "testmodule1" in preset.module_loader.preloaded()
+    assert "testmodule2" in preset.module_loader.preloaded()
+    assert "testmodule3" in preset.module_loader.preloaded()
+    assert "testmodule4" in preset.module_loader.preloaded()
+
+    preset.module_loader.save_preload_cache()
+    with open(preset.module_loader.preload_cache_file, "rb") as f:
+        preloaded = pickle.load(f)
+    assert "wappalyzer" in preloaded
+    assert "testmodule1" in preloaded
+    assert "testmodule2" in preloaded
+    assert "testmodule3" in preloaded
+    assert "testmodule4" in preloaded
+
+    # since module loader is shared across all presets, a new preset should now also have our custom modules
+    preset2 = Preset()
+    assert "wappalyzer" in preset2.module_loader.preloaded()
+    assert "testmodule1" in preset2.module_loader.preloaded()
+    assert "testmodule2" in preset2.module_loader.preloaded()
+    assert "testmodule3" in preset2.module_loader.preloaded()
+    assert "testmodule4" in preset2.module_loader.preloaded()
 
 
 # test recursive include
