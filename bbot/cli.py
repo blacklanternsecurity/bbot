@@ -74,6 +74,14 @@ async def _main():
 
     scan = Scanner(preset=preset)
 
+    if not preset.args.parsed.dry_run:
+        log.trace(f"Command: {' '.join(sys.argv)}")
+
+        if sys.stdin.isatty():
+            if not preset.args.parsed.agent_mode and not preset.args.parsed.yes:
+                log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
+                input()
+
     await scan.async_start_without_generator()
 
 

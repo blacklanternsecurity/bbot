@@ -4,9 +4,6 @@ from .base import BaseModule
 
 import asyncio
 import logging
-from bbot.core.logger.logger import include_logger
-
-include_logger(logging.getLogger("baddns"))
 
 
 class baddns(BaseModule):
@@ -30,6 +27,7 @@ class baddns(BaseModule):
         return selected_modules
 
     async def setup(self):
+        self.preset.core.logger.include_logger(logging.getLogger("baddns"))
         self.custom_nameservers = self.config.get("custom_nameservers", []) or None
         if self.custom_nameservers:
             self.custom_nameservers = self.helpers.chain_lists(self.custom_nameservers)

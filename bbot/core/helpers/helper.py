@@ -95,7 +95,7 @@ class ConfigAwareHelper:
         self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
 
     def make_target(self, *events):
-        return Target(self.scan, *events)
+        return Target(*events)
 
     @property
     def config(self):

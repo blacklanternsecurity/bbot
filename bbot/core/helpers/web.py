@@ -475,8 +475,8 @@ class WebHelper:
                 headers["User-Agent"] = user_agent
 
             # only add custom headers if the URL is in-scope
-            if self.parent_helper.scan.in_scope(url):
-                for hk, hv in self.config.get("http_headers", {}).items():
+            if self.parent_helper.preset.in_scope(url):
+                for hk, hv in self.parent_helper.config.get("http_headers", {}).items():
                     headers[hk] = hv
 
             # add the timeout
@@ -560,9 +560,9 @@ class WebHelper:
             False
         """
         url_depth = self.parent_helper.url_depth(url)
-        web_spider_depth = self.config.get("web_spider_depth", 1)
+        web_spider_depth = self.parent_helper.config.get("web_spider_depth", 1)
         spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
-        web_spider_distance = self.config.get("web_spider_distance", 0)
+        web_spider_distance = self.parent_helper.config.get("web_spider_distance", 0)
         if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
             return True
         return False

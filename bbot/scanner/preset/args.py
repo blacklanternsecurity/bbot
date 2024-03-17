@@ -1,11 +1,14 @@
 import re
 import sys
+import logging
 import argparse
 from pathlib import Path
 from omegaconf import OmegaConf
 
 from bbot.core.helpers.logger import log_to_stderr
 from bbot.core.helpers.misc import chain_lists, match_and_exit, is_file
+
+log = logging.getLogger("bbot.presets.args")
 
 
 class BBOTArgs:
@@ -87,13 +90,12 @@ class BBOTArgs:
         return self._parsed
 
     def preset_from_args(self):
-        args_preset = self.preset.__class__()
-
-        # scope
-        args_preset.target.add_target(self.parsed.targets)
-        args_preset.whitelist.add_target(self.parsed.whitelist)
-        args_preset.blacklist.add_target(self.parsed.blacklist)
-        args_preset.strict_scope = self.parsed.strict_scope
+        args_preset = self.preset.__class__(
+            *self.parsed.targets,
+            whitelist=self.parsed.whitelist,
+            blacklist=self.parsed.blacklist,
+            strict_scope=self.parsed.strict_scope,
+        )
 
         # modules && flags (excluded then required then all others)
         args_preset.exclude_modules = self.parsed.exclude_modules

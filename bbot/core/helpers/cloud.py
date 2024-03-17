@@ -29,7 +29,7 @@ class CloudHelper:
                         if not match in found:
                             found.add(match)
                             if event_type == "STORAGE_BUCKET":
-                                self.emit_bucket(match, **kwargs)
+                                yield self.emit_bucket(match, **kwargs)
                             else:
                                 yield kwargs
 
@@ -57,7 +57,7 @@ class CloudHelper:
                                 else:
                                     yield kwargs
 
-    async def emit_bucket(self, match, **kwargs):
+    def emit_bucket(self, match, **kwargs):
         bucket_name, bucket_domain = match
         kwargs["data"] = {"name": bucket_name, "url": f"https://{bucket_name}.{bucket_domain}"}
         return kwargs

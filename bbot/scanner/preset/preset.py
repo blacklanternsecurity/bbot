@@ -127,7 +127,7 @@ class Preset:
             self.add_module(module_name, module_type=module_type)
         # scope
         self.target.add_target(other.target)
-        self.whitelist = other.whitelist
+        self.whitelist.add_target(other.whitelist)
         self.blacklist.add_target(other.blacklist)
         self.strict_scope = self.strict_scope or other.strict_scope
         for t in (self.target, self.whitelist):
@@ -446,7 +446,7 @@ class Preset:
 
         Examples:
             Check if a URL is in scope:
-            >>> scan.in_scope("http://www.evilcorp.com")
+            >>> preset.in_scope("http://www.evilcorp.com")
             True
         """
         try:

@@ -38,6 +38,7 @@ class ScanManager:
         """
 
         self.scan = scan
+        self.preset = scan.preset
 
         self.incoming_event_queue = ShuffleQueue()
         # track incoming duplicates module-by-module (for `suppress_dupes` attribute of modules)
@@ -317,7 +318,7 @@ class ScanManager:
                                     if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
                                         child_event.add_tag("affiliate")
                                     host_hash = hash(str(child_event.host))
-                                    if in_dns_scope or self.scan.in_scope(child_event):
+                                    if in_dns_scope or self.preset.in_scope(child_event):
                                         dns_child_events.append(child_event)
                                 except ValidationError as e:
                                     log.warning(

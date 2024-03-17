@@ -71,6 +71,12 @@ def test_preset_yaml():
     assert "evilcorp.ce" in preset1.whitelist
     assert "test.www.evilcorp.ce" in preset1.blacklist
     assert "sslcert" in preset1.scan_modules
+    assert preset1.whitelisted("evilcorp.ce")
+    assert preset1.whitelisted("www.evilcorp.ce")
+    assert not preset1.whitelisted("evilcorp.com")
+    assert preset1.blacklisted("test.www.evilcorp.ce")
+    assert preset1.blacklisted("asdf.test.www.evilcorp.ce")
+    assert not preset1.blacklisted("www.evilcorp.ce")
 
     # test yaml save/load
     yaml1 = preset1.to_yaml(sort_keys=True)
@@ -127,13 +133,14 @@ def test_preset_scope():
     # strict scope is enabled
     assert not "asdf.evilcorp.com" in preset1.target
     assert not "asdf.www.evilcorp.ce" in preset1.target
-    # whitelist is overridden, not merged
-    assert not "evilcorp.ce" in preset1.whitelist
+    assert "evilcorp.ce" in preset1.whitelist
     assert "evilcorp.de" in preset1.whitelist
     assert not "asdf.evilcorp.de" in preset1.whitelist
+    assert not "asdf.evilcorp.ce" in preset1.whitelist
     # blacklist should be merged, strict scope does not apply
     assert "asdf.test.www.evilcorp.ce" in preset1.blacklist
     assert "asdf.test.www.evilcorp.de" in preset1.blacklist
+    assert not "asdf.test.www.evilcorp.org" in preset1.blacklist
     # only the base domain of evilcorp.de should be in scope
     assert not preset1.in_scope("evilcorp.com")
     assert not preset1.in_scope("evilcorp.org")
