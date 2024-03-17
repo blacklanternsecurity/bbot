@@ -15,7 +15,7 @@ from bbot.core import CORE
 
 from .flags import flag_descriptions
 from .helpers.logger import log_to_stderr
-from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
+from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform, mkdir
 
 
 log = logging.getLogger("bbot.module_loader")
@@ -177,6 +177,7 @@ class ModuleLoader:
     @preload_cache.setter
     def preload_cache(self, value):
         self._preload_cache = value
+        mkdir(self.self.preload_cache_file.parent)
         with open(self.preload_cache_file, "wb") as f:
             pickle.dump(self._preload_cache, f)
 
