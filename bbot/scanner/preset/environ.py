@@ -26,8 +26,8 @@ increase_limit(65535)
 
 class BBOTEnviron:
 
-    def __init__(self, core):
-        self.core = core
+    def __init__(self, preset):
+        self.preset = preset
 
     def flatten_config(self, config, base="bbot"):
         """
@@ -42,98 +42,72 @@ class BBOTEnviron:
                 elif type(v) != omegaconf.listconfig.ListConfig:
                     yield (new_base.upper(), str(v))
 
-    def add_to_path(self, v, k="PATH"):
+    def add_to_path(self, v, k="PATH", environ=None):
+        """
+        Add an entry to a colon-separated PATH variable.
+        If it's already contained in the value, shift it to be in first position.
+        """
+        if environ is None:
+            environ = os.environ
         var_list = os.environ.get(k, "").split(":")
         deduped_var_list = []
         for _ in var_list:
-            if not _ in deduped_var_list:
+            if _ != v and _ not in deduped_var_list:
                 deduped_var_list.append(_)
-        if not v in deduped_var_list:
-            deduped_var_list = [v] + deduped_var_list
+        deduped_var_list = [v] + deduped_var_list
         new_var_str = ":".join(deduped_var_list)
-        os.environ[k] = new_var_str
+        environ[k] = new_var_str
 
     def prepare(self):
         """
         Sync config to OS environment variables
         """
+        environ = dict(os.environ)
+
         # if we're running in a virtual environment, make sure to include its /bin in PATH
         if sys.prefix != sys.base_prefix:
             bin_dir = str(Path(sys.prefix) / "bin")
-            self.add_to_path(bin_dir)
+            self.add_to_path(bin_dir, environ=environ)
 
         # add ~/.local/bin to PATH
         local_bin_dir = str(Path.home() / ".local" / "bin")
-        self.add_to_path(local_bin_dir)
+        self.add_to_path(local_bin_dir, environ=environ)
 
         # ensure bbot_tools
-        bbot_tools = self.core.home / "tools"
-        os.environ["BBOT_TOOLS"] = str(bbot_tools)
-        if not str(bbot_tools) in os.environ.get("PATH", "").split(":"):
-            os.environ["PATH"] = f'{bbot_tools}:{os.environ.get("PATH", "").strip(":")}'
+        environ["BBOT_TOOLS"] = str(self.preset.core.tools_dir)
+        self.add_to_path(str(self.preset.core.tools_dir), environ=environ)
         # ensure bbot_cache
-        bbot_cache = self.core.home / "cache"
-        os.environ["BBOT_CACHE"] = str(bbot_cache)
+        environ["BBOT_CACHE"] = str(self.preset.core.cache_dir)
         # ensure bbot_temp
-        bbot_temp = self.core.home / "temp"
-        os.environ["BBOT_TEMP"] = str(bbot_temp)
+        environ["BBOT_TEMP"] = str(self.preset.core.temp_dir)
         # ensure bbot_lib
-        bbot_lib = self.core.home / "lib"
-        os.environ["BBOT_LIB"] = str(bbot_lib)
+        environ["BBOT_LIB"] = str(self.preset.core.lib_dir)
         # export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/.bbot/lib/
-        self.add_to_path(str(bbot_lib), k="LD_LIBRARY_PATH")
+        self.add_to_path(str(self.preset.core.lib_dir), k="LD_LIBRARY_PATH", environ=environ)
 
         # platform variables
-        os.environ["BBOT_OS_PLATFORM"] = os_platform()
-        os.environ["BBOT_OS"] = os_platform_friendly()
-        os.environ["BBOT_CPU_ARCH"] = cpu_architecture()
-
-        # exchange certain options between CLI args and config
-        # PRESET TODO: do we even need this?
-        # if self.core.cli_execution and self.core.args.cli_config:
-        #     # deps
-        #     self.core.custom_config["retry_deps"] = self.core.args.cli_options.retry_deps
-        #     self.core.custom_config["force_deps"] = self.core.args.cli_options.force_deps
-        #     self.core.custom_config["no_deps"] = self.core.args.cli_options.no_deps
-        #     self.core.custom_config["ignore_failed_deps"] = self.core.args.cli_options.ignore_failed_deps
-        #     # debug
-        #     self.core.custom_config["debug"] = self.core.args.cli_options.debug
-        #     self.core.custom_config["silent"] = self.core.args.cli_options.silent
-
-        import logging
-
-        log = logging.getLogger()
-        if self.core.custom_config.get("debug", False):
-            self.core.custom_config["silent"] = False
-            log = logging.getLogger("bbot")
-            log.setLevel(logging.DEBUG)
-            logging.getLogger("asyncio").setLevel(logging.DEBUG)
-        elif self.core.custom_config.get("silent", False):
-            log = logging.getLogger("bbot")
-            log.setLevel(logging.CRITICAL)
+        environ["BBOT_OS_PLATFORM"] = os_platform()
+        environ["BBOT_OS"] = os_platform_friendly()
+        environ["BBOT_CPU_ARCH"] = cpu_architecture()
 
         # copy config to environment
-        bbot_environ = self.flatten_config(self.core.config)
-        os.environ.update(bbot_environ)
+        bbot_environ = self.flatten_config(self.preset.config)
+        environ.update(bbot_environ)
 
         # handle HTTP proxy
-        http_proxy = self.core.config.get("http_proxy", "")
+        http_proxy = self.preset.config.get("http_proxy", "")
         if http_proxy:
-            os.environ["HTTP_PROXY"] = http_proxy
-            os.environ["HTTPS_PROXY"] = http_proxy
+            environ["HTTP_PROXY"] = http_proxy
+            environ["HTTPS_PROXY"] = http_proxy
         else:
-            os.environ.pop("HTTP_PROXY", None)
-            os.environ.pop("HTTPS_PROXY", None)
-
-        # replace environment variables in preloaded modules
-        # PRESET TODO: move this
-        # self.core.module_loader.find_and_replace(**os.environ)
+            environ.pop("HTTP_PROXY", None)
+            environ.pop("HTTPS_PROXY", None)
 
         # ssl verification
         import urllib3
 
         urllib3.disable_warnings()
-        ssl_verify = self.core.config.get("ssl_verify", False)
+        ssl_verify = self.preset.config.get("ssl_verify", False)
         if not ssl_verify:
             import requests
             import functools
@@ -146,3 +120,5 @@ class BBOTEnviron:
             )
             requests.Session.request = functools.partialmethod(requests.Session.request, verify=False)
             requests.request = functools.partial(requests.request, verify=False)
+
+        return environ

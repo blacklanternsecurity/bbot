@@ -49,6 +49,14 @@ excavate: True
 # Summarize activity at the end of a scan
 aggregate: True
 
+# How to handle installation of module dependencies
+# Choices are:
+#  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
+#  - retry_failed - try again to install failed dependencies
+#  - ignore_failed - run the scan regardless of what happens with dependency installation
+#  - disable - completely disable BBOT's dependency system (you are responsible for install tools, pip packages, etc.)
+deps_behavior: abort_on_failure
+
 # HTTP timeout (for Python requests; API calls, etc.)
 http_timeout: 10
 # HTTP timeout (for httpx)

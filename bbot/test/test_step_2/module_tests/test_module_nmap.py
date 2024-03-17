@@ -29,8 +29,7 @@ class TestNmap(ModuleTestBase):
 class TestNmapAssetInventory(ModuleTestBase):
     targets = ["127.0.0.1/31"]
     config_overrides = {
-        "modules": {"nmap": {"ports": "8888,8889"}},
-        "output_modules": {"asset_inventory": {"use_previous": True}},
+        "modules": {"nmap": {"ports": "8888,8889"}, "asset_inventory": {"use_previous": True}},
     }
     modules_overrides = ["nmap", "asset_inventory"]
     module_name = "nmap"
@@ -40,7 +39,7 @@ class TestNmapAssetInventory(ModuleTestBase):
         from bbot.scanner import Scanner
 
         first_scan_config = module_test.scan.config.copy()
-        first_scan_config["output_modules"]["asset_inventory"]["use_previous"] = False
+        first_scan_config["modules"]["asset_inventory"]["use_previous"] = False
         first_scan = Scanner("127.0.0.1", name=self.scan_name, modules=["asset_inventory"], config=first_scan_config)
         await first_scan.async_start_without_generator()
 

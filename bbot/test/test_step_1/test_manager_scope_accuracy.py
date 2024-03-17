@@ -311,7 +311,7 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
             "scope_dns_search_distance": 2,
             "scope_report_distance": 1,
             "speculate": True,
-            "internal_modules": {"speculate": {"ports": "8888"}},
+            "modules": {"speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
         },
     )
@@ -374,8 +374,7 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
             "scope_dns_search_distance": 2,
             "scope_report_distance": 1,
             "speculate": True,
-            "modules": {"httpx": {"in_scope_only": False}},
-            "internal_modules": {"speculate": {"ports": "8888"}},
+            "modules": {"httpx": {"in_scope_only": False}, "speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
         },
     )
@@ -454,8 +453,7 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
             "scope_dns_search_distance": 2,
             "scope_report_distance": 1,
             "speculate": True,
-            "modules": {"httpx": {"in_scope_only": False}},
-            "internal_modules": {"speculate": {"ports": "8888"}},
+            "modules": {"httpx": {"in_scope_only": False}, "speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
         },
     )
@@ -548,7 +546,7 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
             "scope_dns_search_distance": 2,
             "scope_report_distance": 0,
             "speculate": True,
-            "internal_modules": {"speculate": {"ports": "8888"}},
+            "modules": {"speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
         },
     )
@@ -666,7 +664,7 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.0/31",
         modules=["speculate", "sslcert"],
-        _config={"dns_resolution": False, "scope_report_distance": 0, "internal_modules": {"speculate": {"ports": "9999"}}},
+        _config={"dns_resolution": False, "scope_report_distance": 0, "modules": {"speculate": {"ports": "9999"}}},
         _dns_mock={"www.bbottest.notreal": {"A": ["127.0.1.0"]}, "test.notreal": {"A": ["127.0.0.1"]}},
     )
 
@@ -723,7 +721,7 @@ async def test_manager_scope_accuracy(bbot_config, bbot_scanner, bbot_httpserver
         "127.0.0.0/31",
         modules=["speculate", "sslcert"],
         whitelist=["127.0.1.0"],
-        _config={"dns_resolution": False, "scope_report_distance": 0, "internal_modules": {"speculate": {"ports": "9999"}}},
+        _config={"dns_resolution": False, "scope_report_distance": 0, "modules": {"speculate": {"ports": "9999"}}},
         _dns_mock={"www.bbottest.notreal": {"A": ["127.0.0.1"]}, "test.notreal": {"A": ["127.0.1.0"]}},
     )
 

@@ -6,6 +6,7 @@ import pickle
 import logging
 import importlib
 import traceback
+from copy import copy
 from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
@@ -42,7 +43,6 @@ class ModuleLoader:
         self.core = CORE
 
         self.__preloaded = {}
-        self._preloaded_orig = None
         self._modules = {}
         self._configs = {}
 
@@ -54,6 +54,11 @@ class ModuleLoader:
 
         # save preload cache before exiting
         atexit.register(self.save_preload_cache)
+
+    def copy(self):
+        module_loader_copy = copy(self)
+        module_loader_copy.__preloaded = dict(self.__preloaded)
+        return module_loader_copy
 
     @property
     def preload_cache_file(self):
@@ -209,9 +214,7 @@ class ModuleLoader:
         return OmegaConf.create(configs)
 
     def find_and_replace(self, **kwargs):
-        if self._preloaded_orig is None:
-            self._preloaded_orig = dict(self._preloaded)
-        self.__preloaded = search_format_dict(self._preloaded_orig, **kwargs)
+        self.__preloaded = search_format_dict(self.__preloaded, **kwargs)
 
     def check_type(self, module, type):
         return self._preloaded[module]["type"] == type
@@ -541,14 +544,10 @@ class ModuleLoader:
         modules_options = {}
         for module_name, preloaded in self.filter_modules(modules, mod_type):
             modules_options[module_name] = []
-            module_type = preloaded["type"]
             module_options = preloaded["config"]
             module_options_desc = preloaded["options_desc"]
             for k, v in sorted(module_options.items(), key=lambda x: x[0]):
-                module_key = "modules"
-                if module_type in ("internal", "output"):
-                    module_key = f"{module_type}_modules"
-                option_name = f"{module_key}.{module_name}.{k}"
+                option_name = f"modules.{module_name}.{k}"
                 option_type = type(v).__name__
                 option_description = module_options_desc[k]
                 modules_options[module_name].append((option_name, option_type, option_description, str(v)))

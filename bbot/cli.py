@@ -27,6 +27,8 @@ async def _main():
     preset = Preset()
     # parse command line arguments and merge into preset
     preset.parse_args()
+    # ensure arguments (-c config options etc.) are valid
+    preset.args.validate()
 
     # print help if no arguments
     if len(sys.argv) == 1:

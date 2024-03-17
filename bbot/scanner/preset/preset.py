@@ -1,6 +1,8 @@
+import os
 import yaml
 import logging
 import omegaconf
+from copy import copy
 from pathlib import Path
 from contextlib import suppress
 
@@ -79,9 +81,6 @@ class Preset:
         self.output_modules = output_modules if output_modules is not None else []
         self.internal_modules = internal_modules if internal_modules is not None else []
 
-        # PRESET TODO: preparation of environment
-        # self.core.environ.prepare()
-
         self.strict_scope = strict_scope
 
         # target / whitelist / blacklist
@@ -141,23 +140,32 @@ class Preset:
         if other.debug:
             self.debug = other.debug
 
+    def bake(self):
+        """
+        return a "baked" copy of the preset, ready for use by a BBOT scan
+        """
+        # create a copy of self
+        baked_preset = copy(self)
+        # copy core
+        baked_preset.core = self.core.copy()
+        # copy module loader
+        baked_preset._module_loader = self.module_loader.copy()
+        # prepare os environment
+        os_environ = baked_preset.environ.prepare()
+        # find and replace preloaded modules with os environ
+        baked_preset.module_loader.find_and_replace(**os_environ)
+        # update os environ
+        os.environ.clear()
+        os.environ.update(os_environ)
+
+        return baked_preset
+
     def parse_args(self):
 
         from .args import BBOTArgs
 
         self._args = BBOTArgs(self)
         self.merge(self.args.preset_from_args())
-
-        # bring in presets
-        # self.merge(self.args.presets)
-
-        # bring in config
-        # self.core.merge_custom(self.args.config)
-
-        # bring in misc cli arguments
-
-        # validate config / modules / flags
-        # self.args.validate()
 
     @property
     def module_dirs(self):
@@ -397,9 +405,6 @@ class Preset:
 
     @property
     def module_loader(self):
-        # module loader depends on environment to be set up
-        # or is it the other way around
-        # PRESET TODO
         self.environ
         if self._module_loader is None:
             from bbot.core.modules import module_loader
@@ -414,9 +419,7 @@ class Preset:
         # update default config with module defaults
         module_config = omegaconf.OmegaConf.create(
             {
-                "modules": self.module_loader.configs(type="scan"),
-                "output_modules": self.module_loader.configs(type="output"),
-                "internal_modules": self.module_loader.configs(type="internal"),
+                "modules": self.module_loader.configs(),
             }
         )
         self.core.merge_default(module_config)

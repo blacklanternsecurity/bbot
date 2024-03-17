@@ -43,11 +43,8 @@ class DepsInstaller:
         self.parent_helper.mkdir(self.command_status)
         self.setup_status = self.read_setup_status()
 
-        self.no_deps = self.parent_helper.config.get("no_deps", False)
+        self.deps_behavior = self.parent_helper.config.get("deps_behavior", "abort_on_failure").lower()
         self.ansible_debug = True
-        self.force_deps = self.parent_helper.config.get("force_deps", False)
-        self.retry_deps = self.parent_helper.config.get("retry_deps", False)
-        self.ignore_failed_deps = self.parent_helper.config.get("ignore_failed_deps", False)
         self.venv = ""
         if sys.prefix != sys.base_prefix:
             self.venv = sys.prefix
@@ -62,7 +59,7 @@ class DepsInstaller:
             notified = False
             for m in modules:
                 # assume success if we're ignoring dependencies
-                if self.no_deps:
+                if self.deps_behavior == "no_deps":
                     succeeded.append(m)
                     continue
                 # abort if module name is unknown
@@ -87,7 +84,11 @@ class DepsInstaller:
                     succeeded.append(m)
                     continue
                 else:
-                    if success is None or (success is False and self.retry_deps) or self.force_deps:
+                    if (
+                        success is None
+                        or (success is False and self.deps_behavior == "retry_failed")
+                        or self.deps_behavior == "force_install"
+                    ):
                         if not notified:
                             log.hugeinfo(f"Installing module dependencies. Please be patient, this may take a while.")
                             notified = True
@@ -97,14 +98,14 @@ class DepsInstaller:
                             self.ensure_root(f'Module "{m}" needs root privileges to install its dependencies.')
                         success = await self.install_module(m)
                         self.setup_status[module_hash] = success
-                        if success or self.ignore_failed_deps:
+                        if success or self.deps_behavior == "ignore_failed":
                             log.debug(f'Setup succeeded for module "{m}"')
                             succeeded.append(m)
                         else:
                             log.warning(f'Setup failed for module "{m}"')
                             failed.append(m)
                     else:
-                        if success or self.ignore_failed_deps:
+                        if success or self.deps_behavior == "ignore_failed":
                             log.debug(
                                 f'Skipping dependency install for module "{m}" because it\'s already done (--force-deps to re-run)'
                             )

@@ -17,7 +17,7 @@ class TestSubdomains(ModuleTestBase):
 
 
 class TestSubdomainsUnresolved(TestSubdomains):
-    config_overrides = {"output_modules": {"subdomains": {"include_unresolved": True}}}
+    config_overrides = {"modules": {"subdomains": {"include_unresolved": True}}}
 
     def check(self, module_test, events):
         sub_file = module_test.scan.home / "subdomains.txt"

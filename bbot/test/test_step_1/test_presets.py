@@ -411,3 +411,5 @@ class TestModule4(BaseModule):
 
 # test custom module load directory
 #  make sure it works with cli arg module/flag/config syntax validation
+# what if you specify -c modules.custommodule.option
+#  the validation needs to not happen until after all presets have been loaded

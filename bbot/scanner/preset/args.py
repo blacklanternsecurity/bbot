@@ -125,11 +125,22 @@ class BBOTArgs:
 
         # verbosity levels
         if self.parsed.silent:
-            args_preset.silent = self.parsed.silent
+            args_preset.silent = True
         if self.parsed.verbose:
-            args_preset.verbose = self.parsed.verbose
+            args_preset.verbose = True
         if self.parsed.debug:
-            args_preset.debug = self.parsed.debug
+            args_preset.debug = True
+
+        # dependencies
+        if self.parsed.retry_deps:
+            args_preset.core.custom_config["deps_behavior"] = "retry_failed"
+        elif self.parsed.force_deps:
+            args_preset.core.custom_config["deps_behavior"] = "force_install"
+        elif self.parsed.no_deps:
+            args_preset.core.custom_config["deps_behavior"] = "disable"
+        elif self.parsed.ignore_failed_deps:
+            args_preset.core.custom_config["deps_behavior"] = "ignore_failed"
+
         return args_preset
 
     def create_parser(self, *args, **kwargs):
@@ -289,30 +300,26 @@ class BBOTArgs:
                 if self.exclude_from_validation.match(c):
                     continue
                 if all_options is None:
-                    from ...modules import module_loader
-
                     modules_options = set()
-                    for module_options in module_loader.modules_options().values():
+                    for module_options in self.preset.module_loader.modules_options().values():
                         modules_options.update(set(o[0] for o in module_options))
-                    global_options = set(self.preset.core.default_config.keys()) - {"modules", "output_modules"}
+                    global_options = set(self.preset.core.default_config.keys()) - {"modules"}
                     all_options = global_options.union(modules_options)
                 # otherwise, ensure it exists as a module option
                 match_and_exit(c, all_options, msg="module option")
 
-        # PRESET TODO: if custom module dir, pull in new module choices
-
         # validate modules
-        for m in self.parser.modules:
+        for m in self.parsed.modules:
             if m not in self._module_choices:
                 match_and_exit(m, self._module_choices, msg="module")
-        for m in self.parser.exclude_modules:
+        for m in self.parsed.exclude_modules:
             if m not in self._module_choices:
                 match_and_exit(m, self._module_choices, msg="module")
-        for m in self.parser.output_modules:
+        for m in self.parsed.output_modules:
             if m not in self._output_module_choices:
                 match_and_exit(m, self._output_module_choices, msg="output module")
 
         # validate flags
-        for f in set(self.parser.flags + self.parser.require_flags + self.parser.exclude_flags):
+        for f in set(self.parsed.flags + self.parsed.require_flags + self.parsed.exclude_flags):
             if f not in self._flag_choices:
                 match_and_exit(f, self._flag_choices, msg="flag")

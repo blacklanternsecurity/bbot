@@ -39,6 +39,14 @@ class BBOTCore:
         return self.home / "tools"
 
     @property
+    def temp_dir(self):
+        return self.home / "temp"
+
+    @property
+    def lib_dir(self):
+        return self.home / "lib"
+
+    @property
     def scans_dir(self):
         return self.home / "scans"
 

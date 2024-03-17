@@ -99,7 +99,7 @@ class ConfigAwareHelper:
 
     @property
     def config(self):
-        return self.preset.core.config
+        return self.preset.config
 
     @property
     def scan(self):

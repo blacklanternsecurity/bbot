@@ -24,7 +24,7 @@ class BBOTConfigFiles:
         mkdir(self.config_dir)
 
         secrets_strings = ["api_key", "username", "password", "token", "secret", "_id"]
-        exclude_keys = ["modules", "output_modules", "internal_modules"]
+        exclude_keys = ["modules"]
 
         comment_notice = (
             "# NOTICE: THESE ENTRIES ARE COMMENTED BY DEFAULT\n"

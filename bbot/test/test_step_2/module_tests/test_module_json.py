@@ -16,7 +16,7 @@ class TestJSON(ModuleTestBase):
 
 class TestJSONSIEMFriendly(ModuleTestBase):
     modules_overrides = ["json"]
-    config_overrides = {"output_modules": {"json": {"siem_friendly": True}}}
+    config_overrides = {"modules": {"json": {"siem_friendly": True}}}
 
     def check(self, module_test, events):
         txt_file = module_test.scan.home / "output.ndjson"

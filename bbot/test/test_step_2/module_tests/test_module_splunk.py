@@ -7,7 +7,7 @@ from .base import ModuleTestBase
 class TestSplunk(ModuleTestBase):
     downstream_url = "https://splunk.blacklanternsecurity.fakedomain:1234/services/collector"
     config_overrides = {
-        "output_modules": {
+        "modules": {
             "splunk": {
                 "url": downstream_url,
                 "hectoken": "HECTOKEN",
