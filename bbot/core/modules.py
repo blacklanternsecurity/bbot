@@ -177,7 +177,7 @@ class ModuleLoader:
     @preload_cache.setter
     def preload_cache(self, value):
         self._preload_cache = value
-        mkdir(self.self.preload_cache_file.parent)
+        mkdir(self.preload_cache_file.parent)
         with open(self.preload_cache_file, "wb") as f:
             pickle.dump(self._preload_cache, f)
 
