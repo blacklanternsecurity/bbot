@@ -10,7 +10,8 @@ log = logging.getLogger("bbot.db.neo4j")
 
 class Neo4j:
     """
-    docker run --rm -p 7687:7687 -p 7474:7474 --env NEO4J_AUTH=neo4j/bbotislife neo4j
+    # start Neo4j in the background with docker
+    docker run -d -p 7687:7687 -p 7474:7474 -v "$(pwd)/neo4j/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
     """
 
     def __init__(self, uri="bolt://localhost:7687", username="neo4j", password="bbotislife"):
