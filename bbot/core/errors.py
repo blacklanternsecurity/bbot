@@ -48,3 +48,7 @@ class DNSWildcardBreak(DNSError):
 
 class CurlError(BBOTError):
     pass
+
+
+class PresetNotFoundError(BBOTError):
+    pass

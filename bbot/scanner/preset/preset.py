@@ -6,6 +6,8 @@ from copy import copy
 from pathlib import Path
 from contextlib import suppress
 
+from .path import PRESET_PATH
+
 from bbot.core import CORE
 from bbot.core.event.base import make_event
 from bbot.core.errors import ValidationError
@@ -492,7 +494,13 @@ class Preset:
         return new_preset
 
     @classmethod
-    def from_yaml_file(cls, yaml_preset):
+    def from_yaml_file(cls, filename):
+        """
+        Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
+
+        Specifying the file extension is optional.
+        """
+        yaml_preset = PRESET_PATH.find(filename)
         return cls.from_dict(omegaconf.OmegaConf.load(yaml_preset))
 
     @classmethod

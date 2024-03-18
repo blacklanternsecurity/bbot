@@ -2,11 +2,11 @@ import re
 import sys
 import logging
 import argparse
-from pathlib import Path
 from omegaconf import OmegaConf
 
+from bbot.core.errors import PresetNotFoundError
 from bbot.core.helpers.logger import log_to_stderr
-from bbot.core.helpers.misc import chain_lists, match_and_exit, is_file
+from bbot.core.helpers.misc import chain_lists, match_and_exit
 
 log = logging.getLogger("bbot.presets.args")
 
@@ -97,6 +97,14 @@ class BBOTArgs:
             strict_scope=self.parsed.strict_scope,
         )
 
+        # verbosity levels
+        if self.parsed.silent:
+            args_preset.silent = True
+        if self.parsed.verbose:
+            args_preset.verbose = True
+        if self.parsed.debug:
+            args_preset.debug = True
+
         # modules && flags (excluded then required then all others)
         args_preset.exclude_modules = self.parsed.exclude_modules
         args_preset.exclude_flags = self.parsed.exclude_flags
@@ -109,29 +117,27 @@ class BBOTArgs:
         args_preset.flags = self.parsed.flags
 
         # additional custom presets / config options
+        preset_args = []
         for preset_param in self.parsed.preset:
-            if Path(preset_param).is_file():
-                try:
-                    custom_preset = self.preset.from_yaml_file(preset_param)
-                except Exception as e:
-                    log_to_stderr(f"Error parsing custom config at {preset_param}: {e}", level="ERROR")
-                    sys.exit(2)
+            try:
+                # first try to load as a file
+                custom_preset = self.preset.from_yaml_file(preset_param)
                 args_preset.merge(custom_preset)
-            else:
+            except PresetNotFoundError as e:
+                log.debug(e)
                 try:
+                    # if that fails, try to parse as key=value syntax
                     cli_config = OmegaConf.from_cli([preset_param])
+                    preset_args.append(preset_param)
+                    args_preset.core.merge_custom(cli_config)
                 except Exception as e:
                     log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
                     sys.exit(2)
-                args_preset.core.merge_custom(cli_config)
+            except Exception as e:
+                log_to_stderr(f"Error parsing custom config at {preset_param}: {e}", level="ERROR")
+                sys.exit(2)
 
-        # verbosity levels
-        if self.parsed.silent:
-            args_preset.silent = True
-        if self.parsed.verbose:
-            args_preset.verbose = True
-        if self.parsed.debug:
-            args_preset.debug = True
+        self.parsed.preset = preset_args
 
         # dependencies
         if self.parsed.retry_deps:
@@ -291,9 +297,8 @@ class BBOTArgs:
     def validate(self):
         # validate config options
         sentinel = object()
-        conf = [a for a in self.parsed.preset if not is_file(a)]
         all_options = None
-        for c in conf:
+        for c in self.parsed.preset:
             c = c.split("=")[0].strip()
             v = OmegaConf.select(self.preset.core.default_config, c, default=sentinel)
             # if option isn't in the default config

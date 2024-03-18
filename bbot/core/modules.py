@@ -116,7 +116,6 @@ class ModuleLoader:
 
         for module_dir in module_dirs:
             if module_dir in self._module_dirs_preloaded:
-                log.debug(f'Custom module dir "{module_dir}" was already added')
                 continue
 
             for module_file in list_files(module_dir, filter=self.file_filter):
