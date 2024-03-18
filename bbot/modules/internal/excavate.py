@@ -72,6 +72,7 @@ class URLExtractor(BaseExtractor):
         "fulluri": r"(?i)" + r"([a-z]\w{1,15})://" + url_path_regex,
         "fullurl": r"(?i)" + r"(https?)://" + url_path_regex,
         "a-tag": r"<a\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
+        "link-tag": r"<link\s+(?:[^>]*?\s+)?href=([\"'])(.*?)\1",
         "script-tag": r"<script\s+(?:[^>]*?\s+)?src=([\"'])(.*?)\1",
     }
 
@@ -129,7 +130,7 @@ class URLExtractor(BaseExtractor):
                     protocol, other = result
                     result = f"{protocol}://{other}"
 
-                elif name in ("a-tag", "script-tag") and parsed:
+                elif parsed and name.endswith("-tag"):
                     path = html.unescape(result[1])
 
                     for p in self.prefix_blacklist:

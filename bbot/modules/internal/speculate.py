@@ -154,17 +154,19 @@ class speculate(BaseInternalModule):
             if stub_hash not in self.org_stubs_seen:
                 self.org_stubs_seen.add(stub_hash)
                 stub_event = self.make_event(stub, "ORG_STUB", source=event)
-                if event.scope_distance > 0:
-                    stub_event.scope_distance = event.scope_distance
-                await self.emit_event(stub_event)
+                if stub_event:
+                    if event.scope_distance > 0:
+                        stub_event.scope_distance = event.scope_distance
+                    await self.emit_event(stub_event)
 
         # USERNAME --> EMAIL
         if event.type == "USERNAME":
             email = event.data.split(":", 1)[-1]
             if validators.soft_validate(email, "email"):
                 email_event = self.make_event(email, "EMAIL_ADDRESS", source=event, tags=["affiliate"])
-                email_event.scope_distance = event.scope_distance
-                await self.emit_event(email_event)
+                if email_event:
+                    email_event.scope_distance = event.scope_distance
+                    await self.emit_event(email_event)
 
     async def filter_event(self, event):
         # don't accept errored DNS_NAMEs

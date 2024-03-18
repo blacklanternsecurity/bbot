@@ -178,20 +178,26 @@ class asset_inventory(CSV):
                         asset.absorb_csv_row(row)
                         self.add_custom_headers(list(asset.custom_fields))
                         if not is_ip(asset.host):
-                            host_event = self.make_event(asset.host, "DNS_NAME", source=self.scan.root_event)
+                            host_event = self.make_event(
+                                asset.host, "DNS_NAME", source=self.scan.root_event, raise_error=True
+                            )
                             await self.emit_event(host_event)
                             for port in asset.ports:
                                 netloc = self.helpers.make_netloc(asset.host, port)
                                 open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=host_event)
-                                await self.emit_event(open_port_event)
+                                if open_port_event:
+                                    await self.emit_event(open_port_event)
                         else:
                             for ip in asset.ip_addresses:
-                                ip_event = self.make_event(ip, "IP_ADDRESS", source=self.scan.root_event)
+                                ip_event = self.make_event(
+                                    ip, "IP_ADDRESS", source=self.scan.root_event, raise_error=True
+                                )
                                 await self.emit_event(ip_event)
                                 for port in asset.ports:
                                     netloc = self.helpers.make_netloc(ip, port)
                                     open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=ip_event)
-                                    await self.emit_event(open_port_event)
+                                    if open_port_event:
+                                        await self.emit_event(open_port_event)
             else:
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"

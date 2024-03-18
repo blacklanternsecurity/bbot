@@ -8,7 +8,8 @@ import logging
 import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
-from aioconsole import stream
+
+# from aioconsole import stream
 
 # fix tee buffering
 sys.stdout.reconfigure(line_buffering=True)
@@ -20,12 +21,10 @@ import bbot.core.errors
 from bbot import __version__
 from bbot.modules import module_loader
 from bbot.core.configurator.args import parser
-from bbot.core.helpers.misc import smart_decode
 from bbot.core.helpers.logger import log_to_stderr
 from bbot.core.configurator import ensure_config_files, check_cli_args, environ
 
 log = logging.getLogger("bbot.cli")
-sys.stdout.reconfigure(line_buffering=True)
 
 
 log_level = get_log_level()
@@ -303,7 +302,12 @@ async def _main():
                 if not options.dry_run:
                     log.trace(f"Command: {' '.join(sys.argv)}")
 
+                    # if we're on the terminal, enable keyboard interaction
                     if sys.stdin.isatty():
+
+                        import fcntl
+                        from bbot.core.helpers.misc import smart_decode
+
                         if not options.agent_mode and not options.yes:
                             log.hugesuccess(f"Scan ready. Press enter to execute {scanner.name}")
                             input()
@@ -324,10 +328,16 @@ async def _main():
                                 toggle_log_level(logger=log)
                                 scanner.manager.modules_status(_log=True)
 
-                        # Reader
-                        reader = stream.StandardStreamReader()
-                        protocol = stream.StandardStreamReaderProtocol(reader)
+                        reader = asyncio.StreamReader()
+                        protocol = asyncio.StreamReaderProtocol(reader)
                         await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
+
+                        # set stdout and stderr to blocking mode
+                        # this is needed to prevent BlockingIOErrors in logging etc.
+                        fds = [sys.stdout.fileno(), sys.stderr.fileno()]
+                        for fd in fds:
+                            flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+                            fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
 
                         async def akeyboard_listen():
                             try:
