@@ -2,10 +2,10 @@ import re
 import sys
 import logging
 import argparse
+import traceback
 from omegaconf import OmegaConf
 
 from bbot.core.errors import PresetNotFoundError
-from bbot.core.helpers.logger import log_to_stderr
 from bbot.core.helpers.misc import chain_lists, match_and_exit
 
 log = logging.getLogger("bbot.presets.args")
@@ -131,10 +131,12 @@ class BBOTArgs:
                     preset_args.append(preset_param)
                     args_preset.core.merge_custom(cli_config)
                 except Exception as e:
-                    log_to_stderr(f"Error parsing command-line config: {e}", level="ERROR")
+                    log.error(f"Error parsing command-line config: {e}")
+                    log.trace(traceback.format_exc())
                     sys.exit(2)
             except Exception as e:
-                log_to_stderr(f"Error parsing custom config at {preset_param}: {e}", level="ERROR")
+                log.error(f"Error parsing custom config at {preset_param}: {e}")
+                log.trace(traceback.format_exc())
                 sys.exit(2)
 
         self.parsed.preset = preset_args

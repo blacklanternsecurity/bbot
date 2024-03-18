@@ -36,6 +36,7 @@ class Preset:
         config=None,
         strict_scope=False,
         module_dirs=None,
+        include_presets=None,
     ):
         self._args = None
         self._environ = None
@@ -53,16 +54,44 @@ class Preset:
         self._debug = False
         self._silent = False
 
-        # custom module directories
-        self._module_dirs = set()
-        self.module_dirs = module_dirs
-
         # bbot core config
         self.core = CORE.copy()
         if config is None:
             config = omegaconf.OmegaConf.create({})
         # merge any custom configs
         self.core.merge_custom(config)
+
+        # log verbosity
+        if verbose:
+            self.verbose = verbose
+        if debug:
+            self.debug = debug
+        if silent:
+            self.silent = silent
+
+        # custom module directories
+        self._module_dirs = set()
+        self.module_dirs = module_dirs
+
+        self.strict_scope = strict_scope
+
+        # target / whitelist / blacklist
+        from bbot.scanner.target import Target
+
+        self.target = Target(*targets, strict_scope=self.strict_scope)
+        if not whitelist:
+            self.whitelist = self.target.copy()
+        else:
+            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
+        if not blacklist:
+            blacklist = []
+        self.blacklist = Target(*blacklist)
+
+        # include other presets
+        if include_presets:
+            for preset in include_presets:
+                log.debug(f'Including preset "{preset}"')
+                self.merge(self.from_yaml_file(preset))
 
         # modules + flags
         if modules is None:
@@ -82,28 +111,6 @@ class Preset:
         self.scan_modules = modules if modules is not None else []
         self.output_modules = output_modules if output_modules is not None else []
         self.internal_modules = internal_modules if internal_modules is not None else []
-
-        self.strict_scope = strict_scope
-
-        # target / whitelist / blacklist
-        from bbot.scanner.target import Target
-
-        self.target = Target(*targets, strict_scope=self.strict_scope)
-        if not whitelist:
-            self.whitelist = self.target.copy()
-        else:
-            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
-        if not blacklist:
-            blacklist = []
-        self.blacklist = Target(*blacklist)
-
-        # log verbosity
-        if verbose:
-            self.verbose = verbose
-        if debug:
-            self.debug = debug
-        if silent:
-            self.silent = silent
 
     @property
     def bbot_home(self):
@@ -490,6 +497,7 @@ class Preset:
             config=preset_dict.get("config"),
             strict_scope=preset_dict.get("strict_scope", False),
             module_dirs=preset_dict.get("module_dirs", []),
+            include_presets=preset_dict.get("include", []),
         )
         return new_preset
 

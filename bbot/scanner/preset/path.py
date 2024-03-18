@@ -20,17 +20,19 @@ class PresetPath:
     def find(self, filename):
         filename = Path(filename)
         self.add_path(filename.parent)
-        self.add_path(filename.parent / "presets")
         if filename.is_file():
             log.hugesuccess(filename)
             return filename
         extension = filename.suffix.lower()
         file_candidates = set()
+        if not extension:
+            file_candidates.add(filename.stem)
         for ext in (".yaml", ".yml"):
             if extension != ext:
                 file_candidates.add(f"{filename.stem}{ext}")
         file_candidates = sorted(file_candidates)
-        log.debug(f"Searching for preset in {self.paths}, file candidates: {file_candidates}")
+        file_candidates_str = ",".join([str(s) for s in file_candidates])
+        log.debug(f"Searching for preset in {self}, file candidates: {file_candidates_str}")
         for path in self.paths:
             for candidate in file_candidates:
                 for file in path.rglob(candidate):
@@ -38,12 +40,15 @@ class PresetPath:
                     return file
         raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
 
+    def __str__(self):
+        return ":".join([str(s) for s in self.paths])
+
     def add_path(self, path):
-        path = Path(path)
+        path = Path(path).resolve()
         if path in self.paths:
             return
         if not path.is_dir():
-            log.debug(f'Path "{path}" is not a directory')
+            log.debug(f'Path "{path.resolve()}" is not a directory')
             return
         self.paths.append(path)
 
