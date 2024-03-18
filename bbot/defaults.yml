@@ -134,10 +134,6 @@ omit_event_types:
     - URL_UNVERIFIED
     - DNS_NAME_UNRESOLVED
     # - IP_ADDRESS
-# URL of BBOT server
-agent_url: ''
-# Agent Bearer authentication token
-agent_token: ''
 
 # Custom interactsh server settings
 interactsh_server: null

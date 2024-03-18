@@ -267,8 +267,6 @@ class BBOTArgs:
             "--ignore-failed-deps", action="store_true", help="Run modules even if they have failed dependencies"
         )
         g2.add_argument("--install-all-deps", action="store_true", help="Install dependencies for all modules")
-        agent = p.add_argument_group(title="Agent", description="Report back to a central server")
-        agent.add_argument("-a", "--agent-mode", action="store_true", help="Start in agent mode")
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
         return p

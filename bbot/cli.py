@@ -83,7 +83,7 @@ async def _main():
         log.trace(f"Command: {' '.join(sys.argv)}")
 
         if sys.stdin.isatty():
-            if not options.agent_mode and not options.yes:
+            if not options.yes:
                 log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                 input()
 
