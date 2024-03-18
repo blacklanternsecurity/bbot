@@ -46,7 +46,7 @@ class git_clone(github):
         else:
             url = repository_url
         command = ["git", "-C", self.output_dir, "clone", url]
-        output = await self.helpers.run(command)
+        output = await self.run_process(command)
         if output.returncode == 0:
             folder_name = output.stderr.split("Cloning into '")[1].split("'")[0]
             return self.output_dir / folder_name

@@ -1,11 +1,14 @@
 import subprocess
-import os
+from pathlib import Path
+
 from .base import ModuleTestBase
 
 
 class TestGit_Clone(ModuleTestBase):
     config_overrides = {"modules": {"git_clone": {"api_key": "asdf"}}}
     modules_overrides = ["github_org", "speculate", "git_clone"]
+
+    file_content = "https://admin:admin@the-internet.herokuapp.com/basic_auth"
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
@@ -152,10 +155,11 @@ class TestGit_Clone(ModuleTestBase):
         )
 
     async def setup_after_prep(self, module_test):
-        subprocess.run(["git", "init", "test_keys"], cwd=os.path.join(module_test.scan.home))
-        temp_repo_path = os.path.join(module_test.scan.home, "test_keys")
-        with open(os.path.join(temp_repo_path, "keys.txt"), "w") as f:
-            f.write("https://admin:admin@the-internet.herokuapp.com/basic_auth")
+        temp_path = Path("/tmp/.bbot_test")
+        subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
+        temp_repo_path = temp_path / "test_keys"
+        with open(temp_repo_path / "keys.txt", "w") as f:
+            f.write(self.file_content)
         subprocess.run(["git", "add", "."], cwd=temp_repo_path)
         subprocess.run(
             [
@@ -176,20 +180,25 @@ class TestGit_Clone(ModuleTestBase):
 
         def new_filter_event(event):
             event.data["url"] = event.data["url"].replace(
-                "https://github.com/blacklanternsecurity", "file://" + os.path.join(module_test.scan.home)
+                "https://github.com/blacklanternsecurity", f"file://{temp_path}"
             )
             return old_filter_event(event)
 
         module_test.monkeypatch.setattr(module_test.module, "filter_event", new_filter_event)
 
     def check(self, module_test, events):
-        assert 1 == len(
-            [
-                e
-                for e in events
-                if e.type == "FILESYSTEM"
-                and "git_repos/test_keys" in e.data["path"]
-                and "git" in e.tags
-                and e.scope_distance == 1
-            ]
-        ), "Failed to git clone CODE_REPOSITORY"
+        filesystem_events = [
+            e
+            for e in events
+            if e.type == "FILESYSTEM"
+            and "git_repos/test_keys" in e.data["path"]
+            and "git" in e.tags
+            and e.scope_distance == 1
+        ]
+        assert 1 == len(filesystem_events), "Failed to git clone CODE_REPOSITORY"
+        filesystem_event = filesystem_events[0]
+        folder = Path(filesystem_event.data["path"])
+        assert folder.is_dir(), "Destination folder doesn't exist"
+        with open(folder / "keys.txt") as f:
+            content = f.read()
+            assert content == self.file_content, "File content doesn't match"
