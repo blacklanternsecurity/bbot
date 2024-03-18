@@ -23,12 +23,15 @@ async def _main():
     from bbot.scanner import Scanner
     from bbot.scanner.preset import Preset
 
+    global scan_name
+
     # start by creating a default scan preset
     preset = Preset()
     # parse command line arguments and merge into preset
     preset.parse_args()
     # ensure arguments (-c config options etc.) are valid
     preset.args.validate()
+    options = preset.args.parsed
 
     # print help if no arguments
     if len(sys.argv) == 1:
@@ -37,25 +40,25 @@ async def _main():
         return
 
     # --version
-    if preset.args.parsed.version:
+    if options.version:
         log.stdout(__version__)
         sys.exit(0)
         return
 
     # --current-preset
-    if preset.args.parsed.current_preset:
+    if options.current_preset:
         log.stdout(preset.to_yaml())
         sys.exit(0)
         return
 
     # --current-preset-full
-    if preset.args.parsed.current_preset_full:
+    if options.current_preset_full:
         log.stdout(preset.to_yaml(full_config=True))
         sys.exit(0)
         return
 
     # --list-modules
-    if preset.args.parsed.list_modules:
+    if options.list_modules:
         log.stdout("")
         log.stdout("### MODULES ###")
         log.stdout("")
@@ -64,7 +67,7 @@ async def _main():
         return
 
     # --list-flags
-    if preset.args.parsed.list_flags:
+    if options.list_flags:
         log.stdout("")
         log.stdout("### FLAGS ###")
         log.stdout("")
@@ -73,12 +76,14 @@ async def _main():
         return
 
     scan = Scanner(preset=preset)
+    scan_name = str(scan.name)
+    await scan._prep()
 
-    if not preset.args.parsed.dry_run:
+    if not options.dry_run:
         log.trace(f"Command: {' '.join(sys.argv)}")
 
         if sys.stdin.isatty():
-            if not preset.args.parsed.agent_mode and not preset.args.parsed.yes:
+            if not options.agent_mode and not options.yes:
                 log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                 input()
 

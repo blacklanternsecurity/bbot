@@ -1,0 +1,5 @@
+flags:
+  - subdomain-enum
+
+output_modules:
+  - subdomains
