@@ -6,6 +6,21 @@ class neo4j(BaseOutputModule):
     """
     # start Neo4j in the background with docker
     docker run -d -p 7687:7687 -p 7474:7474 -v "$(pwd)/neo4j/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
+
+    # view all running docker containers
+    > docker ps
+
+    # view all docker containers
+    > docker ps -a
+
+    # stop a docker container
+    > docker stop <CONTAINER_ID>
+
+    # remove a docker container
+    > docker remove <CONTAINER_ID>
+
+    # start a stopped container
+    > docker start <CONTAINER_ID>
     """
 
     watched_events = ["*"]
