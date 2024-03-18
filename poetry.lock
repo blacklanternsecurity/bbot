@@ -46,13 +46,13 @@ resolvelib = ">=0.5.3,<1.1.0"
 
 [[package]]
 name = "ansible-runner"
-version = "2.3.5"
+version = "2.3.6"
 description = "\"Consistent Ansible Python API and CLI with container and process isolation runtime capabilities\""
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "ansible-runner-2.3.5.tar.gz", hash = "sha256:cd9ddd5765870ea3c545b6cb47aaad5f04d9a30a628dd3fcdb4f367a28c22085"},
-    {file = "ansible_runner-2.3.5-py3-none-any.whl", hash = "sha256:9c9f1a9eee3aae4964f74a12947fb50ad6d43ae285b809565f0ccdefe9243f81"},
+    {file = "ansible-runner-2.3.6.tar.gz", hash = "sha256:b2174a12dcad2dc2f342ea82876898f568a0b66c53568600bf80577158fcba1c"},
+    {file = "ansible_runner-2.3.6-py3-none-any.whl", hash = "sha256:4f153d9c3000a61b82d7253ca292849e3ad2c5d68dfff4377a6b98c4e6ff6c3e"},
 ]
 
 [package.dependencies]
