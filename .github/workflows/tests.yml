@@ -130,7 +130,7 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Get BBOT version
-        id: get_version
+        id: version
         run: echo "BBOT_VERSION=$(poetry version | cut -d' ' -f2)" >> $GITHUB_OUTPUT
       - name: Publish to Docker Hub (dev)
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
