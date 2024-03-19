@@ -178,7 +178,7 @@ class TestExcavateRedirect(TestExcavate):
         module_test.httpserver.no_handler_status_code = 404
 
     def check(self, module_test, events):
-        assert 1 == len(
+        assert 2 == len(
             [
                 e
                 for e in events
