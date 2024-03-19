@@ -78,7 +78,9 @@ class gitlab(BaseModule):
         for project in await self.gitlab_json_request(projects_url):
             project_url = project.get("web_url", "")
             if project_url:
-                await self.emit_event({"url": project_url}, "CODE_REPOSITORY", tags="git", source=event)
+                code_event = self.make_event({"url": project_url}, "CODE_REPOSITORY", tags="git", source=event)
+                code_event.scope_distance = event.scope_distance
+                await self.emit_event(code_event)
             namespace = project.get("namespace", {})
             if namespace:
                 await self.handle_namespace(namespace, event)
@@ -99,14 +101,18 @@ class gitlab(BaseModule):
         return []
 
     async def handle_namespace(self, namespace, event):
+        namespace_name = namespace.get("path", "")
         namespace_url = namespace.get("web_url", "")
-        namespace_path = namespace.get("path", "")
-        if namespace_url:
-            await self.emit_event(
+        namespace_path = namespace.get("full_path", "")
+        if namespace_name and namespace_url and namespace_path:
+            namespace_url = self.helpers.parse_url(namespace_url)._replace(path=f"/{namespace_path}").geturl()
+            social_event = self.make_event(
                 {"platform": "gitlab", "profile_name": namespace_path, "url": namespace_url},
                 "SOCIAL",
                 source=event,
             )
+            social_event.scope_distance = event.scope_distance
+            await self.emit_event(social_event)
 
     def get_base_url(self, event):
         base_url = event.data.get("url", "")

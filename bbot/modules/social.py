@@ -16,8 +16,8 @@ class social(BaseModule):
         "instagram": r"(?:https?://)?(?:www.)?instagram.com/([a-zA-Z0-9_.]+)/?",
         "youtube": r"(?:https?://)?(?:www.)?youtube.com/@([a-zA-Z0-9_]+)/?",
         "bitbucket": r"(?:https?://)?(?:www.)?bitbucket.org/([a-zA-Z0-9_-]+)/?",
-        "gitlab": r"(?:https?://)?(?:www.)?gitlab.com/([a-zA-Z0-9_-]+)/?",
-        "discord": r"(?:https?://)?(?:www.)?discord.gg/([a-zA-Z0-9_-]+)/?",
+        "gitlab": r"(?:https?://)?(?:www.)?gitlab.(?:com|org)/([a-zA-Z0-9_-]+)",
+        "discord": r"(?:https?://)?(?:www.)?discord.gg/([a-zA-Z0-9_-]+)",
         "docker": r"(?:https?://)?hub.docker.com/u/([a-zA-Z0-9_-]+)",
         "huggingface": r"(?:https?://)?huggingface.co/([a-zA-Z0-9_-]+)",
     }
@@ -35,6 +35,8 @@ class social(BaseModule):
                 if not url.startswith("http"):
                     url = f"https://{url}"
                 profile_name = match.groups()[0]
-                await self.emit_event(
+                social_event = self.make_event(
                     {"platform": platform, "url": url, "profile_name": profile_name}, "SOCIAL", source=event
                 )
+                social_event.scope_distance = event.scope_distance
+                await self.emit_event(social_event)
