@@ -52,11 +52,5 @@ def get_event_type(data):
     raise ValidationError(f'Unable to autodetect event type from "{data}"')
 
 
-def is_event_id(s):
-    if event_id_regex.match(str(s)):
-        return True
-    return False
-
-
 def make_event_id(data, event_type):
     return f"{event_type}:{sha1(data).hexdigest()}"
