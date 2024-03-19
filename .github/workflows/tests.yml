@@ -176,4 +176,4 @@ jobs:
             TAG_MESSAGE="Stable Release $VERSION"
           fi
           git tag -a $VERSION -m "$TAG_MESSAGE"
-          git push origin $VERSION
+          git push origin --tags
