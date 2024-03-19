@@ -33,6 +33,14 @@ class Neo4j:
 
     def __init__(self, uri="bolt://localhost:7687", username="neo4j", password="bbotislife"):
         self.driver = GraphDatabase.driver(uri=uri, auth=(username, password))
+        # The Neo4j Query Statement that will remove previous Neo4j records
+        neo4j_statement = "MATCH (n) DETACH DELETE (n) " "RETURN COUNT(n) as total"
+
+        # Setup Neo4j Driver Session and Send neo4j_statement
+        session = self.driver.session()
+        result = session.run(neo4j_statement)
+        record = result.single()
+        log.warning(f"Deleted {record['total']} Neo4j Records from previous scans")
 
     def insert_event(self, event):
         self.insert_events([event])
