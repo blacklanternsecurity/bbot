@@ -6,6 +6,22 @@ class TestDockerhub(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
+            url="https://hub.docker.com/v2/users/blacklanternsecurity",
+            json={
+                "id": "f90895d9cf484d9182c6dbbef2632329",
+                "uuid": "f90895d9-cf48-4d91-82c6-dbbef2632329",
+                "username": "blacklanternsecurity",
+                "full_name": "",
+                "location": "",
+                "company": "Black Lantern Security",
+                "profile_url": "https://github.com/blacklanternsecurity",
+                "date_joined": "2022-08-29T15:27:10.227081Z",
+                "gravatar_url": "",
+                "gravatar_email": "",
+                "type": "User",
+            },
+        )
+        module_test.httpx_mock.add_response(
             url="https://hub.docker.com/v2/repositories/blacklanternsecurity?page_size=25&page=1",
             json={
                 "count": 2,
