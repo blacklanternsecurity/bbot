@@ -64,7 +64,7 @@ class Neo4j:
             if "scope_distance" in str(event) or "tags" in str(event):
                 myString = f"{event}: {event_json.get(str(event))},"
             else:
-                myString = f'{event}: "{event_json.get(str(event))}",'            
+                myString = f'{event}: "{event_json.get(str(event))}",'
             exec_statement += myString
         exec_statement = exec_statement[:-1]
         exec_statement += "})"
@@ -77,7 +77,7 @@ class Neo4j:
     def make_relationship(self, event_type, source_id, relation_type, dest_id):
         # Initiate the Neo4j Driver Session
         session = self.driver.session()
-        
+
         # Revisit Relationships that didn't succeed earlier because the Source Event wasn't created yet
         if self.queue_list:
             index = 0
@@ -88,9 +88,9 @@ class Neo4j:
                     record = result.single()
 
                     # If the neo4j Exec_Statement returns Source Count of Zero
-                    if "0" in {str(record['total'])}:
+                    if "0" in {str(record["total"])}:
                         index = index + 1
-                        continue # Try Again
+                        continue  # Try Again
 
                     # Else there is an existing source that we can relate to
                     else:
@@ -106,8 +106,8 @@ class Neo4j:
         relationship_statement = (
             f'MATCH (source:{source_type} {{id: "{source_id}"}}) '
             f'MATCH (target:{dest_type} {{id: "{dest_id}"}}) '
-            f'MERGE (source)-[r:{relation_type}]->(target) '
-            f'RETURN COUNT(source) as total'
+            f"MERGE (source)-[r:{relation_type}]->(target) "
+            f"RETURN COUNT(source) as total"
         )
 
         # log.warning(exec_statement)
@@ -117,7 +117,7 @@ class Neo4j:
         # If there are no existing Source_Types, then we cannot relate.
         # We must queue this relationship to run later after the Source Node has been created
         # log.warning(f"Count for {source_type}: {record['total']}")
-        if "0" in {str(record['total'])}:
+        if "0" in {str(record["total"])}:
             # try again later after source event has been created
             pending_event = {source_id: relationship_statement}
             self.queue_list.append(pending_event)

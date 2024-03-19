@@ -46,9 +46,11 @@ class neo4j(BaseOutputModule):
             await self.scan.run_in_executor(self.neo4j.insert_event, self.scan.root_event)
         except Exception as e:
             if "ServiceUnavailable" in str(type(e)):
-                self.warning(f'Start the Neo4j Docker! '
-                             f'docker run -d -p 7687:7687 -p 7474:7474 -v "$(pwd)/neo4j/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j'
-                             f'\n{e}\n({type(e)})')
+                self.warning(
+                    f"Start the Neo4j Docker! "
+                    f'docker run -d -p 7687:7687 -p 7474:7474 -v "$(pwd)/neo4j/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j'
+                    f"\n{e}\n({type(e)})"
+                )
             else:
                 self.warning(f"Error setting up Neo4j:\n{e}\n({type(e)})")
             return False
