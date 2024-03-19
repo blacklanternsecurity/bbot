@@ -1,10 +1,13 @@
 import subprocess
-import os
+from pathlib import Path
+
 from .base import ModuleTestBase
 
 
 class TestTrufflehog(ModuleTestBase):
     modules_overrides = ["github_org", "speculate", "git_clone", "trufflehog"]
+
+    file_content = "Verifyable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifyable Secret:\nhttps://admin:admin@internal.host.com"
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
@@ -151,13 +154,12 @@ class TestTrufflehog(ModuleTestBase):
         )
 
     async def setup_after_prep(self, module_test):
-        subprocess.run(["git", "init", "test_keys"], cwd=os.path.join(module_test.scan.home))
-        os.chdir(os.path.join(module_test.scan.home, "test_keys"))
-        with open(os.path.join(module_test.scan.home, "test_keys", "keys.txt"), "w") as f:
-            f.write("Verifyable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n")
-            f.write("\n")
-            f.write("Unverifyable Secret:\nhttps://admin:admin@internal.host.com")
-        subprocess.run(["git", "add", "."])
+        temp_path = Path("/tmp/.bbot_test")
+        subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
+        temp_repo_path = temp_path / "test_keys"
+        with open(temp_repo_path / "keys.txt", "w") as f:
+            f.write(self.file_content)
+        subprocess.run(["git", "add", "."], cwd=temp_repo_path)
         subprocess.run(
             [
                 "git",
@@ -170,40 +172,64 @@ class TestTrufflehog(ModuleTestBase):
                 "Initial commit",
             ],
             check=True,
+            cwd=temp_repo_path,
         )
 
         old_filter_event = module_test.scan.modules["git_clone"].filter_event
 
         def new_filter_event(event):
             event.data["url"] = event.data["url"].replace(
-                "https://github.com/blacklanternsecurity", "file://" + os.path.join(module_test.scan.home)
+                "https://github.com/blacklanternsecurity", f"file://{temp_path}"
             )
             return old_filter_event(event)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "filter_event", new_filter_event)
 
     def check(self, module_test, events):
-        assert 1 == len(
-            [
-                e
-                for e in events
-                if e.type == e.type == "VULNERABILITY"
-                and "Verified Secret Found." in e.data["description"]
-                and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
-            ]
-        ), "Failed to find secret in events"
+        vuln_events = [
+            e
+            for e in events
+            if e.type == "VULNERABILITY"
+            and "Verified Secret Found." in e.data["description"]
+            and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
+        ]
+        assert 1 == len(vuln_events), "Failed to find secret in events"
+        source_event = vuln_events[0].source
+        folder = Path(source_event.data["path"])
+        assert folder.is_dir(), "Destination folder doesn't exist"
+        with open(folder / "keys.txt") as f:
+            content = f.read()
+            assert content == self.file_content, "File content doesn't match"
 
 
 class TestTrufflehog_NonVerified(TestTrufflehog):
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
 
+    async def setup_after_prep(self, module_test):
+        temp_path = Path("/tmp/.bbot_test")
+
+        old_filter_event = module_test.scan.modules["git_clone"].filter_event
+
+        def new_filter_event(event):
+            event.data["url"] = event.data["url"].replace(
+                "https://github.com/blacklanternsecurity", f"file://{temp_path}"
+            )
+            return old_filter_event(event)
+
+        module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "filter_event", new_filter_event)
+
     def check(self, module_test, events):
-        assert 1 == len(
-            [
-                e
-                for e in events
-                if e.type == e.type == "FINDING"
-                and "Potential Secret Found." in e.data["description"]
-                and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
-            ]
-        ), "Failed to find secret in events"
+        finding_events = [
+            e
+            for e in events
+            if e.type == e.type == "FINDING"
+            and "Potential Secret Found." in e.data["description"]
+            and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
+        ]
+        assert 1 == len(finding_events), "Failed to find secret in events"
+        source_event = finding_events[0].source
+        folder = Path(source_event.data["path"])
+        assert folder.is_dir(), "Destination folder doesn't exist"
+        with open(folder / "keys.txt") as f:
+            content = f.read()
+            assert content == self.file_content, "File content doesn't match"

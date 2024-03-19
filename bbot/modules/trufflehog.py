@@ -57,16 +57,12 @@ class trufflehog(BaseModule):
                     "severity": "High",
                     "description": f"Verified Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
                     "host": str(event.source.host),
-                    "path": str(event.data.get("path")),
-                    "source": str(event.source.data.get("url")),
                 }
                 await self.emit_event(data, "VULNERABILITY", event)
             else:
                 data = {
                     "description": f"Potential Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
                     "host": str(event.source.host),
-                    "path": str(event.data.get("path")),
-                    "source": str(event.source.data.get("url")),
                 }
                 await self.emit_event(data, "FINDING", event)
 
