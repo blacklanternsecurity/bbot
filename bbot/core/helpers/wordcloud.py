@@ -164,7 +164,7 @@ class WordCloud(dict):
                 for s in subdomain.split("."):
                     self.dns_mutator.add_word(s)
 
-    def absorb_word(self, word, ninja=True):
+    def absorb_word(self, word, wordninja=True):
         """
         Absorbs a word into the word cloud after splitting it using a word extraction algorithm.
 
@@ -173,7 +173,7 @@ class WordCloud(dict):
 
         Args:
             word (str): The word to be split and absorbed into the word cloud.
-            ninja (bool, optional): If True, word extraction is enabled. Defaults to True.
+            wordninja (bool, optional): If True, word extraction is enabled. Defaults to True.
 
         Examples:
             >>> self.helpers.word_cloud.absorb_word("blacklantern")
@@ -185,7 +185,7 @@ class WordCloud(dict):
                 "lantern": 1
             }
         """
-        for w in self.parent_helper.extract_words(word):
+        for w in self.parent_helper.extract_words(word, wordninja=wordninja):
             self.add_word(w)
 
     def add_word(self, word, lowercase=True):
