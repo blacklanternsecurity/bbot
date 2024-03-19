@@ -95,7 +95,6 @@ class DNSHelper:
         self.max_dns_resolve_distance = self.parent_helper.config.get("max_dns_resolve_distance", 5)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
-        self._resolver_list = None
 
         # skip certain queries
         dns_omit_queries = self.parent_helper.config.get("dns_omit_queries", None)
@@ -134,10 +133,6 @@ class DNSHelper:
         self._dns_cache = LRUCache(maxsize=10000)
         self._event_cache = LRUCache(maxsize=10000)
         self._event_cache_locks = NamedLock()
-
-        # for mocking DNS queries
-        self._orig_resolve_raw = None
-        self._mock_table = {}
 
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers

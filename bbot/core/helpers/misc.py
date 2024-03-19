@@ -1611,7 +1611,8 @@ def mkdir(path, check_writable=True, raise_error=True):
     touchfile = path / f".{rand_string()}"
     try:
         path.mkdir(exist_ok=True, parents=True)
-        touchfile.touch()
+        if check_writable:
+            touchfile.touch()
         return True
     except Exception as e:
         if raise_error:

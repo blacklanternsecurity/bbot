@@ -227,9 +227,6 @@ class Scanner:
         self.__log_handlers = None
         self._log_handler_backup = []
 
-    def _on_keyboard_interrupt(self, loop, event):
-        self.stop()
-
     async def _prep(self):
         """
         Calls .load_modules() and .setup_modules() in preparation for a scan
