@@ -5,6 +5,7 @@ class gitlab(BaseModule):
     watched_events = ["HTTP_RESPONSE", "TECHNOLOGY", "SOCIAL"]
     produced_events = ["TECHNOLOGY", "SOCIAL", "CODE_REPOSITORY", "FINDING"]
     flags = ["active", "safe"]
+    meta = {"description": "Detect GitLab instances and query them for repositories"}
 
     scope_distance_modifier = 2
 
