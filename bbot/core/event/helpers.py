@@ -3,8 +3,8 @@ import ipaddress
 from contextlib import suppress
 
 from bbot.core.errors import ValidationError
+from bbot.core.helpers.regexes import event_type_regexes
 from bbot.core.helpers import sha1, smart_decode, smart_encode_punycode
-from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
 
 
 log = logging.getLogger("bbot.core.event.helpers")
