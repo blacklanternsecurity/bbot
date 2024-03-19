@@ -9,8 +9,6 @@ import traceback
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-# from aioconsole import stream
-
 # fix tee buffering
 sys.stdout.reconfigure(line_buffering=True)
 
