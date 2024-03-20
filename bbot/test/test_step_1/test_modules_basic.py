@@ -336,7 +336,7 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
     scan.modules["dummy"] = dummy(scan)
     events = [e async for e in scan.async_start()]
 
-    assert len(events) == 6
+    assert len(events) == 7
     assert 1 == len([e for e in events if e.type == "SCAN"])
     assert 2 == len([e for e in events if e.type == "DNS_NAME"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "evilcorp.com"])
@@ -345,11 +345,13 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdf.evilcorp.com"])
     assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp"])
     assert 1 == len([e for e in events if e.type == "FINDING"])
+    assert 1 == len([e for e in events if e.type == "URL_UNVERIFIED"])
 
     assert scan.stats.events_emitted_by_type == {
         "SCAN": 1,
         "DNS_NAME": 2,
         "URL": 1,
+        "URL_UNVERIFIED": 1,
         "FINDING": 1,
         "ORG_STUB": 1,
     }
@@ -357,25 +359,32 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
     assert set(scan.stats.module_stats) == {"host", "speculate", "python", "dummy", "TARGET"}
 
     target_stats = scan.stats.module_stats["TARGET"]
-    assert target_stats.emitted == {"SCAN": 1, "DNS_NAME": 1}
-    assert target_stats.emitted_total == 2
     assert target_stats.produced == {"SCAN": 1, "DNS_NAME": 1}
     assert target_stats.produced_total == 2
     assert target_stats.consumed == {}
     assert target_stats.consumed_total == 0
 
     dummy_stats = scan.stats.module_stats["dummy"]
-    assert dummy_stats.emitted == {"FINDING": 1, "URL": 1}
-    assert dummy_stats.emitted_total == 2
     assert dummy_stats.produced == {"FINDING": 1, "URL": 1}
     assert dummy_stats.produced_total == 2
-    assert dummy_stats.consumed == {"DNS_NAME": 2, "OPEN_TCP_PORT": 1, "SCAN": 1, "URL": 1}
-    assert dummy_stats.consumed_total == 5
+    assert dummy_stats.consumed == {"DNS_NAME": 2, "OPEN_TCP_PORT": 1, "SCAN": 1, "URL": 1, "URL_UNVERIFIED": 1}
+    assert dummy_stats.consumed_total == 6
 
     python_stats = scan.stats.module_stats["python"]
-    assert python_stats.emitted == {}
-    assert python_stats.emitted_total == 0
     assert python_stats.produced == {}
     assert python_stats.produced_total == 0
-    assert python_stats.consumed == {"DNS_NAME": 2, "FINDING": 1, "ORG_STUB": 1, "SCAN": 1, "URL": 1}
-    assert python_stats.consumed_total == 6
+    assert python_stats.consumed == {
+        "DNS_NAME": 2,
+        "FINDING": 1,
+        "ORG_STUB": 1,
+        "SCAN": 1,
+        "URL": 1,
+        "URL_UNVERIFIED": 1,
+    }
+    assert python_stats.consumed_total == 7
+
+    speculate_stats = scan.stats.module_stats["speculate"]
+    assert speculate_stats.produced == {"URL_UNVERIFIED": 1, "ORG_STUB": 1}
+    assert speculate_stats.produced_total == 2
+    assert speculate_stats.consumed == {"URL": 1, "DNS_NAME": 2, "URL_UNVERIFIED": 1}
+    assert speculate_stats.consumed_total == 4
