@@ -6,8 +6,16 @@ class gitlab(BaseModule):
     produced_events = ["TECHNOLOGY", "SOCIAL", "CODE_REPOSITORY", "FINDING"]
     flags = ["active", "safe"]
     meta = {"description": "Detect GitLab instances and query them for repositories"}
+    options = {"api_key": ""}
+    options_desc = {"api_key": "Gitlab access token"}
 
     scope_distance_modifier = 2
+
+    async def setup(self):
+        self.headers = {}
+        self.api_key = self.config.get("api_key", "")
+        if self.api_key:
+            self.headers.update({"Authorization": f"Bearer {self.api_key}"})
 
     async def filter_event(self, event):
         # only accept out-of-scope SOCIAL events
@@ -91,7 +99,7 @@ class gitlab(BaseModule):
             await self.handle_namespace(group, event)
 
     async def gitlab_json_request(self, url):
-        response = await self.helpers.request(url)
+        response = await self.helpers.request(url, headers=self.headers)
         if response is not None:
             try:
                 json = response.json()
