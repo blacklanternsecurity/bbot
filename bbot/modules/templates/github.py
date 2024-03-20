@@ -14,7 +14,7 @@ class github(subdomain_enum):
         await super().setup()
         self.api_key = None
         self.headers = {}
-        for module_name in ("github", "github_codesearch", "github_org"):
+        for module_name in ("github", "github_codesearch", "github_org", "git_clone"):
             module_config = self.scan.config.get("modules", {}).get(module_name, {})
             api_key = module_config.get("api_key", "")
             if api_key:
