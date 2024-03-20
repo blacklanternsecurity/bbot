@@ -1,4 +1,5 @@
 import subprocess
+import shutil
 from pathlib import Path
 
 from .base import ModuleTestBase
@@ -155,8 +156,9 @@ class TestTrufflehog(ModuleTestBase):
 
     async def setup_after_prep(self, module_test):
         temp_path = Path("/tmp/.bbot_test")
-        subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
         temp_repo_path = temp_path / "test_keys"
+        shutil.rmtree(temp_repo_path, ignore_errors=True)
+        subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
         with open(temp_repo_path / "keys.txt", "w") as f:
             f.write(self.file_content)
         subprocess.run(["git", "add", "."], cwd=temp_repo_path)
@@ -204,19 +206,6 @@ class TestTrufflehog(ModuleTestBase):
 
 class TestTrufflehog_NonVerified(TestTrufflehog):
     config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
-
-    async def setup_after_prep(self, module_test):
-        temp_path = Path("/tmp/.bbot_test")
-
-        old_filter_event = module_test.scan.modules["git_clone"].filter_event
-
-        def new_filter_event(event):
-            event.data["url"] = event.data["url"].replace(
-                "https://github.com/blacklanternsecurity", f"file://{temp_path}"
-            )
-            return old_filter_event(event)
-
-        module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "filter_event", new_filter_event)
 
     def check(self, module_test, events):
         finding_events = [
