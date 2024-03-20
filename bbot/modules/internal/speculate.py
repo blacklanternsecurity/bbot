@@ -83,13 +83,11 @@ class speculate(BaseInternalModule):
             if parent != event.data:
                 await self.emit_event(parent, "DNS_NAME", source=event, internal=True)
 
-        # generate open ports
-
         # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
         speculate_open_ports = self.emit_open_ports and event_in_scope_distance
 
-        # from URLs
+        # URL --> OPEN_TCP_PORT
         if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
             # only speculate port from a URL if it wouldn't be speculated naturally from the host
             if event.host and (event.port not in self.ports or not speculate_open_ports):
@@ -101,7 +99,7 @@ class speculate(BaseInternalModule):
                     quick=(event.type == "URL"),
                 )
 
-        # generate sub-directory URLS from URLS
+        # speculate sub-directory URLS from URLS
         if event.type == "URL":
             url_parents = self.helpers.url_parents(event.data)
             for up in url_parents:
@@ -112,13 +110,19 @@ class speculate(BaseInternalModule):
                     url_event.web_spider_distance = source_web_spider_distance
                     await self.emit_event(url_event)
 
-        # URLs from any event with URL attribute
-        if isinstance(event.data, dict) and "url" in event.data:
-            url = event.data["url"]
-            tags = None
-            if self.helpers.is_spider_danger(event.source, url):
-                tags = ["spider-danger"]
-            await self.emit_event(url, "URL_UNVERIFIED", tags=tags, source=event)
+        # speculate URL_UNVERIFIED from URL or any event with "url" attribute
+        event_is_url = event.type == "URL"
+        event_has_url = isinstance(event.data, dict) and "url" in event.data
+        if event_is_url or event_has_url:
+            if event_is_url:
+                url = event.data
+            else:
+                url = event.data["url"]
+            if not any(e.source.type == "URL_UNVERIFIED" and e.source.data == url for e in event.get_sources()):
+                tags = None
+                if self.helpers.is_spider_danger(event.source, url):
+                    tags = ["spider-danger"]
+                await self.emit_event(url, "URL_UNVERIFIED", tags=tags, source=event)
 
         # from hosts
         if speculate_open_ports:
