@@ -90,6 +90,7 @@ class BBOTArgs:
         return self._parsed
 
     def preset_from_args(self):
+        self.validate()
         args_preset = self.preset.__class__(
             *self.parsed.targets,
             whitelist=self.parsed.whitelist,
@@ -151,6 +152,10 @@ class BBOTArgs:
         elif self.parsed.ignore_failed_deps:
             args_preset.core.custom_config["deps_behavior"] = "ignore_failed"
 
+        # other scan options
+        args_preset.scan_name = self.parsed.name
+        args_preset.output_dir = self.parsed.output_dir
+
         return args_preset
 
     def create_parser(self, *args, **kwargs):
@@ -160,7 +165,6 @@ class BBOTArgs:
             )
         )
         p = argparse.ArgumentParser(*args, **kwargs)
-        p.add_argument("--help-all", action="store_true", help="Display full help including module config options")
         target = p.add_argument_group(title="Target")
         target.add_argument(
             "-t", "--targets", nargs="+", default=[], help="Targets to seed the scan", metavar="TARGET"
@@ -188,6 +192,9 @@ class BBOTArgs:
             metavar="MODULE",
         )
         modules.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
+        modules.add_argument(
+            "-lmo", "--list-module-options", action="store_true", help="Show all module config options"
+        )
         modules.add_argument(
             "-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE"
         )

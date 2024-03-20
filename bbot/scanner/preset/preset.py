@@ -10,7 +10,7 @@ from .path import PRESET_PATH
 
 from bbot.core import CORE
 from bbot.core.event.base import make_event
-from bbot.core.errors import ValidationError
+from bbot.core.errors import EnableFlagError, EnableModuleError, PresetNotFoundError, ValidationError
 
 
 log = logging.getLogger("bbot.presets")
@@ -37,8 +37,11 @@ class Preset:
         strict_scope=False,
         module_dirs=None,
         include=None,
+        output_dir=None,
+        scan_name=None,
         _exclude=None,
     ):
+        self.scan = None
         self._args = None
         self._environ = None
         self._helpers = None
@@ -54,6 +57,9 @@ class Preset:
         self._verbose = False
         self._debug = False
         self._silent = False
+
+        self.output_dir = output_dir
+        self.scan_name = scan_name
 
         self._preset_files_loaded = set()
         if _exclude is not None:
@@ -153,6 +159,11 @@ class Preset:
             self.verbose = other.verbose
         if other.debug:
             self.debug = other.debug
+        # scan name
+        if other.scan_name is not None:
+            self.scan_name = other.scan_name
+        if other.output_dir is not None:
+            self.output_dir = other.output_dir
 
     def bake(self):
         """
@@ -248,26 +259,27 @@ class Preset:
         try:
             preloaded = self.module_loader.preloaded()[module_name]
         except KeyError:
-            raise KeyError(f'Unable to add unknown BBOT module "{module_name}"')
+            raise EnableModuleError(f'Unable to add unknown BBOT module "{module_name}"')
 
         module_flags = preloaded.get("flags", [])
+        _module_type = preloaded.get("type", "scan")
         if module_type:
-            _module_type = preloaded.get("type", "scan")
             if _module_type != module_type:
                 log.verbose(
                     f'Not enabling module "{module_name}" because its type ({_module_type}) is not "{module_type}"'
                 )
                 return
 
-        for f in module_flags:
-            if f in self.exclude_flags:
-                log.verbose(f'Skipping module "{module_name}" because it\'s excluded')
+        if _module_type == "scan":
+            for f in module_flags:
+                if f in self.exclude_flags:
+                    log.verbose(f'Skipping module "{module_name}" because it\'s excluded')
+                    return
+            if self.require_flags and not any(f in self.require_flags for f in module_flags):
+                log.verbose(
+                    f'Skipping module "{module_name}" because it doesn\'t have the required flags ({",".join(self.require_flags)})'
+                )
                 return
-        if self.require_flags and not any(f in self.require_flags for f in module_flags):
-            log.verbose(
-                f'Skipping module "{module_name}" because it doesn\'t have the required flags ({",".join(self.require_flags)})'
-            )
-            return
 
         if module_name not in self.modules:
             log.verbose(f'Enabling module "{module_name}"')
@@ -297,6 +309,9 @@ class Preset:
     def flags(self, flags):
         if isinstance(flags, str):
             flags = [flags]
+        for flag in flags:
+            if not flag in self.module_loader._all_flags:
+                raise EnableFlagError(f'Flag "{flag}" was not found')
         self._flags = set(flags)
         if self._flags:
             for module, preloaded in self.module_loader.preloaded().items():
@@ -330,7 +345,7 @@ class Preset:
 
     def add_required_flag(self, flag):
         self.require_flags.add(flag)
-        for module in list(self.modules):
+        for module in list(self.scan_modules):
             module_flags = self.preloaded_module(module).get("flags", [])
             if flag not in module_flags:
                 log.verbose(f'Removing module "{module}" because it doesn\'t have the required flag, "{flag}"')
@@ -338,7 +353,7 @@ class Preset:
 
     def add_excluded_flag(self, flag):
         self.exclude_flags.add(flag)
-        for module in list(self.modules):
+        for module in list(self.scan_modules):
             module_flags = self.preloaded_module(module).get("flags", [])
             if flag in module_flags:
                 log.verbose(f'Removing module "{module}" because it has the excluded flag, "{flag}"')
@@ -346,7 +361,7 @@ class Preset:
 
     def add_excluded_module(self, module):
         self.exclude_modules.add(module)
-        for module in list(self.modules):
+        for module in list(self.scan_modules):
             if module in self.exclude_modules:
                 log.verbose(f'Removing module "{module}" because it\'s excluded')
                 self.modules.remove(module)
@@ -503,6 +518,8 @@ class Preset:
             strict_scope=preset_dict.get("strict_scope", False),
             module_dirs=preset_dict.get("module_dirs", []),
             include=preset_dict.get("include", []),
+            scan_name=preset_dict.get("scan_name"),
+            output_dir=preset_dict.get("output_dir"),
             _exclude=_exclude,
         )
         return new_preset
@@ -531,7 +548,10 @@ class Preset:
         log.debug(f"Merging {filename} because it's not in {_exclude}")
         _exclude = set(_exclude)
         _exclude.add(filename)
-        return cls.from_dict(omegaconf.OmegaConf.load(filename), _exclude=_exclude)
+        try:
+            return cls.from_dict(omegaconf.OmegaConf.load(filename), _exclude=_exclude)
+        except FileNotFoundError:
+            raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
 
     @classmethod
     def from_yaml_string(cls, yaml_preset):
@@ -586,6 +606,12 @@ class Preset:
             preset_dict["debug"] = True
         if self.silent:
             preset_dict["silent"] = True
+
+        # misc scan options
+        if self.scan_name:
+            preset_dict["scan_name"] = self.scan_name
+        if self.scan_name:
+            preset_dict["output_dir"] = self.output_dir
 
         return preset_dict
 

@@ -104,8 +104,6 @@ class Scanner:
         self,
         *args,
         scan_id=None,
-        scan_name=None,
-        output_dir=None,
         dispatcher=None,
         force_start=False,
         **preset_kwargs,
@@ -136,28 +134,30 @@ class Scanner:
         if preset is None:
             preset = Preset(*args, **preset_kwargs)
         self.preset = preset.bake()
+        self.preset.scan = self
 
         # scan name
-        if scan_name is None:
+        if preset.scan_name is None:
             tries = 0
             while 1:
                 if tries > 5:
-                    self.name = f"{rand_string(4)}_{rand_string(4)}"
+                    scan_name = f"{rand_string(4)}_{rand_string(4)}"
                     break
-                self.name = random_name()
-                if output_dir is not None:
-                    home_path = Path(output_dir).resolve() / self.name
+                scan_name = random_name()
+                if self.preset.output_dir is not None:
+                    home_path = Path(self.preset.output_dir).resolve() / scan_name
                 else:
-                    home_path = self.preset.bbot_home / "scans" / self.name
+                    home_path = self.preset.bbot_home / "scans" / scan_name
                 if not home_path.exists():
                     break
                 tries += 1
         else:
-            self.name = str(scan_name)
+            scan_name = str(preset.scan_name)
+        self.name = scan_name
 
         # scan output dir
-        if output_dir is not None:
-            self.home = Path(output_dir).resolve() / self.name
+        if preset.output_dir is not None:
+            self.home = Path(preset.output_dir).resolve() / self.name
         else:
             self.home = self.preset.bbot_home / "scans" / self.name
 

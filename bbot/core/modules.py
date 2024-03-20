@@ -45,6 +45,7 @@ class ModuleLoader:
         self.__preloaded = {}
         self._modules = {}
         self._configs = {}
+        self._all_flags = set()
 
         self._preload_cache = None
 
@@ -124,7 +125,10 @@ class ModuleLoader:
 
                 # try to load from cache
                 module_cache_key = (str(module_file), tuple(module_file.stat()))
-                cache_key = self.preload_cache.get(module_name, {}).get("cache_key", ())
+                preloaded_module = self.preload_cache.get(module_name, {})
+                flags = preloaded_module.get("flags", [])
+                self._all_flags.update(set(flags))
+                cache_key = preloaded_module.get("cache_key", ())
                 if module_cache_key == cache_key:
                     preloaded = self.preload_cache[module_name]
                 else:
@@ -138,7 +142,9 @@ class ModuleLoader:
                         if module_dir.name in ("output", "internal"):
                             module_type = str(module_dir.name)
                         elif module_dir.name not in ("modules"):
-                            preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
+                            flags = set(preloaded["flags"] + [module_dir.name])
+                            self._all_flags.update(flags)
+                            preloaded["flags"] = sorted(flags)
                         # derive module dependencies from watched event types (only for scan modules)
                         if module_type == "scan":
                             for event_type in preloaded["watched_events"]:

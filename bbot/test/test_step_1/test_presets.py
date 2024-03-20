@@ -474,3 +474,6 @@ config:
 #  make sure it works with cli arg module/flag/config syntax validation
 # what if you specify -c modules.custommodule.option
 #  the validation needs to not happen until after all presets have been loaded
+# what if you specify flags in one preset
+#  but another preset (loaded later) has more custom modules that match that flag
+# what if you specify a flag that's only on custom modules? Will it be rejected as invalid?

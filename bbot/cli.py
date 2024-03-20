@@ -4,6 +4,7 @@ import sys
 import asyncio
 import logging
 import traceback
+from contextlib import suppress
 
 # fix tee buffering
 sys.stdout.reconfigure(line_buffering=True)
@@ -25,69 +26,117 @@ async def _main():
 
     global scan_name
 
-    # start by creating a default scan preset
-    preset = Preset()
-    # parse command line arguments and merge into preset
-    preset.parse_args()
-    # ensure arguments (-c config options etc.) are valid
-    preset.args.validate()
-    options = preset.args.parsed
+    try:
 
-    # print help if no arguments
-    if len(sys.argv) == 1:
-        preset.args.parser.print_help()
-        sys.exit(1)
-        return
+        # start by creating a default scan preset
+        preset = Preset()
+        # parse command line arguments and merge into preset
+        preset.parse_args()
+        # ensure arguments (-c config options etc.) are valid
+        options = preset.args.parsed
 
-    # --version
-    if options.version:
-        log.stdout(__version__)
-        sys.exit(0)
-        return
+        modules_to_list = None
+        if options.modules or options.output_modules:
+            modules_to_list = set()
+            if options.modules:
+                modules_to_list.update(set(preset.scan_modules))
+            if options.output_modules:
+                modules_to_list.update(set(preset.output_modules))
 
-    # --current-preset
-    if options.current_preset:
-        log.stdout(preset.to_yaml())
-        sys.exit(0)
-        return
+        # print help if no arguments
+        if len(sys.argv) == 1:
+            preset.args.parser.print_help()
+            sys.exit(1)
+            return
 
-    # --current-preset-full
-    if options.current_preset_full:
-        log.stdout(preset.to_yaml(full_config=True))
-        sys.exit(0)
-        return
+        # --version
+        if options.version:
+            log.stdout(__version__)
+            sys.exit(0)
+            return
 
-    # --list-modules
-    if options.list_modules:
-        log.stdout("")
-        log.stdout("### MODULES ###")
-        log.stdout("")
-        for row in preset.module_loader.modules_table(preset.modules).splitlines():
-            log.stdout(row)
-        return
+        # --current-preset
+        if options.current_preset:
+            log.stdout(preset.to_yaml())
+            sys.exit(0)
+            return
 
-    # --list-flags
-    if options.list_flags:
-        log.stdout("")
-        log.stdout("### FLAGS ###")
-        log.stdout("")
-        for row in preset.module_loader.flags_table(flags=preset.flags).splitlines():
-            log.stdout(row)
-        return
+        # --current-preset-full
+        if options.current_preset_full:
+            log.stdout(preset.to_yaml(full_config=True))
+            sys.exit(0)
+            return
 
-    scan = Scanner(preset=preset)
-    scan_name = str(scan.name)
-    await scan._prep()
+        # --list-modules
+        if options.list_modules:
+            log.stdout("")
+            log.stdout("### MODULES ###")
+            log.stdout("")
+            for row in preset.module_loader.modules_table(modules_to_list).splitlines():
+                log.stdout(row)
+            return
 
-    if not options.dry_run:
-        log.trace(f"Command: {' '.join(sys.argv)}")
+        # --list-module-options
+        if options.list_module_options:
+            log.stdout("")
+            log.stdout("### MODULE OPTIONS ###")
+            log.stdout("")
+            for row in preset.module_loader.modules_options_table(modules=modules_to_list).splitlines():
+                log.stdout(row)
+            return
 
-        if sys.stdin.isatty():
-            if not options.yes:
-                log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
-                input()
+        # --list-flags
+        if options.list_flags:
+            flags = preset.flags if preset.flags else None
+            log.stdout("")
+            log.stdout("### FLAGS ###")
+            log.stdout("")
+            for row in preset.module_loader.flags_table(flags=flags).splitlines():
+                log.stdout(row)
+            return
 
-    await scan.async_start_without_generator()
+        deadly_modules = [m for m in preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])]
+        if deadly_modules and not options.allow_deadly:
+            log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
+            log.hugewarning(f"Deadly modules are highly intrusive")
+            log.hugewarning(f"Please specify --allow-deadly to continue")
+            return False
+
+        scan = Scanner(preset=preset)
+
+        # --install-all-deps
+        if options.install_all_deps:
+            all_modules = list(preset.module_loader.preloaded())
+            scan.helpers.depsinstaller.force_deps = True
+            succeeded, failed = await scan.helpers.depsinstaller.install(*all_modules)
+            log.info("Finished installing module dependencies")
+            return False if failed else True
+
+        scan_name = str(scan.name)
+        scan.helpers.word_cloud.load()
+        await scan._prep()
+
+        if not options.dry_run:
+            log.trace(f"Command: {' '.join(sys.argv)}")
+
+            if sys.stdin.isatty():
+                if not options.yes:
+                    log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
+                    input()
+
+        await scan.async_start_without_generator()
+
+        return True
+
+    finally:
+        # save word cloud
+        with suppress(BaseException):
+            save_success, filename = scan.helpers.word_cloud.save()
+            if save_success:
+                log_to_stderr(f"Saved word cloud ({len(scan.helpers.word_cloud):,} words) to {filename}")
+        # remove output directory if empty
+        with suppress(BaseException):
+            scan.home.rmdir()
 
 
 def main():

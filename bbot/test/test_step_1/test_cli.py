@@ -2,12 +2,11 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_cli(monkeypatch, bbot_config):
+async def test_cli_args(monkeypatch, bbot_config):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
-    monkeypatch.setattr(cli, "config", bbot_config)
 
     old_sys_argv = sys.argv
 
@@ -44,56 +43,90 @@ async def test_cli(monkeypatch, bbot_config):
                 dns_success = True
     assert ip_success and dns_success, "IP_ADDRESS and/or DNS_NAME are not present in output.txt"
 
+    # nonexistent module
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "asdf"])
+    with pytest.raises(EnableModuleError):
+        result = await cli._main()
+
+    # nonexistent output module
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "asdf"])
+    with pytest.raises(EnableModuleError):
+        result = await cli._main()
+
+    # nonexistent flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "asdf"])
+    with pytest.raises(EnableFlagError):
+        result = await cli._main()
+
     # show version
     monkeypatch.setattr("sys.argv", ["bbot", "--version"])
-    await cli._main()
+    result = await cli._main()
+    assert result == None
 
-    # start agent
-    monkeypatch.setattr("sys.argv", ["bbot", "--agent-mode"])
-    task = asyncio.create_task(cli._main())
-    await asyncio.sleep(2)
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    # show current preset
+    monkeypatch.setattr("sys.argv", ["bbot", "--current-preset"])
+    result = await cli._main()
+    assert result == None
+
+    # show current preset (full)
+    monkeypatch.setattr("sys.argv", ["bbot", "--current-preset-full"])
+    result = await cli._main()
+    assert result == None
+
+    # list modules
+    monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
+    result = await cli._main()
+    assert result == None
+
+    # list module options
+    monkeypatch.setattr("sys.argv", ["bbot", "--list-module-options"])
+    result = await cli._main()
+    assert result == None
+
+    # list flags
+    monkeypatch.setattr("sys.argv", ["bbot", "--list-flags"])
+    result = await cli._main()
+    assert result == None
 
     # no args
     monkeypatch.setattr("sys.argv", ["bbot"])
-    await cli._main()
+    result = await cli._main()
+    assert result == None
 
     # enable module by flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "report"])
-    await cli._main()
+    result = await cli._main()
+    assert result == True
 
     # unconsoleable output module
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "web_report"])
-    await cli._main()
-
-    # install all deps
-    monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
-    success = await cli._main()
-    assert success, "--install-all-deps failed for at least one module"
+    result = await cli._main()
+    assert result == True
 
     # unresolved dependency
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "wappalyzer"])
-    await cli._main()
+    result = await cli._main()
+    assert result == True
 
     # resolved dependency, excluded module
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "ffuf_shortnames", "-em", "ffuf_shortnames"])
-    await cli._main()
+    result = await cli._main()
+    assert result == True
 
     # require flags
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "-rf", "passive"])
-    await cli._main()
+    result = await cli._main()
+    assert result == True
 
     # excluded flags
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "-ef", "active"])
-    await cli._main()
+    result = await cli._main()
+    assert result == True
 
     # slow modules
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdns"])
-    await cli._main()
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "bucket_digitalocean"])
+    result = await cli._main()
+    assert result == True
 
     # deadly modules
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei"])
@@ -103,19 +136,12 @@ async def test_cli(monkeypatch, bbot_config):
     # --allow-deadly
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei", "--allow-deadly"])
     result = await cli._main()
-    assert result != False, "-m nuclei failed to run with --allow-deadly"
+    assert result == True, "-m nuclei failed to run with --allow-deadly"
 
-    # show current config
-    monkeypatch.setattr("sys.argv", ["bbot", "-y", "--current-config"])
-    await cli._main()
-
-    # list modules
-    monkeypatch.setattr("sys.argv", ["bbot", "-l"])
-    await cli._main()
-
-    # list module options
-    monkeypatch.setattr("sys.argv", ["bbot", "--help-all"])
-    await cli._main()
+    # install all deps
+    monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
+    success = await cli._main()
+    assert success, "--install-all-deps failed for at least one module"
 
     # unpatch sys.argv
     monkeypatch.setattr("sys.argv", old_sys_argv)

@@ -52,3 +52,11 @@ class CurlError(BBOTError):
 
 class PresetNotFoundError(BBOTError):
     pass
+
+
+class EnableModuleError(BBOTError):
+    pass
+
+
+class EnableFlagError(BBOTError):
+    pass
