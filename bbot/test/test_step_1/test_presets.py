@@ -305,10 +305,7 @@ def test_preset_module_resolution():
 
 
 def test_preset_module_loader():
-
-    from pathlib import Path
-
-    custom_module_dir = Path("/tmp/.bbot_test/custom_module_dir")
+    custom_module_dir = bbot_test_dir / "custom_module_dir"
     custom_module_dir_2 = custom_module_dir / "asdf"
     custom_output_module_dir = custom_module_dir / "output"
     custom_internal_module_dir = custom_module_dir / "internal"
@@ -413,7 +410,64 @@ class TestModule4(BaseModule):
     assert "testmodule4" in preset2.module_loader.preloaded()
 
 
-# test recursive include
+def test_preset_include():
+
+    # test recursive preset inclusion
+
+    custom_preset_dir_1 = bbot_test_dir / "custom_preset_dir"
+    custom_preset_dir_2 = custom_preset_dir_1 / "preset_subdir"
+    custom_preset_dir_3 = custom_preset_dir_2 / "subsubdir"
+    mkdir(custom_preset_dir_1)
+    mkdir(custom_preset_dir_2)
+    mkdir(custom_preset_dir_3)
+
+    preset_file = custom_preset_dir_1 / "preset1.yml"
+    with open(preset_file, "w") as f:
+        f.write(
+            """
+include:
+  - preset2
+
+config:
+  modules:
+    testpreset1:
+      test: asdf
+"""
+        )
+
+    preset_file = custom_preset_dir_2 / "preset2.yml"
+    with open(preset_file, "w") as f:
+        f.write(
+            """
+include:
+  - preset3
+
+config:
+  modules:
+    testpreset2:
+      test: fdsa
+"""
+        )
+
+    preset_file = custom_preset_dir_3 / "preset3.yml"
+    with open(preset_file, "w") as f:
+        f.write(
+            """
+include:
+  # uh oh
+  - preset1
+
+config:
+  modules:
+    testpreset3:
+      test: qwerty
+"""
+        )
+
+    preset = Preset(include=[custom_preset_dir_1 / "preset1"])
+    assert preset.config.modules.testpreset1.test == "asdf"
+    assert preset.config.modules.testpreset2.test == "fdsa"
+    assert preset.config.modules.testpreset3.test == "qwerty"
 
 
 # test custom module load directory

@@ -12,6 +12,12 @@ from omegaconf import OmegaConf
 
 from werkzeug.wrappers import Request
 
+from bbot.core.helpers.misc import mkdir
+
+
+bbot_test_dir = Path("/tmp/.bbot_test")
+mkdir(bbot_test_dir)
+
 
 class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
     def match_data(self, request: Request) -> bool:

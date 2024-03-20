@@ -18,7 +18,7 @@ class PresetPath:
         self.add_path(Path.cwd())
 
     def find(self, filename):
-        filename = Path(filename)
+        filename = Path(filename).resolve()
         self.add_path(filename.parent)
         if filename.is_file():
             log.hugesuccess(filename)
@@ -37,7 +37,7 @@ class PresetPath:
             for candidate in file_candidates:
                 for file in path.rglob(candidate):
                     log.verbose(f'Found preset matching "{filename}" at {file}')
-                    return file
+                    return file.resolve()
         raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
 
     def __str__(self):

@@ -36,7 +36,8 @@ class Preset:
         config=None,
         strict_scope=False,
         module_dirs=None,
-        include_presets=None,
+        include=None,
+        _exclude=None,
     ):
         self._args = None
         self._environ = None
@@ -53,6 +54,11 @@ class Preset:
         self._verbose = False
         self._debug = False
         self._silent = False
+
+        self._preset_files_loaded = set()
+        if _exclude is not None:
+            for _filename in _exclude:
+                self._preset_files_loaded.add(Path(_filename).resolve())
 
         # bbot core config
         self.core = CORE.copy()
@@ -88,10 +94,9 @@ class Preset:
         self.blacklist = Target(*blacklist)
 
         # include other presets
-        if include_presets:
-            for preset in include_presets:
-                log.debug(f'Including preset "{preset}"')
-                self.merge(self.from_yaml_file(preset))
+        if include:
+            for included_preset in include:
+                self.include_preset(included_preset)
 
         # modules + flags
         if modules is None:
@@ -480,7 +485,7 @@ class Preset:
         return e in self.whitelist
 
     @classmethod
-    def from_dict(cls, preset_dict):
+    def from_dict(cls, preset_dict, _exclude=None):
         new_preset = cls(
             *preset_dict.get("target", []),
             whitelist=preset_dict.get("whitelist"),
@@ -497,19 +502,36 @@ class Preset:
             config=preset_dict.get("config"),
             strict_scope=preset_dict.get("strict_scope", False),
             module_dirs=preset_dict.get("module_dirs", []),
-            include_presets=preset_dict.get("include", []),
+            include=preset_dict.get("include", []),
+            _exclude=_exclude,
         )
         return new_preset
 
+    def include_preset(self, filename):
+        log.debug(f'Including preset "{filename}"')
+        preset_filename = PRESET_PATH.find(filename)
+        preset_from_yaml = self.from_yaml_file(preset_filename, _exclude=self._preset_files_loaded)
+        if preset_from_yaml is not False:
+            self.merge(preset_from_yaml)
+        self._preset_files_loaded.add(preset_filename)
+
     @classmethod
-    def from_yaml_file(cls, filename):
+    def from_yaml_file(cls, filename, _exclude=None):
         """
         Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
 
-        Specifying the file extension is optional.
+        The file extension is optional.
         """
-        yaml_preset = PRESET_PATH.find(filename)
-        return cls.from_dict(omegaconf.OmegaConf.load(yaml_preset))
+        if _exclude is None:
+            _exclude = set()
+        filename = Path(filename).resolve()
+        if _exclude is not None and filename in _exclude:
+            log.debug(f"Not merging {filename} because it was already loaded {_exclude}")
+            return False
+        log.debug(f"Merging {filename} because it's not in {_exclude}")
+        _exclude = set(_exclude)
+        _exclude.add(filename)
+        return cls.from_dict(omegaconf.OmegaConf.load(filename), _exclude=_exclude)
 
     @classmethod
     def from_yaml_string(cls, yaml_preset):

@@ -8,17 +8,15 @@ from types import SimpleNamespace
 from bbot.scanner import Scanner
 from bbot.core import CORE
 from bbot.core.helpers.misc import rand_string
-from ...bbot_fixtures import test_config, MockResolver
+from ...bbot_fixtures import test_config, MockResolver, bbot_test_dir
 
 log = logging.getLogger("bbot.test.modules")
 
 
 def tempwordlist(content):
-    tmp_path = "/tmp/.bbot_test/"
-    from bbot.core.helpers.misc import rand_string, mkdir
+    from bbot.core.helpers.misc import rand_string
 
-    mkdir(tmp_path)
-    filename = f"{tmp_path}{rand_string(8)}"
+    filename = bbot_test_dir / f"{rand_string(8)}"
     with open(filename, "w", errors="ignore") as f:
         for c in content:
             line = f"{c}\n"
