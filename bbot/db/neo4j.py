@@ -128,8 +128,8 @@ class Neo4j:
             self.queue_list.append(pending_event)
 
     def parse_data(self, event_json_str):
-        _string = ''.join(str(event_json_str))
-        return _string.replace('\"', '\\\"')
+        _string = "".join(str(event_json_str))
+        return _string.replace('"', '\\"')
 
     async def cleanup(self):
         self.driver.close()
