@@ -42,11 +42,13 @@ class Neo4j:
         result = session.run(neo4j_statement)
         record = result.single()
         log.info(f"Deleted {record['total']} Neo4j Records from previous scans")
+        session.close()
 
     def insert_event(self, event):
         self.insert_events([event])
 
     def insert_events(self, events):
+        self.session = self.driver.session()
         for event in events:
             event_json = event.json(mode="graph")
 
@@ -64,6 +66,7 @@ class Neo4j:
             if source_id is not dest_id:
                 # Prompt Neo4j to create a relationship between this node and its Source Node
                 self.make_relationship(event_type, source_id, relation_type, dest_id)
+        self.session.close()
 
     def make_node(self, event_type, event_json):
         # Create the Exec Statement. Example:
@@ -85,12 +88,12 @@ class Neo4j:
 
         # Instantiate Driver Session and Run Exec_Statement (aka - send to Neo4j to graph)
         log.warning(exec_statement)
-        session = self.driver.session()
-        session.run(exec_statement)
+        # session = self.driver.session()
+        self.session.run(exec_statement)
 
     def make_relationship(self, event_type, source_id, relation_type, dest_id):
         # Initiate the Neo4j Driver Session
-        session = self.driver.session()
+        # session = self.driver.session()
 
         # Revisit Relationships that didn't succeed earlier because the Source Event wasn't created yet
         if self.queue_list:
@@ -98,7 +101,7 @@ class Neo4j:
             for pending_event in self.queue_list:
                 for key, exec_statement in pending_event.items():
                     # log.debug(f"{key} : {exec_statement}")
-                    result = session.run(exec_statement)
+                    result = self.session.run(exec_statement)
                     record = result.single()
 
                     # If the neo4j Exec_Statement returns Source Count of Zero
@@ -125,7 +128,7 @@ class Neo4j:
         )
 
         # log.warning(exec_statement)
-        result = session.run(relationship_statement)
+        result = self.session.run(relationship_statement)
         record = result.single()
 
         # If there are no existing Source_Types, then we cannot relate.
@@ -139,3 +142,6 @@ class Neo4j:
     def parse_data(self, event_json_str):
         _string = ''.join(str(event_json_str))
         return _string.replace('\"', '\\\"')
+
+    async def cleanup(self):
+        self.driver.close()
