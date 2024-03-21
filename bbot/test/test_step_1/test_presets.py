@@ -417,9 +417,13 @@ def test_preset_include():
     custom_preset_dir_1 = bbot_test_dir / "custom_preset_dir"
     custom_preset_dir_2 = custom_preset_dir_1 / "preset_subdir"
     custom_preset_dir_3 = custom_preset_dir_2 / "subsubdir"
+    custom_preset_dir_4 = Path("/tmp/.bbot_preset_test")
+    custom_preset_dir_5 = custom_preset_dir_4 / "subdir"
     mkdir(custom_preset_dir_1)
     mkdir(custom_preset_dir_2)
     mkdir(custom_preset_dir_3)
+    mkdir(custom_preset_dir_4)
+    mkdir(custom_preset_dir_5)
 
     preset_file = custom_preset_dir_1 / "preset1.yml"
     with open(preset_file, "w") as f:
@@ -452,10 +456,11 @@ config:
     preset_file = custom_preset_dir_3 / "preset3.yml"
     with open(preset_file, "w") as f:
         f.write(
-            """
+            f"""
 include:
   # uh oh
   - preset1
+  - {custom_preset_dir_4}/preset4
 
 config:
   modules:
@@ -464,10 +469,38 @@ config:
 """
         )
 
+    preset_file = custom_preset_dir_4 / "preset4.yml"
+    with open(preset_file, "w") as f:
+        f.write(
+            """
+include:
+  # uh oh
+  - preset5
+
+config:
+  modules:
+    testpreset4:
+      test: zxcv
+"""
+        )
+
+    preset_file = custom_preset_dir_5 / "preset5.yml"
+    with open(preset_file, "w") as f:
+        f.write(
+            """
+config:
+  modules:
+    testpreset5:
+      test: hjkl
+"""
+        )
+
     preset = Preset(include=[custom_preset_dir_1 / "preset1"])
     assert preset.config.modules.testpreset1.test == "asdf"
     assert preset.config.modules.testpreset2.test == "fdsa"
     assert preset.config.modules.testpreset3.test == "qwerty"
+    assert preset.config.modules.testpreset4.test == "zxcv"
+    assert preset.config.modules.testpreset5.test == "hjkl"
 
 
 # test custom module load directory
