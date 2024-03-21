@@ -34,15 +34,15 @@ class Neo4j:
 
     def __init__(self, uri="bolt://localhost:7687", username="neo4j", password="bbotislife"):
         self.driver = GraphDatabase.driver(uri=uri, auth=(username, password))
-        # The Neo4j Query Statement that will remove previous Neo4j records
-        neo4j_statement = "MATCH (n) DETACH DELETE (n) " "RETURN COUNT(n) as total"
 
-        # Setup Neo4j Driver Session and Send neo4j_statement
-        session = self.driver.session()
-        result = session.run(neo4j_statement)
-        record = result.single()
-        log.info(f"Deleted {record['total']} Neo4j Records from previous scans")
-        session.close()
+        # # UN-COMMENT TO FORCE NEO4J TO ERASE ALL PREVIOUS RECORDS
+        # # The Neo4j Query Statement that will remove previous Neo4j records
+        # neo4j_statement = "MATCH (n) DETACH DELETE (n) " "RETURN COUNT(n) as total"
+        # session = self.driver.session()
+        # result = session.run(neo4j_statement)
+        # record = result.single()
+        # log.info(f"Deleted {record['total']} Neo4j Records from previous scans")
+        # session.close()
 
     def insert_event(self, event):
         self.insert_events([event])
@@ -78,29 +78,21 @@ class Neo4j:
                 myString = f"{item}: {event_json.get(str(item))},"
             else:
                 myString = f'{item}: "{event_json.get(str(item))}",'
-            if "data" in str(item) and "{" in str(event_json.get(str(item))):   
-                # log.warning(f"String To Be Parsed: {str(event_json.get(str(item)))}")
+            if "data" in str(item) and "{" in str(event_json.get(str(item))):
                 myString = f'{item}: "{self.parse_data(str(event_json.get(str(item))))}",'
-                log.info(myString)
             exec_statement += myString
         exec_statement = exec_statement[:-1]
         exec_statement += "})"
 
         # Instantiate Driver Session and Run Exec_Statement (aka - send to Neo4j to graph)
-        log.warning(exec_statement)
-        # session = self.driver.session()
         self.session.run(exec_statement)
 
     def make_relationship(self, event_type, source_id, relation_type, dest_id):
-        # Initiate the Neo4j Driver Session
-        # session = self.driver.session()
-
         # Revisit Relationships that didn't succeed earlier because the Source Event wasn't created yet
         if self.queue_list:
             index = 0
             for pending_event in self.queue_list:
                 for key, exec_statement in pending_event.items():
-                    # log.debug(f"{key} : {exec_statement}")
                     result = self.session.run(exec_statement)
                     record = result.single()
 
@@ -111,13 +103,11 @@ class Neo4j:
 
                     # Else there is an existing source that we can relate to
                     else:
-                        # log.warning(self.queue_list[index])
                         del self.queue_list[index]
 
         # Creating Types from ID's provided
         source_type = source_id.split(":")[0]
         dest_type = dest_id.split(":")[0]
-        # log.warning(f"source_type: {source_type} - source_id: {_source_id} - relation_type: {relation_type} - dest_id: {dest_id}")
 
         # The Neo4j Query Statement Template to be passed
         relationship_statement = (
@@ -127,15 +117,13 @@ class Neo4j:
             f"RETURN COUNT(source) as total"
         )
 
-        # log.warning(exec_statement)
         result = self.session.run(relationship_statement)
         record = result.single()
 
         # If there are no existing Source_Types, then we cannot relate.
         # We must queue this relationship to run later after the Source Node has been created
-        # log.warning(f"Count for {source_type}: {record['total']}")
         if "0" in {str(record["total"])}:
-            # try again later after source event has been created
+            # Try again later after source event has been created
             pending_event = {source_id: relationship_statement}
             self.queue_list.append(pending_event)
 
