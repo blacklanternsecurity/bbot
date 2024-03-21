@@ -55,7 +55,7 @@ class github_org(github):
                 self.verbose(f"Searching for repos belonging to user {user}")
                 repos = await self.query_user_repos(user)
             for repo_url in repos:
-                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
+                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", source=event)
                 if not repo_event:
                     continue
                 repo_event.scope_distance = event.scope_distance
