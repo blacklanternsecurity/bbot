@@ -1,5 +1,6 @@
 from neo4j import GraphDatabase
 import logging
+from datetime import datetime
 
 
 log = logging.getLogger("bbot.db.neo4j")
@@ -40,7 +41,7 @@ class Neo4j:
         session = self.driver.session()
         result = session.run(neo4j_statement)
         record = result.single()
-        log.warning(f"Deleted {record['total']} Neo4j Records from previous scans")
+        log.info(f"Deleted {record['total']} Neo4j Records from previous scans")
 
     def insert_event(self, event):
         self.insert_events([event])
@@ -56,6 +57,7 @@ class Neo4j:
             event_type = event_json.pop("type")
             relation_type = event_json.pop("module", "TARGET")
             dest_id = event_json.get("id", "")
+            datetime.fromtimestamp(event_json.pop("timestamp"))
 
             # Prompt Neo4j to create a Node (Entity)
             self.make_node(event_type, event_json)
@@ -68,17 +70,21 @@ class Neo4j:
         # MERGE (:SCAN {id: "SCAN:<id>",data: "liquid_irene (SCAN:<id>)",scope_distance: 0,scan: "SCAN:6<id>",
         #    timestamp: "1710815413.899545",source: "SCAN:<id>",tags: ['in-scope'],module_sequence: "TARGET"})
         exec_statement = f"MERGE (:{event_type} " + "{"
-        for event in event_json:
-            if "scope_distance" in str(event) or "tags" in str(event):
-                myString = f"{event}: {event_json.get(str(event))},"
+        for item in event_json:
+            if "scope_distance" in str(item) or "tags" in str(item):
+                myString = f"{item}: {event_json.get(str(item))},"
             else:
-                myString = f'{event}: "{event_json.get(str(event))}",'
+                myString = f'{item}: "{event_json.get(str(item))}",'
+            if "data" in str(item) and "{" in str(event_json.get(str(item))):   
+                # log.warning(f"String To Be Parsed: {str(event_json.get(str(item)))}")
+                myString = f'{item}: "{self.parse_data(str(event_json.get(str(item))))}",'
+                log.info(myString)
             exec_statement += myString
         exec_statement = exec_statement[:-1]
         exec_statement += "})"
 
         # Instantiate Driver Session and Run Exec_Statement (aka - send to Neo4j to graph)
-        # log.warning(exec_statement)
+        log.warning(exec_statement)
         session = self.driver.session()
         session.run(exec_statement)
 
@@ -129,3 +135,7 @@ class Neo4j:
             # try again later after source event has been created
             pending_event = {source_id: relationship_statement}
             self.queue_list.append(pending_event)
+
+    def parse_data(self, event_json_str):
+        _string = ''.join(str(event_json_str))
+        return _string.replace('\"', '\\\"')
