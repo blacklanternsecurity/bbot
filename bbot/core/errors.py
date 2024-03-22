@@ -64,3 +64,11 @@ class EnableFlagError(BBOTError):
 
 class BBOTArgumentError(BBOTError):
     pass
+
+
+class PresetConditionError(BBOTError):
+    pass
+
+
+class PresetAbortError(PresetConditionError):
+    pass

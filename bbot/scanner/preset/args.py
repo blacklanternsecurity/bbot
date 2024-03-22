@@ -119,7 +119,7 @@ class BBOTArgs:
             except BBOTArgumentError:
                 raise
             except Exception as e:
-                raise BBOTArgumentError(f'Error parsing preset "{preset_arg}": {e}')
+                raise BBOTArgumentError(f'Error parsing preset "{preset_arg}": {e} (-d to debug)')
 
         # then we validate the modules/flags/config options
         self.validate()
@@ -148,6 +148,7 @@ class BBOTArgs:
         # other scan options
         args_preset.scan_name = self.parsed.name
         args_preset.output_dir = self.parsed.output_dir
+        args_preset.force = self.parsed.force
 
         # CLI config options (dot-syntax)
         for config_arg in self.parsed.config:
@@ -261,7 +262,11 @@ class BBOTArgs:
         scan.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
         scan.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
         scan.add_argument("-s", "--silent", action="store_true", help="Be quiet")
-        scan.add_argument("--force", action="store_true", help="Run scan even if module setups fail")
+        scan.add_argument(
+            "--force",
+            action="store_true",
+            help="Run scan even in the case of condition violations or failed module setups",
+        )
         scan.add_argument("-y", "--yes", action="store_true", help="Skip scan confirmation prompt")
         scan.add_argument("--dry-run", action="store_true", help=f"Abort before executing scan")
         scan.add_argument(

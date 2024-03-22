@@ -61,18 +61,6 @@ async def _main():
             sys.exit(0)
             return
 
-        # --current-preset
-        if options.current_preset:
-            print(preset.to_yaml())
-            sys.exit(0)
-            return
-
-        # --current-preset-full
-        if options.current_preset_full:
-            print(preset.to_yaml(full_config=True))
-            sys.exit(0)
-            return
-
         # --list-presets
         if options.list_presets:
             print("")
@@ -117,7 +105,23 @@ async def _main():
             log.hugewarning(f"Please specify --allow-deadly to continue")
             return False
 
-        scan = Scanner(preset=preset)
+        try:
+            scan = Scanner(preset=preset)
+        except PresetAbortError as e:
+            log.warning(str(e))
+            return
+
+        # --current-preset
+        if options.current_preset:
+            print(scan.preset.to_yaml())
+            sys.exit(0)
+            return
+
+        # --current-preset-full
+        if options.current_preset_full:
+            print(scan.preset.to_yaml(full_config=True))
+            sys.exit(0)
+            return
 
         # --install-all-deps
         if options.install_all_deps:

@@ -43,6 +43,8 @@ class Preset:
         scan_name=None,
         name=None,
         description=None,
+        conditions=None,
+        force=False,
         _exclude=None,
         _log=False,
     ):
@@ -60,6 +62,8 @@ class Preset:
         self._exclude_flags = set()
         self._flags = set()
 
+        self.force = force
+
         self._verbose = False
         self._debug = False
         self._silent = False
@@ -68,6 +72,10 @@ class Preset:
         self.scan_name = scan_name
         self.name = name or ""
         self.description = description or ""
+        self.conditions = []
+        if conditions is not None:
+            for condition in conditions:
+                self.conditions.append((self.name, condition))
 
         self._preset_files_loaded = set()
         if _exclude is not None:
@@ -108,6 +116,8 @@ class Preset:
         self.blacklist = Target(*blacklist)
 
         # include other presets
+        if include and not isinstance(include, (list, tuple, set)):
+            include = [include]
         if include:
             for included_preset in include:
                 self.include_preset(included_preset)
@@ -169,6 +179,11 @@ class Preset:
             self.scan_name = other.scan_name
         if other.output_dir is not None:
             self.output_dir = other.output_dir
+        # conditions
+        if other.conditions:
+            self.conditions.extend(other.conditions)
+        # misc
+        self.force = self.force | other.force
 
     def bake(self):
         """
@@ -187,6 +202,13 @@ class Preset:
         # update os environ
         os.environ.clear()
         os.environ.update(os_environ)
+
+        # evaluate conditions
+        if baked_preset.conditions:
+            from .conditions import ConditionEvaluator
+
+            evaluator = ConditionEvaluator(baked_preset)
+            evaluator.evaluate()
 
         return baked_preset
 
@@ -512,11 +534,12 @@ class Preset:
             config=preset_dict.get("config"),
             strict_scope=preset_dict.get("strict_scope", False),
             module_dirs=preset_dict.get("module_dirs", []),
-            include=preset_dict.get("include", []),
+            include=list(preset_dict.get("include", [])),
             scan_name=preset_dict.get("scan_name"),
             output_dir=preset_dict.get("output_dir"),
             name=preset_dict.get("name", name),
             description=preset_dict.get("description"),
+            conditions=preset_dict.get("conditions", []),
             _exclude=_exclude,
         )
         return new_preset
@@ -609,6 +632,10 @@ class Preset:
             preset_dict["scan_name"] = self.scan_name
         if self.scan_name:
             preset_dict["output_dir"] = self.output_dir
+
+        # conditions
+        if self.conditions:
+            preset_dict["conditions"] = [c[-1] for c in self.conditions]
 
         return preset_dict
 

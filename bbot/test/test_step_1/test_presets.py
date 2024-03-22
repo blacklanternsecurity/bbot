@@ -1,6 +1,6 @@
 from ..bbot_fixtures import *  # noqa F401
 
-from bbot.scanner import Preset
+from bbot.scanner import Scanner, Preset
 
 
 def test_core():
@@ -500,6 +500,46 @@ config:
     assert preset.config.modules.testpreset3.test == "qwerty"
     assert preset.config.modules.testpreset4.test == "zxcv"
     assert preset.config.modules.testpreset5.test == "hjkl"
+
+
+def test_preset_conditions():
+    custom_preset_dir_1 = bbot_test_dir / "custom_preset_dir"
+    custom_preset_dir_2 = custom_preset_dir_1 / "preset_subdir"
+    mkdir(custom_preset_dir_1)
+    mkdir(custom_preset_dir_2)
+
+    preset_file_1 = custom_preset_dir_1 / "preset1.yml"
+    with open(preset_file_1, "w") as f:
+        f.write(
+            """
+include:
+  - preset2
+"""
+        )
+
+    preset_file_2 = custom_preset_dir_2 / "preset2.yml"
+    with open(preset_file_2, "w") as f:
+        f.write(
+            """
+conditions:
+  - |
+    {% if config.web_spider_distance == 3 and config.web_spider_depth == 4 %}
+      {{ abort("web spider is too aggressive") }}
+    {% endif %}
+"""
+        )
+
+    preset = Preset(include=[preset_file_1])
+    assert preset.conditions
+
+    scan = Scanner(preset=preset)
+    assert scan.preset.conditions
+
+    preset2 = Preset(config={"web_spider_distance": 3, "web_spider_depth": 4})
+    preset.merge(preset2)
+
+    with pytest.raises(PresetAbortError):
+        Scanner(preset=preset)
 
 
 # test custom module load directory

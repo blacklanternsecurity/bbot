@@ -1,3 +1,6 @@
+import os
+import sys
+
 from ..bbot_fixtures import *
 
 
@@ -44,36 +47,59 @@ async def test_cli_args(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["bbot", "--version"])
     result = await cli._main()
     assert result == None
+    captured = capsys.readouterr()
+    assert captured.out.count(".") > 1
 
     # show current preset
-    monkeypatch.setattr("sys.argv", ["bbot", "--current-preset"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-c", "http_proxy=currentpresettest", "--current-preset"])
     result = await cli._main()
     assert result == None
+    captured = capsys.readouterr()
+    assert "  http_proxy: currentpresettest" in captured.out
 
     # show current preset (full)
     monkeypatch.setattr("sys.argv", ["bbot", "--current-preset-full"])
     result = await cli._main()
     assert result == None
+    captured = capsys.readouterr()
+    assert "      api_key: ''" in captured.out
 
     # list modules
     monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
     result = await cli._main()
     assert result == None
+    captured = capsys.readouterr()
+    # internal modules
+    assert "| excavate" in captured.out
+    # output modules
+    assert "| csv" in captured.out
+    # scan modules
+    assert "| wayback" in captured.out
 
     # list module options
     monkeypatch.setattr("sys.argv", ["bbot", "--list-module-options"])
     result = await cli._main()
     assert result == None
+    captured = capsys.readouterr()
+    assert "| modules.wayback.urls" in captured.out
+    assert "| bool" in captured.out
+    assert "| emit URLs in addition to DNS_NAMEs" in captured.out
+    assert "| False" in captured.out
 
     # list flags
     monkeypatch.setattr("sys.argv", ["bbot", "--list-flags"])
     result = await cli._main()
     assert result == None
+    captured = capsys.readouterr()
+    assert "| safe" in captured.out
+    assert "| Non-intrusive, safe to run" in captured.out
 
     # no args
     monkeypatch.setattr("sys.argv", ["bbot"])
     result = await cli._main()
     assert result == None
+    captured = capsys.readouterr()
+    assert "Target:\n  -t TARGET [TARGET ...]" in captured.out
 
     # enable module by flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "report"])
