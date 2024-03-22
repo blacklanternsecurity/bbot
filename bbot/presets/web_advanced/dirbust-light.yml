@@ -1,0 +1,16 @@
+description: Basic web directory brute-force (surface-level directories only)
+
+flags:
+  - iis-shortnames
+
+modules:
+  - ffuf
+
+config:
+  modules:
+    iis_shortnames:
+      # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by ffuf_shortnames
+      detect_only: False
+    ffuf:
+      # wordlist size = 1000
+      lines: 1000

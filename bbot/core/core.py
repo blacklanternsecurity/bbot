@@ -1,6 +1,9 @@
+import logging
 from copy import copy
 from pathlib import Path
 from omegaconf import OmegaConf
+
+DEFAULT_CONFIG = None
 
 
 class BBOTCore:
@@ -12,7 +15,6 @@ class BBOTCore:
         self.bbot_sudo_pass = None
 
         self._config = None
-        self._default_config = None
         self._custom_config = None
 
         # ensure bbot home dir
@@ -21,6 +23,7 @@ class BBOTCore:
 
         # bare minimum == logging
         self.logger
+        self.log = logging.getLogger("bbot.core")
 
         # PRESET TODO: add back in bbot/core/configurator/__init__.py
         # - check_cli_args
@@ -65,17 +68,20 @@ class BBOTCore:
 
     @property
     def default_config(self):
-        if self._default_config is None:
-            self._default_config = self.files_config.get_default_config()
+        global DEFAULT_CONFIG
+        if DEFAULT_CONFIG is None:
+            DEFAULT_CONFIG = self.files_config.get_default_config()
             # set read-only flag (change .custom_config instead)
-            OmegaConf.set_readonly(self._default_config, True)
-        return self._default_config
+            OmegaConf.set_readonly(DEFAULT_CONFIG, True)
+        return DEFAULT_CONFIG
 
     @default_config.setter
     def default_config(self, value):
         # we temporarily clear out the config so it can be refreshed if/when default_config changes
+        global DEFAULT_CONFIG
         self._config = None
-        self._default_config = value
+        DEFAULT_CONFIG = value
+        OmegaConf.set_readonly(DEFAULT_CONFIG, True)
 
     @property
     def custom_config(self):
@@ -99,7 +105,6 @@ class BBOTCore:
 
     def copy(self):
         core_copy = copy(self)
-        core_copy._default_config = self._default_config.copy()
         core_copy._custom_config = self._custom_config.copy()
         return core_copy
 

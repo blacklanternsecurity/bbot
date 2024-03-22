@@ -1,13 +1,23 @@
+import os
 import ssl
 import shutil
 import pytest
 import asyncio
 import logging
 from pathlib import Path
+from omegaconf import OmegaConf
 from pytest_httpserver import HTTPServer
 
+from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async
 from bbot.core.helpers.interactsh import server_list as interactsh_servers
+
+
+test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
+if test_config.get("debug", False):
+    os.environ["BBOT_DEBUG"] = "True"
+
+CORE.merge_default(test_config)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

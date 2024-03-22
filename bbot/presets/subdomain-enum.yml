@@ -1,3 +1,5 @@
+description: Enumerate subdomains via APIs, brute-force
+
 flags:
   - subdomain-enum
 

@@ -2,14 +2,13 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_cli_args(monkeypatch, bbot_config):
+async def test_cli_args(monkeypatch, capsys):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
-    home_dir = Path(bbot_config["home"])
-    scans_home = home_dir / "scans"
+    scans_home = bbot_test_dir / "scans"
 
     # basic scan
     monkeypatch.setattr(
@@ -40,21 +39,6 @@ async def test_cli_args(monkeypatch, bbot_config):
             if "[DNS_NAME]          \twww.example.com\tTARGET" in line:
                 dns_success = True
     assert ip_success and dns_success, "IP_ADDRESS and/or DNS_NAME are not present in output.txt"
-
-    # nonexistent module
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "asdf"])
-    with pytest.raises(EnableModuleError):
-        result = await cli._main()
-
-    # nonexistent output module
-    monkeypatch.setattr("sys.argv", ["bbot", "-om", "asdf"])
-    with pytest.raises(EnableModuleError):
-        result = await cli._main()
-
-    # nonexistent flag
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "asdf"])
-    with pytest.raises(EnableFlagError):
-        result = await cli._main()
 
     # show version
     monkeypatch.setattr("sys.argv", ["bbot", "--version"])
@@ -142,7 +126,7 @@ async def test_cli_args(monkeypatch, bbot_config):
     # assert success, "--install-all-deps failed for at least one module"
 
 
-def test_config_validation(monkeypatch, capsys, bbot_config):
+def test_cli_config_validation(monkeypatch, capsys):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
@@ -163,7 +147,7 @@ def test_config_validation(monkeypatch, capsys, bbot_config):
     assert 'Did you mean "web_spider_distance"?' in captured.err
 
 
-def test_module_validation(monkeypatch, capsys, bbot_config):
+def test_cli_module_validation(monkeypatch, capsys):
     from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
@@ -171,8 +155,7 @@ def test_module_validation(monkeypatch, capsys, bbot_config):
 
     # incorrect module
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdnss"])
-    with pytest.raises(EnableModuleError):
-        cli.main()
+    cli.main()
     captured = capsys.readouterr()
     assert 'Could not find module "massdnss"' in captured.err
     assert 'Did you mean "massdns"?' in captured.err
@@ -186,16 +169,100 @@ def test_module_validation(monkeypatch, capsys, bbot_config):
 
     # incorrect output module
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "neoo4j"])
-    with pytest.raises(EnableModuleError):
-        cli.main()
+    cli.main()
     captured = capsys.readouterr()
     assert 'Could not find output module "neoo4j"' in captured.err
     assert 'Did you mean "neo4j"?' in captured.err
 
     # incorrect flag
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomainenum"])
-    with pytest.raises(EnableFlagError):
-        cli.main()
+    cli.main()
     captured = capsys.readouterr()
     assert 'Could not find flag "subdomainenum"' in captured.err
     assert 'Did you mean "subdomain-enum"?' in captured.err
+
+    # incorrect excluded flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-ef", "subdomainenum"])
+    cli.main()
+    captured = capsys.readouterr()
+    assert 'Could not find flag "subdomainenum"' in captured.err
+    assert 'Did you mean "subdomain-enum"?' in captured.err
+
+    # incorrect required flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-rf", "subdomainenum"])
+    cli.main()
+    captured = capsys.readouterr()
+    assert 'Could not find flag "subdomainenum"' in captured.err
+    assert 'Did you mean "subdomain-enum"?' in captured.err
+
+
+def test_cli_presets(monkeypatch, capsys):
+    import yaml
+    from bbot import cli
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+
+    preset_dir = bbot_test_dir / "test_cli_presets"
+    preset_dir.mkdir(exist_ok=True)
+
+    preset1_file = preset_dir / "preset1.conf"
+    with open(preset1_file, "w") as f:
+        f.write(
+            """
+config:
+  http_proxy: http://proxy1
+        """
+        )
+
+    preset2_file = preset_dir / "preset2.yml"
+    with open(preset2_file, "w") as f:
+        f.write(
+            """
+config:
+  http_proxy: http://proxy2
+        """
+        )
+
+    # test reading single preset
+    monkeypatch.setattr("sys.argv", ["bbot", "-p", str(preset1_file.resolve()), "--current-preset"])
+    cli.main()
+    captured = capsys.readouterr()
+    stdout_preset = yaml.safe_load(captured.out)
+    assert stdout_preset["config"]["http_proxy"] == "http://proxy1"
+
+    # preset overrides preset
+    monkeypatch.setattr(
+        "sys.argv", ["bbot", "-p", str(preset2_file.resolve()), str(preset1_file.resolve()), "--current-preset"]
+    )
+    cli.main()
+    captured = capsys.readouterr()
+    stdout_preset = yaml.safe_load(captured.out)
+    assert stdout_preset["config"]["http_proxy"] == "http://proxy1"
+
+    # override other way
+    monkeypatch.setattr(
+        "sys.argv", ["bbot", "-p", str(preset1_file.resolve()), str(preset2_file.resolve()), "--current-preset"]
+    )
+    cli.main()
+    captured = capsys.readouterr()
+    stdout_preset = yaml.safe_load(captured.out)
+    assert stdout_preset["config"]["http_proxy"] == "http://proxy2"
+
+    # cli config overrides all presets
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "bbot",
+            "-p",
+            str(preset1_file.resolve()),
+            str(preset2_file.resolve()),
+            "-c",
+            "http_proxy=asdf",
+            "--current-preset",
+        ],
+    )
+    cli.main()
+    captured = capsys.readouterr()
+    stdout_preset = yaml.safe_load(captured.out)
+    assert stdout_preset["config"]["http_proxy"] == "asdf"

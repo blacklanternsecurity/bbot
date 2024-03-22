@@ -1,6 +1,4 @@
-# include web spider (emails are automatically extracted from HTTP_RESPONSEs)
-include:
-  - spider
+description: Enumerate email addresses from APIs, web crawling, etc.
 
 flags:
   - email-enum

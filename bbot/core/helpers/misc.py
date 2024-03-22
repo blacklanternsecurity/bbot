@@ -15,7 +15,6 @@ from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
 
 from .url import *  # noqa F401
 from .. import errors
-from .logger import log_to_stderr
 from . import regexes as bbot_regexes
 from .names_generator import random_name, names, adjectives  # noqa F401
 
@@ -1101,8 +1100,8 @@ def closest_match(s, choices, n=1, cutoff=0.0):
     return matches
 
 
-def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
-    """Finds the closest match from a list of choices for a given string, logs a warning, and exits the program.
+def get_closest_match(s, choices, msg=None):
+    """Finds the closest match from a list of choices for a given string.
 
     This function is particularly useful for CLI applications where you want to validate flags or modules.
 
@@ -1114,17 +1113,15 @@ def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
         exitcode (int, optional): The exit code to use when exiting the program. Defaults to 2.
 
     Examples:
-        >>> match_and_exit("some_module", ["some_mod", "some_other_mod"], msg="module")
+        >>> get_closest_match("some_module", ["some_mod", "some_other_mod"], msg="module")
         # Output: Could not find module "some_module". Did you mean "some_mod"?
-        # Exits with code 2
     """
     if msg is None:
         msg = ""
     else:
         msg += " "
     closest = closest_match(s, choices)
-    log_to_stderr(f'Could not find {msg}"{s}". Did you mean "{closest}"?', level="HUGEWARNING")
-    sys.exit(2)
+    return f'Could not find {msg}"{s}". Did you mean "{closest}"?'
 
 
 def kill_children(parent_pid=None, sig=None):

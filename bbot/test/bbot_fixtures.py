@@ -1,4 +1,3 @@
-import os
 import dns
 import sys
 import pytest
@@ -8,11 +7,9 @@ import subprocess
 import tldextract
 import pytest_httpserver
 from pathlib import Path
-from omegaconf import OmegaConf
 
 from werkzeug.wrappers import Request
 
-from bbot.core import CORE
 from bbot.core.helpers.misc import mkdir
 
 
@@ -29,14 +26,6 @@ class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
 
 pytest_httpserver.httpserver.RequestMatcher = SubstringRequestMatcher
 
-
-test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
-if test_config.get("debug", False):
-    os.environ["BBOT_DEBUG"] = "True"
-
-CORE.merge_custom(test_config)
-
-from .bbot_fixtures import *  # noqa: F401
 from bbot.core.errors import *  # noqa: F401
 
 # silence pytest_httpserver

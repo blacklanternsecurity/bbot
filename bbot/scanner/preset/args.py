@@ -1,12 +1,10 @@
 import re
-import sys
 import logging
 import argparse
-import traceback
 from omegaconf import OmegaConf
 
-from bbot.core.errors import PresetNotFoundError
-from bbot.core.helpers.misc import chain_lists, match_and_exit
+from bbot.core.errors import *
+from bbot.core.helpers.misc import chain_lists, get_closest_match
 
 log = logging.getLogger("bbot.presets.args")
 
@@ -56,6 +54,11 @@ class BBOTArgs:
             "bbot -l",
         ),
         (
+            "List presets",
+            "",
+            "bbot -lp",
+        ),
+        (
             "List flags",
             "",
             "bbot -lf",
@@ -90,15 +93,17 @@ class BBOTArgs:
         return self._parsed
 
     def preset_from_args(self):
-        self.validate()
+        # the order here is important
+        # first we make the preset
         args_preset = self.preset.__class__(
             *self.parsed.targets,
             whitelist=self.parsed.whitelist,
             blacklist=self.parsed.blacklist,
             strict_scope=self.parsed.strict_scope,
+            name="args_preset",
         )
 
-        # verbosity levels
+        # then we set verbosity levels (so if the user enables -d they can see debug output)
         if self.parsed.silent:
             args_preset.silent = True
         if self.parsed.verbose:
@@ -106,41 +111,29 @@ class BBOTArgs:
         if self.parsed.debug:
             args_preset.debug = True
 
-        # modules && flags (excluded then required then all others)
+        # then we load requested preset
+        # this is important so we can load custom module directories, pull in custom flags, module config options, etc.
+        for preset_arg in self.parsed.preset:
+            try:
+                args_preset.include_preset(preset_arg)
+            except BBOTArgumentError:
+                raise
+            except Exception as e:
+                raise BBOTArgumentError(f'Error parsing preset "{preset_arg}": {e}')
+
+        # then we validate the modules/flags/config options
+        self.validate()
+
+        # load modules & flags (excluded then required then all others)
         args_preset.exclude_modules = self.parsed.exclude_modules
         args_preset.exclude_flags = self.parsed.exclude_flags
         args_preset.require_flags = self.parsed.require_flags
-        args_preset.modules = self.parsed.modules
-
+        for scan_module in self.parsed.modules:
+            args_preset.add_module(scan_module, module_type="scan")
         for output_module in self.parsed.output_modules:
             args_preset.add_module(output_module, module_type="output")
 
         args_preset.flags = self.parsed.flags
-
-        # additional custom presets / config options
-        preset_args = []
-        for preset_param in self.parsed.preset:
-            try:
-                # first try to load as a file
-                custom_preset = self.preset.from_yaml_file(preset_param)
-                args_preset.merge(custom_preset)
-            except PresetNotFoundError as e:
-                log.debug(e)
-                try:
-                    # if that fails, try to parse as key=value syntax
-                    cli_config = OmegaConf.from_cli([preset_param])
-                    preset_args.append(preset_param)
-                    args_preset.core.merge_custom(cli_config)
-                except Exception as e:
-                    log.error(f"Error parsing command-line config: {e}")
-                    log.trace(traceback.format_exc())
-                    sys.exit(2)
-            except Exception as e:
-                log.error(f"Error parsing custom config at {preset_param}: {e}")
-                log.trace(traceback.format_exc())
-                sys.exit(2)
-
-        self.parsed.preset = preset_args
 
         # dependencies
         if self.parsed.retry_deps:
@@ -155,6 +148,14 @@ class BBOTArgs:
         # other scan options
         args_preset.scan_name = self.parsed.name
         args_preset.output_dir = self.parsed.output_dir
+
+        # CLI config options (dot-syntax)
+        for config_arg in self.parsed.config:
+            try:
+                # if that fails, try to parse as key=value syntax
+                args_preset.core.merge_custom(OmegaConf.from_cli([config_arg]))
+            except Exception as e:
+                raise BBOTArgumentError(f'Error parsing command-line config option: "{config_arg}": {e}')
 
         return args_preset
 
@@ -182,6 +183,24 @@ class BBOTArgs:
             action="store_true",
             help="Don't consider subdomains of target/whitelist to be in-scope",
         )
+        presets = p.add_argument_group(title="Presets")
+        presets.add_argument(
+            "-p",
+            "--preset",
+            nargs="*",
+            help="Enable BBOT preset(s)",
+            metavar="PRESET",
+            default=[],
+        )
+        presets.add_argument(
+            "-c",
+            "--config",
+            nargs="*",
+            help="Custom config options in key=value format: e.g. 'modules.shodan.api_key=1234'",
+            metavar="CONFIG",
+            default=[],
+        )
+        presets.add_argument("-lp", "--list-presets", action="store_true", help=f"List available presets.")
         modules = p.add_argument_group(title="Modules")
         modules.add_argument(
             "-m",
@@ -239,16 +258,6 @@ class BBOTArgs:
             "--output-dir",
             metavar="DIR",
         )
-        scan.add_argument(
-            "-p",
-            "--preset",
-            "-c",
-            "--config",
-            nargs="*",
-            help="Custom preset file(s), or config options in key=value format: 'modules.shodan.api_key=1234'",
-            metavar="CONFIG",
-            default=[],
-        )
         scan.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
         scan.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
         scan.add_argument("-s", "--silent", action="store_true", help="Be quiet")
@@ -304,8 +313,10 @@ class BBOTArgs:
     def validate(self):
         # validate config options
         sentinel = object()
-        all_options = None
-        for c in self.parsed.preset:
+        all_options = set(self.preset.core.default_config.keys()) - {"modules"}
+        for module_options in self.preset.module_loader.modules_options().values():
+            all_options.update(set(o[0] for o in module_options))
+        for c in self.parsed.config:
             c = c.split("=")[0].strip()
             v = OmegaConf.select(self.preset.core.default_config, c, default=sentinel)
             # if option isn't in the default config
@@ -313,27 +324,21 @@ class BBOTArgs:
                 # skip if it's excluded from validation
                 if self.exclude_from_validation.match(c):
                     continue
-                if all_options is None:
-                    modules_options = set()
-                    for module_options in self.preset.module_loader.modules_options().values():
-                        modules_options.update(set(o[0] for o in module_options))
-                    global_options = set(self.preset.core.default_config.keys()) - {"modules"}
-                    all_options = global_options.union(modules_options)
                 # otherwise, ensure it exists as a module option
-                match_and_exit(c, all_options, msg="module option")
+                raise BBOTArgumentError(get_closest_match(c, all_options, msg="module option"))
 
         # validate modules
         for m in self.parsed.modules:
             if m not in self._module_choices:
-                match_and_exit(m, self._module_choices, msg="module")
+                raise BBOTArgumentError(get_closest_match(m, self._module_choices, msg="module"))
         for m in self.parsed.exclude_modules:
             if m not in self._module_choices:
-                match_and_exit(m, self._module_choices, msg="module")
+                raise BBOTArgumentError(get_closest_match(m, self._module_choices, msg="module"))
         for m in self.parsed.output_modules:
             if m not in self._output_module_choices:
-                match_and_exit(m, self._output_module_choices, msg="output module")
+                raise BBOTArgumentError(get_closest_match(m, self._output_module_choices, msg="output module"))
 
         # validate flags
         for f in set(self.parsed.flags + self.parsed.require_flags + self.parsed.exclude_flags):
             if f not in self._flag_choices:
-                match_and_exit(f, self._flag_choices, msg="flag")
+                raise BBOTArgumentError(get_closest_match(f, self._flag_choices, msg="flag"))

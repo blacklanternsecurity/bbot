@@ -12,6 +12,7 @@ sys.stdout.reconfigure(line_buffering=True)
 from bbot.core import CORE
 
 from bbot import __version__
+from bbot.core.errors import *
 from bbot.core.helpers.logger import log_to_stderr
 
 log = logging.getLogger("bbot.cli")
@@ -29,9 +30,14 @@ async def _main():
     try:
 
         # start by creating a default scan preset
-        preset = Preset()
+        preset = Preset(_log=True, name="bbot_cli_main")
         # parse command line arguments and merge into preset
-        preset.parse_args()
+        try:
+            preset.parse_args()
+        except BBOTArgumentError as e:
+            log_to_stderr(str(e), level="WARNING")
+            log.trace(traceback.format_exc())
+            return
         # ensure arguments (-c config options etc.) are valid
         options = preset.args.parsed
 
@@ -51,48 +57,57 @@ async def _main():
 
         # --version
         if options.version:
-            log.stdout(__version__)
+            print(__version__)
             sys.exit(0)
             return
 
         # --current-preset
         if options.current_preset:
-            log.stdout(preset.to_yaml())
+            print(preset.to_yaml())
             sys.exit(0)
             return
 
         # --current-preset-full
         if options.current_preset_full:
-            log.stdout(preset.to_yaml(full_config=True))
+            print(preset.to_yaml(full_config=True))
             sys.exit(0)
+            return
+
+        # --list-presets
+        if options.list_presets:
+            print("")
+            print("### PRESETS ###")
+            print("")
+            for row in preset.presets_table().splitlines():
+                print(row)
             return
 
         # --list-modules
         if options.list_modules:
-            log.stdout("")
-            log.stdout("### MODULES ###")
-            log.stdout("")
+            print("")
+            print("### MODULES ###")
+            print("")
             for row in preset.module_loader.modules_table(modules_to_list).splitlines():
-                log.stdout(row)
+                print(row)
             return
 
         # --list-module-options
         if options.list_module_options:
-            log.stdout("")
-            log.stdout("### MODULE OPTIONS ###")
-            log.stdout("")
+            print("")
+            print("### MODULE OPTIONS ###")
+            print("")
             for row in preset.module_loader.modules_options_table(modules=modules_to_list).splitlines():
-                log.stdout(row)
+                print(row)
             return
 
         # --list-flags
         if options.list_flags:
             flags = preset.flags if preset.flags else None
-            log.stdout("")
-            log.stdout("### FLAGS ###")
-            log.stdout("")
+            print("")
+            print("### FLAGS ###")
+            print("")
             for row in preset.module_loader.flags_table(flags=flags).splitlines():
-                log.stdout(row)
+                print(row)
             return
 
         deadly_modules = [m for m in preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])]

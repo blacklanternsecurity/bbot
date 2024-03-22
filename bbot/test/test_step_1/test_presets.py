@@ -474,7 +474,6 @@ config:
         f.write(
             """
 include:
-  # uh oh
   - preset5
 
 config:
@@ -495,7 +494,7 @@ config:
 """
         )
 
-    preset = Preset(include=[custom_preset_dir_1 / "preset1"])
+    preset = Preset(include=[str(custom_preset_dir_1 / "preset1")])
     assert preset.config.modules.testpreset1.test == "asdf"
     assert preset.config.modules.testpreset2.test == "fdsa"
     assert preset.config.modules.testpreset3.test == "qwerty"
@@ -510,3 +509,5 @@ config:
 # what if you specify flags in one preset
 #  but another preset (loaded later) has more custom modules that match that flag
 # what if you specify a flag that's only on custom modules? Will it be rejected as invalid?
+
+# cli test: nonexistent / invalid preset

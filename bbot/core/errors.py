@@ -60,3 +60,7 @@ class EnableModuleError(BBOTError):
 
 class EnableFlagError(BBOTError):
     pass
+
+
+class BBOTArgumentError(BBOTError):
+    pass

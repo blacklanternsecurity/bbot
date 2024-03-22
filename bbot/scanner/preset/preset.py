@@ -2,6 +2,7 @@ import os
 import yaml
 import logging
 import omegaconf
+import traceback
 from copy import copy
 from pathlib import Path
 from contextlib import suppress
@@ -9,8 +10,9 @@ from contextlib import suppress
 from .path import PRESET_PATH
 
 from bbot.core import CORE
+from bbot.core.errors import *
 from bbot.core.event.base import make_event
-from bbot.core.errors import EnableFlagError, EnableModuleError, PresetNotFoundError, ValidationError
+from bbot.core.helpers.misc import make_table
 
 
 log = logging.getLogger("bbot.presets")
@@ -39,8 +41,12 @@ class Preset:
         include=None,
         output_dir=None,
         scan_name=None,
+        name=None,
+        description=None,
         _exclude=None,
+        _log=False,
     ):
+        self._log = _log
         self.scan = None
         self._args = None
         self._environ = None
@@ -60,6 +66,8 @@ class Preset:
 
         self.output_dir = output_dir
         self.scan_name = scan_name
+        self.name = name or ""
+        self.description = description or ""
 
         self._preset_files_loaded = set()
         if _exclude is not None:
@@ -132,9 +140,6 @@ class Preset:
         self.core.merge_custom(other.core.custom_config)
         self.module_loader.core = self.core
         # module dirs
-        if other.module_dirs:
-            self.refresh_module_loader()
-            # TODO: find-and-replace module configs
         # modules + flags
         # establish requirements / exclusions first
         self.exclude_modules = set(self.exclude_modules).union(set(other.exclude_modules))
@@ -254,7 +259,7 @@ class Preset:
     def add_module(self, module_name, module_type="scan"):
         # log.info(f'Adding "{module_name}": {module_type}')
         if module_name in self.exclude_modules:
-            log.verbose(f'Skipping module "{module_name}" because it\'s excluded')
+            self.log_verbose(f'Skipping module "{module_name}" because it\'s excluded')
             return
         try:
             preloaded = self.module_loader.preloaded()[module_name]
@@ -265,28 +270,28 @@ class Preset:
         _module_type = preloaded.get("type", "scan")
         if module_type:
             if _module_type != module_type:
-                log.verbose(
-                    f'Not enabling module "{module_name}" because its type ({_module_type}) is not "{module_type}"'
+                self.log_verbose(
+                    f'Not adding module "{module_name}" because its type ({_module_type}) is not "{module_type}"'
                 )
                 return
 
         if _module_type == "scan":
             for f in module_flags:
                 if f in self.exclude_flags:
-                    log.verbose(f'Skipping module "{module_name}" because it\'s excluded')
+                    self.log_verbose(f'Skipping module "{module_name}" because it\'s excluded')
                     return
             if self.require_flags and not any(f in self.require_flags for f in module_flags):
-                log.verbose(
+                self.log_verbose(
                     f'Skipping module "{module_name}" because it doesn\'t have the required flags ({",".join(self.require_flags)})'
                 )
                 return
 
         if module_name not in self.modules:
-            log.verbose(f'Enabling module "{module_name}"')
+            self.log_verbose(f'Adding module "{module_name}"')
             self.modules.add(module_name)
             for module_dep in preloaded.get("deps", {}).get("modules", []):
                 if module_dep not in self.modules:
-                    log.verbose(f'Enabling module "{module_dep}" because {module_name} depends on it')
+                    self.log_verbose(f'Adding module "{module_dep}" because {module_name} depends on it')
                     self.add_module(module_dep)
 
     @property
@@ -307,6 +312,7 @@ class Preset:
 
     @flags.setter
     def flags(self, flags):
+        log.debug(f"{self.name}: setting flags to {flags}")
         if isinstance(flags, str):
             flags = [flags]
         for flag in flags:
@@ -348,7 +354,7 @@ class Preset:
         for module in list(self.scan_modules):
             module_flags = self.preloaded_module(module).get("flags", [])
             if flag not in module_flags:
-                log.verbose(f'Removing module "{module}" because it doesn\'t have the required flag, "{flag}"')
+                self.log_verbose(f'Removing module "{module}" because it doesn\'t have the required flag, "{flag}"')
                 self.modules.remove(module)
 
     def add_excluded_flag(self, flag):
@@ -356,14 +362,14 @@ class Preset:
         for module in list(self.scan_modules):
             module_flags = self.preloaded_module(module).get("flags", [])
             if flag in module_flags:
-                log.verbose(f'Removing module "{module}" because it has the excluded flag, "{flag}"')
+                self.log_verbose(f'Removing module "{module}" because it has the excluded flag, "{flag}"')
                 self.modules.remove(module)
 
     def add_excluded_module(self, module):
         self.exclude_modules.add(module)
         for module in list(self.scan_modules):
             if module in self.exclude_modules:
-                log.verbose(f'Removing module "{module}" because it\'s excluded')
+                self.log_verbose(f'Removing module "{module}" because it\'s excluded')
                 self.modules.remove(module)
 
     def preloaded_module(self, module):
@@ -439,19 +445,8 @@ class Preset:
             from bbot.core.modules import module_loader
 
             self._module_loader = module_loader
-            self.refresh_module_loader()
 
         return self._module_loader
-
-    def refresh_module_loader(self):
-        self.module_loader.preload()
-        # update default config with module defaults
-        module_config = omegaconf.OmegaConf.create(
-            {
-                "modules": self.module_loader.configs(),
-            }
-        )
-        self.core.merge_default(module_config)
 
     @property
     def environ(self):
@@ -500,7 +495,7 @@ class Preset:
         return e in self.whitelist
 
     @classmethod
-    def from_dict(cls, preset_dict, _exclude=None):
+    def from_dict(cls, preset_dict, name=None, _exclude=None):
         new_preset = cls(
             *preset_dict.get("target", []),
             whitelist=preset_dict.get("whitelist"),
@@ -520,12 +515,14 @@ class Preset:
             include=preset_dict.get("include", []),
             scan_name=preset_dict.get("scan_name"),
             output_dir=preset_dict.get("output_dir"),
+            name=preset_dict.get("name", name),
+            description=preset_dict.get("description"),
             _exclude=_exclude,
         )
         return new_preset
 
     def include_preset(self, filename):
-        log.debug(f'Including preset "{filename}"')
+        self.log_debug(f'Including preset "{filename}"')
         preset_filename = PRESET_PATH.find(filename)
         preset_from_yaml = self.from_yaml_file(preset_filename, _exclude=self._preset_files_loaded)
         if preset_from_yaml is not False:
@@ -543,13 +540,13 @@ class Preset:
             _exclude = set()
         filename = Path(filename).resolve()
         if _exclude is not None and filename in _exclude:
-            log.debug(f"Not merging {filename} because it was already loaded {_exclude}")
+            log.debug(f"Not loading {filename} because it was already loaded {_exclude}")
             return False
-        log.debug(f"Merging {filename} because it's not in {_exclude}")
+        log.debug(f"Loading {filename} because it's not in excluded list ({_exclude})")
         _exclude = set(_exclude)
         _exclude.add(filename)
         try:
-            return cls.from_dict(omegaconf.OmegaConf.load(filename), _exclude=_exclude)
+            return cls.from_dict(omegaconf.OmegaConf.load(filename), name=filename.stem, _exclude=_exclude)
         except FileNotFoundError:
             raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
 
@@ -618,3 +615,37 @@ class Preset:
     def to_yaml(self, include_target=False, full_config=False, sort_keys=False):
         preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
         return yaml.dump(preset_dict, sort_keys=sort_keys)
+
+    @classmethod
+    def all_presets(cls):
+        preset_files = dict()
+        for ext in ("yml", "yaml"):
+            for preset_path in PRESET_PATH:
+                for yaml_file in preset_path.rglob(f"**/*.{ext}"):
+                    try:
+                        loaded_preset = cls.from_yaml_file(yaml_file)
+                        category = str(yaml_file.relative_to(preset_path).parent)
+                        if category == ".":
+                            category = "default"
+                        preset_files[yaml_file] = (loaded_preset, category)
+                    except Exception as e:
+                        log.warning(f'Failed to load preset at "{yaml_file}": {e}')
+                        log.trace(traceback.format_exc())
+                        continue
+        return preset_files
+
+    def presets_table(self):
+        table = []
+        header = ["Preset", "Category", "Description", "Modules"]
+        for loaded_preset, category in self.all_presets().values():
+            modules = ", ".join(sorted(loaded_preset.scan_modules))
+            table.append([loaded_preset.name, category, loaded_preset.description, modules])
+        return make_table(table, header)
+
+    def log_verbose(self, msg):
+        if self._log:
+            log.verbose(f"preset {self.name}: {msg}")
+
+    def log_debug(self, msg):
+        if self._log:
+            self.log_debug(f"preset {self.name}: {msg}")

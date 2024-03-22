@@ -5,6 +5,7 @@ import atexit
 import pickle
 import logging
 import importlib
+import omegaconf
 import traceback
 from copy import copy
 from pathlib import Path
@@ -112,13 +113,17 @@ class ModuleLoader:
                 ...
             }
         """
+        new_modules = False
         if module_dirs is None:
             module_dirs = self.module_dirs
 
         for module_dir in module_dirs:
             if module_dir in self._module_dirs_preloaded:
+                log.debug(f"Already preloaded modules from {module_dir}")
                 continue
 
+            log.debug(f"Preloading modules from {module_dir}")
+            new_modules = True
             for module_file in list_files(module_dir, filter=self.file_filter):
                 module_name = module_file.stem
                 module_file = module_file.resolve()
@@ -130,8 +135,10 @@ class ModuleLoader:
                 self._all_flags.update(set(flags))
                 cache_key = preloaded_module.get("cache_key", ())
                 if module_cache_key == cache_key:
+                    log.debug(f"Preloading {module_name} from cache")
                     preloaded = self.preload_cache[module_name]
                 else:
+                    log.debug(f"Preloading {module_name} from disk")
                     if module_dir.name == "modules":
                         namespace = f"bbot.modules"
                     else:
@@ -167,7 +174,15 @@ class ModuleLoader:
 
             self._module_dirs_preloaded.add(module_dir)
 
-        return self.__preloaded
+        # update default config with module defaults
+        module_config = omegaconf.OmegaConf.create(
+            {
+                "modules": self.configs(),
+            }
+        )
+        self.core.merge_default(module_config)
+
+        return new_modules
 
     @property
     def preload_cache(self):
