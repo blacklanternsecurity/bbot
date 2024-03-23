@@ -155,26 +155,26 @@ jobs:
           repository: blacklanternsecurity/bbot
     outputs:
       BBOT_VERSION: ${{ steps.version.outputs.BBOT_VERSION }}
-  tag_commit:
-    needs: publish_code
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stable')
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0 # Fetch all history for all tags and branches
-      - name: Configure git
-        run: |
-          git config --local user.email "info@blacklanternsecurity.com"
-          git config --local user.name "GitHub Actions"
-      - name: Tag commit
-        run: |
-          VERSION="${{ needs.publish_code.outputs.BBOT_VERSION }}"
-          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            TAG_MESSAGE="Dev Release $VERSION"
-          elif [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
-            TAG_MESSAGE="Stable Release $VERSION"
-          fi
-          git tag -a $VERSION -m "$TAG_MESSAGE"
-          git push origin --tags
+  # tag_commit:
+  #   needs: publish_code
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         ref: ${{ github.head_ref }}
+  #         fetch-depth: 0 # Fetch all history for all tags and branches
+  #     - name: Configure git
+  #       run: |
+  #         git config --local user.email "info@blacklanternsecurity.com"
+  #         git config --local user.name "GitHub Actions"
+  #     - name: Tag commit
+  #       run: |
+  #         VERSION="${{ needs.publish_code.outputs.BBOT_VERSION }}"
+  #         if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+  #           TAG_MESSAGE="Dev Release $VERSION"
+  #         elif [[ "${{ github.ref }}" == "refs/heads/stable" ]]; then
+  #           TAG_MESSAGE="Stable Release $VERSION"
+  #         fi
+  #         git tag -a $VERSION -m "$TAG_MESSAGE"
+  #         git push origin --tags
