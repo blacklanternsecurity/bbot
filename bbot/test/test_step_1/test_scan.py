@@ -6,7 +6,6 @@ async def test_scan(
     events,
     bbot_config,
     helpers,
-    neograph,
     monkeypatch,
     bbot_scanner,
     mock_dns,
