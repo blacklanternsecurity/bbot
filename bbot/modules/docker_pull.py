@@ -117,6 +117,13 @@ class docker_pull(BaseModule):
         if r is None or r.status_code != 200:
             self.log.error(f"Could not retrieve manifest for {repository}:{tag}.")
             return None
+        response_json = r.json()
+        if response_json["mediaType"] == "application/vnd.docker.distribution.manifest.v2+json":
+            return response_json
+        elif response_json["mediaType"] == "application/vnd.docker.distribution.manifest.list.v2+json":
+            for manifest in response_json["manifests"]:
+                if manifest["platform"]["os"] == "linux" and manifest["platform"]["architecture"] == "amd64":
+                    return await self.get_manifest(registry, repository, manifest["digest"])
         else:
             return r.json()
 
