@@ -18,7 +18,7 @@ class social(BaseModule):
         "bitbucket": r"(?:https?://)?(?:www.)?bitbucket.org/([a-zA-Z0-9_-]+)/?",
         "gitlab": r"(?:https?://)?(?:www.)?gitlab.(?:com|org)/([a-zA-Z0-9_-]+)",
         "discord": r"(?:https?://)?(?:www.)?discord.gg/([a-zA-Z0-9_-]+)",
-        "docker": r"(?:https?://)?hub.docker.com/u/([a-zA-Z0-9_-]+)",
+        "docker": r"(?:https?://)?hub.docker.com/[ru]/([a-zA-Z0-9_-]+)",
         "huggingface": r"(?:https?://)?huggingface.co/([a-zA-Z0-9_-]+)",
     }
 
