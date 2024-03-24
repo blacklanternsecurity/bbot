@@ -118,7 +118,7 @@ class speculate(BaseInternalModule):
                 url = event.data
             else:
                 url = event.data["url"]
-            if not any(e.source.type == "URL_UNVERIFIED" and e.source.data == url for e in event.get_sources()):
+            if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_sources()):
                 tags = None
                 if self.helpers.is_spider_danger(event.source, url):
                     tags = ["spider-danger"]
