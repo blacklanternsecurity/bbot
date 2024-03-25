@@ -71,15 +71,12 @@ class docker_pull(BaseModule):
             response = await self.helpers.request(url, headers=self.headers, follow_redirects=True)
             if response is not None and response.status_code != 401:
                 return response
-            www_authenticate_headers = response.headers.get("www-authenticate", "")
-            if not www_authenticate_headers:
-                self.log.error(f"Could not obtain authenticate headers from {url}")
-                break
             try:
+                www_authenticate_headers = response.headers.get("www-authenticate", "")
                 realm = www_authenticate_headers.split('realm="')[1].split('"')[0]
                 service = www_authenticate_headers.split('service="')[1].split('"')[0]
                 scope = www_authenticate_headers.split('scope="')[1].split('"')[0]
-            except IndexError:
+            except (KeyError, IndexError):
                 self.log.error(f"Could not obtain realm, service or scope from {url}")
                 break
             auth_url = f"{realm}?service={service}&scope={scope}"
@@ -123,9 +120,7 @@ class docker_pull(BaseModule):
             for manifest in response_json["manifests"]:
                 if manifest["platform"]["os"] == "linux" and manifest["platform"]["architecture"] == "amd64":
                     return await self.get_manifest(registry, repository, manifest["digest"])
-        else:
-            return response_json
-        return r.json()
+        return response_json
 
     async def get_layers(self, manifest):
         schema_version = manifest.get("schemaVersion", 2)
