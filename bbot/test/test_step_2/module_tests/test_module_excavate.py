@@ -178,7 +178,7 @@ class TestExcavateRedirect(TestExcavate):
         module_test.httpserver.no_handler_status_code = 404
 
     def check(self, module_test, events):
-        assert 1 == len(
+        assert 2 == len(
             [
                 e
                 for e in events
@@ -260,11 +260,15 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
         module_test.httpserver.expect_request("/").respond_with_data(self.lots_of_links)
 
     def check(self, module_test, events):
-        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
-        assert len(url_events) == 26
-        url_data = [e.data for e in url_events if "spider-danger" not in e.tags]
+        url_unverified_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        # base URL + 25 links (10 w/o spider-danger) + 10 links (extracted from HTTP_RESPONSES, w/ spider-danger) == 36
+        assert len(url_unverified_events) == 36
+        url_data = [e.data for e in url_unverified_events if "spider-danger" not in e.tags]
+        assert len(url_data) == 11
         assert "http://127.0.0.1:8888/10" in url_data
         assert "http://127.0.0.1:8888/11" not in url_data
+        url_events = [e for e in events if e.type == "URL"]
+        assert len(url_events) == 11
 
 
 class TestExcavateCSP(TestExcavate):

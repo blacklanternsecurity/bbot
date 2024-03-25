@@ -11,7 +11,7 @@ import subprocess as sp
 from pathlib import Path
 from contextlib import suppress
 from asyncio import create_task, gather, sleep, wait_for  # noqa
-from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
+from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 
 from .url import *  # noqa F401
 from .. import errors
@@ -1978,7 +1978,7 @@ def verify_sudo_password(sudo_pass):
     return True
 
 
-def make_table(*args, **kwargs):
+def make_table(rows, header, *args, **kwargs):
     """Generate a formatted table from the given rows and headers.
 
     This function uses the `tabulate` package to generate a table with formatting options.
@@ -2021,7 +2021,14 @@ def make_table(*args, **kwargs):
     # don't wrap columns in markdown
     if tablefmt in ("github", "markdown"):
         kwargs.pop("maxcolwidths")
-    return tabulate(*args, **kwargs)
+        # escape problematic markdown characters in rows
+
+        def markdown_escape(s):
+            return str(s).replace("|", "&#124;")
+
+        rows = [[markdown_escape(f) for f in row] for row in rows]
+        header = [markdown_escape(h) for h in header]
+    return tabulate(rows, header, *args, **kwargs)
 
 
 def human_timedelta(d):
