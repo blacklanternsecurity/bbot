@@ -25,6 +25,7 @@ class docker_pull(BaseModule):
                     "application/vnd.docker.distribution.manifest.v2+json",
                     "application/vnd.docker.distribution.manifest.list.v2+json",
                     "application/vnd.docker.distribution.manifest.v1+json",
+                    "application/vnd.oci.image.manifest.v1+json",
                 ]
             )
         }
@@ -106,7 +107,7 @@ class docker_pull(BaseModule):
                 if "latest" in tags:
                     return ["latest"]
                 else:
-                    return tags[-1]
+                    return [tags[-1]]
         except (KeyError, IndexError):
             self.log.error(f"Could not retrieve tags for {repository}.")
             return ["latest"]
@@ -118,12 +119,12 @@ class docker_pull(BaseModule):
             self.log.error(f"Could not retrieve manifest for {repository}:{tag}.")
             return {}
         response_json = r.json()
-        if response_json["mediaType"] == "application/vnd.docker.distribution.manifest.v2+json":
-            return response_json
-        elif response_json["mediaType"] == "application/vnd.docker.distribution.manifest.list.v2+json":
+        if response_json.get("manifests", []):
             for manifest in response_json["manifests"]:
                 if manifest["platform"]["os"] == "linux" and manifest["platform"]["architecture"] == "amd64":
                     return await self.get_manifest(registry, repository, manifest["digest"])
+        else:
+            return response_json
         return r.json()
 
     async def get_layers(self, manifest):
@@ -148,7 +149,7 @@ class docker_pull(BaseModule):
         return json.dumps(manifest).encode()
 
     async def download_and_get_filename(self, registry, repository, digest):
-        if not ":" in digest:
+        if ":" not in digest:
             return None, None
         blob = await self.download_blob(registry, repository, digest)
         hash_func = digest.split(":")[0]
@@ -177,7 +178,7 @@ class docker_pull(BaseModule):
         with tarfile.open(output_tar, mode="w") as tar:
             manifest = await self.get_manifest(registry, repository, tag)
             config_file, config_filename = await self.download_and_get_filename(
-                registry, repository, manifest.get("config", {}).get("digest")
+                registry, repository, manifest.get("config", {}).get("digest", "")
             )
             await self.write_file_to_tar(tar, config_filename, config_file)
 

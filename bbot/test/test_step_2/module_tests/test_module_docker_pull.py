@@ -49,6 +49,23 @@ class TestDockerPull(ModuleTestBase):
                         "content_types": ["image"],
                         "categories": [],
                     },
+                    {
+                        "name": "testimage",
+                        "namespace": "blacklanternsecurity",
+                        "repository_type": "image",
+                        "status": 1,
+                        "status_description": "active",
+                        "description": "",
+                        "is_private": False,
+                        "star_count": 0,
+                        "pull_count": 1,
+                        "last_updated": "2022-01-10T20:16:46.170738Z",
+                        "date_registered": "2022-01-07T13:28:59.756641Z",
+                        "affiliation": "",
+                        "media_types": ["application/vnd.docker.container.image.v1+json"],
+                        "content_types": ["image"],
+                        "categories": [],
+                    },
                 ],
             },
         )
@@ -76,7 +93,36 @@ class TestDockerPull(ModuleTestBase):
             status_code=401,
         )
         module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
+            json={
+                "errors": [
+                    {
+                        "code": "UNAUTHORIZED",
+                        "message": "authentication required",
+                        "detail": [
+                            {
+                                "Type": "repository",
+                                "Class": "",
+                                "Name": "blacklanternsecurity/testimage",
+                                "Action": "pull",
+                            }
+                        ],
+                    }
+                ]
+            },
+            headers={
+                "www-authenticate": 'Bearer realm="https://auth.docker.io/token",service="registry.docker.io",scope="blacklanternsecurity/testimage:pull"'
+            },
+            status_code=401,
+        )
+        module_test.httpx_mock.add_response(
             url="https://auth.docker.io/token?service=registry.docker.io&scope=blacklanternsecurity/helloworld:pull",
+            json={
+                "token": "QWERTYUIOPASDFGHJKLZXCBNM",
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://auth.docker.io/token?service=registry.docker.io&scope=blacklanternsecurity/testimage:pull",
             json={
                 "token": "QWERTYUIOPASDFGHJKLZXCBNM",
             },
@@ -85,6 +131,16 @@ class TestDockerPull(ModuleTestBase):
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
             json={
                 "name": "blacklanternsecurity/helloworld",
+                "tags": [
+                    "dev",
+                    "latest",
+                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
+            json={
+                "name": "blacklanternsecurity/testimage",
                 "tags": [
                     "dev",
                     "latest",
@@ -106,6 +162,39 @@ class TestDockerPull(ModuleTestBase):
                         "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
                         "size": 29124181,
                         "digest": "sha256:8a1e25ce7c4f75e372e9884f8f7b1bedcfe4a7a7d452eb4b0a1c7477c9a90345",
+                    },
+                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/manifests/latest",
+            json={
+                "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+                "schemaVersion": 2,
+                "manifests": [
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "platform": {"os": "linux", "architecture": "s390x"},
+                        "digest": "sha256:3e8a8b63afab946f4a64c1dc63563d91b2cb1e5eadadac1eff20231695c53d24",
+                        "size": 1953,
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "platform": {"os": "linux", "architecture": "amd64"},
+                        "digest": "sha256:7c75331408141f1e3ef37eac7c45938fbfb0d421a86201ad45d2ab8b70ddd527",
+                        "size": 1953,
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "platform": {"os": "linux", "architecture": "ppc64le"},
+                        "digest": "sha256:33d30a60996db4bc8158151ce516a8503cc56ce8d146e450e117a57ca5bf06e7",
+                        "size": 1953,
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "platform": {"os": "linux", "architecture": "arm64", "variant": "v8"},
+                        "digest": "sha256:d0eacd0089db7309a5ce40ec3334fcdd4ce7d67324f1ccc4433dd4fae4a771a4",
+                        "size": 1953,
                     },
                 ],
             },
@@ -285,6 +374,42 @@ class TestDockerPull(ModuleTestBase):
                 },
             },
         )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/manifests/sha256:7c75331408141f1e3ef37eac7c45938fbfb0d421a86201ad45d2ab8b70ddd527",
+            json={
+                "name": "testimage",
+                "tag": "latest",
+                "architecture": "amd64",
+                "fsLayers": [
+                    {"blobSum": "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"},
+                ],
+                "history": [
+                    {
+                        "v1Compatibility": '{"id":"e45a5af57b00862e5ef5782a9925979a02ba2b12dff832fd0991335f4a11e5c5","parent":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","created":"2014-12-31T22:57:59.178729048Z","container":"27b45f8fb11795b52e9605b686159729b0d9ca92f76d40fb4f05a62e19c46b4f","container_config":{"Hostname":"8ce6509d66e2","Domainname":"","User":"","Memory":0,"MemorySwap":0,"CpuShares":0,"Cpuset":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"PortSpecs":null,"ExposedPorts":null,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop) CMD [/hello]"],"Image":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","Volumes":null,"WorkingDir":"","Entrypoint":null,"NetworkDisabled":false,"MacAddress":"","OnBuild":[],"SecurityOpt":null,"Labels":null},"docker_version":"1.4.1","config":{"Hostname":"8ce6509d66e2","Domainname":"","User":"","Memory":0,"MemorySwap":0,"CpuShares":0,"Cpuset":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"PortSpecs":null,"ExposedPorts":null,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/hello"],"Image":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","Volumes":null,"WorkingDir":"","Entrypoint":null,"NetworkDisabled":false,"MacAddress":"","OnBuild":[],"SecurityOpt":null,"Labels":null},"architecture":"amd64","os":"linux","Size":0}\n'
+                    },
+                    {
+                        "v1Compatibility": '{"id":"e45a5af57b00862e5ef5782a9925979a02ba2b12dff832fd0991335f4a11e5c5","parent":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","created":"2014-12-31T22:57:59.178729048Z","container":"27b45f8fb11795b52e9605b686159729b0d9ca92f76d40fb4f05a62e19c46b4f","container_config":{"Hostname":"8ce6509d66e2","Domainname":"","User":"","Memory":0,"MemorySwap":0,"CpuShares":0,"Cpuset":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"PortSpecs":null,"ExposedPorts":null,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop) CMD [/hello]"],"Image":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","Volumes":null,"WorkingDir":"","Entrypoint":null,"NetworkDisabled":false,"MacAddress":"","OnBuild":[],"SecurityOpt":null,"Labels":null},"docker_version":"1.4.1","config":{"Hostname":"8ce6509d66e2","Domainname":"","User":"","Memory":0,"MemorySwap":0,"CpuShares":0,"Cpuset":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"PortSpecs":null,"ExposedPorts":null,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/hello"],"Image":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","Volumes":null,"WorkingDir":"","Entrypoint":null,"NetworkDisabled":false,"MacAddress":"","OnBuild":[],"SecurityOpt":null,"Labels":null},"architecture":"amd64","os":"linux","Size":0}\n'
+                    },
+                ],
+                "schemaVersion": 1,
+                "signatures": [
+                    {
+                        "header": {
+                            "jwk": {
+                                "crv": "P-256",
+                                "kid": "OD6I:6DRK:JXEJ:KBM4:255X:NSAA:MUSF:E4VM:ZI6W:CUN2:L4Z6:LSF4",
+                                "kty": "EC",
+                                "x": "3gAwX48IQ5oaYQAYSxor6rYYc_6yjuLCjtQ9LUakg4A",
+                                "y": "t72ge6kIA1XOjqjVoEOiPPAURltJFBMGDSQvEGVB010",
+                            },
+                            "alg": "ES256",
+                        },
+                        "signature": "XREm0L8WNn27Ga_iE_vRnTxVMhhYY0Zst_FfkKopg6gWSoTOZTuW4rK0fg_IqnKkEKlbD83tD46LKEGi5aIVFg",
+                        "protected": "eyJmb3JtYXRMZW5ndGgiOjY2MjgsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNS0wNC0wOFQxODo1Mjo1OVoifQ",
+                    }
+                ],
+            },
+        )
         temp_path = Path("/tmp/.bbot_test")
         tar_path = temp_path / "docker_pull_test.tar.gz"
         with tarfile.open(tar_path, "w:gz") as tar:
@@ -299,17 +424,24 @@ class TestDockerPull(ModuleTestBase):
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:8a1e25ce7c4f75e372e9884f8f7b1bedcfe4a7a7d452eb4b0a1c7477c9a90345",
             content=layer_file,
         )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/blobs/sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+            content=layer_file,
+        )
 
     def check(self, module_test, events):
         filesystem_events = [
             e
             for e in events
             if e.type == "FILESYSTEM"
-            and "blacklanternsecurity_helloworld_latest.tar" in e.data["path"]
+            and (
+                "blacklanternsecurity_helloworld_latest.tar" in e.data["path"]
+                or "blacklanternsecurity_testimage_latest.tar" in e.data["path"]
+            )
             and "docker" in e.tags
             and e.scope_distance == 2
         ]
-        assert 1 == len(filesystem_events), "Failed to download docker image"
+        assert 2 == len(filesystem_events), "Failed to download docker images"
         filesystem_event = filesystem_events[0]
         folder = Path(filesystem_event.data["path"])
         assert folder.is_file(), "Destination tar doesn't exist"
