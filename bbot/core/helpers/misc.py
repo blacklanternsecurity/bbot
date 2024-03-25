@@ -2007,8 +2007,8 @@ def make_table(rows, header, *args, **kwargs):
     from tabulate import tabulate
 
     # fix IndexError: list index out of range
-    if args and not args[0]:
-        args = ([[]],) + args[1:]
+    if not rows:
+        rows = [[]]
     tablefmt = os.environ.get("BBOT_TABLE_FORMAT", None)
     defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": None}
     if tablefmt is None:

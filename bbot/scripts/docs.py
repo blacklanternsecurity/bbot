@@ -113,7 +113,6 @@ def update_docs():
     update_md_files("BBOT MODULE FLAGS", bbot_module_flags_table)
 
     # BBOT presets
-    preset = Preset()
     bbot_presets_table = DEFAULT_PRESET.presets_table(include_modules=True)
     assert len(bbot_presets_table.splitlines()) > 5
     update_md_files("BBOT PRESETS", bbot_presets_table)

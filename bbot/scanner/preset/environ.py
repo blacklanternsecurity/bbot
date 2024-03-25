@@ -24,6 +24,16 @@ def increase_limit(new_limit):
 increase_limit(65535)
 
 
+# Custom custom omegaconf resolver to get environment variables
+def env_resolver(env_name, default=None):
+    return os.getenv(env_name, default)
+
+
+# Register the new resolver
+# this allows you to substitute environment variables in your config like "${env:PATH}""
+omegaconf.OmegaConf.register_new_resolver("env", env_resolver)
+
+
 class BBOTEnviron:
 
     def __init__(self, preset):

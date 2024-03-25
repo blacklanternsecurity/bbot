@@ -21,6 +21,7 @@ nav:
     - Comparison to Other Tools: comparison.md
   - Scanning:
     - Scanning Overview: scanning/index.md
+    - Presets: scanning/presets.md
     - Events: scanning/events.md
     - Output: scanning/output.md
     - Tips and Tricks: scanning/tips_and_tricks.md

@@ -171,18 +171,3 @@ Here is a full list of BBOT's default presets:
 | web-basic      | default      | Quick web scan                                                   | 17          | azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_firebase, bucket_google, filedownload, git, httpx, iis_shortnames, ntlm, oauth, robots, secretsdb, sslcert, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | web-thorough   | default      | Aggressive web scan                                              | 30          | ajaxpro, azure_realm, baddns, badsecrets, bucket_amazon, bucket_azure, bucket_digitalocean, bucket_firebase, bucket_google, bypass403, dastardly, dotnetnuke, ffuf_shortnames, filedownload, generic_ssrf, git, host_header, httpx, hunt, iis_shortnames, nmap, ntlm, oauth, robots, secretsdb, smuggler, sslcert, telerik, url_manipulation, wappalyzer                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 <!-- END BBOT PRESETS -->
-
-<details><summary>`subdomain-enum`</summary>
-
-```yaml title="~/.bbot/presets/subdomain-enum.yml"
-description: Enumerate subdomains via APIs, brute-force
-
-flags:
-  - subdomain-enum
-
-output_modules:
-  - subdomains
-
-```
-
-</details>

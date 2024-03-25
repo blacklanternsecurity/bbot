@@ -25,10 +25,6 @@ class BBOTCore:
         self.logger
         self.log = logging.getLogger("bbot.core")
 
-        # PRESET TODO: add back in bbot/core/configurator/__init__.py
-        # - check_cli_args
-        # - ensure_config_files
-
     @property
     def home(self):
         return Path(self.config["home"]).expanduser().resolve()
@@ -70,9 +66,7 @@ class BBOTCore:
     def default_config(self):
         global DEFAULT_CONFIG
         if DEFAULT_CONFIG is None:
-            DEFAULT_CONFIG = self.files_config.get_default_config()
-            # set read-only flag (change .custom_config instead)
-            OmegaConf.set_readonly(DEFAULT_CONFIG, True)
+            self.default_config = self.files_config.get_default_config()
         return DEFAULT_CONFIG
 
     @default_config.setter
@@ -81,6 +75,7 @@ class BBOTCore:
         global DEFAULT_CONFIG
         self._config = None
         DEFAULT_CONFIG = value
+        # set read-only flag (change .custom_config instead)
         OmegaConf.set_readonly(DEFAULT_CONFIG, True)
 
     @property

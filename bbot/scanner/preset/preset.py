@@ -198,6 +198,8 @@ class Preset:
         # prepare os environment
         os_environ = baked_preset.environ.prepare()
         # find and replace preloaded modules with os environ
+        # this is different from the config variable substitution because it modifies
+        #  the preloaded modules, i.e. their ansible playbooks
         baked_preset.module_loader.find_and_replace(**os_environ)
         # update os environ
         os.environ.clear()
@@ -369,7 +371,7 @@ class Preset:
             flags = [flags]
         self._require_flags = set()
         for flag in set(flags):
-            self.add_required_flag(flag)
+            self.require_flag(flag)
 
     @exclude_modules.setter
     def exclude_modules(self, modules):
@@ -378,7 +380,7 @@ class Preset:
             modules = [modules]
         self._exclude_modules = set()
         for module in set(modules):
-            self.add_excluded_module(module)
+            self.exclude_module(module)
 
     @exclude_flags.setter
     def exclude_flags(self, flags):
@@ -387,13 +389,13 @@ class Preset:
             flags = [flags]
         self._exclude_flags = set()
         for flag in set(flags):
-            self.add_excluded_flag(flag)
+            self.exclude_flag(flag)
 
     def add_required_flags(self, flags):
         for flag in flags:
-            self.add_required_flag(flag)
+            self.require_flag(flag)
 
-    def add_required_flag(self, flag):
+    def require_flag(self, flag):
         self.require_flags.add(flag)
         for module in list(self.scan_modules):
             module_flags = self.preloaded_module(module).get("flags", [])
@@ -403,9 +405,9 @@ class Preset:
 
     def add_excluded_flags(self, flags):
         for flag in flags:
-            self.add_excluded_flag(flag)
+            self.exclude_flag(flag)
 
-    def add_excluded_flag(self, flag):
+    def exclude_flag(self, flag):
         self.exclude_flags.add(flag)
         for module in list(self.scan_modules):
             module_flags = self.preloaded_module(module).get("flags", [])
@@ -415,9 +417,9 @@ class Preset:
 
     def add_excluded_modules(self, modules):
         for module in modules:
-            self.add_excluded_module(module)
+            self.exclude_module(module)
 
-    def add_excluded_module(self, module):
+    def exclude_module(self, module):
         self.exclude_modules.add(module)
         for module in list(self.scan_modules):
             if module in self.exclude_modules:

@@ -8,8 +8,6 @@ output_modules:
 
 config:
   modules:
-    c99:
-      myoption: "#{MYOPTION}"
     stdout:
       format: text
       # only output DNS_NAMEs to the console

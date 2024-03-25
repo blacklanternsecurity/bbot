@@ -1,6 +1,8 @@
 # Configuration Overview
 
-BBOT has a YAML config at `~/.config/bbot`. This config is different from the command-line arguments. This is where you change settings such as BBOT's **HTTP proxy**, **rate limits**, or global **User-Agent**. It's also where you put modules' **API keys**.
+Normally, [Presets](presets.md) are used to configure a scan. However, there may be cases where you want to change BBOT's defaults so a certain option is always set, even if it's not specified in a preset.
+
+BBOT has a YAML config at `~/.config/bbot.yml`. This is the first config that BBOT loads, so it's a good place to put default settings like `http_proxy`, `max_threads`, or `http_user_agent`. You can also put any module settings here, including **API keys**.
 
 For a list of all possible config options, see:
 
