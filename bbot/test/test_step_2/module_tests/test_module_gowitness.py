@@ -29,10 +29,10 @@ class TestGowitness(ModuleTestBase):
         # monkeypatch social
         old_emit_event = module_test.scan.modules["social"].emit_event
 
-        async def new_emit_event(event_data, event_type, **kwargs):
-            if event_data["url"] == "https://github.com/blacklanternsecurity":
-                event_data["url"] = event_data["url"].replace("https://github.com", "http://127.0.0.1:8888")
-            await old_emit_event(event_data, event_type, **kwargs)
+        async def new_emit_event(event):
+            if event.data["url"] == "https://github.com/blacklanternsecurity":
+                event.data["url"] = event.data["url"].replace("https://github.com", "http://127.0.0.1:8888")
+            await old_emit_event(event)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["social"], "emit_event", new_emit_event)
 

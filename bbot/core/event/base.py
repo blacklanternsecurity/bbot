@@ -4,6 +4,7 @@ import asyncio
 import logging
 import ipaddress
 import traceback
+from copy import copy
 from typing import Optional
 from datetime import datetime
 from contextlib import suppress
@@ -211,6 +212,9 @@ class BaseEvent:
 
         # an event indicating whether the event has undergone DNS resolution
         self._resolved = asyncio.Event()
+
+        # inherit web spider distance from parent
+        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
 
     @property
     def data(self):
@@ -878,7 +882,6 @@ class URL_UNVERIFIED(BaseEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
         # increment the web spider distance
         if self.type == "URL_UNVERIFIED" and getattr(self.module, "name", "") != "TARGET":
             self.web_spider_distance += 1
@@ -1255,9 +1258,10 @@ def make_event(
         tags = []
     elif isinstance(tags, str):
         tags = [tags]
-    tags = list(tags)
+    tags = set(tags)
 
     if is_event(data):
+        data = copy(data)
         if scan is not None and not data.scan:
             data.scan = scan
         if scans is not None and not data.scans:
@@ -1268,6 +1272,8 @@ def make_event(
             data.source = source
         if internal == True:
             data.internal = True
+        if tags:
+            data.tags = tags.union(data.tags)
         event_type = data.type
         return data
     else:
@@ -1298,7 +1304,7 @@ def make_event(
         # USERNAME <--> EMAIL_ADDRESS confusion
         if event_type == "USERNAME" and validators.soft_validate(data, "email"):
             event_type = "EMAIL_ADDRESS"
-            tags.append("affiliate")
+            tags.add("affiliate")
 
         event_class = globals().get(event_type, DefaultEvent)
 
