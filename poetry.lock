@@ -388,20 +388,18 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "3.0.0.275"
+version = "3.1.0.318"
 description = "Check whether an IP address belongs to a cloud provider"
 optional = false
-python-versions = ">=3.9,<4.0"
+python-versions = "<4.0,>=3.9"
 files = [
-    {file = "cloudcheck-3.0.0.275-py3-none-any.whl", hash = "sha256:0929bac3ffc8b0c7ad9b5348e8511893665acfc93a33e03367e953f277083ee6"},
-    {file = "cloudcheck-3.0.0.275.tar.gz", hash = "sha256:f6c8ba64925e7f6c4e0ac1eaf0b0efa7d1199964b7a11f1a3998d91c42f4c8f5"},
+    {file = "cloudcheck-3.1.0.318-py3-none-any.whl", hash = "sha256:471dba97531e1f60aadab8daa6cb1d63727f67c16fd7b4758db46c9af2f362f1"},
+    {file = "cloudcheck-3.1.0.318.tar.gz", hash = "sha256:ba7fcc026817aa05f74c7789d2ac306469f3143f91b3ea9f95c57c70a7b0b787"},
 ]
 
 [package.dependencies]
 httpx = ">=0.26,<0.28"
-pyasn = ">=1.6.2,<2.0.0"
 pydantic = ">=2.4.2,<3.0.0"
-pytest = ">=7.0,<8.0"
 
 [[package]]
 name = "colorama"
@@ -1137,13 +1135,13 @@ mkdocs = ">=1.1"
 
 [[package]]
 name = "mkdocs-material"
-version = "9.5.14"
+version = "9.5.15"
 description = "Documentation that simply works"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocs_material-9.5.14-py3-none-any.whl", hash = "sha256:a45244ac221fda46ecf8337f00ec0e5cb5348ab9ffb203ca2a0c313b0d4dbc27"},
-    {file = "mkdocs_material-9.5.14.tar.gz", hash = "sha256:2a1f8e67cda2587ab93ecea9ba42d0ca61d1d7b5fad8cf690eeaeb39dcd4b9af"},
+    {file = "mkdocs_material-9.5.15-py3-none-any.whl", hash = "sha256:e5c96dec3d19491de49ca643fc1dbb92b278e43cdb816c775bc47db77d9b62fb"},
+    {file = "mkdocs_material-9.5.15.tar.gz", hash = "sha256:39f03cca45e82bf54eb7456b5a18bd252eabfdd67f237a229471484a0a4d4635"},
 ]
 
 [package.dependencies]
@@ -1424,19 +1422,6 @@ files = [
     {file = "ptyprocess-0.7.0-py2.py3-none-any.whl", hash = "sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35"},
     {file = "ptyprocess-0.7.0.tar.gz", hash = "sha256:5c5d0a3b48ceee0b48485e0c26037c0acd7d29765ca3fbb5cb3831d347423220"},
 ]
-
-[[package]]
-name = "pyasn"
-version = "1.6.2"
-description = "Offline IP address to Autonomous System Number lookup module."
-optional = false
-python-versions = "*"
-files = [
-    {file = "pyasn-1.6.2.tar.gz", hash = "sha256:a2d55fb3ee47947609f50211ca5b0bac411a86f3c935fb92ca4b0b8ab7c668ff"},
-]
-
-[package.extras]
-test = ["pytest"]
 
 [[package]]
 name = "pycodestyle"
@@ -2146,13 +2131,13 @@ widechars = ["wcwidth"]
 
 [[package]]
 name = "tldextract"
-version = "5.1.1"
+version = "5.1.2"
 description = "Accurately separates a URL's subdomain, domain, and public suffix, using the Public Suffix List (PSL). By default, this includes the public ICANN TLDs and their exceptions. You can optionally support the Public Suffix List's private domains as well."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "tldextract-5.1.1-py3-none-any.whl", hash = "sha256:b9c4510a8766d377033b6bace7e9f1f17a891383ced3c5d50c150f181e9e1cc2"},
-    {file = "tldextract-5.1.1.tar.gz", hash = "sha256:9b6dbf803cb5636397f0203d48541c0da8ba53babaf0e8a6feda2d88746813d4"},
+    {file = "tldextract-5.1.2-py3-none-any.whl", hash = "sha256:4dfc4c277b6b97fa053899fcdb892d2dc27295851ab5fac4e07797b6a21b2e46"},
+    {file = "tldextract-5.1.2.tar.gz", hash = "sha256:c9e17f756f05afb5abac04fe8f766e7e70f9fe387adb1859f0f52408ee060200"},
 ]
 
 [package.dependencies]
@@ -2162,7 +2147,8 @@ requests = ">=2.1.0"
 requests-file = ">=1.4"
 
 [package.extras]
-testing = ["black", "mypy", "pytest", "pytest-gitignore", "pytest-mock", "responses", "ruff", "tox", "types-filelock", "types-requests"]
+release = ["build", "twine"]
+testing = ["black", "mypy", "pytest", "pytest-gitignore", "pytest-mock", "responses", "ruff", "syrupy", "tox", "types-filelock", "types-requests"]
 
 [[package]]
 name = "tomli"
