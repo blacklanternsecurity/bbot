@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class gitlab(BaseModule):
     watched_events = ["HTTP_RESPONSE", "TECHNOLOGY", "SOCIAL"]
     produced_events = ["TECHNOLOGY", "SOCIAL", "CODE_REPOSITORY", "FINDING"]
-    flags = ["active", "safe"]
+    flags = ["active", "safe", "code-enum"]
     meta = {"description": "Detect GitLab instances and query them for repositories"}
     options = {"api_key": ""}
     options_desc = {"api_key": "Gitlab access token"}

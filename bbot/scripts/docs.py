@@ -5,8 +5,9 @@ import re
 import yaml
 from pathlib import Path
 
-# PRESET TODO: revisit this
-from bbot.core import CORE
+from bbot.scanner import Preset
+
+DEFAULT_PRESET = Preset()
 
 os.environ["BBOT_TABLE_FORMAT"] = "github"
 
@@ -64,12 +65,12 @@ def update_docs():
                 content = f.read()
             for match in regex.finditer(content):
                 module_name = match.groups()[0].lower()
-                bbot_module_options_table = CORE.module_loader.modules_options_table(modules=[module_name])
+                bbot_module_options_table = DEFAULT_PRESET.module_loader.modules_options_table(modules=[module_name])
                 find_replace_file(file, f"BBOT MODULE OPTIONS {module_name.upper()}", bbot_module_options_table)
 
     # Example commands
     bbot_example_commands = []
-    for title, description, command in CORE.args.scan_examples:
+    for title, description, command in DEFAULT_PRESET.args.scan_examples:
         example = ""
         example += f"**{title}:**\n\n"
         # example += f"{description}\n"
@@ -80,36 +81,42 @@ def update_docs():
     update_md_files("BBOT EXAMPLE COMMANDS", bbot_example_commands)
 
     # Help output
-    bbot_help_output = CORE.args.parser.format_help().replace("docs.py", "bbot")
+    bbot_help_output = DEFAULT_PRESET.args.parser.format_help().replace("docs.py", "bbot")
     bbot_help_output = f"```text\n{bbot_help_output}\n```"
     assert len(bbot_help_output.splitlines()) > 50
     update_md_files("BBOT HELP OUTPUT", bbot_help_output)
 
     # BBOT events
-    bbot_event_table = CORE.module_loader.events_table()
+    bbot_event_table = DEFAULT_PRESET.module_loader.events_table()
     assert len(bbot_event_table.splitlines()) > 10
     update_md_files("BBOT EVENTS", bbot_event_table)
 
     # BBOT modules
-    bbot_module_table = CORE.module_loader.modules_table()
+    bbot_module_table = DEFAULT_PRESET.module_loader.modules_table()
     assert len(bbot_module_table.splitlines()) > 50
     update_md_files("BBOT MODULES", bbot_module_table)
 
     # BBOT output modules
-    bbot_output_module_table = CORE.module_loader.modules_table(mod_type="output")
+    bbot_output_module_table = DEFAULT_PRESET.module_loader.modules_table(mod_type="output")
     assert len(bbot_output_module_table.splitlines()) > 10
     update_md_files("BBOT OUTPUT MODULES", bbot_output_module_table)
 
     # BBOT module options
-    bbot_module_options_table = CORE.module_loader.modules_options_table()
+    bbot_module_options_table = DEFAULT_PRESET.module_loader.modules_options_table()
     assert len(bbot_module_options_table.splitlines()) > 100
     update_md_files("BBOT MODULE OPTIONS", bbot_module_options_table)
     update_individual_module_options()
 
     # BBOT module flags
-    bbot_module_flags_table = CORE.module_loader.flags_table()
+    bbot_module_flags_table = DEFAULT_PRESET.module_loader.flags_table()
     assert len(bbot_module_flags_table.splitlines()) > 10
     update_md_files("BBOT MODULE FLAGS", bbot_module_flags_table)
+
+    # BBOT presets
+    preset = Preset()
+    bbot_presets_table = DEFAULT_PRESET.presets_table(include_modules=True)
+    assert len(bbot_presets_table.splitlines()) > 5
+    update_md_files("BBOT PRESETS", bbot_presets_table)
 
     # Default config
     default_config_file = bbot_code_dir / "bbot" / "defaults.yml"

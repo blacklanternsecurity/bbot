@@ -133,13 +133,13 @@ class Preset:
             modules = [modules]
         if isinstance(output_modules, str):
             output_modules = [output_modules]
-        self.exclude_modules = exclude_modules if exclude_modules is not None else []
-        self.require_flags = require_flags if require_flags is not None else []
-        self.exclude_flags = exclude_flags if exclude_flags is not None else []
-        self.flags = flags if flags is not None else []
-        self.scan_modules = modules if modules is not None else []
-        self.output_modules = output_modules if output_modules is not None else []
-        self.internal_modules = internal_modules if internal_modules is not None else []
+        self.add_excluded_modules(exclude_modules if exclude_modules is not None else [])
+        self.add_required_flags(require_flags if require_flags is not None else [])
+        self.add_excluded_flags(exclude_flags if exclude_flags is not None else [])
+        self.add_scan_modules(modules if modules is not None else [])
+        self.add_output_modules(output_modules if output_modules is not None else [])
+        self.add_internal_modules(internal_modules if internal_modules is not None else [])
+        self.add_flags(flags if flags is not None else [])
 
     @property
     def bbot_home(self):
@@ -152,11 +152,11 @@ class Preset:
         # module dirs
         # modules + flags
         # establish requirements / exclusions first
-        self.exclude_modules = set(self.exclude_modules).union(set(other.exclude_modules))
-        self.require_flags = set(self.require_flags).union(set(other.require_flags))
-        self.exclude_flags = set(self.exclude_flags).union(set(other.exclude_flags))
+        self.add_excluded_modules(other.exclude_modules)
+        self.add_required_flags(other.require_flags)
+        self.add_excluded_flags(other.exclude_flags)
         # then it's okay to start enabling modules
-        self.flags = set(self.flags).union(set(other.flags))
+        self.add_flags(other.flags)
         for module_name in other.modules:
             module_type = self.preloaded_module(module_name).get("type", "scan")
             self.add_module(module_name, module_type=module_type)
@@ -213,10 +213,6 @@ class Preset:
         return baked_preset
 
     def parse_args(self):
-
-        from .args import BBOTArgs
-
-        self._args = BBOTArgs(self)
         self.merge(self.args.preset_from_args())
 
     @property
@@ -236,18 +232,6 @@ class Preset:
     def modules(self):
         return self._modules
 
-    @property
-    def scan_modules(self):
-        return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "scan"]
-
-    @property
-    def output_modules(self):
-        return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "output"]
-
-    @property
-    def internal_modules(self):
-        return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "internal"]
-
     @modules.setter
     def modules(self, modules):
         if isinstance(modules, str):
@@ -256,16 +240,31 @@ class Preset:
         for module_name in modules:
             self.add_module(module_name)
 
+    @property
+    def scan_modules(self):
+        return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "scan"]
+
     @scan_modules.setter
     def scan_modules(self, modules):
+        self.log_debug(f"Setting scan modules to {modules}")
         self._modules_setter(modules, module_type="scan")
+
+    @property
+    def output_modules(self):
+        return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "output"]
 
     @output_modules.setter
     def output_modules(self, modules):
+        self.log_debug(f"Setting output modules to {modules}")
         self._modules_setter(modules, module_type="output")
+
+    @property
+    def internal_modules(self):
+        return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "internal"]
 
     @internal_modules.setter
     def internal_modules(self, modules):
+        self.log_debug(f"Setting internal modules to {modules}")
         self._modules_setter(modules, module_type="internal")
 
     def _modules_setter(self, modules, module_type="scan"):
@@ -277,6 +276,18 @@ class Preset:
                 self._modules.remove(module_name)
         for module_name in set(modules):
             self.add_module(module_name, module_type=module_type)
+
+    def add_scan_modules(self, modules):
+        for module in modules:
+            self.add_module(module, module_type="scan")
+
+    def add_output_modules(self, modules):
+        for module in modules:
+            self.add_module(module, module_type="output")
+
+    def add_internal_modules(self, modules):
+        for module in modules:
+            self.add_module(module, module_type="internal")
 
     def add_module(self, module_name, module_type="scan"):
         # log.info(f'Adding "{module_name}": {module_type}')
@@ -334,21 +345,26 @@ class Preset:
 
     @flags.setter
     def flags(self, flags):
-        log.debug(f"{self.name}: setting flags to {flags}")
-        if isinstance(flags, str):
-            flags = [flags]
-        for flag in flags:
-            if not flag in self.module_loader._all_flags:
-                raise EnableFlagError(f'Flag "{flag}" was not found')
+        self.log_debug(f"Setting flags to {flags}")
         self._flags = set(flags)
-        if self._flags:
-            for module, preloaded in self.module_loader.preloaded().items():
-                module_flags = preloaded.get("flags", [])
-                if any(f in self._flags for f in module_flags):
-                    self.add_module(module)
+        for flag in flags:
+            self.add_flag(flag)
+
+    def add_flags(self, flags):
+        for flag in flags:
+            self.add_flag(flag)
+
+    def add_flag(self, flag):
+        if not flag in self.module_loader._all_flags:
+            raise EnableFlagError(f'Flag "{flag}" was not found')
+        for module, preloaded in self.module_loader.preloaded().items():
+            module_flags = preloaded.get("flags", [])
+            if flag in module_flags:
+                self.add_module(module)
 
     @require_flags.setter
     def require_flags(self, flags):
+        self.log_debug(f"Setting required flags to {flags}")
         if isinstance(flags, str):
             flags = [flags]
         self._require_flags = set()
@@ -357,6 +373,7 @@ class Preset:
 
     @exclude_modules.setter
     def exclude_modules(self, modules):
+        self.log_debug(f"Setting excluded modules to {modules}")
         if isinstance(modules, str):
             modules = [modules]
         self._exclude_modules = set()
@@ -365,11 +382,16 @@ class Preset:
 
     @exclude_flags.setter
     def exclude_flags(self, flags):
+        self.log_debug(f"Setting excluded flags to {flags}")
         if isinstance(flags, str):
             flags = [flags]
         self._exclude_flags = set()
         for flag in set(flags):
             self.add_excluded_flag(flag)
+
+    def add_required_flags(self, flags):
+        for flag in flags:
+            self.add_required_flag(flag)
 
     def add_required_flag(self, flag):
         self.require_flags.add(flag)
@@ -379,6 +401,10 @@ class Preset:
                 self.log_verbose(f'Removing module "{module}" because it doesn\'t have the required flag, "{flag}"')
                 self.modules.remove(module)
 
+    def add_excluded_flags(self, flags):
+        for flag in flags:
+            self.add_excluded_flag(flag)
+
     def add_excluded_flag(self, flag):
         self.exclude_flags.add(flag)
         for module in list(self.scan_modules):
@@ -386,6 +412,10 @@ class Preset:
             if flag in module_flags:
                 self.log_verbose(f'Removing module "{module}" because it has the excluded flag, "{flag}"')
                 self.modules.remove(module)
+
+    def add_excluded_modules(self, modules):
+        for module in modules:
+            self.add_excluded_module(module)
 
     def add_excluded_module(self, module):
         self.exclude_modules.add(module)
@@ -405,14 +435,6 @@ class Preset:
     def verbose(self):
         return self._verbose
 
-    @property
-    def debug(self):
-        return self._debug
-
-    @property
-    def silent(self):
-        return self._silent
-
     @verbose.setter
     def verbose(self, value):
         if value:
@@ -426,6 +448,10 @@ class Preset:
             self.core.logger.log_level = "INFO"
         self._verbose = value
 
+    @property
+    def debug(self):
+        return self._debug
+
     @debug.setter
     def debug(self, value):
         if value:
@@ -438,6 +464,10 @@ class Preset:
                 del self.core.custom_config["debug"]
             self.core.logger.log_level = "INFO"
         self._debug = value
+
+    @property
+    def silent(self):
+        return self._silent
 
     @silent.setter
     def silent(self, value):
@@ -480,6 +510,10 @@ class Preset:
 
     @property
     def args(self):
+        if self._args is None:
+            from .args import BBOTArgs
+
+            self._args = BBOTArgs(self)
         return self._args
 
     def in_scope(self, e):
@@ -517,7 +551,7 @@ class Preset:
         return e in self.whitelist
 
     @classmethod
-    def from_dict(cls, preset_dict, name=None, _exclude=None):
+    def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
         new_preset = cls(
             *preset_dict.get("target", []),
             whitelist=preset_dict.get("whitelist"),
@@ -541,6 +575,7 @@ class Preset:
             description=preset_dict.get("description"),
             conditions=preset_dict.get("conditions", []),
             _exclude=_exclude,
+            _log=_log,
         )
         return new_preset
 
@@ -553,7 +588,7 @@ class Preset:
         self._preset_files_loaded.add(preset_filename)
 
     @classmethod
-    def from_yaml_file(cls, filename, _exclude=None):
+    def from_yaml_file(cls, filename, _exclude=None, _log=False):
         """
         Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
 
@@ -569,7 +604,7 @@ class Preset:
         _exclude = set(_exclude)
         _exclude.add(filename)
         try:
-            return cls.from_dict(omegaconf.OmegaConf.load(filename), name=filename.stem, _exclude=_exclude)
+            return cls.from_dict(omegaconf.OmegaConf.load(filename), name=filename.stem, _exclude=_exclude, _log=_log)
         except FileNotFoundError:
             raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
 
@@ -650,29 +685,35 @@ class Preset:
             for preset_path in PRESET_PATH:
                 for yaml_file in preset_path.rglob(f"**/*.{ext}"):
                     try:
-                        loaded_preset = cls.from_yaml_file(yaml_file)
+                        loaded_preset = cls.from_yaml_file(yaml_file, _log=True)
                         category = str(yaml_file.relative_to(preset_path).parent)
                         if category == ".":
                             category = "default"
-                        preset_files[yaml_file] = (loaded_preset, category)
+                        preset_files[yaml_file] = (yaml_file, loaded_preset, category)
                     except Exception as e:
                         log.warning(f'Failed to load preset at "{yaml_file}": {e}')
                         log.trace(traceback.format_exc())
                         continue
         return preset_files
 
-    def presets_table(self):
+    def presets_table(self, include_modules=True):
         table = []
-        header = ["Preset", "Category", "Description", "Modules"]
-        for loaded_preset, category in self.all_presets().values():
-            modules = ", ".join(sorted(loaded_preset.scan_modules))
-            table.append([loaded_preset.name, category, loaded_preset.description, modules])
+        header = ["Preset", "Category", "Description", "# Modules"]
+        if include_modules:
+            header.append("Modules")
+        all_presets = sorted(self.all_presets().values(), key=lambda x: x[1].name)
+        for yaml_file, loaded_preset, category in all_presets:
+            num_modules = f"{len(loaded_preset.scan_modules):,}"
+            row = [loaded_preset.name, category, loaded_preset.description, num_modules]
+            if include_modules:
+                row.append(", ".join(sorted(loaded_preset.scan_modules)))
+            table.append(row)
         return make_table(table, header)
 
     def log_verbose(self, msg):
         if self._log:
-            log.verbose(f"preset {self.name}: {msg}")
+            log.verbose(f"Preset {self.name}: {msg}")
 
     def log_debug(self, msg):
         if self._log:
-            self.log_debug(f"preset {self.name}: {msg}")
+            log.debug(f"Preset {self.name}: {msg}")

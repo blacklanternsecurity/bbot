@@ -4,7 +4,7 @@ from bbot.modules.templates.github import github
 class github_codesearch(github):
     watched_events = ["DNS_NAME"]
     produced_events = ["CODE_REPOSITORY", "URL_UNVERIFIED"]
-    flags = ["passive", "subdomain-enum", "safe", "code-enume"]
+    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
     meta = {"description": "Query Github's API for code containing the target domain name", "auth_required": True}
     options = {"api_key": "", "limit": 100}
     options_desc = {"api_key": "Github token", "limit": "Limit code search to this many results"}
