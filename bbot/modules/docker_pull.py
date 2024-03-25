@@ -98,7 +98,7 @@ class docker_pull(BaseModule):
             self.log.warning(f"Could not retrieve all tags for {repository} asuming tag:latest only.")
             return ["latest"]
         try:
-            tags = r.json()["tags"]
+            tags = r.json().get("tags", ["latest"])
             self.debug(f"Tags for {repository}: {tags}")
             if self.all_tags:
                 return tags
@@ -107,7 +107,7 @@ class docker_pull(BaseModule):
                     return ["latest"]
                 else:
                     return tags[-1]
-        except KeyError:
+        except (KeyError, IndexError):
             self.log.error(f"Could not retrieve tags for {repository}.")
             return ["latest"]
 
@@ -124,8 +124,7 @@ class docker_pull(BaseModule):
             for manifest in response_json["manifests"]:
                 if manifest["platform"]["os"] == "linux" and manifest["platform"]["architecture"] == "amd64":
                     return await self.get_manifest(registry, repository, manifest["digest"])
-        else:
-            return r.json()
+        return r.json()
 
     async def get_layers(self, manifest):
         schema_version = manifest.get("schemaVersion", 2)
