@@ -116,7 +116,7 @@ class docker_pull(BaseModule):
         r = await self.docker_api_request(url)
         if r is None or r.status_code != 200:
             self.log.error(f"Could not retrieve manifest for {repository}:{tag}.")
-            return None
+            return {}
         response_json = r.json()
         if response_json["mediaType"] == "application/vnd.docker.distribution.manifest.v2+json":
             return response_json
@@ -144,11 +144,13 @@ class docker_pull(BaseModule):
         else:
             return r.content
 
-    async def create_local_manifest(self, config, layers):
-        manifest = [{"Config": config, "RepoTags": [], "Layers": layers}]
+    async def create_local_manifest(self, config, repository, tag, layers):
+        manifest = [{"Config": config, "RepoTags": [f"{repository}:{tag}"], "Layers": layers}]
         return json.dumps(manifest).encode()
 
     async def download_and_get_filename(self, registry, repository, digest):
+        if not ":" in digest:
+            return None, None
         blob = await self.download_blob(registry, repository, digest)
         hash_func = digest.split(":")[0]
         digest = digest.split(":")[1]
@@ -156,17 +158,18 @@ class docker_pull(BaseModule):
         return blob, filename
 
     async def write_file_to_tar(self, tar, filename, file_content):
-        file_io = io.BytesIO(file_content)
-        file_info = tarfile.TarInfo(name=filename)
-        file_info.size = len(file_io.getvalue())
-        file_io.seek(0)
-        tar.addfile(file_info, file_io)
+        if filename and file_content:
+            file_io = io.BytesIO(file_content)
+            file_info = tarfile.TarInfo(name=filename)
+            file_info.size = len(file_io.getvalue())
+            file_io.seek(0)
+            tar.addfile(file_info, file_io)
 
     async def download_docker_repo(self, repository_url):
         registry, repository = self.get_registry_and_repository(repository_url)
         tags = await self.get_tags(registry, repository)
         for tag in tags:
-            self.verbose(f"Downloading {repository}:{tag}")
+            self.info(f"Downloading {repository}:{tag}")
             tar_file = await self.download_and_write_to_tar(registry, repository, tag)
         return tar_file
 
@@ -180,11 +183,13 @@ class docker_pull(BaseModule):
             await self.write_file_to_tar(tar, config_filename, config_file)
 
             layer_filenames = []
-            for layer_digest in await self.get_layers(manifest):
+            layer_digests = await self.get_layers(manifest)
+            for i, layer_digest in enumerate(layer_digests):
+                self.verbose(f"Downloading layer {i+1}/{len(layer_digests)} from {repository}:{tag}")
                 blob, layer_filename = await self.download_and_get_filename(registry, repository, layer_digest)
                 layer_filenames.append(layer_filename)
                 await self.write_file_to_tar(tar, layer_filename, blob)
 
-            manifest_json = await self.create_local_manifest(config_filename, layer_filenames)
+            manifest_json = await self.create_local_manifest(config_filename, repository, tag, layer_filenames)
             await self.write_file_to_tar(tar, "manifest.json", manifest_json)
         return output_tar
