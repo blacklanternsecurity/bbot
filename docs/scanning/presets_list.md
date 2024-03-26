@@ -6,7 +6,7 @@ Below is a list of every default BBOT preset, including its YAML.
 Enumerate cloud resources such as storage buckets, etc.
 
 ??? note "`cloud-enum.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/cloud-enum.yml"
+    ```yaml title="~/.bbot/presets/cloud-enum.yml"
     description: Enumerate cloud resources such as storage buckets, etc.
     
     include:
@@ -25,7 +25,7 @@ Modules: [52]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_zone`, 
 Enumerate Git repositories, Docker images, etc.
 
 ??? note "`code-enum.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/code-enum.yml"
+    ```yaml title="~/.bbot/presets/code-enum.yml"
     description: Enumerate Git repositories, Docker images, etc.
     
     flags:
@@ -41,7 +41,7 @@ Modules: [6]("`dockerhub`, `github_codesearch`, `github_org`, `gitlab`, `httpx`,
 Recursive web directory brute-force (aggressive)
 
 ??? note "`dirbust-heavy.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/web_advanced/dirbust-heavy.yml"
+    ```yaml title="~/.bbot/presets/web_advanced/dirbust-heavy.yml"
     description: Recursive web directory brute-force (aggressive)
     
     include:
@@ -92,7 +92,7 @@ Modules: [5]("`ffuf_shortnames`, `ffuf`, `httpx`, `iis_shortnames`, `wayback`")
 Basic web directory brute-force (surface-level directories only)
 
 ??? note "`dirbust-light.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/web_advanced/dirbust-light.yml"
+    ```yaml title="~/.bbot/presets/web_advanced/dirbust-light.yml"
     description: Basic web directory brute-force (surface-level directories only)
     
     flags:
@@ -120,7 +120,7 @@ Modules: [4]("`ffuf_shortnames`, `ffuf`, `httpx`, `iis_shortnames`")
 Enumerate email addresses from APIs, web crawling, etc.
 
 ??? note "`email-enum.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/email-enum.yml"
+    ```yaml title="~/.bbot/presets/email-enum.yml"
     description: Enumerate email addresses from APIs, web crawling, etc.
     
     flags:
@@ -154,7 +154,7 @@ Modules: [6]("`dehashed`, `emailformat`, `hunterio`, `pgp`, `skymem`, `sslcert`"
 Everything everywhere all at once
 
 ??? note "`kitchen-sink.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/kitchen-sink.yml"
+    ```yaml title="~/.bbot/presets/kitchen-sink.yml"
     description: Everything everywhere all at once
     
     include:
@@ -177,7 +177,7 @@ Modules: [71]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_zone`, 
 Discover new web parameters via brute-force
 
 ??? note "`paramminer.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/web_advanced/paramminer.yml"
+    ```yaml title="~/.bbot/presets/web_advanced/paramminer.yml"
     description: Discover new web parameters via brute-force
     
     flags:
@@ -200,7 +200,7 @@ Modules: [4]("`httpx`, `paramminer_cookies`, `paramminer_getparams`, `paramminer
 
 
 ??? note "`secrets-enum.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/secrets-enum.yml"
+    ```yaml title="~/.bbot/presets/secrets-enum.yml"
     description: 
     ```
 
@@ -213,7 +213,7 @@ Modules: [0]("")
 Recursive web spider
 
 ??? note "`spider.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/spider.yml"
+    ```yaml title="~/.bbot/presets/spider.yml"
     description: Recursive web spider
     
     modules:
@@ -251,7 +251,7 @@ Modules: [1]("`httpx`")
 Enumerate subdomains via APIs, brute-force
 
 ??? note "`subdomain-enum.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/subdomain-enum.yml"
+    ```yaml title="~/.bbot/presets/subdomain-enum.yml"
     description: Enumerate subdomains via APIs, brute-force
     
     flags:
@@ -285,7 +285,7 @@ Modules: [45]("`anubisdb`, `asn`, `azure_realm`, `azure_tenant`, `baddns_zone`, 
 Quick web scan
 
 ??? note "`web-basic.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/web-basic.yml"
+    ```yaml title="~/.bbot/presets/web-basic.yml"
     description: Quick web scan
     
     flags:
@@ -301,7 +301,7 @@ Modules: [17]("`azure_realm`, `baddns`, `badsecrets`, `bucket_amazon`, `bucket_a
 Aggressive web scan
 
 ??? note "`web-thorough.yml`"
-    ```yaml title="~/Downloads/code/bbot/bbot/presets/web-thorough.yml"
+    ```yaml title="~/.bbot/presets/web-thorough.yml"
     description: Aggressive web scan
     
     include:

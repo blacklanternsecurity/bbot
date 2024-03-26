@@ -126,7 +126,7 @@ def update_docs():
     update_md_files("BBOT PRESETS", bbot_presets_table)
 
     # BBOT subdomain enum preset
-    for yaml_file, (loaded_preset, category) in DEFAULT_PRESET.all_presets().items():
+    for yaml_file, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
         if loaded_preset.name == "subdomain-enum":
             subdomain_enum_preset = f"""```yaml title="{yaml_file.name}"
 {loaded_preset._yaml_str}
@@ -135,7 +135,7 @@ def update_docs():
             break
 
     content = []
-    for yaml_file, (loaded_preset, category) in DEFAULT_PRESET.all_presets().items():
+    for yaml_file, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
         yaml_str = loaded_preset._yaml_str
         indent = " " * 4
         yaml_str = f"\n{indent}".join(yaml_str.splitlines())

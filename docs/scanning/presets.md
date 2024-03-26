@@ -34,7 +34,16 @@ config:
 
 ## How to use Presets (`-p`)
 
-BBOT has a ready-made collection of presets for common tasks like subdomain enumeration and web spidering. They live in `~/.bbot/presets`. You can use them like this:
+BBOT has a ready-made collection of presets for common tasks like subdomain enumeration and web spidering. They live in `~/.bbot/presets`.
+
+To list them, you can do:
+
+```bash
+# list available presets
+bbot -lp
+```
+
+Enable them with `-p`:
 
 ```bash
 # do a subdomain enumeration 
@@ -48,9 +57,6 @@ bbot -t evilcorp.com -p subdomain-enum -rf passive
 
 # preset + manual config override
 bbot -t www.evilcorp.com -p spider -c web_spider_distance=10
-
-# list available presets
-bbot -lp
 ```
 
 You can also build on the default presets, or create your own. Here's an example of a custom preset that builds on `subdomain-enum`:

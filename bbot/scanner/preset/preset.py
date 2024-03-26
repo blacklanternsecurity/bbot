@@ -12,10 +12,14 @@ from .path import PRESET_PATH
 from bbot.core import CORE
 from bbot.core.errors import *
 from bbot.core.event.base import make_event
-from bbot.core.helpers.misc import make_table
+from bbot.core.helpers.misc import make_table, mkdir
 
 
 log = logging.getLogger("bbot.presets")
+
+
+# cache default presets to prevent having to reload from disk
+DEFAULT_PRESETS = None
 
 
 class Preset:
@@ -145,6 +149,10 @@ class Preset:
     @property
     def bbot_home(self):
         return Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
+
+    @property
+    def preset_dir(self):
+        return self.bbot_home / "presets"
 
     def merge(self, other):
         # config
@@ -684,31 +692,64 @@ class Preset:
         preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
         return yaml.dump(preset_dict, sort_keys=sort_keys)
 
-    @classmethod
-    def all_presets(cls):
-        presets = dict()
-        for ext in ("yml", "yaml"):
-            for preset_path in PRESET_PATH:
-                for yaml_file in preset_path.rglob(f"**/*.{ext}"):
-                    try:
-                        loaded_preset = cls.from_yaml_file(yaml_file, _log=True)
-                        category = str(yaml_file.relative_to(preset_path).parent)
+    def all_presets(self):
+        preset_dir = self.preset_dir
+        home_dir = Path.home()
+
+        # first, add local preset dir to PRESET_PATH
+        PRESET_PATH.add_path(self.preset_dir)
+
+        # ensure local preset directory exists
+        mkdir(preset_dir)
+
+        global DEFAULT_PRESETS
+        if DEFAULT_PRESETS is None:
+            presets = dict()
+            for ext in ("yml", "yaml"):
+                for preset_path in PRESET_PATH:
+                    # for every yaml file
+                    for original_filename in preset_path.rglob(f"**/*.{ext}"):
+                        # not including symlinks
+                        if original_filename.is_symlink():
+                            continue
+
+                        # try to load it as a preset
+                        try:
+                            loaded_preset = self.from_yaml_file(original_filename, _log=True)
+                        except Exception as e:
+                            log.warning(f'Failed to load preset at "{original_filename}": {e}')
+                            log.trace(traceback.format_exc())
+                            continue
+
+                        # category is the parent folder(s), if any
+                        category = str(original_filename.relative_to(preset_path).parent)
                         if category == ".":
                             category = ""
-                        presets[yaml_file] = (loaded_preset, category)
-                    except Exception as e:
-                        log.warning(f'Failed to load preset at "{yaml_file}": {e}')
-                        log.trace(traceback.format_exc())
-                        continue
-        # sort by name
-        return dict(sorted(presets.items(), key=lambda x: x[-1][0].name))
+
+                        local_preset = original_filename
+                        # populate symlinks in local preset dir
+                        if not original_filename.is_relative_to(preset_dir):
+                            relative_preset = original_filename.relative_to(preset_path)
+                            local_preset = preset_dir / relative_preset
+                            mkdir(local_preset.parent, check_writable=False)
+                            if not local_preset.exists():
+                                local_preset.symlink_to(original_filename)
+
+                        if local_preset.is_relative_to(home_dir):
+                            local_preset = Path("~") / local_preset.relative_to(home_dir)
+
+                        presets[local_preset] = (loaded_preset, category, preset_path, original_filename)
+
+            # sort by name
+            DEFAULT_PRESETS = dict(sorted(presets.items(), key=lambda x: x[-1][0].name))
+        return DEFAULT_PRESETS
 
     def presets_table(self, include_modules=True):
         table = []
         header = ["Preset", "Category", "Description", "# Modules"]
         if include_modules:
             header.append("Modules")
-        for yaml_file, (loaded_preset, category) in self.all_presets().items():
+        for yaml_file, (loaded_preset, category, preset_path, original_file) in self.all_presets().items():
             num_modules = f"{len(loaded_preset.scan_modules):,}"
             row = [loaded_preset.name, category, loaded_preset.description, num_modules]
             if include_modules:

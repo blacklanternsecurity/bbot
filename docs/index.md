@@ -55,42 +55,42 @@ Below are some examples of common scans.
 
 ```bash
 # Perform a full subdomain enumeration on evilcorp.com
-bbot -t evilcorp.com -f subdomain-enum
+bbot -t evilcorp.com -p subdomain-enum
 ```
 
 **Subdomains (passive only):**
 
 ```bash
 # Perform a passive-only subdomain enumeration on evilcorp.com
-bbot -t evilcorp.com -f subdomain-enum -rf passive
+bbot -t evilcorp.com -p subdomain-enum -rf passive
 ```
 
 **Subdomains + port scan + web screenshots:**
 
 ```bash
 # Port-scan every subdomain, screenshot every webpage, output to current directory
-bbot -t evilcorp.com -f subdomain-enum -m nmap gowitness -n my_scan -o .
+bbot -t evilcorp.com -p subdomain-enum -m nmap gowitness -n my_scan -o .
 ```
 
 **Subdomains + basic web scan:**
 
 ```bash
 # A basic web scan includes wappalyzer, robots.txt, and other non-intrusive web modules
-bbot -t evilcorp.com -f subdomain-enum web-basic
+bbot -t evilcorp.com -p subdomain-enum web-basic
 ```
 
 **Web spider:**
 
 ```bash
 # Crawl www.evilcorp.com up to a max depth of 2, automatically extracting emails, secrets, etc.
-bbot -t www.evilcorp.com -m httpx robots badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2
+bbot -t www.evilcorp.com -p spider -c web_spider_distance=2 web_spider_depth=2
 ```
 
 **Everything everywhere all at once:**
 
 ```bash
 # Subdomains, emails, cloud buckets, port scan, basic web, web screenshots, nuclei
-bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly
+bbot -t evilcorp.com -p kitchen-sink
 ```
 <!-- END BBOT EXAMPLE COMMANDS -->
 

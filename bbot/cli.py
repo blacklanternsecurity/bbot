@@ -31,6 +31,8 @@ async def _main():
 
         # start by creating a default scan preset
         preset = Preset(_log=True, name="bbot_cli_main")
+        # populate preset symlinks
+        preset.all_presets
         # parse command line arguments and merge into preset
         try:
             preset.parse_args()

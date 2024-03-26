@@ -107,22 +107,22 @@ Misc:
 EXAMPLES
 
     Subdomains:
-        bbot -t evilcorp.com -f subdomain-enum
+        bbot -t evilcorp.com -p subdomain-enum
 
     Subdomains (passive only):
-        bbot -t evilcorp.com -f subdomain-enum -rf passive
+        bbot -t evilcorp.com -p subdomain-enum -rf passive
 
     Subdomains + port scan + web screenshots:
-        bbot -t evilcorp.com -f subdomain-enum -m nmap gowitness -n my_scan -o .
+        bbot -t evilcorp.com -p subdomain-enum -m nmap gowitness -n my_scan -o .
 
     Subdomains + basic web scan:
-        bbot -t evilcorp.com -f subdomain-enum web-basic
+        bbot -t evilcorp.com -p subdomain-enum web-basic
 
     Web spider:
-        bbot -t www.evilcorp.com -m httpx robots badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2
+        bbot -t www.evilcorp.com -p spider -c web_spider_distance=2 web_spider_depth=2
 
     Everything everywhere all at once:
-        bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly
+        bbot -t evilcorp.com -p kitchen-sink
 
     List modules:
         bbot -l
