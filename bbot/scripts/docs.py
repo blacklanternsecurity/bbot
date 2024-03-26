@@ -19,6 +19,14 @@ blacklist_re = re.compile(r"\|([^|]*[" + re.escape("".join(blacklist_chars)) + r
 bbot_code_dir = Path(__file__).parent.parent.parent
 
 
+def homedir_collapseuser(f):
+    f = Path(f)
+    home_dir = Path.home()
+    if f.is_relative_to(home_dir):
+        return Path("~") / f.relative_to(home_dir)
+    return f
+
+
 def enclose_tags(text):
     # Use re.sub() to replace matched words with the same words enclosed in backticks
     result = blacklist_re.sub(r"|`\1`|", text)
@@ -116,6 +124,43 @@ def update_docs():
     bbot_presets_table = DEFAULT_PRESET.presets_table(include_modules=True)
     assert len(bbot_presets_table.splitlines()) > 5
     update_md_files("BBOT PRESETS", bbot_presets_table)
+
+    # BBOT subdomain enum preset
+    for yaml_file, (loaded_preset, category) in DEFAULT_PRESET.all_presets().items():
+        if loaded_preset.name == "subdomain-enum":
+            subdomain_enum_preset = f"""```yaml title="{yaml_file.name}"
+{loaded_preset._yaml_str}
+```"""
+            update_md_files("BBOT SUBDOMAIN ENUM PRESET", subdomain_enum_preset)
+            break
+
+    content = []
+    for yaml_file, (loaded_preset, category) in DEFAULT_PRESET.all_presets().items():
+        yaml_str = loaded_preset._yaml_str
+        indent = " " * 4
+        yaml_str = f"\n{indent}".join(yaml_str.splitlines())
+        filename = homedir_collapseuser(yaml_file)
+
+        num_modules = len(loaded_preset.scan_modules)
+        modules = ", ".join(sorted([f"`{m}`" for m in loaded_preset.scan_modules]))
+        category = f"Category: {category}" if category else ""
+
+        content.append(
+            f"""## **{loaded_preset.name}**
+
+{loaded_preset.description}
+
+??? note "`{filename.name}`"
+    ```yaml title="{filename}"
+    {yaml_str}
+    ```
+
+{category}
+
+Modules: [{num_modules:,}]("{modules}")"""
+        )
+    assert len(content) > 5
+    update_md_files("BBOT PRESET YAML", "\n\n".join(content))
 
     # Default config
     default_config_file = bbot_code_dir / "bbot" / "defaults.yml"

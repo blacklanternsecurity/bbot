@@ -54,6 +54,7 @@ class Preset:
         self._environ = None
         self._helpers = None
         self._module_loader = None
+        self._yaml_str = ""
 
         self._modules = set()
 
@@ -606,9 +607,12 @@ class Preset:
         _exclude = set(_exclude)
         _exclude.add(filename)
         try:
-            return cls.from_dict(omegaconf.OmegaConf.load(filename), name=filename.stem, _exclude=_exclude, _log=_log)
+            yaml_str = open(filename).read()
         except FileNotFoundError:
             raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
+        preset = cls.from_dict(omegaconf.OmegaConf.create(yaml_str), name=filename.stem, _exclude=_exclude, _log=_log)
+        preset._yaml_str = yaml_str
+        return preset
 
     @classmethod
     def from_yaml_string(cls, yaml_preset):
@@ -682,7 +686,7 @@ class Preset:
 
     @classmethod
     def all_presets(cls):
-        preset_files = dict()
+        presets = dict()
         for ext in ("yml", "yaml"):
             for preset_path in PRESET_PATH:
                 for yaml_file in preset_path.rglob(f"**/*.{ext}"):
@@ -690,21 +694,21 @@ class Preset:
                         loaded_preset = cls.from_yaml_file(yaml_file, _log=True)
                         category = str(yaml_file.relative_to(preset_path).parent)
                         if category == ".":
-                            category = "default"
-                        preset_files[yaml_file] = (yaml_file, loaded_preset, category)
+                            category = ""
+                        presets[yaml_file] = (loaded_preset, category)
                     except Exception as e:
                         log.warning(f'Failed to load preset at "{yaml_file}": {e}')
                         log.trace(traceback.format_exc())
                         continue
-        return preset_files
+        # sort by name
+        return dict(sorted(presets.items(), key=lambda x: x[-1][0].name))
 
     def presets_table(self, include_modules=True):
         table = []
         header = ["Preset", "Category", "Description", "# Modules"]
         if include_modules:
             header.append("Modules")
-        all_presets = sorted(self.all_presets().values(), key=lambda x: x[1].name)
-        for yaml_file, loaded_preset, category in all_presets:
+        for yaml_file, (loaded_preset, category) in self.all_presets().items():
             num_modules = f"{len(loaded_preset.scan_modules):,}"
             row = [loaded_preset.name, category, loaded_preset.description, num_modules]
             if include_modules:

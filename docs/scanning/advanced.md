@@ -68,7 +68,7 @@ Modules:
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,affiliates,aggressive,baddns,cloud-enum,code-enum,code-enume,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
+                        Enable modules by flag. Choices: active,affiliates,aggressive,baddns,cloud-enum,code-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
   -lf, --list-flags     List available flags.
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)

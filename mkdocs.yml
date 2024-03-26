@@ -21,7 +21,9 @@ nav:
     - Comparison to Other Tools: comparison.md
   - Scanning:
     - Scanning Overview: scanning/index.md
-    - Presets: scanning/presets.md
+    - Presets:
+      - Overview: scanning/presets.md
+      - List of Presets: scanning/presets_list.md
     - Events: scanning/events.md
     - Output: scanning/output.md
     - Tips and Tricks: scanning/tips_and_tricks.md
@@ -55,6 +57,7 @@ theme:
   favicon: favicon.png
   features:
     - content.code.copy
+    - content.tooltips
     - navigation.tabs
     - navigation.sections
     - navigation.expand
