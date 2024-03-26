@@ -13,7 +13,7 @@ warnings.filterwarnings(
 class wappalyzer(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["TECHNOLOGY"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {
         "description": "Extract technologies from web responses",
     }

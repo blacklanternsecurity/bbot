@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class bucket_template(BaseModule):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
-    flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "cloud-enum", "web-basic"]
     options = {"permutations": False}
     options_desc = {
         "permutations": "Whether to try permutations",

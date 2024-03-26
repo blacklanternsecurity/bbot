@@ -8,7 +8,7 @@ from badsecrets.base import carve_all_modules
 class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
     deps_pip = ["badsecrets~=0.4.490"]
 

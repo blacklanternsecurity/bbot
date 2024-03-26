@@ -331,7 +331,7 @@ class Preset:
                 return
 
         if module_name not in self.modules:
-            self.log_verbose(f'Adding module "{module_name}"')
+            self.log_debug(f'Adding module "{module_name}"')
             self.modules.add(module_name)
             for module_dep in preloaded.get("deps", {}).get("modules", []):
                 if module_dep not in self.modules:
@@ -692,6 +692,7 @@ class Preset:
         preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
         return yaml.dump(preset_dict, sort_keys=sort_keys)
 
+    @property
     def all_presets(self):
         preset_dir = self.preset_dir
         home_dir = Path.home()
@@ -735,6 +736,7 @@ class Preset:
                             if not local_preset.exists():
                                 local_preset.symlink_to(original_filename)
 
+                        # collapse home directory into "~"
                         if local_preset.is_relative_to(home_dir):
                             local_preset = Path("~") / local_preset.relative_to(home_dir)
 

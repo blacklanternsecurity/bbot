@@ -3,6 +3,15 @@ from ..bbot_fixtures import *  # noqa F401
 from bbot.scanner import Scanner, Preset
 
 
+def test_preset_descriptions():
+    # ensure very preset has a description
+    preset = Preset()
+    for yaml_file, (loaded_preset, category, preset_path, original_filename) in preset.all_presets.items():
+        assert (
+            loaded_preset.description
+        ), f'Preset "{loaded_preset.name}" at {original_filename} does not have a description.'
+
+
 def test_core():
     from bbot.core import CORE
 
