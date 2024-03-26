@@ -50,25 +50,6 @@ def bbot_scanner():
 
 
 @pytest.fixture
-def neograph(monkeypatch, helpers):
-    helpers.depsinstaller.pip_install(["py2neo"])
-
-    class NeoGraph:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def merge(self, *args, **kwargs):
-            return True
-
-    import py2neo
-
-    monkeypatch.setattr(py2neo, "Graph", NeoGraph)
-    from bbot.db.neo4j import Neo4j
-
-    return Neo4j(uri="bolt://127.0.0.1:1111")
-
-
-@pytest.fixture
 def scan(monkeypatch, bbot_config):
     from bbot.scanner import Scanner
 
