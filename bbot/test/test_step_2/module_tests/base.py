@@ -5,10 +5,9 @@ import pytest_asyncio
 from omegaconf import OmegaConf
 from types import SimpleNamespace
 
+from ...bbot_fixtures import *
 from bbot.scanner import Scanner
-from bbot.core import CORE
 from bbot.core.helpers.misc import rand_string
-from ...bbot_fixtures import test_config, MockResolver, bbot_test_dir
 
 log = logging.getLogger("bbot.test.modules")
 
@@ -57,8 +56,7 @@ class ModuleTestBase:
             self.httpserver_ssl = httpserver_ssl
             self.monkeypatch = monkeypatch
             self.request_fixture = request
-            # PRESET TODO: revisit this
-            self.preloaded = CORE.module_loader.preloaded()
+            self.preloaded = DEFAULT_PRESET.module_loader.preloaded()
 
             # handle output, internal module types
             output_modules = None

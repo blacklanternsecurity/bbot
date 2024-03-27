@@ -36,11 +36,11 @@ else:
     for h in root_logger.handlers:
         h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
 
-default_preset = Preset()
+DEFAULT_PRESET = Preset()
 
-available_modules = list(default_preset.module_loader.configs(type="scan"))
-available_output_modules = list(default_preset.module_loader.configs(type="output"))
-available_internal_modules = list(default_preset.module_loader.configs(type="internal"))
+available_modules = list(DEFAULT_PRESET.module_loader.configs(type="scan"))
+available_output_modules = list(DEFAULT_PRESET.module_loader.configs(type="output"))
+available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="internal"))
 
 
 class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
@@ -230,7 +230,7 @@ def bbot_config():
 @pytest.fixture(autouse=True)
 def install_all_python_deps():
     deps_pip = set()
-    for module in default_preset.module_loader.preloaded().values():
+    for module in DEFAULT_PRESET.module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
 
