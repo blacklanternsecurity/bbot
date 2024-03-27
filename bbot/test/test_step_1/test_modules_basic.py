@@ -321,6 +321,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     scan = bbot_scanner(
         "evilcorp.com",
         config={"speculate": True},
+        output_modules=["python"],
         force_start=True,
     )
     mock_dns(
