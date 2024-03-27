@@ -1,5 +1,3 @@
-import subprocess
-import shutil
 import io
 import tarfile
 from pathlib import Path
@@ -7,154 +5,10 @@ from pathlib import Path
 from .base import ModuleTestBase
 
 
-class TestTrufflehog(ModuleTestBase):
-    modules_overrides = ["github_org", "speculate", "git_clone", "dockerhub", "docker_pull", "trufflehog"]
-
-    file_content = "Verifyable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifyable Secret:\nhttps://admin:admin@internal.host.com"
+class TestDockerPull(ModuleTestBase):
+    modules_overrides = ["speculate", "dockerhub", "docker_pull"]
 
     async def setup_before_prep(self, module_test):
-        module_test.httpx_mock.add_response(url="https://api.github.com/zen")
-        module_test.httpx_mock.add_response(
-            url="https://api.github.com/orgs/blacklanternsecurity",
-            json={
-                "login": "blacklanternsecurity",
-                "id": 25311592,
-                "node_id": "MDEyOk9yZ2FuaXphdGlvbjI1MzExNTky",
-                "url": "https://api.github.com/orgs/blacklanternsecurity",
-                "repos_url": "https://api.github.com/orgs/blacklanternsecurity/repos",
-                "events_url": "https://api.github.com/orgs/blacklanternsecurity/events",
-                "hooks_url": "https://api.github.com/orgs/blacklanternsecurity/hooks",
-                "issues_url": "https://api.github.com/orgs/blacklanternsecurity/issues",
-                "members_url": "https://api.github.com/orgs/blacklanternsecurity/members{/member}",
-                "public_members_url": "https://api.github.com/orgs/blacklanternsecurity/public_members{/member}",
-                "avatar_url": "https://avatars.githubusercontent.com/u/25311592?v=4",
-                "description": "Security Organization",
-                "name": "Black Lantern Security",
-                "company": None,
-                "blog": "www.blacklanternsecurity.com",
-                "location": "Charleston, SC",
-                "email": None,
-                "twitter_username": None,
-                "is_verified": False,
-                "has_organization_projects": True,
-                "has_repository_projects": True,
-                "public_repos": 70,
-                "public_gists": 0,
-                "followers": 415,
-                "following": 0,
-                "html_url": "https://github.com/blacklanternsecurity",
-                "created_at": "2017-01-24T00:14:46Z",
-                "updated_at": "2022-03-28T11:39:03Z",
-                "archived_at": None,
-                "type": "Organization",
-            },
-        )
-        module_test.httpx_mock.add_response(
-            url="https://api.github.com/orgs/blacklanternsecurity/repos?per_page=100&page=1",
-            json=[
-                {
-                    "id": 459780477,
-                    "node_id": "R_kgDOG2exfQ",
-                    "name": "test_keys",
-                    "full_name": "blacklanternsecurity/test_keys",
-                    "private": False,
-                    "owner": {
-                        "login": "blacklanternsecurity",
-                        "id": 79229934,
-                        "node_id": "MDEyOk9yZ2FuaXphdGlvbjc5MjI5OTM0",
-                        "avatar_url": "https://avatars.githubusercontent.com/u/79229934?v=4",
-                        "gravatar_id": "",
-                        "url": "https://api.github.com/users/blacklanternsecurity",
-                        "html_url": "https://github.com/blacklanternsecurity",
-                        "followers_url": "https://api.github.com/users/blacklanternsecurity/followers",
-                        "following_url": "https://api.github.com/users/blacklanternsecurity/following{/other_user}",
-                        "gists_url": "https://api.github.com/users/blacklanternsecurity/gists{/gist_id}",
-                        "starred_url": "https://api.github.com/users/blacklanternsecurity/starred{/owner}{/repo}",
-                        "subscriptions_url": "https://api.github.com/users/blacklanternsecurity/subscriptions",
-                        "organizations_url": "https://api.github.com/users/blacklanternsecurity/orgs",
-                        "repos_url": "https://api.github.com/users/blacklanternsecurity/repos",
-                        "events_url": "https://api.github.com/users/blacklanternsecurity/events{/privacy}",
-                        "received_events_url": "https://api.github.com/users/blacklanternsecurity/received_events",
-                        "type": "Organization",
-                        "site_admin": False,
-                    },
-                    "html_url": "https://github.com/blacklanternsecurity/test_keys",
-                    "description": None,
-                    "fork": False,
-                    "url": "https://api.github.com/repos/blacklanternsecurity/test_keys",
-                    "forks_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/forks",
-                    "keys_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/keys{/key_id}",
-                    "collaborators_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/collaborators{/collaborator}",
-                    "teams_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/teams",
-                    "hooks_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/hooks",
-                    "issue_events_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/issues/events{/number}",
-                    "events_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/events",
-                    "assignees_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/assignees{/user}",
-                    "branches_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/branches{/branch}",
-                    "tags_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/tags",
-                    "blobs_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/blobs{/sha}",
-                    "git_tags_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/tags{/sha}",
-                    "git_refs_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/refs{/sha}",
-                    "trees_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/trees{/sha}",
-                    "statuses_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/statuses/{sha}",
-                    "languages_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/languages",
-                    "stargazers_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/stargazers",
-                    "contributors_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/contributors",
-                    "subscribers_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/subscribers",
-                    "subscription_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/subscription",
-                    "commits_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/commits{/sha}",
-                    "git_commits_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/git/commits{/sha}",
-                    "comments_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/comments{/number}",
-                    "issue_comment_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/issues/comments{/number}",
-                    "contents_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/contents/{+path}",
-                    "compare_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/compare/{base}...{head}",
-                    "merges_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/merges",
-                    "archive_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/{archive_format}{/ref}",
-                    "downloads_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/downloads",
-                    "issues_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/issues{/number}",
-                    "pulls_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/pulls{/number}",
-                    "milestones_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/milestones{/number}",
-                    "notifications_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/notifications{?since,all,participating}",
-                    "labels_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/labels{/name}",
-                    "releases_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/releases{/id}",
-                    "deployments_url": "https://api.github.com/repos/blacklanternsecurity/test_keys/deployments",
-                    "created_at": "2022-02-15T23:10:51Z",
-                    "updated_at": "2023-09-02T12:20:13Z",
-                    "pushed_at": "2023-10-19T02:56:46Z",
-                    "git_url": "git://github.com/blacklanternsecurity/test_keys.git",
-                    "ssh_url": "git@github.com:blacklanternsecurity/test_keys.git",
-                    "clone_url": "https://github.com/blacklanternsecurity/test_keys.git",
-                    "svn_url": "https://github.com/blacklanternsecurity/test_keys",
-                    "homepage": None,
-                    "size": 2,
-                    "stargazers_count": 2,
-                    "watchers_count": 2,
-                    "language": None,
-                    "has_issues": True,
-                    "has_projects": True,
-                    "has_downloads": True,
-                    "has_wiki": True,
-                    "has_pages": False,
-                    "has_discussions": False,
-                    "forks_count": 32,
-                    "mirror_url": None,
-                    "archived": False,
-                    "disabled": False,
-                    "open_issues_count": 2,
-                    "license": None,
-                    "allow_forking": True,
-                    "is_template": False,
-                    "web_commit_signoff_required": False,
-                    "topics": [],
-                    "visibility": "public",
-                    "forks": 32,
-                    "open_issues": 2,
-                    "watchers": 2,
-                    "default_branch": "main",
-                    "permissions": {"admin": False, "maintain": False, "push": False, "triage": False, "pull": True},
-                }
-            ],
-        )
         module_test.httpx_mock.add_response(
             url="https://hub.docker.com/v2/users/blacklanternsecurity",
             json={
@@ -195,13 +49,98 @@ class TestTrufflehog(ModuleTestBase):
                         "content_types": ["image"],
                         "categories": [],
                     },
+                    {
+                        "name": "testimage",
+                        "namespace": "blacklanternsecurity",
+                        "repository_type": "image",
+                        "status": 1,
+                        "status_description": "active",
+                        "description": "",
+                        "is_private": False,
+                        "star_count": 0,
+                        "pull_count": 1,
+                        "last_updated": "2022-01-10T20:16:46.170738Z",
+                        "date_registered": "2022-01-07T13:28:59.756641Z",
+                        "affiliation": "",
+                        "media_types": ["application/vnd.docker.container.image.v1+json"],
+                        "content_types": ["image"],
+                        "categories": [],
+                    },
                 ],
             },
         )
         module_test.httpx_mock.add_response(
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
             json={
+                "errors": [
+                    {
+                        "code": "UNAUTHORIZED",
+                        "message": "authentication required",
+                        "detail": [
+                            {
+                                "Type": "repository",
+                                "Class": "",
+                                "Name": "blacklanternsecurity/helloworld",
+                                "Action": "pull",
+                            }
+                        ],
+                    }
+                ]
+            },
+            headers={
+                "www-authenticate": 'Bearer realm="https://auth.docker.io/token",service="registry.docker.io",scope="blacklanternsecurity/helloworld:pull"'
+            },
+            status_code=401,
+        )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
+            json={
+                "errors": [
+                    {
+                        "code": "UNAUTHORIZED",
+                        "message": "authentication required",
+                        "detail": [
+                            {
+                                "Type": "repository",
+                                "Class": "",
+                                "Name": "blacklanternsecurity/testimage",
+                                "Action": "pull",
+                            }
+                        ],
+                    }
+                ]
+            },
+            headers={
+                "www-authenticate": 'Bearer realm="https://auth.docker.io/token",service="registry.docker.io",scope="blacklanternsecurity/testimage:pull"'
+            },
+            status_code=401,
+        )
+        module_test.httpx_mock.add_response(
+            url="https://auth.docker.io/token?service=registry.docker.io&scope=blacklanternsecurity/helloworld:pull",
+            json={
+                "token": "QWERTYUIOPASDFGHJKLZXCBNM",
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://auth.docker.io/token?service=registry.docker.io&scope=blacklanternsecurity/testimage:pull",
+            json={
+                "token": "QWERTYUIOPASDFGHJKLZXCBNM",
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/tags/list",
+            json={
                 "name": "blacklanternsecurity/helloworld",
+                "tags": [
+                    "dev",
+                    "latest",
+                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/tags/list",
+            json={
+                "name": "blacklanternsecurity/testimage",
                 "tags": [
                     "dev",
                     "latest",
@@ -223,6 +162,39 @@ class TestTrufflehog(ModuleTestBase):
                         "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
                         "size": 29124181,
                         "digest": "sha256:8a1e25ce7c4f75e372e9884f8f7b1bedcfe4a7a7d452eb4b0a1c7477c9a90345",
+                    },
+                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/manifests/latest",
+            json={
+                "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+                "schemaVersion": 2,
+                "manifests": [
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "platform": {"os": "linux", "architecture": "s390x"},
+                        "digest": "sha256:3e8a8b63afab946f4a64c1dc63563d91b2cb1e5eadadac1eff20231695c53d24",
+                        "size": 1953,
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "platform": {"os": "linux", "architecture": "amd64"},
+                        "digest": "sha256:7c75331408141f1e3ef37eac7c45938fbfb0d421a86201ad45d2ab8b70ddd527",
+                        "size": 1953,
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "platform": {"os": "linux", "architecture": "ppc64le"},
+                        "digest": "sha256:33d30a60996db4bc8158151ce516a8503cc56ce8d146e450e117a57ca5bf06e7",
+                        "size": 1953,
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "platform": {"os": "linux", "architecture": "arm64", "variant": "v8"},
+                        "digest": "sha256:d0eacd0089db7309a5ce40ec3334fcdd4ce7d67324f1ccc4433dd4fae4a771a4",
+                        "size": 1953,
                     },
                 ],
             },
@@ -402,11 +374,46 @@ class TestTrufflehog(ModuleTestBase):
                 },
             },
         )
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/manifests/sha256:7c75331408141f1e3ef37eac7c45938fbfb0d421a86201ad45d2ab8b70ddd527",
+            json={
+                "name": "testimage",
+                "tag": "latest",
+                "architecture": "amd64",
+                "fsLayers": [
+                    {"blobSum": "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"},
+                ],
+                "history": [
+                    {
+                        "v1Compatibility": '{"id":"e45a5af57b00862e5ef5782a9925979a02ba2b12dff832fd0991335f4a11e5c5","parent":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","created":"2014-12-31T22:57:59.178729048Z","container":"27b45f8fb11795b52e9605b686159729b0d9ca92f76d40fb4f05a62e19c46b4f","container_config":{"Hostname":"8ce6509d66e2","Domainname":"","User":"","Memory":0,"MemorySwap":0,"CpuShares":0,"Cpuset":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"PortSpecs":null,"ExposedPorts":null,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop) CMD [/hello]"],"Image":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","Volumes":null,"WorkingDir":"","Entrypoint":null,"NetworkDisabled":false,"MacAddress":"","OnBuild":[],"SecurityOpt":null,"Labels":null},"docker_version":"1.4.1","config":{"Hostname":"8ce6509d66e2","Domainname":"","User":"","Memory":0,"MemorySwap":0,"CpuShares":0,"Cpuset":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"PortSpecs":null,"ExposedPorts":null,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/hello"],"Image":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","Volumes":null,"WorkingDir":"","Entrypoint":null,"NetworkDisabled":false,"MacAddress":"","OnBuild":[],"SecurityOpt":null,"Labels":null},"architecture":"amd64","os":"linux","Size":0}\n'
+                    },
+                    {
+                        "v1Compatibility": '{"id":"e45a5af57b00862e5ef5782a9925979a02ba2b12dff832fd0991335f4a11e5c5","parent":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","created":"2014-12-31T22:57:59.178729048Z","container":"27b45f8fb11795b52e9605b686159729b0d9ca92f76d40fb4f05a62e19c46b4f","container_config":{"Hostname":"8ce6509d66e2","Domainname":"","User":"","Memory":0,"MemorySwap":0,"CpuShares":0,"Cpuset":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"PortSpecs":null,"ExposedPorts":null,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop) CMD [/hello]"],"Image":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","Volumes":null,"WorkingDir":"","Entrypoint":null,"NetworkDisabled":false,"MacAddress":"","OnBuild":[],"SecurityOpt":null,"Labels":null},"docker_version":"1.4.1","config":{"Hostname":"8ce6509d66e2","Domainname":"","User":"","Memory":0,"MemorySwap":0,"CpuShares":0,"Cpuset":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"PortSpecs":null,"ExposedPorts":null,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/hello"],"Image":"31cbccb51277105ba3ae35ce33c22b69c9e3f1002e76e4c736a2e8ebff9d7b5d","Volumes":null,"WorkingDir":"","Entrypoint":null,"NetworkDisabled":false,"MacAddress":"","OnBuild":[],"SecurityOpt":null,"Labels":null},"architecture":"amd64","os":"linux","Size":0}\n'
+                    },
+                ],
+                "schemaVersion": 1,
+                "signatures": [
+                    {
+                        "header": {
+                            "jwk": {
+                                "crv": "P-256",
+                                "kid": "OD6I:6DRK:JXEJ:KBM4:255X:NSAA:MUSF:E4VM:ZI6W:CUN2:L4Z6:LSF4",
+                                "kty": "EC",
+                                "x": "3gAwX48IQ5oaYQAYSxor6rYYc_6yjuLCjtQ9LUakg4A",
+                                "y": "t72ge6kIA1XOjqjVoEOiPPAURltJFBMGDSQvEGVB010",
+                            },
+                            "alg": "ES256",
+                        },
+                        "signature": "XREm0L8WNn27Ga_iE_vRnTxVMhhYY0Zst_FfkKopg6gWSoTOZTuW4rK0fg_IqnKkEKlbD83tD46LKEGi5aIVFg",
+                        "protected": "eyJmb3JtYXRMZW5ndGgiOjY2MjgsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNS0wNC0wOFQxODo1Mjo1OVoifQ",
+                    }
+                ],
+            },
+        )
         temp_path = Path("/tmp/.bbot_test")
         tar_path = temp_path / "docker_pull_test.tar.gz"
-        shutil.rmtree(tar_path, ignore_errors=True)
         with tarfile.open(tar_path, "w:gz") as tar:
-            file_io = io.BytesIO(self.file_content.encode())
+            file_io = io.BytesIO("This is a test file".encode())
             file_info = tarfile.TarInfo(name="file.txt")
             file_info.size = len(file_io.getvalue())
             file_io.seek(0)
@@ -417,80 +424,24 @@ class TestTrufflehog(ModuleTestBase):
             url="https://registry-1.docker.io/v2/blacklanternsecurity/helloworld/blobs/sha256:8a1e25ce7c4f75e372e9884f8f7b1bedcfe4a7a7d452eb4b0a1c7477c9a90345",
             content=layer_file,
         )
-
-    async def setup_after_prep(self, module_test):
-        temp_path = Path("/tmp/.bbot_test")
-        temp_repo_path = temp_path / "test_keys"
-        shutil.rmtree(temp_repo_path, ignore_errors=True)
-        subprocess.run(["git", "init", "test_keys"], cwd=temp_path)
-        with open(temp_repo_path / "keys.txt", "w") as f:
-            f.write(self.file_content)
-        subprocess.run(["git", "add", "."], cwd=temp_repo_path)
-        subprocess.run(
-            [
-                "git",
-                "-c",
-                "user.name='BBOT Test'",
-                "-c",
-                "user.email='bbot@blacklanternsecurity.com'",
-                "commit",
-                "-m",
-                "Initial commit",
-            ],
-            check=True,
-            cwd=temp_repo_path,
+        module_test.httpx_mock.add_response(
+            url="https://registry-1.docker.io/v2/blacklanternsecurity/testimage/blobs/sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+            content=layer_file,
         )
 
-        old_filter_event = module_test.scan.modules["git_clone"].filter_event
-
-        def new_filter_event(event):
-            event.data["url"] = event.data["url"].replace(
-                "https://github.com/blacklanternsecurity", f"file://{temp_path}"
+    def check(self, module_test, events):
+        filesystem_events = [
+            e
+            for e in events
+            if e.type == "FILESYSTEM"
+            and (
+                "blacklanternsecurity_helloworld_latest.tar" in e.data["path"]
+                or "blacklanternsecurity_testimage_latest.tar" in e.data["path"]
             )
-            return old_filter_event(event)
-
-        module_test.monkeypatch.setattr(module_test.scan.modules["git_clone"], "filter_event", new_filter_event)
-
-    def check(self, module_test, events):
-        vuln_events = [
-            e
-            for e in events
-            if e.type == "VULNERABILITY"
-            and (e.data["host"] == "hub.docker.com" or e.data["host"] == "github.com")
-            and "Verified Secret Found." in e.data["description"]
-            and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
+            and "docker" in e.tags
+            and e.scope_distance == 2
         ]
-        assert 2 == len(vuln_events), "Failed to find secret in events"
-        github_repo_event = [e for e in vuln_events if e.data["host"] == "github.com"][0].source
-        folder = Path(github_repo_event.data["path"])
-        assert folder.is_dir(), "Destination folder doesn't exist"
-        with open(folder / "keys.txt") as f:
-            content = f.read()
-            assert content == self.file_content, "File content doesn't match"
-        docker_source_event = [e for e in vuln_events if e.data["host"] == "hub.docker.com"][0].source
-        file = Path(docker_source_event.data["path"])
-        assert file.is_file(), "Destination image does not exist"
-
-
-class TestTrufflehog_NonVerified(TestTrufflehog):
-    config_overrides = {"modules": {"trufflehog": {"only_verified": False}}}
-
-    def check(self, module_test, events):
-        finding_events = [
-            e
-            for e in events
-            if e.type == e.type == "FINDING"
-            and (e.data["host"] == "hub.docker.com" or e.data["host"] == "github.com")
-            and "Potential Secret Found." in e.data["description"]
-            and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
-        ]
-        assert 2 == len(finding_events), "Failed to find secret in events"
-        github_repo_event = [e for e in finding_events if e.data["host"] == "github.com"][0].source
-        folder = Path(github_repo_event.data["path"])
-        assert folder.is_dir(), "Destination folder doesn't exist"
-        with open(folder / "keys.txt") as f:
-            content = f.read()
-            assert content == self.file_content, "File content doesn't match"
-        docker_source_event = [e for e in finding_events if e.data["host"] == "hub.docker.com"][0].source
-        file = Path(docker_source_event.data["path"])
-        assert file.is_file(), "Destination image does not exist"
+        assert 2 == len(filesystem_events), "Failed to download docker images"
+        filesystem_event = filesystem_events[0]
+        folder = Path(filesystem_event.data["path"])
+        assert folder.is_file(), "Destination tar doesn't exist"
