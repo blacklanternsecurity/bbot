@@ -68,6 +68,7 @@ class ScanManager:
             for event in sorted_events:
                 event._dummy = False
                 event.scope_distance = 0
+                event.web_spider_distance = 0
                 event.scan = self.scan
                 event.source = self.scan.root_event
                 event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
