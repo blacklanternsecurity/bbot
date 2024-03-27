@@ -2,8 +2,8 @@ from ..bbot_fixtures import *  # noqa: F401
 
 
 @pytest.mark.asyncio
-async def test_cloud_helpers(bbot_scanner, bbot_config):
-    scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
+async def test_cloud_helpers(bbot_scanner):
+    scan1 = bbot_scanner("127.0.0.1")
 
     provider_names = ("amazon", "google", "azure", "digitalocean", "oracle", "akamai", "cloudflare", "github")
     for provider_name in provider_names:
@@ -51,12 +51,12 @@ async def test_cloud_helpers(bbot_scanner, bbot_config):
 
 
 @pytest.mark.asyncio
-async def test_cloud_helpers_excavate(bbot_scanner, bbot_config, bbot_httpserver):
+async def test_cloud_helpers_excavate(bbot_scanner, bbot_httpserver):
     url = bbot_httpserver.url_for("/test_cloud_helpers_excavate")
     bbot_httpserver.expect_request(uri="/test_cloud_helpers_excavate").respond_with_data(
         "<a href='asdf.s3.amazonaws.com'/>"
     )
-    scan1 = bbot_scanner(url, modules=["httpx", "excavate"], config=bbot_config)
+    scan1 = bbot_scanner(url, modules=["httpx"], config={"excavate": True})
     events = [e async for e in scan1.async_start()]
     assert 1 == len(
         [
@@ -71,8 +71,8 @@ async def test_cloud_helpers_excavate(bbot_scanner, bbot_config, bbot_httpserver
 
 
 @pytest.mark.asyncio
-async def test_cloud_helpers_speculate(bbot_scanner, bbot_config):
-    scan1 = bbot_scanner("asdf.s3.amazonaws.com", modules=["speculate"], config=bbot_config)
+async def test_cloud_helpers_speculate(bbot_scanner):
+    scan1 = bbot_scanner("asdf.s3.amazonaws.com", config={"speculate": True})
     events = [e async for e in scan1.async_start()]
     assert 1 == len(
         [

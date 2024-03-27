@@ -6,6 +6,7 @@ async def test_config(bbot_scanner):
     config = OmegaConf.create(
         {
             "plumbus": "asdf",
+            "speculate": True,
             "modules": {
                 "ipneighbor": {"test_option": "ipneighbor"},
                 "python": {"test_option": "asdf"},
@@ -13,7 +14,7 @@ async def test_config(bbot_scanner):
             },
         }
     )
-    scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor", "speculate"], config=config)
+    scan1 = bbot_scanner("127.0.0.1", modules=["ipneighbor"], config=config)
     await scan1.load_modules()
     assert scan1.config.user_agent == "BBOT Test User-Agent"
     assert scan1.config.plumbus == "asdf"
