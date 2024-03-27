@@ -233,7 +233,7 @@ class telerik(BaseModule):
                                     str(root_tool_path / "testfile.txt"),
                                     result.url,
                                 ]
-                                output = await self.helpers.run(command)
+                                output = await self.run_process(command)
                                 description = f"[CVE-2017-11317] [{str(version)}] {webresource}"
                                 if "fileInfo" in output.stdout:
                                     self.debug(f"Confirmed Vulnerable Telerik (version: {str(version)}")

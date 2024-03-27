@@ -24,7 +24,12 @@ class dnsdumpster(subdomain_enum):
             return ret
         else:
             self.debug(f'Valid response code "{status_code}" from DNSDumpster')
+
         html = self.helpers.beautifulsoup(res1.content, "html.parser")
+        if html is False:
+            self.verbose(f"BeautifulSoup returned False")
+            return ret
+
         csrftoken = None
         csrfmiddlewaretoken = None
         try:
@@ -71,8 +76,10 @@ class dnsdumpster(subdomain_enum):
         if status_code not in [200]:
             self.verbose(f'Bad response code "{status_code}" from DNSDumpster')
             return ret
-
         html = self.helpers.beautifulsoup(res2.content, "html.parser")
+        if html is False:
+            self.verbose(f"BeautifulSoup returned False")
+            return ret
         escaped_domain = re.escape(domain)
         match_pattern = re.compile(r"^[\w\.-]+\." + escaped_domain + r"$")
         for subdomain in html.findAll(text=match_pattern):

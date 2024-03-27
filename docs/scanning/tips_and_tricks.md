@@ -14,6 +14,22 @@ Sometimes a certain module can get stuck or slow down the scan. If this happens 
 
 ## Common Config Changes
 
+### Speed Up Slow Modules
+
+BBOT modules can be parallelized so that more than one instance runs at a time. By default, many modules are already set to reasonable defaults:
+
+```python
+class baddns(BaseModule):
+    max_event_handlers = 8
+```
+
+To change the number of instances, you can set a module's `max_event_handlers` in the config:
+
+```bash
+# increase the "baddns" module to 20 concurrent instances
+bbot -t evilcorp.com -m baddns -c modules.baddns.max_event_handlers=20
+```
+
 ### Boost Massdns Thread Count
 
 If you have a fast internet connection or are running BBOT from a cloud VM, you can speed up subdomain enumeration by cranking the threads for `massdns`. The default is `1000`, which is about 1MB/s of DNS traffic:

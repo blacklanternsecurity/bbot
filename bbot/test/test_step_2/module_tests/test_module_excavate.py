@@ -17,7 +17,12 @@ class TestExcavate(ModuleTestBase):
         \\x3dwww6.test.notreal
         %0awww7.test.notreal
         \\u000awww8.test.notreal
-        <a src="http://www9.test.notreal">
+        # these ones shouldn't get emitted because they're .js (url_extension_httpx_only)
+        <a href="/a_relative.js">
+        <link href="/link_relative.js">
+        # these ones should
+        <a href="/a_relative.txt">
+        <link href="/link_relative.txt">
         """
         expect_args = {"method": "GET", "uri": "/"}
         respond_args = {"response_data": response_data}
@@ -49,7 +54,10 @@ class TestExcavate(ModuleTestBase):
         assert "www6.test.notreal" in event_data
         assert "www7.test.notreal" in event_data
         assert "www8.test.notreal" in event_data
-        assert "http://www9.test.notreal/" in event_data
+        assert not "http://127.0.0.1:8888/a_relative.js" in event_data
+        assert not "http://127.0.0.1:8888/link_relative.js" in event_data
+        assert "http://127.0.0.1:8888/a_relative.txt" in event_data
+        assert "http://127.0.0.1:8888/link_relative.txt" in event_data
 
         assert "nhttps://www1.test.notreal/" not in event_data
         assert "x3dhttps://www2.test.notreal/" not in event_data
@@ -170,7 +178,7 @@ class TestExcavateRedirect(TestExcavate):
         module_test.httpserver.no_handler_status_code = 404
 
     def check(self, module_test, events):
-        assert 1 == len(
+        assert 2 == len(
             [
                 e
                 for e in events
@@ -252,11 +260,15 @@ class TestExcavateMaxLinksPerPage(TestExcavate):
         module_test.httpserver.expect_request("/").respond_with_data(self.lots_of_links)
 
     def check(self, module_test, events):
-        url_events = [e for e in events if e.type == "URL_UNVERIFIED"]
-        assert len(url_events) == 26
-        url_data = [e.data for e in url_events if "spider-danger" not in e.tags]
+        url_unverified_events = [e for e in events if e.type == "URL_UNVERIFIED"]
+        # base URL + 25 links (10 w/o spider-danger) + 10 links (extracted from HTTP_RESPONSES, w/ spider-danger) == 36
+        assert len(url_unverified_events) == 36
+        url_data = [e.data for e in url_unverified_events if "spider-danger" not in e.tags]
+        assert len(url_data) == 11
         assert "http://127.0.0.1:8888/10" in url_data
         assert "http://127.0.0.1:8888/11" not in url_data
+        url_events = [e for e in events if e.type == "URL"]
+        assert len(url_events) == 11
 
 
 class TestExcavateCSP(TestExcavate):

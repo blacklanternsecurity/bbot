@@ -65,6 +65,7 @@ class TestGithub_Codesearch(ModuleTestBase):
                 e
                 for e in events
                 if e.type == "CODE_REPOSITORY"
+                and "git" in e.tags
                 and e.data["url"] == "https://github.com/projectdiscovery/nuclei"
                 and e.scope_distance == 1
             ]

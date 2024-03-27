@@ -1,10 +1,27 @@
-from bbot.db.neo4j import Neo4j
+from neo4j import AsyncGraphDatabase
+
 from bbot.modules.output.base import BaseOutputModule
 
 
 class neo4j(BaseOutputModule):
     """
-    docker run -p 7687:7687 -p 7474:7474 -v "$(pwd)/data/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
+    # start Neo4j in the background with docker
+    docker run -d -p 7687:7687 -p 7474:7474 -v "$(pwd)/neo4j/:/data/" -e NEO4J_AUTH=neo4j/bbotislife neo4j
+
+    # view all running docker containers
+    > docker ps
+
+    # view all docker containers
+    > docker ps -a
+
+    # stop a docker container
+    > docker stop <CONTAINER_ID>
+
+    # remove a docker container
+    > docker remove <CONTAINER_ID>
+
+    # start a stopped container
+    > docker start <CONTAINER_ID>
     """
 
     watched_events = ["*"]
@@ -15,26 +32,51 @@ class neo4j(BaseOutputModule):
         "username": "Neo4j username",
         "password": "Neo4j password",
     }
-    deps_pip = ["git+https://github.com/blacklanternsecurity/py2neo"]
-    _batch_size = 50
+    deps_pip = ["neo4j"]
     _preserve_graph = True
 
     async def setup(self):
         try:
-            self.neo4j = await self.scan.run_in_executor(
-                Neo4j,
+            self.driver = AsyncGraphDatabase.driver(
                 uri=self.config.get("uri", self.options["uri"]),
-                username=self.config.get("username", self.options["username"]),
-                password=self.config.get("password", self.options["password"]),
+                auth=(
+                    self.config.get("username", self.options["username"]),
+                    self.config.get("password", self.options["password"]),
+                ),
             )
-            await self.scan.run_in_executor(self.neo4j.insert_event, self.scan.root_event)
+            self.session = self.driver.session()
+            await self.handle_event(self.scan.root_event)
         except Exception as e:
-            self.warning(f"Error setting up Neo4j: {e}")
-            return False
+            return False, f"Error setting up Neo4j: {e}"
         return True
 
     async def handle_event(self, event):
-        await self.scan.run_in_executor(self.neo4j.insert_event, event)
+        # create events
+        src_id = await self.merge_event(event.get_source(), id_only=True)
+        dst_id = await self.merge_event(event)
+        # create relationship
+        cypher = f"""
+        MATCH (a) WHERE id(a) = $src_id
+        MATCH (b) WHERE id(b) = $dst_id
+        MERGE (a)-[_:{event.module}]->(b)
+        SET _.timestamp = $timestamp"""
+        await self.session.run(cypher, src_id=src_id, dst_id=dst_id, timestamp=event.timestamp)
 
-    async def handle_batch(self, *events):
-        await self.scan.run_in_executor(self.neo4j.insert_events, events)
+    async def merge_event(self, event, id_only=False):
+        if id_only:
+            eventdata = {"type": event.type, "id": event.id}
+        else:
+            eventdata = event.json(mode="graph")
+            # we pop the timestamp because it belongs on the relationship
+            eventdata.pop("timestamp")
+        cypher = f"""MERGE (_:{event.type} {{ id: $eventdata['id'] }})
+        SET _ += $eventdata
+        RETURN id(_)"""
+        # insert event
+        result = await self.session.run(cypher, eventdata=eventdata)
+        # get Neo4j id
+        return (await result.single()).get("id(_)")
+
+    async def cleanup(self):
+        await self.session.close()
+        await self.driver.close()

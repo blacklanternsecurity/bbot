@@ -45,7 +45,6 @@ class BaseOutputModule(BaseModule):
         acceptable, reason = await super()._event_postcheck(event)
         if acceptable and not event._stats_recorded and event.type not in ("FINISHED",):
             event._stats_recorded = True
-            self.scan.stats.event_distributed(event)
             self.scan.stats.event_produced(event)
         return acceptable, reason
 

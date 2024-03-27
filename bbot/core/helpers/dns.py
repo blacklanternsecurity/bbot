@@ -95,7 +95,6 @@ class DNSHelper:
         self.max_dns_resolve_distance = self.parent_helper.config.get("max_dns_resolve_distance", 5)
         self.resolver.timeout = self.timeout
         self.resolver.lifetime = self.timeout
-        self._resolver_list = None
 
         # skip certain queries
         dns_omit_queries = self.parent_helper.config.get("dns_omit_queries", None)
@@ -134,10 +133,6 @@ class DNSHelper:
         self._dns_cache = LRUCache(maxsize=10000)
         self._event_cache = LRUCache(maxsize=10000)
         self._event_cache_locks = NamedLock()
-
-        # for mocking DNS queries
-        self._orig_resolve_raw = None
-        self._mock_table = {}
 
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
@@ -1025,28 +1020,3 @@ class DNSHelper:
             dummy_module.suppress_dupes = False
             self._dummy_modules[name] = dummy_module
         return dummy_module
-
-    def mock_dns(self, dns_dict):
-        if self._orig_resolve_raw is None:
-            self._orig_resolve_raw = self.resolve_raw
-
-        async def mock_resolve_raw(query, **kwargs):
-            results = []
-            errors = []
-            types = self._parse_rdtype(kwargs.get("type", ["A", "AAAA"]))
-            for t in types:
-                with suppress(KeyError):
-                    results += self._mock_table[(query, t)]
-            return results, errors
-
-        for (query, rdtype), answers in dns_dict.items():
-            if isinstance(answers, str):
-                answers = [answers]
-            for answer in answers:
-                rdata = dns.rdata.from_text("IN", rdtype, answer)
-                try:
-                    self._mock_table[(query, rdtype)].append((rdtype, rdata))
-                except KeyError:
-                    self._mock_table[(query, rdtype)] = [(rdtype, [rdata])]
-
-        self.resolve_raw = mock_resolve_raw

@@ -1,4 +1,5 @@
 import os
+import dns
 import sys
 import pytest
 import asyncio  # noqa
@@ -49,25 +50,6 @@ def bbot_scanner():
     from bbot.scanner import Scanner
 
     return Scanner
-
-
-@pytest.fixture
-def neograph(monkeypatch, helpers):
-    helpers.depsinstaller.pip_install(["py2neo"])
-
-    class NeoGraph:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def merge(self, *args, **kwargs):
-            return True
-
-    import py2neo
-
-    monkeypatch.setattr(py2neo, "Graph", NeoGraph)
-    from bbot.db.neo4j import Neo4j
-
-    return Neo4j(uri="bolt://127.0.0.1:1111")
 
 
 @pytest.fixture
@@ -252,3 +234,67 @@ def install_all_python_deps():
     for module in module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
+
+
+class MockResolver:
+    import dns
+
+    def __init__(self, mock_data=None):
+        self.mock_data = mock_data if mock_data else {}
+        self.nameservers = ["127.0.0.1"]
+
+    async def resolve_address(self, ipaddr, *args, **kwargs):
+        modified_kwargs = {}
+        modified_kwargs.update(kwargs)
+        modified_kwargs["rdtype"] = "PTR"
+        return await self.resolve(str(dns.reversename.from_address(ipaddr)), *args, **modified_kwargs)
+
+    def create_dns_response(self, query_name, rdtype):
+        query_name = query_name.strip(".")
+        answers = self.mock_data.get(query_name, {}).get(rdtype, [])
+        if not answers:
+            raise self.dns.resolver.NXDOMAIN(f"No answer found for {query_name} {rdtype}")
+
+        message_text = f"""id 1234
+opcode QUERY
+rcode NOERROR
+flags QR AA RD
+;QUESTION
+{query_name}. IN {rdtype}
+;ANSWER"""
+        for answer in answers:
+            message_text += f"\n{query_name}. 1 IN {rdtype} {answer}"
+
+        message_text += "\n;AUTHORITY\n;ADDITIONAL\n"
+        message = self.dns.message.from_text(message_text)
+        return message
+
+    async def resolve(self, query_name, rdtype=None):
+        if rdtype is None:
+            rdtype = "A"
+        elif isinstance(rdtype, str):
+            rdtype = rdtype.upper()
+        else:
+            rdtype = str(rdtype.name).upper()
+
+        domain_name = self.dns.name.from_text(query_name)
+        rdtype_obj = self.dns.rdatatype.from_text(rdtype)
+
+        if "_NXDOMAIN" in self.mock_data and query_name in self.mock_data["_NXDOMAIN"]:
+            # Simulate the NXDOMAIN exception
+            raise self.dns.resolver.NXDOMAIN
+
+        try:
+            response = self.create_dns_response(query_name, rdtype)
+            answer = self.dns.resolver.Answer(domain_name, rdtype_obj, self.dns.rdataclass.IN, response)
+            return answer
+        except self.dns.resolver.NXDOMAIN:
+            return []
+
+
+@pytest.fixture()
+def mock_dns():
+    def _mock_dns(scan, mock_data):
+        scan.helpers.dns.resolver = MockResolver(mock_data)
+
+    return _mock_dns

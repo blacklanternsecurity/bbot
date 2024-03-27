@@ -48,6 +48,12 @@ class TestDehashed(ModuleTestBase):
             url=f"https://api.dehashed.com/search?query=domain:blacklanternsecurity.com&size=10000&page=1",
             json=dehashed_domain_response,
         )
+        module_test.mock_dns(
+            {
+                "bob.com": {"A": ["127.0.0.1"]},
+                "blacklanternsecurity.com": {"A": ["127.0.0.1"]},
+            }
+        )
 
     def check(self, module_test, events):
         assert len(events) == 11

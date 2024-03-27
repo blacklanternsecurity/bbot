@@ -42,6 +42,8 @@ class asn(BaseReportModule):
                     emails = asn.pop("emails", [])
                     self.cache_put(asn)
                     asn_event = self.make_event(asn, "ASN", source=event)
+                    if not asn_event:
+                        continue
                     await self.emit_event(asn_event)
                     for email in emails:
                         await self.emit_event(email, "EMAIL_ADDRESS", source=asn_event)

@@ -19,6 +19,7 @@ class httpx(BaseModule):
         "version": "1.2.5",
         "max_response_size": 5242880,
         "store_responses": False,
+        "probe_all_ips": False,
     }
     options_desc = {
         "threads": "Number of httpx threads to use",
@@ -26,6 +27,7 @@ class httpx(BaseModule):
         "version": "httpx version",
         "max_response_size": "Max response size in bytes",
         "store_responses": "Save raw HTTP responses to scan folder",
+        "probe_all_ips": "Probe all the ips associated with same host",
     }
     deps_ansible = [
         {
@@ -49,6 +51,7 @@ class httpx(BaseModule):
         self.retries = self.scan.config.get("httpx_retries", 1)
         self.max_response_size = self.config.get("max_response_size", 5242880)
         self.store_responses = self.config.get("store_responses", False)
+        self.probe_all_ips = self.config.get("probe_all_ips", False)
         self.visited = set()
         self.httpx_tempdir_regex = re.compile(r"^httpx\d+$")
         return True
@@ -121,12 +124,15 @@ class httpx(BaseModule):
         if dns_resolvers:
             command += ["-r", dns_resolvers]
 
+        if self.probe_all_ips:
+            command += ["-probe-all-ips"]
+
         for hk, hv in self.scan.config.get("http_headers", {}).items():
             command += ["-header", f"{hk}: {hv}"]
         proxy = self.scan.config.get("http_proxy", "")
         if proxy:
             command += ["-http-proxy", proxy]
-        async for line in self.helpers.run_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
+        async for line in self.run_process_live(command, input=list(stdin), stderr=subprocess.DEVNULL):
             try:
                 j = json.loads(line)
             except json.decoder.JSONDecodeError:

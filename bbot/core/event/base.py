@@ -4,6 +4,7 @@ import asyncio
 import logging
 import ipaddress
 import traceback
+from copy import copy
 from typing import Optional
 from datetime import datetime
 from contextlib import suppress
@@ -29,7 +30,6 @@ from bbot.core.helpers import (
     split_host_port,
     tagify,
     validators,
-    truncate_string,
 )
 
 
@@ -106,6 +106,8 @@ class BaseEvent:
     _dummy = False
     # Data validation, if data is a dictionary
     _data_validator = None
+    # Whether to increment scope distance if the child and parent hosts are the same
+    _scope_distance_increment_same_host = False
 
     def __init__(
         self,
@@ -210,6 +212,9 @@ class BaseEvent:
 
         # an event indicating whether the event has undergone DNS resolution
         self._resolved = asyncio.Event()
+
+        # inherit web spider distance from parent
+        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
 
     @property
     def data(self):
@@ -413,7 +418,7 @@ class BaseEvent:
             if source.scope_distance >= 0:
                 new_scope_distance = int(source.scope_distance)
                 # only increment the scope distance if the host changes
-                if not hosts_are_same:
+                if self._scope_distance_increment_same_host or not hosts_are_same:
                     new_scope_distance += 1
                 self.scope_distance = new_scope_distance
             # inherit certain tags
@@ -490,7 +495,10 @@ class BaseEvent:
         return self._data_human()
 
     def _data_human(self):
-        return truncate_string(str(self.data), n=2000)
+        if isinstance(self.data, (dict, list)):
+            with suppress(Exception):
+                return json.dumps(self.data, sort_keys=True)
+        return smart_decode(self.data)
 
     def _data_load(self, data):
         """
@@ -524,10 +532,7 @@ class BaseEvent:
         return self._pretty_string()
 
     def _pretty_string(self):
-        if isinstance(self.data, dict):
-            with suppress(Exception):
-                return json.dumps(self.data, sort_keys=True)
-        return smart_decode(self.data)
+        return self._data_human()
 
     @property
     def data_graph(self):
@@ -753,9 +758,6 @@ class DictEvent(BaseEvent):
             self.parsed = validators.validate_url_parsed(url)
         return data
 
-    def _data_human(self):
-        return json.dumps(self.data, sort_keys=True)
-
     def _data_load(self, data):
         if isinstance(data, str):
             return json.loads(data)
@@ -880,7 +882,6 @@ class URL_UNVERIFIED(BaseEvent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
         # increment the web spider distance
         if self.type == "URL_UNVERIFIED" and getattr(self.module, "name", "") != "TARGET":
             self.web_spider_distance += 1
@@ -1164,9 +1165,10 @@ class USERNAME(BaseEvent):
     _quick_emit = True
 
 
-class SOCIAL(DictEvent):
+class SOCIAL(DictHostEvent):
     _always_emit = True
     _quick_emit = True
+    _scope_distance_increment_same_host = True
 
 
 class WEBSCREENSHOT(DictHostEvent):
@@ -1256,9 +1258,10 @@ def make_event(
         tags = []
     elif isinstance(tags, str):
         tags = [tags]
-    tags = list(tags)
+    tags = set(tags)
 
     if is_event(data):
+        data = copy(data)
         if scan is not None and not data.scan:
             data.scan = scan
         if scans is not None and not data.scans:
@@ -1269,6 +1272,8 @@ def make_event(
             data.source = source
         if internal == True:
             data.internal = True
+        if tags:
+            data.tags = tags.union(data.tags)
         event_type = data.type
         return data
     else:
@@ -1299,7 +1304,7 @@ def make_event(
         # USERNAME <--> EMAIL_ADDRESS confusion
         if event_type == "USERNAME" and validators.soft_validate(data, "email"):
             event_type = "EMAIL_ADDRESS"
-            tags.append("affiliate")
+            tags.add("affiliate")
 
         event_class = globals().get(event_type, DefaultEvent)
 

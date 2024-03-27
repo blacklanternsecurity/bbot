@@ -19,10 +19,16 @@ class bucket_google(bucket_template):
     delimiters = ("", "-", ".", "_")
     base_domains = ["storage.googleapis.com"]
     bad_permissions = [
+        "storage.buckets.get",
+        "storage.buckets.list",
+        "storage.buckets.create",
+        "storage.buckets.delete",
         "storage.buckets.setIamPolicy",
-        "storage.objects.list",
         "storage.objects.get",
+        "storage.objects.list",
         "storage.objects.create",
+        "storage.objects.delete",
+        "storage.objects.setIamPolicy",
     ]
 
     def filter_bucket(self, event):

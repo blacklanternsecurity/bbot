@@ -318,6 +318,7 @@ class TestGithub_Org(ModuleTestBase):
                 e
                 for e in events
                 if e.type == "CODE_REPOSITORY"
+                and "git" in e.tags
                 and e.data["url"] == "https://github.com/blacklanternsecurity/test_keys"
                 and e.scope_distance == 1
             ]
@@ -361,6 +362,7 @@ class TestGithub_Org_MemberRepos(TestGithub_Org):
                 e
                 for e in events
                 if e.type == "CODE_REPOSITORY"
+                and "git" in e.tags
                 and e.data["url"] == "https://github.com/TheTechromancer/websitedemo"
                 and e.scope_distance == 2
             ]

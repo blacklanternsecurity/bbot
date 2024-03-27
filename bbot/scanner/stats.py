@@ -16,13 +16,8 @@ class ScanStats:
         self.module_stats = {}
         self.events_emitted_by_type = {}
 
-    def event_distributed(self, event):
-        _increment(self.events_emitted_by_type, event.type)
-        module_stat = self.get(event.module)
-        if module_stat is not None:
-            module_stat.increment_emitted(event)
-
     def event_produced(self, event):
+        _increment(self.events_emitted_by_type, event.type)
         module_stat = self.get(event.module)
         if module_stat is not None:
             module_stat.increment_produced(event)
@@ -74,17 +69,10 @@ class ScanStats:
 class ModuleStat:
     def __init__(self, module):
         self.module = module
-
-        self.emitted = {}
-        self.emitted_total = 0
         self.produced = {}
         self.produced_total = 0
         self.consumed = {}
         self.consumed_total = 0
-
-    def increment_emitted(self, event):
-        self.emitted_total += 1
-        _increment(self.emitted, event.type)
 
     def increment_produced(self, event):
         self.produced_total += 1
