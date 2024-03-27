@@ -167,20 +167,24 @@ def test_preset_scope():
 def test_preset_logging():
     # test verbosity levels (conflicting verbose/debug/silent)
     preset = Preset(verbose=True)
-    assert preset.verbose == True
-    assert preset.debug == False
-    assert preset.silent == False
-    assert preset.core.logger.log_level == logging.VERBOSE
-    preset.debug = True
-    assert preset.verbose == False
-    assert preset.debug == True
-    assert preset.silent == False
-    assert preset.core.logger.log_level == logging.DEBUG
-    preset.silent = True
-    assert preset.verbose == False
-    assert preset.debug == False
-    assert preset.silent == True
-    assert preset.core.logger.log_level == logging.CRITICAL
+    original_log_level = preset.core.logger.log_level
+    try:
+        assert preset.verbose == True
+        assert preset.debug == False
+        assert preset.silent == False
+        assert preset.core.logger.log_level == logging.VERBOSE
+        preset.debug = True
+        assert preset.verbose == False
+        assert preset.debug == True
+        assert preset.silent == False
+        assert preset.core.logger.log_level == logging.DEBUG
+        preset.silent = True
+        assert preset.verbose == False
+        assert preset.debug == False
+        assert preset.silent == True
+        assert preset.core.logger.log_level == logging.CRITICAL
+    finally:
+        preset.core.logger.log_level = original_log_level
 
 
 def test_preset_module_resolution():
@@ -549,6 +553,17 @@ conditions:
 
     with pytest.raises(PresetAbortError):
         Scanner(preset=preset)
+
+
+def test_preset_internal_module_disablement():
+    preset = Preset(config={"speculate": True, "excavate": True, "aggregate": True}).bake()
+    assert "speculate" in preset.internal_modules
+    assert "excavate" in preset.internal_modules
+    assert "aggregate" in preset.internal_modules
+    preset = Preset(config={"speculate": False, "excavate": True, "aggregate": True}).bake()
+    assert "speculate" not in preset.internal_modules
+    assert "excavate" in preset.internal_modules
+    assert "aggregate" in preset.internal_modules
 
 
 # test custom module load directory

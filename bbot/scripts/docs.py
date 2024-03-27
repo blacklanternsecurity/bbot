@@ -58,7 +58,6 @@ def find_replace_file(file, keyword, replace):
                 f.write(new_content)
 
 
-# PRESET TODO: revisit this
 def update_docs():
     md_files = [p for p in bbot_code_dir.glob("**/*.md") if p.is_file()]
 

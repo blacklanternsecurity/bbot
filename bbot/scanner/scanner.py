@@ -920,7 +920,6 @@ class Scanner:
         return self.__log_handlers
 
     def _start_log_handlers(self):
-        # PRESET TODO: revisit scan logging
         # add log handlers
         for handler in self._log_handlers:
             self.core.logger.add_log_handler(handler)

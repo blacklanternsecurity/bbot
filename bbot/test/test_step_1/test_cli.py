@@ -1,6 +1,3 @@
-import os
-import sys
-
 from ..bbot_fixtures import *
 
 
@@ -143,8 +140,8 @@ async def test_cli_args(monkeypatch, capsys):
 
     # --allow-deadly
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei", "--allow-deadly"])
-    # result = await cli._main()
-    # assert result == True, "-m nuclei failed to run with --allow-deadly"
+    result = await cli._main()
+    assert result == True, "-m nuclei failed to run with --allow-deadly"
 
     # install all deps
     # monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
@@ -232,7 +229,7 @@ def test_cli_presets(monkeypatch, capsys):
     preset_dir = bbot_test_dir / "test_cli_presets"
     preset_dir.mkdir(exist_ok=True)
 
-    preset1_file = preset_dir / "preset1.conf"
+    preset1_file = preset_dir / "cli_preset1.conf"
     with open(preset1_file, "w") as f:
         f.write(
             """
@@ -241,7 +238,7 @@ config:
         """
         )
 
-    preset2_file = preset_dir / "preset2.yml"
+    preset2_file = preset_dir / "cli_preset2.yml"
     with open(preset2_file, "w") as f:
         f.write(
             """

@@ -16,16 +16,8 @@ import discord
 from discord.ext import commands
 
 from bbot.scanner import Scanner
-from bbot.modules import module_loader
+from bbot.modules import MODULE_LOADER
 from bbot.modules.output.discord import Discord
-
-
-# make list of BBOT modules to enable for the scan
-bbot_modules = ["excavate", "speculate", "aggregate"]
-for module_name, preloaded in module_loader.preloaded().items():
-    flags = preloaded["flags"]
-    if "subdomain-enum" in flags and "passive" in flags and "slow" not in flags:
-        bbot_modules.append(module_name)
 
 
 class BBOTDiscordBot(commands.Cog):
@@ -63,7 +55,7 @@ class BBOTDiscordBot(commands.Cog):
         await ctx.send(f"Starting scan against {target}.")
 
         # creates scan instance
-        self.current_scan = Scanner(target, modules=bbot_modules)
+        self.current_scan = Scanner(target, flags="subdomain-enum")
         discord_module = Discord(self.current_scan)
 
         seen = set()

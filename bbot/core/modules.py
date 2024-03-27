@@ -645,4 +645,4 @@ class ModuleLoader:
         return module_list
 
 
-module_loader = ModuleLoader()
+MODULE_LOADER = ModuleLoader()

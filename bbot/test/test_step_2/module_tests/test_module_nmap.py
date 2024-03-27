@@ -40,7 +40,9 @@ class TestNmapAssetInventory(ModuleTestBase):
 
         first_scan_config = module_test.scan.config.copy()
         first_scan_config["modules"]["asset_inventory"]["use_previous"] = False
-        first_scan = Scanner("127.0.0.1", name=self.scan_name, modules=["asset_inventory"], config=first_scan_config)
+        first_scan = Scanner(
+            "127.0.0.1", scan_name=self.scan_name, modules=["asset_inventory"], config=first_scan_config
+        )
         await first_scan.async_start_without_generator()
 
         asset_inventory_output_file = first_scan.home / "asset-inventory.csv"

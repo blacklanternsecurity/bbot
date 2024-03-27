@@ -1,3 +1,4 @@
+import os  # noqa
 import dns
 import sys
 import pytest
@@ -7,14 +8,39 @@ import subprocess
 import tldextract
 import pytest_httpserver
 from pathlib import Path
+from omegaconf import OmegaConf
 
 from werkzeug.wrappers import Request
 
+from bbot.core import CORE
+from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir
+
+
+log = logging.getLogger(f"bbot.test.fixtures")
 
 
 bbot_test_dir = Path("/tmp/.bbot_test")
 mkdir(bbot_test_dir)
+
+# bbot config
+
+test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
+CORE.merge_custom(test_config)
+
+if test_config.get("debug", False):
+    logging.getLogger("bbot").setLevel(logging.DEBUG)
+else:
+    # silence stdout + trace
+    root_logger = logging.getLogger()
+    for h in root_logger.handlers:
+        h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
+
+default_preset = Preset()
+
+available_modules = list(default_preset.module_loader.configs(type="scan"))
+available_output_modules = list(default_preset.module_loader.configs(type="output"))
+available_internal_modules = list(default_preset.module_loader.configs(type="internal"))
 
 
 class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
@@ -32,14 +58,7 @@ from bbot.core.errors import *  # noqa: F401
 log = logging.getLogger("werkzeug")
 log.setLevel(logging.CRITICAL)
 
-# silence stdout
-root_logger = logging.getLogger()
-for h in root_logger.handlers:
-    h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
-
 tldextract.extract("www.evilcorp.com")
-
-log = logging.getLogger(f"bbot.test.fixtures")
 
 
 @pytest.fixture
@@ -201,21 +220,6 @@ def agent(monkeypatch, bbot_config):
     test_agent = agent.Agent(bbot_config)
     test_agent.setup()
     return test_agent
-
-
-# bbot config
-from bbot.scanner import Preset
-
-default_preset = Preset.from_yaml_file(Path(__file__).parent / "test.conf")
-test_config = default_preset.config
-
-available_modules = list(default_preset.module_loader.configs(type="scan"))
-available_output_modules = list(default_preset.module_loader.configs(type="output"))
-available_internal_modules = list(default_preset.module_loader.configs(type="internal"))
-
-
-if test_config.get("debug", False):
-    logging.getLogger("bbot").setLevel(logging.DEBUG)
 
 
 @pytest.fixture

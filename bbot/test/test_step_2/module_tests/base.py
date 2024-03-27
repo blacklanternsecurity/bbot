@@ -77,7 +77,7 @@ class ModuleTestBase:
                 *module_test_base.targets,
                 modules=modules,
                 output_modules=output_modules,
-                name=module_test_base._scan_name,
+                scan_name=module_test_base._scan_name,
                 config=self.config,
                 whitelist=module_test_base.whitelist,
                 blacklist=module_test_base.blacklist,

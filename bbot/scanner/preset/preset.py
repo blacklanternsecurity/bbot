@@ -214,6 +214,11 @@ class Preset:
         os.environ.clear()
         os.environ.update(os_environ)
 
+        # disable internal modules if requested
+        for internal_module in baked_preset.internal_modules:
+            if baked_preset.config.get(internal_module, True) == False:
+                baked_preset.exclude_module(internal_module)
+
         # evaluate conditions
         if baked_preset.conditions:
             from .conditions import ConditionEvaluator
@@ -430,7 +435,7 @@ class Preset:
 
     def exclude_module(self, module):
         self.exclude_modules.add(module)
-        for module in list(self.scan_modules):
+        for module in list(self.modules):
             if module in self.exclude_modules:
                 self.log_verbose(f'Removing module "{module}" because it\'s excluded')
                 self.modules.remove(module)
@@ -505,9 +510,9 @@ class Preset:
     def module_loader(self):
         self.environ
         if self._module_loader is None:
-            from bbot.core.modules import module_loader
+            from bbot.core.modules import MODULE_LOADER
 
-            self._module_loader = module_loader
+            self._module_loader = MODULE_LOADER
 
         return self._module_loader
 
@@ -596,7 +601,7 @@ class Preset:
         preset_from_yaml = self.from_yaml_file(preset_filename, _exclude=self._preset_files_loaded)
         if preset_from_yaml is not False:
             self.merge(preset_from_yaml)
-        self._preset_files_loaded.add(preset_filename)
+            self._preset_files_loaded.add(preset_filename)
 
     @classmethod
     def from_yaml_file(cls, filename, _exclude=None, _log=False):
@@ -605,9 +610,9 @@ class Preset:
 
         The file extension is optional.
         """
+        filename = Path(filename).resolve()
         if _exclude is None:
             _exclude = set()
-        filename = Path(filename).resolve()
         if _exclude is not None and filename in _exclude:
             log.debug(f"Not loading {filename} because it was already loaded {_exclude}")
             return False
@@ -717,6 +722,8 @@ class Preset:
                         # try to load it as a preset
                         try:
                             loaded_preset = self.from_yaml_file(original_filename, _log=True)
+                            if loaded_preset is False:
+                                continue
                         except Exception as e:
                             log.warning(f'Failed to load preset at "{original_filename}": {e}')
                             log.trace(traceback.format_exc())
@@ -751,7 +758,7 @@ class Preset:
         header = ["Preset", "Category", "Description", "# Modules"]
         if include_modules:
             header.append("Modules")
-        for yaml_file, (loaded_preset, category, preset_path, original_file) in self.all_presets().items():
+        for yaml_file, (loaded_preset, category, preset_path, original_file) in self.all_presets.items():
             num_modules = f"{len(loaded_preset.scan_modules):,}"
             row = [loaded_preset.name, category, loaded_preset.description, num_modules]
             if include_modules:
