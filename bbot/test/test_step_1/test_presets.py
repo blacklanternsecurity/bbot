@@ -94,6 +94,24 @@ def test_preset_yaml():
     assert yaml1 == yaml2
 
 
+#     yaml_string_1 = """
+# flags:
+#   - subdomain-enum
+
+# modules:
+#   - wappalyzer
+
+# output_modules:
+#   - csv
+
+# config:
+#   speculate: False
+# """
+#     preset3 = Preset.from_yaml_string(yaml_string_1)
+#     yaml_string_2 = preset3.to_yaml(sort_keys=True)
+#     assert yaml_string_2 == yaml_string
+
+
 def test_preset_scope():
 
     blank_preset = Preset()

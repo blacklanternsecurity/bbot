@@ -130,13 +130,10 @@ class ModuleLoader:
 
                 # try to load from cache
                 module_cache_key = (str(module_file), tuple(module_file.stat()))
-                preloaded_module = self.preload_cache.get(module_name, {})
-                flags = preloaded_module.get("flags", [])
-                self._all_flags.update(set(flags))
-                cache_key = preloaded_module.get("cache_key", ())
-                if module_cache_key == cache_key:
+                preloaded = self.preload_cache.get(module_name, {})
+                cache_key = preloaded.get("cache_key", ())
+                if preloaded and module_cache_key == cache_key:
                     log.debug(f"Preloading {module_name} from cache")
-                    preloaded = self.preload_cache[module_name]
                 else:
                     log.debug(f"Preloading {module_name} from disk")
                     if module_dir.name == "modules":
@@ -167,6 +164,9 @@ class ModuleLoader:
                         log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
                         log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
                         sys.exit(1)
+
+                flags = preloaded.get("flags", [])
+                self._all_flags.update(set(flags))
 
                 self.__preloaded[module_name] = preloaded
                 config = OmegaConf.create(preloaded.get("config", {}))
