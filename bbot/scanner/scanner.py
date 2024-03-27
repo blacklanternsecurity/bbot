@@ -131,6 +131,7 @@ class Scanner:
             self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
 
         preset = preset_kwargs.pop("preset", None)
+        preset_kwargs["_log"] = True
         if preset is None:
             preset = Preset(*args, **preset_kwargs)
         self.preset = preset.bake()

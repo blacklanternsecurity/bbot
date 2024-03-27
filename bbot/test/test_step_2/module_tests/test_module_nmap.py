@@ -38,10 +38,13 @@ class TestNmapAssetInventory(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         from bbot.scanner import Scanner
 
-        first_scan_config = module_test.scan.config.copy()
-        first_scan_config["modules"]["asset_inventory"]["use_previous"] = False
         first_scan = Scanner(
-            "127.0.0.1", scan_name=self.scan_name, modules=["asset_inventory"], config=first_scan_config
+            "127.0.0.1",
+            scan_name=self.scan_name,
+            output_modules=["asset_inventory"],
+            config={
+                "modules": {"nmap": {"ports": "8888,8889"}, "asset_inventory": {"use_previous": False}},
+            },
         )
         await first_scan.async_start_without_generator()
 

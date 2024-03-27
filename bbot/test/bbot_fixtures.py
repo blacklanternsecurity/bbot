@@ -214,15 +214,6 @@ def events(scan):
 
 
 @pytest.fixture
-def agent(monkeypatch, bbot_config):
-    from bbot import agent
-
-    test_agent = agent.Agent(bbot_config)
-    test_agent.setup()
-    return test_agent
-
-
-@pytest.fixture
 def bbot_config():
     return test_config
 
