@@ -70,8 +70,10 @@ class ScanManager:
                 event.scope_distance = 0
                 event.web_spider_distance = 0
                 event.scan = self.scan
-                event.source = self.scan.root_event
-                event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
+                if event.source is None:
+                    event.source = self.scan.root_event
+                if event.module is None:
+                    event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
                 self.scan.verbose(f"Target: {event}")
                 self.queue_event(event)
             await asyncio.sleep(0.1)
