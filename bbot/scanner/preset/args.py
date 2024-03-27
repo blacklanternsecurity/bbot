@@ -125,15 +125,15 @@ class BBOTArgs:
         self.validate()
 
         # load modules & flags (excluded then required then all others)
-        args_preset.exclude_modules = self.parsed.exclude_modules
-        args_preset.exclude_flags = self.parsed.exclude_flags
-        args_preset.require_flags = self.parsed.require_flags
+        args_preset.add_excluded_modules(self.parsed.exclude_modules)
+        args_preset.add_excluded_flags(self.parsed.exclude_flags)
+        args_preset.add_required_flags(self.parsed.require_flags)
         for scan_module in self.parsed.modules:
             args_preset.add_module(scan_module, module_type="scan")
         for output_module in self.parsed.output_modules:
             args_preset.add_module(output_module, module_type="output")
 
-        args_preset.flags = self.parsed.flags
+        args_preset.add_flags(self.parsed.flags)
 
         # dependencies
         if self.parsed.retry_deps:

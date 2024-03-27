@@ -2,8 +2,8 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_dns(bbot_scanner, bbot_config, mock_dns):
-    scan = bbot_scanner("1.1.1.1", config=bbot_config)
+async def test_dns(bbot_scanner, mock_dns):
+    scan = bbot_scanner("1.1.1.1")
     helpers = scan.helpers
 
     # lowest level functions
@@ -82,9 +82,7 @@ async def test_dns(bbot_scanner, bbot_config, mock_dns):
     assert "1.1.1.1" in [str(x) for x in children2["A"]]
     assert set(children1.keys()) == set(children2.keys())
 
-    dns_config = OmegaConf.create({"dns_resolution": True})
-    dns_config = OmegaConf.merge(bbot_config, dns_config)
-    scan2 = bbot_scanner("evilcorp.com", config=dns_config)
+    scan2 = bbot_scanner("evilcorp.com", config={"dns_resolution": True})
     mock_dns(
         scan2,
         {
@@ -99,8 +97,8 @@ async def test_dns(bbot_scanner, bbot_config, mock_dns):
 
 
 @pytest.mark.asyncio
-async def test_wildcards(bbot_scanner, bbot_config):
-    scan = bbot_scanner("1.1.1.1", config=bbot_config)
+async def test_wildcards(bbot_scanner):
+    scan = bbot_scanner("1.1.1.1")
     helpers = scan.helpers
 
     # wildcards

@@ -57,7 +57,9 @@ def test_core():
     assert "test456" in core_copy.config["test123"]
 
 
-def test_preset_yaml():
+def test_preset_yaml(clean_default_config):
+
+    import yaml
 
     preset1 = Preset(
         "evilcorp.com",
@@ -93,23 +95,41 @@ def test_preset_yaml():
     yaml2 = preset2.to_yaml(sort_keys=True)
     assert yaml1 == yaml2
 
+    yaml_string_1 = """
+flags:
+  - subdomain-enum
 
-#     yaml_string_1 = """
-# flags:
-#   - subdomain-enum
+exclude_flags:
+  - aggressive
+  - slow
 
-# modules:
-#   - wappalyzer
+require_flags:
+  - passive
+  - safe
 
-# output_modules:
-#   - csv
+exclude_modules:
+  - certspotter
+  - rapiddns
 
-# config:
-#   speculate: False
-# """
-#     preset3 = Preset.from_yaml_string(yaml_string_1)
-#     yaml_string_2 = preset3.to_yaml(sort_keys=True)
-#     assert yaml_string_2 == yaml_string
+modules:
+  - robots
+  - wappalyzer
+
+output_modules:
+  - csv
+  - json
+
+config:
+  speculate: False
+  excavate: True
+"""
+    yaml_string_1 = yaml.dump(yaml.safe_load(yaml_string_1), sort_keys=True)
+    # preset from yaml
+    preset3 = Preset.from_yaml_string(yaml_string_1)
+    # yaml to preset
+    yaml_string_2 = preset3.to_yaml(sort_keys=True)
+    # make sure they're the same
+    assert yaml_string_2 == yaml_string_1
 
 
 def test_preset_scope():
@@ -205,7 +225,7 @@ def test_preset_logging():
         preset.core.logger.log_level = original_log_level
 
 
-def test_preset_module_resolution():
+def test_preset_module_resolution(clean_default_config):
     preset = Preset()
     sslcert_preloaded = preset.preloaded_module("sslcert")
     wayback_preloaded = preset.preloaded_module("wayback")
@@ -440,6 +460,9 @@ class TestModule4(BaseModule):
     assert "testmodule3" in preset2.module_loader.preloaded()
     assert "testmodule4" in preset2.module_loader.preloaded()
 
+    # reset module_loader
+    preset2.module_loader.__init__()
+
 
 def test_preset_include():
 
@@ -582,6 +605,94 @@ def test_preset_internal_module_disablement():
     assert "speculate" not in preset.internal_modules
     assert "excavate" in preset.internal_modules
     assert "aggregate" in preset.internal_modules
+
+
+def test_preset_require_exclude():
+
+    def get_module_flags(p):
+        for m in p.scan_modules:
+            preloaded = p.preloaded_module(m)
+            yield m, preloaded.get("flags", [])
+
+    # enable by flag, no exclusions/requirements
+    preset = Preset(flags=["subdomain-enum"])
+    assert len(preset.modules) > 25
+    module_flags = list(get_module_flags(preset))
+    massdns_flags = preset.preloaded_module("massdns").get("flags", [])
+    assert "subdomain-enum" in massdns_flags
+    assert "passive" in massdns_flags
+    assert not "active" in massdns_flags
+    assert "aggressive" in massdns_flags
+    assert not "safe" in massdns_flags
+    assert "massdns" in [x[0] for x in module_flags]
+    assert "certspotter" in [x[0] for x in module_flags]
+    assert "c99" in [x[0] for x in module_flags]
+    assert any("passive" in flags for module, flags in module_flags)
+    assert any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("aggressive" in flags for module, flags in module_flags)
+
+    # enable by flag, one required flag
+    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"])
+    assert len(preset.modules) > 25
+    module_flags = list(get_module_flags(preset))
+    assert "massdns" in [x[0] for x in module_flags]
+    assert all("passive" in flags for module, flags in module_flags)
+    assert not any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("aggressive" in flags for module, flags in module_flags)
+
+    # enable by flag, one excluded flag
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"])
+    assert len(preset.modules) > 25
+    module_flags = list(get_module_flags(preset))
+    assert "massdns" in [x[0] for x in module_flags]
+    assert all("passive" in flags for module, flags in module_flags)
+    assert not any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("aggressive" in flags for module, flags in module_flags)
+
+    # enable by flag, one excluded module
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns"])
+    assert len(preset.modules) > 25
+    module_flags = list(get_module_flags(preset))
+    assert not "massdns" in [x[0] for x in module_flags]
+    assert any("passive" in flags for module, flags in module_flags)
+    assert any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("aggressive" in flags for module, flags in module_flags)
+
+    # enable by flag, multiple required flags
+    preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"])
+    assert len(preset.modules) > 25
+    module_flags = list(get_module_flags(preset))
+    assert not "massdns" in [x[0] for x in module_flags]
+    assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
+    assert all("active" not in flags and "aggressive" not in flags for module, flags in module_flags)
+    assert not any("active" in flags for module, flags in module_flags)
+    assert not any("aggressive" in flags for module, flags in module_flags)
+
+    # enable by flag, multiple excluded flags
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["aggressive", "active"])
+    assert len(preset.modules) > 25
+    module_flags = list(get_module_flags(preset))
+    assert not "massdns" in [x[0] for x in module_flags]
+    assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
+    assert all("active" not in flags and "aggressive" not in flags for module, flags in module_flags)
+    assert not any("active" in flags for module, flags in module_flags)
+    assert not any("aggressive" in flags for module, flags in module_flags)
+
+    # enable by flag, multiple excluded modules
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns", "c99"])
+    assert len(preset.modules) > 25
+    module_flags = list(get_module_flags(preset))
+    assert not "massdns" in [x[0] for x in module_flags]
+    assert "certspotter" in [x[0] for x in module_flags]
+    assert not "c99" in [x[0] for x in module_flags]
+    assert any("passive" in flags for module, flags in module_flags)
+    assert any("active" in flags for module, flags in module_flags)
+    assert any("safe" in flags for module, flags in module_flags)
+    assert any("aggressive" in flags for module, flags in module_flags)
 
 
 # test custom module load directory

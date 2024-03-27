@@ -82,6 +82,29 @@ async def test_cli_args(monkeypatch, capsys):
     assert "| bool" in captured.out
     assert "| emit URLs in addition to DNS_NAMEs" in captured.out
     assert "| False" in captured.out
+    assert "| modules.massdns.wordlist" in captured.out
+    assert "| modules.robots.include_allow" in captured.out
+
+    # list module options by flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "--list-module-options"])
+    result = await cli._main()
+    assert result == None
+    captured = capsys.readouterr()
+    assert "| modules.wayback.urls" in captured.out
+    assert "| bool" in captured.out
+    assert "| emit URLs in addition to DNS_NAMEs" in captured.out
+    assert "| False" in captured.out
+    assert "| modules.massdns.wordlist" in captured.out
+    assert not "| modules.robots.include_allow" in captured.out
+
+    # list module options by module
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdns", "-lmo"])
+    result = await cli._main()
+    assert result == None
+    captured = capsys.readouterr()
+    assert not "| modules.wayback.urls" in captured.out
+    assert "| modules.massdns.wordlist" in captured.out
+    assert not "| modules.robots.include_allow" in captured.out
 
     # list flags
     monkeypatch.setattr("sys.argv", ["bbot", "--list-flags"])
@@ -90,6 +113,26 @@ async def test_cli_args(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "| safe" in captured.out
     assert "| Non-intrusive, safe to run" in captured.out
+    assert "| active" in captured.out
+    assert "| passive" in captured.out
+
+    # list only a single flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "--list-flags"])
+    result = await cli._main()
+    assert result == None
+    captured = capsys.readouterr()
+    assert not "| safe" in captured.out
+    assert "| active" in captured.out
+    assert not "| passive" in captured.out
+
+    # list multiple flags
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "safe", "--list-flags"])
+    result = await cli._main()
+    assert result == None
+    captured = capsys.readouterr()
+    assert "| safe" in captured.out
+    assert "| active" in captured.out
+    assert not "| passive" in captured.out
 
     # no args
     monkeypatch.setattr("sys.argv", ["bbot"])
@@ -98,10 +141,47 @@ async def test_cli_args(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "Target:\n  -t TARGET [TARGET ...]" in captured.out
 
-    # enable module by flag
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "report"])
+    # list modules
+    monkeypatch.setattr("sys.argv", ["bbot", "-l"])
     result = await cli._main()
-    assert result == True
+    assert result == None
+    captured = capsys.readouterr()
+    assert "| massdns" in captured.out
+    assert "| httpx" in captured.out
+    assert "| robots" in captured.out
+
+    # list modules by flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-l"])
+    result = await cli._main()
+    assert result == None
+    captured = capsys.readouterr()
+    assert "| massdns" in captured.out
+    assert "| httpx" in captured.out
+    assert not "| robots" in captured.out
+
+    # list modules by flag + required flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-rf", "passive", "-l"])
+    result = await cli._main()
+    assert result == None
+    captured = capsys.readouterr()
+    assert "| massdns" in captured.out
+    assert not "| httpx" in captured.out
+
+    # list modules by flag + excluded flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
+    result = await cli._main()
+    assert result == None
+    captured = capsys.readouterr()
+    assert "| massdns" in captured.out
+    assert not "| httpx" in captured.out
+
+    # list modules by flag + excluded module
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "massdns", "-l"])
+    result = await cli._main()
+    assert result == None
+    captured = capsys.readouterr()
+    assert not "| massdns" in captured.out
+    assert "| httpx" in captured.out
 
     # unconsoleable output module
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "web_report"])

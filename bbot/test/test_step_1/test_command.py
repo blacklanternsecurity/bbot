@@ -3,8 +3,8 @@ from subprocess import CalledProcessError
 
 
 @pytest.mark.asyncio
-async def test_command(bbot_scanner, bbot_config):
-    scan1 = bbot_scanner(config=bbot_config)
+async def test_command(bbot_scanner):
+    scan1 = bbot_scanner()
 
     # run
     assert "plumbus\n" == (await scan1.helpers.run(["echo", "plumbus"])).stdout

@@ -59,12 +59,7 @@ class BBOTLogger:
             for logger in self.loggers:
                 self.include_logger(logger)
 
-        if core.config.get("verbose", False):
-            self.log_level = logging.VERBOSE
-        elif core.config.get("debug", False):
-            self.log_level = logging.DEBUG
-        else:
-            self.log_level = logging.INFO
+        self.log_level = logging.INFO
 
     def addLoggingLevel(self, levelName, levelNum, methodName=None):
         """

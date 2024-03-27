@@ -8,7 +8,6 @@ import subprocess
 import tldextract
 import pytest_httpserver
 from pathlib import Path
-from omegaconf import OmegaConf
 
 from werkzeug.wrappers import Request
 
@@ -25,22 +24,18 @@ mkdir(bbot_test_dir)
 
 # bbot config
 
-test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
-CORE.merge_custom(test_config)
-
-if test_config.get("debug", False):
-    logging.getLogger("bbot").setLevel(logging.DEBUG)
-else:
-    # silence stdout + trace
-    root_logger = logging.getLogger()
-    for h in root_logger.handlers:
-        h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
-
 DEFAULT_PRESET = Preset()
 
 available_modules = list(DEFAULT_PRESET.module_loader.configs(type="scan"))
 available_output_modules = list(DEFAULT_PRESET.module_loader.configs(type="output"))
 available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="internal"))
+
+
+@pytest.fixture
+def clean_default_config(monkeypatch):
+    clean_config = CORE.files_config.get_default_config()
+    monkeypatch.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
+    yield
 
 
 class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
@@ -69,10 +64,10 @@ def bbot_scanner():
 
 
 @pytest.fixture
-def scan(monkeypatch, bbot_config):
+def scan(monkeypatch):
     from bbot.scanner import Scanner
 
-    bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
+    bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"])
 
     fallback_nameservers_file = bbot_scan.helpers.bbot_home / "fallback_nameservers.txt"
     with open(fallback_nameservers_file, "w") as f:
@@ -211,11 +206,6 @@ def events(scan):
         e.scope_distance = 0
 
     return bbot_events
-
-
-@pytest.fixture
-def bbot_config():
-    return test_config
 
 
 @pytest.fixture(autouse=True)

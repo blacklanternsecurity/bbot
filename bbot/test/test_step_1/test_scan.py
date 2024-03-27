@@ -4,7 +4,6 @@ from ..bbot_fixtures import *
 @pytest.mark.asyncio
 async def test_scan(
     events,
-    bbot_config,
     helpers,
     monkeypatch,
     bbot_scanner,
@@ -15,7 +14,6 @@ async def test_scan(
         "evilcorp.com",
         blacklist=["1.1.1.1/28", "www.evilcorp.com"],
         modules=["ipneighbor"],
-        config=bbot_config,
     )
     await scan0.load_modules()
     assert scan0.whitelisted("1.1.1.1")
@@ -38,7 +36,7 @@ async def test_scan(
     assert "1.1.1.0/28" in j["blacklist"]
     assert "ipneighbor" in j["modules"]
 
-    scan1 = bbot_scanner("1.1.1.1", whitelist=["1.0.0.1"], config=bbot_config)
+    scan1 = bbot_scanner("1.1.1.1", whitelist=["1.0.0.1"])
     assert not scan1.blacklisted("1.1.1.1")
     assert not scan1.blacklisted("1.0.0.1")
     assert not scan1.whitelisted("1.1.1.1")
@@ -46,7 +44,7 @@ async def test_scan(
     assert scan1.in_scope("1.0.0.1")
     assert not scan1.in_scope("1.1.1.1")
 
-    scan2 = bbot_scanner("1.1.1.1", config=bbot_config)
+    scan2 = bbot_scanner("1.1.1.1")
     assert not scan2.blacklisted("1.1.1.1")
     assert not scan2.blacklisted("1.0.0.1")
     assert scan2.whitelisted("1.1.1.1")
@@ -60,9 +58,7 @@ async def test_scan(
     }
 
     # make sure DNS resolution works
-    dns_config = OmegaConf.create({"dns_resolution": True})
-    dns_config = OmegaConf.merge(bbot_config, dns_config)
-    scan4 = bbot_scanner("1.1.1.1", config=dns_config)
+    scan4 = bbot_scanner("1.1.1.1", config={"dns_resolution": True})
     mock_dns(scan4, dns_table)
     events = []
     async for event in scan4.async_start():
@@ -71,9 +67,7 @@ async def test_scan(
     assert "one.one.one.one" in event_data
 
     # make sure it doesn't work when you turn it off
-    no_dns_config = OmegaConf.create({"dns_resolution": False})
-    no_dns_config = OmegaConf.merge(bbot_config, no_dns_config)
-    scan5 = bbot_scanner("1.1.1.1", config=no_dns_config)
+    scan5 = bbot_scanner("1.1.1.1", config={"dns_resolution": True})
     mock_dns(scan5, dns_table)
     events = []
     async for event in scan5.async_start():

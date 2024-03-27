@@ -6,7 +6,7 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
+async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     ### URL ###
     bad_urls = (
         "http://e.co/index.html",
@@ -452,7 +452,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     )
 
 
-def test_word_cloud(helpers, bbot_config, bbot_scanner):
+def test_word_cloud(helpers, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
     assert "base0_p013" in number_mutations
     assert "base7_p013" in number_mutations
@@ -468,7 +468,7 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert ("dev", "_base") in permutations
 
     # saving and loading
-    scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
+    scan1 = bbot_scanner("127.0.0.1")
     word_cloud = scan1.helpers.word_cloud
     word_cloud.add_word("lantern")
     word_cloud.add_word("black")

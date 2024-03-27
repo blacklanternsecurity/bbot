@@ -43,14 +43,6 @@ async def _main():
         # ensure arguments (-c config options etc.) are valid
         options = preset.args.parsed
 
-        modules_to_list = None
-        if options.modules or options.output_modules:
-            modules_to_list = set()
-            if options.modules:
-                modules_to_list.update(set(preset.scan_modules))
-            if options.output_modules:
-                modules_to_list.update(set(preset.output_modules))
-
         # print help if no arguments
         if len(sys.argv) == 1:
             preset.args.parser.print_help()
@@ -72,23 +64,37 @@ async def _main():
                 print(row)
             return
 
-        # --list-modules
-        if options.list_modules:
-            print("")
-            print("### MODULES ###")
-            print("")
-            for row in preset.module_loader.modules_table(modules_to_list).splitlines():
-                print(row)
-            return
+        if options.list_modules or options.list_module_options:
 
-        # --list-module-options
-        if options.list_module_options:
-            print("")
-            print("### MODULE OPTIONS ###")
-            print("")
-            for row in preset.module_loader.modules_options_table(modules=modules_to_list).splitlines():
-                print(row)
-            return
+            modules_to_list = set()
+            if options.modules or options.flags:
+                modules_to_list.update(set(preset.scan_modules))
+            if options.output_modules:
+                modules_to_list.update(set(preset.output_modules))
+
+            if not (options.modules or options.output_modules or options.flags):
+                for module, preloaded in preset.module_loader.preloaded().items():
+                    module_type = preloaded.get("type", "scan")
+                    preset.add_module(module, module_type=module_type)
+                    modules_to_list.update(set(preset.modules))
+
+            # --list-modules
+            if options.list_modules:
+                print("")
+                print("### MODULES ###")
+                print("")
+                for row in preset.module_loader.modules_table(modules_to_list).splitlines():
+                    print(row)
+                return
+
+            # --list-module-options
+            if options.list_module_options:
+                print("")
+                print("### MODULE OPTIONS ###")
+                print("")
+                for row in preset.module_loader.modules_options_table(modules_to_list).splitlines():
+                    print(row)
+                return
 
         # --list-flags
         if options.list_flags:
