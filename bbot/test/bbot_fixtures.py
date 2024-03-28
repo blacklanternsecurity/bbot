@@ -34,9 +34,12 @@ available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="int
 
 @pytest.fixture
 def clean_default_config(monkeypatch):
-    clean_config = CORE.files_config.get_default_config()
-    monkeypatch.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
-    yield
+    clean_config = OmegaConf.merge(
+        CORE.files_config.get_default_config(), {"modules": DEFAULT_PRESET.module_loader.configs()}
+    )
+    with monkeypatch.context() as m:
+        m.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
+        yield
 
 
 class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):

@@ -133,7 +133,7 @@ class Preset:
         if modules is None:
             modules = []
         if output_modules is None:
-            output_modules = ["python", "csv", "human", "json"]
+            output_modules = []
         if isinstance(modules, str):
             modules = [modules]
         if isinstance(output_modules, str):
@@ -228,6 +228,11 @@ class Preset:
         for internal_module in baked_preset.internal_modules:
             if baked_preset.config.get(internal_module, True) == False:
                 baked_preset.exclude_module(internal_module)
+
+        # ensure we have output modules
+        if not self.output_modules:
+            for output_module in ("python", "csv", "human", "json"):
+                self.add_module(output_module, module_type="output")
 
         # evaluate conditions
         if baked_preset.conditions:

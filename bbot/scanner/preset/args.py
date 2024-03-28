@@ -77,6 +77,7 @@ class BBOTArgs:
         # validate module choices
         self._module_choices = sorted(set(self.preset.module_loader.preloaded(type="scan")))
         self._output_module_choices = sorted(set(self.preset.module_loader.preloaded(type="output")))
+        self._all_module_choices = sorted(set(self.preset.module_loader.preloaded()))
         self._flag_choices = set()
         for m, c in self.preset.module_loader.preloaded().items():
             self._flag_choices.update(set(c.get("flags", [])))
@@ -335,10 +336,10 @@ class BBOTArgs:
         # validate modules
         for m in self.parsed.modules:
             if m not in self._module_choices:
-                raise BBOTArgumentError(get_closest_match(m, self._module_choices, msg="module"))
+                raise BBOTArgumentError(get_closest_match(m, self._module_choices, msg="scan module"))
         for m in self.parsed.exclude_modules:
-            if m not in self._module_choices:
-                raise BBOTArgumentError(get_closest_match(m, self._module_choices, msg="module"))
+            if m not in self._all_module_choices:
+                raise BBOTArgumentError(get_closest_match(m, self._all_module_choices, msg="module"))
         for m in self.parsed.output_modules:
             if m not in self._output_module_choices:
                 raise BBOTArgumentError(get_closest_match(m, self._output_module_choices, msg="output module"))

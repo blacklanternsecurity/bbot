@@ -226,7 +226,7 @@ def test_preset_logging():
 
 
 def test_preset_module_resolution(clean_default_config):
-    preset = Preset()
+    preset = Preset().bake()
     sslcert_preloaded = preset.preloaded_module("sslcert")
     wayback_preloaded = preset.preloaded_module("wayback")
     wappalyzer_preloaded = preset.preloaded_module("wappalyzer")
@@ -596,15 +596,28 @@ conditions:
         Scanner(preset=preset)
 
 
-def test_preset_internal_module_disablement():
-    preset = Preset(config={"speculate": True, "excavate": True, "aggregate": True}).bake()
+def test_preset_module_disablement(clean_default_config):
+    # internal module disablement
+    preset = Preset().bake()
     assert "speculate" in preset.internal_modules
     assert "excavate" in preset.internal_modules
     assert "aggregate" in preset.internal_modules
-    preset = Preset(config={"speculate": False, "excavate": True, "aggregate": True}).bake()
+    preset = Preset(config={"speculate": False}).bake()
     assert "speculate" not in preset.internal_modules
     assert "excavate" in preset.internal_modules
     assert "aggregate" in preset.internal_modules
+    preset = Preset(exclude_modules=["speculate", "excavate"]).bake()
+    assert "speculate" not in preset.internal_modules
+    assert "excavate" not in preset.internal_modules
+    assert "aggregate" in preset.internal_modules
+
+    # internal module disablement
+    preset = Preset().bake()
+    assert set(preset.output_modules) == {"python", "human", "csv", "json"}
+    preset = Preset(exclude_modules=["human", "csv"]).bake()
+    assert set(preset.output_modules) == {"python", "json"}
+    preset = Preset(output_modules=["json"]).bake()
+    assert set(preset.output_modules) == {"json"}
 
 
 def test_preset_require_exclude():

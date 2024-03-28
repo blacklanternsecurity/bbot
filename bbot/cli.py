@@ -45,23 +45,23 @@ async def _main():
 
         # print help if no arguments
         if len(sys.argv) == 1:
-            preset.args.parser.print_help()
+            log.stdout(preset.args.parser.format_help())
             sys.exit(1)
             return
 
         # --version
         if options.version:
-            print(__version__)
+            log.stdout(__version__)
             sys.exit(0)
             return
 
         # --list-presets
         if options.list_presets:
-            print("")
-            print("### PRESETS ###")
-            print("")
+            log.stdout("")
+            log.stdout("### PRESETS ###")
+            log.stdout("")
             for row in preset.presets_table().splitlines():
-                print(row)
+                log.stdout(row)
             return
 
         if options.list_modules or options.list_module_options:
@@ -80,30 +80,30 @@ async def _main():
 
             # --list-modules
             if options.list_modules:
-                print("")
-                print("### MODULES ###")
-                print("")
+                log.stdout("")
+                log.stdout("### MODULES ###")
+                log.stdout("")
                 for row in preset.module_loader.modules_table(modules_to_list).splitlines():
-                    print(row)
+                    log.stdout(row)
                 return
 
             # --list-module-options
             if options.list_module_options:
-                print("")
-                print("### MODULE OPTIONS ###")
-                print("")
+                log.stdout("")
+                log.stdout("### MODULE OPTIONS ###")
+                log.stdout("")
                 for row in preset.module_loader.modules_options_table(modules_to_list).splitlines():
-                    print(row)
+                    log.stdout(row)
                 return
 
         # --list-flags
         if options.list_flags:
             flags = preset.flags if preset.flags else None
-            print("")
-            print("### FLAGS ###")
-            print("")
+            log.stdout("")
+            log.stdout("### FLAGS ###")
+            log.stdout("")
             for row in preset.module_loader.flags_table(flags=flags).splitlines():
-                print(row)
+                log.stdout(row)
             return
 
         deadly_modules = [m for m in preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])]
