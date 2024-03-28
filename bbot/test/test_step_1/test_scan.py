@@ -67,7 +67,7 @@ async def test_scan(
     assert "one.one.one.one" in event_data
 
     # make sure it doesn't work when you turn it off
-    scan5 = bbot_scanner("1.1.1.1", config={"dns_resolution": True})
+    scan5 = bbot_scanner("1.1.1.1", config={"dns_resolution": False})
     mock_dns(scan5, dns_table)
     events = []
     async for event in scan5.async_start():
