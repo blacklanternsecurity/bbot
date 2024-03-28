@@ -23,7 +23,6 @@ log = logging.getLogger(f"bbot.test.fixtures")
 bbot_test_dir = Path("/tmp/.bbot_test")
 mkdir(bbot_test_dir)
 
-# bbot config
 
 DEFAULT_PRESET = Preset()
 

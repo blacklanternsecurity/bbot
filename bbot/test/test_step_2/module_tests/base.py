@@ -49,7 +49,7 @@ class ModuleTestBase:
     class ModuleTest:
         def __init__(self, module_test_base, httpx_mock, httpserver, httpserver_ssl, monkeypatch, request):
             self.name = module_test_base.name
-            self.config = OmegaConf.merge(test_config, OmegaConf.create(module_test_base.config_overrides))
+            self.config = OmegaConf.merge(CORE.config, OmegaConf.create(module_test_base.config_overrides))
 
             self.httpx_mock = httpx_mock
             self.httpserver = httpserver
