@@ -60,6 +60,19 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert len(caplog.text.splitlines()) == 1
     assert caplog.text.count(".") > 1
 
+    # output dir and scan name
+    output_dir = bbot_test_dir / "bbot_cli_args_output"
+    scan_name = "bbot_cli_args_scan_name"
+    scan_dir = output_dir / scan_name
+    assert not output_dir.exists()
+    monkeypatch.setattr("sys.argv", ["bbot", "-o", str(output_dir), "-n", scan_name, "-y"])
+    result = await cli._main()
+    assert result == True
+    assert output_dir.is_dir()
+    assert scan_dir.is_dir()
+    assert "[SCAN]" in open(scan_dir / "output.txt").read()
+    assert "[INFO]" in open(scan_dir / "scan.log").read()
+
     # output modules override
     caplog.clear()
     assert not caplog.text
@@ -349,7 +362,7 @@ def test_cli_module_validation(monkeypatch, caplog):
     assert 'Did you mean "subdomain-enum"?' in caplog.text
 
 
-def test_cli_presets(monkeypatch, capsys):
+def test_cli_presets(monkeypatch, capsys, caplog):
     import yaml
     from bbot import cli
 
@@ -431,3 +444,10 @@ config:
     captured = capsys.readouterr()
     stdout_preset = yaml.safe_load(captured.out)
     assert stdout_preset["config"]["http_proxy"] == "asdf"
+
+    # invalid preset
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-p", "asdfasdfasdf", "-y"])
+    cli.main()
+    assert "file does not exist. Use -lp to list available presets" in caplog.text

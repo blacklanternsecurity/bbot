@@ -3,6 +3,16 @@ from ..bbot_fixtures import *  # noqa F401
 from bbot.scanner import Scanner, Preset
 
 
+# FUTURE TODO:
+# Consider testing possible edge cases:
+#  make sure custom module load directory works with cli arg module/flag/config syntax validation
+#   what if you specify -c modules.custommodule.option?
+#    the validation needs to not happen until after your custom preset preset has been loaded
+#   what if you specify flags in one preset, but another preset (loaded later) has more custom modules that match that flag?
+#    how do we make sure those other modules get loaded too?
+#   what if you specify a flag that's only on custom modules? Will it be rejected as invalid?
+
+
 def test_preset_descriptions():
     # ensure very preset has a description
     preset = Preset()
@@ -706,14 +716,3 @@ def test_preset_require_exclude():
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
     assert any("aggressive" in flags for module, flags in module_flags)
-
-
-# test custom module load directory
-#  make sure it works with cli arg module/flag/config syntax validation
-# what if you specify -c modules.custommodule.option
-#  the validation needs to not happen until after all presets have been loaded
-# what if you specify flags in one preset
-#  but another preset (loaded later) has more custom modules that match that flag
-# what if you specify a flag that's only on custom modules? Will it be rejected as invalid?
-
-# cli test: nonexistent / invalid preset
