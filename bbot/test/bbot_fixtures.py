@@ -8,6 +8,7 @@ import subprocess
 import tldextract
 import pytest_httpserver
 from pathlib import Path
+from omegaconf import OmegaConf  # noqa
 
 from werkzeug.wrappers import Request
 
