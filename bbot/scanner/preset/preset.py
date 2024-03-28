@@ -23,23 +23,56 @@ DEFAULT_PRESETS = None
 
 
 class Preset:
+    """
+    A preset is the central, all-powerful config in BBOT. It contains everything a scan needs to start.
+    It can specify scan targets, modules, flags, config options like API keys, etc.
+
+    A preset can be loaded from or saved to YAML. BBOT has a number of ready-made presets for common tasks like
+    subdomain enumeration, web spidering, dirbusting, etc.
+
+    Attributes:
+        target (Target): Target(s) of scan.
+        whitelist (Target): Scan whitelist (by default this is the same as `target`).
+        blacklist (Target): Scan blacklist (this takes ultimate precedence).
+        strict_scope (bool): If True, subdomains of targets are not considered to be in-scope.
+        helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc.
+        output_dir (pathlib.Path): Output directory for scan.
+        scan_name (str): Name of scan. Defaults to random value, e.g. "demonic_jimmy".
+        name (str): Human-friendly name of preset. Used mainly for logging purposes.
+        description (str): Description of preset.
+        modules (set): Combined modules to enable for the scan. Includes scan modules, internal modules, and output modules.
+        scan_modules (set): Modules to enable for the scan.
+        output_modules (set): Output modules to enable for the scan. (note: if no output modules are specified, this is not populated until .bake())
+        internal_modules (set): Internal modules for the scan. (note: not populated until .bake())
+        exclude_modules (set): Modules to exclude from the scan. When set, automatically removes excluded modules.
+        flags (set): Flags to enable for the scan. When set, automatically enables modules.
+        require_flags (set): Require modules to have these flags. When set, automatically removes offending modules.
+        exclude_flags (set): Exclude modules that have any of these flags. When set, automatically removes offending modules.
+        module_dirs (set): Custom directories from which to load modules (alias to `self.module_loader.module_dirs`). When set, automatically preloads contained modules.
+        config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `core.config`)
+        core (BBOTCore): Local copy of BBOTCore object.
+        verbose (bool): Whether log level is currently set to verbose. When set, updates log level for all BBOT log handlers.
+        debug (bool): Whether log level is currently set to debug. When set, updates log level for all BBOT log handlers.
+        silent (bool): Whether logging is currently disabled. When set to True, silences all stderr.
+
+    Examples:
+        >>> helper = ConfigAwareHelper(config)
+        >>> ips = helper.dns.resolve("www.evilcorp.com")
+    """
 
     def __init__(
         self,
         *targets,
         whitelist=None,
         blacklist=None,
+        strict_scope=False,
         modules=None,
         output_modules=None,
         exclude_modules=None,
         flags=None,
         require_flags=None,
         exclude_flags=None,
-        verbose=False,
-        debug=False,
-        silent=False,
         config=None,
-        strict_scope=False,
         module_dirs=None,
         include=None,
         output_dir=None,
@@ -48,9 +81,41 @@ class Preset:
         description=None,
         conditions=None,
         force=False,
+        verbose=False,
+        debug=False,
+        silent=False,
         _exclude=None,
         _log=True,
     ):
+        """
+        Initializes the Preset class.
+
+        Args:
+            *targets (str): Target(s) to scan. Types supported: hostnames, IPs, CIDRs, emails, open ports.
+            whitelist (list, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.
+            blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
+            strict_scope (bool, optional): If True, subdomains of targets are not in-scope.
+            modules (list[str], optional): List of scan modules to enable for the scan. Defaults to empty list.
+            output_modules (list[str], optional): List of output modules to use. Defaults to csv, human, and json.
+            exclude_modules (list[str], optional): List of modules to exclude from the scan.
+            require_flags (list[str], optional): Only enable modules if they have these flags.
+            exclude_flags (list[str], optional): Don't enable modules if they have any of these flags.
+            module_dirs (list[str], optional): additional directories to load modules from.
+            config (dict, optional): Additional scan configuration settings.
+            include (list[str], optional): names or filenames of other presets to include.
+            output_dir (str or Path, optional): Directory to store scan output. Defaults to BBOT home directory (`~/.bbot`).
+            scan_name (str, optional): Human-readable name of the scan. If not specified, it will be random, e.g. "demonic_jimmy".
+            name (str, optional): Human-readable name of the preset. Used mainly for logging.
+            description (str, optional): Description of the preset.
+            conditions (list[str], optional): Custom conditions to be executed before scan start. Written in Jinja2.
+            force (bool, optional): If True, ignore conditional aborts and failed module setups. Just run the scan!
+            verbose (bool, optional): Set the BBOT logger to verbose mode.
+            debug (bool, optional): Set the BBOT logger to debug mode.
+            silent (bool, optional): Silence all stderr (effectively disables the BBOT logger).
+            _exclude (bool, optional): Preset filenames to exclude from inclusion. Used internally to prevent infinite recursion in circular or self-referencing presets.
+            _log (bool, optional): Whether to enable logging for the preset. This will record which modules/flags are enabled, etc.
+        """
+        # internal variables
         self._log = _log
         self.scan = None
         self._args = None
@@ -58,32 +123,40 @@ class Preset:
         self._helpers = None
         self._module_loader = None
         self._yaml_str = ""
-
         self._modules = set()
-
-        self.explicit_scan_modules = set() if modules is None else set(modules)
-        self.explicit_output_modules = set() if output_modules is None else set(output_modules)
-
         self._exclude_modules = set()
         self._require_flags = set()
         self._exclude_flags = set()
         self._flags = set()
-
-        self.force = force
-
         self._verbose = False
         self._debug = False
         self._silent = False
 
+        # these are used only for preserving the modules as specified in the original preset
+        # this is to ensure the preset looks the same when reserialized
+        self.explicit_scan_modules = set() if modules is None else set(modules)
+        self.explicit_output_modules = set() if output_modules is None else set(output_modules)
+
+        # whether to force-start the scan (ignoring conditional aborts and failed module setups)
+        self.force = force
+
+        # scan output directory
         self.output_dir = output_dir
+        # name of scan
         self.scan_name = scan_name
+
+        # name of preset, default blank
         self.name = name or ""
+        # preset description, default blank
         self.description = description or ""
+
+        # custom conditions, evaluated during .bake()
         self.conditions = []
         if conditions is not None:
             for condition in conditions:
                 self.conditions.append((self.name, condition))
 
+        # keeps track of loaded preset files to prevent infinite circular inclusions
         self._preset_files_loaded = set()
         if _exclude is not None:
             for _filename in _exclude:
@@ -93,10 +166,11 @@ class Preset:
         self.core = CORE.copy()
         if config is None:
             config = omegaconf.OmegaConf.create({})
-        # merge any custom configs
+        # merge custom configs if specified by the user
         self.core.merge_custom(config)
 
         # log verbosity
+        # setting these automatically sets the log level for all log handlers.
         if verbose:
             self.verbose = verbose
         if debug:
@@ -138,19 +212,24 @@ class Preset:
             modules = [modules]
         if isinstance(output_modules, str):
             output_modules = [output_modules]
+        # requirements/exclusions are always loaded first
         self.add_excluded_modules(exclude_modules if exclude_modules is not None else [])
         self.add_required_flags(require_flags if require_flags is not None else [])
         self.add_excluded_flags(exclude_flags if exclude_flags is not None else [])
+        # then the modules can be enabled
         self.add_scan_modules(modules if modules is not None else [])
         self.add_output_modules(output_modules)
 
         # add internal modules
+        # we enable all of them for now
+        # if disabled via the config, they are removed during .bake()
         for internal_module, preloaded in self.module_loader.preloaded(type="internal").items():
             is_enabled = self.config.get(internal_module, True)
             is_excluded = internal_module in self.exclude_modules
             if is_enabled and not is_excluded:
                 self.add_module(internal_module, module_type="internal")
 
+        # adding flags automatically enables populates `self.modules`
         self.add_flags(flags if flags is not None else [])
 
     @property

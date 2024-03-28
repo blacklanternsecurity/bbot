@@ -32,7 +32,7 @@ bbot -t evilcorp.com -p subdomain-enum
 ```
 
 <details>
-<summary><b>SEE ALSO: Comparison to Other Tools</b></summary>
+<summary><b>SEE: Comparison to Other Subdomain Enumeration Tools</b></summary>
 
 BBOT consistently finds 20-50% more subdomains than other tools. The bigger the domain, the bigger the difference. To learn how this is possible, see [How It Works](https://www.blacklanternsecurity.com/bbot/how_it_works/).
 
@@ -60,6 +60,9 @@ bbot -t evilcorp.com -p email-enum
 ```bash
 # run a light web scan against www.evilcorp.com
 bbot -t www.evilcorp.com -p web-basic
+
+# run a heavy web scan against www.evilcorp.com
+bbot -t www.evilcorp.com -p web-thorough
 ```
 
 ## 5) ...And Much More

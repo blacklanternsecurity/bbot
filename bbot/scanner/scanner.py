@@ -67,16 +67,18 @@ class Scanner:
             - "FINISHED" (8): Status when the scan has successfully completed.
             ```
         _status_code (int): The numerical representation of the current scan status, stored for internal use. It is mapped according to the values in `_status_codes`.
-        target (Target): Target of scan
-        config (omegaconf.dictconfig.DictConfig): BBOT config
-        whitelist (Target): Scan whitelist (by default this is the same as `target`)
-        blacklist (Target): Scan blacklist (this takes ultimate precedence)
-        helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc.
-        manager (ScanManager): Coordinates and monitors the flow of events between modules during a scan
-        dispatcher (Dispatcher): Triggers certain events when the scan `status` changes
-        modules (dict): Holds all loaded modules in this format: `{"module_name": Module()}`
-        stats (ScanStats): Holds high-level scan statistics such as how many events have been produced and consumed by each module
-        home (pathlib.Path): Base output directory of the scan (default: `~/.bbot/scans/<scan_name>`)
+        target (Target): Target of scan (alias to `self.preset.target`).
+        config (omegaconf.dictconfig.DictConfig): BBOT config (alias to `self.preset.config`).
+        whitelist (Target): Scan whitelist (by default this is the same as `target`) (alias to `self.preset.whitelist`).
+        blacklist (Target): Scan blacklist (this takes ultimate precedence) (alias to `self.preset.blacklist`).
+        helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc. (alias to `self.preset.helpers`).
+        output_dir (pathlib.Path): Output directory for scan (alias to `self.preset.output_dir`).
+        name (str): Name of scan (alias to `self.preset.scan_name`).
+        manager (ScanManager): Coordinates and monitors the flow of events between modules during a scan.
+        dispatcher (Dispatcher): Triggers certain events when the scan `status` changes.
+        modules (dict): Holds all loaded modules in this format: `{"module_name": Module()}`.
+        stats (ScanStats): Holds high-level scan statistics such as how many events have been produced and consumed by each module.
+        home (pathlib.Path): Base output directory of the scan (default: `~/.bbot/scans/<scan_name>`).
         running (bool): Whether the scan is currently running.
         stopping (bool): Whether the scan is currently stopping.
         stopped (bool): Whether the scan is currently stopped.
@@ -102,38 +104,33 @@ class Scanner:
 
     def __init__(
         self,
-        *args,
+        *targets,
         scan_id=None,
         dispatcher=None,
-        force_start=False,
-        **preset_kwargs,
+        **kwargs,
     ):
         """
         Initializes the Scanner class.
 
+        If a premade `preset` is specified, it will be used for the scan.
+        Otherwise, `Scan` accepts the same arguments as `Preset`, which are passed through and used to create a new preset.
+
         Args:
-            *targets (str): Target(s) to scan.
-            whitelist (list, optional): Whitelisted target(s) to scan. Defaults to the same as `targets`.
-            blacklist (list, optional): Blacklisted target(s). Takes ultimate precedence. Defaults to empty.
+            *targets (list[str], optional): Scan targets (passed through to `Preset`).
+            preset (Preset, optional): Preset to use for the scan.
             scan_id (str, optional): Unique identifier for the scan. Auto-generates if None.
-            name (str, optional): Human-readable name of the scan. Auto-generates if None.
-            modules (list[str], optional): List of module names to use during the scan. Defaults to empty list.
-            output_modules (list[str], optional): List of output modules to use. Defaults to ['python'].
-            output_dir (str or Path, optional): Directory to store scan output. Defaults to BBOT home directory (`~/.bbot`).
-            config (dict, optional): Configuration settings. Merged with BBOT config.
             dispatcher (Dispatcher, optional): Dispatcher object to use. Defaults to new Dispatcher.
-            strict_scope (bool, optional): If True, only targets explicitly in whitelist are scanned. Defaults to False.
-            force_start (bool, optional): If True, allows the scan to start even when module setups hard-fail. Defaults to False.
+            *kwargs (list[str], optional): Additional keyword arguments (passed through to `Preset`).
         """
         if scan_id is not None:
             self.id = str(id)
         else:
             self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
 
-        preset = preset_kwargs.pop("preset", None)
-        preset_kwargs["_log"] = True
+        preset = kwargs.pop("preset", None)
+        kwargs["_log"] = True
         if preset is None:
-            preset = Preset(*args, **preset_kwargs)
+            preset = Preset(*targets, **kwargs)
         self.preset = preset.bake()
         self.preset.scan = self
 
@@ -162,7 +159,6 @@ class Scanner:
         else:
             self.home = self.preset.bbot_home / "scans" / self.name
 
-        self.force_start = force_start
         self._status = "NOT_STARTED"
         self._status_code = 0
 
@@ -435,7 +431,7 @@ class Scanner:
         4. Load output modules and updates the `modules` dictionary.
         5. Sorts modules based on their `_priority` attribute.
 
-        If any modules fail to load or their dependencies fail to install, a ScanError will be raised (unless `self.force_start` is set to True).
+        If any modules fail to load or their dependencies fail to install, a ScanError will be raised (unless `self.force` is True).
 
         Attributes:
             succeeded, failed (tuple): A tuple containing lists of modules that succeeded or failed during the dependency installation.
@@ -443,7 +439,7 @@ class Scanner:
             failed, failed_internal, failed_output (list): Lists of module names that failed to load.
 
         Raises:
-            ScanError: If any module dependencies fail to install or modules fail to load, and if self.force_start is False.
+            ScanError: If any module dependencies fail to install or modules fail to load, and if `self.force` is False.
 
         Returns:
             None
@@ -676,6 +672,10 @@ class Scanner:
     @property
     def helpers(self):
         return self.preset.helpers
+
+    @property
+    def force(self):
+        return self.preset.force
 
     @property
     def word_cloud(self):
@@ -941,9 +941,9 @@ class Scanner:
 
     def _fail_setup(self, msg):
         msg = str(msg)
-        if not self.force_start:
+        if not self.force:
             msg += " (--force to run module anyway)"
-        if self.force_start:
+        if self.force:
             self.error(msg)
         else:
             raise ScanError(msg)
