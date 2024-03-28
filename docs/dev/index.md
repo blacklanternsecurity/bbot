@@ -1,88 +1,86 @@
 # BBOT Developer Reference
 
-BBOT exposes a convenient API that allows you to create, start, and stop scans using Python code.
+BBOT exposes a Python API that allows you to create, start, and stop scans.
 
 Documented in this section are commonly-used classes and functions within BBOT, along with usage examples.
 
-## Discord Bot Example
+## Running a BBOT Scan from Python
 
-![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9)
-
-Below is a simple Discord bot designed to run BBOT scans.
-
+#### Synchronous
 ```python
-import asyncio
-import discord
-from discord.ext import commands
-
 from bbot.scanner import Scanner
-from bbot.modules import MODULE_LOADER
-from bbot.modules.output.discord import Discord
 
-
-class BBOTDiscordBot(commands.Cog):
-    """
-    A simple Discord bot capable of running a BBOT scan.
-
-    To set up:
-        1. Go to Discord Developer Portal (https://discord.com/developers)
-        2. Create a new application
-        3. Create an invite link for the bot, visit the link to invite it to your server
-            - Your Application --> OAuth2 --> URL Generator
-                - For Scopes, select "bot""
-                - For Bot Permissions, select:
-                    - Read Messages/View Channels
-                    - Send Messages
-        4. Turn on "Message Content Intent"
-            - Your Application --> Bot --> Privileged Gateway Intents --> Message Content Intent
-        5. Copy your Discord Bot Token and put it at the top this file
-            - Your Application --> Bot --> Reset Token
-        6. Run this script
-
-    To scan evilcorp.com, you would type:
-
-        /scan evilcorp.com
-
-    Results will be output to the same channel.
-    """
-    def __init__(self):
-        self.current_scan = None
-
-    @commands.command(name="scan", description="Scan a target with BBOT.")
-    async def scan(self, ctx, target: str):
-        if self.current_scan is not None:
-            self.current_scan.stop()
-        await ctx.send(f"Starting scan against {target}.")
-
-        # creates scan instance
-        self.current_scan = Scanner(target, flags="subdomain-enum")
-        discord_module = Discord(self.current_scan)
-
-        seen = set()
-        num_events = 0
-        # start scan and iterate through results
-        async for event in self.current_scan.async_start():
-            if hash(event) in seen:
-                continue
-            seen.add(hash(event))
-            await ctx.send(discord_module.format_message(event))
-            num_events += 1
-
-        await ctx.send(f"Finished scan against {target}. {num_events:,} results.")
-        self.current_scan = None
-
-
-if __name__ == "__main__":
-    intents = discord.Intents.default()
-    intents.message_content = True
-    bot = commands.Bot(command_prefix="/", intents=intents)
-
-    @bot.event
-    async def on_ready():
-        print(f"We have logged in as {bot.user}")
-        await bot.add_cog(BBOTDiscordBot())
-
-    bot.run("DISCORD_BOT_TOKEN_HERE")
+scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
+for event in scan.start():
+    print(event)
 ```
 
-[Next Up: Scanner -->](scanner.md){ .md-button .md-button--primary }
+#### Asynchronous
+```python
+from bbot.scanner import Scanner
+
+async def main():
+    scan = Scanner("evilcorp.com", presets=["subdomain-enum"])
+    async for event in scan.async_start():
+        print(event.json())
+
+import asyncio
+asyncio.run(main())
+```
+
+For a full listing of `Scanner` attributes and functions, see the [`Scanner` Code Reference](./scanner.md).
+
+#### Multiple Targets
+
+You can specify any number of targets:
+
+```python
+# create a scan against multiple targets
+scan = Scanner(
+    "evilcorp.com",
+    "evilcorp.org",
+    "evilcorp.ce",
+    "4.3.2.1",
+    "1.2.3.4/24",
+    presets=["subdomain-enum"]
+)
+
+# this is the same as:
+targets = ["evilcorp.com", "evilcorp.org", "evilcorp.ce", "4.3.2.1", "1.2.3.4/24"]
+scan = Scanner(*targets, presets=["subdomain-enum"])
+```
+
+For more details, including which types of targets are valid, see [Targets](../scanning/index.md#targets)
+
+#### Other Custom Options
+
+In many cases, using a [Preset](../scanning/presets.md) like `subdomain-enum` is sufficient. However, the `Scanner` is flexible and accepts many other arguments that can override the default functionality. You can specify [`flags`](../index.md#flags), [`modules`](../index.md#modules), [`output_modules`](../output.md), a [`whitelist` or `blacklist`](../scanning/index.md#whitelists-and-blacklists), and custom [`config` options](../scanning/configuration.md):
+
+```python
+# create a scan against multiple targets
+scan = Scanner(
+    # targets
+    "evilcorp.com",
+    "4.3.2.1",
+    # enable these presets
+    presets=["subdomain-enum"],
+    # whitelist these hosts
+    whitelist=["evilcorp.com", "evilcorp.org"],
+    # blacklist these hosts
+    blacklist=["prod.evilcorp.com"],
+    # also enable these individual modules
+    modules=["nuclei", "ipstack"],
+    # exclude modules with these flags
+    exclude_flags=["slow"],
+    # custom config options
+    config={
+        "modules": {
+            "nuclei": {
+                "tags": "apache,nginx"
+            }
+        }
+    }
+)
+```
+
+For a list of all the possible scan options, see the [`Presets` Code Reference](./presets.md)
