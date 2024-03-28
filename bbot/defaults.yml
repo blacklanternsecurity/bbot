@@ -33,6 +33,8 @@ web_spider_links_per_page: 25
 
 ### ADVANCED OPTIONS ###
 
+module_paths: []
+
 # How far out from the main scope to search
 scope_search_distance: 0
 # How far out from the main scope to resolve DNS names / IPs
@@ -46,6 +48,14 @@ speculate: True
 excavate: True
 # Summarize activity at the end of a scan
 aggregate: True
+
+# How to handle installation of module dependencies
+# Choices are:
+#  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
+#  - retry_failed - try again to install failed dependencies
+#  - ignore_failed - run the scan regardless of what happens with dependency installation
+#  - disable - completely disable BBOT's dependency system (you are responsible for install tools, pip packages, etc.)
+deps_behavior: abort_on_failure
 
 # HTTP timeout (for Python requests; API calls, etc.)
 http_timeout: 10
@@ -124,10 +134,6 @@ omit_event_types:
     - URL_UNVERIFIED
     - DNS_NAME_UNRESOLVED
     # - IP_ADDRESS
-# URL of BBOT server
-agent_url: ''
-# Agent Bearer authentication token
-agent_token: ''
 
 # Custom interactsh server settings
 interactsh_server: null

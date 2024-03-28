@@ -9,7 +9,7 @@ from bbot.modules.internal.base import BaseInternalModule
 
 
 @pytest.mark.asyncio
-async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock):
+async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
     fallback_nameservers = scan.helpers.temp_dir / "nameservers.txt"
     with open(fallback_nameservers, "w") as f:
         f.write("8.8.8.8\n")
@@ -82,7 +82,6 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     scan2 = bbot_scanner(
         modules=list(set(available_modules + available_internal_modules)),
         output_modules=list(available_output_modules),
-        config=bbot_config,
         force_start=True,
     )
     scan2.helpers.dns.fallback_nameservers_file = fallback_nameservers
@@ -104,7 +103,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     assert not any(not_async)
 
     # module preloading
-    all_preloaded = module_loader.preloaded()
+    all_preloaded = DEFAULT_PRESET.module_loader.preloaded()
     assert "massdns" in all_preloaded
     assert "DNS_NAME" in all_preloaded["massdns"]["watched_events"]
     assert "DNS_NAME" in all_preloaded["massdns"]["produced_events"]
@@ -129,6 +128,9 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
             assert ("safe" in flags and not "aggressive" in flags) or (
                 not "safe" in flags and "aggressive" in flags
             ), f'module "{module_name}" must have either "safe" or "aggressive" flag'
+            assert not (
+                "web-basic" in flags and "web-thorough" in flags
+            ), f'module "{module_name}" should have either "web-basic" or "web-thorough" flags, not both'
             assert preloaded.get("meta", {}).get("description", ""), f"{module_name} must have a description"
 
         # attribute checks
@@ -174,7 +176,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_perhostonly(helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_perhostonly(helpers, events, bbot_scanner, httpx_mock, monkeypatch):
     from bbot.modules.base import BaseModule
 
     class mod_normal(BaseModule):
@@ -198,7 +200,6 @@ async def test_modules_basic_perhostonly(helpers, events, bbot_config, bbot_scan
 
     scan = bbot_scanner(
         "evilcorp.com",
-        config=bbot_config,
         force_start=True,
     )
 
@@ -262,11 +263,10 @@ async def test_modules_basic_perhostonly(helpers, events, bbot_config, bbot_scan
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, httpx_mock, monkeypatch):
     per_domain_scan = bbot_scanner(
         "evilcorp.com",
         modules=list(set(available_modules + available_internal_modules)),
-        config=bbot_config,
         force_start=True,
     )
 
@@ -303,7 +303,7 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, b
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch, mock_dns):
+async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, monkeypatch, mock_dns):
     from bbot.modules.base import BaseModule
 
     class dummy(BaseModule):
@@ -320,8 +320,8 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
 
     scan = bbot_scanner(
         "evilcorp.com",
-        modules=["speculate"],
-        config=bbot_config,
+        config={"speculate": True},
+        output_modules=["python"],
         force_start=True,
     )
     mock_dns(

@@ -21,6 +21,8 @@ class BaseModule:
 
         flags (List): Flags indicating the type of module (must have at least "safe" or "aggressive" and "passive" or "active").
 
+        deps_modules (List): Other BBOT modules this module depends on. Empty list by default.
+
         deps_pip (List): Python dependencies to install via pip. Empty list by default.
 
         deps_apt (List): APT package dependencies to install. Empty list by default.
@@ -83,6 +85,7 @@ class BaseModule:
     options = {}
     options_desc = {}
 
+    deps_modules = []
     deps_pip = []
     deps_apt = []
     deps_shell = []
@@ -558,7 +561,7 @@ class BaseModule:
                 msg = status_codes[status]
             self.debug(f"Finished setting up module {self.name}")
         except Exception as e:
-            self.set_error_state()
+            self.set_error_state(f"Unexpected error during module setup: {e}", critical=True)
             msg = f"{e}"
             self.trace()
         return self.name, status, str(msg)
@@ -840,7 +843,7 @@ class BaseModule:
         except AttributeError:
             self.debug(f"Not in an acceptable state to queue outgoing event")
 
-    def set_error_state(self, message=None, clear_outgoing_queue=False):
+    def set_error_state(self, message=None, clear_outgoing_queue=False, critical=False):
         """
         Puts the module into an errored state where it cannot accept new events. Optionally logs a warning message.
 
@@ -865,7 +868,11 @@ class BaseModule:
             log_msg = "Setting error state"
             if message is not None:
                 log_msg += f": {message}"
-            self.warning(log_msg)
+            if critical:
+                log_fn = self.error
+            else:
+                log_fn = self.warning
+            log_fn(log_msg)
             self.errored = True
             # clear incoming queue
             if self.incoming_event_queue is not False:
@@ -1067,6 +1074,10 @@ class BaseModule:
         if self._request_failures >= self.failed_request_abort_threshold:
             self.set_error_state(f"Setting error state due to {self._request_failures:,} failed HTTP requests")
         return r
+
+    @property
+    def preset(self):
+        return self.scan.preset
 
     @property
     def config(self):

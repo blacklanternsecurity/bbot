@@ -4,7 +4,7 @@ from bbot.modules.templates.github import github
 class github_org(github):
     watched_events = ["ORG_STUB", "SOCIAL"]
     produced_events = ["CODE_REPOSITORY"]
-    flags = ["passive", "subdomain-enum", "safe"]
+    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
     meta = {"description": "Query Github's API for organization and member repositories"}
     options = {"api_key": "", "include_members": True, "include_member_repos": False}
     options_desc = {

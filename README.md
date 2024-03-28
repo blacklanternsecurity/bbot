@@ -73,42 +73,42 @@ Scan output, logs, etc. are saved to `~/.bbot`. For more detailed examples and e
 
 ```bash
 # Perform a full subdomain enumeration on evilcorp.com
-bbot -t evilcorp.com -f subdomain-enum
+bbot -t evilcorp.com -p subdomain-enum
 ```
 
 **Subdomains (passive only):**
 
 ```bash
 # Perform a passive-only subdomain enumeration on evilcorp.com
-bbot -t evilcorp.com -f subdomain-enum -rf passive
+bbot -t evilcorp.com -p subdomain-enum -rf passive
 ```
 
 **Subdomains + port scan + web screenshots:**
 
 ```bash
 # Port-scan every subdomain, screenshot every webpage, output to current directory
-bbot -t evilcorp.com -f subdomain-enum -m nmap gowitness -n my_scan -o .
+bbot -t evilcorp.com -p subdomain-enum -m nmap gowitness -n my_scan -o .
 ```
 
 **Subdomains + basic web scan:**
 
 ```bash
 # A basic web scan includes wappalyzer, robots.txt, and other non-intrusive web modules
-bbot -t evilcorp.com -f subdomain-enum web-basic
+bbot -t evilcorp.com -p subdomain-enum web-basic
 ```
 
 **Web spider:**
 
 ```bash
 # Crawl www.evilcorp.com up to a max depth of 2, automatically extracting emails, secrets, etc.
-bbot -t www.evilcorp.com -m httpx robots badsecrets secretsdb -c web_spider_distance=2 web_spider_depth=2
+bbot -t www.evilcorp.com -p spider -c web_spider_distance=2 web_spider_depth=2
 ```
 
 **Everything everywhere all at once:**
 
 ```bash
 # Subdomains, emails, cloud buckets, port scan, basic web, web screenshots, nuclei
-bbot -t evilcorp.com -f subdomain-enum email-enum cloud-enum web-basic -m nmap gowitness nuclei --allow-deadly
+bbot -t evilcorp.com -p kitchen-sink
 ```
 <!-- END BBOT EXAMPLE COMMANDS -->
 
@@ -198,6 +198,9 @@ asyncio.run(main())
         - [Comparison to Other Tools](https://www.blacklanternsecurity.com/bbot/comparison)
     - **Scanning**
         - [Scanning Overview](https://www.blacklanternsecurity.com/bbot/scanning/)
+        - **Presets**
+            - [Overview](https://www.blacklanternsecurity.com/bbot/scanning/presets)
+            - [List of Presets](https://www.blacklanternsecurity.com/bbot/scanning/presets_list)
         - [Events](https://www.blacklanternsecurity.com/bbot/scanning/events)
         - [Output](https://www.blacklanternsecurity.com/bbot/scanning/output)
         - [Tips and Tricks](https://www.blacklanternsecurity.com/bbot/scanning/tips_and_tricks)
@@ -293,21 +296,21 @@ For a full list of modules, including the data types consumed and emitted by eac
 BBOT can save its data to TXT, CSV, JSON, and tons of other destinations including [Neo4j](https://www.blacklanternsecurity.com/bbot/scanning/output/#neo4j), [Splunk](https://www.blacklanternsecurity.com/bbot/scanning/output/#splunk), and [Discord](https://www.blacklanternsecurity.com/bbot/scanning/output/#discord-slack-teams). For instructions on how to use these, see [Output Modules](https://www.blacklanternsecurity.com/bbot/scanning/output). 
 
 <!-- BBOT OUTPUT MODULES -->
-| Module          | Type   | Needs API Key   | Description                                                                             | Flags          | Consumed Events                                                                                  | Produced Events           |
-|-----------------|--------|-----------------|-----------------------------------------------------------------------------------------|----------------|--------------------------------------------------------------------------------------------------|---------------------------|
-| asset_inventory | output | No              | Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV |                | DNS_NAME, FINDING, HTTP_RESPONSE, IP_ADDRESS, OPEN_TCP_PORT, TECHNOLOGY, URL, VULNERABILITY, WAF | IP_ADDRESS, OPEN_TCP_PORT |
-| csv             | output | No              | Output to CSV                                                                           |                | *                                                                                                |                           |
-| discord         | output | No              | Message a Discord channel when certain events are encountered                           |                | *                                                                                                |                           |
-| emails          | output | No              | Output any email addresses found belonging to the target domain                         | email-enum     | EMAIL_ADDRESS                                                                                    |                           |
-| http            | output | No              | Send every event to a custom URL via a web request                                      |                | *                                                                                                |                           |
-| human           | output | No              | Output to text                                                                          |                | *                                                                                                |                           |
-| json            | output | No              | Output to Newline-Delimited JSON (NDJSON)                                               |                | *                                                                                                |                           |
-| neo4j           | output | No              | Output to Neo4j                                                                         |                | *                                                                                                |                           |
-| python          | output | No              | Output via Python API                                                                   |                | *                                                                                                |                           |
-| slack           | output | No              | Message a Slack channel when certain events are encountered                             |                | *                                                                                                |                           |
-| splunk          | output | No              | Send every event to a splunk instance through HTTP Event Collector                      |                | *                                                                                                |                           |
-| subdomains      | output | No              | Output only resolved, in-scope subdomains                                               | subdomain-enum | DNS_NAME, DNS_NAME_UNRESOLVED                                                                    |                           |
-| teams           | output | No              | Message a Teams channel when certain events are encountered                             |                | *                                                                                                |                           |
-| web_report      | output | No              | Create a markdown report with web assets                                                |                | FINDING, TECHNOLOGY, URL, VHOST, VULNERABILITY                                                   |                           |
-| websocket       | output | No              | Output to websockets                                                                    |                | *                                                                                                |                           |
+| Module          | Type   | Needs API Key   | Description                                                                             | Flags   | Consumed Events                                                                                  | Produced Events           |
+|-----------------|--------|-----------------|-----------------------------------------------------------------------------------------|---------|--------------------------------------------------------------------------------------------------|---------------------------|
+| asset_inventory | output | No              | Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV |         | DNS_NAME, FINDING, HTTP_RESPONSE, IP_ADDRESS, OPEN_TCP_PORT, TECHNOLOGY, URL, VULNERABILITY, WAF | IP_ADDRESS, OPEN_TCP_PORT |
+| csv             | output | No              | Output to CSV                                                                           |         | *                                                                                                |                           |
+| discord         | output | No              | Message a Discord channel when certain events are encountered                           |         | *                                                                                                |                           |
+| emails          | output | No              | Output any email addresses found belonging to the target domain                         |         | EMAIL_ADDRESS                                                                                    |                           |
+| http            | output | No              | Send every event to a custom URL via a web request                                      |         | *                                                                                                |                           |
+| human           | output | No              | Output to text                                                                          |         | *                                                                                                |                           |
+| json            | output | No              | Output to Newline-Delimited JSON (NDJSON)                                               |         | *                                                                                                |                           |
+| neo4j           | output | No              | Output to Neo4j                                                                         |         | *                                                                                                |                           |
+| python          | output | No              | Output via Python API                                                                   |         | *                                                                                                |                           |
+| slack           | output | No              | Message a Slack channel when certain events are encountered                             |         | *                                                                                                |                           |
+| splunk          | output | No              | Send every event to a splunk instance through HTTP Event Collector                      |         | *                                                                                                |                           |
+| subdomains      | output | No              | Output only resolved, in-scope subdomains                                               |         | DNS_NAME, DNS_NAME_UNRESOLVED                                                                    |                           |
+| teams           | output | No              | Message a Teams channel when certain events are encountered                             |         | *                                                                                                |                           |
+| web_report      | output | No              | Create a markdown report with web assets                                                |         | FINDING, TECHNOLOGY, URL, VHOST, VULNERABILITY                                                   |                           |
+| websocket       | output | No              | Output to websockets                                                                    |         | *                                                                                                |                           |
 <!-- END BBOT OUTPUT MODULES -->

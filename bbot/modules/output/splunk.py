@@ -1,4 +1,4 @@
-from bbot.core.errors import RequestError
+from httpx import RequestError
 
 from bbot.modules.output.base import BaseOutputModule
 

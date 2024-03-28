@@ -4,7 +4,7 @@ from .base import ModuleTestBase
 class TestAsset_Inventory(ModuleTestBase):
     targets = ["127.0.0.1", "bbottest.notreal"]
     scan_name = "asset_inventory_test"
-    config_overrides = {"dns_resolution": True, "internal_modules": {"nmap": {"ports": "9999"}}}
+    config_overrides = {"dns_resolution": True, "modules": {"nmap": {"ports": "9999"}}}
     modules_overrides = ["asset_inventory", "nmap", "sslcert"]
 
     async def setup_before_prep(self, module_test):
@@ -32,7 +32,7 @@ class TestAsset_Inventory(ModuleTestBase):
 
 
 class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
-    config_overrides = {"dns_resolution": True, "output_modules": {"asset_inventory": {"use_previous": True}}}
+    config_overrides = {"dns_resolution": True, "modules": {"asset_inventory": {"use_previous": True}}}
     modules_overrides = ["asset_inventory"]
 
     def check(self, module_test, events):
@@ -54,7 +54,7 @@ class TestAsset_InventoryEmitPrevious(TestAsset_Inventory):
 class TestAsset_InventoryRecheck(TestAsset_Inventory):
     config_overrides = {
         "dns_resolution": True,
-        "output_modules": {"asset_inventory": {"use_previous": True, "recheck": True}},
+        "modules": {"asset_inventory": {"use_previous": True, "recheck": True}},
     }
     modules_overrides = ["asset_inventory"]
 

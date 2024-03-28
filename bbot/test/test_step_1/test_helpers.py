@@ -6,7 +6,7 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_httpserver):
+async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     ### URL ###
     bad_urls = (
         "http://e.co/index.html",
@@ -254,73 +254,6 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
         "https://www.evilcorp.com/fdsa",
     }
 
-    filtered_dict = helpers.filter_dict(
-        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
-    )
-    assert "api_key" in filtered_dict["modules"]["c99"]
-    assert "filterme" not in filtered_dict["modules"]["c99"]
-    assert "ipneighbor" not in filtered_dict["modules"]
-
-    filtered_dict2 = helpers.filter_dict(
-        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
-    )
-    assert "api_key" in filtered_dict2["modules"]["c99"]
-    assert "filterme" in filtered_dict2["modules"]["c99"]
-    assert "ipneighbor" not in filtered_dict2["modules"]
-
-    filtered_dict3 = helpers.filter_dict(
-        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
-        "key",
-        fuzzy=True,
-    )
-    assert "api_key" in filtered_dict3["modules"]["c99"]
-    assert "filterme" not in filtered_dict3["modules"]["c99"]
-    assert "ipneighbor" not in filtered_dict3["modules"]
-
-    filtered_dict4 = helpers.filter_dict(
-        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
-        "secret",
-        fuzzy=True,
-        exclude_keys="modules",
-    )
-    assert not "secrets_db" in filtered_dict4["modules"]
-    assert "ipneighbor" in filtered_dict4["modules"]
-    assert "secret" in filtered_dict4["modules"]["ipneighbor"]
-    assert "asdf" not in filtered_dict4["modules"]["ipneighbor"]
-
-    cleaned_dict = helpers.clean_dict(
-        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "api_key"
-    )
-    assert "api_key" not in cleaned_dict["modules"]["c99"]
-    assert "filterme" in cleaned_dict["modules"]["c99"]
-    assert "ipneighbor" in cleaned_dict["modules"]
-
-    cleaned_dict2 = helpers.clean_dict(
-        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}}, "c99"
-    )
-    assert "c99" not in cleaned_dict2["modules"]
-    assert "ipneighbor" in cleaned_dict2["modules"]
-
-    cleaned_dict3 = helpers.clean_dict(
-        {"modules": {"c99": {"api_key": "1234", "filterme": "asdf"}, "ipneighbor": {"test": "test"}}},
-        "key",
-        fuzzy=True,
-    )
-    assert "api_key" not in cleaned_dict3["modules"]["c99"]
-    assert "filterme" in cleaned_dict3["modules"]["c99"]
-    assert "ipneighbor" in cleaned_dict3["modules"]
-
-    cleaned_dict4 = helpers.clean_dict(
-        {"modules": {"secrets_db": {"api_key": "1234"}, "ipneighbor": {"secret": "test", "asdf": "1234"}}},
-        "secret",
-        fuzzy=True,
-        exclude_keys="modules",
-    )
-    assert "secrets_db" in cleaned_dict4["modules"]
-    assert "ipneighbor" in cleaned_dict4["modules"]
-    assert "secret" not in cleaned_dict4["modules"]["ipneighbor"]
-    assert "asdf" in cleaned_dict4["modules"]["ipneighbor"]
-
     replaced = helpers.search_format_dict(
         {"asdf": [{"wat": {"here": "#{replaceme}!"}}, {500: True}]}, replaceme="asdf"
     )
@@ -519,7 +452,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_config, bbot_https
     )
 
 
-def test_word_cloud(helpers, bbot_config, bbot_scanner):
+def test_word_cloud(helpers, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
     assert "base0_p013" in number_mutations
     assert "base7_p013" in number_mutations
@@ -535,7 +468,7 @@ def test_word_cloud(helpers, bbot_config, bbot_scanner):
     assert ("dev", "_base") in permutations
 
     # saving and loading
-    scan1 = bbot_scanner("127.0.0.1", config=bbot_config)
+    scan1 = bbot_scanner("127.0.0.1")
     word_cloud = scan1.helpers.word_cloud
     word_cloud.add_word("lantern")
     word_cloud.add_word("black")

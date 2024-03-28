@@ -56,7 +56,7 @@ class TestHTTPX(ModuleTestBase):
 class TestHTTPX_404(ModuleTestBase):
     targets = ["https://127.0.0.1:9999"]
     modules_overrides = ["httpx", "speculate", "excavate"]
-    config_overrides = {"internal_modules": {"speculate": {"ports": "8888,9999"}}}
+    config_overrides = {"modules": {"speculate": {"ports": "8888,9999"}}}
 
     async def setup_after_prep(self, module_test):
         module_test.httpserver.expect_request("/").respond_with_data(

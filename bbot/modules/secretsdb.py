@@ -7,7 +7,7 @@ from .base import BaseModule
 class secretsdb(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Detect common secrets with secrets-patterns-db"}
     options = {
         "min_confidence": 99,

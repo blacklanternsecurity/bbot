@@ -1,4 +1,4 @@
-import os
+import os  # noqa
 import dns
 import sys
 import pytest
@@ -8,9 +8,37 @@ import subprocess
 import tldextract
 import pytest_httpserver
 from pathlib import Path
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf  # noqa
 
 from werkzeug.wrappers import Request
+
+from bbot.core import CORE
+from bbot.scanner import Preset
+from bbot.core.helpers.misc import mkdir
+
+
+log = logging.getLogger(f"bbot.test.fixtures")
+
+
+bbot_test_dir = Path("/tmp/.bbot_test")
+mkdir(bbot_test_dir)
+
+
+DEFAULT_PRESET = Preset()
+
+available_modules = list(DEFAULT_PRESET.module_loader.configs(type="scan"))
+available_output_modules = list(DEFAULT_PRESET.module_loader.configs(type="output"))
+available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="internal"))
+
+
+@pytest.fixture
+def clean_default_config(monkeypatch):
+    clean_config = OmegaConf.merge(
+        CORE.files_config.get_default_config(), {"modules": DEFAULT_PRESET.module_loader.configs()}
+    )
+    with monkeypatch.context() as m:
+        m.setattr("bbot.core.core.DEFAULT_CONFIG", clean_config)
+        yield
 
 
 class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
@@ -22,27 +50,13 @@ class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
 
 pytest_httpserver.httpserver.RequestMatcher = SubstringRequestMatcher
 
-
-test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
-if test_config.get("debug", False):
-    os.environ["BBOT_DEBUG"] = "True"
-
-from .bbot_fixtures import *  # noqa: F401
-import bbot.core.logger  # noqa: F401
 from bbot.core.errors import *  # noqa: F401
 
 # silence pytest_httpserver
 log = logging.getLogger("werkzeug")
 log.setLevel(logging.CRITICAL)
 
-# silence stdout
-root_logger = logging.getLogger()
-for h in root_logger.handlers:
-    h.addFilter(lambda x: x.levelname not in ("STDOUT", "TRACE"))
-
 tldextract.extract("www.evilcorp.com")
-
-log = logging.getLogger(f"bbot.test.fixtures")
 
 
 @pytest.fixture
@@ -53,10 +67,10 @@ def bbot_scanner():
 
 
 @pytest.fixture
-def scan(monkeypatch, bbot_config):
+def scan(monkeypatch):
     from bbot.scanner import Scanner
 
-    bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"], config=bbot_config)
+    bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"])
 
     fallback_nameservers_file = bbot_scan.helpers.bbot_home / "fallback_nameservers.txt"
     with open(fallback_nameservers_file, "w") as f:
@@ -197,41 +211,10 @@ def events(scan):
     return bbot_events
 
 
-@pytest.fixture
-def agent(monkeypatch, bbot_config):
-    from bbot import agent
-
-    test_agent = agent.Agent(bbot_config)
-    test_agent.setup()
-    return test_agent
-
-
-# bbot config
-from bbot import config as default_config
-
-test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
-test_config = OmegaConf.merge(default_config, test_config)
-
-if test_config.get("debug", False):
-    logging.getLogger("bbot").setLevel(logging.DEBUG)
-
-
-@pytest.fixture
-def bbot_config():
-    return test_config
-
-
-from bbot.modules import module_loader
-
-available_modules = list(module_loader.configs(type="scan"))
-available_output_modules = list(module_loader.configs(type="output"))
-available_internal_modules = list(module_loader.configs(type="internal"))
-
-
 @pytest.fixture(autouse=True)
 def install_all_python_deps():
     deps_pip = set()
-    for module in module_loader.preloaded().values():
+    for module in DEFAULT_PRESET.module_loader.preloaded().values():
         deps_pip.update(set(module.get("deps", {}).get("pip", [])))
     subprocess.run([sys.executable, "-m", "pip", "install"] + list(deps_pip))
 

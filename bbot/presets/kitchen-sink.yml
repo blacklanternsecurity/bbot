@@ -1,0 +1,12 @@
+description: Everything everywhere all at once
+
+include:
+  - subdomain-enum
+  - cloud-enum
+  - code-enum
+  - email-enum
+  - spider
+  - web-basic
+  - paramminer
+  - dirbust-light
+  - web-screenshots

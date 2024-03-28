@@ -1,12 +1,12 @@
 from ..bbot_fixtures import *  # noqa: F401
 
 
-def test_target(bbot_config, bbot_scanner):
-    scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126", config=bbot_config)
-    scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
-    scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
-    scan4 = bbot_scanner("8.8.8.8/29", config=bbot_config)
-    scan5 = bbot_scanner(config=bbot_config)
+def test_target(bbot_scanner):
+    scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
+    scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
+    scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
+    scan4 = bbot_scanner("8.8.8.8/29")
+    scan5 = bbot_scanner()
     assert not scan5.target
     assert len(scan1.target) == 9
     assert len(scan4.target) == 8

@@ -1,0 +1,39 @@
+description: Recursive web directory brute-force (aggressive)
+
+include:
+  - spider
+
+flags:
+  - iis-shortnames
+
+modules:
+  - ffuf
+  - wayback
+
+config:
+  modules:
+    iis_shortnames:
+      # we exploit the shortnames vulnerability to produce URL_HINTs which are consumed by ffuf_shortnames
+      detect_only: False
+    ffuf:
+      depth: 3
+      lines: 5000
+      extensions:
+        - php
+        - asp
+        - aspx
+        - ashx
+        - asmx
+        - jsp
+        - jspx
+        - cfm
+        - zip
+        - conf
+        - config
+        - xml
+        - json
+        - yml
+        - yaml
+    # emit URLs from wayback
+    wayback:
+      urls: True

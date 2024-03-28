@@ -7,7 +7,7 @@ from .base import ModuleTestBase
 class TestHTTP(ModuleTestBase):
     downstream_url = "https://blacklanternsecurity.fakedomain:1234/events"
     config_overrides = {
-        "output_modules": {
+        "modules": {
             "http": {
                 "url": downstream_url,
                 "method": "PUT",
@@ -56,8 +56,8 @@ class TestHTTP(ModuleTestBase):
 
 class TestHTTPSIEMFriendly(TestHTTP):
     modules_overrides = ["http"]
-    config_overrides = {"output_modules": {"http": dict(TestHTTP.config_overrides["output_modules"]["http"])}}
-    config_overrides["output_modules"]["http"]["siem_friendly"] = True
+    config_overrides = {"modules": {"http": dict(TestHTTP.config_overrides["modules"]["http"])}}
+    config_overrides["modules"]["http"]["siem_friendly"] = True
 
     def verify_data(self, j):
         return j["data"] == {"DNS_NAME": "blacklanternsecurity.com"} and j["type"] == "DNS_NAME"

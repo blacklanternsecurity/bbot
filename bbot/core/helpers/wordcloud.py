@@ -322,7 +322,7 @@ class WordCloud(dict):
 
     @property
     def default_filename(self):
-        return self.parent_helper.scan.home / f"wordcloud.tsv"
+        return self.parent_helper.preset.scan.home / f"wordcloud.tsv"
 
     def save(self, filename=None, limit=None):
         """

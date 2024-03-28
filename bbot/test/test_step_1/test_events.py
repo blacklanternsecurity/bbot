@@ -6,7 +6,7 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_events(events, scan, helpers, bbot_config):
+async def test_events(events, scan, helpers):
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
     assert events.netv4.type == "IP_RANGE"

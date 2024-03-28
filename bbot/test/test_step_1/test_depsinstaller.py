@@ -1,11 +1,9 @@
 from ..bbot_fixtures import *
 
 
-def test_depsinstaller(monkeypatch, bbot_config, bbot_scanner):
+def test_depsinstaller(monkeypatch, bbot_scanner):
     scan = bbot_scanner(
         "127.0.0.1",
-        modules=["dnsresolve"],
-        config=bbot_config,
     )
 
     # test shell

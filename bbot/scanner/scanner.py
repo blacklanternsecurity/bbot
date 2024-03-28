@@ -4,42 +4,28 @@ import asyncio
 import logging
 import traceback
 import contextlib
-from sys import exc_info
 from pathlib import Path
+from sys import exc_info
 import multiprocessing as mp
 from datetime import datetime
 from functools import partial
-from omegaconf import OmegaConf
 from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
 
 from bbot import __version__
-from bbot import config as bbot_config
 
-from .target import Target
+
+from .preset import Preset
 from .stats import ScanStats
 from .manager import ScanManager
 from .dispatcher import Dispatcher
-from bbot.modules import module_loader
 from bbot.core.event import make_event
+from bbot.core.errors import BBOTError, ScanError
 from bbot.core.helpers.misc import sha1, rand_string
-from bbot.core.helpers.helper import ConfigAwareHelper
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
-from bbot.core.configurator.environ import prepare_environment
-from bbot.core.errors import BBOTError, ScanError, ValidationError
-from bbot.core.logger import (
-    init_logging,
-    get_log_level,
-    set_log_level,
-    add_log_handler,
-    get_log_handlers,
-    remove_log_handler,
-)
 
 log = logging.getLogger("bbot.scanner")
-
-init_logging()
 
 
 class Scanner:
@@ -116,18 +102,11 @@ class Scanner:
 
     def __init__(
         self,
-        *targets,
-        whitelist=None,
-        blacklist=None,
+        *args,
         scan_id=None,
-        name=None,
-        modules=None,
-        output_modules=None,
-        output_dir=None,
-        config=None,
         dispatcher=None,
-        strict_scope=False,
         force_start=False,
+        **preset_kwargs,
     ):
         """
         Initializes the Scanner class.
@@ -146,75 +125,52 @@ class Scanner:
             strict_scope (bool, optional): If True, only targets explicitly in whitelist are scanned. Defaults to False.
             force_start (bool, optional): If True, allows the scan to start even when module setups hard-fail. Defaults to False.
         """
-        if modules is None:
-            modules = []
-        if output_modules is None:
-            output_modules = ["python"]
-
-        if isinstance(modules, str):
-            modules = [modules]
-        if isinstance(output_modules, str):
-            output_modules = [output_modules]
-
-        if config is None:
-            config = OmegaConf.create({})
-        else:
-            config = OmegaConf.create(config)
-        self.config = OmegaConf.merge(bbot_config, config)
-        prepare_environment(self.config)
-        if self.config.get("debug", False):
-            set_log_level(logging.DEBUG)
-
-        self.strict_scope = strict_scope
-        self.force_start = force_start
-
         if scan_id is not None:
-            self.id = str(scan_id)
+            self.id = str(id)
         else:
             self.id = f"SCAN:{sha1(rand_string(20)).hexdigest()}"
-        self._status = "NOT_STARTED"
-        self._status_code = 0
 
-        self.max_workers = max(1, self.config.get("max_threads", 25))
-        self.helpers = ConfigAwareHelper(config=self.config, scan=self)
+        preset = preset_kwargs.pop("preset", None)
+        preset_kwargs["_log"] = True
+        if preset is None:
+            preset = Preset(*args, **preset_kwargs)
+        self.preset = preset.bake()
+        self.preset.scan = self
 
-        if name is None:
+        # scan name
+        if preset.scan_name is None:
             tries = 0
             while 1:
                 if tries > 5:
-                    self.name = f"{self.helpers.rand_string(4)}_{self.helpers.rand_string(4)}"
+                    scan_name = f"{rand_string(4)}_{rand_string(4)}"
                     break
-                self.name = random_name()
-                if output_dir is not None:
-                    home_path = Path(output_dir).resolve() / self.name
+                scan_name = random_name()
+                if self.preset.output_dir is not None:
+                    home_path = Path(self.preset.output_dir).resolve() / scan_name
                 else:
-                    home_path = self.helpers.bbot_home / "scans" / self.name
+                    home_path = self.preset.bbot_home / "scans" / scan_name
                 if not home_path.exists():
                     break
                 tries += 1
         else:
-            self.name = str(name)
+            scan_name = str(preset.scan_name)
+        self.name = scan_name
 
-        if output_dir is not None:
-            self.home = Path(output_dir).resolve() / self.name
+        # scan output dir
+        if preset.output_dir is not None:
+            self.home = Path(preset.output_dir).resolve() / self.name
         else:
-            self.home = self.helpers.bbot_home / "scans" / self.name
+            self.home = self.preset.bbot_home / "scans" / self.name
 
-        self.target = Target(self, *targets, strict_scope=strict_scope, make_in_scope=True)
+        self.force_start = force_start
+        self._status = "NOT_STARTED"
+        self._status_code = 0
+
+        self.max_workers = max(1, self.config.get("max_threads", 25))
 
         self.modules = OrderedDict({})
-        self._scan_modules = modules
-        self._internal_modules = list(self._internal_modules())
-        self._output_modules = output_modules
         self._modules_loaded = False
-
-        if not whitelist:
-            self.whitelist = self.target.copy()
-        else:
-            self.whitelist = Target(self, *whitelist, strict_scope=strict_scope)
-        if not blacklist:
-            blacklist = []
-        self.blacklist = Target(self, *blacklist)
+        self.dummy_modules = {}
 
         if dispatcher is None:
             self.dispatcher = Dispatcher()
@@ -279,7 +235,7 @@ class Scanner:
 
         self.helpers.mkdir(self.home)
         if not self._prepped:
-            start_msg = f"Scan with {len(self._scan_modules):,} modules seeded with {len(self.target):,} targets"
+            start_msg = f"Scan with {len(self.preset.scan_modules):,} modules seeded with {len(self.target):,} targets"
             details = []
             if self.whitelist != self.target:
                 details.append(f"{len(self.whitelist):,} in whitelist")
@@ -496,24 +452,21 @@ class Scanner:
             After all modules are loaded, they are sorted by `_priority` and stored in the `modules` dictionary.
         """
         if not self._modules_loaded:
-            all_modules = list(set(self._scan_modules + self._output_modules + self._internal_modules))
-            if not all_modules:
+            if not self.preset.modules:
                 self.warning(f"No modules to load")
                 return
 
-            if not self._scan_modules:
+            if not self.preset.scan_modules:
                 self.warning(f"No scan modules to load")
 
             # install module dependencies
-            succeeded, failed = await self.helpers.depsinstaller.install(
-                *self._scan_modules, *self._output_modules, *self._internal_modules
-            )
+            succeeded, failed = await self.helpers.depsinstaller.install(*self.preset.modules)
             if failed:
                 msg = f"Failed to install dependencies for {len(failed):,} modules: {','.join(failed)}"
                 self._fail_setup(msg)
-            modules = sorted([m for m in self._scan_modules if m in succeeded])
-            output_modules = sorted([m for m in self._output_modules if m in succeeded])
-            internal_modules = sorted([m for m in self._internal_modules if m in succeeded])
+            modules = sorted([m for m in self.preset.scan_modules if m in succeeded])
+            output_modules = sorted([m for m in self.preset.output_modules if m in succeeded])
+            internal_modules = sorted([m for m in self.preset.internal_modules if m in succeeded])
 
             # Load scan modules
             self.verbose(f"Loading {len(modules):,} scan modules: {','.join(modules)}")
@@ -524,7 +477,7 @@ class Scanner:
                 self._fail_setup(msg)
             if loaded_modules:
                 self.info(
-                    f"Loaded {len(loaded_modules):,}/{len(self._scan_modules):,} scan modules ({','.join(loaded_modules)})"
+                    f"Loaded {len(loaded_modules):,}/{len(self.preset.scan_modules):,} scan modules ({','.join(loaded_modules)})"
                 )
 
             # Load internal modules
@@ -536,7 +489,7 @@ class Scanner:
                 self._fail_setup(msg)
             if loaded_internal_modules:
                 self.info(
-                    f"Loaded {len(loaded_internal_modules):,}/{len(self._internal_modules):,} internal modules ({','.join(loaded_internal_modules)})"
+                    f"Loaded {len(loaded_internal_modules):,}/{len(self.preset.internal_modules):,} internal modules ({','.join(loaded_internal_modules)})"
                 )
 
             # Load output modules
@@ -548,7 +501,7 @@ class Scanner:
                 self._fail_setup(msg)
             if loaded_output_modules:
                 self.info(
-                    f"Loaded {len(loaded_output_modules):,}/{len(self._output_modules):,} output modules, ({','.join(loaded_output_modules)})"
+                    f"Loaded {len(loaded_output_modules):,}/{len(self.preset.output_modules):,} output modules, ({','.join(loaded_output_modules)})"
                 )
 
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
@@ -691,39 +644,38 @@ class Scanner:
                 self.home.rmdir()
             self.helpers.clean_old_scans()
 
-    def in_scope(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is in scope.
-        Accepts either events or string data.
+    def in_scope(self, *args, **kwargs):
+        return self.preset.in_scope(*args, **kwargs)
 
-        Checks whitelist and blacklist.
-        If `e` is an event and its scope distance is zero, it will be considered in-scope.
+    def whitelisted(self, *args, **kwargs):
+        return self.preset.whitelisted(*args, **kwargs)
 
-        Examples:
-            Check if a URL is in scope:
-            >>> scan.in_scope("http://www.evilcorp.com")
-            True
-        """
-        try:
-            e = make_event(e, dummy=True)
-        except ValidationError:
-            return False
-        in_scope = e.scope_distance == 0 or self.whitelisted(e)
-        return in_scope and not self.blacklisted(e)
+    def blacklisted(self, *args, **kwargs):
+        return self.preset.blacklisted(*args, **kwargs)
 
-    def blacklisted(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is blacklisted.
-        """
-        e = make_event(e, dummy=True)
-        return e in self.blacklist
+    @property
+    def core(self):
+        return self.preset.core
 
-    def whitelisted(self, e):
-        """
-        Check whether a hostname, url, IP, etc. is whitelisted.
-        """
-        e = make_event(e, dummy=True)
-        return e in self.whitelist
+    @property
+    def config(self):
+        return self.preset.core.config
+
+    @property
+    def target(self):
+        return self.preset.target
+
+    @property
+    def whitelist(self):
+        return self.preset.whitelist
+
+    @property
+    def blacklist(self):
+        return self.preset.blacklist
+
+    @property
+    def helpers(self):
+        return self.preset.helpers
 
     @property
     def word_cloud(self):
@@ -801,7 +753,7 @@ class Scanner:
         root_event.scope_distance = 0
         root_event._resolved.set()
         root_event.source = root_event
-        root_event.module = self.helpers._make_dummy_module(name="TARGET", _type="TARGET")
+        root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
         return root_event
 
     def run_in_executor(self, callback, *args, **kwargs):
@@ -949,7 +901,7 @@ class Scanner:
         """
         Return the current log level, e.g. logging.INFO
         """
-        return get_log_level()
+        return self.core.logger.log_level
 
     @property
     def _log_handlers(self):
@@ -971,26 +923,21 @@ class Scanner:
     def _start_log_handlers(self):
         # add log handlers
         for handler in self._log_handlers:
-            add_log_handler(handler)
+            self.core.logger.add_log_handler(handler)
         # temporarily disable main ones
         for handler_name in ("file_main", "file_debug"):
-            handler = get_log_handlers().get(handler_name, None)
+            handler = self.core.logger.log_handlers.get(handler_name, None)
             if handler is not None and handler not in self._log_handler_backup:
                 self._log_handler_backup.append(handler)
-                remove_log_handler(handler)
+                self.core.logger.remove_log_handler(handler)
 
     def _stop_log_handlers(self):
         # remove log handlers
         for handler in self._log_handlers:
-            remove_log_handler(handler)
+            self.core.logger.remove_log_handler(handler)
         # restore main ones
         for handler in self._log_handler_backup:
-            add_log_handler(handler)
-
-    def _internal_modules(self):
-        for modname in module_loader.preloaded(type="internal"):
-            if self.config.get(modname, True):
-                yield modname
+            self.core.logger.add_log_handler(handler)
 
     def _fail_setup(self, msg):
         msg = str(msg)
@@ -1011,7 +958,7 @@ class Scanner:
         modules = [str(m) for m in modules]
         loaded_modules = {}
         failed = set()
-        for module_name, module_class in module_loader.load_modules(modules).items():
+        for module_name, module_class in self.preset.module_loader.load_modules(modules).items():
             if module_class:
                 try:
                     loaded_modules[module_name] = module_class(self)
@@ -1060,3 +1007,35 @@ class Scanner:
             log.trace(traceback.format_exc())
         if callable(finally_callback):
             finally_callback(e)
+
+    def _make_dummy_module(self, name, _type="scan"):
+        """
+        Construct a dummy module, for attachment to events
+        """
+        try:
+            return self.dummy_modules[name]
+        except KeyError:
+            dummy = DummyModule(scan=self, name=name, _type=_type)
+            self.dummy_modules[name] = dummy
+            return dummy
+
+    def _make_dummy_module_dns(self, name):
+        try:
+            dummy_module = self.dummy_modules[name]
+        except KeyError:
+            dummy_module = self._make_dummy_module(name=name, _type="DNS")
+            dummy_module.suppress_dupes = False
+            self.dummy_modules[name] = dummy_module
+        return dummy_module
+
+
+from bbot.modules.base import BaseModule
+
+
+class DummyModule(BaseModule):
+    _priority = 4
+
+    def __init__(self, *args, **kwargs):
+        self._name = kwargs.pop("name")
+        self._type = kwargs.pop("_type")
+        super().__init__(*args, **kwargs)

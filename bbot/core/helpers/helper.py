@@ -10,7 +10,6 @@ from .cloud import CloudHelper
 from .wordcloud import WordCloud
 from .interactsh import Interactsh
 from ...scanner.target import Target
-from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
 
 
@@ -51,10 +50,9 @@ class ConfigAwareHelper:
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from .command import run, run_live, _spawn_proc, _prepare_command_kwargs
 
-    def __init__(self, config, scan=None):
-        self.config = config
-        self._scan = scan
-        self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
+    def __init__(self, preset):
+        self.preset = preset
+        self.bbot_home = self.preset.bbot_home
         self.cache_dir = self.bbot_home / "cache"
         self.temp_dir = self.bbot_home / "temp"
         self.tools_dir = self.bbot_home / "tools"
@@ -97,30 +95,19 @@ class ConfigAwareHelper:
         self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
 
     def make_target(self, *events):
-        return Target(self.scan, *events)
+        return Target(*events)
+
+    @property
+    def config(self):
+        return self.preset.config
 
     @property
     def scan(self):
-        if self._scan is None:
-            from bbot.scanner import Scanner
-
-            self._scan = Scanner()
-        return self._scan
+        return self.preset.scan
 
     @property
     def in_tests(self):
         return os.environ.get("BBOT_TESTING", "") == "True"
-
-    def _make_dummy_module(self, name, _type="scan"):
-        """
-        Construct a dummy module, for attachment to events
-        """
-        try:
-            return self.dummy_modules[name]
-        except KeyError:
-            dummy = DummyModule(scan=self.scan, name=name, _type=_type)
-            self.dummy_modules[name] = dummy
-            return dummy
 
     def __getattribute__(self, attr):
         """
@@ -163,12 +150,3 @@ class ConfigAwareHelper:
                         except AttributeError:
                             # then die
                             raise AttributeError(f'Helper has no attribute "{attr}"')
-
-
-class DummyModule(BaseModule):
-    _priority = 4
-
-    def __init__(self, *args, **kwargs):
-        self._name = kwargs.pop("name")
-        self._type = kwargs.pop("_type")
-        super().__init__(*args, **kwargs)

@@ -38,6 +38,7 @@ class ScanManager:
         """
 
         self.scan = scan
+        self.preset = scan.preset
 
         self.incoming_event_queue = ShuffleQueue()
         # track incoming duplicates module-by-module (for `suppress_dupes` attribute of modules)
@@ -65,6 +66,14 @@ class ScanManager:
             await self.distribute_event(self.scan.root_event)
             sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
             for event in sorted_events:
+                event._dummy = False
+                event.scope_distance = 0
+                event.web_spider_distance = 0
+                event.scan = self.scan
+                if event.source is None:
+                    event.source = self.scan.root_event
+                if event.module is None:
+                    event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
                 self.scan.verbose(f"Target: {event}")
                 self.queue_event(event)
             await asyncio.sleep(0.1)
@@ -270,7 +279,7 @@ class ScanManager:
                 and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
                 and not (event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate")
             ):
-                source_module = self.scan.helpers._make_dummy_module("host", _type="internal")
+                source_module = self.scan._make_dummy_module("host", _type="internal")
                 source_module._priority = 4
                 source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
                 # only emit the event if it's not already in the parent chain
@@ -294,7 +303,7 @@ class ScanManager:
                     dns_child_events = []
                     if dns_children:
                         for rdtype, records in dns_children.items():
-                            module = self.scan.helpers.dns._get_dummy_module(rdtype)
+                            module = self.scan._make_dummy_module_dns(rdtype)
                             module._priority = 4
                             for record in records:
                                 try:
@@ -305,7 +314,7 @@ class ScanManager:
                                     if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
                                         child_event.add_tag("affiliate")
                                     host_hash = hash(str(child_event.host))
-                                    if in_dns_scope or self.scan.in_scope(child_event):
+                                    if in_dns_scope or self.preset.in_scope(child_event):
                                         dns_child_events.append(child_event)
                                 except ValidationError as e:
                                     log.warning(

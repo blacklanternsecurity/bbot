@@ -136,8 +136,7 @@ class DNSHelper:
 
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
-        if len(self.system_resolvers) == 1:
-            log.warning("BBOT performs better with multiple DNS servers. Your system currently only has one.")
+        # TODO: DNS server speed test (start in background task)
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
         self.filter_bad_ptrs = self.parent_helper.config.get("dns_filter_ptrs", True)
@@ -546,10 +545,10 @@ class DNSHelper:
                                         if rdtype in ("A", "AAAA", "CNAME"):
                                             with contextlib.suppress(ValidationError):
                                                 if self.parent_helper.is_ip(ip):
-                                                    if self.parent_helper.scan.whitelisted(ip):
+                                                    if self.parent_helper.preset.whitelisted(ip):
                                                         event_whitelisted = True
                                             with contextlib.suppress(ValidationError):
-                                                if self.parent_helper.scan.blacklisted(ip):
+                                                if self.parent_helper.preset.blacklisted(ip):
                                                     event_blacklisted = True
 
                                         if self.filter_bad_ptrs and rdtype in ("PTR") and self.parent_helper.is_ptr(t):
@@ -1011,12 +1010,3 @@ class DNSHelper:
     def debug(self, *args, **kwargs):
         if self._debug:
             log.trace(*args, **kwargs)
-
-    def _get_dummy_module(self, name):
-        try:
-            dummy_module = self._dummy_modules[name]
-        except KeyError:
-            dummy_module = self.parent_helper._make_dummy_module(name=name, _type="DNS")
-            dummy_module.suppress_dupes = False
-            self._dummy_modules[name] = dummy_module
-        return dummy_module

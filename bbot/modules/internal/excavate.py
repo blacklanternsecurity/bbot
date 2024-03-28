@@ -387,8 +387,15 @@ class excavate(BaseInternalModule):
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
 
             body = self.helpers.recursive_decode(event.data.get("body", ""))
+
             # Cloud extractors
-            self.helpers.cloud.excavate(event, body)
+            for cloud_kwargs in self.helpers.cloud.excavate(event, body):
+                module = None
+                provider = cloud_kwargs.pop("_provider", "")
+                if provider:
+                    module = self.scan._make_dummy_module(f"{provider}_cloud")
+                await self.emit_event(module=module, **cloud_kwargs)
+
             await self.search(
                 body,
                 [

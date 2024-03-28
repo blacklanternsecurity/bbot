@@ -1,0 +1,7 @@
+description: Aggressive web scan
+
+include:
+  - web-basic
+
+flags:
+  - web-thorough
