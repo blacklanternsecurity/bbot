@@ -21,7 +21,7 @@ class ConditionEvaluator:
         }
 
     def abort(self, message):
-        if not self.preset.force:
+        if not self.preset.force_start:
             raise PresetAbortError(message)
 
     def warn(self, message):

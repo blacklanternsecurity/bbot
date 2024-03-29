@@ -431,7 +431,7 @@ class Scanner:
         4. Load output modules and updates the `modules` dictionary.
         5. Sorts modules based on their `_priority` attribute.
 
-        If any modules fail to load or their dependencies fail to install, a ScanError will be raised (unless `self.force` is True).
+        If any modules fail to load or their dependencies fail to install, a ScanError will be raised (unless `self.force_start` is True).
 
         Attributes:
             succeeded, failed (tuple): A tuple containing lists of modules that succeeded or failed during the dependency installation.
@@ -439,7 +439,7 @@ class Scanner:
             failed, failed_internal, failed_output (list): Lists of module names that failed to load.
 
         Raises:
-            ScanError: If any module dependencies fail to install or modules fail to load, and if `self.force` is False.
+            ScanError: If any module dependencies fail to install or modules fail to load, and if `self.force_start` is False.
 
         Returns:
             None
@@ -674,8 +674,8 @@ class Scanner:
         return self.preset.helpers
 
     @property
-    def force(self):
-        return self.preset.force
+    def force_start(self):
+        return self.preset.force_start
 
     @property
     def word_cloud(self):
@@ -941,11 +941,10 @@ class Scanner:
 
     def _fail_setup(self, msg):
         msg = str(msg)
-        if not self.force:
-            msg += " (--force to run module anyway)"
-        if self.force:
+        if self.force_start:
             self.error(msg)
         else:
+            msg += " (--force to run module anyway)"
             raise ScanError(msg)
 
     @property

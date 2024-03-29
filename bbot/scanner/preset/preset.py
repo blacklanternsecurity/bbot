@@ -80,7 +80,7 @@ class Preset:
         name=None,
         description=None,
         conditions=None,
-        force=False,
+        force_start=False,
         verbose=False,
         debug=False,
         silent=False,
@@ -108,7 +108,7 @@ class Preset:
             name (str, optional): Human-readable name of the preset. Used mainly for logging.
             description (str, optional): Description of the preset.
             conditions (list[str], optional): Custom conditions to be executed before scan start. Written in Jinja2.
-            force (bool, optional): If True, ignore conditional aborts and failed module setups. Just run the scan!
+            force_start (bool, optional): If True, ignore conditional aborts and failed module setups. Just run the scan!
             verbose (bool, optional): Set the BBOT logger to verbose mode.
             debug (bool, optional): Set the BBOT logger to debug mode.
             silent (bool, optional): Silence all stderr (effectively disables the BBOT logger).
@@ -138,7 +138,7 @@ class Preset:
         self.explicit_output_modules = set() if output_modules is None else set(output_modules)
 
         # whether to force-start the scan (ignoring conditional aborts and failed module setups)
-        self.force = force
+        self.force_start = force_start
 
         # scan output directory
         self.output_dir = output_dir
@@ -281,7 +281,7 @@ class Preset:
         if other.conditions:
             self.conditions.extend(other.conditions)
         # misc
-        self.force = self.force | other.force
+        self.force_start = self.force_start | other.force_start
 
     def bake(self):
         """
