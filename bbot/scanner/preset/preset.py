@@ -277,7 +277,7 @@ class Preset:
         Args:
             other (Preset): The preset to merge into this one.
 
-        Example:
+        Examples:
             >>> preset1 = Preset(modules=["nmap"])
             >>> preset1.scan_modules
             ['nmap']
@@ -664,7 +664,7 @@ class Preset:
         Returns:
             dict: The preset in dictionary form
 
-        Example:
+        Examples:
             >>> preset = Preset(flags=["subdomain-enum"], modules=["nmap"])
             >>> preset.to_dict()
             {"flags": ["subdomain-enum"], "modules": ["nmap"]}
@@ -740,7 +740,7 @@ class Preset:
         Returns:
             str: The preset in the form of a YAML string
 
-        Example:
+        Examples:
             >>> preset = Preset(flags=["subdomain-enum"], modules=["nmap"])
             >>> print(preset.to_yaml())
             flags:
