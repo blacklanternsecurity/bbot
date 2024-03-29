@@ -117,7 +117,7 @@ config:
 
 Note: this will ensure the API keys are used in all scans, regardless of preset.
 
-```yaml title="~/.config/bbot/secrets.yml"
+```yaml title="~/.config/bbot/bbot.yml"
 modules:
   shodan_dns:
     api_key: deadbeef

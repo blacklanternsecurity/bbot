@@ -7,6 +7,7 @@ DEFAULT_CONFIG = None
 
 
 class BBOTCore:
+    """ """
 
     def __init__(self):
         self._logger = None

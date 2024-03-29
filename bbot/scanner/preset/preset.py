@@ -132,7 +132,7 @@ class Preset:
             verbose (bool, optional): Set the BBOT logger to verbose mode.
             debug (bool, optional): Set the BBOT logger to debug mode.
             silent (bool, optional): Silence all stderr (effectively disables the BBOT logger).
-            _exclude (bool, optional): Preset filenames to exclude from inclusion. Used internally to prevent infinite recursion in circular or self-referencing presets.
+            _exclude (list[Path], optional): Preset filenames to exclude from inclusion. Used internally to prevent infinite recursion in circular or self-referencing presets.
             _log (bool, optional): Whether to enable logging for the preset. This will record which modules/flags are enabled, etc.
         """
         # internal variables
@@ -331,7 +331,7 @@ class Preset:
         """
         Return a "baked" copy of this preset, ready for use by a BBOT scan.
 
-        Baking a preset finalizes it by populating `preset.modules` based on flags, 
+        Baking a preset finalizes it by populating `preset.modules` based on flags,
         performing final validations, and substituting environment variables in preloaded modules.
         It also evaluates custom `conditions` as specified in the preset.
 
@@ -569,6 +569,21 @@ class Preset:
 
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
+        """
+        Create a preset from a Python dictionary object.
+
+        Args:
+            preset_dict (dict): Preset in dictionary form
+            name (str, optional): Name of preset
+            _exclude (list[Path], optional): Preset filenames to exclude from inclusion. Used internally to prevent infinite recursion in circular or self-referencing presets.
+            _log (bool, optional): Whether to enable logging for the preset. This will record which modules/flags are enabled, etc.
+
+        Returns:
+            Preset: The loaded preset
+
+        Examples:
+            >>> preset = Preset.from_dict({"target": "evilcorp.com", "modules": ["nmap}]})
+        """
         new_preset = cls(
             *preset_dict.get("target", []),
             whitelist=preset_dict.get("whitelist"),
@@ -597,6 +612,12 @@ class Preset:
         return new_preset
 
     def include_preset(self, filename):
+        """
+        Load a preset from a yaml file and merge it into this one
+
+        Args:
+            filename (Path): The preset YAML file to merge
+        """
         self.log_debug(f'Including preset "{filename}"')
         preset_filename = PRESET_PATH.find(filename)
         preset_from_yaml = self.from_yaml_file(preset_filename, _exclude=self._preset_files_loaded)
@@ -633,6 +654,21 @@ class Preset:
         return cls.from_dict(omegaconf.OmegaConf.create(yaml_preset))
 
     def to_dict(self, include_target=False, full_config=False):
+        """
+        Convert this preset into a Python dictionary.
+
+        Args:
+            include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary
+            full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.
+
+        Returns:
+            dict: The preset in dictionary form
+
+        Example:
+            >>> preset = Preset(flags=["subdomain-enum"], modules=["nmap"])
+            >>> preset.to_dict()
+            {"flags": ["subdomain-enum"], "modules": ["nmap"]}
+        """
         preset_dict = {}
 
         # config
@@ -693,6 +729,25 @@ class Preset:
         return preset_dict
 
     def to_yaml(self, include_target=False, full_config=False, sort_keys=False):
+        """
+        Return the preset in the form of a YAML string.
+
+        Args:
+            include_target (bool, optional): If True, include target, whitelist, and blacklist in the dictionary
+            full_config (bool, optional): If True, include the entire config, not just what's changed from the defaults.
+            sort_keys (bool, optional): If True, sort YAML keys alphabetically
+
+        Returns:
+            str: The preset in the form of a YAML string
+
+        Example:
+            >>> preset = Preset(flags=["subdomain-enum"], modules=["nmap"])
+            >>> print(preset.to_yaml())
+            flags:
+            - subdomain-enum
+            modules:
+            - nmap
+        """
         preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
         return yaml.dump(preset_dict, sort_keys=sort_keys)
 
@@ -743,6 +798,9 @@ class Preset:
         return True, "", preloaded
 
     def validate(self):
+        """
+        Validate module/flag exclusions/requirements, and CLI config options if applicable.
+        """
         if self._cli:
             self.args.validate()
 
@@ -767,6 +825,9 @@ class Preset:
 
     @property
     def all_presets(self):
+        """
+        Recursively find all the presets and return them as a dictionary
+        """
         preset_dir = self.preset_dir
         home_dir = Path.home()
 
@@ -822,6 +883,9 @@ class Preset:
         return DEFAULT_PRESETS
 
     def presets_table(self, include_modules=True):
+        """
+        Return a table of all the presets in the form of a string
+        """
         table = []
         header = ["Preset", "Category", "Description", "# Modules"]
         if include_modules:

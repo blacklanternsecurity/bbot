@@ -1,6 +1,6 @@
 # Configuration Overview
 
-Normally, [Presets](presets.md) are used to configure a scan. However, there may be cases where you want to change BBOT's defaults so a certain option is always set, even if it's not specified in a preset.
+Normally, [Presets](presets.md) are used to configure a scan. However, there may be cases where you want to change BBOT's global defaults so a certain option is always set, even if it's not specified in a preset.
 
 BBOT has a YAML config at `~/.config/bbot.yml`. This is the first config that BBOT loads, so it's a good place to put default settings like `http_proxy`, `max_threads`, or `http_user_agent`. You can also put any module settings here, including **API keys**.
 
@@ -13,13 +13,13 @@ For examples of common config changes, see [Tips and Tricks](tips_and_tricks.md)
 
 ## Configuration Files
 
-BBOT loads its config from the following files, in this order:
+BBOT loads its config from the following files, in this order (last one loaded == highest priority):
 
-- `~/.config/bbot/bbot.yml`     <-- Use this one as your main config
-- `~/.config/bbot/secrets.yml`  <-- Use this one for sensitive stuff like API keys
-- command line (`--config`)     <-- Use this to specify a custom config file or override individual config options
+- `~/.config/bbot/bbot.yml`  <-- Global BBOT config
+- presets (`-p`)             <-- Presets are good for scan-specific settings
+- command line (`-c`)        <-- CLI overrides everything
 
-These config files will be automatically created for you when you first run BBOT.
+`bbot.yml` will be automatically created for you when you first run BBOT.
 
 ## YAML Config vs Command Line
 
@@ -27,7 +27,7 @@ You can specify config options either via the command line or the config. For ex
 
 ```bash
 # send BBOT traffic through an HTTP proxy
-bbot -t evilcorp.com --config http_proxy=http://127.0.0.1:8080
+bbot -t evilcorp.com -c http_proxy=http://127.0.0.1:8080
 ```
 
 Or, in `~/.config/bbot/config.yml`:
@@ -38,7 +38,7 @@ http_proxy: http://127.0.0.1:8080
 
 These two are equivalent.
 
-Config options specified via the command-line take precedence over all others. You can give BBOT a custom config file with `--config myconf.yml`, or individual arguments like this: `--config modules.shodan_dns.api_key=deadbeef`. To display the full and current BBOT config, including any command-line arguments, use `bbot --current-config`.
+Config options specified via the command-line take precedence over all others. You can give BBOT a custom config file with `-c myconf.yml`, or individual arguments like this: `-c modules.shodan_dns.api_key=deadbeef`. To display the full and current BBOT config, including any command-line arguments, use `bbot -c`.
 
 Note that placing the following in `bbot.yml`:
 ```yaml title="~/.bbot/config/bbot.yml"
@@ -48,7 +48,7 @@ modules:
 ```
 Is the same as:
 ```bash
-bbot --config modules.shodan_dns.api_key=deadbeef
+bbot -c modules.shodan_dns.api_key=deadbeef
 ```
 
 ## Global Config Options
