@@ -7,7 +7,18 @@ DEFAULT_CONFIG = None
 
 
 class BBOTCore:
-    """ """
+    """
+    This is the first thing that loads when you import BBOT.
+
+    Unlike a Preset, BBOTCore holds only the config, not scan-specific stuff like targets, flags, modules, etc.
+
+    Its main jobs are:
+
+    - set up logging
+    - keep separation between the `default` and `custom` config (this allows presets to only display the config options that have changed)
+    - allow for easy merging of configs
+    - load quickly
+    """
 
     def __init__(self):
         self._logger = None
@@ -65,6 +76,9 @@ class BBOTCore:
 
     @property
     def default_config(self):
+        """
+        The default BBOT config (from `defaults.yml`). Read-only.
+        """
         global DEFAULT_CONFIG
         if DEFAULT_CONFIG is None:
             self.default_config = self.files_config.get_default_config()
@@ -81,6 +95,9 @@ class BBOTCore:
 
     @property
     def custom_config(self):
+        """
+        Custom BBOT config (from `~/.config/bbot/bbot.yml`)
+        """
         # we temporarily clear out the config so it can be refreshed if/when custom_config changes
         self._config = None
         if self._custom_config is None:
@@ -94,18 +111,30 @@ class BBOTCore:
         self._custom_config = value
 
     def merge_custom(self, config):
+        """
+        Merge a config into the custom config.
+        """
         self.custom_config = OmegaConf.merge(self.custom_config, OmegaConf.create(config))
 
     def merge_default(self, config):
+        """
+        Merge a config into the default config.
+        """
         self.default_config = OmegaConf.merge(self.default_config, OmegaConf.create(config))
 
     def copy(self):
+        """
+        Return a semi-shallow copy of self. (`custom_config` is copied, but `default_config` stays the same)
+        """
         core_copy = copy(self)
         core_copy._custom_config = self._custom_config.copy()
         return core_copy
 
     @property
     def files_config(self):
+        """
+        Get the configs from `bbot.yml` and `defaults.yml`
+        """
         if self._files_config is None:
             from .config import files
 

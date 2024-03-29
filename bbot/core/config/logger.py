@@ -34,6 +34,12 @@ class ColoredFormatter(logging.Formatter):
 
 
 class BBOTLogger:
+    """
+    The main BBOT logger.
+
+    The job of this class is to manage the different log handlers in BBOT,
+    allow adding new log handlers, and easily switching log levels on the fly.
+    """
 
     def __init__(self, core):
         # custom logging levels

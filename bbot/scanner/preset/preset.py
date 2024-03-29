@@ -362,7 +362,7 @@ class Preset:
         for module in baked_preset.explicit_scan_modules:
             baked_preset.add_module(module, module_type="scan")
         # enable output modules
-        for module in self.explicit_output_modules:
+        for module in baked_preset.explicit_output_modules:
             baked_preset.add_module(module, module_type="output", raise_error=False)
 
         # enable internal modules
