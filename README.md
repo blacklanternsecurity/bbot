@@ -1,6 +1,6 @@
 [![bbot_banner](https://user-images.githubusercontent.com/20261699/158000235-6c1ace81-a267-4f8e-90a1-f4c16884ebac.png)](https://github.com/blacklanternsecurity/bbot)
 
-# BEE·bot
+#### BBOT /ˈBEE·bot/ (noun): A recursive internet scanner for hackers.
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-FF8400)](https://www.python.org) [![License](https://img.shields.io/badge/license-GPLv3-FF8400.svg)](https://github.com/blacklanternsecurity/bbot/blob/dev/LICENSE) [![DEF CON Demo Labs 2023](https://img.shields.io/badge/DEF%20CON%20Demo%20Labs-2023-FF8400.svg)](https://forum.defcon.org/node/246338) [![PyPi Downloads](https://static.pepy.tech/personalized-badge/bbot?right_color=orange&left_color=grey)](https://pepy.tech/project/bbot) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Tests](https://github.com/blacklanternsecurity/bbot/actions/workflows/tests.yml/badge.svg?branch=stable)](https://github.com/blacklanternsecurity/bbot/actions?query=workflow%3A"tests") [![Codecov](https://codecov.io/gh/blacklanternsecurity/bbot/branch/dev/graph/badge.svg?token=IR5AZBDM5K)](https://codecov.io/gh/blacklanternsecurity/bbot) [![Discord](https://img.shields.io/discord/859164869970362439)](https://discord.com/invite/PZqkgxu5SA)
 
@@ -26,10 +26,42 @@ _For more installation methods, including [Docker](https://hub.docker.com/r/blac
 
 ## 1) A Subdomain Finder
 
+Passive API sources plus a recursive DNS brute-force with target-specific subdomain mutations.
+
 ```bash
 # find subdomains of evilcorp.com
 bbot -t evilcorp.com -p subdomain-enum
 ```
+
+<details>
+<summary><b>subdomain-enum.yml</b></summary>
+
+```yaml
+description: Enumerate subdomains via APIs, brute-force
+
+flags:
+  - subdomain-enum
+
+output_modules:
+  - subdomains
+
+config:
+  modules:
+    stdout:
+      format: text
+      # only output DNS_NAMEs to the console
+      event_types:
+        - DNS_NAME
+      # only show in-scope subdomains
+      in_scope_only: True
+      # display the raw subdomains, nothing else
+      event_fields:
+        - data
+      # automatically dedupe
+      accept_dups: False
+```
+
+</details>
 
 <details>
 <summary><b>SEE: Comparison to Other Subdomain Enumeration Tools</b></summary>
@@ -52,7 +84,7 @@ bbot -t evilcorp.com -p spider
 
 ```bash
 # enumerate evilcorp.com email addresses
-bbot -t evilcorp.com -p email-enum
+bbot -t evilcorp.com -p subdomain-enum spider email-enum
 ```
 
 ## 4) A Web Scanner
@@ -100,9 +132,9 @@ asyncio.run(main())
 ```
 
 <details>
-<summary><b>SEE ALSO: This Nefarious Discord Bot</b></summary>
+<summary><b>SEE: This Nefarious Discord Bot</b></summary>
 
-A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/discord_bot/) that responds to the `/scan` command:
+A [BBOT Discord Bot](https://www.blacklanternsecurity.com/bbot/dev/discord_bot/) that responds to the `/scan` command. Scan the internet from the comfort of your discord server!
 
 ![bbot-discord](https://github.com/blacklanternsecurity/bbot/assets/20261699/22b268a2-0dfd-4c2a-b7c5-548c0f2cc6f9)
 

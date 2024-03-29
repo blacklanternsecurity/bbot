@@ -64,3 +64,50 @@ def test_python_api_sync():
     bbot_home = "/tmp/.bbot_python_api_test"
     Scanner("127.0.0.1", config={"home": bbot_home})
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
+
+
+def test_python_api_validation():
+    from bbot.scanner import Scanner, Preset
+
+    # invalid module
+    with pytest.raises(ValidationError) as error:
+        Scanner(modules=["asdf"])
+    assert str(error.value) == 'Could not find scan module "asdf". Did you mean "asn"?'
+    # invalid output module
+    with pytest.raises(ValidationError) as error:
+        Scanner(output_modules=["asdf"])
+    assert str(error.value) == 'Could not find output module "asdf". Did you mean "teams"?'
+    # invalid excluded module
+    with pytest.raises(ValidationError) as error:
+        Scanner(exclude_modules=["asdf"])
+    assert str(error.value) == 'Could not find module "asdf". Did you mean "asn"?'
+    # invalid flag
+    with pytest.raises(ValidationError) as error:
+        Scanner(flags=["asdf"])
+    assert str(error.value) == 'Could not find flag "asdf". Did you mean "safe"?'
+    # invalid required flag
+    with pytest.raises(ValidationError) as error:
+        Scanner(require_flags=["asdf"])
+    assert str(error.value) == 'Could not find flag "asdf". Did you mean "safe"?'
+    # invalid excluded flag
+    with pytest.raises(ValidationError) as error:
+        Scanner(exclude_flags=["asdf"])
+    assert str(error.value) == 'Could not find flag "asdf". Did you mean "safe"?'
+    # output module as normal module
+    with pytest.raises(ValidationError) as error:
+        Scanner(modules=["json"])
+    assert str(error.value) == 'Could not find scan module "json". Did you mean "asn"?'
+    # normal module as output module
+    with pytest.raises(ValidationError) as error:
+        Scanner(output_modules=["robots"])
+    assert str(error.value) == 'Could not find output module "robots". Did you mean "web_report"?'
+    # invalid preset type
+    with pytest.raises(ValidationError) as error:
+        Scanner(preset="asdf")
+    assert str(error.value) == 'Preset must be of type Preset, not "str"'
+    # include nonexistent preset
+    with pytest.raises(ValidationError) as error:
+        Preset(include=["asdf"])
+    assert (
+        str(error.value) == 'Could not find preset at "asdf" - file does not exist. Use -lp to list available presets'
+    )

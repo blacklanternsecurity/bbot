@@ -88,6 +88,7 @@ def test_preset_yaml(clean_default_config):
         config={"preset_test_asdf": 1},
         strict_scope=False,
     )
+    preset1.bake()
     assert "evilcorp.com" in preset1.target
     assert "evilcorp.ce" in preset1.whitelist
     assert "test.www.evilcorp.ce" in preset1.blacklist
@@ -257,112 +258,54 @@ def test_preset_module_resolution(clean_default_config):
     assert preset.modules == set(preset.output_modules).union(set(preset.internal_modules))
 
     # make sure dependency resolution works as expected
-    preset.modules = ["wappalyzer"]
+    preset = Preset(modules=["wappalyzer"]).bake()
     assert set(preset.scan_modules) == {"wappalyzer", "httpx"}
 
     # make sure flags work as expected
-    preset = Preset()
-    assert not preset.flags
-    assert not preset.scan_modules
-    preset.flags = ["subdomain-enum"]
+    preset = Preset(flags=["subdomain-enum"]).bake()
+    assert preset.flags == {"subdomain-enum"}
     assert "sslcert" in preset.modules
     assert "wayback" in preset.modules
     assert "sslcert" in preset.scan_modules
     assert "wayback" in preset.scan_modules
 
-    # make sure module exclusions work as expected
-    preset.exclude_modules = ["sslcert"]
-    assert "sslcert" not in preset.modules
-    assert "wayback" in preset.modules
-    assert "sslcert" not in preset.scan_modules
-    assert "wayback" in preset.scan_modules
-    preset.scan_modules = ["sslcert"]
-    assert "sslcert" not in preset.modules
-    assert "wayback" not in preset.modules
-    assert "sslcert" not in preset.scan_modules
-    assert "wayback" not in preset.scan_modules
-    preset.exclude_modules = []
-    preset.scan_modules = ["sslcert"]
-    assert "sslcert" in preset.modules
-    assert "wayback" not in preset.modules
-    assert "sslcert" in preset.scan_modules
-    assert "wayback" not in preset.scan_modules
-    preset.add_module("wayback")
-    assert "sslcert" in preset.modules
-    assert "wayback" in preset.modules
-    assert "sslcert" in preset.scan_modules
-    assert "wayback" in preset.scan_modules
-    preset.exclude_modules = ["sslcert"]
+    # flag + module exclusions
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["sslcert"]).bake()
     assert "sslcert" not in preset.modules
     assert "wayback" in preset.modules
     assert "sslcert" not in preset.scan_modules
     assert "wayback" in preset.scan_modules
 
-    # make sure flag requirements work as expected
-    preset = Preset()
-    preset.require_flags = ["passive"]
-    preset.scan_modules = ["sslcert"]
-    assert not preset.scan_modules
-    preset.scan_modules = ["wappalyzer"]
-    assert not preset.scan_modules
-    preset.flags = ["subdomain-enum"]
-    assert "wayback" in preset.modules
-    assert "wayback" in preset.scan_modules
+    # flag + flag exclusions
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
     assert "sslcert" not in preset.modules
-    assert "sslcert" not in preset.scan_modules
-    preset.require_flags = []
     assert "wayback" in preset.modules
-    assert "wayback" in preset.scan_modules
-    assert "sslcert" not in preset.modules
     assert "sslcert" not in preset.scan_modules
-    assert not preset.require_flags
-    preset.flags = []
-    preset.scan_modules = []
-    assert not preset.flags
-    assert not preset.scan_modules
-    preset.scan_modules = ["sslcert", "wayback"]
-    assert "wayback" in preset.modules
     assert "wayback" in preset.scan_modules
-    assert "sslcert" in preset.modules
-    assert "sslcert" in preset.scan_modules
-    preset.require_flags = ["passive"]
-    assert "wayback" in preset.modules
-    assert "wayback" in preset.scan_modules
-    assert "sslcert" not in preset.modules
-    assert "sslcert" not in preset.scan_modules
 
-    # make sure flag exclusions work as expected
-    preset = Preset()
-    preset.exclude_flags = ["active"]
-    preset.scan_modules = ["sslcert"]
-    assert not preset.scan_modules
-    preset.scan_modules = ["wappalyzer"]
-    assert not preset.scan_modules
-    preset.flags = ["subdomain-enum"]
-    assert "wayback" in preset.modules
-    assert "wayback" in preset.scan_modules
+    # flag + flag requirements
+    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
     assert "sslcert" not in preset.modules
-    assert "sslcert" not in preset.scan_modules
-    preset.exclude_flags = []
     assert "wayback" in preset.modules
-    assert "wayback" in preset.scan_modules
-    assert "sslcert" not in preset.modules
     assert "sslcert" not in preset.scan_modules
-    assert not preset.require_flags
-    preset.flags = []
-    preset.scan_modules = []
-    assert not preset.flags
-    assert not preset.scan_modules
-    preset.scan_modules = ["sslcert", "wayback"]
-    assert "wayback" in preset.modules
     assert "wayback" in preset.scan_modules
-    assert "sslcert" in preset.modules
-    assert "sslcert" in preset.scan_modules
-    preset.exclude_flags = ["active"]
-    assert "wayback" in preset.modules
-    assert "wayback" in preset.scan_modules
-    assert "sslcert" not in preset.modules
-    assert "sslcert" not in preset.scan_modules
+
+    # normal module enableement
+    preset = Preset(modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    assert set(preset.scan_modules) == {"sslcert", "wappalyzer", "wayback", "httpx"}
+
+    # modules + flag exclusions
+    preset = Preset(exclude_flags=["active"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    assert set(preset.scan_modules) == {"wayback"}
+
+    # modules + flag requirements
+    preset = Preset(require_flags=["passive"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    assert set(preset.scan_modules) == {"wayback"}
+
+    # modules + module exclusions
+    with pytest.raises(ValidationError) as error:
+        preset = Preset(exclude_modules=["sslcert"], modules=["sslcert", "wappalyzer", "wayback"]).bake()
+    assert str(error.value) == 'Unable to add scan module "sslcert" because the module has been excluded'
 
 
 def test_preset_module_loader():
@@ -638,7 +581,7 @@ def test_preset_require_exclude():
             yield m, preloaded.get("flags", [])
 
     # enable by flag, no exclusions/requirements
-    preset = Preset(flags=["subdomain-enum"])
+    preset = Preset(flags=["subdomain-enum"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     massdns_flags = preset.preloaded_module("massdns").get("flags", [])
@@ -656,7 +599,7 @@ def test_preset_require_exclude():
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, one required flag
-    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"])
+    preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "massdns" in [x[0] for x in module_flags]
@@ -666,7 +609,7 @@ def test_preset_require_exclude():
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded flag
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"])
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert "massdns" in [x[0] for x in module_flags]
@@ -676,7 +619,7 @@ def test_preset_require_exclude():
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded module
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns"])
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert not "massdns" in [x[0] for x in module_flags]
@@ -686,7 +629,7 @@ def test_preset_require_exclude():
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, multiple required flags
-    preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"])
+    preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert not "massdns" in [x[0] for x in module_flags]
@@ -696,7 +639,7 @@ def test_preset_require_exclude():
     assert not any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded flags
-    preset = Preset(flags=["subdomain-enum"], exclude_flags=["aggressive", "active"])
+    preset = Preset(flags=["subdomain-enum"], exclude_flags=["aggressive", "active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert not "massdns" in [x[0] for x in module_flags]
@@ -706,7 +649,7 @@ def test_preset_require_exclude():
     assert not any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded modules
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns", "c99"])
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns", "c99"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
     assert not "massdns" in [x[0] for x in module_flags]

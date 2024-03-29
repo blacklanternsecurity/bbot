@@ -13,6 +13,7 @@ from omegaconf import OmegaConf  # noqa
 from werkzeug.wrappers import Request
 
 from bbot.core import CORE
+from bbot.core.errors import *  # noqa: F401
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir
 
@@ -49,8 +50,6 @@ class SubstringRequestMatcher(pytest_httpserver.httpserver.RequestMatcher):
 
 
 pytest_httpserver.httpserver.RequestMatcher = SubstringRequestMatcher
-
-from bbot.core.errors import *  # noqa: F401
 
 # silence pytest_httpserver
 log = logging.getLogger("werkzeug")

@@ -59,7 +59,7 @@ class DepsInstaller:
             notified = False
             for m in modules:
                 # assume success if we're ignoring dependencies
-                if self.deps_behavior == "no_deps":
+                if self.deps_behavior == "disable":
                     succeeded.append(m)
                     continue
                 # abort if module name is unknown

@@ -20,10 +20,16 @@ async def test_cli_scan(monkeypatch):
     assert result == True
 
     scan_home = scans_home / "test_cli_scan"
+    assert (scan_home / "preset.yml").is_file(), "preset.yml not found"
     assert (scan_home / "wordcloud.tsv").is_file(), "wordcloud.tsv not found"
     assert (scan_home / "output.txt").is_file(), "output.txt not found"
     assert (scan_home / "output.csv").is_file(), "output.csv not found"
     assert (scan_home / "output.ndjson").is_file(), "output.ndjson not found"
+
+    with open(scan_home / "preset.yml") as f:
+        text = f.read()
+        assert "  dns_resolution: false" in text
+
     with open(scan_home / "output.csv") as f:
         lines = f.readlines()
         assert lines[0] == "Event type,Event data,IP Address,Source Module,Scope Distance,Event Tags\n"
@@ -248,10 +254,13 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     result = await cli._main()
     assert result == True
 
-    # resolved dependency, excluded module
+    # enable and exclude the same module
+    caplog.clear()
+    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "ffuf_shortnames", "-em", "ffuf_shortnames"])
     result = await cli._main()
-    assert result == True
+    assert result == None
+    assert 'Unable to add scan module "ffuf_shortnames" because the module has been excluded' in caplog.text
 
     # require flags
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "-rf", "passive"])
@@ -269,9 +278,12 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert result == True
 
     # deadly modules
+    caplog.clear()
+    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei"])
     result = await cli._main()
     assert result == False, "-m nuclei ran without --allow-deadly"
+    assert "Please specify --allow-deadly to continue" in caplog.text
 
     # --allow-deadly
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "nuclei", "--allow-deadly"])

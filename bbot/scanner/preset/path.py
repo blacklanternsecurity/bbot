@@ -40,7 +40,7 @@ class PresetPath:
                     log.verbose(f'Found preset matching "{filename}" at {file}')
                     self.add_path(file.parent)
                     return file.resolve()
-        raise BBOTError(
+        raise ValidationError(
             f'Could not find preset at "{filename}" - file does not exist. Use -lp to list available presets'
         )
 

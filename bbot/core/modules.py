@@ -46,7 +46,11 @@ class ModuleLoader:
         self.__preloaded = {}
         self._modules = {}
         self._configs = {}
-        self._all_flags = set()
+        self.flag_choices = set()
+        self.all_module_choices = set()
+        self.scan_module_choices = set()
+        self.output_module_choices = set()
+        self.internal_module_choices = set()
 
         self._preload_cache = None
 
@@ -147,8 +151,8 @@ class ModuleLoader:
                             module_type = str(module_dir.name)
                         elif module_dir.name not in ("modules"):
                             flags = set(preloaded["flags"] + [module_dir.name])
-                            self._all_flags.update(flags)
                             preloaded["flags"] = sorted(flags)
+
                         # derive module dependencies from watched event types (only for scan modules)
                         if module_type == "scan":
                             for event_type in preloaded["watched_events"]:
@@ -156,6 +160,7 @@ class ModuleLoader:
                                     deps_modules = set(preloaded.get("deps", {}).get("modules", []))
                                     deps_modules.add(self.default_module_deps[event_type])
                                     preloaded["deps"]["modules"] = sorted(deps_modules)
+
                         preloaded["type"] = module_type
                         preloaded["namespace"] = namespace
                         preloaded["cache_key"] = module_cache_key
@@ -165,8 +170,17 @@ class ModuleLoader:
                         log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
                         sys.exit(1)
 
+                self.all_module_choices.add(module_name)
+                module_type = preloaded.get("type", "scan")
+                if module_type == "scan":
+                    self.scan_module_choices.add(module_name)
+                elif module_type == "output":
+                    self.output_module_choices.add(module_name)
+                elif module_type == "internal":
+                    self.internal_module_choices.add(module_name)
+
                 flags = preloaded.get("flags", [])
-                self._all_flags.update(set(flags))
+                self.flag_choices.update(set(flags))
 
                 self.__preloaded[module_name] = preloaded
                 config = OmegaConf.create(preloaded.get("config", {}))

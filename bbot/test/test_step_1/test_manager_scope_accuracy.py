@@ -304,7 +304,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     # httpx/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 0
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.1/31",
-        modules=["httpx", "excavate"],
+        modules=["httpx"],
         _config={
             "scope_search_distance": 0,
             "scope_dns_search_distance": 2,
@@ -374,11 +374,12 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     # httpx/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 0, in_scope_only = False
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.1/31",
-        modules=["httpx", "excavate"],
+        modules=["httpx"],
         _config={
             "scope_search_distance": 0,
             "scope_dns_search_distance": 2,
             "scope_report_distance": 1,
+            "excavate": True,
             "speculate": True,
             "modules": {"httpx": {"in_scope_only": False}, "speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
@@ -457,11 +458,12 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     # httpx/speculate IP_RANGE --> IP_ADDRESS --> OPEN_TCP_PORT --> URL, search distance = 1
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.1/31",
-        modules=["httpx", "excavate"],
+        modules=["httpx"],
         _config={
             "scope_search_distance": 1,
             "scope_dns_search_distance": 2,
             "scope_report_distance": 1,
+            "excavate": True,
             "speculate": True,
             "modules": {"httpx": {"in_scope_only": False}, "speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
@@ -551,12 +553,13 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.111/31",
         whitelist=["127.0.0.111/31", "127.0.0.222", "127.0.0.33"],
-        modules=["httpx", "excavate"],
+        modules=["httpx"],
         output_modules=["python"],
         _config={
             "scope_search_distance": 0,
             "scope_dns_search_distance": 2,
             "scope_report_distance": 0,
+            "excavate": True,
             "speculate": True,
             "modules": {"speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
@@ -679,8 +682,8 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     # sslcert with in-scope chain
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.0/31",
-        modules=["speculate", "sslcert"],
-        _config={"dns_resolution": False, "scope_report_distance": 0, "modules": {"speculate": {"ports": "9999"}}},
+        modules=["sslcert"],
+        _config={"dns_resolution": False, "scope_report_distance": 0, "speculate": True, "modules": {"speculate": {"ports": "9999"}}},
         _dns_mock={"www.bbottest.notreal": {"A": ["127.0.1.0"]}, "test.notreal": {"A": ["127.0.0.1"]}},
     )
 
@@ -735,9 +738,9 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     # sslcert with out-of-scope chain
     events, all_events, all_events_nodups, graph_output_events, graph_output_batch_events = await do_scan(
         "127.0.0.0/31",
-        modules=["speculate", "sslcert"],
+        modules=["sslcert"],
         whitelist=["127.0.1.0"],
-        _config={"dns_resolution": False, "scope_report_distance": 0, "modules": {"speculate": {"ports": "9999"}}},
+        _config={"dns_resolution": False, "scope_report_distance": 0, "speculate": True, "modules": {"speculate": {"ports": "9999"}}},
         _dns_mock={"www.bbottest.notreal": {"A": ["127.0.0.1"]}, "test.notreal": {"A": ["127.0.1.0"]}},
     )
 

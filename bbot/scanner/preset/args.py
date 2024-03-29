@@ -74,15 +74,6 @@ class BBOTArgs:
         self.preset = preset
         self._config = None
 
-        # validate module choices
-        self._module_choices = sorted(set(self.preset.module_loader.preloaded(type="scan")))
-        self._output_module_choices = sorted(set(self.preset.module_loader.preloaded(type="output")))
-        self._all_module_choices = sorted(set(self.preset.module_loader.preloaded()))
-        self._flag_choices = set()
-        for m, c in self.preset.module_loader.preloaded().items():
-            self._flag_choices.update(set(c.get("flags", [])))
-        self._flag_choices = sorted(self._flag_choices)
-
         self.parser = self.create_parser()
         self._parsed = None
 
@@ -120,21 +111,15 @@ class BBOTArgs:
             except BBOTArgumentError:
                 raise
             except Exception as e:
-                raise BBOTArgumentError(f'Error parsing preset "{preset_arg}": {e} (-d to debug)')
+                raise BBOTArgumentError(f'Error parsing preset "{preset_arg}": {e}')
 
-        # then we validate the modules/flags/config options
-        self.validate()
-
-        # load modules & flags (excluded then required then all others)
-        args_preset.add_excluded_modules(self.parsed.exclude_modules)
-        args_preset.add_excluded_flags(self.parsed.exclude_flags)
-        args_preset.add_required_flags(self.parsed.require_flags)
-        for scan_module in self.parsed.modules:
-            args_preset.add_module(scan_module, module_type="scan")
-        for output_module in self.parsed.output_modules:
-            args_preset.add_module(output_module, module_type="output")
-
-        args_preset.add_flags(self.parsed.flags)
+        # modules + flags
+        args_preset.exclude_modules.update(set(self.parsed.exclude_modules))
+        args_preset.exclude_flags.update(set(self.parsed.exclude_flags))
+        args_preset.require_flags.update(set(self.parsed.require_flags))
+        args_preset.explicit_scan_modules.update(set(self.parsed.modules))
+        args_preset.explicit_output_modules.update(set(self.parsed.output_modules))
+        args_preset.flags.update(set(self.parsed.flags))
 
         # dependencies
         if self.parsed.retry_deps:
@@ -149,7 +134,7 @@ class BBOTArgs:
         # other scan options
         args_preset.scan_name = self.parsed.name
         args_preset.output_dir = self.parsed.output_dir
-        args_preset.force = self.parsed.force
+        args_preset.force_start = self.parsed.force
 
         # CLI config options (dot-syntax)
         for config_arg in self.parsed.config:
@@ -209,7 +194,7 @@ class BBOTArgs:
             "--modules",
             nargs="+",
             default=[],
-            help=f'Modules to enable. Choices: {",".join(self._module_choices)}',
+            help=f'Modules to enable. Choices: {",".join(self.preset.module_loader.scan_module_choices)}',
             metavar="MODULE",
         )
         modules.add_argument("-l", "--list-modules", action="store_true", help=f"List available modules.")
@@ -220,11 +205,19 @@ class BBOTArgs:
             "-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE"
         )
         modules.add_argument(
+            "-om",
+            "--output-modules",
+            nargs="+",
+            default=[],
+            help=f'Output module(s). Choices: {",".join(self.preset.module_loader.output_module_choices)}',
+            metavar="MODULE",
+        )
+        modules.add_argument(
             "-f",
             "--flags",
             nargs="+",
             default=[],
-            help=f'Enable modules by flag. Choices: {",".join(self._flag_choices)}',
+            help=f'Enable modules by flag. Choices: {",".join(self.preset.module_loader.flag_choices)}',
             metavar="FLAG",
         )
         modules.add_argument("-lf", "--list-flags", action="store_true", help=f"List available flags.")
@@ -243,14 +236,6 @@ class BBOTArgs:
             default=[],
             help=f"Disable modules with these flags. (e.g. -ef aggressive)",
             metavar="FLAG",
-        )
-        modules.add_argument(
-            "-om",
-            "--output-modules",
-            nargs="+",
-            default=[],
-            help=f'Output module(s). Choices: {",".join(self._output_module_choices)}',
-            metavar="MODULE",
         )
         modules.add_argument("--allow-deadly", action="store_true", help="Enable the use of highly aggressive modules")
         scan = p.add_argument_group(title="Scan")
@@ -331,20 +316,4 @@ class BBOTArgs:
                 if self.exclude_from_validation.match(c):
                     continue
                 # otherwise, ensure it exists as a module option
-                raise BBOTArgumentError(get_closest_match(c, all_options, msg="module option"))
-
-        # validate modules
-        for m in self.parsed.modules:
-            if m not in self._module_choices:
-                raise BBOTArgumentError(get_closest_match(m, self._module_choices, msg="scan module"))
-        for m in self.parsed.exclude_modules:
-            if m not in self._all_module_choices:
-                raise BBOTArgumentError(get_closest_match(m, self._all_module_choices, msg="module"))
-        for m in self.parsed.output_modules:
-            if m not in self._output_module_choices:
-                raise BBOTArgumentError(get_closest_match(m, self._output_module_choices, msg="output module"))
-
-        # validate flags
-        for f in set(self.parsed.flags + self.parsed.require_flags + self.parsed.exclude_flags):
-            if f not in self._flag_choices:
-                raise BBOTArgumentError(get_closest_match(f, self._flag_choices, msg="flag"))
+                raise ValidationError(get_closest_match(c, all_options, msg="module option"))

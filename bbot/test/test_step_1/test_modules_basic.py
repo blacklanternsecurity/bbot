@@ -80,8 +80,9 @@ async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
     base_output_module.watched_events = ["IP_ADDRESS"]
 
     scan2 = bbot_scanner(
-        modules=list(set(available_modules + available_internal_modules)),
+        modules=list(available_modules),
         output_modules=list(available_output_modules),
+        config={i: True for i in available_internal_modules},
         force_start=True,
     )
     scan2.helpers.dns.fallback_nameservers_file = fallback_nameservers
@@ -266,7 +267,8 @@ async def test_modules_basic_perhostonly(helpers, events, bbot_scanner, httpx_mo
 async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, httpx_mock, monkeypatch):
     per_domain_scan = bbot_scanner(
         "evilcorp.com",
-        modules=list(set(available_modules + available_internal_modules)),
+        modules=list(available_modules),
+        config={i: True for i in available_internal_modules},
         force_start=True,
     )
 

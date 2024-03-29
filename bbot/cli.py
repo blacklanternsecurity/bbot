@@ -64,26 +64,23 @@ async def _main():
                 log.stdout(row)
             return
 
+        # if we're listing modules or their options
         if options.list_modules or options.list_module_options:
 
-            modules_to_list = set()
-            if options.modules or options.flags:
-                modules_to_list.update(set(preset.scan_modules))
-            if options.output_modules:
-                modules_to_list.update(set(preset.output_modules))
-
+            # if no modules or flags are specified, enable everything
             if not (options.modules or options.output_modules or options.flags):
                 for module, preloaded in preset.module_loader.preloaded().items():
                     module_type = preloaded.get("type", "scan")
                     preset.add_module(module, module_type=module_type)
-                    modules_to_list.update(set(preset.modules))
+
+            preset.bake()
 
             # --list-modules
             if options.list_modules:
                 log.stdout("")
                 log.stdout("### MODULES ###")
                 log.stdout("")
-                for row in preset.module_loader.modules_table(modules_to_list).splitlines():
+                for row in preset.module_loader.modules_table(preset.modules).splitlines():
                     log.stdout(row)
                 return
 
@@ -92,7 +89,7 @@ async def _main():
                 log.stdout("")
                 log.stdout("### MODULE OPTIONS ###")
                 log.stdout("")
-                for row in preset.module_loader.modules_options_table(modules_to_list).splitlines():
+                for row in preset.module_loader.modules_options_table(preset.modules).splitlines():
                     log.stdout(row)
                 return
 
@@ -106,18 +103,20 @@ async def _main():
                 log.stdout(row)
             return
 
-        deadly_modules = [m for m in preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])]
+        try:
+            scan = Scanner(preset=preset)
+        except (PresetAbortError, ValidationError) as e:
+            log.warning(str(e))
+            return
+
+        deadly_modules = [
+            m for m in scan.preset.scan_modules if "deadly" in preset.preloaded_module(m).get("flags", [])
+        ]
         if deadly_modules and not options.allow_deadly:
             log.hugewarning(f"You enabled the following deadly modules: {','.join(deadly_modules)}")
             log.hugewarning(f"Deadly modules are highly intrusive")
             log.hugewarning(f"Please specify --allow-deadly to continue")
             return False
-
-        try:
-            scan = Scanner(preset=preset)
-        except PresetAbortError as e:
-            log.warning(str(e))
-            return
 
         # --current-preset
         if options.current_preset:

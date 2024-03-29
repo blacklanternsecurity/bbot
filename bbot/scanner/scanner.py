@@ -20,10 +20,10 @@ from .stats import ScanStats
 from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.core.event import make_event
-from bbot.core.errors import BBOTError, ScanError
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
+from bbot.core.errors import BBOTError, ScanError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
 
@@ -131,6 +131,9 @@ class Scanner:
         kwargs["_log"] = True
         if preset is None:
             preset = Preset(*targets, **kwargs)
+        else:
+            if not isinstance(preset, Preset):
+                raise ValidationError(f'Preset must be of type Preset, not "{type(preset).__name__}"')
         self.preset = preset.bake()
         self.preset.scan = self
 
@@ -226,11 +229,16 @@ class Scanner:
 
     async def _prep(self):
         """
-        Calls .load_modules() and .setup_modules() in preparation for a scan
+        Creates the scan's output folder, loads its modules, and calls their .setup() methods.
         """
 
         self.helpers.mkdir(self.home)
         if not self._prepped:
+            # save scan preset
+            with open(self.home / "preset.yml", "w") as f:
+                f.write(self.preset.to_yaml())
+
+            # log scan overview
             start_msg = f"Scan with {len(self.preset.scan_modules):,} modules seeded with {len(self.target):,} targets"
             details = []
             if self.whitelist != self.target:
@@ -241,14 +249,19 @@ class Scanner:
                 start_msg += f" ({', '.join(details)})"
             self.hugeinfo(start_msg)
 
+            # load scan modules (this imports and instantiates them)
+            # up to this point they were only preloaded
             await self.load_modules()
 
+            # run each module's .setup() method
             self.info(f"Setting up modules...")
             succeeded, hard_failed, soft_failed = await self.setup_modules()
 
+            # abort if there are no output modules
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
             if num_output_modules < 1:
                 raise ScanError("Failed to load output modules. Aborting.")
+            # abort if any of the module .setup()s hard-failed (i.e. they errored or returned False)
             total_failed = len(hard_failed + soft_failed)
             if hard_failed:
                 msg = f"Setup hard-failed for {len(hard_failed):,} modules ({','.join(hard_failed)})"

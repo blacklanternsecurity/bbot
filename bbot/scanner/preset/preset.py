@@ -12,7 +12,7 @@ from .path import PRESET_PATH
 from bbot.core import CORE
 from bbot.core.errors import *
 from bbot.core.event.base import make_event
-from bbot.core.helpers.misc import make_table, mkdir
+from bbot.core.helpers.misc import make_table, mkdir, get_closest_match
 
 
 log = logging.getLogger("bbot.presets")
@@ -24,11 +24,22 @@ DEFAULT_PRESETS = None
 
 class Preset:
     """
-    A preset is the central, all-powerful config in BBOT. It contains everything a scan needs to start.
-    It can specify scan targets, modules, flags, config options like API keys, etc.
+    A preset is the central config for a BBOT scan. It contains everything a scan needs to run --
+        targets, modules, flags, config options like API keys, etc.
 
-    A preset can be loaded from or saved to YAML. BBOT has a number of ready-made presets for common tasks like
+    You can create a preset manually and pass it into `Scanner(preset=preset)`.
+        Or, you can pass `Preset`'s kwargs into `Scanner()` and it will create the preset for you implicitly.
+
+    Presets can include other presets (which can in turn include other presets, and so on).
+        This works by merging each preset in turn using `Preset.merge()`.
+        The order matters. In case of a conflict, the last preset to be merged wins priority.
+
+    Presets can be loaded from or saved to YAML. BBOT has a number of ready-made presets for common tasks like
     subdomain enumeration, web spidering, dirbusting, etc.
+
+    Presets are highly customizable via `conditions`, which use the Jinja2 templating engine.
+        Using `conditions`, you can define custom logic to inspect the final preset before the scan starts, and change it if need be.
+        Based on the state of the preset, you can print a warning message, abort the scan, enable/disable modules, etc..
 
     Attributes:
         target (Target): Target(s) of scan.
@@ -56,8 +67,17 @@ class Preset:
         silent (bool): Whether logging is currently disabled. When set to True, silences all stderr.
 
     Examples:
-        >>> helper = ConfigAwareHelper(config)
-        >>> ips = helper.dns.resolve("www.evilcorp.com")
+        >>> preset = Preset(
+                "evilcorp.com",
+                "1.2.3.0/24",
+                flags=["subdomain-enum"],
+                modules=["nuclei"],
+                config={"http_proxy": "http://127.0.0.1"}
+            )
+        >>> scan = Scanner(preset=preset)
+
+        >>> preset = Preset.from_yaml_file("my_preset.yml")
+        >>> scan = Scanner(preset=preset)
     """
 
     def __init__(
@@ -116,6 +136,7 @@ class Preset:
             _log (bool, optional): Whether to enable logging for the preset. This will record which modules/flags are enabled, etc.
         """
         # internal variables
+        self._cli = False
         self._log = _log
         self.scan = None
         self._args = None
@@ -123,14 +144,42 @@ class Preset:
         self._helpers = None
         self._module_loader = None
         self._yaml_str = ""
-        self._modules = set()
-        self._exclude_modules = set()
-        self._require_flags = set()
-        self._exclude_flags = set()
-        self._flags = set()
         self._verbose = False
         self._debug = False
         self._silent = False
+
+        # modules / flags
+        self.modules = set()
+        self.exclude_modules = set()
+        self.flags = set()
+        self.exclude_flags = set()
+        self.require_flags = set()
+
+        # modules + flags
+        if modules is None:
+            modules = []
+        if isinstance(modules, str):
+            modules = [modules]
+        if output_modules is None:
+            output_modules = []
+        if isinstance(output_modules, str):
+            output_modules = [output_modules]
+        if exclude_modules is None:
+            exclude_modules = []
+        if isinstance(exclude_modules, str):
+            exclude_modules = [exclude_modules]
+        if flags is None:
+            flags = []
+        if isinstance(flags, str):
+            flags = [flags]
+        if exclude_flags is None:
+            exclude_flags = []
+        if isinstance(exclude_flags, str):
+            exclude_flags = [exclude_flags]
+        if require_flags is None:
+            require_flags = []
+        if isinstance(require_flags, str):
+            require_flags = [require_flags]
 
         # these are used only for preserving the modules as specified in the original preset
         # this is to ensure the preset looks the same when reserialized
@@ -203,34 +252,13 @@ class Preset:
             for included_preset in include:
                 self.include_preset(included_preset)
 
-        # modules + flags
-        if modules is None:
-            modules = []
-        if output_modules is None:
-            output_modules = []
-        if isinstance(modules, str):
-            modules = [modules]
-        if isinstance(output_modules, str):
-            output_modules = [output_modules]
-        # requirements/exclusions are always loaded first
-        self.add_excluded_modules(exclude_modules if exclude_modules is not None else [])
-        self.add_required_flags(require_flags if require_flags is not None else [])
-        self.add_excluded_flags(exclude_flags if exclude_flags is not None else [])
-        # then the modules can be enabled
-        self.add_scan_modules(modules if modules is not None else [])
-        self.add_output_modules(output_modules)
-
-        # add internal modules
-        # we enable all of them for now
-        # if disabled via the config, they are removed during .bake()
-        for internal_module, preloaded in self.module_loader.preloaded(type="internal").items():
-            is_enabled = self.config.get(internal_module, True)
-            is_excluded = internal_module in self.exclude_modules
-            if is_enabled and not is_excluded:
-                self.add_module(internal_module, module_type="internal")
-
-        # adding flags automatically enables populates `self.modules`
-        self.add_flags(flags if flags is not None else [])
+        # we don't fill self.modules yet (that happens in .bake())
+        self.explicit_scan_modules.update(set(modules))
+        self.explicit_output_modules.update(set(output_modules))
+        self.exclude_modules.update(set(exclude_modules))
+        self.flags.update(set(flags))
+        self.exclude_flags.update(set(exclude_flags))
+        self.require_flags.update(set(require_flags))
 
     @property
     def bbot_home(self):
@@ -241,6 +269,25 @@ class Preset:
         return self.bbot_home / "presets"
 
     def merge(self, other):
+        """
+        Merge another preset into this one.
+
+        If there are any config conflicts, `other` will win over `self`.
+
+        Args:
+            other (Preset): The preset to merge into this one.
+
+        Example:
+            >>> preset1 = Preset(modules=["nmap"])
+            >>> preset1.scan_modules
+            ['nmap']
+            >>> preset2 = Preset(modules=["sslcert"])
+            >>> preset2.scan_modules
+            ['sslcert']
+            >>> preset1.merge(preset2)
+            >>> preset1.scan_modules
+            ['nmap', 'sslcert']
+        """
         self.log_debug(f'Merging preset "{other.name}" into "{self.name}"')
         # config
         self.core.merge_custom(other.core.custom_config)
@@ -248,16 +295,13 @@ class Preset:
         # module dirs
         # modules + flags
         # establish requirements / exclusions first
-        self.add_excluded_modules(other.exclude_modules)
-        self.add_required_flags(other.require_flags)
-        self.add_excluded_flags(other.exclude_flags)
+        self.exclude_modules.update(other.exclude_modules)
+        self.require_flags.update(other.require_flags)
+        self.exclude_flags.update(other.exclude_flags)
         # then it's okay to start enabling modules
         self.explicit_scan_modules.update(other.explicit_scan_modules)
         self.explicit_output_modules.update(other.explicit_output_modules)
-        self.add_flags(other.flags)
-        for module_name in other.modules:
-            module_type = self.preloaded_module(module_name).get("type", "scan")
-            self.add_module(module_name, module_type=module_type)
+        self.flags.update(other.flags)
         # scope
         self.target.add_target(other.target)
         self.whitelist.add_target(other.whitelist)
@@ -285,8 +329,15 @@ class Preset:
 
     def bake(self):
         """
-        return a "baked" copy of the preset, ready for use by a BBOT scan
+        Return a "baked" copy of this preset, ready for use by a BBOT scan.
+
+        Baking a preset finalizes it by populating `preset.modules` based on flags, 
+        performing final validations, and substituting environment variables in preloaded modules.
+        It also evaluates custom `conditions` as specified in the preset.
+
+        This function is automatically called in Scanner.__init__(). There is no need to call it manually.
         """
+        self.log_debug("Getting baked")
         # create a copy of self
         baked_preset = copy(self)
         # copy core
@@ -303,15 +354,40 @@ class Preset:
         os.environ.clear()
         os.environ.update(os_environ)
 
+        # validate flags, config options
+        baked_preset.validate()
+
+        # now that our requirements / exclusions are validated, we can start enabling modules
+        # enable scan modules
+        for module in baked_preset.explicit_scan_modules:
+            baked_preset.add_module(module, module_type="scan")
+        # enable output modules
+        for module in self.explicit_output_modules:
+            baked_preset.add_module(module, module_type="output", raise_error=False)
+
+        # enable internal modules
+        for internal_module, preloaded in baked_preset.module_loader.preloaded(type="internal").items():
+            is_enabled = baked_preset.config.get(internal_module, True)
+            is_excluded = internal_module in baked_preset.exclude_modules
+            if is_enabled and not is_excluded:
+                baked_preset.add_module(internal_module, module_type="internal", raise_error=False)
+
         # disable internal modules if requested
         for internal_module in baked_preset.internal_modules:
             if baked_preset.config.get(internal_module, True) == False:
-                baked_preset.exclude_module(internal_module)
+                baked_preset.exclude_modules.add(internal_module)
+
+        # enable modules by flag
+        for flag in baked_preset.flags:
+            for module, preloaded in baked_preset.module_loader.preloaded().items():
+                module_flags = preloaded.get("flags", [])
+                if flag in module_flags:
+                    baked_preset.add_module(module, raise_error=False)
 
         # ensure we have output modules
-        if not self.output_modules:
+        if not baked_preset.output_modules:
             for output_module in ("python", "csv", "human", "json"):
-                self.add_module(output_module, module_type="output")
+                baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
         # evaluate conditions
         if baked_preset.conditions:
@@ -323,6 +399,12 @@ class Preset:
         return baked_preset
 
     def parse_args(self):
+        """
+        Parse CLI arguments, and merge them into this preset.
+
+        Used in `cli.py`.
+        """
+        self._cli = True
         self.merge(self.args.preset_from_args())
 
     @property
@@ -339,204 +421,28 @@ class Preset:
                 self._module_dirs.add(m)
 
     @property
-    def modules(self):
-        return self._modules
-
-    @modules.setter
-    def modules(self, modules):
-        if isinstance(modules, str):
-            modules = [modules]
-        modules = set(modules)
-        modules.update(self.internal_modules)
-        for module_name in modules:
-            self.add_module(module_name)
-
-    @property
     def scan_modules(self):
         return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "scan"]
-
-    @scan_modules.setter
-    def scan_modules(self, modules):
-        self.log_debug(f"Setting scan modules to {modules}")
-        self._modules_setter(modules, module_type="scan")
 
     @property
     def output_modules(self):
         return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "output"]
 
-    @output_modules.setter
-    def output_modules(self, modules):
-        self.log_debug(f"Setting output modules to {modules}")
-        self._modules_setter(modules, module_type="output")
-
     @property
     def internal_modules(self):
         return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "internal"]
 
-    def _modules_setter(self, modules, module_type="scan"):
-        if isinstance(modules, str):
-            modules = [modules]
-        # start by removing currently-enabled modules of that type
-        for module_name in list(self.modules):
-            if module_type and self.preloaded_module(module_name).get("type", "scan") == module_type:
-                self._modules.remove(module_name)
-        for module_name in set(modules):
-            self.add_module(module_name, module_type=module_type)
-
-    def add_scan_modules(self, modules):
-        for module in modules:
-            self.add_module(module, module_type="scan")
-
-    def add_output_modules(self, modules):
-        for module in modules:
-            self.add_module(module, module_type="output")
-
-    def add_internal_modules(self, modules):
-        for module in modules:
-            self.add_module(module, module_type="internal")
-
-    def add_module(self, module_name, module_type="scan"):
-        if module_name in self.exclude_modules:
-            self.log_verbose(f'Skipping module "{module_name}" because it\'s excluded')
-            return
-        if module_name in self.modules:
-            self.log_debug(f'Already added module "{module_name}"')
-            return
-        try:
-            preloaded = self.module_loader.preloaded()[module_name]
-        except KeyError:
-            raise EnableModuleError(f'Unable to add unknown BBOT module "{module_name}"')
-
-        module_flags = preloaded.get("flags", [])
-        _module_type = preloaded.get("type", "scan")
-        if module_type:
-            if _module_type != module_type:
-                self.log_verbose(
-                    f'Not adding module "{module_name}" because its type ({_module_type}) is not "{module_type}"'
-                )
-                return
-
-        if _module_type == "scan":
-            for f in module_flags:
-                if f in self.exclude_flags:
-                    self.log_verbose(f'Skipping module "{module_name}" because it\'s excluded')
-                    return
-            if self.require_flags and not all(f in module_flags for f in self.require_flags):
-                self.log_verbose(
-                    f'Skipping module "{module_name}" because it doesn\'t have the required flags ({",".join(self.require_flags)})'
-                )
-                return
-
+    def add_module(self, module_name, module_type="scan", raise_error=True):
         self.log_debug(f'Adding module "{module_name}"')
-        self._modules.add(module_name)
+        is_valid, reason, preloaded = self._is_valid_module(module_name, module_type, raise_error=raise_error)
+        if not is_valid:
+            self.log_debug(f'Unable to add {module_type} module "{module_name}": {reason}')
+            return
+        self.modules.add(module_name)
         for module_dep in preloaded.get("deps", {}).get("modules", []):
             if module_dep != module_name and module_dep not in self.modules:
                 self.log_verbose(f'Adding module "{module_dep}" because {module_name} depends on it')
-                self.add_module(module_dep)
-
-    @property
-    def exclude_modules(self):
-        return self._exclude_modules
-
-    @property
-    def exclude_flags(self):
-        return self._exclude_flags
-
-    @property
-    def require_flags(self):
-        return self._require_flags
-
-    @property
-    def flags(self):
-        return self._flags
-
-    @flags.setter
-    def flags(self, flags):
-        self.log_debug(f"Setting flags to {flags}")
-        flags = set(flags)
-        self._flags = flags
-        self.add_flags(flags)
-
-    def add_flags(self, flags):
-        if flags:
-            self.log_debug(f"Adding flags: {flags}")
-            for flag in flags:
-                self.add_flag(flag)
-
-    def add_flag(self, flag):
-        if not flag in self.module_loader._all_flags:
-            raise EnableFlagError(f'Flag "{flag}" was not found')
-        if flag in self.exclude_flags:
-            self.log_debug(f'Skipping flag "{flag}" because it\'s excluded')
-            return
-        self.log_debug(f'Adding flag "{flag}"')
-        self._flags.add(flag)
-        for module, preloaded in self.module_loader.preloaded().items():
-            module_flags = preloaded.get("flags", [])
-            if flag in module_flags:
-                self.add_module(module)
-
-    @require_flags.setter
-    def require_flags(self, flags):
-        self.log_debug(f"Setting required flags to {flags}")
-        if isinstance(flags, str):
-            flags = [flags]
-        self._require_flags = set()
-        for flag in set(flags):
-            self.require_flag(flag)
-
-    @exclude_modules.setter
-    def exclude_modules(self, modules):
-        self.log_debug(f"Setting excluded modules to {modules}")
-        if isinstance(modules, str):
-            modules = [modules]
-        self._exclude_modules = set()
-        for module in set(modules):
-            self.exclude_module(module)
-
-    @exclude_flags.setter
-    def exclude_flags(self, flags):
-        self.log_debug(f"Setting excluded flags to {flags}")
-        if isinstance(flags, str):
-            flags = [flags]
-        self._exclude_flags = set()
-        for flag in set(flags):
-            self.exclude_flag(flag)
-
-    def add_required_flags(self, flags):
-        for flag in flags:
-            self.require_flag(flag)
-
-    def require_flag(self, flag):
-        self.require_flags.add(flag)
-        for module in list(self.scan_modules):
-            module_flags = self.preloaded_module(module).get("flags", [])
-            if flag not in module_flags:
-                self.log_verbose(f'Removing module "{module}" because it doesn\'t have the required flag, "{flag}"')
-                self.modules.remove(module)
-
-    def add_excluded_flags(self, flags):
-        for flag in flags:
-            self.exclude_flag(flag)
-
-    def exclude_flag(self, flag):
-        self.exclude_flags.add(flag)
-        for module in list(self.scan_modules):
-            module_flags = self.preloaded_module(module).get("flags", [])
-            if flag in module_flags:
-                self.log_verbose(f'Removing module "{module}" because it has the excluded flag, "{flag}"')
-                self.modules.remove(module)
-
-    def add_excluded_modules(self, modules):
-        for module in modules:
-            self.exclude_module(module)
-
-    def exclude_module(self, module):
-        self.exclude_modules.add(module)
-        for module in list(self.modules):
-            if module in self.exclude_modules:
-                self.log_verbose(f'Removing module "{module}" because it\'s excluded')
-                self.modules.remove(module)
+                self.add_module(module_dep, raise_error=False)
 
     def preloaded_module(self, module):
         return self.module_loader.preloaded()[module]
@@ -790,6 +696,75 @@ class Preset:
         preset_dict = self.to_dict(include_target=include_target, full_config=full_config)
         return yaml.dump(preset_dict, sort_keys=sort_keys)
 
+    def _is_valid_module(self, module, module_type, name_only=False, raise_error=True):
+        if module_type == "scan":
+            module_choices = self.module_loader.scan_module_choices
+        elif module_type == "output":
+            module_choices = self.module_loader.output_module_choices
+        elif module_type == "internal":
+            module_choices = self.module_loader.internal_module_choices
+        else:
+            raise ValidationError(f'Unknown module type "{module}"')
+
+        if not module in module_choices:
+            raise ValidationError(get_closest_match(module, module_choices, msg=f"{module_type} module"))
+
+        try:
+            preloaded = self.module_loader.preloaded()[module]
+        except KeyError:
+            raise ValidationError(f'Unknown module "{module}"')
+
+        if name_only:
+            return True, "", preloaded
+
+        if module in self.exclude_modules:
+            reason = "the module has been excluded"
+            if raise_error:
+                raise ValidationError(f'Unable to add {module_type} module "{module}" because {reason}')
+            return False, reason, {}
+
+        module_flags = preloaded.get("flags", [])
+        _module_type = preloaded.get("type", "scan")
+        if module_type:
+            if _module_type != module_type:
+                reason = f'its type ({_module_type}) is not "{module_type}"'
+                if raise_error:
+                    raise ValidationError(f'Unable to add {module_type} module "{module}" because {reason}')
+                return False, reason, preloaded
+
+        if _module_type == "scan":
+            if self.exclude_flags:
+                for f in module_flags:
+                    if f in self.exclude_flags:
+                        return False, f'it has excluded flag, "{f}"', preloaded
+            if self.require_flags and not all(f in module_flags for f in self.require_flags):
+                return False, f'it doesn\'t have the required flags ({",".join(self.require_flags)})', preloaded
+
+        return True, "", preloaded
+
+    def validate(self):
+        if self._cli:
+            self.args.validate()
+
+        # validate excluded modules
+        for excluded_module in self.exclude_modules:
+            if not excluded_module in self.module_loader.all_module_choices:
+                raise ValidationError(
+                    get_closest_match(excluded_module, self.module_loader.all_module_choices, msg="module")
+                )
+        # validate excluded flags
+        for excluded_flag in self.exclude_flags:
+            if not excluded_flag in self.module_loader.flag_choices:
+                raise ValidationError(get_closest_match(excluded_flag, self.module_loader.flag_choices, msg="flag"))
+        # validate required flags
+        for required_flag in self.require_flags:
+            if not required_flag in self.module_loader.flag_choices:
+                raise ValidationError(get_closest_match(required_flag, self.module_loader.flag_choices, msg="flag"))
+        # validate flags
+        for flag in self.flags:
+            if not flag in self.module_loader.flag_choices:
+                raise ValidationError(get_closest_match(flag, self.module_loader.flag_choices, msg="flag"))
+
     @property
     def all_presets(self):
         preset_dir = self.preset_dir
@@ -852,6 +827,7 @@ class Preset:
         if include_modules:
             header.append("Modules")
         for yaml_file, (loaded_preset, category, preset_path, original_file) in self.all_presets.items():
+            loaded_preset = loaded_preset.bake()
             num_modules = f"{len(loaded_preset.scan_modules):,}"
             row = [loaded_preset.name, category, loaded_preset.description, num_modules]
             if include_modules:
