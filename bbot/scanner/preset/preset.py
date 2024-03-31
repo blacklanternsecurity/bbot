@@ -533,13 +533,13 @@ class Preset:
             self._args = BBOTArgs(self)
         return self._args
 
-    def in_scope(self, e):
+    def in_scope(self, host):
         """
         Check whether a hostname, url, IP, etc. is in scope.
         Accepts either events or string data.
 
         Checks whitelist and blacklist.
-        If `e` is an event and its scope distance is zero, it will be considered in-scope.
+        If `host` is an event and its scope distance is zero, it will automatically be considered in-scope.
 
         Examples:
             Check if a URL is in scope:
@@ -553,16 +553,36 @@ class Preset:
         in_scope = e.scope_distance == 0 or self.whitelisted(e)
         return in_scope and not self.blacklisted(e)
 
-    def blacklisted(self, e):
+    def blacklisted(self, host):
         """
         Check whether a hostname, url, IP, etc. is blacklisted.
+
+        Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
+
+        Args:
+            host (str or IPAddress or Event): The host to check against the blacklist
+
+        Examples:
+            Check if a URL's host is blacklisted:
+            >>> preset.blacklisted("http://www.evilcorp.com")
+            True
         """
         e = make_event(e, dummy=True)
         return e in self.blacklist
 
-    def whitelisted(self, e):
+    def whitelisted(self, host):
         """
         Check whether a hostname, url, IP, etc. is whitelisted.
+
+        Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
+
+        Args:
+            host (str or IPAddress or Event): The host to check against the whitelist
+
+        Examples:
+            Check if a URL's host is whitelisted:
+            >>> preset.whitelisted("http://www.evilcorp.com")
+            True
         """
         e = make_event(e, dummy=True)
         return e in self.whitelist
