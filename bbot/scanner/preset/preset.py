@@ -547,7 +547,7 @@ class Preset:
             True
         """
         try:
-            e = make_event(e, dummy=True)
+            e = make_event(host, dummy=True)
         except ValidationError:
             return False
         in_scope = e.scope_distance == 0 or self.whitelisted(e)
@@ -567,7 +567,7 @@ class Preset:
             >>> preset.blacklisted("http://www.evilcorp.com")
             True
         """
-        e = make_event(e, dummy=True)
+        e = make_event(host, dummy=True)
         return e in self.blacklist
 
     def whitelisted(self, host):
@@ -584,7 +584,7 @@ class Preset:
             >>> preset.whitelisted("http://www.evilcorp.com")
             True
         """
-        e = make_event(e, dummy=True)
+        e = make_event(host, dummy=True)
         return e in self.whitelist
 
     @classmethod
