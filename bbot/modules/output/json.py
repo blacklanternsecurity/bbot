@@ -16,7 +16,7 @@ class JSON(BaseOutputModule):
     _preserve_graph = True
 
     async def setup(self):
-        self._prep_output_dir("output.ndjson")
+        self._prep_output_dir("output.json")
         self.siem_friendly = self.config.get("siem_friendly", False)
         return True
 
