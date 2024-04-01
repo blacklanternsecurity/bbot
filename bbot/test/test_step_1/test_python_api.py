@@ -15,7 +15,7 @@ async def test_python_api():
     scan2 = Scanner("127.0.0.1", output_modules=["json"], scan_name="python_api_test")
     await scan2.async_start_without_generator()
     scan_home = scan2.helpers.scans_dir / "python_api_test"
-    out_file = scan_home / "output.ndjson"
+    out_file = scan_home / "output.json"
     assert list(scan2.helpers.read_file(out_file))
     scan_log = scan_home / "scan.log"
     debug_log = scan_home / "debug.log"
@@ -31,7 +31,7 @@ async def test_python_api():
     assert "scan_logging_test" not in open(debug_log).read()
 
     scan_home = scan3.helpers.scans_dir / "scan_logging_test"
-    out_file = scan_home / "output.ndjson"
+    out_file = scan_home / "output.json"
     assert list(scan3.helpers.read_file(out_file))
     scan_log = scan_home / "scan.log"
     debug_log = scan_home / "debug.log"
@@ -58,7 +58,7 @@ def test_python_api_sync():
     # make sure output files work
     scan2 = Scanner("127.0.0.1", output_modules=["json"], scan_name="python_api_test")
     scan2.start_without_generator()
-    out_file = scan2.helpers.scans_dir / "python_api_test" / "output.ndjson"
+    out_file = scan2.helpers.scans_dir / "python_api_test" / "output.json"
     assert list(scan2.helpers.read_file(out_file))
     # make sure config loads properly
     bbot_home = "/tmp/.bbot_python_api_test"
