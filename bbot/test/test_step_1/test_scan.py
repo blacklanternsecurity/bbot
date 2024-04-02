@@ -7,7 +7,6 @@ async def test_scan(
     helpers,
     monkeypatch,
     bbot_scanner,
-    mock_dns,
 ):
     scan0 = bbot_scanner(
         "1.1.1.1/31",

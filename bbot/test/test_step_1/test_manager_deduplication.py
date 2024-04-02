@@ -3,7 +3,7 @@ from bbot.modules.base import BaseModule
 
 
 @pytest.mark.asyncio
-async def test_manager_deduplication(bbot_scanner, mock_dns):
+async def test_manager_deduplication(bbot_scanner):
 
     class DefaultModule(BaseModule):
         _name = "default_module"
@@ -90,30 +90,6 @@ async def test_manager_deduplication(bbot_scanner, mock_dns):
         _dns_mock=dns_mock_chain,
     )
 
-    # SCAN / severe_jacqueline (SCAN:d233093d39044c961754c97f749fa758543d7474)
-    # DNS_NAME / test.notreal
-    # OPEN_TCP_PORT / default_module.test.notreal:88
-    # OPEN_TCP_PORT / test.notreal:88
-    # DNS_NAME / default_module.test.notreal
-    # OPEN_TCP_PORT / no_suppress_dupes.test.notreal:88
-    # OPEN_TCP_PORT / accept_dupes.test.notreal:88
-    # DNS_NAME / per_hostport_only.test.notreal
-    # DNS_NAME / no_suppress_dupes.test.notreal
-    # OPEN_TCP_PORT / no_suppress_dupes.test.notreal:88
-    # DNS_NAME / no_suppress_dupes.test.notreal
-    # DNS_NAME / no_suppress_dupes.test.notreal
-    # DNS_NAME / accept_dupes.test.notreal
-    # OPEN_TCP_PORT / per_domain_only.test.notreal:88
-    # DNS_NAME / no_suppress_dupes.test.notreal
-    # DNS_NAME / no_suppress_dupes.test.notreal
-    # OPEN_TCP_PORT / no_suppress_dupes.test.notreal:88
-    # OPEN_TCP_PORT / no_suppress_dupes.test.notreal:88
-    # DNS_NAME / per_domain_only.test.notreal
-    # OPEN_TCP_PORT / per_hostport_only.test.notreal:88
-    # OPEN_TCP_PORT / no_suppress_dupes.test.notreal:88
-
-    for e in events:
-        log.critical(f"{e.type} / {e.data} / {e.module} / {e.source.data} / {e.source.module}")
     assert len(events) == 21
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "accept_dupes.test.notreal" and str(e.module) == "accept_dupes"])
     assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "default_module.test.notreal" and str(e.module) == "default_module"])
