@@ -2622,3 +2622,30 @@ async def as_completed(coros):
         for task in done:
             tasks.pop(task)
             yield task
+
+
+def clean_dns_record(record):
+    """
+    Cleans and formats a given DNS record for further processing.
+
+    This static method converts the DNS record to text format if it's not already a string.
+    It also removes any trailing dots and converts the record to lowercase.
+
+    Args:
+        record (str or dns.rdata.Rdata): The DNS record to clean.
+
+    Returns:
+        str: The cleaned and formatted DNS record.
+
+    Examples:
+        >>> clean_dns_record('www.evilcorp.com.')
+        'www.evilcorp.com'
+
+        >>> from dns.rrset import from_text
+        >>> record = from_text('www.evilcorp.com', 3600, 'IN', 'A', '1.2.3.4')[0]
+        >>> clean_dns_record(record)
+        '1.2.3.4'
+    """
+    if not isinstance(record, str):
+        record = str(record.to_text())
+    return str(record).rstrip(".").lower()

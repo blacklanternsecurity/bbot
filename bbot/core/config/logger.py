@@ -1,6 +1,8 @@
 import sys
+import atexit
 import logging
 from copy import copy
+import multiprocessing
 import logging.handlers
 from pathlib import Path
 
@@ -60,12 +62,28 @@ class BBOTLogger:
         self.core_logger = logging.getLogger("bbot")
         self.core = core
 
-        # Don't do this more than once
-        if len(self.core_logger.handlers) == 0:
-            for logger in self.loggers:
-                self.include_logger(logger)
+        self.process_name = multiprocessing.current_process().name
+        if self.process_name == "MainProcess":
+            self.queue = multiprocessing.Queue()
+            self.setup_queue_handler()
+            # Start the QueueListener
+            self.listener = logging.handlers.QueueListener(self.queue, *self.log_handlers.values())
+            self.listener.start()
+            atexit.register(self.listener.stop)
 
         self.log_level = logging.INFO
+
+    def setup_queue_handler(self, logging_queue=None):
+        if logging_queue is None:
+            logging_queue = self.queue
+        else:
+            self.queue = logging_queue
+        self.queue_handler = logging.handlers.QueueHandler(logging_queue)
+        logging.getLogger().addHandler(self.queue_handler)
+        self.core_logger.setLevel(self.log_level)
+        # disable asyncio logging for child processes
+        if self.process_name != "MainProcess":
+            logging.getLogger("asyncio").setLevel(logging.ERROR)
 
     def addLoggingLevel(self, levelName, levelNum, methodName=None):
         """
@@ -127,15 +145,19 @@ class BBOTLogger:
         return self._loggers
 
     def add_log_handler(self, handler, formatter=None):
+        if self.listener is None:
+            return
         if handler.formatter is None:
             handler.setFormatter(debug_format)
         for logger in self.loggers:
-            if handler not in logger.handlers:
+            if handler not in self.listener.handlers:
                 logger.addHandler(handler)
 
     def remove_log_handler(self, handler):
+        if self.listener is None:
+            return
         for logger in self.loggers:
-            if handler in logger.handlers:
+            if handler in self.listener.handlers:
                 logger.removeHandler(handler)
 
     def include_logger(self, logger):
@@ -144,7 +166,7 @@ class BBOTLogger:
         if self.log_level is not None:
             logger.setLevel(self.log_level)
         for handler in self.log_handlers.values():
-            logger.addHandler(handler)
+            self.add_log_handler(handler)
 
     @property
     def log_handlers(self):

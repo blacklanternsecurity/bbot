@@ -212,10 +212,10 @@ class Scanner:
         self.dispatcher_tasks = []
 
         # multiprocessing thread pool
-        try:
-            mp.set_start_method("spawn")
-        except Exception:
-            self.warning(f"Failed to set multiprocessing spawn method. This may negatively affect performance.")
+        start_method = mp.get_start_method()
+        if start_method != "spawn":
+            self.warning(f"Multiprocessing spawn method is set to {start_method}.")
+
         # we spawn 1 fewer processes than cores
         # this helps to avoid locking up the system or competing with the main python process for cpu time
         num_processes = max(1, mp.cpu_count() - 1)

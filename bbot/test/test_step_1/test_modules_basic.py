@@ -326,8 +326,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         output_modules=["python"],
         force_start=True,
     )
-    mock_dns(
-        scan,
+    await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"A": ["127.0.254.1"]},
             "www.evilcorp.com": {"A": ["127.0.254.2"]},

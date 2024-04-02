@@ -799,7 +799,7 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog, mock_dns
         whitelist=["127.0.0.0/29", "test.notreal"],
         blacklist=["127.0.0.64/29"],
     )
-    mock_dns(scan, {
+    await scan.helpers.dns._mock_dns({
         "www-prod.test.notreal": {"A": ["127.0.0.66"]},
         "www-dev.test.notreal": {"A": ["127.0.0.22"]},
     })

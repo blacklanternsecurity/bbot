@@ -61,7 +61,7 @@ async def test_manager_deduplication(bbot_scanner, mock_dns):
         scan.modules["per_hostport_only"] = per_hostport_only
         scan.modules["per_domain_only"] = per_domain_only
         if _dns_mock:
-            mock_dns(scan, _dns_mock)
+            await scan.helpers.dns._mock_dns(_dns_mock)
         if scan_callback is not None:
             scan_callback(scan)
         return (
