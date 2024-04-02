@@ -10,10 +10,6 @@ from bbot.modules.internal.base import BaseInternalModule
 
 @pytest.mark.asyncio
 async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
-    fallback_nameservers = scan.helpers.temp_dir / "nameservers.txt"
-    with open(fallback_nameservers, "w") as f:
-        f.write("8.8.8.8\n")
-
     for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
 
@@ -85,7 +81,6 @@ async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
         config={i: True for i in available_internal_modules},
         force_start=True,
     )
-    scan2.helpers.dns.fallback_nameservers_file = fallback_nameservers
     await scan2.load_modules()
     scan2.status = "RUNNING"
 

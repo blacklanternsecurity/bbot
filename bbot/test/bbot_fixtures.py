@@ -74,12 +74,6 @@ def scan(monkeypatch):
     from bbot.scanner import Scanner
 
     bbot_scan = Scanner("127.0.0.1", modules=["ipneighbor"])
-
-    fallback_nameservers_file = bbot_scan.helpers.bbot_home / "fallback_nameservers.txt"
-    with open(fallback_nameservers_file, "w") as f:
-        f.write("8.8.8.8\n")
-    monkeypatch.setattr(bbot_scan.helpers.dns, "fallback_nameservers_file", fallback_nameservers_file)
-
     return bbot_scan
 
 
