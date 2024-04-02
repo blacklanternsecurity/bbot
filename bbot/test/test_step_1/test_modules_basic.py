@@ -300,7 +300,7 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, 
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, monkeypatch, mock_dns):
+async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, monkeypatch):
     from bbot.modules.base import BaseModule
 
     class dummy(BaseModule):

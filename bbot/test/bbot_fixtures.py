@@ -31,11 +31,6 @@ available_output_modules = list(DEFAULT_PRESET.module_loader.configs(type="outpu
 available_internal_modules = list(DEFAULT_PRESET.module_loader.configs(type="internal"))
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_logging():
-    CORE.logger.setup_queue_handler()
-
-
 @pytest.fixture
 def clean_default_config(monkeypatch):
     clean_config = OmegaConf.merge(

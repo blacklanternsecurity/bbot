@@ -63,6 +63,8 @@ class BBOTLogger:
         self.core_logger = logging.getLogger("bbot")
         self.core = core
 
+        self.listener = None
+
         self.process_name = multiprocessing.current_process().name
         if self.process_name == "MainProcess":
             self.queue = multiprocessing.Queue()
@@ -81,8 +83,7 @@ class BBOTLogger:
             self.queue = logging_queue
         self.queue_handler = logging.handlers.QueueHandler(logging_queue)
 
-        if self.queue_handler not in self.root_logger.handlers:
-            self.root_logger.addHandler(self.queue_handler)
+        self.root_logger.addHandler(self.queue_handler)
 
         self.core_logger.setLevel(self.log_level)
         # disable asyncio logging for child processes
@@ -153,16 +154,16 @@ class BBOTLogger:
             return
         if handler.formatter is None:
             handler.setFormatter(debug_format)
-        for logger in self.loggers:
-            if handler not in self.listener.handlers:
-                logger.addHandler(handler)
+        if handler not in self.listener.handlers:
+            self.listener.handlers = self.listener.handlers + (handler,)
 
     def remove_log_handler(self, handler):
         if self.listener is None:
             return
-        for logger in self.loggers:
-            if handler in self.listener.handlers:
-                logger.removeHandler(handler)
+        if handler in self.listener.handlers:
+            new_handlers = list(self.listener.handlers)
+            new_handlers.remove(handler)
+            self.listener.handlers = tuple(new_handlers)
 
     def include_logger(self, logger):
         if logger not in self.loggers:
