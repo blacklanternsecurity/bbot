@@ -155,7 +155,7 @@ class EngineServer:
         try:
             while 1:
                 client_id, binary = await self.socket.recv_multipart()
-                self.log.debug(f"{self.name} got binary: {binary}")
+                # self.log.debug(f"{self.name} got binary: {binary}")
                 message = pickle.loads(binary)
                 self.log.debug(f"{self.name} got message: {message}")
 

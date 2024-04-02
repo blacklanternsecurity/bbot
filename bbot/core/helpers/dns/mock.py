@@ -17,7 +17,7 @@ class MockResolver:
         query_name = query_name.strip(".")
         answers = self.mock_data.get(query_name, {}).get(rdtype, [])
         if not answers:
-            raise self.dns.resolver.NXDOMAIN(f"No answer found for {query_name} {rdtype}")
+            raise dns.resolver.NXDOMAIN(f"No answer found for {query_name} {rdtype}")
 
         message_text = f"""id 1234
 opcode QUERY
@@ -30,7 +30,7 @@ flags QR AA RD
             message_text += f"\n{query_name}. 1 IN {rdtype} {answer}"
 
         message_text += "\n;AUTHORITY\n;ADDITIONAL\n"
-        message = self.dns.message.from_text(message_text)
+        message = dns.message.from_text(message_text)
         return message
 
     async def resolve(self, query_name, rdtype=None):
@@ -41,16 +41,16 @@ flags QR AA RD
         else:
             rdtype = str(rdtype.name).upper()
 
-        domain_name = self.dns.name.from_text(query_name)
-        rdtype_obj = self.dns.rdatatype.from_text(rdtype)
+        domain_name = dns.name.from_text(query_name)
+        rdtype_obj = dns.rdatatype.from_text(rdtype)
 
         if "_NXDOMAIN" in self.mock_data and query_name in self.mock_data["_NXDOMAIN"]:
             # Simulate the NXDOMAIN exception
-            raise self.dns.resolver.NXDOMAIN
+            raise dns.resolver.NXDOMAIN
 
         try:
             response = self.create_dns_response(query_name, rdtype)
-            answer = self.dns.resolver.Answer(domain_name, rdtype_obj, self.dns.rdataclass.IN, response)
+            answer = dns.resolver.Answer(domain_name, rdtype_obj, dns.rdataclass.IN, response)
             return answer
-        except self.dns.resolver.NXDOMAIN:
+        except dns.resolver.NXDOMAIN:
             return []

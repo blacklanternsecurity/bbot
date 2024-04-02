@@ -59,6 +59,7 @@ class BBOTLogger:
         self._loggers = None
         self._log_handlers = None
         self._log_level = None
+        self.root_logger = logging.getLogger()
         self.core_logger = logging.getLogger("bbot")
         self.core = core
 
@@ -79,7 +80,10 @@ class BBOTLogger:
         else:
             self.queue = logging_queue
         self.queue_handler = logging.handlers.QueueHandler(logging_queue)
-        logging.getLogger().addHandler(self.queue_handler)
+
+        if self.queue_handler not in self.root_logger.handlers:
+            self.root_logger.addHandler(self.queue_handler)
+
         self.core_logger.setLevel(self.log_level)
         # disable asyncio logging for child processes
         if self.process_name != "MainProcess":
