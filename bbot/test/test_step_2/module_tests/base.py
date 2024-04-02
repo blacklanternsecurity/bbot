@@ -94,7 +94,7 @@ class ModuleTestBase:
         async def mock_dns(self, mock_data, scan=None):
             if scan is None:
                 scan = self.scan
-            await scan.helpers.dns._dns_mock(mock_data)
+            await scan.helpers.dns._mock_dns(mock_data)
 
         @property
         def module(self):
