@@ -2,8 +2,10 @@ import dns
 import logging
 import dns.exception
 import dns.asyncresolver
+from contextlib import suppress
 
 from bbot.core.engine import EngineClient
+from bbot.core.errors import ValidationError
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name, host_in_host
 
 from .engine import DNSEngine
@@ -93,7 +95,27 @@ class DNSHelper(EngineClient):
         event_host = str(event.host)
         event_type = str(event.type)
         kwargs = {"event_host": event_host, "event_type": event_type, "minimal": minimal}
-        return await self.run_and_return("resolve_event", **kwargs)
+        event_tags, dns_children = await self.run_and_return("resolve_event", **kwargs)
+
+        # whitelisting / blacklisting based on resolved hosts
+        event_whitelisted = False
+        event_blacklisted = False
+        for rdtype, children in dns_children.items():
+            for host in children:
+                if rdtype in ("A", "AAAA", "CNAME"):
+                    # having a CNAME to an in-scope resource doesn't make you in-scope
+                    if rdtype != "CNAME":
+                        with suppress(ValidationError):
+                            if self.parent_helper.scan.whitelisted(host):
+                                self.log.critical(f"{event_host} --> {host} is whitelisted")
+                                event_whitelisted = True
+                    # CNAME to a blacklisted resources, means you're blacklisted
+                    with suppress(ValidationError):
+                        if self.parent_helper.scan.blacklisted(host):
+                            self.log.critical(f"{event_host} --> {host} is blacklisted")
+                            event_blacklisted = True
+
+        return event_tags, event_whitelisted, event_blacklisted, dns_children
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """

@@ -807,6 +807,7 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog):
     events = [e async for e in scan.async_start()]
 
     assert any([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://www-dev.test.notreal:8888/"])
+    # the hostname is in-scope, but its IP is blacklisted, therefore we shouldn't see it
     assert not any([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://www-prod.test.notreal:8888/"])
 
     assert 'Omitting due to blacklisted DNS associations: URL_UNVERIFIED("http://www-prod.test.notreal:8888/"' in caplog.text

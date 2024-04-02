@@ -445,8 +445,6 @@ class DNSEngine(EngineServer):
         Returns:
             tuple: A 4-tuple containing the following items:
                 - event_tags (set): Set of tags for the event.
-                - event_whitelisted (bool): Whether the event is whitelisted.
-                - event_blacklisted (bool): Whether the event is blacklisted.
                 - dns_children (dict): Dictionary containing child events from DNS resolutions.
 
         Examples:
@@ -461,18 +459,19 @@ class DNSEngine(EngineServer):
         log.debug(f"Resolving event {event_type}:{event_host}")
         event_tags = set()
         dns_children = dict()
-        event_whitelisted = False
-        event_blacklisted = False
 
         try:
             # lock to ensure resolution of the same host doesn't start while we're working here
             async with self._event_cache_locks.lock(event_host):
                 # try to get data from cache
-                _event_tags, _event_whitelisted, _event_blacklisted, _dns_children = self.event_cache_get(event_host)
-                event_tags.update(_event_tags)
-                # if we found it, return it
-                if _event_whitelisted is not None:
-                    return event_tags, _event_whitelisted, _event_blacklisted, _dns_children
+                try:
+                    _event_tags, _dns_children = self._event_cache[event_host]
+                    event_tags.update(_event_tags)
+                    # if we found it, return it
+                    if _event_tags is not None:
+                        return event_tags, _dns_children
+                except KeyError:
+                    _event_tags, _dns_children = set(), set()
 
                 # then resolve
                 types = ()
@@ -497,21 +496,10 @@ class DNSEngine(EngineServer):
                                 event_tags.add("resolved")
                                 event_tags.add(f"{rdtype.lower()}-record")
 
-                            # whitelisting and blacklisting of IPs
                             for r in records:
                                 for _, t in self.extract_targets(r):
                                     if t:
                                         ip = make_ip_type(t)
-
-                                        # TODO: transplant this
-                                        # if rdtype in ("A", "AAAA", "CNAME"):
-                                        #     with contextlib.suppress(ValidationError):
-                                        #         if self.parent_helper.is_ip(ip):
-                                        #             if self.parent_helper.preset.whitelisted(ip):
-                                        #                 event_whitelisted = True
-                                        #     with contextlib.suppress(ValidationError):
-                                        #         if self.parent_helper.preset.blacklisted(ip):
-                                        #             event_blacklisted = True
 
                                         if self.filter_bad_ptrs and rdtype in ("PTR") and is_ptr(t):
                                             self.debug(f"Filtering out bad PTR: {t}")
@@ -549,9 +537,9 @@ class DNSEngine(EngineServer):
                             except ValueError:
                                 continue
 
-                    self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, dns_children)
+                    self._event_cache[event_host] = (event_tags, dns_children)
 
-            return event_tags, event_whitelisted, event_blacklisted, dns_children
+            return event_tags, dns_children
 
         finally:
             log.debug(f"Finished resolving event {event_type}:{event_host}")
@@ -566,8 +554,6 @@ class DNSEngine(EngineServer):
         Returns:
             tuple: A 4-tuple containing the following items:
                 - event_tags (set): Set of tags for the event.
-                - event_whitelisted (bool or None): Whether the event is whitelisted. Returns None if not found.
-                - event_blacklisted (bool or None): Whether the event is blacklisted. Returns None if not found.
                 - dns_children (set): Set containing child events from DNS resolutions.
 
         Examples:
@@ -579,13 +565,13 @@ class DNSEngine(EngineServer):
             Assuming no event with host "www.notincache.com" has been cached:
 
             >>> event_cache_get("www.notincache.com")
-            (set(), None, None, set())
+            (set(), set())
         """
         try:
-            event_tags, event_whitelisted, event_blacklisted, dns_children = self._event_cache[host]
-            return (event_tags, event_whitelisted, event_blacklisted, dns_children)
+            event_tags, dns_children = self._event_cache[host]
+            return (event_tags, dns_children)
         except KeyError:
-            return set(), None, None, set()
+            return set(), set()
 
     async def resolve_batch(self, queries, **kwargs):
         """
