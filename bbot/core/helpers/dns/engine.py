@@ -919,7 +919,6 @@ class DNSEngine(EngineServer):
         return os.getenv("BBOT_TESTING", "") == "True"
 
     async def _mock_dns(self, mock_data):
-        self.log.critical(f"SETTING MOCK RESOLVER")
         from .mock import MockResolver
 
         self.resolver = MockResolver(mock_data)

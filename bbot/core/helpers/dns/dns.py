@@ -101,19 +101,20 @@ class DNSHelper(EngineClient):
         event_whitelisted = False
         event_blacklisted = False
         for rdtype, children in dns_children.items():
+            if event_blacklisted:
+                break
             for host in children:
                 if rdtype in ("A", "AAAA", "CNAME"):
                     # having a CNAME to an in-scope resource doesn't make you in-scope
-                    if rdtype != "CNAME":
+                    if not event_whitelisted and rdtype != "CNAME":
                         with suppress(ValidationError):
                             if self.parent_helper.scan.whitelisted(host):
-                                self.log.critical(f"{event_host} --> {host} is whitelisted")
                                 event_whitelisted = True
                     # CNAME to a blacklisted resources, means you're blacklisted
                     with suppress(ValidationError):
                         if self.parent_helper.scan.blacklisted(host):
-                            self.log.critical(f"{event_host} --> {host} is blacklisted")
                             event_blacklisted = True
+                            break
 
         return event_tags, event_whitelisted, event_blacklisted, dns_children
 
