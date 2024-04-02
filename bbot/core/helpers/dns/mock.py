@@ -1,5 +1,6 @@
 import dns
 
+
 class MockResolver:
 
     def __init__(self, mock_data=None):
