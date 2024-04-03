@@ -121,12 +121,7 @@ async def test_events(events, scan, helpers, bbot_config):
 
     # http response url validation
     http_response_2 = scan.make_event(
-        {
-            "port": "80",
-            "url": "http://evilcorp.com:80/asdf"
-        },
-        "HTTP_RESPONSE",
-        dummy=True
+        {"port": "80", "url": "http://evilcorp.com:80/asdf"}, "HTTP_RESPONSE", dummy=True
     )
     assert http_response_2.data["url"] == "http://evilcorp.com/asdf"
 
