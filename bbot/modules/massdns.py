@@ -233,7 +233,7 @@ class massdns(subdomain_enum):
             results, source_event, tags = await self.resolve_and_emit_queue.get()
             self.verbose(f"Resolving batch of {len(results):,} results")
             async with self._task_counter.count(f"{self.name}.resolve_and_emit()"):
-                async for hostname, r in self.helpers.resolve_batch(results, type=("A", "CNAME")):
+                async for hostname, r in self.helpers.resolve_batch(results, type="A"):
                     if not r:
                         self.debug(f"Discarding {hostname} because it didn't resolve")
                         continue
