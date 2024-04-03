@@ -386,7 +386,7 @@ class Preset:
 
         # ensure we have output modules
         if not baked_preset.output_modules:
-            for output_module in ("python", "csv", "human", "json"):
+            for output_module in ("python", "csv", "txt", "json", "stdout"):
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
         # evaluate conditions

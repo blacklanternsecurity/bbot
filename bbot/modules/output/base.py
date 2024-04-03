@@ -9,6 +9,14 @@ class BaseOutputModule(BaseModule):
     scope_distance_modifier = None
     _stats_exclude = True
 
+    def human_event_str(self, event):
+        event_type = f"[{event.type}]"
+        event_tags = ""
+        if getattr(event, "tags", []):
+            event_tags = f'\t({", ".join(sorted(getattr(event, "tags", [])))})'
+        event_str = f"{event_type:<20}\t{event.data_human}\t{event.module_sequence}{event_tags}"
+        return event_str
+
     def _event_precheck(self, event):
         # special signal event types
         if event.type in ("FINISHED",):
