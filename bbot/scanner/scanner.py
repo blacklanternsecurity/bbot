@@ -254,7 +254,6 @@ class Scanner:
             await self.load_modules()
 
             # run each module's .setup() method
-            self.info(f"Setting up modules...")
             succeeded, hard_failed, soft_failed = await self.setup_modules()
 
             # abort if there are no output modules

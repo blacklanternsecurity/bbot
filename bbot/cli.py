@@ -139,6 +139,13 @@ async def _main():
             return False if failed else True
 
         scan_name = str(scan.name)
+
+        log.verbose("")
+        log.verbose("### MODULES ###")
+        log.verbose("")
+        for row in scan.preset.module_loader.modules_table(scan.preset.scan_modules).splitlines():
+            log.verbose(row)
+
         scan.helpers.word_cloud.load()
         await scan._prep()
 
@@ -149,6 +156,60 @@ async def _main():
                 if not options.yes:
                     log.hugesuccess(f"Scan ready. Press enter to execute {scan.name}")
                     input()
+
+                import os
+                import re
+                import fcntl
+                from bbot.core.helpers.misc import smart_decode
+
+                def handle_keyboard_input(keyboard_input):
+                    kill_regex = re.compile(r"kill (?P<module>[a-z0-9_]+)")
+                    if keyboard_input:
+                        log.verbose(f'Got keyboard input: "{keyboard_input}"')
+                        kill_match = kill_regex.match(keyboard_input)
+                        if kill_match:
+                            module = kill_match.group("module")
+                            if module in scan.modules:
+                                log.hugewarning(f'Killing module: "{module}"')
+                                scan.manager.kill_module(module, message="killed by user")
+                            else:
+                                log.warning(f'Invalid module: "{module}"')
+                    else:
+                        scan.preset.core.logger.toggle_log_level(logger=log)
+                        scan.manager.modules_status(_log=True)
+
+                reader = asyncio.StreamReader()
+                protocol = asyncio.StreamReaderProtocol(reader)
+                await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
+
+                # set stdout and stderr to blocking mode
+                # this is needed to prevent BlockingIOErrors in logging etc.
+                fds = [sys.stdout.fileno(), sys.stderr.fileno()]
+                for fd in fds:
+                    flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+                    fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
+
+                async def akeyboard_listen():
+                    try:
+                        allowed_errors = 10
+                        while 1:
+                            keyboard_input = None
+                            try:
+                                keyboard_input = smart_decode((await reader.readline()).strip())
+                                allowed_errors = 10
+                            except Exception as e:
+                                log_to_stderr(f"Error in keyboard listen loop: {e}", level="TRACE")
+                                log_to_stderr(traceback.format_exc(), level="TRACE")
+                                allowed_errors -= 1
+                            if keyboard_input is not None:
+                                handle_keyboard_input(keyboard_input)
+                            if allowed_errors <= 0:
+                                break
+                    except Exception as e:
+                        log_to_stderr(f"Error in keyboard listen task: {e}", level="ERROR")
+                        log_to_stderr(traceback.format_exc(), level="TRACE")
+
+                asyncio.create_task(akeyboard_listen())
 
         await scan.async_start_without_generator()
 
