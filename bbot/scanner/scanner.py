@@ -332,7 +332,7 @@ class Scanner:
                     break
 
                 if "python" in self.modules:
-                    events, finish = await self.modules["python"]._events_waiting()
+                    events, finish = await self.modules["python"]._events_waiting(batch_size=-1)
                     for e in events:
                         yield e
 

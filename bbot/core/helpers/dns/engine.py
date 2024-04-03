@@ -548,7 +548,7 @@ class DNSEngine(EngineServer):
         except KeyError:
             return set(), set()
 
-    async def resolve_batch(self, queries, **kwargs):
+    async def resolve_batch(self, queries, threads=10, **kwargs):
         """
         A helper to execute a bunch of DNS requests.
 
@@ -566,12 +566,31 @@ class DNSEngine(EngineServer):
             ...         print(result)
             ('www.evilcorp.com', {'1.1.1.1'})
             ('evilcorp.com', {'2.2.2.2'})
-
         """
-        for q in queries:
-            results = await self.resolve(q, **kwargs)
-            # if results:
-            yield (q, results)
+        tasks = {}
+
+        def new_task(query):
+            task = asyncio.create_task(self.resolve(query, **kwargs))
+            tasks[task] = query
+
+        queries = list(queries)
+        for _ in range(threads):  # Start initial batch of tasks
+            if queries:  # Ensure there are args to process
+                new_task(queries.pop(0))
+
+        while tasks:  # While there are tasks pending
+            # Wait for the first task to complete
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                results = task.result()
+                query = tasks.pop(task)
+
+                if results:
+                    yield (query, results)
+
+                if queries:  # Start a new task for each one completed, if URLs remain
+                    new_task(queries.pop(0))
 
     async def resolve_raw_batch(self, queries, threads=10):
         tasks = {}
@@ -597,8 +616,8 @@ class DNSEngine(EngineServer):
                 for answer in answers:
                     for rdtype, host in self.extract_targets(answer):
                         results.add((host, rdtype))
-                # if results or errors:
-                yield ((query, rdtype), (results, errors))
+                if results or errors:
+                    yield ((query, rdtype), (results, errors))
 
                 if queries:  # Start a new task for each one completed, if URLs remain
                     new_task(*queries.pop(0))

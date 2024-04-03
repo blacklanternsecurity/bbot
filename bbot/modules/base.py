@@ -474,7 +474,7 @@ class BaseModule:
         if event:
             await self.queue_outgoing_event(event, **emit_kwargs)
 
-    async def _events_waiting(self):
+    async def _events_waiting(self, batch_size=None):
         """
         Asynchronously fetches events from the incoming_event_queue, up to a specified batch size.
 
@@ -492,10 +492,12 @@ class BaseModule:
             - "FINISHED" events are handled differently and the finish flag is set to True.
             - If the queue is empty or the batch size is reached, the loop breaks.
         """
+        if batch_size is None:
+            batch_size = self.batch_size
         events = []
         finish = False
         while self.incoming_event_queue:
-            if len(events) > self.batch_size:
+            if batch_size != -1 and len(events) > self.batch_size:
                 break
             try:
                 event = self.incoming_event_queue.get_nowait()
