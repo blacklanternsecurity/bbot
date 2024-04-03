@@ -3,7 +3,7 @@ import logging
 import argparse
 from omegaconf import OmegaConf
 
-from bbot.core.errors import *
+from bbot.errors import *
 from bbot.core.helpers.misc import chain_lists, get_closest_match
 
 log = logging.getLogger("bbot.presets.args")

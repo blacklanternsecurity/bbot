@@ -1,38 +1,41 @@
 #!/usr/bin/env python3
 
 import sys
+from bbot.errors import *
 from bbot import __version__
 
-ascii_art = f"""[1;38;5;208m  ______[0m  _____   ____ _______
-[1;38;5;208m |  ___ \[0m|  __ \ / __ \__   __|
-[1;38;5;208m | |___) |[0m |__) | |  | | | |
-[1;38;5;208m |  ___ <[0m|  __ <| |  | | | |
-[1;38;5;208m | |___) |[0m |__) | |__| | | |
-[1;38;5;208m |______/[0m|_____/ \____/  |_|
-[1;38;5;208m BIGHUGE[0m  BLS   OSINT  TOOL v{__version__}
+silent = "-s" in sys.argv or "--silent" in sys.argv
+
+if not silent:
+    ascii_art = f""" [1;38;5;208m ______ [0m _____   ____ _______
+ [1;38;5;208m|  ___ \[0m|  __ \ / __ \__   __|
+ [1;38;5;208m| |___) [0m| |__) | |  | | | |
+ [1;38;5;208m|  ___ <[0m|  __ <| |  | | | |
+ [1;38;5;208m| |___) [0m| |__) | |__| | | |
+ [1;38;5;208m|______/[0m|_____/ \____/  |_|
+ [1;38;5;208mBIGHUGE[0m BLS OSINT TOOL v{__version__}
+
+ www.blacklanternsecurity.com/bbot
 """
+    print(ascii_art, file=sys.stderr)
 
-print(ascii_art, file=sys.stderr)
-
-import asyncio
-import logging
-import traceback
-from contextlib import suppress
-
-# fix tee buffering
-sys.stdout.reconfigure(line_buffering=True)
-
-from bbot.core import CORE
-from bbot.core.errors import *
-from bbot.core.helpers.logger import log_to_stderr
-
-log = logging.getLogger("bbot.cli")
-
-err = False
 scan_name = ""
 
 
 async def _main():
+
+    import asyncio
+    import logging
+    import traceback
+    from contextlib import suppress
+
+    # fix tee buffering
+    sys.stdout.reconfigure(line_buffering=True)
+
+    from bbot.core.helpers.logger import log_to_stderr
+
+    log = logging.getLogger("bbot.cli")
+
     from bbot.scanner import Scanner
     from bbot.scanner.preset import Preset
 
@@ -238,6 +241,10 @@ async def _main():
 
 
 def main():
+    import asyncio
+    import traceback
+    from bbot.core import CORE
+
     global scan_name
     try:
         asyncio.run(_main())

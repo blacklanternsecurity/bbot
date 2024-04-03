@@ -3,7 +3,7 @@ import logging
 import traceback
 from contextlib import suppress
 
-from ..core.errors import ValidationError
+from ..errors import ValidationError
 from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
 
 log = logging.getLogger("bbot.scanner.manager")

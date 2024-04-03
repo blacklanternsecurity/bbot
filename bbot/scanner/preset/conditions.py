@@ -1,6 +1,6 @@
 import logging
 
-from bbot.core.errors import *
+from bbot.errors import *
 
 log = logging.getLogger("bbot.preset.conditions")
 

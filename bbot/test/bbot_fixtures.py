@@ -12,8 +12,8 @@ from omegaconf import OmegaConf  # noqa
 
 from werkzeug.wrappers import Request
 
+from bbot.errors import *  # noqa: F401
 from bbot.core import CORE
-from bbot.core.errors import *  # noqa: F401
 from bbot.scanner import Preset
 from bbot.core.helpers.misc import mkdir
 

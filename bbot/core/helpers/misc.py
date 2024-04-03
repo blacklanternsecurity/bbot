@@ -14,7 +14,7 @@ from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 
 from .url import *  # noqa F401
-from .. import errors
+from ... import errors
 from . import regexes as bbot_regexes
 from .names_generator import random_name, names, adjectives  # noqa F401
 

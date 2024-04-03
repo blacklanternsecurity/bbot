@@ -1,5 +1,5 @@
+from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
-from bbot.core.errors import HttpCompareError
 
 
 class url_manipulation(BaseModule):

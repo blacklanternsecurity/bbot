@@ -12,7 +12,7 @@ from urllib.parse import urljoin
 from pydantic import BaseModel, field_validator
 
 from .helpers import *
-from bbot.core.errors import *
+from bbot.errors import *
 from bbot.core.helpers import (
     extract_words,
     get_file_extension,

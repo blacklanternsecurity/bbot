@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from httpx._models import Cookies
 from socksio.exceptions import SOCKSError
 
-from bbot.core.errors import WordlistError, CurlError
+from bbot.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
 
 from bs4 import MarkupResemblesLocatorWarning
