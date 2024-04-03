@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 
 import sys
+from bbot import __version__
+
+ascii_art = f"""[1;38;5;208m  ______[0m  _____   ____ _______
+[1;38;5;208m |  ___ \[0m|  __ \ / __ \__   __|
+[1;38;5;208m | |___) |[0m |__) | |  | | | |
+[1;38;5;208m |  ___ <[0m|  __ <| |  | | | |
+[1;38;5;208m | |___) |[0m |__) | |__| | | |
+[1;38;5;208m |______/[0m|_____/ \____/  |_|
+[1;38;5;208m BIGHUGE[0m  BLS   OSINT  TOOL v{__version__}
+"""
+
+print(ascii_art, file=sys.stderr)
+
 import asyncio
 import logging
 import traceback
@@ -10,8 +23,6 @@ from contextlib import suppress
 sys.stdout.reconfigure(line_buffering=True)
 
 from bbot.core import CORE
-
-from bbot import __version__
 from bbot.core.errors import *
 from bbot.core.helpers.logger import log_to_stderr
 
