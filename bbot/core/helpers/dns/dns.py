@@ -82,8 +82,8 @@ class DNSHelper(EngineClient):
         async for _ in self.run_and_yield("resolve_batch", queries=queries, **kwargs):
             yield _
 
-    async def resolve_custom_batch(self, queries):
-        async for _ in self.run_and_yield("resolve_custom_batch", queries=queries):
+    async def resolve_raw_batch(self, queries):
+        async for _ in self.run_and_yield("resolve_raw_batch", queries=queries):
             yield _
 
     async def resolve_event(self, event, minimal=False):

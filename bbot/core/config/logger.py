@@ -76,7 +76,7 @@ class BBOTLogger:
 
         self.log_level = logging.INFO
 
-    def setup_queue_handler(self, logging_queue=None):
+    def setup_queue_handler(self, logging_queue=None, log_level=logging.DEBUG):
         if logging_queue is None:
             logging_queue = self.queue
         else:
@@ -85,7 +85,7 @@ class BBOTLogger:
 
         self.root_logger.addHandler(self.queue_handler)
 
-        self.core_logger.setLevel(self.log_level)
+        self.core_logger.setLevel(log_level)
         # disable asyncio logging for child processes
         if self.process_name != "MainProcess":
             logging.getLogger("asyncio").setLevel(logging.ERROR)

@@ -39,7 +39,7 @@ class EngineClient:
             message = self.make_message(command, args=kwargs)
             await socket.send(message)
             binary = await socket.recv()
-        self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
+        # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
         message = pickle.loads(binary)
         self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
         # error handling
@@ -53,7 +53,7 @@ class EngineClient:
             await socket.send(message)
             while 1:
                 binary = await socket.recv()
-                self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
+                # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
                 message = pickle.loads(binary)
                 self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
                 # error handling

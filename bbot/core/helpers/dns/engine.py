@@ -37,7 +37,7 @@ class DNSEngine(EngineServer):
         0: "resolve",
         1: "resolve_event",
         2: "resolve_batch",
-        3: "resolve_custom_batch",
+        3: "resolve_raw_batch",
         4: "is_wildcard",
         5: "is_wildcard_domain",
         99: "_mock_dns",
@@ -101,7 +101,7 @@ class DNSEngine(EngineServer):
 
         self.filter_bad_ptrs = self.config.get("dns_filter_ptrs", True)
 
-    async def resolve(self, query, include_errors=False, **kwargs):
+    async def resolve(self, query, **kwargs):
         """Resolve DNS names and IP addresses to their corresponding results.
 
         This is a high-level function that can translate a given domain name to its associated IP addresses
@@ -125,23 +125,17 @@ class DNSEngine(EngineServer):
         results = set()
         errors = []
         try:
-            r = await self.resolve_raw(query, **kwargs)
-            if r:
-                raw_results, errors = r
-                for rdtype, answers in raw_results:
-                    for answer in answers:
-                        for _, t in self.extract_targets(answer):
-                            results.add(t)
+            answers, errors = await self.resolve_raw(query, **kwargs)
+            for answer in answers:
+                for _, host in self.extract_targets(answer):
+                    results.add(host)
         except BaseException:
             log.trace(f"Caught exception in resolve({query}, {kwargs}):")
             log.trace(traceback.format_exc())
             raise
 
         self.debug(f"Results for {query} with kwargs={kwargs}: {results}")
-        if include_errors:
-            return results, errors
-        else:
-            return results
+        return results
 
     async def resolve_raw(self, query, **kwargs):
         """Resolves the given query to its associated DNS records.
@@ -168,38 +162,23 @@ class DNSEngine(EngineServer):
             ([('PTR', <dns.resolver.Answer object at 0x7f4a47cdb1d0>)], [])
 
             >>> await resolve_raw("dns.google")
-            ([('A', <dns.resolver.Answer object at 0x7f4a47ce46d0>), ('AAAA', <dns.resolver.Answer object at 0x7f4a47ce4710>)], [])
+            (<dns.resolver.Answer object at 0x7f4a47ce46d0>, [])
         """
         # DNS over TCP is more reliable
         # But setting this breaks DNS resolution on Ubuntu because systemd-resolve doesn't support TCP
         # kwargs["tcp"] = True
-        results = []
-        errors = []
         try:
             query = str(query).strip()
+            kwargs.pop("rdtype", None)
+            rdtype = kwargs.pop("type", "A")
             if is_ip(query):
-                kwargs.pop("type", None)
-                kwargs.pop("rdtype", None)
-                results, errors = await self._resolve_ip(query, **kwargs)
-                return [("PTR", results)], [("PTR", e) for e in errors]
+                return await self._resolve_ip(query, **kwargs)
             else:
-                types = ["A", "AAAA"]
-                kwargs.pop("rdtype", None)
-                if "type" in kwargs:
-                    t = kwargs.pop("type")
-                    types = self._parse_rdtype(t, default=types)
-                for t in types:
-                    r, e = await self._resolve_hostname(query, rdtype=t, **kwargs)
-                    if r:
-                        results.append((t, r))
-                    for error in e:
-                        errors.append((t, error))
+                return await self._resolve_hostname(query, rdtype=rdtype, **kwargs)
         except BaseException:
             log.trace(f"Caught exception in resolve_raw({query}, {kwargs}):")
             log.trace(traceback.format_exc())
             raise
-
-        return (results, errors)
 
     async def _resolve_hostname(self, query, **kwargs):
         """Translate a hostname into its corresponding IP addresses.
@@ -483,61 +462,57 @@ class DNSEngine(EngineServer):
                         types = self.all_rdtypes
                     else:
                         types = ("A", "AAAA")
+                queries = [(event_host, t) for t in types]
+                async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(queries):
+                    if answers:
+                        rdtype = str(rdtype).upper()
+                        event_tags.add("resolved")
+                        event_tags.add(f"{rdtype.lower()}-record")
 
-                if types:
-                    for t in types:
-                        resolved_raw, errors = await self.resolve_raw(event_host, type=t, use_cache=True)
-                        for rdtype, e in errors:
-                            if rdtype not in resolved_raw:
-                                event_tags.add(f"{rdtype.lower()}-error")
-                        for rdtype, records in resolved_raw:
-                            rdtype = str(rdtype).upper()
-                            if records:
-                                event_tags.add("resolved")
-                                event_tags.add(f"{rdtype.lower()}-record")
+                        for host, _rdtype in answers:
+                            if host:
+                                host = make_ip_type(host)
 
-                            for r in records:
-                                for _, t in self.extract_targets(r):
-                                    if t:
-                                        ip = make_ip_type(t)
+                                if self.filter_bad_ptrs and rdtype in ("PTR") and is_ptr(host):
+                                    self.debug(f"Filtering out bad PTR: {host}")
+                                    continue
 
-                                        if self.filter_bad_ptrs and rdtype in ("PTR") and is_ptr(t):
-                                            self.debug(f"Filtering out bad PTR: {t}")
-                                            continue
+                                try:
+                                    dns_children[_rdtype].add(host)
+                                except KeyError:
+                                    dns_children[_rdtype] = {host}
 
-                                        try:
-                                            dns_children[rdtype].add(ip)
-                                        except KeyError:
-                                            dns_children[rdtype] = {ip}
+                    elif errors:
+                        event_tags.add(f"{rdtype.lower()}-error")
 
-                    # tag with cloud providers
-                    if not self.in_tests:
-                        to_check = set()
-                        if event_type == "IP_ADDRESS":
-                            to_check.add(event_host)
-                        for rdtype, ips in dns_children.items():
-                            if rdtype in ("A", "AAAA"):
-                                for ip in ips:
-                                    to_check.add(ip)
-                        for ip in to_check:
-                            provider, provider_type, subnet = cloudcheck(ip)
-                            if provider:
-                                event_tags.add(f"{provider_type}-{provider}")
-
-                    # if needed, mark as unresolved
-                    if not is_ip(event_host) and "resolved" not in event_tags:
-                        event_tags.add("unresolved")
-                    # check for private IPs
+                # tag with cloud providers
+                if not self.in_tests:
+                    to_check = set()
+                    if event_type == "IP_ADDRESS":
+                        to_check.add(event_host)
                     for rdtype, ips in dns_children.items():
-                        for ip in ips:
-                            try:
-                                ip = ipaddress.ip_address(ip)
-                                if ip.is_private:
-                                    event_tags.add("private-ip")
-                            except ValueError:
-                                continue
+                        if rdtype in ("A", "AAAA"):
+                            for ip in ips:
+                                to_check.add(ip)
+                    for ip in to_check:
+                        provider, provider_type, subnet = cloudcheck(ip)
+                        if provider:
+                            event_tags.add(f"{provider_type}-{provider}")
 
-                    self._event_cache[event_host] = (event_tags, dns_children)
+                # if needed, mark as unresolved
+                if not is_ip(event_host) and "resolved" not in event_tags:
+                    event_tags.add("unresolved")
+                # check for private IPs
+                for rdtype, ips in dns_children.items():
+                    for ip in ips:
+                        try:
+                            ip = ipaddress.ip_address(ip)
+                            if ip.is_private:
+                                event_tags.add("private-ip")
+                        except ValueError:
+                            continue
+
+                self._event_cache[event_host] = (event_tags, dns_children)
 
             return event_tags, dns_children
 
@@ -594,12 +569,39 @@ class DNSEngine(EngineServer):
 
         """
         for q in queries:
-            yield (q, await self.resolve(q, **kwargs))
+            results = await self.resolve(q, **kwargs)
+            # if results:
+            yield (q, results)
 
-    async def resolve_custom_batch(self, queries):
-        for query, rdtype in queries:
-            answers, errors = await self.resolve(query, type=rdtype, include_errors=True)
-            yield ((query, rdtype), (answers, errors))
+    async def resolve_raw_batch(self, queries, threads=10):
+        tasks = {}
+
+        def new_task(query, rdtype):
+            task = asyncio.create_task(self.resolve_raw(query, type=rdtype))
+            tasks[task] = (query, rdtype)
+
+        queries = list(queries)
+        for _ in range(threads):  # Start initial batch of tasks
+            if queries:  # Ensure there are args to process
+                new_task(*queries.pop(0))
+
+        while tasks:  # While there are tasks pending
+            # Wait for the first task to complete
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                answers, errors = task.result()
+                query, rdtype = tasks.pop(task)
+
+                results = set()
+                for answer in answers:
+                    for rdtype, host in self.extract_targets(answer):
+                        results.add((host, rdtype))
+                # if results or errors:
+                yield ((query, rdtype), (results, errors))
+
+                if queries:  # Start a new task for each one completed, if URLs remain
+                    new_task(*queries.pop(0))
 
     def extract_targets(self, record):
         """
@@ -726,9 +728,9 @@ class DNSEngine(EngineServer):
         if ips is None:
             # then resolve the query for all rdtypes
             queries = [(query, t) for t in rdtypes_to_check]
-            async for (query, _rdtype), (answers, errors) in self.resolve_custom_batch(queries):
+            async for (query, _rdtype), (answers, errors) in self.resolve_raw_batch(queries):
                 if answers:
-                    query_baseline[_rdtype] = answers
+                    query_baseline[_rdtype] = set([a[0] for a in answers])
                 else:
                     if errors:
                         self.debug(f"Failed to resolve {query} ({_rdtype}) during wildcard detection")
@@ -839,22 +841,23 @@ class DNSEngine(EngineServer):
                 # resolve a bunch of random subdomains of the same parent
                 is_wildcard = False
                 wildcard_results = dict()
+
+                queries = []
                 for rdtype in list(rdtypes_to_check):
-                    # continue if a wildcard was already found for this rdtype
-                    # if rdtype in self._wildcard_cache[host_hash]:
-                    #     continue
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
-                        results = await self.resolve(rand_query, type=rdtype, use_cache=False)
-                        if results:
-                            is_wildcard = True
-                            if not rdtype in wildcard_results:
-                                wildcard_results[rdtype] = set()
-                            wildcard_results[rdtype].update(results)
-                            # we know this rdtype is a wildcard
-                            # so we don't need to check it anymore
-                            with suppress(KeyError):
-                                rdtypes_to_check.remove(rdtype)
+                        queries.append((rand_query, rdtype))
+
+                async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(queries):
+                    if answers:
+                        is_wildcard = True
+                        if not rdtype in wildcard_results:
+                            wildcard_results[rdtype] = set()
+                        wildcard_results[rdtype].update(set(a[0] for a in answers))
+                        # we know this rdtype is a wildcard
+                        # so we don't need to check it anymore
+                        with suppress(KeyError):
+                            rdtypes_to_check.remove(rdtype)
 
                 self._wildcard_cache.update({host_hash: wildcard_results})
                 wildcard_domain_results.update({host: wildcard_results})

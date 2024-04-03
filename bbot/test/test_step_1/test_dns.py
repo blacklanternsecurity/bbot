@@ -6,7 +6,7 @@ async def test_dns_engine(bbot_scanner):
     scan = bbot_scanner()
     result = await scan.helpers.resolve("one.one.one.one")
     assert "1.1.1.1" in result
-    assert "2606:4700:4700::1111" in result
+    assert not "2606:4700:4700::1111" in result
 
     results = [_ async for _ in scan.helpers.resolve_batch(("one.one.one.one", "1.1.1.1"))]
     pass_1 = False
@@ -18,13 +18,14 @@ async def test_dns_engine(bbot_scanner):
             pass_2 = True
     assert pass_1 and pass_2
 
-    results = [_ async for _ in scan.helpers.resolve_custom_batch((("one.one.one.one", "A"), ("1.1.1.1", "PTR")))]
+    results = [_ async for _ in scan.helpers.resolve_raw_batch((("one.one.one.one", "A"), ("1.1.1.1", "PTR")))]
     pass_1 = False
     pass_2 = False
     for (query, rdtype), (result, errors) in results:
-        if query == "one.one.one.one" and "1.1.1.1" in result:
+        _results = [r[0] for r in result]
+        if query == "one.one.one.one" and "1.1.1.1" in _results:
             pass_1 = True
-        elif query == "1.1.1.1" and "one.one.one.one" in result:
+        elif query == "1.1.1.1" and "one.one.one.one" in _results:
             pass_2 = True
     assert pass_1 and pass_2
 
@@ -46,23 +47,22 @@ async def test_dns(bbot_scanner):
     assert ip_responses[0].response.answer[0][0].target.to_text() in ("one.one.one.one.",)
 
     # mid level functions
-    _responses, errors = await dnsengine.resolve_raw("one.one.one.one")
+    answers, errors = await dnsengine.resolve_raw("one.one.one.one", type="A")
     responses = []
-    for rdtype, response in _responses:
-        for answers in response:
-            responses += list(dnsengine.extract_targets(answers))
+    for answer in answers:
+        responses += list(dnsengine.extract_targets(answer))
     assert ("A", "1.1.1.1") in responses
-    _responses, errors = await dnsengine.resolve_raw("one.one.one.one", rdtype="AAAA")
+    assert not ("AAAA", "2606:4700:4700::1111") in responses
+    answers, errors = await dnsengine.resolve_raw("one.one.one.one", type="AAAA")
     responses = []
-    for rdtype, response in _responses:
-        for answers in response:
-            responses += list(dnsengine.extract_targets(answers))
+    for answer in answers:
+        responses += list(dnsengine.extract_targets(answer))
+    assert not ("A", "1.1.1.1") in responses
     assert ("AAAA", "2606:4700:4700::1111") in responses
-    _responses, errors = await dnsengine.resolve_raw("1.1.1.1")
+    answers, errors = await dnsengine.resolve_raw("1.1.1.1")
     responses = []
-    for rdtype, response in _responses:
-        for answers in response:
-            responses += list(dnsengine.extract_targets(answers))
+    for answer in answers:
+        responses += list(dnsengine.extract_targets(answer))
     assert ("PTR", "one.one.one.one") in responses
 
     # high level functions
@@ -80,15 +80,11 @@ async def test_dns(bbot_scanner):
     assert "one.one.one.one" in batch_results["1.1.1.1"]
 
     # custom batch resolution
-    batch_results = [r async for r in dnsengine.resolve_custom_batch([("1.1.1.1", "PTR"), ("one.one.one.one", "A")])]
+    batch_results = [r async for r in dnsengine.resolve_raw_batch([("1.1.1.1", "PTR"), ("one.one.one.one", "A")])]
     assert len(batch_results) == 2
     batch_results = dict(batch_results)
-    assert any([x in batch_results[("one.one.one.one", "A")][0] for x in ("1.1.1.1", "1.0.0.1")])
-    assert "one.one.one.one" in batch_results[("1.1.1.1", "PTR")][0]
-
-    # "any" type
-    resolved = await dnsengine.resolve("google.com", type="any")
-    assert any([scan.helpers.is_subdomain(h) for h in resolved])
+    assert ("1.1.1.1", "A") in batch_results[("one.one.one.one", "A")][0]
+    assert ("one.one.one.one", "PTR") in batch_results[("1.1.1.1", "PTR")][0]
 
     # dns cache
     dnsengine._dns_cache.clear()
@@ -103,9 +99,13 @@ async def test_dns(bbot_scanner):
 
     await dnsengine.resolve("1.1.1.1")
     assert hash(f"1.1.1.1:PTR") in dnsengine._dns_cache
-    await dnsengine.resolve("one.one.one.one")
+    await dnsengine.resolve("one.one.one.one", type="A")
     assert hash(f"one.one.one.one:A") in dnsengine._dns_cache
+    assert not hash(f"one.one.one.one:AAAA") in dnsengine._dns_cache
+    dnsengine._dns_cache.clear()
+    await dnsengine.resolve("one.one.one.one", type="AAAA")
     assert hash(f"one.one.one.one:AAAA") in dnsengine._dns_cache
+    assert not hash(f"one.one.one.one:A") in dnsengine._dns_cache
 
     # Ensure events with hosts have resolved_hosts attribute populated
     resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", dummy=True)
