@@ -13,7 +13,7 @@ if not silent:
  [1;38;5;208m|  ___ <[0m|  __ <| |  | | | |
  [1;38;5;208m| |___) [0m| |__) | |__| | | |
  [1;38;5;208m|______/[0m|_____/ \____/  |_|
- [1;38;5;208mBIGHUGE[0m BLS OSINT TOOL v{__version__}
+ [1;38;5;208mBIGHUGE[0m BLS OSINT TOOL {__version__}
 
  www.blacklanternsecurity.com/bbot
 """
