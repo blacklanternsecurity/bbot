@@ -10,17 +10,3 @@ config:
   web_spider_depth: 4
   # maximum number of links to follow per page
   web_spider_links_per_page: 25
-
-  modules:
-    stdout:
-      format: text
-      # only output URLs to the console
-      event_types:
-        - URL
-      # only show in-scope URLs
-      in_scope_only: True
-      # display the raw URLs, nothing else
-      event_fields:
-        - data
-      # automatically dedupe
-      accept_dups: False
