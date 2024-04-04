@@ -268,6 +268,13 @@ class Preset:
     def preset_dir(self):
         return self.bbot_home / "presets"
 
+    @property
+    def default_output_modules(self):
+        default_output_modules = {"python", "csv", "txt", "json"}
+        if self._cli:
+            default_output_modules.add("stdout")
+        return default_output_modules
+
     def merge(self, other):
         """
         Merge another preset into this one.
@@ -326,6 +333,7 @@ class Preset:
             self.conditions.extend(other.conditions)
         # misc
         self.force_start = self.force_start | other.force_start
+        self._cli = self._cli | other._cli
 
     def bake(self):
         """
@@ -386,7 +394,7 @@ class Preset:
 
         # ensure we have output modules
         if not baked_preset.output_modules:
-            for output_module in ("python", "csv", "txt", "json", "stdout"):
+            for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
         # evaluate conditions
