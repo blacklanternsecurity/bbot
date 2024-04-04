@@ -62,7 +62,7 @@ class Stdout(BaseOutputModule):
         elif event.type == "FINDING":
             log_to_stderr(event_str, level="HUGEINFO", logname=False)
 
-        self.stdout(event_str)
+        print(event_str)
 
     async def handle_json(self, event, event_json):
-        self.stdout(json.dumps(event_json))
+        print(json.dumps(event_json))

@@ -922,13 +922,11 @@ class Scanner:
             main_handler = logging.handlers.TimedRotatingFileHandler(
                 str(self.home / "scan.log"), when="d", interval=1, backupCount=14
             )
-            main_handler.addFilter(
-                lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE
-            )
+            main_handler.addFilter(lambda x: x.levelno != logging.TRACE and x.levelno >= logging.VERBOSE)
             debug_handler = logging.handlers.TimedRotatingFileHandler(
                 str(self.home / "debug.log"), when="d", interval=1, backupCount=14
             )
-            debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
+            debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
             self.__log_handlers = [main_handler, debug_handler]
         return self.__log_handlers
 

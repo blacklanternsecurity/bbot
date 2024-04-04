@@ -1196,20 +1196,6 @@ class BaseModule:
             preserve_graph = self._preserve_graph
         return preserve_graph
 
-    def stdout(self, *args, **kwargs):
-        """Writes log messages directly to standard output.
-
-        This is typically reserved for output modules only, e.g. `human` or `json`.
-
-        Args:
-            *args: Variable length argument list to be passed to `self.log.stdout`.
-            **kwargs: Arbitrary keyword arguments to be passed to `self.log.stdout`.
-
-        Examples:
-            >>> self.stdout("This will be printed to stdout")
-        """
-        self.log.stdout(*args, extra={"scan_id": self.scan.id}, **kwargs)
-
     def debug(self, *args, trace=False, **kwargs):
         """Logs debug messages and optionally the stack trace of the most recent exception.
 

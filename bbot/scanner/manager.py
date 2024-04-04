@@ -52,7 +52,7 @@ class ScanManager:
         self._incoming_queues = None
         self._module_priority_weights = None
 
-    async def init_events(self):
+    async def init_events(self, events=None):
         """
         Initializes events by seeding the scanner with target events and distributing them for further processing.
 
@@ -60,11 +60,12 @@ class ScanManager:
             - This method populates the event queue with initial target events.
             - It also marks the Scan object as finished with initialization by setting `_finished_init` to True.
         """
-
+        if events is None:
+            events = self.scan.target.events
         context = f"manager.init_events()"
         async with self.scan._acatch(context), self._task_counter.count(context):
             await self.distribute_event(self.scan.root_event)
-            sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
+            sorted_events = sorted(events, key=lambda e: len(e.data))
             for event in sorted_events:
                 event._dummy = False
                 event.scope_distance = 0
