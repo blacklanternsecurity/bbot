@@ -148,6 +148,9 @@ class Preset:
         self._debug = False
         self._silent = False
 
+        self._default_output_modules = None
+        self._default_internal_modules = None
+
         # modules / flags
         self.modules = set()
         self.exclude_modules = set()
@@ -270,10 +273,22 @@ class Preset:
 
     @property
     def default_output_modules(self):
-        default_output_modules = {"python", "csv", "txt", "json"}
-        if self._cli:
-            default_output_modules.add("stdout")
-        return default_output_modules
+        if self._default_output_modules is not None:
+            output_modules = self._default_output_modules
+        else:
+            output_modules = ["python", "csv", "txt", "json"]
+            if self._cli:
+                output_modules.append("stdout")
+        return output_modules
+
+    @property
+    def default_internal_modules(self):
+        preloaded_internal = self.module_loader.preloaded(type="internal")
+        if self._default_internal_modules is not None:
+            internal_modules = self._default_internal_modules
+        else:
+            internal_modules = list(preloaded_internal)
+        return {k: preloaded_internal[k] for k in internal_modules}
 
     def merge(self, other):
         """
@@ -374,7 +389,7 @@ class Preset:
             baked_preset.add_module(module, module_type="output", raise_error=False)
 
         # enable internal modules
-        for internal_module, preloaded in baked_preset.module_loader.preloaded(type="internal").items():
+        for internal_module, preloaded in self.default_internal_modules.items():
             is_enabled = baked_preset.config.get(internal_module, True)
             is_excluded = internal_module in baked_preset.exclude_modules
             if is_enabled and not is_excluded:

@@ -119,9 +119,14 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     result = await cli._main()
     out, err = capsys.readouterr()
     assert result == None
-    assert not "| modules.wayback.urls" in out
-    assert "| modules.massdns.wordlist" in out
-    assert not "| modules.robots.include_allow" in out
+    assert out.count("modules.") == out.count("modules.massdns.")
+
+    # list output module options by module
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "stdout", "-lmo"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert out.count("modules.") == out.count("modules.stdout.")
 
     # list flags
     monkeypatch.setattr("sys.argv", ["bbot", "--list-flags"])

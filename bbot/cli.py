@@ -87,6 +87,10 @@ async def _main():
                     module_type = preloaded.get("type", "scan")
                     preset.add_module(module, module_type=module_type)
 
+            if options.modules or options.output_modules or options.flags:
+                preset._default_output_modules = options.output_modules
+                preset._default_internal_modules = []
+
             preset.bake()
 
             # --list-modules
