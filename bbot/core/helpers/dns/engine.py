@@ -9,8 +9,8 @@ from contextlib import suppress
 from cachetools import LRUCache
 
 from ..regexes import dns_name_regex
+from bbot.errors import DNSWildcardBreak
 from bbot.core.engine import EngineServer
-from bbot.core.errors import DNSWildcardBreak
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.helpers.misc import (
     clean_dns_record,

@@ -5,8 +5,8 @@ import dns.asyncresolver
 from cachetools import LRUCache
 from contextlib import suppress
 
+from bbot.errors import ValidationError
 from bbot.core.engine import EngineClient
-from bbot.core.errors import ValidationError
 from bbot.core.helpers.async_helpers import NamedLock
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name, host_in_host
 

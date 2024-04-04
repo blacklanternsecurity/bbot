@@ -3,6 +3,7 @@
 import sys
 from bbot.errors import *
 from bbot import __version__
+from bbot.logger import log_to_stderr
 
 silent = "-s" in sys.argv or "--silent" in sys.argv
 
@@ -31,8 +32,6 @@ async def _main():
 
     # fix tee buffering
     sys.stdout.reconfigure(line_buffering=True)
-
-    from bbot.core.helpers.logger import log_to_stderr
 
     log = logging.getLogger("bbot.cli")
 

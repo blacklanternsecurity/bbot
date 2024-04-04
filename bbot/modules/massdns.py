@@ -1,7 +1,6 @@
 import re
 import json
 import random
-import asyncio
 import subprocess
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
@@ -101,10 +100,8 @@ class massdns(subdomain_enum):
             cache_hrs=24 * 7,
         )
         self.devops_mutations = list(self.helpers.word_cloud.devops_mutations)
-        self.mutation_run = 1
+        self._mutation_run = 1
 
-        self.resolve_and_emit_queue = asyncio.Queue()
-        self.resolve_and_emit_task = asyncio.create_task(self.resolve_and_emit())
         return await super().setup()
 
     async def filter_event(self, event):
@@ -137,8 +134,8 @@ class massdns(subdomain_enum):
         query = self.make_query(event)
         self.source_events.add_target(event)
         self.info(f"Brute-forcing subdomains for {query} (source: {event.data})")
-        results = await self.massdns(query, self.subdomain_list)
-        await self.resolve_and_emit_queue.put((results, event, None))
+        for hostname in await self.massdns(query, self.subdomain_list):
+            await self.emit_result(hostname, event, query)
 
     def abort_if(self, event):
         if not event.scope_distance == 0:
@@ -148,6 +145,13 @@ class massdns(subdomain_enum):
         if "unresolved" in event.tags:
             return True, "event is unresolved"
         return False, ""
+
+    async def emit_result(self, result, source_event, query, tags=None):
+        if not result == source_event:
+            kwargs = {"abort_if": self.abort_if}
+            if tags is not None:
+                kwargs["tags"] = tags
+            await self.emit_event(result, "DNS_NAME", source_event, **kwargs)
 
     def already_processed(self, hostname):
         if hash(hostname) in self.processed:
@@ -220,35 +224,6 @@ class massdns(subdomain_enum):
 
         # everything checks out
         return results
-
-    async def resolve_and_emit(self):
-        """
-        When results are found, they are placed into self.resolve_and_emit_queue.
-        The purpose of this function (which is started as a task in the module's setup()) is to consume results from
-        the queue, resolve them, and if they resolve, emit them.
-
-        This exists to prevent disrupting the scan with huge batches of DNS resolutions.
-        """
-        while 1:
-            results, source_event, tags = await self.resolve_and_emit_queue.get()
-            self.verbose(f"Resolving batch of {len(results):,} results")
-            async with self._task_counter.count(f"{self.name}.resolve_and_emit()"):
-                async for hostname, r in self.helpers.resolve_batch(results, type="A"):
-                    if not r:
-                        self.debug(f"Discarding {hostname} because it didn't resolve")
-                        continue
-                    self.add_found(hostname)
-                    if source_event is None:
-                        source_event = self.source_events.get(hostname)
-                        if source_event is None:
-                            self.warning(f"Could not correlate source event from: {hostname}")
-                            source_event = self.scan.root_event
-                    kwargs = {"abort_if": self.abort_if, "tags": tags}
-                    await self.emit_event(hostname, "DNS_NAME", source_event, **kwargs)
-
-    @property
-    def running(self):
-        return super().running or self.resolve_and_emit_queue.qsize() > 0
 
     async def _canary_check(self, domain, num_checks=50):
         random_subdomains = list(self.gen_random_subdomains(num_checks))
@@ -378,9 +353,6 @@ class massdns(subdomain_enum):
                             self.mutations_tried.add(h)
                             mutations.add(m)
 
-                    num_base_mutations = len(base_mutations)
-                    self.debug(f"Base mutations for {domain}: {num_base_mutations:,}")
-
                     # try every subdomain everywhere else
                     for _domain, _subdomains in found:
                         if _domain == domain:
@@ -388,16 +360,16 @@ class massdns(subdomain_enum):
                         for s in _subdomains:
                             first_segment = s.split(".")[0]
                             # skip stuff with lots of numbers (e.g. PTRs)
-                            if self.has_excessive_digits(first_segment):
+                            digits = self.digit_regex.findall(first_segment)
+                            excessive_digits = len(digits) > 2
+                            long_digits = any(len(d) > 3 for d in digits)
+                            if excessive_digits or long_digits:
                                 continue
                             add_mutation(domain_hash, first_segment)
                             for word in self.helpers.extract_words(
                                 first_segment, word_regexes=self.helpers.word_cloud.dns_mutator.extract_word_regexes
                             ):
                                 add_mutation(domain_hash, word)
-
-                    num_massdns_mutations = len(mutations) - num_base_mutations
-                    self.debug(f"Mutations from previous subdomains for {domain}: {num_massdns_mutations:,}")
 
                     # numbers + devops mutations
                     for mutation in self.helpers.word_cloud.mutations(
@@ -407,26 +379,24 @@ class massdns(subdomain_enum):
                             m = delimiter.join(mutation).lower()
                             add_mutation(domain_hash, m)
 
-                    num_word_cloud_mutations = len(mutations) - num_massdns_mutations
-                    self.debug(f"Mutations added by word cloud for {domain}: {num_word_cloud_mutations:,}")
-
                     # special dns mutator
-                    self.debug(
-                        f"DNS Mutator size: {len(self.helpers.word_cloud.dns_mutator):,} (limited to {self.max_mutations:,})"
-                    )
                     for subdomain in self.helpers.word_cloud.dns_mutator.mutations(
                         subdomains, max_mutations=self.max_mutations
                     ):
                         add_mutation(domain_hash, subdomain)
 
-                    num_mutations = len(mutations) - num_word_cloud_mutations
-                    self.debug(f"Mutations added by DNS Mutator: {num_mutations:,}")
-
                     if mutations:
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(found)})")
                         results = list(await self.massdns(query, mutations))
+                        for hostname in results:
+                            source_event = self.source_events.get(hostname)
+                            if source_event is None:
+                                self.warning(f"Could not correlate source event from: {hostname}")
+                                source_event = self.scan.root_event
+                            await self.emit_result(
+                                hostname, source_event, query, tags=[f"mutation-{self._mutation_run}"]
+                            )
                         if results:
-                            await self.resolve_and_emit_queue.put((results, None, [f"mutation-{self.mutation_run}"]))
                             found_mutations = True
                             continue
                     break
@@ -434,7 +404,7 @@ class massdns(subdomain_enum):
             self.warning(e)
 
         if found_mutations:
-            self.mutation_run += 1
+            self._mutation_run += 1
 
     def add_found(self, host):
         if not isinstance(host, str):

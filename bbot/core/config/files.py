@@ -4,7 +4,7 @@ from omegaconf import OmegaConf
 
 from ..helpers.misc import mkdir
 from ...errors import ConfigLoadError
-from ..helpers.logger import log_to_stderr
+from ...logger import log_to_stderr
 
 
 bbot_code_dir = Path(__file__).parent.parent.parent
