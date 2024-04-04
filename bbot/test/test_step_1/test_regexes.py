@@ -1,9 +1,9 @@
 import pytest
 import traceback
 
-from bbot.core.event.helpers import get_event_type
 from bbot.core.helpers import regexes
-from bbot.core.errors import ValidationError
+from bbot.errors import ValidationError
+from bbot.core.event.helpers import get_event_type
 
 
 def test_dns_name_regexes():

@@ -9,8 +9,8 @@ from contextlib import suppress
 
 from .path import PRESET_PATH
 
+from bbot.errors import *
 from bbot.core import CORE
-from bbot.core.errors import *
 from bbot.core.event.base import make_event
 from bbot.core.helpers.misc import make_table, mkdir, get_closest_match
 

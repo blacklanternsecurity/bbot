@@ -2,8 +2,8 @@ import asyncio
 from OpenSSL import crypto
 from contextlib import suppress
 
+from bbot.errors import ValidationError
 from bbot.modules.base import BaseModule
-from bbot.core.errors import ValidationError
 from bbot.core.helpers.async_helpers import NamedLock
 
 

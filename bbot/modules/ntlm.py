@@ -1,4 +1,4 @@
-from bbot.core.errors import NTLMError
+from bbot.errors import NTLMError
 from bbot.modules.base import BaseModule
 
 ntlm_discovery_endpoints = [

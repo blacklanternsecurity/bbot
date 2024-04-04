@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from bbot.core.errors import *
+from bbot.errors import *
 
 log = logging.getLogger("bbot.presets.path")
 

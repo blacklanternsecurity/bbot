@@ -4,8 +4,8 @@ import traceback
 from sys import exc_info
 from contextlib import suppress
 
+from ..errors import ValidationError
 from ..core.helpers.misc import get_size  # noqa
-from ..core.errors import ValidationError
 from ..core.helpers.async_helpers import TaskCounter, ShuffleQueue
 
 

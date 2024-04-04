@@ -2,7 +2,7 @@ import logging
 import ipaddress
 from contextlib import suppress
 
-from bbot.core.errors import *
+from bbot.errors import *
 from bbot.modules.base import BaseModule
 from bbot.core.event import make_event, is_event
 from bbot.core.helpers.misc import ip_network_parents, is_ip_type, domain_parents

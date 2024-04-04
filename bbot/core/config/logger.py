@@ -253,5 +253,6 @@ class BBOTLogger:
                     self.set_log_level(
                         self.verbosity_levels_toggle[(i + 1) % len(self.verbosity_levels_toggle)], logger=logger
                     )
+                    break
         else:
             self.set_log_level(self.verbosity_levels_toggle[0], logger=logger)

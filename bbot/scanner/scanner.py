@@ -23,7 +23,7 @@ from bbot.core.event import make_event
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
-from bbot.core.errors import BBOTError, ScanError, ValidationError
+from bbot.errors import BBOTError, ScanError, ValidationError
 
 log = logging.getLogger("bbot.scanner")
 
@@ -254,7 +254,6 @@ class Scanner:
             await self.load_modules()
 
             # run each module's .setup() method
-            self.info(f"Setting up modules...")
             succeeded, hard_failed, soft_failed = await self.setup_modules()
 
             # abort if there are no output modules
