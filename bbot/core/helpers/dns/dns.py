@@ -2,10 +2,12 @@ import dns
 import logging
 import dns.exception
 import dns.asyncresolver
+from cachetools import LRUCache
 from contextlib import suppress
 
 from bbot.core.engine import EngineClient
 from bbot.core.errors import ValidationError
+from bbot.core.helpers.async_helpers import NamedLock
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name, host_in_host
 
 from .engine import DNSEngine
@@ -70,6 +72,10 @@ class DNSHelper(EngineClient):
             self.wildcard_ignore = []
         self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
 
+        # event resolution cache
+        self._event_cache = LRUCache(maxsize=10000)
+        self._event_cache_locks = NamedLock()
+
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
         # TODO: DNS server speed test (start in background task)
@@ -94,29 +100,51 @@ class DNSHelper(EngineClient):
 
         event_host = str(event.host)
         event_type = str(event.type)
-        kwargs = {"event_host": event_host, "event_type": event_type, "minimal": minimal}
-        event_tags, dns_children = await self.run_and_return("resolve_event", **kwargs)
-
-        # whitelisting / blacklisting based on resolved hosts
+        event_tags = set()
+        dns_children = dict()
         event_whitelisted = False
         event_blacklisted = False
-        for rdtype, children in dns_children.items():
-            if event_blacklisted:
-                break
-            for host in children:
-                if rdtype in ("A", "AAAA", "CNAME"):
-                    # having a CNAME to an in-scope resource doesn't make you in-scope
-                    if not event_whitelisted and rdtype != "CNAME":
-                        with suppress(ValidationError):
-                            if self.parent_helper.scan.whitelisted(host):
-                                event_whitelisted = True
-                    # CNAME to a blacklisted resources, means you're blacklisted
-                    with suppress(ValidationError):
-                        if self.parent_helper.scan.blacklisted(host):
-                            event_blacklisted = True
-                            break
 
-        return event_tags, event_whitelisted, event_blacklisted, dns_children
+        if (not event.host) or (event.type in ("IP_RANGE",)):
+            return event_tags, event_whitelisted, event_blacklisted, dns_children
+
+        # lock to ensure resolution of the same host doesn't start while we're working here
+        async with self._event_cache_locks.lock(event_host):
+            # try to get data from cache
+            try:
+                _event_tags, _event_whitelisted, _event_blacklisted, _dns_children = self._event_cache[event_host]
+                event_tags.update(_event_tags)
+                # if we found it, return it
+                if _event_whitelisted is not None:
+                    return event_tags, _event_whitelisted, _event_blacklisted, _dns_children
+            except KeyError:
+                pass
+
+            kwargs = {"event_host": event_host, "event_type": event_type, "minimal": minimal}
+            event_tags, dns_children = await self.run_and_return("resolve_event", **kwargs)
+
+            # whitelisting / blacklisting based on resolved hosts
+            event_whitelisted = False
+            event_blacklisted = False
+            for rdtype, children in dns_children.items():
+                if event_blacklisted:
+                    break
+                for host in children:
+                    if rdtype in ("A", "AAAA", "CNAME"):
+                        # having a CNAME to an in-scope resource doesn't make you in-scope
+                        if not event_whitelisted and rdtype != "CNAME":
+                            with suppress(ValidationError):
+                                if self.parent_helper.scan.whitelisted(host):
+                                    event_whitelisted = True
+                        # CNAME to a blacklisted resources, means you're blacklisted
+                        with suppress(ValidationError):
+                            if self.parent_helper.scan.blacklisted(host):
+                                event_blacklisted = True
+                                break
+
+            self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, dns_children)
+
+            return event_tags, event_whitelisted, event_blacklisted, dns_children
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """

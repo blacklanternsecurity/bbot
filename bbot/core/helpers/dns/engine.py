@@ -96,8 +96,6 @@ class DNSEngine(EngineServer):
         self._errors = dict()
         self._debug = self.config.get("dns_debug", False)
         self._dns_cache = LRUCache(maxsize=10000)
-        self._event_cache = LRUCache(maxsize=10000)
-        self._event_cache_locks = NamedLock()
 
         self.filter_bad_ptrs = self.config.get("dns_filter_ptrs", True)
 
@@ -440,79 +438,64 @@ class DNSEngine(EngineServer):
         dns_children = dict()
 
         try:
-            # lock to ensure resolution of the same host doesn't start while we're working here
-            async with self._event_cache_locks.lock(event_host):
-                # try to get data from cache
-                try:
-                    _event_tags, _dns_children = self._event_cache[event_host]
-                    event_tags.update(_event_tags)
-                    # if we found it, return it
-                    if _event_tags is not None:
-                        return event_tags, _dns_children
-                except KeyError:
-                    _event_tags, _dns_children = set(), set()
-
-                # then resolve
-                types = ()
-                if is_ip(event_host):
-                    if not minimal:
-                        types = ("PTR",)
+            types = ()
+            if is_ip(event_host):
+                if not minimal:
+                    types = ("PTR",)
+            else:
+                if event_type == "DNS_NAME" and not minimal:
+                    types = self.all_rdtypes
                 else:
-                    if event_type == "DNS_NAME" and not minimal:
-                        types = self.all_rdtypes
-                    else:
-                        types = ("A", "AAAA")
-                queries = [(event_host, t) for t in types]
-                async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(queries):
-                    if answers:
-                        rdtype = str(rdtype).upper()
-                        event_tags.add("resolved")
-                        event_tags.add(f"{rdtype.lower()}-record")
+                    types = ("A", "AAAA")
+            queries = [(event_host, t) for t in types]
+            async for (query, rdtype), (answers, errors) in self.resolve_raw_batch(queries):
+                if answers:
+                    rdtype = str(rdtype).upper()
+                    event_tags.add("resolved")
+                    event_tags.add(f"{rdtype.lower()}-record")
 
-                        for host, _rdtype in answers:
-                            if host:
-                                host = make_ip_type(host)
+                    for host, _rdtype in answers:
+                        if host:
+                            host = make_ip_type(host)
 
-                                if self.filter_bad_ptrs and rdtype in ("PTR") and is_ptr(host):
-                                    self.debug(f"Filtering out bad PTR: {host}")
-                                    continue
+                            if self.filter_bad_ptrs and rdtype in ("PTR") and is_ptr(host):
+                                self.debug(f"Filtering out bad PTR: {host}")
+                                continue
 
-                                try:
-                                    dns_children[_rdtype].add(host)
-                                except KeyError:
-                                    dns_children[_rdtype] = {host}
+                            try:
+                                dns_children[_rdtype].add(host)
+                            except KeyError:
+                                dns_children[_rdtype] = {host}
 
-                    elif errors:
-                        event_tags.add(f"{rdtype.lower()}-error")
+                elif errors:
+                    event_tags.add(f"{rdtype.lower()}-error")
 
-                # tag with cloud providers
-                if not self.in_tests:
-                    to_check = set()
-                    if event_type == "IP_ADDRESS":
-                        to_check.add(event_host)
-                    for rdtype, ips in dns_children.items():
-                        if rdtype in ("A", "AAAA"):
-                            for ip in ips:
-                                to_check.add(ip)
-                    for ip in to_check:
-                        provider, provider_type, subnet = cloudcheck(ip)
-                        if provider:
-                            event_tags.add(f"{provider_type}-{provider}")
-
-                # if needed, mark as unresolved
-                if not is_ip(event_host) and "resolved" not in event_tags:
-                    event_tags.add("unresolved")
-                # check for private IPs
+            # tag with cloud providers
+            if not self.in_tests:
+                to_check = set()
+                if event_type == "IP_ADDRESS":
+                    to_check.add(event_host)
                 for rdtype, ips in dns_children.items():
-                    for ip in ips:
-                        try:
-                            ip = ipaddress.ip_address(ip)
-                            if ip.is_private:
-                                event_tags.add("private-ip")
-                        except ValueError:
-                            continue
+                    if rdtype in ("A", "AAAA"):
+                        for ip in ips:
+                            to_check.add(ip)
+                for ip in to_check:
+                    provider, provider_type, subnet = cloudcheck(ip)
+                    if provider:
+                        event_tags.add(f"{provider_type}-{provider}")
 
-                self._event_cache[event_host] = (event_tags, dns_children)
+            # if needed, mark as unresolved
+            if not is_ip(event_host) and "resolved" not in event_tags:
+                event_tags.add("unresolved")
+            # check for private IPs
+            for rdtype, ips in dns_children.items():
+                for ip in ips:
+                    try:
+                        ip = ipaddress.ip_address(ip)
+                        if ip.is_private:
+                            event_tags.add("private-ip")
+                    except ValueError:
+                        continue
 
             return event_tags, dns_children
 

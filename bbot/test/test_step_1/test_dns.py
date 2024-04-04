@@ -110,9 +110,13 @@ async def test_dns(bbot_scanner):
     # Ensure events with hosts have resolved_hosts attribute populated
     resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", dummy=True)
     resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", dummy=True)
+    assert resolved_hosts_event1.host not in scan.helpers.dns._event_cache
+    assert resolved_hosts_event2.host not in scan.helpers.dns._event_cache
     event_tags1, event_whitelisted1, event_blacklisted1, children1 = await scan.helpers.resolve_event(
         resolved_hosts_event1
     )
+    assert resolved_hosts_event1.host in scan.helpers.dns._event_cache
+    assert resolved_hosts_event2.host in scan.helpers.dns._event_cache
     event_tags2, event_whitelisted2, event_blacklisted2, children2 = await scan.helpers.resolve_event(
         resolved_hosts_event2
     )
