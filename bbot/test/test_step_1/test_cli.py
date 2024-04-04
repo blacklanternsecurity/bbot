@@ -354,13 +354,65 @@ def test_cli_module_validation(monkeypatch, caplog):
     # output module setup failed
     caplog.clear()
     assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-om", "websocket", "-c", "modules.websocket.url=", "y"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "websocket", "-c", "modules.websocket.url=", "-y"])
     cli.main()
-    assert (
-        """[WARN] Setup hard-failed for websocket: Must set URL
-[WARN] output.websocket: Setting error state
-[ERRR] Failed to load output modules. Aborting."""
-        in caplog.text
+    lines = caplog.text.splitlines()
+    assert "Loaded 6/6 output modules, (csv,json,python,stdout,txt,websocket)" in caplog.text
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            and l.endswith("Setup hard-failed for websocket: Must set URL")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("ERROR    bbot.cli:cli.py")
+            and l.endswith("Setup hard-failed for 1 modules (websocket) (--force to run module anyway)")
+        ]
+    )
+
+    # only output module setup failed
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bbot", "-om", "websocket", "-em", "python,stdout,csv,json,txt", "-c", "modules.websocket.url=", "-y"],
+    )
+    cli.main()
+    lines = caplog.text.splitlines()
+    assert "Loaded 1/1 output modules, (websocket)" in caplog.text
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            and l.endswith("Setup hard-failed for websocket: Must set URL")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("ERROR    bbot.cli:cli.py") and l.endswith("Failed to load output modules. Aborting.")
+        ]
     )
 
     # incorrect flag
