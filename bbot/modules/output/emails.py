@@ -1,8 +1,8 @@
+from bbot.modules.output.txt import TXT
 from bbot.modules.base import BaseModule
-from bbot.modules.output.human import Human
 
 
-class Emails(Human):
+class Emails(TXT):
     watched_events = ["EMAIL_ADDRESS"]
     meta = {"description": "Output any email addresses found belonging to the target domain"}
     options = {"output_file": ""}

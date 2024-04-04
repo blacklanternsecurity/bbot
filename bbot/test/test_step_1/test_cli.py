@@ -220,6 +220,14 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert result == True
     assert "Loaded 3/3 output modules, (python,stdout,txt)" in caplog.text
 
+    # output modules override
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "subdomains", "-y"])
+    result = await cli._main()
+    assert result == True
+    assert "Loaded 6/6 output modules, (csv,json,python,stdout,subdomains,txt)" in caplog.text
+
     # internal modules override
     caplog.clear()
     assert not caplog.text
@@ -342,6 +350,18 @@ def test_cli_module_validation(monkeypatch, caplog):
     cli.main()
     assert 'Could not find output module "neoo4j"' in caplog.text
     assert 'Did you mean "neo4j"?' in caplog.text
+
+    # output module setup failed
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "websocket", "-c", "modules.websocket.url=", "y"])
+    cli.main()
+    assert (
+        """[WARN] Setup hard-failed for websocket: Must set URL
+[WARN] output.websocket: Setting error state
+[ERRR] Failed to load output modules. Aborting."""
+        in caplog.text
+    )
 
     # incorrect flag
     caplog.clear()

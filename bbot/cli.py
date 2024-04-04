@@ -233,6 +233,10 @@ async def _main():
 
         return True
 
+    except BBOTError as e:
+        log.error(str(e))
+        log.trace(traceback.format_exc())
+
     finally:
         # save word cloud
         with suppress(BaseException):

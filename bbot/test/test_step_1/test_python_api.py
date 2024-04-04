@@ -45,6 +45,12 @@ async def test_python_api():
     Scanner("127.0.0.1", config={"home": bbot_home})
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
+    # output modules override
+    scan4 = Scanner()
+    assert set(scan4.preset.output_modules) == {"csv", "json", "python", "txt"}
+    scan5 = Scanner(output_modules=["json"])
+    assert set(scan5.preset.output_modules) == {"json"}
+
 
 def test_python_api_sync():
     from bbot.scanner import Scanner
