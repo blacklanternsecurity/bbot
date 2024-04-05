@@ -215,23 +215,28 @@ For details, see [Configuration](https://www.blacklanternsecurity.com/bbot/scann
         - [List of Modules](https://www.blacklanternsecurity.com/bbot/modules/list_of_modules)
         - [Nuclei](https://www.blacklanternsecurity.com/bbot/modules/nuclei)
     - **Misc**
+        - [Contribution](https://www.blacklanternsecurity.com/bbot/contribution)
         - [Release History](https://www.blacklanternsecurity.com/bbot/release_history)
         - [Troubleshooting](https://www.blacklanternsecurity.com/bbot/troubleshooting)
 - **Developer Manual**
-    - [How to Write a Module](https://www.blacklanternsecurity.com/bbot/contribution)
     - [Development Overview](https://www.blacklanternsecurity.com/bbot/dev/)
-    - [Scanner](https://www.blacklanternsecurity.com/bbot/dev/scanner)
-    - [Event](https://www.blacklanternsecurity.com/bbot/dev/event)
-    - [Target](https://www.blacklanternsecurity.com/bbot/dev/target)
-    - [BaseModule](https://www.blacklanternsecurity.com/bbot/dev/basemodule)
-    - **Helpers**
-        - [Overview](https://www.blacklanternsecurity.com/bbot/dev/helpers/)
-        - [Command](https://www.blacklanternsecurity.com/bbot/dev/helpers/command)
-        - [DNS](https://www.blacklanternsecurity.com/bbot/dev/helpers/dns)
-        - [Interactsh](https://www.blacklanternsecurity.com/bbot/dev/helpers/interactsh)
-        - [Miscellaneous](https://www.blacklanternsecurity.com/bbot/dev/helpers/misc)
-        - [Web](https://www.blacklanternsecurity.com/bbot/dev/helpers/web)
-        - [Word Cloud](https://www.blacklanternsecurity.com/bbot/dev/helpers/wordcloud)
+    - [How to Write a BBOT Module](https://www.blacklanternsecurity.com/bbot/dev/module_howto)
+    - [Discord Bot Example](https://www.blacklanternsecurity.com/bbot/dev/discord_bot)
+    - **Code Reference**
+        - [Scanner](https://www.blacklanternsecurity.com/bbot/dev/scanner)
+        - [Presets](https://www.blacklanternsecurity.com/bbot/dev/presets)
+        - [Event](https://www.blacklanternsecurity.com/bbot/dev/event)
+        - [Target](https://www.blacklanternsecurity.com/bbot/dev/target)
+        - [BaseModule](https://www.blacklanternsecurity.com/bbot/dev/basemodule)
+        - [BBOTCore](https://www.blacklanternsecurity.com/bbot/dev/core)
+        - **Helpers**
+            - [Overview](https://www.blacklanternsecurity.com/bbot/dev/helpers/)
+            - [Command](https://www.blacklanternsecurity.com/bbot/dev/helpers/command)
+            - [DNS](https://www.blacklanternsecurity.com/bbot/dev/helpers/dns)
+            - [Interactsh](https://www.blacklanternsecurity.com/bbot/dev/helpers/interactsh)
+            - [Miscellaneous](https://www.blacklanternsecurity.com/bbot/dev/helpers/misc)
+            - [Web](https://www.blacklanternsecurity.com/bbot/dev/helpers/web)
+            - [Word Cloud](https://www.blacklanternsecurity.com/bbot/dev/helpers/wordcloud)
 <!-- END BBOT DOCS TOC -->
 
 ## Contribution

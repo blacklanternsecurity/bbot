@@ -34,7 +34,7 @@ asyncio.run(main())
 <!-- BBOT HELP OUTPUT -->
 ```text
 usage: bbot [-h] [-t TARGET [TARGET ...]] [-w WHITELIST [WHITELIST ...]] [-b BLACKLIST [BLACKLIST ...]] [--strict-scope] [-p [PRESET ...]] [-c [CONFIG ...]] [-lp]
-               [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]] [-om MODULE [MODULE ...]]
+               [-m MODULE [MODULE ...]] [-l] [-lmo] [-em MODULE [MODULE ...]] [-om MODULE [MODULE ...]] [-f FLAG [FLAG ...]] [-lf] [-rf FLAG [FLAG ...]] [-ef FLAG [FLAG ...]]
                [--allow-deadly] [-n SCAN_NAME] [-o DIR] [-v] [-d] [-s] [--force] [-y] [--dry-run] [--current-preset] [--current-preset-full]
                [--no-deps | --force-deps | --retry-deps | --ignore-failed-deps | --install-all-deps] [--version]
 
@@ -61,21 +61,21 @@ Presets:
 
 Modules:
   -m MODULE [MODULE ...], --modules MODULE [MODULE ...]
-                        Modules to enable. Choices: affiliates,ajaxpro,anubisdb,asn,azure_realm,azure_tenant,baddns,baddns_zone,badsecrets,bevigil,binaryedge,bucket_amazon,bucket_azure,bucket_digitalocean,bucket_file_enum,bucket_firebase,bucket_google,builtwith,bypass403,c99,censys,certspotter,chaos,columbus,credshed,crobat,crt,dastardly,dehashed,digitorus,dnscommonsrv,dnsdumpster,docker_pull,dockerhub,dotnetnuke,emailformat,ffuf,ffuf_shortnames,filedownload,fingerprintx,fullhunt,generic_ssrf,git,git_clone,github_codesearch,github_org,gitlab,gowitness,hackertarget,host_header,httpx,hunt,hunterio,iis_shortnames,internetdb,ip2location,ipneighbor,ipstack,leakix,masscan,massdns,myssl,newsletters,nmap,ntlm,nuclei,oauth,otx,paramminer_cookies,paramminer_getparams,paramminer_headers,passivetotal,pgp,postman,rapiddns,riddler,robots,secretsdb,securitytrails,shodan_dns,sitedossier,skymem,smuggler,social,sslcert,subdomaincenter,sublist3r,telerik,threatminer,trufflehog,url_manipulation,urlscan,vhost,viewdns,virustotal,wafw00f,wappalyzer,wayback,zoomeye
+                        Modules to enable. Choices: badsecrets,urlscan,iis_shortnames,masscan,host_header,columbus,social,gitlab,riddler,bypass403,asn,generic_ssrf,postman,crobat,nmap,bucket_azure,paramminer_getparams,affiliates,github_org,dnsdumpster,builtwith,bucket_google,sublist3r,nuclei,hunterio,trufflehog,ajaxpro,ntlm,azure_realm,dotnetnuke,fullhunt,smuggler,censys,ip2location,viewdns,baddns_zone,leakix,wayback,crt,git_clone,httpx,paramminer_cookies,paramminer_headers,hunt,credshed,dnscommonsrv,sslcert,bucket_digitalocean,baddns,bucket_firebase,passivetotal,dehashed,newsletters,telerik,sitedossier,github_codesearch,ffuf,azure_tenant,hackertarget,massdns,wappalyzer,emailformat,anubisdb,gowitness,wafw00f,virustotal,binaryedge,ipstack,bucket_file_enum,certspotter,zoomeye,filedownload,docker_pull,dastardly,digitorus,internetdb,url_manipulation,securitytrails,myssl,vhost,ffuf_shortnames,dockerhub,secretsdb,threatminer,oauth,shodan_dns,chaos,robots,bevigil,otx,git,bucket_amazon,c99,rapiddns,subdomaincenter,skymem,pgp,ipneighbor,fingerprintx
   -l, --list-modules    List available modules.
   -lmo, --list-module-options
                         Show all module config options
   -em MODULE [MODULE ...], --exclude-modules MODULE [MODULE ...]
                         Exclude these modules.
+  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
+                        Output module(s). Choices: csv,websocket,json,slack,teams,asset_inventory,web_report,http,neo4j,emails,subdomains,python,splunk,stdout,discord,txt
   -f FLAG [FLAG ...], --flags FLAG [FLAG ...]
-                        Enable modules by flag. Choices: active,affiliates,aggressive,baddns,cloud-enum,code-enum,deadly,email-enum,iis-shortnames,passive,portscan,report,safe,service-enum,slow,social-enum,subdomain-enum,subdomain-hijack,web-basic,web-paramminer,web-screenshots,web-thorough
+                        Enable modules by flag. Choices: web-paramminer,report,active,slow,social-enum,affiliates,passive,baddns,iis-shortnames,web-screenshots,cloud-enum,web-thorough,subdomain-hijack,safe,subdomain-enum,email-enum,code-enum,portscan,service-enum,web-basic,aggressive,deadly
   -lf, --list-flags     List available flags.
   -rf FLAG [FLAG ...], --require-flags FLAG [FLAG ...]
                         Only enable modules with these flags (e.g. -rf passive)
   -ef FLAG [FLAG ...], --exclude-flags FLAG [FLAG ...]
                         Disable modules with these flags. (e.g. -ef aggressive)
-  -om MODULE [MODULE ...], --output-modules MODULE [MODULE ...]
-                        Output module(s). Choices: asset_inventory,csv,discord,emails,http,human,json,neo4j,python,slack,splunk,subdomains,teams,web_report,websocket
   --allow-deadly        Enable the use of highly aggressive modules
 
 Scan:
