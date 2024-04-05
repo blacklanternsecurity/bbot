@@ -3,8 +3,8 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from ..helpers.misc import mkdir
-from ...errors import ConfigLoadError
 from ...logger import log_to_stderr
+from ...errors import ConfigLoadError
 
 
 bbot_code_dir = Path(__file__).parent.parent.parent
