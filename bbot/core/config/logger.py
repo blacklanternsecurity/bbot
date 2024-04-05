@@ -5,7 +5,7 @@ import logging.handlers
 from pathlib import Path
 
 from ..helpers.misc import mkdir, error_and_exit
-from ..helpers.logger import colorize, loglevel_mapping
+from ...logger import colorize, loglevel_mapping
 
 
 debug_format = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)s %(message)s")

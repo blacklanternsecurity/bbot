@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import sys
+import logging
 from bbot.errors import *
 from bbot import __version__
+from bbot.logger import log_to_stderr
 
 silent = "-s" in sys.argv or "--silent" in sys.argv
 
@@ -25,14 +27,11 @@ scan_name = ""
 async def _main():
 
     import asyncio
-    import logging
     import traceback
     from contextlib import suppress
 
     # fix tee buffering
     sys.stdout.reconfigure(line_buffering=True)
-
-    from bbot.core.helpers.logger import log_to_stderr
 
     log = logging.getLogger("bbot.cli")
 
@@ -155,9 +154,9 @@ async def _main():
         scan_name = str(scan.name)
 
         log.verbose("")
-        log.verbose("### MODULES ###")
+        log.verbose("### MODULES ENABLED ###")
         log.verbose("")
-        for row in scan.preset.module_loader.modules_table(scan.preset.scan_modules).splitlines():
+        for row in scan.preset.module_loader.modules_table(scan.preset.modules).splitlines():
             log.verbose(row)
 
         scan.helpers.word_cloud.load()
