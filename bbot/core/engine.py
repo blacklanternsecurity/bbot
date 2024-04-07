@@ -33,6 +33,7 @@ class EngineClient:
         self.server_kwargs = kwargs.pop("server_kwargs", {})
         self.server_process = self.start_server()
         self.context = zmq.asyncio.Context()
+        atexit.register(self.cleanup)
 
     async def run_and_return(self, command, **kwargs):
         with self.new_socket() as socket:
@@ -111,6 +112,10 @@ class EngineClient:
         finally:
             socket.close()
 
+    def cleanup(self):
+        # delete socket file on exit
+        self.socket_path.unlink(missing_ok=True)
+
 
 class EngineServer:
 
@@ -126,8 +131,6 @@ class EngineServer:
             self.socket = self.context.socket(zmq.ROUTER)
             # create socket file
             self.socket.bind(f"ipc://{socket_path}")
-            # delete socket file on exit
-            atexit.register(socket_path.unlink, missing_ok=True)
 
     async def run_and_return(self, client_id, command_fn, **kwargs):
         self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({kwargs})")

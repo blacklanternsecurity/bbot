@@ -644,8 +644,12 @@ class Scanner:
             None
         """
         self.status = "CLEANING_UP"
+        # clean up dns engine
+        self.helpers.dns.cleanup()
+        # clean up modules
         for mod in self.modules.values():
             await mod._cleanup()
+        # clean up self
         if not self._cleanedup:
             self._cleanedup = True
             with contextlib.suppress(Exception):
