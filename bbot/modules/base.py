@@ -394,8 +394,7 @@ class BaseModule:
                     self.verbose(f"Handling batch of {len(events):,} events")
                     submitted = True
                     async with self.scan._acatch(f"{self.name}.handle_batch()"):
-                        handle_batch_task = asyncio.create_task(self.handle_batch(*events))
-                        await handle_batch_task
+                        await self.handle_batch(*events)
                     self.verbose(f"Finished handling batch of {len(events):,} events")
         if finish:
             context = f"{self.name}.finish()"
@@ -554,8 +553,7 @@ class BaseModule:
         status = False
         self.debug(f"Setting up module {self.name}")
         try:
-            setup_task = asyncio.create_task(self.setup())
-            result = await setup_task
+            result = await self.setup()
             if type(result) == tuple and len(result) == 2:
                 status, msg = result
             else:
@@ -622,16 +620,13 @@ class BaseModule:
                             if event.type == "FINISHED":
                                 context = f"{self.name}.finish()"
                                 async with self.scan._acatch(context), self._task_counter.count(context):
-                                    finish_task = asyncio.create_task(self.finish())
-                                    await finish_task
+                                    await self.finish()
                             else:
                                 context = f"{self.name}.handle_event({event})"
                                 self.scan.stats.event_consumed(event, self)
                                 self.debug(f"Handling {event}")
                                 async with self.scan._acatch(context), self._task_counter.count(context):
-                                    task_name = f"{self.name}.handle_event({event})"
-                                    handle_event_task = asyncio.create_task(self.handle_event(event), name=task_name)
-                                    await handle_event_task
+                                    await self.handle_event(event)
                                 self.debug(f"Finished handling {event}")
                         else:
                             self.debug(f"Not accepting {event} because {reason}")

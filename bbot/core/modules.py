@@ -15,7 +15,7 @@ from contextlib import suppress
 from bbot.core import CORE
 
 from .flags import flag_descriptions
-from .helpers.logger import log_to_stderr
+from bbot.logger import log_to_stderr
 from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform, mkdir
 
 
