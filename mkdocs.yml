@@ -98,6 +98,7 @@ markdown_extensions:
   - attr_list
   - admonition
   - pymdownx.details
+  - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.highlight:
       use_pygments: True
