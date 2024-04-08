@@ -316,12 +316,12 @@ class Scanner:
                 asyncio.create_task(self.manager._worker_loop()) for _ in range(self.max_workers)
             ]
 
-            # distribute seed events
-            self.init_events_task = asyncio.create_task(self.manager.init_events())
-
             self.status = "RUNNING"
             self._start_modules()
             self.verbose(f"{len(self.modules):,} modules started")
+
+            # distribute seed events
+            self.init_events_task = asyncio.create_task(self.manager.init_events())
 
             # main scan loop
             while 1:
@@ -330,12 +330,13 @@ class Scanner:
                     self._drain_queues()
                     break
 
+                # yield events as they come (async for event in scan.async_start())
                 if "python" in self.modules:
                     events, finish = await self.modules["python"]._events_waiting(batch_size=-1)
                     for e in events:
                         yield e
 
-                # if initialization finished and the scan is no longer active
+                # break if initialization finished and the scan is no longer active
                 if self._finished_init and not self.manager.active:
                     new_activity = await self.finish()
                     if not new_activity:
@@ -387,7 +388,17 @@ class Scanner:
 
     def _start_modules(self):
         self.verbose(f"Starting module worker loops")
-        for module_name, module in self.modules.items():
+
+        # hook modules get sewn together like human centipede
+        if len(self.manager.hook_modules) > 1:
+            for i, hook_module in enumerate(self.manager.hook_modules[:-1]):
+                next_hook_module = self.manager.hook_modules[i + 1]
+                self.debug(
+                    f"Setting hook module {hook_module.name}.outgoing_event_queue to next hook module {next_hook_module.name}.incoming_event_queue"
+                )
+                hook_module._outgoing_event_queue = next_hook_module.incoming_event_queue
+
+        for module in self.modules.values():
             module.start()
 
     async def setup_modules(self, remove_failed=True):
@@ -552,8 +563,8 @@ class Scanner:
             self.status = "FINISHING"
             # Trigger .finished() on every module and start over
             log.info("Finishing scan")
-            finished_event = self.make_event("FINISHED", "FINISHED", dummy=True)
             for module in self.modules.values():
+                finished_event = self.make_event(f"FINISHED", "FINISHED", dummy=True, tags={module.name})
                 await module.queue_event(finished_event)
             self.verbose("Completed finish()")
             return True
@@ -767,7 +778,6 @@ class Scanner:
         root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
         root_event._id = self.id
         root_event.scope_distance = 0
-        root_event._resolved.set()
         root_event.source = root_event
         root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
         return root_event
@@ -993,7 +1003,7 @@ class Scanner:
                 self.manager.modules_status(_log=True)
 
     @contextlib.asynccontextmanager
-    async def _acatch(self, context="scan", finally_callback=None):
+    async def _acatch(self, context="scan", finally_callback=None, unhandled_is_critical=False):
         """
         Async version of catch()
 
@@ -1003,9 +1013,9 @@ class Scanner:
         try:
             yield
         except BaseException as e:
-            self._handle_exception(e, context=context)
+            self._handle_exception(e, context=context, unhandled_is_critical=unhandled_is_critical)
 
-    def _handle_exception(self, e, context="scan", finally_callback=None):
+    def _handle_exception(self, e, context="scan", finally_callback=None, unhandled_is_critical=False):
         if callable(context):
             context = f"{context.__qualname__}()"
         filename, lineno, funcname = self.helpers.get_traceback_details(e)
@@ -1018,8 +1028,12 @@ class Scanner:
         elif isinstance(e, asyncio.CancelledError):
             raise
         elif isinstance(e, Exception):
-            log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
-            log.trace(traceback.format_exc())
+            if unhandled_is_critical:
+                log.critical(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
+                log.critical(traceback.format_exc())
+            else:
+                log.error(f"Error in {context}: {filename}:{lineno}:{funcname}(): {e}")
+                log.trace(traceback.format_exc())
         if callable(finally_callback):
             finally_callback(e)
 

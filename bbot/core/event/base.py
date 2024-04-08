@@ -154,6 +154,7 @@ class BaseEvent:
         self._priority = None
         self._module_priority = None
         self._resolved_hosts = set()
+        self.dns_children = dict()
 
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
@@ -209,9 +210,6 @@ class BaseEvent:
             # removed this second part because it was making certain sslcert events internal
             if _internal:  # or source._internal:
                 self.internal = True
-
-        # an event indicating whether the event has undergone DNS resolution
-        self._resolved = asyncio.Event()
 
         # inherit web spider distance from parent
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)

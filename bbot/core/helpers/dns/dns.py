@@ -102,8 +102,6 @@ class DNSHelper(EngineClient):
         event_type = str(event.type)
         event_tags = set()
         dns_children = dict()
-        event_whitelisted = False
-        event_blacklisted = False
 
         if (not event.host) or (event.type in ("IP_RANGE",)):
             return event_tags, event_whitelisted, event_blacklisted, dns_children
@@ -112,39 +110,20 @@ class DNSHelper(EngineClient):
         async with self._event_cache_locks.lock(event_host):
             # try to get data from cache
             try:
-                _event_tags, _event_whitelisted, _event_blacklisted, _dns_children = self._event_cache[event_host]
+                _event_tags, _dns_children = self._event_cache[event_host]
                 event_tags.update(_event_tags)
                 # if we found it, return it
                 if _event_whitelisted is not None:
-                    return event_tags, _event_whitelisted, _event_blacklisted, _dns_children
+                    return event_tags, _dns_children
             except KeyError:
                 pass
 
             kwargs = {"event_host": event_host, "event_type": event_type, "minimal": minimal}
             event_tags, dns_children = await self.run_and_return("resolve_event", **kwargs)
 
-            # whitelisting / blacklisting based on resolved hosts
-            event_whitelisted = False
-            event_blacklisted = False
-            for rdtype, children in dns_children.items():
-                if event_blacklisted:
-                    break
-                for host in children:
-                    if rdtype in ("A", "AAAA", "CNAME"):
-                        # having a CNAME to an in-scope resource doesn't make you in-scope
-                        if not event_whitelisted and rdtype != "CNAME":
-                            with suppress(ValidationError):
-                                if self.parent_helper.scan.whitelisted(host):
-                                    event_whitelisted = True
-                        # CNAME to a blacklisted resources, means you're blacklisted
-                        with suppress(ValidationError):
-                            if self.parent_helper.scan.blacklisted(host):
-                                event_blacklisted = True
-                                break
+            self._event_cache[event_host] = (event_tags, dns_children)
 
-            self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, dns_children)
-
-            return event_tags, event_whitelisted, event_blacklisted, dns_children
+            return event_tags, dns_children
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """
@@ -204,7 +183,7 @@ class DNSHelper(EngineClient):
     async def is_wildcard_domain(self, domain, log_info=False):
         return await self.run_and_return("is_wildcard_domain", domain=domain, log_info=False)
 
-    async def handle_wildcard_event(self, event, children):
+    async def handle_wildcard_event(self, event):
         """
         Used within BBOT's scan manager to detect and tag DNS wildcard events.
 
@@ -212,19 +191,18 @@ class DNSHelper(EngineClient):
         is overwritten, for example: `_wildcard.evilcorp.com`.
 
         Args:
-            event (object): The event to check for wildcards.
-            children (list): A list of the event's resulting DNS children after resolution.
+            event (Event): The event to check for wildcards.
 
         Returns:
             None: This method modifies the `event` in place and does not return a value.
 
         Examples:
-            >>> handle_wildcard_event(event, children)
+            >>> handle_wildcard_event(event)
             # The `event` might now have tags like ["wildcard", "a-wildcard", "aaaa-wildcard"] and
             # its `data` attribute might be modified to "_wildcard.evilcorp.com" if it was detected
             # as a wildcard.
         """
-        log.debug(f"Entering handle_wildcard_event({event}, children={children})")
+        log.debug(f"Entering handle_wildcard_event({event}, children={event.dns_children})")
         try:
             event_host = str(event.host)
             # wildcard checks
@@ -239,10 +217,10 @@ class DNSHelper(EngineClient):
                     event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
 
             # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-            if not is_ip(event.host) and children:
+            if (not is_ip(event.host)) and event.dns_children:
                 if wildcard_rdtypes:
                     # these are the rdtypes that successfully resolve
-                    resolved_rdtypes = set([c.upper() for c in children])
+                    resolved_rdtypes = set([c.upper() for c in event.dns_children])
                     # these are the rdtypes that have wildcards
                     wildcard_rdtypes_set = set(wildcard_rdtypes)
                     # consider the event a full wildcard if all its records are wildcards
@@ -276,7 +254,7 @@ class DNSHelper(EngineClient):
                 #                 event.add_tag(f"{rdtype.lower()}-wildcard-domain")
 
         finally:
-            log.debug(f"Finished handle_wildcard_event({event}, children={children})")
+            log.debug(f"Finished handle_wildcard_event({event}, children={event.dns_children})")
 
     async def _mock_dns(self, mock_data):
         from .mock import MockResolver

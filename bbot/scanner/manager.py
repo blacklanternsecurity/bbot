@@ -49,8 +49,38 @@ class ScanManager:
         self._task_counter = TaskCounter()
         self._new_activity = True
         self._modules_by_priority = None
+        self._hook_modules = None
+        self._non_hook_modules = None
         self._incoming_queues = None
         self._module_priority_weights = None
+
+    async def _worker_loop(self):
+        try:
+            while not self.scan.stopped:
+                try:
+                    async with self._task_counter.count("get_event_from_modules()"):
+                        # if we have hooks set up, we always get events from the last (lowest priority) hook module.
+                        if self.hook_modules:
+                            last_hook_module = self.hook_modules[-1]
+                            incoming = last_hook_module.outgoing_event_queue.get_nowait()
+                        else:
+                            # otherwise, we go through all the modules
+                            incoming = self.get_event_from_modules()
+                        try:
+                            event, kwargs = incoming
+                        except:
+                            log.critical(incoming)
+                except asyncio.queues.QueueEmpty:
+                    await asyncio.sleep(0.1)
+                    continue
+                async with self._task_counter.count(f"emit_event({event})"):
+                    emit_event_task = asyncio.create_task(
+                        self.emit_event(event, **kwargs), name=f"emit_event({event})"
+                    )
+                    await emit_event_task
+
+        except Exception:
+            log.critical(traceback.format_exc())
 
     async def init_events(self):
         """
@@ -63,9 +93,9 @@ class ScanManager:
 
         context = f"manager.init_events()"
         async with self.scan._acatch(context), self._task_counter.count(context):
-            await self.distribute_event(self.scan.root_event)
+
             sorted_events = sorted(self.scan.target.events, key=lambda e: len(e.data))
-            for event in sorted_events:
+            for event in [self.scan.root_event] + sorted_events:
                 event._dummy = False
                 event.scope_distance = 0
                 event.web_spider_distance = 0
@@ -75,7 +105,11 @@ class ScanManager:
                 if event.module is None:
                     event.module = self.scan._make_dummy_module(name="TARGET", _type="TARGET")
                 self.scan.verbose(f"Target: {event}")
-                self.queue_event(event)
+                if self.hook_modules:
+                    first_hook_module = self.hook_modules[0]
+                    await first_hook_module.queue_event(event)
+                else:
+                    self.queue_event(event)
             await asyncio.sleep(0.1)
             self.scan._finished_init = True
 
@@ -97,21 +131,17 @@ class ScanManager:
         # skip event if it fails precheck
         if event.type != "DNS_NAME":
             acceptable = self._event_precheck(event)
-            if not acceptable:
-                event._resolved.set()
-                return
 
         log.debug(f'Module "{event.module}" raised {event}')
 
         if quick:
             log.debug(f"Quick-emitting {event}")
-            event._resolved.set()
             for kwarg in callbacks:
                 kwargs.pop(kwarg, None)
             async with self.scan._acatch(context=self.distribute_event):
                 await self.distribute_event(event)
         else:
-            async with self.scan._acatch(context=self._emit_event, finally_callback=event._resolved.set):
+            async with self.scan._acatch(context=self._emit_event):
                 await self._emit_event(
                     event,
                     *args,
@@ -174,53 +204,7 @@ class ScanManager:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
 
-            # skip DNS resolution if it's disabled in the config and the event is a target and we don't have a blacklist
-            skip_dns_resolution = (not self.dns_resolution) and "target" in event.tags and not self.scan.blacklist
-            if skip_dns_resolution:
-                event._resolved.set()
-                dns_children = {}
-                dns_tags = {"resolved"}
-                event_whitelisted_dns = True
-                event_blacklisted_dns = False
-                resolved_hosts = []
-            else:
-                # DNS resolution
-                (
-                    dns_tags,
-                    event_whitelisted_dns,
-                    event_blacklisted_dns,
-                    dns_children,
-                ) = await self.scan.helpers.dns.resolve_event(event, minimal=not self.dns_resolution)
-                resolved_hosts = set()
-                for rdtype, ips in dns_children.items():
-                    if rdtype in ("A", "AAAA", "CNAME"):
-                        for ip in ips:
-                            resolved_hosts.add(ip)
-
-            # kill runaway DNS chains
-            dns_resolve_distance = getattr(event, "dns_resolve_distance", 0)
-            if dns_resolve_distance >= self.scan.helpers.dns.max_dns_resolve_distance:
-                log.debug(
-                    f"Skipping DNS children for {event} because their DNS resolve distances would be greater than the configured value for this scan ({self.scan.helpers.dns.max_dns_resolve_distance})"
-                )
-                dns_children = {}
-
-            if event.type in ("DNS_NAME", "IP_ADDRESS"):
-                event._dns_children = dns_children
-                for tag in dns_tags:
-                    event.add_tag(tag)
-
-            event._resolved_hosts = resolved_hosts
-
-            event_whitelisted = event_whitelisted_dns | self.scan.whitelisted(event)
-            event_blacklisted = event_blacklisted_dns | self.scan.blacklisted(event)
-            if event_blacklisted:
-                event.add_tag("blacklisted")
-                reason = "event host"
-                if event_blacklisted_dns:
-                    reason = "DNS associations"
-                log.debug(f"Omitting due to blacklisted {reason}: {event}")
-                return
+            event_whitelisted = "whitelisted" in event.tags
 
             # other blacklist rejections - URL extensions, etc.
             if "blacklisted" in event.tags:
@@ -244,7 +228,7 @@ class ScanManager:
             if event.scope_distance <= self.scan.scope_search_distance:
                 if not "unresolved" in event.tags:
                     if not self.scan.helpers.is_ip_type(event.host):
-                        await self.scan.helpers.dns.handle_wildcard_event(event, dns_children)
+                        await self.scan.helpers.dns.handle_wildcard_event(event)
 
             # For DNS_NAMEs, we've waited to do this until now, in case event.data changed during handle_wildcard_event()
             if event.type == "DNS_NAME":
@@ -301,8 +285,8 @@ class ScanManager:
 
                 if emit_children:
                     dns_child_events = []
-                    if dns_children:
-                        for rdtype, records in dns_children.items():
+                    if event.dns_children:
+                        for rdtype, records in event.dns_children.items():
                             module = self.scan._make_dummy_module_dns(rdtype)
                             module._priority = 4
                             for record in records:
@@ -329,7 +313,6 @@ class ScanManager:
             log.trace(traceback.format_exc())
 
         finally:
-            event._resolved.set()
             log.debug(f"{event.module}.emit_event() finished for {event}")
 
     def is_incoming_duplicate(self, event, add=False):
@@ -395,29 +378,14 @@ class ScanManager:
             if not is_outgoing_duplicate and -1 < event.scope_distance < 1:
                 self.scan.word_cloud.absorb_event(event)
             for mod in self.scan.modules.values():
+                # don't distribute events to hook modules
+                if mod._hook:
+                    continue
                 acceptable_dup = (not is_outgoing_duplicate) or mod.accept_dupes
                 # graph_important = mod._type == "output" and event._graph_important == True
                 graph_important = mod._is_graph_important(event)
                 if acceptable_dup or graph_important:
                     await mod.queue_event(event)
-
-    async def _worker_loop(self):
-        try:
-            while not self.scan.stopped:
-                try:
-                    async with self._task_counter.count("get_event_from_modules()"):
-                        event, kwargs = self.get_event_from_modules()
-                except asyncio.queues.QueueEmpty:
-                    await asyncio.sleep(0.1)
-                    continue
-                async with self._task_counter.count(f"emit_event({event})"):
-                    emit_event_task = asyncio.create_task(
-                        self.emit_event(event, **kwargs), name=f"emit_event({event})"
-                    )
-                    await emit_event_task
-
-        except Exception:
-            log.critical(traceback.format_exc())
 
     def kill_module(self, module_name, message=None):
         from signal import SIGINT
@@ -438,7 +406,7 @@ class ScanManager:
     @property
     def incoming_queues(self):
         if not self._incoming_queues:
-            queues_by_priority = [m.outgoing_event_queue for m in self.modules_by_priority]
+            queues_by_priority = [m.outgoing_event_queue for m in self.modules_by_priority if not m._hook]
             self._incoming_queues = [self.incoming_event_queue] + queues_by_priority
         return self._incoming_queues
 
@@ -453,9 +421,23 @@ class ScanManager:
     def module_priority_weights(self):
         if not self._module_priority_weights:
             # we subtract from six because lower priorities == higher weights
-            priorities = [5] + [6 - m.priority for m in self.modules_by_priority]
+            priorities = [5] + [6 - m.priority for m in self.modules_by_priority if not m._hook]
             self._module_priority_weights = priorities
         return self._module_priority_weights
+
+    @property
+    def hook_modules(self):
+        if self._hook_modules is None:
+            self._hook_modules = [m for m in self.modules_by_priority if m._hook]
+            if self._hook_modules:
+                self._hook_modules[0]._first = True
+        return self._hook_modules
+
+    @property
+    def non_hook_modules(self):
+        if self._non_hook_modules is None:
+            self._non_hook_modules = [m for m in self.modules_by_priority if not m._hook]
+        return self._non_hook_modules
 
     def get_event_from_modules(self):
         for q in self.scan.helpers.weighted_shuffle(self.incoming_queues, self.module_priority_weights):
@@ -485,8 +467,6 @@ class ScanManager:
                 event_in_scope = self.scan.whitelisted(event) and not self.scan.blacklisted(event)
                 if not event_in_scope:
                     event.module_priority += event.scope_distance
-            # Wait for parent event to resolve (in case its scope distance changes)
-            # await resolved = event.source._resolved.wait()
             # update event's scope distance based on its parent
             event.scope_distance = event.source.scope_distance + 1
             self.incoming_event_queue.put_nowait((event, kwargs))
