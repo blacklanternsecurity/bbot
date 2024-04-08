@@ -23,7 +23,6 @@ from bbot.core.helpers.misc import (
     host_in_host,
     make_ip_type,
     smart_decode,
-    cloudcheck,
     rand_string,
 )
 
@@ -469,20 +468,6 @@ class DNSEngine(EngineServer):
 
                 elif errors:
                     event_tags.add(f"{rdtype.lower()}-error")
-
-            # tag with cloud providers
-            if not self.in_tests:
-                to_check = set()
-                if event_type == "IP_ADDRESS":
-                    to_check.add(event_host)
-                for rdtype, ips in dns_children.items():
-                    if rdtype in ("A", "AAAA"):
-                        for ip in ips:
-                            to_check.add(ip)
-                for ip in to_check:
-                    provider, provider_type, subnet = cloudcheck(ip)
-                    if provider:
-                        event_tags.add(f"{provider_type}-{provider}")
 
             # if needed, mark as unresolved
             if not is_ip(event_host) and "resolved" not in event_tags:

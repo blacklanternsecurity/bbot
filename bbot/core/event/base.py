@@ -1,6 +1,5 @@
 import re
 import json
-import asyncio
 import logging
 import ipaddress
 import traceback
@@ -604,7 +603,7 @@ class BaseEvent:
             j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
         if self.host:
-            j["resolved_hosts"] = [str(h) for h in self.resolved_hosts]
+            j["resolved_hosts"] = sorted(str(h) for h in self.resolved_hosts)
         source_id = self.source_id
         if source_id:
             j["source"] = source_id
@@ -951,7 +950,8 @@ class URL(URL_UNVERIFIED):
 
     @property
     def resolved_hosts(self):
-        return [".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")]
+        # TODO: remove this when we rip out httpx
+        return set(".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-"))
 
     @property
     def pretty_string(self):

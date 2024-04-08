@@ -683,6 +683,7 @@ class BaseModule:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
         # exclude certain URLs (e.g. javascript):
+        # TODO: revisit this after httpx rework
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
             return False, "its extension was listed in url_extension_httpx_only"
 
@@ -1433,27 +1434,43 @@ class HookModule(BaseModule):
                     if event.type == "FINISHED":
                         context = f"{self.name}.finish()"
                         async with self.scan._acatch(context), self._task_counter.count(context):
-                            finish_task = asyncio.create_task(self.finish())
-                            await finish_task
+                            await self.finish()
                         continue
 
                     self.debug(f"Got {event} from {getattr(event, 'module', 'unknown_module')}")
+
+                    acceptable = True
+                    async with self._task_counter.count(f"event_precheck({event})"):
+                        precheck_pass, reason = self._event_precheck(event)
+                    if not precheck_pass:
+                        self.debug(f"Not hooking {event} because precheck failed ({reason})")
+                        acceptable = False
                     async with self._task_counter.count(f"event_postcheck({event})"):
-                        acceptable, reason = await self._event_postcheck(event)
+                        postcheck_pass, reason = await self._event_postcheck(event)
+                    if not postcheck_pass:
+                        self.debug(f"Not hooking {event} because postcheck failed ({reason})")
+                        acceptable = False
+
+                    # whether to pass the event on to the rest of the scan
+                    # defaults to true, unless handle_event returns False
+                    pass_on_event = True
+                    pass_on_event_reason = ""
 
                     if acceptable:
                         context = f"{self.name}.handle_event({event})"
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Hooking {event}")
                         async with self.scan._acatch(context), self._task_counter.count(context):
-                            task_name = f"{self.name}.handle_event({event})"
-                            handle_event_task = asyncio.create_task(self.handle_event(event), name=task_name)
-                            await handle_event_task
-                        self.debug(f"Finished hooking {event}")
-                    else:
-                        self.debug(f"Not hooking {event} because {reason}")
+                            pass_on_event = await self.handle_event(event)
+                            with suppress(ValueError, TypeError):
+                                pass_on_event, pass_on_event_reason = pass_on_event
 
-                    await self.outgoing_event_queue.put((event, _kwargs))
+                        self.debug(f"Finished hooking {event}")
+
+                    if pass_on_event is False:
+                        self.debug(f"Not passing on {event} because {pass_on_event_reason}")
+                    else:
+                        await self.outgoing_event_queue.put((event, _kwargs))
 
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")

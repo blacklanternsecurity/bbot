@@ -62,14 +62,10 @@ class ScanManager:
                         # if we have hooks set up, we always get events from the last (lowest priority) hook module.
                         if self.hook_modules:
                             last_hook_module = self.hook_modules[-1]
-                            incoming = last_hook_module.outgoing_event_queue.get_nowait()
+                            event, kwargs = last_hook_module.outgoing_event_queue.get_nowait()
                         else:
                             # otherwise, we go through all the modules
-                            incoming = self.get_event_from_modules()
-                        try:
-                            event, kwargs = incoming
-                        except:
-                            log.critical(incoming)
+                            event, kwargs = self.get_event_from_modules()
                 except asyncio.queues.QueueEmpty:
                     await asyncio.sleep(0.1)
                     continue
@@ -131,6 +127,8 @@ class ScanManager:
         # skip event if it fails precheck
         if event.type != "DNS_NAME":
             acceptable = self._event_precheck(event)
+            if not acceptable:
+                return
 
         log.debug(f'Module "{event.module}" raised {event}')
 
@@ -204,37 +202,24 @@ class ScanManager:
             on_success_callback = kwargs.pop("on_success_callback", None)
             abort_if = kwargs.pop("abort_if", None)
 
-            event_whitelisted = "whitelisted" in event.tags
-
-            # other blacklist rejections - URL extensions, etc.
-            if "blacklisted" in event.tags:
+            # blacklist rejections
+            event_blacklisted = self.scan.blacklisted(event)
+            if event_blacklisted or "blacklisted" in event.tags:
                 log.debug(f"Omitting blacklisted event: {event}")
                 return
-
-            # DNS_NAME --> DNS_NAME_UNRESOLVED
-            if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
-                event.type = "DNS_NAME_UNRESOLVED"
-
-            # Cloud tagging
-            await self.scan.helpers.cloud.tag_event(event)
-
-            # Scope shepherding
-            # here is where we make sure in-scope events are set to their proper scope distance
-            if event.host and event_whitelisted:
-                log.debug(f"Making {event} in-scope")
-                event.scope_distance = 0
-
-            # check for wildcards
-            if event.scope_distance <= self.scan.scope_search_distance:
-                if not "unresolved" in event.tags:
-                    if not self.scan.helpers.is_ip_type(event.host):
-                        await self.scan.helpers.dns.handle_wildcard_event(event)
 
             # For DNS_NAMEs, we've waited to do this until now, in case event.data changed during handle_wildcard_event()
             if event.type == "DNS_NAME":
                 acceptable = self._event_precheck(event)
                 if not acceptable:
                     return
+
+            # Scope shepherding
+            # here is where we make sure in-scope events are set to their proper scope distance
+            event_whitelisted = self.scan.whitelisted(event)
+            if event.host and event_whitelisted:
+                log.debug(f"Making {event} in-scope because it matches the scan target")
+                event.scope_distance = 0
 
             # now that the event is properly tagged, we can finally make decisions about it
             abort_result = False
@@ -255,58 +240,6 @@ class ScanManager:
                     await self.scan.helpers.execute_sync_or_async(on_success_callback, event)
 
             await self.distribute_event(event)
-
-            # speculate DNS_NAMES and IP_ADDRESSes from other event types
-            source_event = event
-            if (
-                event.host
-                and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
-                and not (event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate")
-            ):
-                source_module = self.scan._make_dummy_module("host", _type="internal")
-                source_module._priority = 4
-                source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
-                # only emit the event if it's not already in the parent chain
-                if source_event is not None and source_event not in source_event.get_sources():
-                    source_event.scope_distance = event.scope_distance
-                    if "target" in event.tags:
-                        source_event.add_tag("target")
-                    self.queue_event(source_event)
-
-            ### Emit DNS children ###
-            if self.dns_resolution:
-                emit_children = True
-                in_dns_scope = -1 < event.scope_distance < self.scan.scope_dns_search_distance
-                # only emit DNS children once for each unique host
-                host_hash = hash(str(event.host))
-                if host_hash in self.outgoing_dup_tracker:
-                    emit_children = False
-                self.outgoing_dup_tracker.add(host_hash)
-
-                if emit_children:
-                    dns_child_events = []
-                    if event.dns_children:
-                        for rdtype, records in event.dns_children.items():
-                            module = self.scan._make_dummy_module_dns(rdtype)
-                            module._priority = 4
-                            for record in records:
-                                try:
-                                    child_event = self.scan.make_event(
-                                        record, "DNS_NAME", module=module, source=source_event
-                                    )
-                                    # if it's a hostname and it's only one hop away, mark it as affiliate
-                                    if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
-                                        child_event.add_tag("affiliate")
-                                    host_hash = hash(str(child_event.host))
-                                    if in_dns_scope or self.preset.in_scope(child_event):
-                                        dns_child_events.append(child_event)
-                                except ValidationError as e:
-                                    log.warning(
-                                        f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
-                                    )
-                    for child_event in dns_child_events:
-                        log.debug(f"Queueing DNS child for {event}: {child_event}")
-                        self.queue_event(child_event)
 
         except ValidationError as e:
             log.warning(f"Event validation failed with kwargs={kwargs}: {e}")

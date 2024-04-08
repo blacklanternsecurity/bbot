@@ -3,9 +3,7 @@ import logging
 import dns.exception
 import dns.asyncresolver
 from cachetools import LRUCache
-from contextlib import suppress
 
-from bbot.errors import ValidationError
 from bbot.core.engine import EngineClient
 from bbot.core.helpers.async_helpers import NamedLock
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name, host_in_host
@@ -96,7 +94,7 @@ class DNSHelper(EngineClient):
         # abort if the event doesn't have a host
         if (not event.host) or (event.type in ("IP_RANGE",)):
             # tags, whitelisted, blacklisted, children
-            return set(), False, False, dict()
+            return set(), dict()
 
         event_host = str(event.host)
         event_type = str(event.type)
@@ -104,7 +102,7 @@ class DNSHelper(EngineClient):
         dns_children = dict()
 
         if (not event.host) or (event.type in ("IP_RANGE",)):
-            return event_tags, event_whitelisted, event_blacklisted, dns_children
+            return event_tags, dns_children
 
         # lock to ensure resolution of the same host doesn't start while we're working here
         async with self._event_cache_locks.lock(event_host):
@@ -112,9 +110,6 @@ class DNSHelper(EngineClient):
             try:
                 _event_tags, _dns_children = self._event_cache[event_host]
                 event_tags.update(_event_tags)
-                # if we found it, return it
-                if _event_whitelisted is not None:
-                    return event_tags, _dns_children
             except KeyError:
                 pass
 
