@@ -1,3 +1,4 @@
+import ipaddress
 from contextlib import suppress
 from cachetools import LRUCache
 
@@ -40,6 +41,7 @@ class dnsresolve(HookModule):
 
         event_host = str(event.host)
         event_host_hash = hash(str(event.host))
+        event_is_ip = self.helpers.is_ip(event.host)
 
         emit_children = event_host_hash not in self._event_cache
 
@@ -49,7 +51,10 @@ class dnsresolve(HookModule):
                 dns_tags, dns_children, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
             except KeyError:
                 queries = [(event_host, rdtype) for rdtype in all_rdtypes]
+                error_rdtypes = []
                 async for (query, rdtype), (answers, errors) in self.helpers.dns.resolve_raw_batch(queries):
+                    if errors:
+                        error_rdtypes.append(rdtype)
                     for answer, _rdtype in answers:
                         dns_tags.add(f"{rdtype.lower()}-record")
                         try:
@@ -57,11 +62,21 @@ class dnsresolve(HookModule):
                         except KeyError:
                             dns_children[_rdtype] = {answer}
 
-                # whitelisting / blacklisting based on resolved hosts
+                for rdtype in error_rdtypes:
+                    if rdtype not in dns_children:
+                        dns_tags.add(f"{rdtype.lower()}-error")
+
+                if not event_is_ip:
+                    if dns_children:
+                        dns_tags.add("resolved")
+                    else:
+                        dns_tags.add("unresolved")
+
                 for rdtype, children in dns_children.items():
                     if event_blacklisted:
                         break
                     for host in children:
+                        # whitelisting / blacklisting based on resolved hosts
                         if rdtype in ("A", "AAAA", "CNAME"):
                             event.resolved_hosts.add(host)
                             # having a CNAME to an in-scope resource doesn't make you in-scope
@@ -74,6 +89,14 @@ class dnsresolve(HookModule):
                                 if self.scan.blacklisted(host):
                                     event_blacklisted = True
                                     break
+
+                        # check for private IPs
+                        try:
+                            ip = ipaddress.ip_address(host)
+                            if ip.is_private:
+                                dns_tags.add("private-ip")
+                        except ValueError:
+                            continue
 
                 self._event_cache[event_host_hash] = dns_tags, dns_children, event_whitelisted, event_blacklisted
 
