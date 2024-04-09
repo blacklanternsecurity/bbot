@@ -1467,10 +1467,11 @@ class HookModule(BaseModule):
 
                         self.debug(f"Finished hooking {event}")
 
-                    if pass_on_event is False:
-                        self.debug(f"Not passing on {event} because {pass_on_event_reason}")
-                    else:
-                        await self.outgoing_event_queue.put((event, _kwargs))
+                        if pass_on_event is False:
+                            self.debug(f"Not passing on {event} because {pass_on_event_reason}")
+                            return
+
+                    await self.outgoing_event_queue.put((event, _kwargs))
 
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")

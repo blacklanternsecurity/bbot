@@ -152,7 +152,7 @@ class ScanManager:
         if event._dummy:
             log.warning(f"Cannot emit dummy event: {event}")
             return False
-        if event == event.get_source():
+        if (not event.type == "SCAN") and (event == event.get_source()):
             log.debug(f"Skipping event with self as source: {event}")
             return False
         if event._graph_important:

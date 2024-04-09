@@ -2,7 +2,6 @@ import dns
 import logging
 import dns.exception
 import dns.asyncresolver
-from cachetools import LRUCache
 
 from bbot.core.engine import EngineClient
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name, host_in_host
@@ -119,20 +118,10 @@ class DNSHelper(EngineClient):
         if [ips, rdtype].count(None) == 1:
             raise ValueError("Both ips and rdtype must be specified")
 
-        # skip if query isn't a dns name
-        if not is_dns_name(query):
+        query = self._wildcard_prevalidation(query)
+        if not query:
             return {}
 
-        # skip check if the query's parent domain is excluded in the config
-        for d in self.wildcard_ignore:
-            if host_in_host(query, d):
-                log.debug(f"Skipping wildcard detection on {query} because it is excluded in the config")
-                return {}
-
-        query = clean_dns_record(query)
-        # skip check if it's an IP or a plain hostname
-        if is_ip(query) or not "." in query:
-            return {}
         # skip check if the query is a domain
         if is_domain(query):
             return {}
@@ -140,80 +129,29 @@ class DNSHelper(EngineClient):
         return await self.run_and_return("is_wildcard", query=query, ips=ips, rdtype=rdtype)
 
     async def is_wildcard_domain(self, domain, log_info=False):
+        domain = self._wildcard_prevalidation(domain)
+        if not domain:
+            return {}
+
         return await self.run_and_return("is_wildcard_domain", domain=domain, log_info=False)
 
-    async def handle_wildcard_event(self, event):
-        """
-        Used within BBOT's scan manager to detect and tag DNS wildcard events.
+    def _wildcard_prevalidation(self, host):
+        host = clean_dns_record(host)
+        # skip check if it's an IP or a plain hostname
+        if is_ip(host) or not "." in host:
+            return False
 
-        Wildcards are detected for every major record type. If a wildcard is detected, its data
-        is overwritten, for example: `_wildcard.evilcorp.com`.
+        # skip if query isn't a dns name
+        if not is_dns_name(host):
+            return False
 
-        Args:
-            event (Event): The event to check for wildcards.
+        # skip check if the query's parent domain is excluded in the config
+        for d in self.wildcard_ignore:
+            if host_in_host(host, d):
+                log.debug(f"Skipping wildcard detection on {host} because it is excluded in the config")
+                return False
 
-        Returns:
-            None: This method modifies the `event` in place and does not return a value.
-
-        Examples:
-            >>> handle_wildcard_event(event)
-            # The `event` might now have tags like ["wildcard", "a-wildcard", "aaaa-wildcard"] and
-            # its `data` attribute might be modified to "_wildcard.evilcorp.com" if it was detected
-            # as a wildcard.
-        """
-        log.debug(f"Entering handle_wildcard_event({event}, children={event.dns_children})")
-        try:
-            event_host = str(event.host)
-            # wildcard checks
-            if not is_ip(event.host):
-                # check if the dns name itself is a wildcard entry
-                wildcard_rdtypes = await self.is_wildcard(event_host)
-                for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
-                    wildcard_tag = "error"
-                    if is_wildcard == True:
-                        event.add_tag("wildcard")
-                        wildcard_tag = "wildcard"
-                    event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
-
-            # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-            if (not is_ip(event.host)) and event.dns_children:
-                if wildcard_rdtypes:
-                    # these are the rdtypes that successfully resolve
-                    resolved_rdtypes = set([c.upper() for c in event.dns_children])
-                    # these are the rdtypes that have wildcards
-                    wildcard_rdtypes_set = set(wildcard_rdtypes)
-                    # consider the event a full wildcard if all its records are wildcards
-                    event_is_wildcard = False
-                    if resolved_rdtypes:
-                        event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
-
-                    if event_is_wildcard:
-                        if event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
-                            wildcard_parent = self.parent_helper.parent_domain(event_host)
-                            for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
-                                if _is_wildcard:
-                                    wildcard_parent = _parent_domain
-                                    break
-                            wildcard_data = f"_wildcard.{wildcard_parent}"
-                            if wildcard_data != event.data:
-                                log.debug(
-                                    f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"'
-                                )
-                                event.data = wildcard_data
-
-                # TODO: transplant this
-                # tag wildcard domains for convenience
-                # elif is_domain(event_host) or hash(event_host) in self._wildcard_cache:
-                #     event_target = "target" in event.tags
-                #     wildcard_domain_results = await self.is_wildcard_domain(event_host, log_info=event_target)
-                #     for hostname, wildcard_domain_rdtypes in wildcard_domain_results.items():
-                #         if wildcard_domain_rdtypes:
-                #             event.add_tag("wildcard-domain")
-                #             for rdtype, ips in wildcard_domain_rdtypes.items():
-                #                 event.add_tag(f"{rdtype.lower()}-wildcard-domain")
-
-        finally:
-            log.debug(f"Finished handle_wildcard_event({event}, children={event.dns_children})")
+        return host
 
     async def _mock_dns(self, mock_data):
         from .mock import MockResolver

@@ -3,27 +3,21 @@ import dns
 import time
 import asyncio
 import logging
-import ipaddress
 import traceback
-from contextlib import suppress
 from cachetools import LRUCache
+from contextlib import suppress
 
 from ..regexes import dns_name_regex
 from bbot.errors import DNSWildcardBreak
 from bbot.core.engine import EngineServer
 from bbot.core.helpers.async_helpers import NamedLock
 from bbot.core.helpers.misc import (
-    clean_dns_record,
+    is_ip,
+    rand_string,
+    smart_decode,
     parent_domain,
     domain_parents,
-    is_ip,
-    is_domain,
-    is_ptr,
-    is_dns_name,
-    host_in_host,
-    make_ip_type,
-    smart_decode,
-    rand_string,
+    clean_dns_record,
 )
 
 
@@ -36,11 +30,10 @@ class DNSEngine(EngineServer):
 
     CMDS = {
         0: "resolve",
-        1: "resolve_event",
-        2: "resolve_batch",
-        3: "resolve_raw_batch",
-        4: "is_wildcard",
-        5: "is_wildcard_domain",
+        1: "resolve_batch",
+        2: "resolve_raw_batch",
+        3: "is_wildcard",
+        4: "is_wildcard_domain",
         99: "_mock_dns",
     }
 
@@ -336,107 +329,6 @@ class DNSEngine(EngineServer):
 
         return results, errors
 
-    async def handle_wildcard_event(self, event, children):
-        """
-        Used within BBOT's scan manager to detect and tag DNS wildcard events.
-
-        Wildcards are detected for every major record type. If a wildcard is detected, its data
-        is overwritten, for example: `_wildcard.evilcorp.com`.
-
-        Args:
-            event (object): The event to check for wildcards.
-            children (list): A list of the event's resulting DNS children after resolution.
-
-        Returns:
-            None: This method modifies the `event` in place and does not return a value.
-
-        Examples:
-            >>> handle_wildcard_event(event, children)
-            # The `event` might now have tags like ["wildcard", "a-wildcard", "aaaa-wildcard"] and
-            # its `data` attribute might be modified to "_wildcard.evilcorp.com" if it was detected
-            # as a wildcard.
-        """
-        log.debug(f"Entering handle_wildcard_event({event}, children={children})")
-        try:
-            event_host = str(event.host)
-            event_is_ip = is_ip(event_host)
-            # wildcard checks
-            if not event_is_ip:
-                # check if the dns name itself is a wildcard entry
-                wildcard_rdtypes = await self.is_wildcard(event_host)
-                for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
-                    wildcard_tag = "error"
-                    if is_wildcard == True:
-                        event.add_tag("wildcard")
-                        wildcard_tag = "wildcard"
-                    event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
-
-            # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-            if not event_is_ip and children:
-                if wildcard_rdtypes:
-                    # these are the rdtypes that successfully resolve
-                    resolved_rdtypes = set([c.upper() for c in children])
-                    # these are the rdtypes that have wildcards
-                    wildcard_rdtypes_set = set(wildcard_rdtypes)
-                    # consider the event a full wildcard if all its records are wildcards
-                    event_is_wildcard = False
-                    if resolved_rdtypes:
-                        event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
-
-                    if event_is_wildcard:
-                        if event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
-                            wildcard_parent = parent_domain(event_host)
-                            for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
-                                if _is_wildcard:
-                                    wildcard_parent = _parent_domain
-                                    break
-                            wildcard_data = f"_wildcard.{wildcard_parent}"
-                            if wildcard_data != event.data:
-                                log.debug(
-                                    f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"'
-                                )
-                                event.data = wildcard_data
-                # tag wildcard domains for convenience
-                elif is_domain(event_host) or hash(event_host) in self._wildcard_cache:
-                    event_target = "target" in event.tags
-                    wildcard_domain_results = await self.is_wildcard_domain(event_host, log_info=event_target)
-                    for hostname, wildcard_domain_rdtypes in wildcard_domain_results.items():
-                        if wildcard_domain_rdtypes:
-                            event.add_tag("wildcard-domain")
-                            for rdtype, ips in wildcard_domain_rdtypes.items():
-                                event.add_tag(f"{rdtype.lower()}-wildcard-domain")
-        finally:
-            log.debug(f"Finished handle_wildcard_event({event}, children={children})")
-
-    def event_cache_get(self, host):
-        """
-        Retrieves cached event data based on the given host.
-
-        Args:
-            host (str): The host for which the event data is to be retrieved.
-
-        Returns:
-            tuple: A 4-tuple containing the following items:
-                - event_tags (set): Set of tags for the event.
-                - dns_children (set): Set containing child events from DNS resolutions.
-
-        Examples:
-            Assuming an event with host "www.evilcorp.com" has been cached:
-
-            >>> event_cache_get("www.evilcorp.com")
-            ({"resolved", "a-record"}, False, False, {'1.2.3.4'})
-
-            Assuming no event with host "www.notincache.com" has been cached:
-
-            >>> event_cache_get("www.notincache.com")
-            (set(), set())
-        """
-        try:
-            event_tags, dns_children = self._event_cache[host]
-            return (event_tags, dns_children)
-        except KeyError:
-            return set(), set()
-
     async def resolve_batch(self, queries, threads=10, **kwargs):
         """
         A helper to execute a bunch of DNS requests.
@@ -717,18 +609,8 @@ class DNSEngine(EngineServer):
             {}
         """
         wildcard_domain_results = {}
-        domain = clean_dns_record(domain)
 
-        if not is_dns_name(domain):
-            return {}
-
-        # skip check if the query's parent domain is excluded in the config
-        for d in self.wildcard_ignore:
-            if host_in_host(domain, d):
-                log.debug(f"Skipping wildcard detection on {domain} because it is excluded in the config")
-                return {}
-
-        rdtypes_to_check = all_rdtypes
+        rdtypes_to_check = set(all_rdtypes)
 
         # make a list of its parents
         parents = list(domain_parents(domain, include_self=True))
@@ -751,7 +633,7 @@ class DNSEngine(EngineServer):
                 wildcard_results = dict()
 
                 queries = []
-                for rdtype in list(rdtypes_to_check):
+                for rdtype in rdtypes_to_check:
                     for _ in range(self.wildcard_tests):
                         rand_query = f"{rand_string(digits=False, length=10)}.{host}"
                         queries.append((rand_query, rdtype))
