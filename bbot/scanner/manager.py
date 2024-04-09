@@ -125,10 +125,9 @@ class ScanManager:
         quick = (quick_kwarg or quick_event) and not callbacks_requested
 
         # skip event if it fails precheck
-        if event.type != "DNS_NAME":
-            acceptable = self._event_precheck(event)
-            if not acceptable:
-                return
+        acceptable = self._event_precheck(event)
+        if not acceptable:
+            return
 
         log.debug(f'Module "{event.module}" raised {event}')
 
@@ -207,12 +206,6 @@ class ScanManager:
             if event_blacklisted or "blacklisted" in event.tags:
                 log.debug(f"Omitting blacklisted event: {event}")
                 return
-
-            # For DNS_NAMEs, we've waited to do this until now, in case event.data changed during handle_wildcard_event()
-            if event.type == "DNS_NAME":
-                acceptable = self._event_precheck(event)
-                if not acceptable:
-                    return
 
             # Scope shepherding
             # here is where we make sure in-scope events are set to their proper scope distance

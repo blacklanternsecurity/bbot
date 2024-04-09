@@ -5,7 +5,6 @@ import dns.asyncresolver
 from cachetools import LRUCache
 
 from bbot.core.engine import EngineClient
-from bbot.core.helpers.async_helpers import NamedLock
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name, host_in_host
 
 from .engine import DNSEngine
@@ -35,7 +34,6 @@ class DNSHelper(EngineClient):
         wildcard_tests (int): Number of tests to be run for wildcard detection. Defaults to 5.
         _wildcard_cache (dict): Cache for wildcard detection results.
         _dns_cache (LRUCache): Cache for DNS resolution results, limited in size.
-        _event_cache (LRUCache): Cache for event resolution results, tags. Limited in size.
         resolver_file (Path): File containing system's current resolver nameservers.
         filter_bad_ptrs (bool): Whether to filter out DNS names that appear to be auto-generated PTR records. Defaults to True.
 
@@ -70,10 +68,6 @@ class DNSHelper(EngineClient):
             self.wildcard_ignore = []
         self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
 
-        # event resolution cache
-        self._event_cache = LRUCache(maxsize=10000)
-        self._event_cache_locks = NamedLock()
-
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
         # TODO: DNS server speed test (start in background task)
@@ -89,36 +83,6 @@ class DNSHelper(EngineClient):
     async def resolve_raw_batch(self, queries):
         async for _ in self.run_and_yield("resolve_raw_batch", queries=queries):
             yield _
-
-    async def resolve_event(self, event, minimal=False):
-        # abort if the event doesn't have a host
-        if (not event.host) or (event.type in ("IP_RANGE",)):
-            # tags, whitelisted, blacklisted, children
-            return set(), dict()
-
-        event_host = str(event.host)
-        event_type = str(event.type)
-        event_tags = set()
-        dns_children = dict()
-
-        if (not event.host) or (event.type in ("IP_RANGE",)):
-            return event_tags, dns_children
-
-        # lock to ensure resolution of the same host doesn't start while we're working here
-        async with self._event_cache_locks.lock(event_host):
-            # try to get data from cache
-            try:
-                _event_tags, _dns_children = self._event_cache[event_host]
-                event_tags.update(_event_tags)
-            except KeyError:
-                pass
-
-            kwargs = {"event_host": event_host, "event_type": event_type, "minimal": minimal}
-            event_tags, dns_children = await self.run_and_return("resolve_event", **kwargs)
-
-            self._event_cache[event_host] = (event_tags, dns_children)
-
-            return event_tags, dns_children
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """

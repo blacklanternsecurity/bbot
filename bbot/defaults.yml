@@ -8,8 +8,6 @@ home: ~/.bbot
 scope_report_distance: 0
 # Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
 dns_resolution: true
-# Limit the number of BBOT threads
-max_threads: 25
 # Rate-limit DNS
 dns_queries_per_second: 1000
 # Rate-limit HTTP
@@ -42,12 +40,19 @@ scope_dns_search_distance: 1
 # Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)
 dns_resolve_distance: 5
 
+# Limit the number of scan manager workers
+manager_tasks: 5
+
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
 # Passively search event data for URLs, hostnames, emails, etc.
 excavate: True
 # Summarize activity at the end of a scan
 aggregate: True
+# DNS resolution
+dnsresolve: True
+# Cloud provider tagging
+cloudcheck: True
 
 # How to handle installation of module dependencies
 # Choices are:

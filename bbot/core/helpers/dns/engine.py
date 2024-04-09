@@ -29,6 +29,8 @@ from bbot.core.helpers.misc import (
 
 log = logging.getLogger("bbot.core.helpers.dns.engine.server")
 
+all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
+
 
 class DNSEngine(EngineServer):
 
@@ -41,8 +43,6 @@ class DNSEngine(EngineServer):
         5: "is_wildcard_domain",
         99: "_mock_dns",
     }
-
-    all_rdtypes = ["A", "AAAA", "SRV", "MX", "NS", "SOA", "CNAME", "TXT"]
 
     def __init__(self, socket_path, config={}):
         super().__init__(socket_path)
@@ -443,7 +443,7 @@ class DNSEngine(EngineServer):
                     types = ("PTR",)
             else:
                 if event_type == "DNS_NAME" and not minimal:
-                    types = self.all_rdtypes
+                    types = all_rdtypes
                 else:
                     types = ("A", "AAAA")
             queries = [(event_host, t) for t in types]
@@ -708,7 +708,7 @@ class DNSEngine(EngineServer):
         parent = parent_domain(query)
         parents = list(domain_parents(query))
 
-        rdtypes_to_check = [rdtype] if rdtype is not None else self.all_rdtypes
+        rdtypes_to_check = [rdtype] if rdtype is not None else all_rdtypes
 
         query_baseline = dict()
         # if the caller hasn't already done the work of resolving the IPs
@@ -807,7 +807,7 @@ class DNSEngine(EngineServer):
                 log.debug(f"Skipping wildcard detection on {domain} because it is excluded in the config")
                 return {}
 
-        rdtypes_to_check = set(self.all_rdtypes)
+        rdtypes_to_check = all_rdtypes
 
         # make a list of its parents
         parents = list(domain_parents(domain, include_self=True))
@@ -889,16 +889,6 @@ class DNSEngine(EngineServer):
             self._last_connectivity_warning = time.time()
         self._errors.clear()
         return False
-
-    def _parse_rdtype(self, t, default=None):
-        if isinstance(t, str):
-            if t.strip().lower() in ("any", "all", "*"):
-                return self.all_rdtypes
-            else:
-                return [t.strip().upper()]
-        elif any([isinstance(t, x) for x in (list, tuple)]):
-            return [str(_).strip().upper() for _ in t]
-        return default
 
     def debug(self, *args, **kwargs):
         if self._debug:
