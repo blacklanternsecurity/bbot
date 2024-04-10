@@ -1,6 +1,6 @@
 import json
 
-from bbot.core.helpers.logger import log_to_stderr
+from bbot.logger import log_to_stderr
 from bbot.modules.output.base import BaseOutputModule
 
 
