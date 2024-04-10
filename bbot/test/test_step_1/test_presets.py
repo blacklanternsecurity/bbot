@@ -566,9 +566,9 @@ def test_preset_module_disablement(clean_default_config):
 
     # internal module disablement
     preset = Preset().bake()
-    assert set(preset.output_modules) == {"python", "txt", "csv", "json", "stdout"}
+    assert set(preset.output_modules) == {"python", "txt", "csv", "json"}
     preset = Preset(exclude_modules=["txt", "csv"]).bake()
-    assert set(preset.output_modules) == {"python", "json", "stdout"}
+    assert set(preset.output_modules) == {"python", "json"}
     preset = Preset(output_modules=["json"]).bake()
     assert set(preset.output_modules) == {"json"}
 
