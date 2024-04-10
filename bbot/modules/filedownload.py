@@ -120,7 +120,8 @@ class filedownload(BaseModule):
             if extension_matches or filedownload_requested:
                 await self.download_file(event.data)
         elif event.type == "HTTP_RESPONSE":
-            content_type = event.data["header"].get("content_type", "")
+            headers = event.data.get("header", {})
+            content_type = headers.get("content_type", "")
             if content_type:
                 url = event.data["url"]
                 await self.download_file(url, content_type=content_type)
