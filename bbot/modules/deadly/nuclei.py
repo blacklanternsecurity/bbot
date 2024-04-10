@@ -322,13 +322,15 @@ class NucleiBudget:
             raw = r.get("raw")
             if not raw:
                 res = r.get(attr)
-                yield res
+                if res is not None:
+                    yield res
 
     def get_yaml_info_attr(self, yf, attr):
         p = self.parse_yaml(yf)
         info = p.get("info", [])
         res = info.get(attr)
-        yield res
+        if res is not None:
+            yield res
 
     # Parse through all templates and locate those which match the conditions necessary to collapse down to the budget setting
     def find_collapsible_templates(self):
