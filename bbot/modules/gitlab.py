@@ -45,7 +45,8 @@ class gitlab(BaseModule):
         # identify gitlab instances from HTTP responses
         # HTTP_RESPONSE --> TECHNOLOGY
         # HTTP_RESPONSE --> FINDING
-        if "x_gitlab_meta" in event.data["header"]:
+        headers = event.data.get("header", {})
+        if "x_gitlab_meta" in headers:
             url = event.parsed._replace(path="/").geturl()
             await self.emit_event(
                 {"host": str(event.host), "technology": "GitLab", "url": url}, "TECHNOLOGY", source=event
