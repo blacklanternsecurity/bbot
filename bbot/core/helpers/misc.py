@@ -1906,7 +1906,7 @@ def verify_sudo_password(sudo_pass):
     return True
 
 
-def make_table(rows, header, *args, **kwargs):
+def make_table(rows, header, **kwargs):
     """Generate a formatted table from the given rows and headers.
 
     This function uses the `tabulate` package to generate a table with formatting options.
@@ -1956,7 +1956,7 @@ def make_table(rows, header, *args, **kwargs):
 
         rows = [[markdown_escape(f) for f in row] for row in rows]
         header = [markdown_escape(h) for h in header]
-    return tabulate(rows, header, *args, **kwargs)
+    return tabulate(rows, header, **kwargs)
 
 
 def human_timedelta(d):
