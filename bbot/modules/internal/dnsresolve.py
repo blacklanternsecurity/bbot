@@ -33,7 +33,7 @@ class dnsresolve(HookModule):
             return False, "event does not have host attribute"
         return True
 
-    async def handle_event(self, event):
+    async def handle_event(self, event, kwargs):
         dns_tags = set()
         dns_children = dict()
         event_whitelisted = False
@@ -144,12 +144,6 @@ class dnsresolve(HookModule):
         # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
         if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
             event.type = "DNS_NAME_UNRESOLVED"
-        else:
-            # otherwise, check for wildcards
-            if event.scope_distance <= self.scan.scope_search_distance:
-                if not "unresolved" in event.tags:
-                    if not self.helpers.is_ip_type(event.host):
-                        await self.helpers.dns.handle_wildcard_event(event)
 
         # speculate DNS_NAMES and IP_ADDRESSes from other event types
         source_event = event
@@ -164,7 +158,7 @@ class dnsresolve(HookModule):
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     source_event.add_tag("target")
-                self.scan.manager.queue_event(source_event)
+                await self.emit_event(source_event)
 
         # emit DNS children
         if emit_children:
@@ -188,7 +182,7 @@ class dnsresolve(HookModule):
                             )
             for child_event in dns_child_events:
                 self.debug(f"Queueing DNS child for {event}: {child_event}")
-                self.scan.manager.queue_event(child_event)
+                await self.emit_event(child_event)
 
     async def handle_wildcard_event(self, event):
         self.debug(f"Entering handle_wildcard_event({event}, children={event.dns_children})")

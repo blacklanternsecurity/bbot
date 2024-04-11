@@ -640,6 +640,8 @@ class BaseModule:
     def max_scope_distance(self):
         if self.in_scope_only or self.target_only:
             return 0
+        if self.scope_distance_modifier is None:
+            return 999
         return max(0, self.scan.scope_search_distance + self.scope_distance_modifier)
 
     def _event_precheck(self, event):
@@ -775,7 +777,7 @@ class BaseModule:
                     async with self.scan._acatch(context), self._task_counter.count(context):
                         await self.helpers.execute_sync_or_async(callback)
 
-    async def queue_event(self, event, precheck=True):
+    async def queue_event(self, event):
         """
         Asynchronously queues an incoming event to the module's event queue for further processing.
 
@@ -798,9 +800,7 @@ class BaseModule:
             if self.incoming_event_queue is False:
                 self.debug(f"Not in an acceptable state to queue incoming event")
                 return
-            acceptable, reason = True, "precheck was skipped"
-            if precheck:
-                acceptable, reason = self._event_precheck(event)
+            acceptable, reason = self._event_precheck(event)
             if not acceptable:
                 if reason and reason != "its type is not in watched_events":
                     self.debug(f"Not queueing {event} because {reason}")
@@ -812,7 +812,7 @@ class BaseModule:
                 async with self._event_received:
                     self._event_received.notify()
                 if event.type != "FINISHED":
-                    self.scan.manager._new_activity = True
+                    self.scan._new_activity = True
             except AttributeError:
                 self.debug(f"Not in an acceptable state to queue incoming event")
 
@@ -1407,23 +1407,18 @@ class HookModule(BaseModule):
     suppress_dupes = False
     _hook = True
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._first = False
-
     async def _worker(self):
         async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
             try:
                 while not self.scan.stopping and not self.errored:
-
                     try:
                         if self.incoming_event_queue is not False:
                             incoming = await self.get_incoming_event()
                             try:
-                                event, _kwargs = incoming
+                                event, kwargs = incoming
                             except ValueError:
                                 event = incoming
-                                _kwargs = {}
+                                kwargs = {}
                         else:
                             self.debug(f"Event queue is in bad state")
                             break
@@ -1453,25 +1448,25 @@ class HookModule(BaseModule):
 
                     # whether to pass the event on to the rest of the scan
                     # defaults to true, unless handle_event returns False
-                    pass_on_event = True
-                    pass_on_event_reason = ""
+                    forward_event = True
+                    forward_event_reason = ""
 
                     if acceptable:
-                        context = f"{self.name}.handle_event({event})"
+                        context = f"{self.name}.handle_event({event, kwargs})"
                         self.scan.stats.event_consumed(event, self)
                         self.debug(f"Hooking {event}")
                         async with self.scan._acatch(context), self._task_counter.count(context):
-                            pass_on_event = await self.handle_event(event)
+                            forward_event = await self.handle_event(event, kwargs)
                             with suppress(ValueError, TypeError):
-                                pass_on_event, pass_on_event_reason = pass_on_event
+                                forward_event, forward_event_reason = forward_event
 
                         self.debug(f"Finished hooking {event}")
 
-                        if pass_on_event is False:
-                            self.debug(f"Not passing on {event} because {pass_on_event_reason}")
-                            return
+                        if forward_event is False:
+                            self.debug(f"Not forwarding {event} because {forward_event_reason}")
+                            continue
 
-                    await self.outgoing_event_queue.put((event, _kwargs))
+                    await self.forward_event(event, kwargs)
 
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")
@@ -1479,18 +1474,33 @@ class HookModule(BaseModule):
         self.log.trace(f"Worker stopped")
 
     async def get_incoming_event(self):
-        try:
-            return self.incoming_event_queue.get_nowait()
-        except asyncio.queues.QueueEmpty:
-            if self._first:
-                return self.scan.manager.get_event_from_modules()
-            raise
+        """
+        Get an event from this module's incoming event queue
+        """
+        return await self.incoming_event_queue.get()
 
-    async def queue_event(self, event, precheck=False):
+    async def forward_event(self, event, kwargs):
+        """
+        Used for forwarding the event on to the next hook module
+        """
+        await self.outgoing_event_queue.put((event, kwargs))
+
+    async def queue_outgoing_event(self, event, **kwargs):
+        """
+        Used by emit_event() to raise new events to the scan
+        """
+        # if this was a normal module, we'd put it in the outgoing queue
+        # but because it's a hook module, we need to queue it with the first hook module
+        await self.scan.ingress_module.queue_event(event, kwargs)
+
+    async def queue_event(self, event, kwargs=None):
+        """
+        Put an event in this module's incoming event queue
+        """
+        if kwargs is None:
+            kwargs = {}
         try:
-            self.incoming_event_queue.put_nowait(event)
-            if event.type != "FINISHED":
-                self.scan.manager._new_activity = True
+            self.incoming_event_queue.put_nowait((event, kwargs))
         except AttributeError:
             self.debug(f"Not in an acceptable state to queue incoming event")
 

@@ -17,9 +17,9 @@ from bbot import __version__
 
 from .preset import Preset
 from .stats import ScanStats
-from .manager import ScanManager
 from .dispatcher import Dispatcher
 from bbot.core.event import make_event
+from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
 from bbot.core.helpers.names_generator import random_name
 from bbot.core.helpers.async_helpers import async_to_sync_gen
@@ -74,7 +74,6 @@ class Scanner:
         helpers (ConfigAwareHelper): Helper containing various reusable functions, regexes, etc. (alias to `self.preset.helpers`).
         output_dir (pathlib.Path): Output directory for scan (alias to `self.preset.output_dir`).
         name (str): Name of scan (alias to `self.preset.scan_name`).
-        manager (ScanManager): Coordinates and monitors the flow of events between modules during a scan.
         dispatcher (Dispatcher): Triggers certain events when the scan `status` changes.
         modules (dict): Holds all loaded modules in this format: `{"module_name": Module()}`.
         stats (ScanStats): Holds high-level scan statistics such as how many events have been produced and consumed by each module.
@@ -177,7 +176,6 @@ class Scanner:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
 
-        self.manager = ScanManager(self)
         self.stats = ScanStats(self)
 
         # scope distance
@@ -200,6 +198,7 @@ class Scanner:
 
         self._prepped = False
         self._finished_init = False
+        self._new_activity = False
         self._cleanedup = False
 
         self.__loop = None
@@ -308,17 +307,12 @@ class Scanner:
 
             await self.dispatcher.on_start(self)
 
-            # start manager worker loops
-            self._manager_worker_loop_tasks = [
-                asyncio.create_task(self.manager._worker_loop()) for _ in range(self.max_workers)
-            ]
-
             self.status = "RUNNING"
             self._start_modules()
             self.verbose(f"{len(self.modules):,} modules started")
 
             # distribute seed events
-            self.init_events_task = asyncio.create_task(self.manager.init_events())
+            self.init_events_task = asyncio.create_task(self.ingress_module.init_events(self.target.events))
 
             # main scan loop
             while 1:
@@ -334,7 +328,7 @@ class Scanner:
                         yield e
 
                 # break if initialization finished and the scan is no longer active
-                if self._finished_init and not self.manager.active:
+                if self._finished_init and self.modules_finished:
                     new_activity = await self.finish()
                     if not new_activity:
                         break
@@ -385,16 +379,6 @@ class Scanner:
 
     def _start_modules(self):
         self.verbose(f"Starting module worker loops")
-
-        # hook modules get sewn together like human centipede
-        if len(self.manager.hook_modules) > 1:
-            for i, hook_module in enumerate(self.manager.hook_modules[:-1]):
-                next_hook_module = self.manager.hook_modules[i + 1]
-                self.debug(
-                    f"Setting hook module {hook_module.name}.outgoing_event_queue to next hook module {next_hook_module.name}.incoming_event_queue"
-                )
-                hook_module._outgoing_event_queue = next_hook_module.incoming_event_queue
-
         for module in self.modules.values():
             module.start()
 
@@ -520,8 +504,163 @@ class Scanner:
                     f"Loaded {len(loaded_output_modules):,}/{len(self.preset.output_modules):,} output modules, ({','.join(loaded_output_modules)})"
                 )
 
-            self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "_priority", 0)))
+            # builtin hook modules
+            self.ingress_module = ScanIngress(self)
+            self.egress_module = ScanEgress(self)
+            self.modules[self.ingress_module.name] = self.ingress_module
+            self.modules[self.egress_module.name] = self.egress_module
+
+            # sort modules by priority
+            self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "priority", 3)))
+
+            self.critical(list(self.modules))
+
+            # hook modules get sewn together like human centipede
+            self.hook_modules = [m for m in self.modules.values() if m._hook]
+            for i, hook_module in enumerate(self.hook_modules[:-1]):
+                next_hook_module = self.hook_modules[i + 1]
+                self.debug(
+                    f"Setting hook module {hook_module.name}.outgoing_event_queue to next hook module {next_hook_module.name}.incoming_event_queue"
+                )
+                hook_module._outgoing_event_queue = next_hook_module.incoming_event_queue
+
             self._modules_loaded = True
+
+    @property
+    def modules_finished(self):
+        finished_modules = [m.finished for m in self.modules.values()]
+        return all(finished_modules)
+
+    def kill_module(self, module_name, message=None):
+        from signal import SIGINT
+
+        module = self.modules[module_name]
+        module.set_error_state(message=message, clear_outgoing_queue=True)
+        for proc in module._proc_tracker:
+            with contextlib.suppress(Exception):
+                proc.send_signal(SIGINT)
+        self.helpers.cancel_tasks_sync(module._tasks)
+
+    @property
+    def queued_event_types(self):
+        event_types = {}
+        queues = set()
+
+        for module in self.modules.values():
+            queues.add(module.incoming_event_queue)
+            queues.add(module.outgoing_event_queue)
+
+        for q in queues:
+            for event, _ in q._queue:
+                event_type = getattr(event, "type", None)
+                if event_type is not None:
+                    try:
+                        event_types[event_type] += 1
+                    except KeyError:
+                        event_types[event_type] = 1
+
+        return event_types
+
+    def modules_status(self, _log=False):
+        finished = True
+        status = {"modules": {}}
+
+        sorted_modules = []
+        for module_name, module in self.modules.items():
+            # if module_name.startswith("_"):
+            #     continue
+            sorted_modules.append(module)
+            mod_status = module.status
+            if mod_status["running"]:
+                finished = False
+            status["modules"][module_name] = mod_status
+
+        # sort modules by name
+        sorted_modules.sort(key=lambda m: m.name)
+
+        status["finished"] = finished
+
+        modules_errored = [m for m, s in status["modules"].items() if s["errored"]]
+
+        max_mem_percent = 90
+        mem_status = self.helpers.memory_status()
+        # abort if we don't have the memory
+        mem_percent = mem_status.percent
+        if mem_percent > max_mem_percent:
+            free_memory = mem_status.available
+            free_memory_human = self.helpers.bytes_to_human(free_memory)
+            self.warning(f"System memory is at {mem_percent:.1f}% ({free_memory_human} remaining)")
+
+        if _log:
+            modules_status = []
+            for m, s in status["modules"].items():
+                running = s["running"]
+                incoming = s["events"]["incoming"]
+                outgoing = s["events"]["outgoing"]
+                tasks = s["tasks"]
+                total = sum([incoming, outgoing, tasks])
+                if running or total > 0:
+                    modules_status.append((m, running, incoming, outgoing, tasks, total))
+            modules_status.sort(key=lambda x: x[-1], reverse=True)
+
+            if modules_status:
+                modules_status_str = ", ".join([f"{m}({i:,}:{t:,}:{o:,})" for m, r, i, o, t, _ in modules_status])
+                self.info(f"{self.name}: Modules running (incoming:processing:outgoing) {modules_status_str}")
+            else:
+                self.info(f"{self.name}: No modules running")
+            event_type_summary = sorted(self.stats.events_emitted_by_type.items(), key=lambda x: x[-1], reverse=True)
+            if event_type_summary:
+                self.info(
+                    f'{self.name}: Events produced so far: {", ".join([f"{k}: {v}" for k,v in event_type_summary])}'
+                )
+            else:
+                self.info(f"{self.name}: No events produced yet")
+
+            if modules_errored:
+                self.verbose(
+                    f'{self.name}: Modules errored: {len(modules_errored):,} ({", ".join([m for m in modules_errored])})'
+                )
+
+            queued_events_by_type = [(k, v) for k, v in self.queued_event_types.items() if v > 0]
+            if queued_events_by_type:
+                queued_events_by_type.sort(key=lambda x: x[-1], reverse=True)
+                queued_events_by_type_str = ", ".join(f"{m}: {t:,}" for m, t in queued_events_by_type)
+                num_queued_events = sum(v for k, v in queued_events_by_type)
+                self.info(f"{self.name}: {num_queued_events:,} events in queue ({queued_events_by_type_str})")
+            else:
+                self.info(f"{self.name}: No events in queue")
+
+            if self.log_level <= logging.DEBUG:
+                # status debugging
+                scan_active_status = []
+                scan_active_status.append(f"scan._finished_init: {self._finished_init}")
+                scan_active_status.append(f"scan.modules_finished: {self.modules_finished}")
+                for m in sorted_modules:
+                    running = m.running
+                    scan_active_status.append(f"    {m}.finished: {m.finished}")
+                    scan_active_status.append(f"        running: {running}")
+                    if running:
+                        scan_active_status.append(f"        tasks:")
+                        for task in list(m._task_counter.tasks.values()):
+                            scan_active_status.append(f"            - {task}:")
+                    scan_active_status.append(f"        incoming_queue_size: {m.num_incoming_events}")
+                    scan_active_status.append(f"        outgoing_queue_size: {m.outgoing_event_queue.qsize()}")
+                for line in scan_active_status:
+                    self.debug(line)
+
+                # log module memory usage
+                module_memory_usage = []
+                for module in sorted_modules:
+                    memory_usage = module.memory_usage
+                    module_memory_usage.append((module.name, memory_usage))
+                module_memory_usage.sort(key=lambda x: x[-1], reverse=True)
+                self.debug(f"MODULE MEMORY USAGE:")
+                for module_name, usage in module_memory_usage:
+                    self.debug(f"    - {module_name}: {self.helpers.bytes_to_human(usage)}")
+
+        status.update({"modules_errored": len(modules_errored)})
+
+        return status
 
     def stop(self):
         """Stops the in-progress scan and performs necessary cleanup.
@@ -555,8 +694,8 @@ class Scanner:
             This method alters the scan's status to "FINISHING" if new activity is detected.
         """
         # if new events were generated since last time we were here
-        if self.manager._new_activity:
-            self.manager._new_activity = False
+        if self._new_activity:
+            self._new_activity = False
             self.status = "FINISHING"
             # Trigger .finished() on every module and start over
             log.info("Finishing scan")
@@ -587,9 +726,6 @@ class Scanner:
                 while 1:
                     if module.outgoing_event_queue:
                         module.outgoing_event_queue.get_nowait()
-        with contextlib.suppress(asyncio.queues.QueueEmpty):
-            while 1:
-                self.manager.incoming_event_queue.get_nowait()
         self.debug("Finished draining queues")
 
     def _cancel_tasks(self):
@@ -997,7 +1133,7 @@ class Scanner:
         async with self._acatch():
             while 1:
                 await asyncio.sleep(interval)
-                self.manager.modules_status(_log=True)
+                self.modules_status(_log=True)
 
     @contextlib.asynccontextmanager
     async def _acatch(self, context="scan", finally_callback=None, unhandled_is_critical=False):
