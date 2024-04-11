@@ -8,6 +8,7 @@ class Emails(TXT):
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to file"}
     in_scope_only = True
+    accept_dupes = False
 
     output_filename = "emails.txt"
 
