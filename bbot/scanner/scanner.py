@@ -513,8 +513,6 @@ class Scanner:
             # sort modules by priority
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "priority", 3)))
 
-            self.critical(list(self.modules))
-
             # hook modules get sewn together like human centipede
             self.hook_modules = [m for m in self.modules.values() if m._hook]
             for i, hook_module in enumerate(self.hook_modules[:-1]):
