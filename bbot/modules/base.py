@@ -565,7 +565,7 @@ class BaseModule:
             self.set_error_state(f"Unexpected error during module setup: {e}", critical=True)
             msg = f"{e}"
             self.trace()
-        return self.name, status, str(msg)
+        return self, status, str(msg)
 
     async def _worker(self):
         """

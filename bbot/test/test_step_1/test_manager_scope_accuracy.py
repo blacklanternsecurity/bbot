@@ -111,8 +111,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         scan.modules["dummy_module_nodupes"] = dummy_module_nodupes
         scan.modules["dummy_graph_output_module"] = dummy_graph_output_module
         scan.modules["dummy_graph_batch_output_module"] = dummy_graph_batch_output_module
-        if _dns_mock:
-            await scan.helpers.dns._mock_dns(_dns_mock)
+        await scan.helpers.dns._mock_dns(_dns_mock)
         if scan_callback is not None:
             scan_callback(scan)
         return (
@@ -177,9 +176,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     assert 0 == len([e for e in events if e.type == "DNS_NAME" and e.data == "test2.notrealzies"])
     assert 0 == len([e for e in events if e.type == "IP_ADDRESS" and e.data == "127.0.0.88"])
 
-    # assert len(all_events) == 9
-    for e in all_events:
-        log.critical(e)
+    assert len(all_events) == 9
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "test.notreal" and e.internal == False and e.scope_distance == 0])
     assert 2 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.66" and e.internal == True and e.scope_distance == 1])
     assert 2 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "test.notrealzies" and e.internal == True and e.scope_distance == 1])
@@ -327,6 +324,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
             "modules": {"speculate": {"ports": "8888"}},
             "omit_event_types": ["HTTP_RESPONSE", "URL_UNVERIFIED"],
         },
+        _dns_mock={},
     )
 
     assert len(events) == 6
@@ -567,6 +565,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         modules=["httpx"],
         output_modules=["python"],
         _config={
+            "dns_resolution": True,
             "scope_search_distance": 0,
             "scope_dns_search_distance": 2,
             "scope_report_distance": 0,
@@ -743,7 +742,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         assert 1 == len([e for e in _graph_output_events if e.type == "DNS_NAME" and e.data == "test.notreal" and e.internal == False and e.scope_distance == 0 and str(e.module) == "sslcert"])
         assert 1 == len([e for e in _graph_output_events if e.type == "DNS_NAME" and e.data == "www.bbottest.notreal" and e.internal == False and e.scope_distance == 1 and str(e.module) == "sslcert"])
         assert 0 == len([e for e in _graph_output_events if e.type == "OPEN_TCP_PORT" and e.data == "www.bbottest.notreal:9999"])
-        assert 0 == len([e for e in _graph_output_events if e.type == "DNS_NAME_UNRESOLVED" and e.data == "bbottest.notreal"])
+        assert 0 == len([e for e in _graph_output_events if e.type == "DNS_NAME" and e.data == "bbottest.notreal"])
         assert 0 == len([e for e in _graph_output_events if e.type == "OPEN_TCP_PORT" and e.data == "test.notreal:9999"])
 
     # sslcert with out-of-scope chain
@@ -821,7 +820,7 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog):
     # the hostname is in-scope, but its IP is blacklisted, therefore we shouldn't see it
     assert not any([e for e in events if e.type == "URL_UNVERIFIED" and e.data == "http://www-prod.test.notreal:8888/"])
 
-    assert 'Omitting due to blacklisted DNS associations: URL_UNVERIFIED("http://www-prod.test.notreal:8888/"' in caplog.text
+    assert 'Not forwarding DNS_NAME("www-prod.test.notreal", module=excavate' in caplog.text and 'because it has a blacklisted DNS record' in caplog.text
 
 
 @pytest.mark.asyncio

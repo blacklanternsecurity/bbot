@@ -252,6 +252,15 @@ class Scanner:
             # run each module's .setup() method
             succeeded, hard_failed, soft_failed = await self.setup_modules()
 
+            # hook modules get sewn together like human centipede
+            self.hook_modules = [m for m in self.modules.values() if m._hook]
+            for i, hook_module in enumerate(self.hook_modules[:-1]):
+                next_hook_module = self.hook_modules[i + 1]
+                self.debug(
+                    f"Setting hook module {hook_module.name}.outgoing_event_queue to next hook module {next_hook_module.name}.incoming_event_queue"
+                )
+                hook_module._outgoing_event_queue = next_hook_module.incoming_event_queue
+
             # abort if there are no output modules
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
             if num_output_modules < 1:
@@ -408,19 +417,20 @@ class Scanner:
         soft_failed = []
 
         async for task in self.helpers.as_completed([m._setup() for m in self.modules.values()]):
-            module_name, status, msg = await task
+            module, status, msg = await task
             if status == True:
-                self.debug(f"Setup succeeded for {module_name} ({msg})")
-                succeeded.append(module_name)
+                self.debug(f"Setup succeeded for {module.name} ({msg})")
+                succeeded.append(module.name)
             elif status == False:
-                self.warning(f"Setup hard-failed for {module_name}: {msg}")
-                self.modules[module_name].set_error_state()
-                hard_failed.append(module_name)
+                self.warning(f"Setup hard-failed for {module.name}: {msg}")
+                self.modules[module.name].set_error_state()
+                hard_failed.append(module.name)
             else:
-                self.info(f"Setup soft-failed for {module_name}: {msg}")
-                soft_failed.append(module_name)
-            if not status and remove_failed:
-                self.modules.pop(module_name)
+                self.info(f"Setup soft-failed for {module.name}: {msg}")
+                soft_failed.append(module.name)
+            if (not status) and (module._hook or remove_failed):
+                # if a hook module fails setup, we always remove it
+                self.modules.pop(module.name)
 
         return succeeded, hard_failed, soft_failed
 
@@ -512,15 +522,6 @@ class Scanner:
 
             # sort modules by priority
             self.modules = OrderedDict(sorted(self.modules.items(), key=lambda x: getattr(x[-1], "priority", 3)))
-
-            # hook modules get sewn together like human centipede
-            self.hook_modules = [m for m in self.modules.values() if m._hook]
-            for i, hook_module in enumerate(self.hook_modules[:-1]):
-                next_hook_module = self.hook_modules[i + 1]
-                self.debug(
-                    f"Setting hook module {hook_module.name}.outgoing_event_queue to next hook module {next_hook_module.name}.incoming_event_queue"
-                )
-                hook_module._outgoing_event_queue = next_hook_module.incoming_event_queue
 
             self._modules_loaded = True
 

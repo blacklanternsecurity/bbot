@@ -12,6 +12,7 @@ class dnsresolve(HookModule):
     watched_events = ["*"]
     _priority = 1
     _max_event_handlers = 25
+    scope_distance_modifier = None
 
     async def setup(self):
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
@@ -25,7 +26,7 @@ class dnsresolve(HookModule):
         return True
 
     @property
-    def scope_distance_modifier(self):
+    def _dns_search_distance(self):
         return max(self.scope_search_distance, self.scope_dns_search_distance)
 
     async def filter_event(self, event):
@@ -43,8 +44,11 @@ class dnsresolve(HookModule):
         event_host_hash = hash(str(event.host))
         event_is_ip = self.helpers.is_ip(event.host)
 
+        # whether we've reached the max scope distance for dns
+        within_dns_search_distance = event.scope_distance < self._dns_search_distance
+
         # only emit DNS children if we haven't seen this host before
-        emit_children = event_host_hash not in self._event_cache
+        emit_children = self.dns_resolution and event_host_hash not in self._event_cache
 
         # we do DNS resolution inside a lock to make sure we don't duplicate work
         # once the resolution happens, it will be cached so it doesn't need to happen again
@@ -53,8 +57,16 @@ class dnsresolve(HookModule):
                 # try to get from cache
                 dns_tags, dns_children, event_whitelisted, event_blacklisted = self._event_cache[event_host_hash]
             except KeyError:
+                if event_is_ip:
+                    rdtypes_to_resolve = ["PTR"]
+                else:
+                    if self.dns_resolution and within_dns_search_distance:
+                        rdtypes_to_resolve = all_rdtypes
+                    else:
+                        rdtypes_to_resolve = ["A", "AAAA", "CNAME"]
+
                 # if missing from cache, do DNS resolution
-                queries = [(event_host, rdtype) for rdtype in all_rdtypes]
+                queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
                 error_rdtypes = []
                 async for (query, rdtype), (answers, errors) in self.helpers.dns.resolve_raw_batch(queries):
                     if errors:
@@ -70,11 +82,10 @@ class dnsresolve(HookModule):
                     if rdtype not in dns_children:
                         dns_tags.add(f"{rdtype.lower()}-error")
 
-                if not event_is_ip:
-                    if dns_children:
-                        dns_tags.add("resolved")
-                    else:
-                        dns_tags.add("unresolved")
+                if dns_children:
+                    dns_tags.add("resolved")
+                elif not event_is_ip:
+                    dns_tags.add("unresolved")
 
                 for rdtype, children in dns_children.items():
                     if event_blacklisted:
@@ -108,7 +119,7 @@ class dnsresolve(HookModule):
         # abort if the event resolves to something blacklisted
         if event_blacklisted:
             event.add_tag("blacklisted")
-            return False, f"blacklisted DNS record"
+            return False, f"it has a blacklisted DNS record"
 
         # set resolved_hosts attribute
         for rdtype, children in dns_children.items():
@@ -152,7 +163,8 @@ class dnsresolve(HookModule):
             and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
             and not (event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate")
         ):
-            source_event = self.make_event(event.host, "DNS_NAME", source=event)
+            source_module = self.scan._make_dummy_module("host", _type="internal")
+            source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
             # only emit the event if it's not already in the parent chain
             if source_event is not None and source_event not in event.get_sources():
                 source_event.scope_distance = event.scope_distance
@@ -162,7 +174,7 @@ class dnsresolve(HookModule):
 
         # emit DNS children
         if emit_children:
-            in_dns_scope = -1 < event.scope_distance < self.scope_distance_modifier
+            in_dns_scope = -1 < event.scope_distance < self._dns_search_distance
             dns_child_events = []
             if dns_children:
                 for rdtype, records in dns_children.items():

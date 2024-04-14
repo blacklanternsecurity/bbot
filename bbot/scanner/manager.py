@@ -118,7 +118,8 @@ class ScanIngress(HookModule):
         try:
             event_hash = event.module._outgoing_dedup_hash(event)
         except AttributeError:
-            event_hash = hash((event, str(getattr(event, "module", ""))))
+            module_name = str(getattr(event, "module", ""))
+            event_hash = hash((event, module_name))
         is_dup = event_hash in self.incoming_dup_tracker
         if add:
             self.incoming_dup_tracker.add(event_hash)
@@ -172,7 +173,7 @@ class ScanEgress(HookModule):
             if not source._graph_important:
                 source._graph_important = True
                 log.debug(f"Re-queuing internal event {source} with parent {event}")
-                self.queue_event(source)
+                await self.emit_event(source)
 
         abort_result = False
         if callable(abort_if):
