@@ -229,4 +229,13 @@ async def test_wildcards(bbot_scanner):
     events = [e async for e in scan2.async_start()]
     assert len(events) == 2
     assert 1 == len([e for e in events if e.type == "SCAN"])
-    assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "asdfl.gashdgkjsadgsdf.github.io" and all(t in e.tags for t in ('a-record', 'target', 'resolved', 'in-scope', 'subdomain', 'aaaa-record')) and not any(t in e.tags for t in ("wildcard", "a-wildcard", "aaaa-wildcard"))])
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "asdfl.gashdgkjsadgsdf.github.io"
+            and all(t in e.tags for t in ("a-record", "target", "resolved", "in-scope", "subdomain", "aaaa-record"))
+            and not any(t in e.tags for t in ("wildcard", "a-wildcard", "aaaa-wildcard"))
+        ]
+    )
