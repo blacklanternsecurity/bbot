@@ -352,7 +352,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "ORG_STUB": 1,
     }
 
-    assert set(scan.stats.module_stats) == {'speculate', 'host', 'TARGET', 'python', 'dummy', 'cloud', 'dns'}
+    assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "cloud", "dns"}
 
     target_stats = scan.stats.module_stats["TARGET"]
     assert target_stats.produced == {"SCAN": 1, "DNS_NAME": 1}
@@ -363,7 +363,14 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     dummy_stats = scan.stats.module_stats["dummy"]
     assert dummy_stats.produced == {"FINDING": 1, "URL": 1}
     assert dummy_stats.produced_total == 2
-    assert dummy_stats.consumed == {"DNS_NAME": 2, "FINDING": 1, "OPEN_TCP_PORT": 1, "SCAN": 1, "URL": 1, "URL_UNVERIFIED": 1}
+    assert dummy_stats.consumed == {
+        "DNS_NAME": 2,
+        "FINDING": 1,
+        "OPEN_TCP_PORT": 1,
+        "SCAN": 1,
+        "URL": 1,
+        "URL_UNVERIFIED": 1,
+    }
     assert dummy_stats.consumed_total == 7
 
     python_stats = scan.stats.module_stats["python"]
