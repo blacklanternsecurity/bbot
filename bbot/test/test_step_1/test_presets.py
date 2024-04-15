@@ -254,7 +254,7 @@ def test_preset_module_resolution(clean_default_config):
     # make sure we have the expected defaults
     assert not preset.scan_modules
     assert set(preset.output_modules) == {"python", "csv", "human", "json"}
-    assert set(preset.internal_modules) == {"aggregate", "excavate", "speculate"}
+    assert set(preset.internal_modules) == {"aggregate", "excavate", "speculate", "cloud", "dns"}
     assert preset.modules == set(preset.output_modules).union(set(preset.internal_modules))
 
     # make sure dependency resolution works as expected
