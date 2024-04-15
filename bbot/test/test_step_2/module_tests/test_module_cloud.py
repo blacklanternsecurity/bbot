@@ -1,12 +1,19 @@
 from .base import ModuleTestBase
 
+from bbot.scanner import Scanner
+
 
 class TestCloud(ModuleTestBase):
-    targets = ["www.azure.com"]
+    targets = ["http://127.0.0.1:8888", "asdf2.storage.googleapis.com"]
+    modules_overrides = ["httpx", "excavate", "cloud"]
 
     async def setup_after_prep(self, module_test):
-        scan = module_test.scan
-        module = module_test.module
+
+        module_test.set_expect_requests({"uri": "/"}, {"response_data": "<a href='asdf.s3.amazonaws.com'/>"})
+
+        scan = Scanner(config={"cloud": True})
+        await scan._prep()
+        module = scan.modules["cloud"]
         providers = scan.helpers.cloud.providers
         # make sure we have all the providers
         provider_names = (
@@ -62,41 +69,25 @@ class TestCloud(ModuleTestBase):
             assert "cloud-google" in event.tags, f"{event} was not properly cloud-tagged"
         assert "cloud-storage-bucket" in google_event3.tags
 
-    def check(self, events, module_test):
-        pass
-
-
-# @pytest.mark.asyncio
-# async def test_cloud_helpers_excavate(bbot_scanner, bbot_httpserver):
-#     url = bbot_httpserver.url_for("/test_cloud_helpers_excavate")
-#     bbot_httpserver.expect_request(uri="/test_cloud_helpers_excavate").respond_with_data(
-#         "<a href='asdf.s3.amazonaws.com'/>"
-#     )
-#     scan = bbot_scanner(url, modules=["httpx"], config={"excavate": True})
-#     events = [e async for e in scan.async_start()]
-#     assert 1 == len(
-#         [
-#             e
-#             for e in events
-#             if e.type == "STORAGE_BUCKET"
-#             and e.data["name"] == "asdf"
-#             and "cloud-amazon" in e.tags
-#             and "cloud-storage-bucket" in e.tags
-#         ]
-#     )
-
-
-# @pytest.mark.asyncio
-# async def test_cloud_helpers_speculate(bbot_scanner):
-#     scan = bbot_scanner("asdf.s3.amazonaws.com", config={"speculate": True})
-#     events = [e async for e in scan.async_start()]
-#     assert 1 == len(
-#         [
-#             e
-#             for e in events
-#             if e.type == "STORAGE_BUCKET"
-#             and e.data["name"] == "asdf"
-#             and "cloud-amazon" in e.tags
-#             and "cloud-storage-bucket" in e.tags
-#         ]
-#     )
+    def check(self, module_test, events):
+        assert 2 == len([e for e in events if e.type == "STORAGE_BUCKET"])
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "STORAGE_BUCKET"
+                and e.data["name"] == "asdf"
+                and "cloud-amazon" in e.tags
+                and "cloud-storage-bucket" in e.tags
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "STORAGE_BUCKET"
+                and e.data["name"] == "asdf2"
+                and "cloud-google" in e.tags
+                and "cloud-storage-bucket" in e.tags
+            ]
+        )

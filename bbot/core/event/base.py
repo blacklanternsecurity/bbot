@@ -151,6 +151,7 @@ class BaseEvent:
         self._port = None
         self.__words = None
         self._priority = None
+        self._host_original = None
         self._module_priority = None
         self._resolved_hosts = set()
         self.dns_children = dict()
@@ -275,8 +276,23 @@ class BaseEvent:
         E.g. for IP_ADDRESS, it could be an ipaddress.IPv4Address() or IPv6Address() object
         """
         if self.__host is None:
-            self.__host = self._host()
+            self.host = self._host()
         return self.__host
+
+    @host.setter
+    def host(self, host):
+        if self._host_original is None:
+            self._host_original = host
+        self.__host = host
+
+    @property
+    def host_original(self):
+        """
+        Original host data, in case it was changed due to a wildcard DNS, etc.
+        """
+        if self._host_original is None:
+            return self.host
+        return self._host_original
 
     @property
     def port(self):
@@ -793,7 +809,7 @@ class IP_ADDRESS(BaseEvent):
         ip = ipaddress.ip_address(self.data)
         self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
-            self.add_tag("private")
+            self.add_tag("private-ip")
         self.dns_resolve_distance = getattr(self.source, "dns_resolve_distance", 0)
 
     def sanitize_data(self, data):

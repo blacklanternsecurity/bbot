@@ -21,7 +21,7 @@ class cloud(HookModule):
     async def handle_event(self, event, kwargs):
         # cloud tagging by hosts
         hosts_to_check = set(str(s) for s in event.resolved_hosts)
-        hosts_to_check.add(str(event.host))
+        hosts_to_check.add(str(event.host_original))
         for host in hosts_to_check:
             provider, provider_type, subnet = self.helpers.cloudcheck(host)
             if provider:
@@ -46,19 +46,21 @@ class cloud(HookModule):
                         matches = sig.findall(event.data.get("body", ""))
                     elif event.type.startswith("DNS_NAME"):
                         for host in hosts_to_check:
-                            matches.append(sig.match(host))
+                            match = sig.match(host)
+                            if match:
+                                matches.append(match.groups())
                     for match in matches:
-                        if not match:
-                            continue
-                        if not event.data in found:
-                            found.add(event.data)
+                        if not match in found:
+                            found.add(match)
+
+                            _kwargs = dict(base_kwargs)
+                            event_type_tag = f"cloud-{event_type}"
+                            _kwargs["tags"].append(event_type_tag)
+                            if event.type.startswith("DNS_NAME"):
+                                event.add_tag(event_type_tag)
+
                             if event_type == "STORAGE_BUCKET":
-                                _kwargs = dict(base_kwargs)
-                                event_type_tag = f"cloud-{event_type}"
-                                _kwargs["tags"].append(event_type_tag)
-                                if event.type.startswith("DNS_NAME"):
-                                    event.add_tag(event_type_tag)
-                                bucket_name, bucket_domain = match.groups()
+                                bucket_name, bucket_domain = match
                                 _kwargs["data"] = {
                                     "name": bucket_name,
                                     "url": f"https://{bucket_name}.{bucket_domain}",

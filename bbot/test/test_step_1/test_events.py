@@ -444,3 +444,10 @@ async def test_events(events, scan, helpers):
     event_5 = scan.make_event("127.0.0.5", source=event_4)
     assert event_5.get_sources() == [event_4, event_3, event_2, event_1, scan.root_event]
     assert event_5.get_sources(omit=True) == [event_4, event_2, event_1, scan.root_event]
+
+    # test host backup
+    host_event = scan.make_event("asdf.evilcorp.com", "DNS_NAME", source=scan.root_event)
+    assert host_event.host_original == "asdf.evilcorp.com"
+    host_event.host = "_wildcard.evilcorp.com"
+    assert host_event.host == "_wildcard.evilcorp.com"
+    assert host_event.host_original == "asdf.evilcorp.com"
