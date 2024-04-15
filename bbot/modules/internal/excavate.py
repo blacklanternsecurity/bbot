@@ -388,14 +388,6 @@ class excavate(BaseInternalModule):
 
             body = self.helpers.recursive_decode(event.data.get("body", ""))
 
-            # Cloud extractors
-            for cloud_kwargs in self.helpers.cloud.excavate(event, body):
-                module = None
-                provider = cloud_kwargs.pop("_provider", "")
-                if provider:
-                    module = self.scan._make_dummy_module(f"{provider}_cloud")
-                await self.emit_event(module=module, **cloud_kwargs)
-
             await self.search(
                 body,
                 [

@@ -8,14 +8,18 @@ from bbot.core.helpers.dns.engine import all_rdtypes
 from bbot.core.helpers.async_helpers import NamedLock
 
 
-class dnsresolve(HookModule):
+class DNS(HookModule):
     watched_events = ["*"]
     _priority = 1
     _max_event_handlers = 25
     scope_distance_modifier = None
 
     async def setup(self):
-        self.dns_resolution = self.scan.config.get("dns_resolution", False)
+        self.dns_resolution = True
+        # you can disable DNS resolution with either the "dns" or "dns_resolution" config options
+        for key in ("dns", "dns_resolution"):
+            if self.scan.config.get(key, None) is False:
+                self.dns_resolution = False
         self.scope_search_distance = max(0, int(self.scan.config.get("scope_search_distance", 0)))
         self.scope_dns_search_distance = max(0, int(self.scan.config.get("scope_dns_search_distance", 1)))
 
@@ -123,8 +127,9 @@ class dnsresolve(HookModule):
 
         # set resolved_hosts attribute
         for rdtype, children in dns_children.items():
-            for host in children:
-                event.resolved_hosts.add(host)
+            if rdtype in ("A", "AAAA", "CNAME"):
+                for host in children:
+                    event.resolved_hosts.add(host)
 
         # set dns_children attribute
         event.dns_children = dns_children

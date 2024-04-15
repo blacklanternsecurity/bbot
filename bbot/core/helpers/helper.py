@@ -1,17 +1,16 @@
 import os
 import logging
 from pathlib import Path
+from cloudcheck import cloud_providers
 
 from . import misc
 from .dns import DNSHelper
 from .web import WebHelper
 from .diff import HttpCompare
-from .cloud import CloudHelper
 from .wordcloud import WordCloud
 from .interactsh import Interactsh
 from ...scanner.target import Target
 from .depsinstaller import DepsInstaller
-
 
 log = logging.getLogger("bbot.core.helpers")
 
@@ -66,14 +65,13 @@ class ConfigAwareHelper:
         self.mkdir(self.tools_dir)
         self.mkdir(self.lib_dir)
 
+        self.cloud = cloud_providers
+
         self.dns = DNSHelper(self)
         self.web = WebHelper(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
-
-        # cloud helpers
-        self.cloud = CloudHelper(self)
 
     def interactsh(self, *args, **kwargs):
         return Interactsh(self, *args, **kwargs)
