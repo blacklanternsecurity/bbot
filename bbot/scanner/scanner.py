@@ -550,7 +550,11 @@ class Scanner:
             queues.add(module.outgoing_event_queue)
 
         for q in queues:
-            for event, _ in q._queue:
+            for item in q._queue:
+                try:
+                    event, _ = item
+                except ValueError:
+                    event = item
                 event_type = getattr(event, "type", None)
                 if event_type is not None:
                     try:

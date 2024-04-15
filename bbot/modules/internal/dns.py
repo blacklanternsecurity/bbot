@@ -48,9 +48,6 @@ class DNS(HookModule):
         event_host_hash = hash(str(event.host))
         event_is_ip = self.helpers.is_ip(event.host)
 
-        # whether we've reached the max scope distance for dns
-        within_dns_search_distance = event.scope_distance < self._dns_search_distance
-
         # only emit DNS children if we haven't seen this host before
         emit_children = self.dns_resolution and event_host_hash not in self._event_cache
 
@@ -64,10 +61,7 @@ class DNS(HookModule):
                 if event_is_ip:
                     rdtypes_to_resolve = ["PTR"]
                 else:
-                    if self.dns_resolution and within_dns_search_distance:
-                        rdtypes_to_resolve = all_rdtypes
-                    else:
-                        rdtypes_to_resolve = ["A", "AAAA", "CNAME"]
+                    rdtypes_to_resolve = all_rdtypes
 
                 # if missing from cache, do DNS resolution
                 queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
