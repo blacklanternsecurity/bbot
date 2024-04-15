@@ -84,6 +84,14 @@ class ScanIngress(HookModule):
         # nerf event's priority if it's not in scope
         event.module_priority += event.scope_distance
 
+    async def forward_event(self, event, kwargs):
+        # if a module qualifies for "quick-emit", we skip all the intermediate modules like dns and cloud
+        # and forward it straight to the egress module
+        if event.quick_emit:
+            await self.scan.egress_module.queue_event(event, kwargs)
+        else:
+            await super().forward_event(event, kwargs)
+
     @property
     def non_hook_modules(self):
         if self._non_hook_modules is None:
