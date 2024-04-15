@@ -63,7 +63,10 @@ class DNS(HookModule):
                 if event_is_ip:
                     rdtypes_to_resolve = ["PTR"]
                 else:
-                    rdtypes_to_resolve = all_rdtypes
+                    if self.dns_resolution:
+                        rdtypes_to_resolve = all_rdtypes
+                    else:
+                        rdtypes_to_resolve = ("A", "AAAA", "CNAME")
 
                 # if missing from cache, do DNS resolution
                 queries = [(event_host, rdtype) for rdtype in rdtypes_to_resolve]
