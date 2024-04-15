@@ -218,7 +218,9 @@ class paramminer_headers(BaseModule):
                     async for r in self.binary_search(compare_helper, url, group_slice, reasons, reflection):
                         yield r
         else:
-            self.warning(f"Submitted group of size 0 to binary_search()")
+            self.debug(
+                f"binary_search() failed to start with group of size {str(len(group))} and {str(len(reasons))} length reasons"
+            )
 
     async def check_batch(self, compare_helper, url, header_list):
         rand = self.rand_string()
