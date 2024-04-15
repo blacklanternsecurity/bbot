@@ -62,6 +62,7 @@ class DNSHelper(EngineClient):
         self.max_dns_resolve_distance = self.config.get("max_dns_resolve_distance", 5)
 
         # wildcard handling
+        self.wildcard_disable = self.config.get("dns_wildcard_disable", False)
         self.wildcard_ignore = self.config.get("dns_wildcard_ignore", None)
         if not self.wildcard_ignore:
             self.wildcard_ignore = []
@@ -136,6 +137,9 @@ class DNSHelper(EngineClient):
         return await self.run_and_return("is_wildcard_domain", domain=domain, log_info=False)
 
     def _wildcard_prevalidation(self, host):
+        if self.wildcard_disable:
+            return False
+
         host = clean_dns_record(host)
         # skip check if it's an IP or a plain hostname
         if is_ip(host) or not "." in host:

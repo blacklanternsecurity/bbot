@@ -194,6 +194,20 @@ async def test_wildcards(bbot_scanner):
     assert wildcard_event2.data == "_wildcard.github.io"
     assert wildcard_event3.data == "github.io"
 
+    # dns resolve distance
+    event_distance_0 = scan.make_event("8.8.8.8", module=scan._make_dummy_module_dns("PTR"), source=scan.root_event)
+    assert event_distance_0.dns_resolve_distance == 0
+    event_distance_1 = scan.make_event(
+        "evilcorp.com", module=scan._make_dummy_module_dns("A"), source=event_distance_0
+    )
+    assert event_distance_1.dns_resolve_distance == 1
+    event_distance_2 = scan.make_event("1.2.3.4", module=scan._make_dummy_module_dns("PTR"), source=event_distance_1)
+    assert event_distance_2.dns_resolve_distance == 1
+    event_distance_3 = scan.make_event(
+        "evilcorp.org", module=scan._make_dummy_module_dns("A"), source=event_distance_2
+    )
+    assert event_distance_3.dns_resolve_distance == 2
+
     from bbot.scanner import Scanner
 
     # test with full scan

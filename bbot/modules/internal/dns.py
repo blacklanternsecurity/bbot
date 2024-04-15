@@ -10,6 +10,8 @@ from bbot.core.helpers.async_helpers import NamedLock
 
 class DNS(HookModule):
     watched_events = ["*"]
+    options = {"max_event_handlers": 25}
+    options_desc = {"max_event_handlers": "Number of concurrent DNS workers"}
     _priority = 1
     _max_event_handlers = 25
     scope_distance_modifier = None

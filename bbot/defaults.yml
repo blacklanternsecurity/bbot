@@ -79,11 +79,14 @@ httpx_retries: 1
 http_debug: false
 # Maximum number of HTTP redirects to follow
 http_max_redirects: 5
+
 # DNS query timeout
 dns_timeout: 5
 # How many times to retry DNS queries
 dns_retries: 1
-# Disable BBOT's smart DNS wildcard handling for select domains
+# Completely disable BBOT's DNS wildcard detection
+dns_wildcard_disable: False
+# Disable BBOT's DNS wildcard detection for select domains
 dns_wildcard_ignore: []
 # How many sanity checks to make when verifying wildcard DNS
 # Increase this value if BBOT's wildcard detection isn't working
@@ -95,6 +98,7 @@ dns_abort_threshold: 50
 dns_filter_ptrs: true
 # Enable/disable debug messages for dns queries
 dns_debug: false
+
 # Whether to verify SSL certificates
 ssl_verify: false
 # How many scan results to keep before cleaning up the older ones
