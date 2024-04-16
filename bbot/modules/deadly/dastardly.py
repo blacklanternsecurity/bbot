@@ -9,29 +9,7 @@ class dastardly(BaseModule):
     meta = {"description": "Lightweight web application security scanner"}
 
     deps_pip = ["lxml~=4.9.2"]
-    deps_ansible = [
-        {
-            "name": "Check if Docker is already installed",
-            "command": "docker --version",
-            "register": "docker_installed",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Install Docker (Non-Debian)",
-            "package": {"name": "docker", "state": "present"},
-            "become": True,
-            "when": "ansible_facts['os_family'] != 'Debian' and docker_installed.rc != 0",
-        },
-        {
-            "name": "Install Docker (Debian)",
-            "package": {
-                "name": "docker.io",
-                "state": "present",
-            },
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'Debian' and docker_installed.rc != 0",
-        },
-    ]
+    deps_common = ["docker"]
     per_hostport_only = True
 
     async def setup(self):

@@ -10,6 +10,30 @@ DEP_FFUF = [
     }
 ]
 
+DEP_DOCKER = [
+    {
+        "name": "Check if Docker is already installed",
+        "command": "docker --version",
+        "register": "docker_installed",
+        "ignore_errors": True,
+    },
+    {
+        "name": "Install Docker (Non-Debian)",
+        "package": {"name": "docker", "state": "present"},
+        "become": True,
+        "when": "ansible_facts['os_family'] != 'Debian' and docker_installed.rc != 0",
+    },
+    {
+        "name": "Install Docker (Debian)",
+        "package": {
+            "name": "docker.io",
+            "state": "present",
+        },
+        "become": True,
+        "when": "ansible_facts['os_family'] == 'Debian' and docker_installed.rc != 0",
+    },
+]
+
 DEP_MASSDNS = [
     {
         "name": "install dev tools",
