@@ -111,7 +111,7 @@ class BaseModule:
     _priority = 3
     _name = "base"
     _type = "scan"
-    _hook = False
+    _intercept = False
 
     def __init__(self, scan):
         """Initializes a module instance.
@@ -1415,7 +1415,7 @@ class InterceptModule(BaseModule):
 
     accept_dupes = True
     suppress_dupes = False
-    _hook = True
+    _intercept = True
 
     async def _worker(self):
         async with self.scan._acatch(context=self._worker, unhandled_is_critical=True):
@@ -1491,7 +1491,7 @@ class InterceptModule(BaseModule):
 
     async def forward_event(self, event, kwargs):
         """
-        Used for forwarding the event on to the next hook module
+        Used for forwarding the event on to the next intercept module
         """
         await self.outgoing_event_queue.put((event, kwargs))
 
@@ -1500,7 +1500,7 @@ class InterceptModule(BaseModule):
         Used by emit_event() to raise new events to the scan
         """
         # if this was a normal module, we'd put it in the outgoing queue
-        # but because it's a hook module, we need to queue it with the first hook module
+        # but because it's a intercept module, we need to queue it with the first intercept module
         await self.scan.ingress_module.queue_event(event, kwargs)
 
     async def queue_event(self, event, kwargs=None):

@@ -252,14 +252,14 @@ class Scanner:
             # run each module's .setup() method
             succeeded, hard_failed, soft_failed = await self.setup_modules()
 
-            # hook modules get sewn together like human centipede
-            self.hook_modules = [m for m in self.modules.values() if m._hook]
-            for i, hook_module in enumerate(self.hook_modules[:-1]):
-                next_hook_module = self.hook_modules[i + 1]
+            # intercept modules get sewn together like human centipede
+            self.intercept_modules = [m for m in self.modules.values() if m._intercept]
+            for i, intercept_module in enumerate(self.intercept_modules[:-1]):
+                next_intercept_module = self.intercept_modules[i + 1]
                 self.debug(
-                    f"Setting hook module {hook_module.name}.outgoing_event_queue to next hook module {next_hook_module.name}.incoming_event_queue"
+                    f"Setting intercept module {intercept_module.name}.outgoing_event_queue to next intercept module {next_intercept_module.name}.incoming_event_queue"
                 )
-                hook_module._outgoing_event_queue = next_hook_module.incoming_event_queue
+                intercept_module._outgoing_event_queue = next_intercept_module.incoming_event_queue
 
             # abort if there are no output modules
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
@@ -428,8 +428,8 @@ class Scanner:
             else:
                 self.info(f"Setup soft-failed for {module.name}: {msg}")
                 soft_failed.append(module.name)
-            if (not status) and (module._hook or remove_failed):
-                # if a hook module fails setup, we always remove it
+            if (not status) and (module._intercept or remove_failed):
+                # if a intercept module fails setup, we always remove it
                 self.modules.pop(module.name)
 
         return succeeded, hard_failed, soft_failed
@@ -514,7 +514,7 @@ class Scanner:
                     f"Loaded {len(loaded_output_modules):,}/{len(self.preset.output_modules):,} output modules, ({','.join(loaded_output_modules)})"
                 )
 
-            # builtin hook modules
+            # builtin intercept modules
             self.ingress_module = ScanIngress(self)
             self.egress_module = ScanEgress(self)
             self.modules[self.ingress_module.name] = self.ingress_module
