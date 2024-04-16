@@ -1000,6 +1000,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
     def sanitize_data(self, data):
         url = data.get("url", "")
         self.parsed = validators.validate_url_parsed(url)
+        data["url"] = self.parsed.geturl()
 
         header_dict = {}
         for i in data.get("raw_header", "").splitlines():

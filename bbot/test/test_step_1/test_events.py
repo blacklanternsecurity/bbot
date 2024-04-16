@@ -119,6 +119,12 @@ async def test_events(events, scan, helpers, bbot_config):
     assert http_response.http_title == "HTTP RESPONSE"
     assert http_response.redirect_location == "http://www.evilcorp.com/asdf"
 
+    # http response url validation
+    http_response_2 = scan.make_event(
+        {"port": "80", "url": "http://evilcorp.com:80/asdf"}, "HTTP_RESPONSE", dummy=True
+    )
+    assert http_response_2.data["url"] == "http://evilcorp.com/asdf"
+
     # open port tests
     assert events.open_port in events.domain
     assert "api.publicapis.org:443" in events.open_port
