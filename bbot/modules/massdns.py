@@ -38,41 +38,7 @@ class massdns(subdomain_enum):
         "max_depth": "How many subdomains deep to brute force, i.e. 5.4.3.2.1.evilcorp.com",
     }
     subdomain_file = None
-    deps_ansible = [
-        {
-            "name": "install dev tools",
-            "package": {"name": ["gcc", "git", "make"], "state": "present"},
-            "become": True,
-            "ignore_errors": True,
-        },
-        {
-            "name": "Download massdns source code",
-            "git": {
-                "repo": "https://github.com/blechschmidt/massdns.git",
-                "dest": "#{BBOT_TEMP}/massdns",
-                "single_branch": True,
-                "version": "master",
-            },
-        },
-        {
-            "name": "Build massdns (Linux)",
-            "command": {"chdir": "#{BBOT_TEMP}/massdns", "cmd": "make", "creates": "#{BBOT_TEMP}/massdns/bin/massdns"},
-            "when": "ansible_facts['system'] == 'Linux'",
-        },
-        {
-            "name": "Build massdns (non-Linux)",
-            "command": {
-                "chdir": "#{BBOT_TEMP}/massdns",
-                "cmd": "make nolinux",
-                "creates": "#{BBOT_TEMP}/massdns/bin/massdns",
-            },
-            "when": "ansible_facts['system'] != 'Linux'",
-        },
-        {
-            "name": "Install massdns",
-            "copy": {"src": "#{BBOT_TEMP}/massdns/bin/massdns", "dest": "#{BBOT_TOOLS}/", "mode": "u+x,g+x,o+x"},
-        },
-    ]
+    deps_common = ["massdns"]
     reject_wildcards = "strict"
     _qsize = 10000
 
