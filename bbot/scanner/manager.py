@@ -27,7 +27,7 @@ class ScanIngress(InterceptModule):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._module_priority_weights = None
-        self._non_hook_modules = None
+        self._non_intercept_modules = None
         # track incoming duplicates module-by-module (for `suppress_dupes` attribute of modules)
         self.incoming_dup_tracker = set()
 
@@ -95,20 +95,20 @@ class ScanIngress(InterceptModule):
             await super().forward_event(event, kwargs)
 
     @property
-    def non_hook_modules(self):
-        if self._non_hook_modules is None:
-            self._non_hook_modules = [m for m in self.scan.modules.values() if not m._hook]
-        return self._non_hook_modules
+    def non_intercept_modules(self):
+        if self._non_intercept_modules is None:
+            self._non_intercept_modules = [m for m in self.scan.modules.values() if not m._intercept]
+        return self._non_intercept_modules
 
     @property
     def incoming_queues(self):
-        return [self.incoming_event_queue] + [m.outgoing_event_queue for m in self.non_hook_modules]
+        return [self.incoming_event_queue] + [m.outgoing_event_queue for m in self.non_intercept_modules]
 
     @property
     def module_priority_weights(self):
         if not self._module_priority_weights:
             # we subtract from six because lower priorities == higher weights
-            priorities = [5] + [6 - m.priority for m in self.non_hook_modules]
+            priorities = [5] + [6 - m.priority for m in self.non_intercept_modules]
             self._module_priority_weights = priorities
         return self._module_priority_weights
 
@@ -213,8 +213,8 @@ class ScanEgress(InterceptModule):
             self.scan.word_cloud.absorb_event(event)
 
         for mod in self.scan.modules.values():
-            # don't distribute events to hook modules
-            if mod._hook:
+            # don't distribute events to intercept modules
+            if mod._intercept:
                 continue
             acceptable_dup = (not is_outgoing_duplicate) or mod.accept_dupes
             graph_important = mod._is_graph_important(event)
