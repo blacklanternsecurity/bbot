@@ -3,12 +3,12 @@ from contextlib import suppress
 from cachetools import LRUCache
 
 from bbot.errors import ValidationError
-from bbot.modules.base import HookModule
+from bbot.modules.base import InterceptModule
 from bbot.core.helpers.dns.engine import all_rdtypes
 from bbot.core.helpers.async_helpers import NamedLock
 
 
-class DNS(HookModule):
+class DNS(InterceptModule):
     watched_events = ["*"]
     options = {"max_event_handlers": 25}
     options_desc = {"max_event_handlers": "Number of concurrent DNS workers"}

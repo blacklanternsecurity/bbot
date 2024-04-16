@@ -742,7 +742,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         assert 1 == len([e for e in _graph_output_events if e.type == "DNS_NAME" and e.data == "test.notreal" and e.internal == False and e.scope_distance == 0 and str(e.module) == "sslcert"])
         assert 1 == len([e for e in _graph_output_events if e.type == "DNS_NAME" and e.data == "www.bbottest.notreal" and e.internal == False and e.scope_distance == 1 and str(e.module) == "sslcert"])
         assert 0 == len([e for e in _graph_output_events if e.type == "OPEN_TCP_PORT" and e.data == "www.bbottest.notreal:9999"])
-        assert 0 == len([e for e in _graph_output_events if e.type == "DNS_NAME" and e.data == "bbottest.notreal"])
+        assert 0 == len([e for e in _graph_output_events if e.type == "DNS_NAME_UNRESOLVED" and e.data == "bbottest.notreal"])
         assert 0 == len([e for e in _graph_output_events if e.type == "OPEN_TCP_PORT" and e.data == "test.notreal:9999"])
 
     # sslcert with out-of-scope chain

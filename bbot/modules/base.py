@@ -1402,7 +1402,17 @@ class BaseModule:
             self.trace()
 
 
-class HookModule(BaseModule):
+class InterceptModule(BaseModule):
+    """
+    An Intercept Module is a special type of high-priority module that gets early access to events.
+
+    If you want your module to tag or modify an event before it's distributed to the scan, it should
+    probably be an intercept module.
+
+    Examples of intercept modules include `dns` (for DNS resolution and wildcard detection)
+    and `cloud` (for detection and tagging of cloud assets).
+    """
+
     accept_dupes = True
     suppress_dupes = False
     _hook = True

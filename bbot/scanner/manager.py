@@ -2,14 +2,16 @@ import asyncio
 import logging
 from contextlib import suppress
 
-from bbot.modules.base import HookModule
+from bbot.modules.base import InterceptModule
 
 log = logging.getLogger("bbot.scanner.manager")
 
 
-class ScanIngress(HookModule):
+class ScanIngress(InterceptModule):
     """
-    This is always the first hook module in the chain, responsible for basic scope checks
+    This is always the first intercept module in the chain, responsible for basic scope checks
+
+    It has its own incoming queue, but will also pull events from modules' outgoing queues
     """
 
     watched_events = ["*"]
@@ -137,9 +139,9 @@ class ScanIngress(HookModule):
         return False
 
 
-class ScanEgress(HookModule):
+class ScanEgress(InterceptModule):
     """
-    This is always the last hook module in the chain, responsible for executing and acting on the
+    This is always the last intercept module in the chain, responsible for executing and acting on the
     `abort_if` and `on_success_callback` functions.
     """
 

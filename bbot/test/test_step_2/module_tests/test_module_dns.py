@@ -18,7 +18,6 @@ class TestDNS(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        self.log.critical(events)
         assert 1 == len(
             [
                 e
