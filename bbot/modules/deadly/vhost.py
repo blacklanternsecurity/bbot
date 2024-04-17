@@ -22,17 +22,7 @@ class vhost(ffuf):
         "lines": "take only the first N lines from the wordlist when finding directories",
     }
 
-    deps_ansible = [
-        {
-            "name": "Download ffuf",
-            "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
-                "include": "ffuf",
-                "dest": "#{BBOT_TOOLS}",
-                "remote_src": True,
-            },
-        }
-    ]
+    deps_common = ["ffuf"]
 
     in_scope_only = True
 

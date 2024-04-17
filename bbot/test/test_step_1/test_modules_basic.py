@@ -108,7 +108,8 @@ async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
     assert type(all_preloaded["massdns"]["config"]["max_resolvers"]) == int
     assert all_preloaded["sslcert"]["deps"]["pip"]
     assert all_preloaded["sslcert"]["deps"]["apt"]
-    assert all_preloaded["massdns"]["deps"]["ansible"]
+    assert all_preloaded["massdns"]["deps"]["common"]
+    assert all_preloaded["gowitness"]["deps"]["ansible"]
 
     all_flags = set()
 

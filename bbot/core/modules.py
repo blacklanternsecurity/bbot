@@ -336,10 +336,10 @@ class ModuleLoader:
                         if any([target.id == "options" for target in class_attr.targets]):
                             config.update(ast.literal_eval(class_attr.value))
                         # module options
-                        if any([target.id == "options_desc" for target in class_attr.targets]):
+                        elif any([target.id == "options_desc" for target in class_attr.targets]):
                             options_desc.update(ast.literal_eval(class_attr.value))
                         # module metadata
-                        if any([target.id == "meta" for target in class_attr.targets]):
+                        elif any([target.id == "meta" for target in class_attr.targets]):
                             meta = ast.literal_eval(class_attr.value)
 
                     # class attributes that are lists
@@ -350,27 +350,27 @@ class ModuleLoader:
                                 if type(flag.value) == str:
                                     flags.add(flag.value)
                         # watched events
-                        if any([target.id == "watched_events" for target in class_attr.targets]):
+                        elif any([target.id == "watched_events" for target in class_attr.targets]):
                             for event_type in class_attr.value.elts:
                                 if type(event_type.value) == str:
                                     watched_events.add(event_type.value)
                         # produced events
-                        if any([target.id == "produced_events" for target in class_attr.targets]):
+                        elif any([target.id == "produced_events" for target in class_attr.targets]):
                             for event_type in class_attr.value.elts:
                                 if type(event_type.value) == str:
                                     produced_events.add(event_type.value)
 
                         # bbot module dependencies
-                        if any([target.id == "deps_modules" for target in class_attr.targets]):
+                        elif any([target.id == "deps_modules" for target in class_attr.targets]):
                             for dep_module in class_attr.value.elts:
                                 if type(dep_module.value) == str:
                                     deps_modules.add(dep_module.value)
                         # python dependencies
-                        if any([target.id == "deps_pip" for target in class_attr.targets]):
+                        elif any([target.id == "deps_pip" for target in class_attr.targets]):
                             for dep_pip in class_attr.value.elts:
                                 if type(dep_pip.value) == str:
                                     deps_pip.append(dep_pip.value)
-                        if any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
+                        elif any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
                             for dep_pip in class_attr.value.elts:
                                 if type(dep_pip.value) == str:
                                     deps_pip_constraints.append(dep_pip.value)
@@ -387,7 +387,7 @@ class ModuleLoader:
                         elif any([target.id == "deps_ansible" for target in class_attr.targets]):
                             ansible_tasks = ast.literal_eval(class_attr.value)
                         # shared/common module dependencies
-                        if any([target.id == "deps_common" for target in class_attr.targets]):
+                        elif any([target.id == "deps_common" for target in class_attr.targets]):
                             for dep_common in class_attr.value.elts:
                                 if type(dep_common.value) == str:
                                     deps_common.append(dep_common.value)
