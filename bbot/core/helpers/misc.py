@@ -25,6 +25,7 @@ from datetime import datetime
 from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
+from unidecode import unidecode
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
 import xml.etree.ElementTree as ET
