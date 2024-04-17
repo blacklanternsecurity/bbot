@@ -3,9 +3,9 @@ from contextlib import suppress
 from cachetools import LRUCache
 
 from bbot.errors import ValidationError
-from bbot.modules.base import InterceptModule
 from bbot.core.helpers.dns.engine import all_rdtypes
 from bbot.core.helpers.async_helpers import NamedLock
+from bbot.modules.base import InterceptModule, BaseModule
 
 
 class DNS(InterceptModule):
@@ -15,6 +15,13 @@ class DNS(InterceptModule):
     _priority = 1
     _max_event_handlers = 25
     scope_distance_modifier = None
+
+    class HostModule(BaseModule):
+        _name = "host"
+        _type = "internal"
+
+        def _outgoing_dedup_hash(self, event):
+            return hash((event, self.name, event.always_emit))
 
     async def setup(self):
         self.dns_resolution = True
@@ -28,6 +35,8 @@ class DNS(InterceptModule):
         # event resolution cache
         self._event_cache = LRUCache(maxsize=10000)
         self._event_cache_locks = NamedLock()
+
+        self.host_module = self.HostModule(self.scan)
 
         return True
 
@@ -138,7 +147,7 @@ class DNS(InterceptModule):
             self.debug(f"Making {event} in-scope because it resolves to an in-scope resource")
             event.scope_distance = 0
 
-        # check for wildcards, only if the event resolves to something isn't an IP
+        # check for wildcards, only if the event resolves to something that isn't an IP
         if (not event_is_ip) and (dns_children):
             if event.scope_distance <= self.scan.scope_search_distance:
                 await self.handle_wildcard_event(event)
@@ -165,12 +174,12 @@ class DNS(InterceptModule):
         if (
             event.host
             and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
-            and not (event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate")
+            and not ((event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate"))
         ):
-            source_module = self.scan._make_dummy_module("host", _type="internal")
-            source_event = self.scan.make_event(event.host, "DNS_NAME", module=source_module, source=event)
+            source_event = self.scan.make_event(event.host, "DNS_NAME", module=self.host_module, source=event)
             # only emit the event if it's not already in the parent chain
-            if source_event is not None and source_event not in event.get_sources():
+            if source_event is not None and (source_event.always_emit or source_event not in event.get_sources()):
+                self.critical(f"SPECULATING {event.host} FROM {event}")
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     source_event.add_tag("target")
