@@ -6,11 +6,8 @@ import traceback
 import contextlib
 from pathlib import Path
 from sys import exc_info
-import multiprocessing as mp
 from datetime import datetime
-from functools import partial
 from collections import OrderedDict
-from concurrent.futures import ProcessPoolExecutor
 
 from bbot import __version__
 
@@ -206,16 +203,6 @@ class Scanner:
         self.init_events_task = None
         self.ticker_task = None
         self.dispatcher_tasks = []
-
-        # multiprocessing thread pool
-        start_method = mp.get_start_method()
-        if start_method != "spawn":
-            self.warning(f"Multiprocessing spawn method is set to {start_method}.")
-
-        # we spawn 1 fewer processes than cores
-        # this helps to avoid locking up the system or competing with the main python process for cpu time
-        num_processes = max(1, mp.cpu_count() - 1)
-        self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
 
         self._stopping = False
 
@@ -758,7 +745,7 @@ class Scanner:
         tasks += self._manager_worker_loop_tasks
         self.helpers.cancel_tasks_sync(tasks)
         # process pool
-        self.process_pool.shutdown(cancel_futures=True)
+        self.helpers.process_pool.shutdown(cancel_futures=True)
 
     async def _report(self):
         """Asynchronously executes the `report()` method for each module in the scan.
@@ -917,29 +904,6 @@ class Scanner:
         root_event.source = root_event
         root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
         return root_event
-
-    def run_in_executor(self, callback, *args, **kwargs):
-        """
-        Run a synchronous task in the event loop's default thread pool executor
-
-        Examples:
-            Execute callback:
-            >>> result = await self.scan.run_in_executor(callback_fn, arg1, arg2)
-        """
-        callback = partial(callback, **kwargs)
-        return self._loop.run_in_executor(None, callback, *args)
-
-    def run_in_executor_mp(self, callback, *args, **kwargs):
-        """
-        Same as run_in_executor() except with a process pool executor
-        Use only in cases where callback is CPU-bound
-
-        Examples:
-            Execute callback:
-            >>> result = await self.scan.run_in_executor_mp(callback_fn, arg1, arg2)
-        """
-        callback = partial(callback, **kwargs)
-        return self._loop.run_in_executor(self.process_pool, callback, *args)
 
     @property
     def dns_regexes(self):
@@ -1108,12 +1072,6 @@ class Scanner:
         else:
             msg += " (--force to run module anyway)"
             raise ScanError(msg)
-
-    @property
-    def _loop(self):
-        if self.__loop is None:
-            self.__loop = asyncio.get_event_loop()
-        return self.__loop
 
     def _load_modules(self, modules):
         modules = [str(m) for m in modules]

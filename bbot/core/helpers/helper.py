@@ -1,7 +1,12 @@
 import os
+import asyncio
 import logging
+import regex as re
 from pathlib import Path
+import multiprocessing as mp
+from functools import partial
 from cloudcheck import cloud_providers
+from concurrent.futures import ProcessPoolExecutor
 
 from . import misc
 from .dns import DNSHelper
@@ -65,6 +70,18 @@ class ConfigAwareHelper:
         self.mkdir(self.tools_dir)
         self.mkdir(self.lib_dir)
 
+        self._loop = None
+
+        # multiprocessing thread pool
+        start_method = mp.get_start_method()
+        if start_method != "spawn":
+            self.warning(f"Multiprocessing spawn method is set to {start_method}.")
+
+        # we spawn 1 fewer processes than cores
+        # this helps to avoid locking up the system or competing with the main python process for cpu time
+        num_processes = max(1, mp.cpu_count() - 1)
+        self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
+
         self.cloud = cloud_providers
 
         self.dns = DNSHelper(self)
@@ -72,6 +89,28 @@ class ConfigAwareHelper:
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
+
+    def ensure_compiled_regex(self, r):
+        """
+        Make sure a regex has been compiled
+        """
+        if not isinstance(r, re.Pattern):
+            raise ValueError("Regex must be compiled first!")
+
+    async def re_search(self, compiled_regex, *args, **kwargs):
+        self.ensure_compiled_regex(compiled_regex)
+        return await self.run_in_executor(compiled_regex.search, *args, **kwargs)
+
+    async def re_findall(self, compiled_regex, *args, **kwargs):
+        self.ensure_compiled_regex(compiled_regex)
+        return await self.run_in_executor(compiled_regex.findall, *args, **kwargs)
+
+    async def re_finditer(self, compiled_regex, *args, **kwargs):
+        self.ensure_compiled_regex(compiled_regex)
+        return await self.run_in_executor(self._re_finditer, compiled_regex, *args, **kwargs)
+
+    def _re_finditer(self, compiled_regex, *args, **kwargs):
+        return list(compiled_regex.finditer(*args, **kwargs))
 
     def interactsh(self, *args, **kwargs):
         return Interactsh(self, *args, **kwargs)
@@ -102,6 +141,38 @@ class ConfigAwareHelper:
     @property
     def scan(self):
         return self.preset.scan
+
+    @property
+    def loop(self):
+        """
+        Get the current event loop
+        """
+        if self._loop is None:
+            self._loop = asyncio.get_running_loop()
+        return self._loop
+
+    def run_in_executor(self, callback, *args, **kwargs):
+        """
+        Run a synchronous task in the event loop's default thread pool executor
+
+        Examples:
+            Execute callback:
+            >>> result = await self.helpers.run_in_executor(callback_fn, arg1, arg2)
+        """
+        callback = partial(callback, **kwargs)
+        return self.loop.run_in_executor(None, callback, *args)
+
+    def run_in_executor_mp(self, callback, *args, **kwargs):
+        """
+        Same as run_in_executor() except with a process pool executor
+        Use only in cases where callback is CPU-bound
+
+        Examples:
+            Execute callback:
+            >>> result = await self.helpers.run_in_executor_mp(callback_fn, arg1, arg2)
+        """
+        callback = partial(callback, **kwargs)
+        return self.loop.run_in_executor(self.process_pool, callback, *args)
 
     @property
     def in_tests(self):

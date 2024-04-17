@@ -1,4 +1,4 @@
-import re
+import regex as re
 from collections import OrderedDict
 
 # for extracting words from strings

@@ -33,7 +33,7 @@ class badsecrets(BaseModule):
                         resp_cookies[c2[0]] = c2[1]
         if resp_body or resp_cookies:
             try:
-                r_list = await self.scan.run_in_executor_mp(
+                r_list = await self.helpers.run_in_executor_mp(
                     carve_all_modules,
                     body=resp_body,
                     headers=resp_headers,
