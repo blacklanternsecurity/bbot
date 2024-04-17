@@ -179,7 +179,6 @@ class DNS(InterceptModule):
             source_event = self.scan.make_event(event.host, "DNS_NAME", module=self.host_module, source=event)
             # only emit the event if it's not already in the parent chain
             if source_event is not None and (source_event.always_emit or source_event not in event.get_sources()):
-                self.critical(f"SPECULATING {event.host} FROM {event}")
                 source_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
                     source_event.add_tag("target")
