@@ -92,7 +92,17 @@ class Target:
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
-            self.add_target(t)
+            event_type = None
+            if ":" in t and not t.startswith("http"):
+                target = t.split(":")[1]
+                type = t.split(":")[0].upper()
+                if type == "ORG":
+                    event_type = "ORG_STUB"
+                else:
+                    log.warning(f"Unknown target type: {type} for {target}, Valid types are: ORG")
+            else:
+                target = t
+            self.add_target(target, event_type=event_type)
 
         self._hash = None
 
