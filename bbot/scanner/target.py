@@ -87,7 +87,10 @@ class Target:
         self.scan = scan
         self.strict_scope = strict_scope
         self.make_in_scope = make_in_scope
-        self.special_event_types = {"ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),"ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE)}
+        self.special_event_types = {
+            "ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),
+            "ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE),
+        }
 
         self._dummy_module = TargetDummyModule(scan)
         self._events = dict()
@@ -98,7 +101,13 @@ class Target:
                 match = regex.match(t)
                 if match:
                     target = match.groups()[0]
-                    t = self.scan.make_event(target, event_type=event_type, source=self.scan.root_event, module=self._dummy_module, tags=["target"])
+                    t = self.scan.make_event(
+                        target,
+                        event_type=event_type,
+                        source=self.scan.root_event,
+                        module=self._dummy_module,
+                        tags=["target"],
+                    )
                     break
             self.add_target(t)
 
