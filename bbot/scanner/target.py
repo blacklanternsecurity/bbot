@@ -1,3 +1,4 @@
+import re
 import logging
 import ipaddress
 from contextlib import suppress
@@ -86,23 +87,20 @@ class Target:
         self.scan = scan
         self.strict_scope = strict_scope
         self.make_in_scope = make_in_scope
+        self.special_event_types = {"ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),"ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE)}
 
         self._dummy_module = TargetDummyModule(scan)
         self._events = dict()
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
-            event_type = None
-            if ":" in t and not t.startswith("http"):
-                target = t.split(":")[1]
-                type = t.split(":")[0].upper()
-                if type == "ORG":
-                    event_type = "ORG_STUB"
-                else:
-                    log.warning(f"Unknown target type: {type} for {target}, Valid types are: ORG")
-            else:
-                target = t
-            self.add_target(target, event_type=event_type)
+            for event_type, regex in self.special_event_types.items():
+                match = regex.match(t)
+                if match:
+                    target = match.groups()[0]
+                    t = self.scan.make_event(target, event_type=event_type, source=self.scan.root_event, module=self._dummy_module, tags=["target"])
+                    break
+            self.add_target(t)
 
         self._hash = None
 
