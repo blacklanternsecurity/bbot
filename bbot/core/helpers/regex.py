@@ -7,6 +7,10 @@ class RegexHelper:
     Class for misc CPU-intensive regex operations
 
     Offloads regex processing to other CPU cores via GIL release + thread pool
+
+    For quick, one-off regexes, you don't need to use this helper.
+    Only use this helper if you're searching large bodies of text
+    or if your regex is CPU-intensive
     """
 
     def __init__(self, parent_helper):
@@ -35,6 +39,9 @@ class RegexHelper:
         return await self.parent_helper.run_in_executor(self._finditer, compiled_regex, *args, **kwargs)
 
     async def finditer_multi(self, compiled_regexes, *args, **kwargs):
+        """
+        Same as finditer() but with multiple regexes
+        """
         for r in compiled_regexes:
             self.ensure_compiled_regex(r)
         return await self.parent_helper.run_in_executor(self._finditer_multi, compiled_regexes, *args, **kwargs)
