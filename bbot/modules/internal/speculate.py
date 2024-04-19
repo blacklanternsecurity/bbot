@@ -150,7 +150,9 @@ class speculate(BaseInternalModule):
             if registered_domain:
                 tld_stub = getattr(tldextracted, "domain", "")
                 if tld_stub:
-                    org_stubs.add(tld_stub)
+                    decoded_tld_stub = self.helpers.smart_decode_punycode(tld_stub)
+                    org_stubs.add(decoded_tld_stub)
+                    org_stubs.add(self.helpers.unidecode(decoded_tld_stub))
         elif event.type == "SOCIAL":
             stub = event.data.get("stub", "")
             if stub:
