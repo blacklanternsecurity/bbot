@@ -97,18 +97,6 @@ class Target:
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
-            for event_type, regex in self.special_event_types.items():
-                match = regex.match(t)
-                if match:
-                    target = match.groups()[0]
-                    t = self.scan.make_event(
-                        target,
-                        event_type=event_type,
-                        source=self.scan.root_event,
-                        module=self._dummy_module,
-                        tags=["target"],
-                    )
-                    break
             self.add_target(t)
 
         self._hash = None
@@ -141,6 +129,12 @@ class Target:
             if is_event(t):
                 event = t
             else:
+                for eventtype, regex in self.special_event_types.items():
+                    match = regex.match(t)
+                    if match:
+                        t = match.groups()[0]
+                        event_type = eventtype
+                        break
                 try:
                     event = self.scan.make_event(
                         t,
