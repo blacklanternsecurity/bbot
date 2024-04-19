@@ -968,6 +968,11 @@ class STORAGE_BUCKET(DictEvent, URL_UNVERIFIED):
         url: str
         _validate_url = field_validator("url")(validators.validate_url)
 
+    def sanitize_data(self, data):
+        data = super().sanitize_data(data)
+        data["name"] = data["name"].lower()
+        return data
+
     def _words(self):
         return self.data["name"]
 

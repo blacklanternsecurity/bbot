@@ -444,3 +444,12 @@ async def test_events(events, scan, helpers):
     event_5 = scan.make_event("127.0.0.5", source=event_4)
     assert event_5.get_sources() == [event_4, event_3, event_2, event_1, scan.root_event]
     assert event_5.get_sources(omit=True) == [event_4, event_2, event_1, scan.root_event]
+
+    # test storage bucket validation
+    bucket_event = scan.make_event(
+        {"name": "ASDF.s3.amazonaws.com", "url": "https://ASDF.s3.amazonaws.com"},
+        "STORAGE_BUCKET",
+        source=scan.root_event,
+    )
+    assert bucket_event.data["name"] == "asdf.s3.amazonaws.com"
+    assert bucket_event.data["url"] == "https://asdf.s3.amazonaws.com/"
