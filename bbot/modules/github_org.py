@@ -76,6 +76,8 @@ class github_org(github):
             user = event.data
             self.verbose(f"Validating whether the organization {user} is within our scope...")
             is_org, in_scope = await self.validate_org(user)
+            if "target" in event.tags:
+                in_scope = True
             if not is_org or not in_scope:
                 self.verbose(f"Unable to validate that {user} is in-scope, skipping...")
                 return
