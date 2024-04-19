@@ -280,7 +280,7 @@ class hunt(BaseModule):
 
     async def handle_event(self, event):
         body = event.data.get("body", "")
-        for p in await self.helpers.extract_params_html(body):
+        for p in await self.helpers.re.extract_params_html(body):
             for k in hunt_param_dict.keys():
                 if p.lower() in hunt_param_dict[k]:
                     description = f"Found potential {k.upper()} parameter [{p}]"
