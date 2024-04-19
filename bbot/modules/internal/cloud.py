@@ -43,7 +43,7 @@ class cloud(InterceptModule):
                 for sig in sigs:
                     matches = []
                     if event.type == "HTTP_RESPONSE":
-                        matches = sig.findall(event.data.get("body", ""))
+                        matches = await self.helpers.re.findall(sig, event.data.get("body", ""))
                     elif event.type.startswith("DNS_NAME"):
                         for host in hosts_to_check:
                             match = sig.match(host)

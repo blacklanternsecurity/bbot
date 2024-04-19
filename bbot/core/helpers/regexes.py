@@ -104,3 +104,7 @@ extract_open_port_regex = re.compile(_extract_open_port_regex)
 
 _extract_host_regex = r"(?:[a-z0-9]{1,20}://)?(?:[^?]*@)?(" + valid_netloc + ")"
 extract_host_regex = re.compile(_extract_host_regex, re.I)
+
+# for use in recursive_decode()
+encoded_regex = re.compile(r"%[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}|\\U[0-9a-fA-F]{8}|\\[ntrbv]")
+backslash_regex = re.compile(r"(?P<slashes>\\+)(?P<char>[ntrvb])")

@@ -1,7 +1,6 @@
 import os
 import asyncio
 import logging
-import regex as re
 from pathlib import Path
 import multiprocessing as mp
 from functools import partial
@@ -12,6 +11,7 @@ from . import misc
 from .dns import DNSHelper
 from .web import WebHelper
 from .diff import HttpCompare
+from .regex import RegexHelper
 from .wordcloud import WordCloud
 from .interactsh import Interactsh
 from ...scanner.target import Target
@@ -84,33 +84,12 @@ class ConfigAwareHelper:
 
         self.cloud = cloud_providers
 
+        self.re = RegexHelper(self)
         self.dns = DNSHelper(self)
         self.web = WebHelper(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
-
-    def ensure_compiled_regex(self, r):
-        """
-        Make sure a regex has been compiled
-        """
-        if not isinstance(r, re.Pattern):
-            raise ValueError("Regex must be compiled first!")
-
-    async def re_search(self, compiled_regex, *args, **kwargs):
-        self.ensure_compiled_regex(compiled_regex)
-        return await self.run_in_executor(compiled_regex.search, *args, **kwargs)
-
-    async def re_findall(self, compiled_regex, *args, **kwargs):
-        self.ensure_compiled_regex(compiled_regex)
-        return await self.run_in_executor(compiled_regex.findall, *args, **kwargs)
-
-    async def re_finditer(self, compiled_regex, *args, **kwargs):
-        self.ensure_compiled_regex(compiled_regex)
-        return await self.run_in_executor(self._re_finditer, compiled_regex, *args, **kwargs)
-
-    def _re_finditer(self, compiled_regex, *args, **kwargs):
-        return list(compiled_regex.finditer(*args, **kwargs))
 
     def interactsh(self, *args, **kwargs):
         return Interactsh(self, *args, **kwargs)

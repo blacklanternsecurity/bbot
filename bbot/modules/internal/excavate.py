@@ -30,7 +30,7 @@ class BaseExtractor:
         for name, regex in self.compiled_regexes.items():
             # yield to event loop
             await self.excavate.helpers.sleep(0)
-            for result in await self.helpers.re_findall(regex, content):
+            for result in await self.helpers.re.findall(regex, content):
                 yield result, name
 
     async def report(self, result, name, event):
@@ -41,7 +41,7 @@ class CSPExtractor(BaseExtractor):
     regexes = {"CSP": r"(?i)(?m)Content-Security-Policy:.+$"}
 
     async def extract_domains(self, csp):
-        domains = await self.helpers.re_findall(dns_name_regex, csp)
+        domains = await self.helpers.re.findall(dns_name_regex, csp)
         unique_domains = set(domains)
         return unique_domains
 
@@ -126,7 +126,7 @@ class URLExtractor(BaseExtractor):
         for name, regex in self.compiled_regexes.items():
             # yield to event loop
             await self.excavate.helpers.sleep(0)
-            for result in await self.helpers.re_findall(regex, content):
+            for result in await self.helpers.re.findall(regex, content):
                 if name.startswith("full"):
                     protocol, other = result
                     result = f"{protocol}://{other}"
@@ -387,7 +387,7 @@ class excavate(BaseInternalModule):
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
 
-            body = self.helpers.recursive_decode(event.data.get("body", ""))
+            body = await self.helpers.re.recursive_decode(event.data.get("body", ""))
 
             await self.search(
                 body,
@@ -405,7 +405,7 @@ class excavate(BaseInternalModule):
                 consider_spider_danger=True,
             )
 
-            headers = self.helpers.recursive_decode(event.data.get("raw_header", ""))
+            headers = await self.helpers.re.recursive_decode(event.data.get("raw_header", ""))
             await self.search(
                 headers,
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization, self.csp],

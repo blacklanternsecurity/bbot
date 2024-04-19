@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 import json
 import random
@@ -7,6 +6,7 @@ import string
 import asyncio
 import logging
 import ipaddress
+import regex as re
 import subprocess as sp
 from pathlib import Path
 from contextlib import suppress

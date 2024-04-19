@@ -1,9 +1,9 @@
-import re
 import sys
 import asyncio
 import logging
 import traceback
 import contextlib
+import regex as re
 from pathlib import Path
 from sys import exc_info
 from datetime import datetime

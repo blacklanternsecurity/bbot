@@ -113,7 +113,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.host_in_host("evilcorp", "evilcorp.com") == False
     assert helpers.host_in_host("evilcorp.com", "com") == True
 
-    assert tuple(helpers.extract_emails("asdf@asdf.com\nT@t.Com&a=a@a.com__ b@b.com")) == (
+    assert tuple(await helpers.re.extract_emails("asdf@asdf.com\nT@t.Com&a=a@a.com__ b@b.com")) == (
         "asdf@asdf.com",
         "t@t.com",
         "a@a.com",
@@ -360,20 +360,26 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.smart_encode_punycode("ドメイン.テスト:80") == "xn--eckwd4c7c.xn--zckzah:80"
     assert helpers.smart_decode_punycode("xn--eckwd4c7c.xn--zckzah:80") == "ドメイン.テスト:80"
 
-    assert helpers.recursive_decode("Hello%20world%21") == "Hello world!"
-    assert helpers.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"
-    assert helpers.recursive_decode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021") == " Привет!"
-    assert helpers.recursive_decode("Hello%2520world%2521") == "Hello world!"
+    assert await helpers.recursive_decode("Hello%20world%21") == "Hello world!"
+    assert await helpers.recursive_decode("Hello%20%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442") == "Hello Привет"
     assert (
-        helpers.recursive_decode("Hello%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442")
+        await helpers.recursive_decode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021")
+        == " Привет!"
+    )
+    assert await helpers.recursive_decode("Hello%2520world%2521") == "Hello world!"
+    assert (
+        await helpers.recursive_decode("Hello%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442")
         == "Hello Привет"
     )
     assert (
-        helpers.recursive_decode("%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021")
+        await helpers.recursive_decode(
+            "%255Cu0020%255Cu041f%255Cu0440%255Cu0438%255Cu0432%255Cu0435%255Cu0442%255Cu0021"
+        )
         == " Привет!"
     )
     assert (
-        helpers.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText") == "Hello\nWorld\tGreetings\nMore\nText"
+        await helpers.recursive_decode(r"Hello\\nWorld\\\tGreetings\\\\nMore\nText")
+        == "Hello\nWorld\tGreetings\nMore\nText"
     )
 
     ### CACHE ###
