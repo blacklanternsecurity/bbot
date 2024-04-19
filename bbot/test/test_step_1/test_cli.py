@@ -190,6 +190,14 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert "| active" in caplog.text
     assert not "| passive" in caplog.text
 
+    # custom target type
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "ORG:evilcorp"])
+    result = await cli._main()
+    assert result == True
+    assert "[ORG_STUB]          	evilcorp	TARGET" in caplog.text
+
     # no args
     caplog.clear()
     assert not caplog.text
