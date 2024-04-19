@@ -81,16 +81,11 @@ class Target:
             - Each target is processed and stored as an `Event` in the '_events' dictionary.
         """
         self.strict_scope = strict_scope
-<<<<<<< HEAD
-=======
-        self.make_in_scope = make_in_scope
         self.special_event_types = {
             "ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),
             "ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE),
         }
 
-        self._dummy_module = TargetDummyModule(scan)
->>>>>>> dev
         self._events = dict()
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
