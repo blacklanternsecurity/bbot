@@ -451,3 +451,12 @@ async def test_events(events, scan, helpers):
     host_event.host = "_wildcard.evilcorp.com"
     assert host_event.host == "_wildcard.evilcorp.com"
     assert host_event.host_original == "asdf.evilcorp.com"
+
+    # test storage bucket validation
+    bucket_event = scan.make_event(
+        {"name": "ASDF.s3.amazonaws.com", "url": "https://ASDF.s3.amazonaws.com"},
+        "STORAGE_BUCKET",
+        source=scan.root_event,
+    )
+    assert bucket_event.data["name"] == "asdf.s3.amazonaws.com"
+    assert bucket_event.data["url"] == "https://asdf.s3.amazonaws.com/"

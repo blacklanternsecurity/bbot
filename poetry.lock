@@ -609,13 +609,13 @@ packaging = ">=20.9"
 
 [[package]]
 name = "exceptiongroup"
-version = "1.2.0"
+version = "1.2.1"
 description = "Backport of PEP 654 (exception groups)"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "exceptiongroup-1.2.0-py3-none-any.whl", hash = "sha256:4bfd3996ac73b41e9b9628b04e079f193850720ea5945fc96a08633c66912f14"},
-    {file = "exceptiongroup-1.2.0.tar.gz", hash = "sha256:91f5c769735f051a4290d52edd0858999b57e5876e9f85937691bd4c9fa3ed68"},
+    {file = "exceptiongroup-1.2.1-py3-none-any.whl", hash = "sha256:5258b9ed329c5bbdd31a309f53cbfb0b155341807f6ff7606a1e801a891b29ad"},
+    {file = "exceptiongroup-1.2.1.tar.gz", hash = "sha256:a4785e48b045528f5bfe627b6ad554ff32def154f42372786903b7abcfe1aa16"},
 ]
 
 [package.extras]
@@ -672,13 +672,13 @@ dev = ["flake8", "markdown", "twine", "wheel"]
 
 [[package]]
 name = "griffe"
-version = "0.42.2"
+version = "0.44.0"
 description = "Signatures for entire Python programs. Extract the structure, the frame, the skeleton of your project, to generate API documentation or find breaking changes in your API."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "griffe-0.42.2-py3-none-any.whl", hash = "sha256:bf9a09d7e9dcc3aca6a2c7ab4f63368c19e882f58c816fbd159bea613daddde3"},
-    {file = "griffe-0.42.2.tar.gz", hash = "sha256:d5547b7a1a0786f84042379a5da8bd97c11d0464d4de3d7510328ebce5fda772"},
+    {file = "griffe-0.44.0-py3-none-any.whl", hash = "sha256:8a4471c469ba980b87c843f1168850ce39d0c1d0c7be140dca2480f76c8e5446"},
+    {file = "griffe-0.44.0.tar.gz", hash = "sha256:34aee1571042f9bf00529bc715de4516fb6f482b164e90d030300601009e0223"},
 ]
 
 [package.dependencies]
@@ -1280,17 +1280,17 @@ python-legacy = ["mkdocstrings-python-legacy (>=0.2.1)"]
 
 [[package]]
 name = "mkdocstrings-python"
-version = "1.9.2"
+version = "1.10.0"
 description = "A Python handler for mkdocstrings."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocstrings_python-1.9.2-py3-none-any.whl", hash = "sha256:96d82f6424e08db6245e4a15ca95619f4ecd0ddd254c0aa590d4181814e16ee5"},
-    {file = "mkdocstrings_python-1.9.2.tar.gz", hash = "sha256:8546a103c9b22e1778c72c887696acc39a6635fedde3c912ce00f967518a8847"},
+    {file = "mkdocstrings_python-1.10.0-py3-none-any.whl", hash = "sha256:ba833fbd9d178a4b9d5cb2553a4df06e51dc1f51e41559a4d2398c16a6f69ecc"},
+    {file = "mkdocstrings_python-1.10.0.tar.gz", hash = "sha256:71678fac657d4d2bb301eed4e4d2d91499c095fd1f8a90fa76422a87a5693828"},
 ]
 
 [package.dependencies]
-griffe = ">=0.37"
+griffe = ">=0.44"
 mkdocstrings = ">=0.24.2"
 
 [[package]]
@@ -1717,17 +1717,17 @@ tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
 [[package]]
 name = "pymdown-extensions"
-version = "10.7.1"
+version = "10.8"
 description = "Extension pack for Python Markdown."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pymdown_extensions-10.7.1-py3-none-any.whl", hash = "sha256:f5cc7000d7ff0d1ce9395d216017fa4df3dde800afb1fb72d1c7d3fd35e710f4"},
-    {file = "pymdown_extensions-10.7.1.tar.gz", hash = "sha256:c70e146bdd83c744ffc766b4671999796aba18842b268510a329f7f64700d584"},
+    {file = "pymdown_extensions-10.8-py3-none-any.whl", hash = "sha256:3539003ff0d5e219ba979d2dc961d18fcad5ac259e66c764482e8347b4c0503c"},
+    {file = "pymdown_extensions-10.8.tar.gz", hash = "sha256:91ca336caf414e1e5e0626feca86e145de9f85a3921a7bcbd32890b51738c428"},
 ]
 
 [package.dependencies]
-markdown = ">=3.5"
+markdown = ">=3.6"
 pyyaml = "*"
 
 [package.extras]
@@ -2385,6 +2385,17 @@ files = [
 ]
 
 [[package]]
+name = "unidecode"
+version = "1.3.8"
+description = "ASCII transliterations of Unicode text"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "Unidecode-1.3.8-py3-none-any.whl", hash = "sha256:d130a61ce6696f8148a3bd8fe779c99adeb4b870584eeb9526584e9aa091fd39"},
+    {file = "Unidecode-1.3.8.tar.gz", hash = "sha256:cfdb349d46ed3873ece4586b96aa75258726e2fa8ec21d6f00a591d98806c2f4"},
+]
+
+[[package]]
 name = "urllib3"
 version = "2.2.1"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
@@ -2613,4 +2624,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "daf56ec78cff336b530e48e83f0a854c3356a802e5e0cf9456b7a5adfe962354"
+content-hash = "36c30d9afbf5b953b4a92ded237e2b3ee8698ce436ca180244e435f56ed38b86"
