@@ -25,6 +25,7 @@ from datetime import datetime
 from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
+from unidecode import unidecode  # noqa F401
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
 import xml.etree.ElementTree as ET
@@ -1967,7 +1968,7 @@ def verify_sudo_password(sudo_pass):
     return True
 
 
-def make_table(rows, header, *args, **kwargs):
+def make_table(rows, header, **kwargs):
     """Generate a formatted table from the given rows and headers.
 
     This function uses the `tabulate` package to generate a table with formatting options.
@@ -1994,8 +1995,8 @@ def make_table(rows, header, *args, **kwargs):
         +-----------+-----------+
     """
     # fix IndexError: list index out of range
-    if args and not args[0]:
-        args = ([[]],) + args[1:]
+    if not rows:
+        rows = [[]]
     tablefmt = os.environ.get("BBOT_TABLE_FORMAT", None)
     defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": None}
     if tablefmt is None:
@@ -2015,7 +2016,7 @@ def make_table(rows, header, *args, **kwargs):
 
         rows = [[markdown_escape(f) for f in row] for row in rows]
         header = [markdown_escape(h) for h in header]
-    return tabulate(rows, header, *args, **kwargs)
+    return tabulate(rows, header, **kwargs)
 
 
 def human_timedelta(d):

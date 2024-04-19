@@ -119,6 +119,12 @@ async def test_events(events, scan, helpers, bbot_config):
     assert http_response.http_title == "HTTP RESPONSE"
     assert http_response.redirect_location == "http://www.evilcorp.com/asdf"
 
+    # http response url validation
+    http_response_2 = scan.make_event(
+        {"port": "80", "url": "http://evilcorp.com:80/asdf"}, "HTTP_RESPONSE", dummy=True
+    )
+    assert http_response_2.data["url"] == "http://evilcorp.com/asdf"
+
     # open port tests
     assert events.open_port in events.domain
     assert "api.publicapis.org:443" in events.open_port
@@ -438,3 +444,12 @@ async def test_events(events, scan, helpers, bbot_config):
     event_5 = scan.make_event("127.0.0.5", source=event_4)
     assert event_5.get_sources() == [event_4, event_3, event_2, event_1, scan.root_event]
     assert event_5.get_sources(omit=True) == [event_4, event_2, event_1, scan.root_event]
+
+    # test storage bucket validation
+    bucket_event = scan.make_event(
+        {"name": "ASDF.s3.amazonaws.com", "url": "https://ASDF.s3.amazonaws.com"},
+        "STORAGE_BUCKET",
+        source=scan.root_event,
+    )
+    assert bucket_event.data["name"] == "asdf.s3.amazonaws.com"
+    assert bucket_event.data["url"] == "https://asdf.s3.amazonaws.com/"
