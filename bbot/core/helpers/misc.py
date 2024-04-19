@@ -10,6 +10,7 @@ import regex as re
 import subprocess as sp
 from pathlib import Path
 from contextlib import suppress
+from unidecode import unidecode  # noqa F401
 from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 

@@ -85,7 +85,9 @@ class dastardly(BaseModule):
                 et = etree.parse(f)
                 for testsuite in et.iter("testsuite"):
                     yield TestSuite(testsuite)
-        except Exception as e:
+        except FileNotFoundError:
+            pass
+        except etree.ParseError as e:
             self.warning(f"Error parsing Dastardly XML at {xml_file}: {e}")
 
 

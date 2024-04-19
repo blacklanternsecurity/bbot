@@ -8,7 +8,7 @@ import tempfile
 import traceback
 import zmq.asyncio
 from pathlib import Path
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, suppress
 
 from bbot.core import CORE
 from bbot.core.helpers.misc import rand_string
@@ -31,12 +31,12 @@ class EngineClient:
         self.socket_address = f"zmq_{rand_string(8)}.sock"
         self.socket_path = Path(tempfile.gettempdir()) / self.socket_address
         self.server_kwargs = kwargs.pop("server_kwargs", {})
-        self.server_process = self.start_server()
+        self._server_process = None
         self.context = zmq.asyncio.Context()
         atexit.register(self.cleanup)
 
     async def run_and_return(self, command, **kwargs):
-        with self.new_socket() as socket:
+        async with self.new_socket() as socket:
             message = self.make_message(command, args=kwargs)
             await socket.send(message)
             binary = await socket.recv()
@@ -50,7 +50,7 @@ class EngineClient:
 
     async def run_and_yield(self, command, **kwargs):
         message = self.make_message(command, args=kwargs)
-        with self.new_socket() as socket:
+        async with self.new_socket() as socket:
             await socket.send(message)
             while 1:
                 binary = await socket.recv()
@@ -86,7 +86,7 @@ class EngineClient:
     def available_commands(self):
         return [s for s in self.CMDS if isinstance(s, str)]
 
-    def start_server(self, **server_kwargs):
+    def start_server(self):
         process = CORE.create_process(
             target=self.server_process,
             args=(
@@ -100,17 +100,30 @@ class EngineClient:
 
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
-        engine_server = server_class(socket_path, **kwargs)
-        asyncio.run(engine_server.worker())
+        try:
+            engine_server = server_class(socket_path, **kwargs)
+            asyncio.run(engine_server.worker())
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            pass
+        except Exception:
+            import traceback
 
-    @contextmanager
-    def new_socket(self):
+            log = logging.getLogger("bbot.core.engine.server")
+            log.critical(f"Unhandled error in {server_class.__name__} server process: {traceback.format_exc()}")
+
+    @asynccontextmanager
+    async def new_socket(self):
+        if self._server_process is None:
+            self._server_process = self.start_server()
+            while not self.socket_path.exists():
+                await asyncio.sleep(0.1)
         socket = self.context.socket(zmq.DEALER)
         socket.connect(f"ipc://{self.socket_path}")
         try:
             yield socket
         finally:
-            socket.close()
+            with suppress(Exception):
+                socket.close()
 
     def cleanup(self):
         # delete socket file on exit
@@ -158,7 +171,6 @@ class EngineServer:
         try:
             while 1:
                 client_id, binary = await self.socket.recv_multipart()
-                # self.log.debug(f"{self.name} got binary: {binary}")
                 message = pickle.loads(binary)
                 self.log.debug(f"{self.name} got message: {message}")
 
@@ -189,4 +201,5 @@ class EngineServer:
             self.log.error(f"Error in EngineServer worker: {e}")
             self.log.trace(traceback.format_exc())
         finally:
-            self.socket.close()
+            with suppress(Exception):
+                self.socket.close()
