@@ -70,6 +70,8 @@ class TestCloud(ModuleTestBase):
         assert "cloud-storage-bucket" in google_event3.tags
 
     def check(self, module_test, events):
+        for e in events:
+            self.log.debug(e)
         assert 2 == len([e for e in events if e.type == "STORAGE_BUCKET"])
         assert 1 == len(
             [

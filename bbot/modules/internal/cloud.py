@@ -9,8 +9,9 @@ class cloud(InterceptModule):
 
     async def setup(self):
         self.dummy_modules = {}
-        for provider_name in self.helpers.cloud.providers:
+        for provider_name, provider in self.helpers.cloud.providers.items():
             self.dummy_modules[provider_name] = self.scan._make_dummy_module(f"cloud_{provider_name}", _type="scan")
+
         return True
 
     async def filter_event(self, event):
