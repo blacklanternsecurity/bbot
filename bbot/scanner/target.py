@@ -118,11 +118,8 @@ class Target:
             t = [t]
         for single_target in t:
             if type(single_target) == self.__class__:
-                for k, v in single_target._events.items():
-                    try:
-                        self._events[k].update(v)
-                    except KeyError:
-                        self._events[k] = set(single_target._events[k])
+                for event in single_target.events:
+                    self._add_event(event)
             else:
                 if is_event(single_target):
                     event = single_target
@@ -144,14 +141,7 @@ class Target:
                         # allow commented lines
                         if not str(t).startswith("#"):
                             raise ValidationError(f'Could not add target "{t}": {e}')
-
-                radix_data = self._radix.search(event.host)
-                if radix_data is None:
-                    radix_data = {event}
-                    self._radix.insert(event.host, radix_data)
-                else:
-                    radix_data.add(event)
-                self._events.add(event)
+                self._add_event(event)
 
     @property
     def events(self):
@@ -236,6 +226,15 @@ class Target:
                             if event.host != other.host:
                                 return
                         return event
+
+    def _add_event(self, event):
+        radix_data = self._radix.search(event.host)
+        if radix_data is None:
+            radix_data = {event}
+            self._radix.insert(event.host, radix_data)
+        else:
+            radix_data.add(event)
+        self._events.add(event)
 
     def _contains(self, other):
         if self.get(other) is not None:
