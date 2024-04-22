@@ -388,18 +388,19 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "4.0.0.345"
+version = "5.0.0.350"
 description = "Check whether an IP address belongs to a cloud provider"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "cloudcheck-4.0.0.345-py3-none-any.whl", hash = "sha256:82a1cecaa0ec35a50d6c1e4884a9535eb4c1c788b845b0c4a91b44935f4dc765"},
-    {file = "cloudcheck-4.0.0.345.tar.gz", hash = "sha256:787953a305c0be6e6eb4ceb9990dccb633f9e1429d5ebfda7acf7dca35b3caeb"},
+    {file = "cloudcheck-5.0.0.350-py3-none-any.whl", hash = "sha256:6f2ed981818bde6d8b6c5a6413a843e11d0aa1a4bf8b36452dcae1030a537dd6"},
+    {file = "cloudcheck-5.0.0.350.tar.gz", hash = "sha256:cb59dfef966268ebc176e242634b84a3423a84ffaf4fac40566f37edfaddc106"},
 ]
 
 [package.dependencies]
 httpx = ">=0.26,<0.28"
 pydantic = ">=2.4.2,<3.0.0"
+radixtarget = ">=1.0.0.14,<2.0.0.0"
 regex = ">=2024.4.16,<2025.0.0"
 
 [[package]]
@@ -2636,4 +2637,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "100618fdac0971d8b3662f2bfe72a8fae4f221ca78dfc6a0edf605859ab64f3f"
+content-hash = "ed8bb07e4ff5a5f665402db33f9016409547bef1ccb6a8c2c626c44fde075abb"
