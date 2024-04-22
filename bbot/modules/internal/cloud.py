@@ -24,9 +24,9 @@ class cloud(InterceptModule):
         hosts_to_check = set(str(s) for s in event.resolved_hosts)
         hosts_to_check.add(str(event.host_original))
         for host in hosts_to_check:
-            provider, provider_type, subnet = self.helpers.cloudcheck(host)
-            if provider:
-                event.add_tag(f"{provider_type}-{provider}")
+            for provider, provider_type, subnet in self.helpers.cloudcheck(host)
+                if provider:
+                    event.add_tag(f"{provider_type}-{provider}")
 
         found = set()
         # look for cloud assets in hosts, http responses
