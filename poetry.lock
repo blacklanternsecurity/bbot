@@ -672,13 +672,13 @@ dev = ["flake8", "markdown", "twine", "wheel"]
 
 [[package]]
 name = "griffe"
-version = "0.42.2"
+version = "0.44.0"
 description = "Signatures for entire Python programs. Extract the structure, the frame, the skeleton of your project, to generate API documentation or find breaking changes in your API."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "griffe-0.42.2-py3-none-any.whl", hash = "sha256:bf9a09d7e9dcc3aca6a2c7ab4f63368c19e882f58c816fbd159bea613daddde3"},
-    {file = "griffe-0.42.2.tar.gz", hash = "sha256:d5547b7a1a0786f84042379a5da8bd97c11d0464d4de3d7510328ebce5fda772"},
+    {file = "griffe-0.44.0-py3-none-any.whl", hash = "sha256:8a4471c469ba980b87c843f1168850ce39d0c1d0c7be140dca2480f76c8e5446"},
+    {file = "griffe-0.44.0.tar.gz", hash = "sha256:34aee1571042f9bf00529bc715de4516fb6f482b164e90d030300601009e0223"},
 ]
 
 [package.dependencies]
@@ -942,6 +942,7 @@ files = [
     {file = "lxml-5.2.1-cp36-cp36m-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c38d7b9a690b090de999835f0443d8aa93ce5f2064035dfc48f27f02b4afc3d0"},
     {file = "lxml-5.2.1-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5670fb70a828663cc37552a2a85bf2ac38475572b0e9b91283dc09efb52c41d1"},
     {file = "lxml-5.2.1-cp36-cp36m-manylinux_2_28_x86_64.whl", hash = "sha256:958244ad566c3ffc385f47dddde4145088a0ab893504b54b52c041987a8c1863"},
+    {file = "lxml-5.2.1-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:b6241d4eee5f89453307c2f2bfa03b50362052ca0af1efecf9fef9a41a22bb4f"},
     {file = "lxml-5.2.1-cp36-cp36m-musllinux_1_1_aarch64.whl", hash = "sha256:2a66bf12fbd4666dd023b6f51223aed3d9f3b40fef06ce404cb75bafd3d89536"},
     {file = "lxml-5.2.1-cp36-cp36m-musllinux_1_1_ppc64le.whl", hash = "sha256:9123716666e25b7b71c4e1789ec829ed18663152008b58544d95b008ed9e21e9"},
     {file = "lxml-5.2.1-cp36-cp36m-musllinux_1_1_s390x.whl", hash = "sha256:0c3f67e2aeda739d1cc0b1102c9a9129f7dc83901226cc24dd72ba275ced4218"},
@@ -1280,17 +1281,17 @@ python-legacy = ["mkdocstrings-python-legacy (>=0.2.1)"]
 
 [[package]]
 name = "mkdocstrings-python"
-version = "1.9.2"
+version = "1.10.0"
 description = "A Python handler for mkdocstrings."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocstrings_python-1.9.2-py3-none-any.whl", hash = "sha256:96d82f6424e08db6245e4a15ca95619f4ecd0ddd254c0aa590d4181814e16ee5"},
-    {file = "mkdocstrings_python-1.9.2.tar.gz", hash = "sha256:8546a103c9b22e1778c72c887696acc39a6635fedde3c912ce00f967518a8847"},
+    {file = "mkdocstrings_python-1.10.0-py3-none-any.whl", hash = "sha256:ba833fbd9d178a4b9d5cb2553a4df06e51dc1f51e41559a4d2398c16a6f69ecc"},
+    {file = "mkdocstrings_python-1.10.0.tar.gz", hash = "sha256:71678fac657d4d2bb301eed4e4d2d91499c095fd1f8a90fa76422a87a5693828"},
 ]
 
 [package.dependencies]
-griffe = ">=0.37"
+griffe = ">=0.44"
 mkdocstrings = ">=0.24.2"
 
 [[package]]
@@ -2109,6 +2110,7 @@ optional = false
 python-versions = "*"
 files = [
     {file = "requests-file-2.0.0.tar.gz", hash = "sha256:20c5931629c558fda566cacc10cfe2cd502433e628f568c34c80d96a0cc95972"},
+    {file = "requests_file-2.0.0-py2.py3-none-any.whl", hash = "sha256:3e493d390adb44aa102ebea827a48717336d5268968c370eaf19abaf5cae13bf"},
 ]
 
 [package.dependencies]
