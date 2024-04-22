@@ -231,7 +231,7 @@ class Target:
                 if result is not None:
                     for event in result:
                         # if the result is a dns name and strict scope is enabled
-                        if isinstance(result, str) and self.strict_scope:
+                        if isinstance(event.host, str) and self.strict_scope:
                             # if the result doesn't exactly equal the host, abort
                             if event.host != other.host:
                                 return
