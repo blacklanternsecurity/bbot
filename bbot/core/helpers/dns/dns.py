@@ -2,9 +2,10 @@ import dns
 import logging
 import dns.exception
 import dns.asyncresolver
+from radixtarget import RadixTarget
 
 from bbot.core.engine import EngineClient
-from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name, host_in_host
+from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name
 
 from .engine import DNSEngine
 
@@ -63,10 +64,9 @@ class DNSHelper(EngineClient):
 
         # wildcard handling
         self.wildcard_disable = self.config.get("dns_wildcard_disable", False)
-        self.wildcard_ignore = self.config.get("dns_wildcard_ignore", None)
-        if not self.wildcard_ignore:
-            self.wildcard_ignore = []
-        self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
+        self.wildcard_ignore = RadixTarget()
+        for d in self.config.get("dns_wildcard_ignore", []):
+            self.wildcard_ignore.insert(d)
 
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
@@ -150,10 +150,12 @@ class DNSHelper(EngineClient):
             return False
 
         # skip check if the query's parent domain is excluded in the config
-        for d in self.wildcard_ignore:
-            if host_in_host(host, d):
-                log.debug(f"Skipping wildcard detection on {host} because it is excluded in the config")
-                return False
+        wildcard_ignore = self.wildcard_ignore.search(host)
+        if wildcard_ignore:
+            log.debug(
+                f"Skipping wildcard detection on {host} because it or its parent domai ({wildcard_ignore}) is excluded in the config"
+            )
+            return False
 
         return host
 

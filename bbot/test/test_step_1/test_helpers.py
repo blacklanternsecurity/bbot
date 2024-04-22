@@ -103,16 +103,6 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.domain_stem("evilcorp.co.uk") == "evilcorp"
     assert helpers.domain_stem("www.evilcorp.co.uk") == "www.evilcorp"
 
-    assert helpers.host_in_host("www.evilcorp.com", "evilcorp.com") == True
-    assert helpers.host_in_host("asdf.www.evilcorp.com", "evilcorp.com") == True
-    assert helpers.host_in_host("evilcorp.com", "www.evilcorp.com") == False
-    assert helpers.host_in_host("evilcorp.com", "evilcorp.com") == True
-    assert helpers.host_in_host("evilcorp.com", "eevilcorp.com") == False
-    assert helpers.host_in_host("eevilcorp.com", "evilcorp.com") == False
-    assert helpers.host_in_host("evilcorp.com", "evilcorp") == False
-    assert helpers.host_in_host("evilcorp", "evilcorp.com") == False
-    assert helpers.host_in_host("evilcorp.com", "com") == True
-
     assert tuple(await helpers.re.extract_emails("asdf@asdf.com\nT@t.Com&a=a@a.com__ b@b.com")) == (
         "asdf@asdf.com",
         "t@t.com",

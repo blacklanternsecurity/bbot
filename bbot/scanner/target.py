@@ -1,12 +1,13 @@
 import re
+import copy
 import logging
 import ipaddress
 from contextlib import suppress
+from radixtarget import RadixTarget
 
 from bbot.errors import *
 from bbot.modules.base import BaseModule
 from bbot.core.event import make_event, is_event
-from bbot.core.helpers.misc import ip_network_parents, is_ip_type, domain_parents
 
 log = logging.getLogger("bbot.core.target")
 
@@ -19,7 +20,8 @@ class Target:
         strict_scope (bool): Flag indicating whether to consider child domains in-scope.
             If set to True, only the exact hosts specified and not their children are considered part of the target.
 
-        _events (dict): Dictionary mapping hosts to events related to the target.
+        _radix (RadixTree): Radix tree for quick IP/DNS lookups.
+        _events (set): Flat set of contained events.
 
     Examples:
         Basic usage
@@ -85,8 +87,9 @@ class Target:
             "ORG_STUB": re.compile(r"^ORG:(.*)", re.IGNORECASE),
             "ASN": re.compile(r"^ASN:(.*)", re.IGNORECASE),
         }
+        self._events = set()
+        self._radix = RadixTarget()
 
-        self._events = dict()
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
@@ -142,17 +145,18 @@ class Target:
                         if not str(t).startswith("#"):
                             raise ValidationError(f'Could not add target "{t}": {e}')
 
-                try:
-                    self._events[event.host].add(event)
-                except KeyError:
-                    self._events[event.host] = {
-                        event,
-                    }
+                radix_data = self._radix.search(event.host)
+                if radix_data is None:
+                    radix_data = {event}
+                    self._radix.insert(event.host, radix_data)
+                else:
+                    radix_data.add(event)
+                self._events.add(event)
 
     @property
     def events(self):
         """
-        A generator property that yields all events in the target.
+        Returns all events in the target.
 
         Yields:
             Event object: One of the Event objects stored in the `_events` dictionary.
@@ -164,14 +168,12 @@ class Target:
 
         Notes:
             - This property is read-only.
-            - Iterating over this property gives you one event at a time from the `_events` dictionary.
         """
-        for _events in self._events.values():
-            yield from _events
+        return self._events
 
     def copy(self):
         """
-        Creates and returns a copy of the Target object, including a shallow copy of the `_events` attribute.
+        Creates and returns a copy of the Target object, including a shallow copy of the `_events` and `_radix` attributes.
 
         Returns:
             Target: A new Target object with the sameattributes as the original.
@@ -193,12 +195,13 @@ class Target:
             - The `scan` object reference is kept intact in the copied Target object.
         """
         self_copy = self.__class__()
-        self_copy._events = dict(self._events)
+        self_copy._events = set(self._events)
+        self_copy._radix = copy.copy(self._radix)
         return self_copy
 
     def get(self, host):
         """
-        Gets the event associated with the specified host from the target's `_events` dictionary.
+        Gets the event associated with the specified host from the target's radix tree.
 
         Args:
             host (Event, Target, or str): The hostname, IP, URL, or event to look for.
@@ -224,15 +227,15 @@ class Target:
             return
         if other.host:
             with suppress(KeyError, StopIteration):
-                return next(iter(self._events[other.host]))
-            if is_ip_type(other.host):
-                for n in ip_network_parents(other.host, include_self=True):
-                    with suppress(KeyError, StopIteration):
-                        return next(iter(self._events[n]))
-            elif not self.strict_scope:
-                for h in domain_parents(other.host):
-                    with suppress(KeyError, StopIteration):
-                        return next(iter(self._events[h]))
+                result = self._radix.search(other.host)
+                if result is not None:
+                    for event in result:
+                        # if the result is a dns name and strict scope is enabled
+                        if isinstance(result, str) and self.strict_scope:
+                            # if the result doesn't exactly equal the host, abort
+                            if event.host != other.host:
+                                return
+                        return event
 
     def _contains(self, other):
         if self.get(other) is not None:
@@ -282,11 +285,11 @@ class Target:
             - For other types of hosts, each unique event is counted as one.
         """
         num_hosts = 0
-        for host, _events in self._events.items():
-            if type(host) in (ipaddress.IPv4Network, ipaddress.IPv6Network):
-                num_hosts += host.num_addresses
+        for event in self._events:
+            if isinstance(event.host, (ipaddress.IPv4Network, ipaddress.IPv6Network)):
+                num_hosts += event.host.num_addresses
             else:
-                num_hosts += len(_events)
+                num_hosts += 1
         return num_hosts
 
 
