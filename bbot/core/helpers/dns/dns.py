@@ -153,7 +153,7 @@ class DNSHelper(EngineClient):
         wildcard_ignore = self.wildcard_ignore.search(host)
         if wildcard_ignore:
             log.debug(
-                f"Skipping wildcard detection on {host} because it or its parent domai ({wildcard_ignore}) is excluded in the config"
+                f"Skipping wildcard detection on {host} because {wildcard_ignore} is excluded in the config"
             )
             return False
 
