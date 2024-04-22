@@ -40,6 +40,7 @@ def test_target(bbot_scanner):
     assert scan1.target.get("publicapis.org") is None
 
     from bbot.scanner.target import Target
+
     target = Target("evilcorp.com")
     assert not "com" in target
     assert "evilcorp.com" in target
