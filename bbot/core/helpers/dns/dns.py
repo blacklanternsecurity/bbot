@@ -152,9 +152,7 @@ class DNSHelper(EngineClient):
         # skip check if the query's parent domain is excluded in the config
         wildcard_ignore = self.wildcard_ignore.search(host)
         if wildcard_ignore:
-            log.debug(
-                f"Skipping wildcard detection on {host} because {wildcard_ignore} is excluded in the config"
-            )
+            log.debug(f"Skipping wildcard detection on {host} because {wildcard_ignore} is excluded in the config")
             return False
 
         return host
