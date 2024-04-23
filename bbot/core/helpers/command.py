@@ -185,7 +185,8 @@ async def _write_proc_line(proc, chunk):
         proc.stdin.write(smart_encode(chunk) + b"\n")
         await proc.stdin.drain()
     except Exception as e:
-        command = " ".join([str(s) for s in proc.args])
+        proc_args = [str(s) for s in getattr(proc, "args", [])]
+        command = " ".join(proc_args)
         log.warning(f"Error writing line to stdin for command: {command}: {e}")
         log.trace(traceback.format_exc())
 

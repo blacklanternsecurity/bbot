@@ -1139,6 +1139,7 @@ def kill_children(parent_pid=None, sig=None):
         parent = psutil.Process(parent_pid)
     except psutil.NoSuchProcess:
         log.debug(f"No such PID: {parent_pid}")
+        return
     log.debug(f"Killing children of process ID {parent.pid}")
     children = parent.children(recursive=True)
     for child in children:
@@ -1150,6 +1151,7 @@ def kill_children(parent_pid=None, sig=None):
                 log.debug(f"No such PID: {child.pid}")
             except psutil.AccessDenied:
                 log.debug(f"Error killing PID: {child.pid} - access denied")
+    log.debug(f"Finished killing children of process ID {parent.pid}")
 
 
 def str_or_file(s):

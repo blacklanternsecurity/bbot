@@ -30,7 +30,7 @@ class anubisdb(subdomain_enum):
 
     async def abort_if(self, event):
         # abort if dns name is unresolved
-        if not "resolved" in event.tags:
+        if event.type == "DNS_NAME_UNRESOLVED":
             return True, "DNS name is unresolved"
         return await super().abort_if(event)
 
