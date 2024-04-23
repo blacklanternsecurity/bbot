@@ -93,7 +93,7 @@ class BaseEvent:
     # Always emit this event type even if it's not in scope
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
-    _always_emit_tags = ["affiliate"]
+    _always_emit_tags = ["affiliate", "target"]
     # Bypass scope checking and dns resolution, distribute immediately to modules
     # This is useful for "end-of-line" events like FINDING and VULNERABILITY
     _quick_emit = False

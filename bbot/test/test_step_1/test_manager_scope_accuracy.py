@@ -750,12 +750,12 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
         "127.0.0.0/31",
         modules=["sslcert"],
         whitelist=["127.0.1.0"],
-        _config={"dns_resolution": False, "scope_report_distance": 0, "speculate": True, "modules": {"speculate": {"ports": "9999"}}},
+        _config={"dns_resolution": False, "scope_report_distance": 0, "scope_search_distance": 1, "speculate": True, "modules": {"speculate": {"ports": "9999"}}},
         _dns_mock={"www.bbottest.notreal": {"A": ["127.0.0.1"]}, "test.notreal": {"A": ["127.0.1.0"]}},
     )
 
     assert len(events) == 3
-    assert 1 == len([e for e in events if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal == False and e.scope_distance == 0])
+    assert 1 == len([e for e in events if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal == False and e.scope_distance == 1])
     assert 0 == len([e for e in events if e.type == "IP_ADDRESS" and e.data == "127.0.0.0"])
     assert 0 == len([e for e in events if e.type == "IP_ADDRESS" and e.data == "127.0.0.1"])
     assert 0 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.0:9999"])
@@ -765,30 +765,30 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
     assert 0 == len([e for e in events if e.type == "OPEN_TCP_PORT" and e.data == "test.notreal:9999"])
 
     assert len(all_events) == 11
-    assert 1 == len([e for e in all_events if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal == False and e.scope_distance == 0])
-    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.0" and e.internal == True and e.scope_distance == 1])
-    assert 2 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.1" and e.internal == True and e.scope_distance == 1])
-    assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.0:9999" and e.internal == True and e.scope_distance == 1])
+    assert 1 == len([e for e in all_events if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal == False and e.scope_distance == 1])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.0" and e.internal == True and e.scope_distance == 2])
+    assert 2 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.1" and e.internal == True and e.scope_distance == 2])
+    assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.0:9999" and e.internal == True and e.scope_distance == 2])
     assert 2 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.1:9999" and e.internal == True and e.scope_distance == 1])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "test.notreal" and e.internal == False and e.scope_distance == 0 and str(e.module) == "sslcert"])
-    assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "www.bbottest.notreal" and e.internal == True and e.scope_distance == 2 and str(e.module) == "sslcert"])
+    assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "www.bbottest.notreal" and e.internal == True and e.scope_distance == 3 and str(e.module) == "sslcert"])
     assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "test.notreal:9999" and e.internal == True and e.scope_distance == 0 and str(e.module) == "speculate"])
 
     assert len(all_events_nodups) == 9
-    assert 1 == len([e for e in all_events_nodups if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal == False and e.scope_distance == 0])
-    assert 1 == len([e for e in all_events_nodups if e.type == "IP_ADDRESS" and e.data == "127.0.0.0" and e.internal == True and e.scope_distance == 1])
-    assert 1 == len([e for e in all_events_nodups if e.type == "IP_ADDRESS" and e.data == "127.0.0.1" and e.internal == True and e.scope_distance == 1])
-    assert 1 == len([e for e in all_events_nodups if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.0:9999" and e.internal == True and e.scope_distance == 1])
+    assert 1 == len([e for e in all_events_nodups if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal == False and e.scope_distance == 1])
+    assert 1 == len([e for e in all_events_nodups if e.type == "IP_ADDRESS" and e.data == "127.0.0.0" and e.internal == True and e.scope_distance == 2])
+    assert 1 == len([e for e in all_events_nodups if e.type == "IP_ADDRESS" and e.data == "127.0.0.1" and e.internal == True and e.scope_distance == 2])
+    assert 1 == len([e for e in all_events_nodups if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.0:9999" and e.internal == True and e.scope_distance == 2])
     assert 1 == len([e for e in all_events_nodups if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.1:9999" and e.internal == True and e.scope_distance == 1])
     assert 1 == len([e for e in all_events_nodups if e.type == "DNS_NAME" and e.data == "test.notreal" and e.internal == False and e.scope_distance == 0 and str(e.module) == "sslcert"])
-    assert 1 == len([e for e in all_events_nodups if e.type == "DNS_NAME" and e.data == "www.bbottest.notreal" and e.internal == True and e.scope_distance == 2 and str(e.module) == "sslcert"])
+    assert 1 == len([e for e in all_events_nodups if e.type == "DNS_NAME" and e.data == "www.bbottest.notreal" and e.internal == True and e.scope_distance == 3 and str(e.module) == "sslcert"])
     assert 1 == len([e for e in all_events_nodups if e.type == "OPEN_TCP_PORT" and e.data == "test.notreal:9999" and e.internal == True and e.scope_distance == 0 and str(e.module) == "speculate"])
 
     for _graph_output_events in (graph_output_events, graph_output_batch_events):
         assert len(_graph_output_events) == 5
-        assert 1 == len([e for e in graph_output_events if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal == False and e.scope_distance == 0])
+        assert 1 == len([e for e in graph_output_events if e.type == "IP_RANGE" and e.data == "127.0.0.0/31" and e.internal == False and e.scope_distance == 1])
         assert 0 == len([e for e in graph_output_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.0"])
-        assert 1 == len([e for e in graph_output_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.1" and e.internal == True and e.scope_distance == 1])
+        assert 1 == len([e for e in graph_output_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.1" and e.internal == True and e.scope_distance == 2])
         assert 0 == len([e for e in graph_output_events if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.0:9999"])
         assert 1 == len([e for e in graph_output_events if e.type == "OPEN_TCP_PORT" and e.data == "127.0.0.1:9999" and e.internal == True and e.scope_distance == 1])
         assert 1 == len([e for e in graph_output_events if e.type == "DNS_NAME" and e.data == "test.notreal" and e.internal == False and e.scope_distance == 0 and str(e.module) == "sslcert"])
