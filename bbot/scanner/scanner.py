@@ -363,7 +363,13 @@ class Scanner:
                     self.critical(f"Unexpected error during scan:\n{traceback.format_exc()}")
 
         finally:
-            self._cancel_tasks()
+            tasks = self._cancel_tasks()
+            self.debug(f"Awaiting {len(tasks):,} tasks")
+            for task in tasks:
+                self.debug(f"Awaiting {task}")
+                with contextlib.suppress(BaseException):
+                    await task
+            self.debug(f"Awaited {len(tasks):,} tasks")
             await self._report()
             await self._cleanup()
 
@@ -526,13 +532,14 @@ class Scanner:
         if not self._stopping:
             self._stopping = True
             self.status = "ABORTING"
-            self.hugewarning(f"Aborting scan")
+            self.hugewarning("Aborting scan")
             self.trace()
             self._cancel_tasks()
             self._drain_queues()
             self.helpers.kill_children()
             self._drain_queues()
             self.helpers.kill_children()
+            self.debug("Finished aborting scan")
 
     async def finish(self):
         """Finalizes the scan by invoking the `finished()` method on all active modules if new activity is detected.
@@ -595,6 +602,7 @@ class Scanner:
         Returns:
             None
         """
+        self.debug("Cancelling all scan tasks")
         tasks = []
         # module workers
         for m in self.modules.values():
@@ -612,6 +620,8 @@ class Scanner:
         self.helpers.cancel_tasks_sync(tasks)
         # process pool
         self.process_pool.shutdown(cancel_futures=True)
+        self.debug("Finished cancelling all scan tasks")
+        return tasks
 
     async def _report(self):
         """Asynchronously executes the `report()` method for each module in the scan.
