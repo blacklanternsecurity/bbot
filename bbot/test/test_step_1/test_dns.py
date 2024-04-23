@@ -227,7 +227,6 @@ async def test_wildcards(bbot_scanner):
                     "a-record",
                     "target",
                     "aaaa-wildcard",
-                    "resolved",
                     "in-scope",
                     "subdomain",
                     "aaaa-record",
@@ -249,7 +248,7 @@ async def test_wildcards(bbot_scanner):
             for e in events
             if e.type == "DNS_NAME"
             and e.data == "asdfl.gashdgkjsadgsdf.github.io"
-            and all(t in e.tags for t in ("a-record", "target", "resolved", "in-scope", "subdomain", "aaaa-record"))
+            and all(t in e.tags for t in ("a-record", "target", "in-scope", "subdomain", "aaaa-record"))
             and not any(t in e.tags for t in ("wildcard", "a-wildcard", "aaaa-wildcard"))
         ]
     )
