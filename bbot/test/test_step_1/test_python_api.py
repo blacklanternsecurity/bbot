@@ -45,6 +45,11 @@ async def test_python_api():
     Scanner("127.0.0.1", config={"home": bbot_home})
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
+    # custom target types
+    custom_target_scan = Scanner("ORG:evilcorp")
+    events = [e async for e in custom_target_scan.async_start()]
+    assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp" and "target" in e.tags])
+
 
 def test_python_api_sync():
     from bbot.scanner import Scanner
