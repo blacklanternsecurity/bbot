@@ -198,6 +198,13 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert result == True
     assert "[ORG_STUB]          	evilcorp	TARGET" in caplog.text
 
+    # activate modules by flag
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "passive"])
+    result = await cli._main()
+    assert result == True
+
     # no args
     caplog.clear()
     assert not caplog.text
