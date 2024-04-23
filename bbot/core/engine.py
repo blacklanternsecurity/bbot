@@ -153,19 +153,26 @@ class EngineServer:
             error = f"Unhandled error in {self.name}.{command_fn.__name__}({kwargs}): {e}"
             trace = traceback.format_exc()
             result = {"_e": (error, trace)}
-        await self.socket.send_multipart([client_id, pickle.dumps(result)])
+        await self.send_socket_multipart([client_id, pickle.dumps(result)])
 
     async def run_and_yield(self, client_id, command_fn, **kwargs):
         self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({kwargs})")
         try:
             async for _ in command_fn(**kwargs):
-                await self.socket.send_multipart([client_id, pickle.dumps(_)])
-            await self.socket.send_multipart([client_id, pickle.dumps({"_s": None})])
+                await self.send_socket_multipart([client_id, pickle.dumps(_)])
+            await self.send_socket_multipart([client_id, pickle.dumps({"_s": None})])
         except Exception as e:
             error = f"Unhandled error in {self.name}.{command_fn.__name__}({kwargs}): {e}"
             trace = traceback.format_exc()
             result = {"_e": (error, trace)}
-            await self.socket.send_multipart([client_id, pickle.dumps(result)])
+            await self.send_socket_multipart([client_id, pickle.dumps(result)])
+
+    async def send_socket_multipart(self, *args, **kwargs):
+        try:
+            await self.socket.send_multipart(*args, **kwargs)
+        except Exception as e:
+            self.log.warning(f"Error sending ZMQ message: {e}")
+            self.log.trace(traceback.format_exc())
 
     async def worker(self):
         try:
