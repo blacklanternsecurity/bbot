@@ -94,9 +94,7 @@ class DNS(InterceptModule):
                     if rdtype not in dns_children:
                         dns_tags.add(f"{rdtype.lower()}-error")
 
-                if dns_children:
-                    dns_tags.add("resolved")
-                elif not event_is_ip:
+                if not dns_children and not event_is_ip:
                     dns_tags.add("unresolved")
 
                 for rdtype, children in dns_children.items():
