@@ -122,7 +122,6 @@ class DNSBrute:
         hosts_yielded = set()
         async with self._dnsbrute_lock:
             async for line in module.run_process_live(*command, stderr=subprocess.DEVNULL, input=subdomains):
-                self.log.critical(line)
                 try:
                     j = json.loads(line)
                 except json.decoder.JSONDecodeError:
