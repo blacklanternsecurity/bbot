@@ -3,7 +3,7 @@ from .base import ModuleTestBase, tempwordlist
 
 class TestDnsbrute(ModuleTestBase):
     subdomain_wordlist = tempwordlist(["www", "asdf"])
-    config_overrides = {"modules": {"massdns": {"wordlist": str(subdomain_wordlist), "max_depth": 3}}}
+    config_overrides = {"modules": {"dnsbrute": {"wordlist": str(subdomain_wordlist), "max_depth": 3}}}
 
     async def setup_after_prep(self, module_test):
 
@@ -74,5 +74,5 @@ class TestDnsbrute(ModuleTestBase):
     def check(self, module_test, events):
         assert len(events) == 3
         assert 1 == len(
-            [e for e in events if e.data == "www-test.blacklanternsecurity.com" and str(e.module) == "massdns"]
+            [e for e in events if e.data == "www-test.blacklanternsecurity.com" and str(e.module) == "dnsbrute"]
         )

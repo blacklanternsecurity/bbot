@@ -133,7 +133,7 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert "| bool" in caplog.text
     assert "| emit URLs in addition to DNS_NAMEs" in caplog.text
     assert "| False" in caplog.text
-    assert "| modules.massdns.wordlist" in caplog.text
+    assert "| modules.dnsbrute.wordlist" in caplog.text
     assert "| modules.robots.include_allow" in caplog.text
 
     # list module options by flag
@@ -146,17 +146,17 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert "| bool" in caplog.text
     assert "| emit URLs in addition to DNS_NAMEs" in caplog.text
     assert "| False" in caplog.text
-    assert "| modules.massdns.wordlist" in caplog.text
+    assert "| modules.dnsbrute.wordlist" in caplog.text
     assert not "| modules.robots.include_allow" in caplog.text
 
     # list module options by module
     caplog.clear()
     assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdns", "-lmo"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "dnsbrute", "-lmo"])
     result = await cli._main()
     assert result == None
     assert not "| modules.wayback.urls" in caplog.text
-    assert "| modules.massdns.wordlist" in caplog.text
+    assert "| modules.dnsbrute.wordlist" in caplog.text
     assert not "| modules.robots.include_allow" in caplog.text
 
     # list flags
@@ -219,7 +219,7 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-l"])
     result = await cli._main()
     assert result == None
-    assert "| massdns" in caplog.text
+    assert "| dnsbrute" in caplog.text
     assert "| httpx" in caplog.text
     assert "| robots" in caplog.text
 
@@ -229,7 +229,7 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-l"])
     result = await cli._main()
     assert result == None
-    assert "| massdns" in caplog.text
+    assert "| dnsbrute" in caplog.text
     assert "| httpx" in caplog.text
     assert not "| robots" in caplog.text
 
@@ -238,7 +238,7 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-rf", "passive", "-l"])
     result = await cli._main()
     assert result == None
-    assert "| massdns" in caplog.text
+    assert "| dnsbrute" in caplog.text
     assert not "| httpx" in caplog.text
 
     # list modules by flag + excluded flag
@@ -247,16 +247,16 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
     result = await cli._main()
     assert result == None
-    assert "| massdns" in caplog.text
+    assert "| dnsbrute" in caplog.text
     assert not "| httpx" in caplog.text
 
     # list modules by flag + excluded module
     caplog.clear()
     assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "massdns", "-l"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "-l"])
     result = await cli._main()
     assert result == None
-    assert not "| massdns" in caplog.text
+    assert not "| dnsbrute" in caplog.text
     assert "| httpx" in caplog.text
 
     # unconsoleable output module
@@ -343,18 +343,18 @@ def test_cli_module_validation(monkeypatch, caplog):
     # incorrect module
     caplog.clear()
     assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdnss"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "dnsbrutes"])
     cli.main()
-    assert 'Could not find scan module "massdnss"' in caplog.text
-    assert 'Did you mean "massdns"?' in caplog.text
+    assert 'Could not find scan module "dnsbrutes"' in caplog.text
+    assert 'Did you mean "dnsbrute"?' in caplog.text
 
     # incorrect excluded module
     caplog.clear()
     assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-em", "massdnss"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-em", "dnsbrutes"])
     cli.main()
-    assert 'Could not find module "massdnss"' in caplog.text
-    assert 'Did you mean "massdns"?' in caplog.text
+    assert 'Could not find module "dnsbrutes"' in caplog.text
+    assert 'Did you mean "dnsbrute"?' in caplog.text
 
     # incorrect output module
     caplog.clear()

@@ -100,15 +100,15 @@ async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
 
     # module preloading
     all_preloaded = DEFAULT_PRESET.module_loader.preloaded()
-    assert "massdns" in all_preloaded
-    assert "DNS_NAME" in all_preloaded["massdns"]["watched_events"]
-    assert "DNS_NAME" in all_preloaded["massdns"]["produced_events"]
-    assert "subdomain-enum" in all_preloaded["massdns"]["flags"]
-    assert "wordlist" in all_preloaded["massdns"]["config"]
-    assert type(all_preloaded["massdns"]["config"]["max_resolvers"]) == int
+    assert "dnsbrute" in all_preloaded
+    assert "DNS_NAME" in all_preloaded["dnsbrute"]["watched_events"]
+    assert "DNS_NAME" in all_preloaded["dnsbrute"]["produced_events"]
+    assert "subdomain-enum" in all_preloaded["dnsbrute"]["flags"]
+    assert "wordlist" in all_preloaded["dnsbrute"]["config"]
+    assert type(all_preloaded["dnsbrute"]["config"]["max_depth"]) == int
     assert all_preloaded["sslcert"]["deps"]["pip"]
     assert all_preloaded["sslcert"]["deps"]["apt"]
-    assert all_preloaded["massdns"]["deps"]["common"]
+    assert all_preloaded["dnsbrute"]["deps"]["common"]
     assert all_preloaded["gowitness"]["deps"]["ansible"]
 
     all_flags = set()

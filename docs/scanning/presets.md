@@ -86,9 +86,6 @@ config:
       api_key: 21a270d5f59c9b05813a72bb41707266
     virustotal:
       api_key: 4f41243847da693a4f356c0486114bc6
-    # other module config options
-    massdns:
-      max_resolvers: 5000
 ```
 
 To execute your custom preset, you do:
