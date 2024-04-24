@@ -93,11 +93,11 @@ class Target:
         if len(targets) > 0:
             log.verbose(f"Creating events from {len(targets):,} targets")
         for t in targets:
-            self.add_target(t)
+            self.add(t)
 
         self._hash = None
 
-    def add_target(self, t, event_type=None):
+    def add(self, t, event_type=None):
         """
         Add a target or merge events from another Target object into this Target.
 
@@ -108,7 +108,7 @@ class Target:
             _events (dict): The dictionary is updated to include the new target's events.
 
         Examples:
-            >>> target.add_target('example.com')
+            >>> target.add('example.com')
 
         Notes:
             - If `t` is of the same class as this Target, all its events are merged.

@@ -303,9 +303,9 @@ class Preset:
         self.explicit_output_modules.update(other.explicit_output_modules)
         self.flags.update(other.flags)
         # scope
-        self.target.add_target(other.target)
-        self.whitelist.add_target(other.whitelist)
-        self.blacklist.add_target(other.blacklist)
+        self.target.add(other.target)
+        self.whitelist.add(other.whitelist)
+        self.blacklist.add(other.blacklist)
         self.strict_scope = self.strict_scope or other.strict_scope
         for t in (self.target, self.whitelist):
             t.strict_scope = self.strict_scope
