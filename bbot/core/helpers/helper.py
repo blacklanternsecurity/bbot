@@ -91,6 +91,11 @@ class ConfigAwareHelper:
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
 
+    def bloom_filter(self, size):
+        from .bloom import BloomFilter
+
+        return BloomFilter(size)
+
     def interactsh(self, *args, **kwargs):
         return Interactsh(self, *args, **kwargs)
 
