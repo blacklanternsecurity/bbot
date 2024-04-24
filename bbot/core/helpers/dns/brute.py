@@ -68,7 +68,7 @@ class DNSBrute:
             else:
                 results.append(hostname)
 
-        if canaries_triggered > 5:
+        if len(canaries_triggered) > 5:
             self.log.info(
                 f"Aborting massdns on {domain} due to false positive: ({len(canaries_triggered):,} canaries triggered - {','.join(canaries_triggered)})"
             )
