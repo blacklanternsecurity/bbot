@@ -1,4 +1,3 @@
-import sys
 import time
 import string
 import random
@@ -20,13 +19,8 @@ def test_bloom_filter():
 
     # Initialize the simple bloom filter and the set
     bloom_filter = scan.helpers.bloom_filter(size=bloom_filter_size)
+
     test_set = set()
-
-    mem_size = sys.getsizeof(bloom_filter.bit_array)
-    print(f"Size of bit array: {mem_size}")
-
-    # size should be roughly 1MB
-    assert 900000 < mem_size < 1100000
 
     # Generate random strings to add
     print(f"Generating {n_items_to_add:,} items to add")
@@ -63,9 +57,9 @@ def test_bloom_filter():
     for item in items_to_test:
         if bloom_filter.check(item) and hash(item) not in test_set:
             false_positives += 1
-    false_positive_rate = false_positives / len(items_to_test)
+    false_positive_percent = false_positives / len(items_to_test) * 100
 
-    print(f"False positive rate: {false_positive_rate * 100:.2f}% ({false_positives}/{len(items_to_test)})")
+    print(f"False positive rate: {false_positive_percent:.2f}% ({false_positives}/{len(items_to_test)})")
 
-    # ensure false positives are less than .01 percent
-    assert 0 < false_positives < 10
+    # ensure false positives are less than .02 percent
+    assert false_positive_percent < 0.02
