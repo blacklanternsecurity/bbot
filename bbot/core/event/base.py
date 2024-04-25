@@ -1194,13 +1194,13 @@ class WAF(DictHostEvent):
     class _data_validator(BaseModel):
         url: str
         host: str
-        WAF: str
+        waf: str
         info: Optional[str] = None
         _validate_url = field_validator("url")(validators.validate_url)
         _validate_host = field_validator("host")(validators.validate_host)
 
     def _pretty_string(self):
-        return self.data["WAF"]
+        return self.data["waf"]
 
 
 def make_event(
