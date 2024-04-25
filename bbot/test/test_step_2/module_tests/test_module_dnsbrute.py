@@ -11,7 +11,7 @@ class TestDnsbrute(ModuleTestBase):
 
         async def new_run_live(*command, check=False, text=True, **kwargs):
             if "massdns" in command[:2]:
-                yield """{"name": "www-test.blacklanternsecurity.com.", "type": "A", "class": "IN", "status": "NOERROR", "rx_ts": 1713974911725326170, "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "www-test.blacklanternsecurity.com.", "data": "1.2.3.4."}]}, "flags": ["rd", "ra"], "resolver": "195.226.187.130:53", "proto": "UDP"}"""
+                yield """{"name": "asdf.blacklanternsecurity.com.", "type": "A", "class": "IN", "status": "NOERROR", "rx_ts": 1713974911725326170, "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "asdf.blacklanternsecurity.com.", "data": "1.2.3.4."}]}, "flags": ["rd", "ra"], "resolver": "195.226.187.130:53", "proto": "UDP"}"""
             else:
                 async for _ in old_run_live(*command, check=False, text=True, **kwargs):
                     yield _
@@ -20,7 +20,7 @@ class TestDnsbrute(ModuleTestBase):
 
         await module_test.mock_dns(
             {
-                "www-test.blacklanternsecurity.com": {"A": ["1.2.3.4"]},
+                "asdf.blacklanternsecurity.com": {"A": ["1.2.3.4"]},
             }
         )
 
@@ -74,5 +74,5 @@ class TestDnsbrute(ModuleTestBase):
     def check(self, module_test, events):
         assert len(events) == 3
         assert 1 == len(
-            [e for e in events if e.data == "www-test.blacklanternsecurity.com" and str(e.module) == "dnsbrute"]
+            [e for e in events if e.data == "asdf.blacklanternsecurity.com" and str(e.module) == "dnsbrute"]
         )
