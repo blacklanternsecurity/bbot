@@ -253,7 +253,7 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     # list modules by flag + excluded module
     caplog.clear()
     assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "-l"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "dnsbrute_mutations", "-l"])
     result = await cli._main()
     assert result == None
     assert not "| dnsbrute" in caplog.text

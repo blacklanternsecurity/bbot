@@ -10,7 +10,7 @@ class dnsbrute_mutations(BaseModule):
         "max_mutations": 100,
     }
     options_desc = {
-        "max_mutations": 100,
+        "max_mutations": "Maximum number of target-specific mutations to try per subdomain",
     }
     deps_common = ["massdns"]
     _qsize = 10000
