@@ -67,7 +67,7 @@ class HostnameExtractor(BaseExtractor):
 
 
 class URLExtractor(BaseExtractor):
-    url_path_regex = r"((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)"
+    url_path_regex = r"((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)"
     regexes = {
         "fulluri": r"(?i)" + r"([a-z]\w{1,15})://" + url_path_regex,
         "fullurl": r"(?i)" + r"(https?)://" + url_path_regex,
