@@ -1,12 +1,12 @@
 from ..bbot_fixtures import *  # noqa: F401
 
 
-def test_target(bbot_config, bbot_scanner):
-    scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126", config=bbot_config)
-    scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
-    scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
-    scan4 = bbot_scanner("8.8.8.8/29", config=bbot_config)
-    scan5 = bbot_scanner(config=bbot_config)
+def test_target(bbot_scanner):
+    scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126")
+    scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
+    scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125")
+    scan4 = bbot_scanner("8.8.8.8/29")
+    scan5 = bbot_scanner()
     assert not scan5.target
     assert len(scan1.target) == 9
     assert len(scan4.target) == 8
@@ -38,3 +38,25 @@ def test_target(bbot_config, bbot_scanner):
     assert scan1.target.get("2001:4860:4860::888c") is None
     assert str(scan1.target.get("www.api.publicapis.org").host) == "api.publicapis.org"
     assert scan1.target.get("publicapis.org") is None
+
+    from bbot.scanner.target import Target
+
+    target = Target("evilcorp.com")
+    assert not "com" in target
+    assert "evilcorp.com" in target
+    assert "www.evilcorp.com" in target
+    strict_target = Target("evilcorp.com", strict_scope=True)
+    assert not "com" in strict_target
+    assert "evilcorp.com" in strict_target
+    assert not "www.evilcorp.com" in strict_target
+
+    target = Target()
+    target.add_target("evilcorp.com")
+    assert not "com" in target
+    assert "evilcorp.com" in target
+    assert "www.evilcorp.com" in target
+    strict_target = Target(strict_scope=True)
+    strict_target.add_target("evilcorp.com")
+    assert not "com" in strict_target
+    assert "evilcorp.com" in strict_target
+    assert not "www.evilcorp.com" in strict_target

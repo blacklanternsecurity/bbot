@@ -74,13 +74,6 @@ class BaseOutputModule(BaseModule):
         return self._file
 
     @property
-    def config(self):
-        config = self.scan.config.get("output_modules", {}).get(self.name, {})
-        if config is None:
-            config = {}
-        return config
-
-    @property
     def log(self):
         if self._log is None:
             self._log = logging.getLogger(f"bbot.modules.output.{self.name}")

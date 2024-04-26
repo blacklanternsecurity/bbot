@@ -1,4 +1,3 @@
-# logging
-from .logger import init_logging
+from .core import BBOTCore
 
-init_logging()
+CORE = BBOTCore()

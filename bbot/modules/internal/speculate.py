@@ -142,9 +142,6 @@ class speculate(BaseInternalModule):
                         quick=True,
                     )
 
-        # storage buckets etc.
-        self.helpers.cloud.speculate(event)
-
         # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
         org_stubs = set()
         if event.type == "DNS_NAME" and event.scope_distance == 0:

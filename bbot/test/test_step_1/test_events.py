@@ -6,7 +6,7 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_events(events, scan, helpers, bbot_config):
+async def test_events(events, scan, helpers):
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
     assert events.netv4.type == "IP_RANGE"
@@ -444,6 +444,13 @@ async def test_events(events, scan, helpers, bbot_config):
     event_5 = scan.make_event("127.0.0.5", source=event_4)
     assert event_5.get_sources() == [event_4, event_3, event_2, event_1, scan.root_event]
     assert event_5.get_sources(omit=True) == [event_4, event_2, event_1, scan.root_event]
+
+    # test host backup
+    host_event = scan.make_event("asdf.evilcorp.com", "DNS_NAME", source=scan.root_event)
+    assert host_event.host_original == "asdf.evilcorp.com"
+    host_event.host = "_wildcard.evilcorp.com"
+    assert host_event.host == "_wildcard.evilcorp.com"
+    assert host_event.host_original == "asdf.evilcorp.com"
 
     # test storage bucket validation
     bucket_event = scan.make_event(

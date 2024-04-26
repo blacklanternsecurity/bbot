@@ -1,6 +1,6 @@
+from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
-from bbot.core.errors import HttpCompareError
-from bbot.core.helpers.misc import extract_params_json, extract_params_xml, extract_params_html
+from bbot.core.helpers.misc import extract_params_json, extract_params_xml
 
 
 class paramminer_headers(BaseModule):
@@ -158,7 +158,7 @@ class paramminer_headers(BaseModule):
 
         wl = set(self.wl)
         if self.config.get("http_extract"):
-            extracted_words = self.load_extracted_words(event.data.get("body"), event.data.get("content_type"))
+            extracted_words = await self.load_extracted_words(event.data.get("body"), event.data.get("content_type"))
             if extracted_words:
                 self.debug(f"Extracted {str(len(extracted_words))} words from {url}")
                 self.extracted_words_master.update(extracted_words - wl)
@@ -195,7 +195,7 @@ class paramminer_headers(BaseModule):
             yield header_count, (url,), {"headers": fake_headers}
             header_count -= 5
 
-    def load_extracted_words(self, body, content_type):
+    async def load_extracted_words(self, body, content_type):
         if not body:
             return None
         if content_type and "json" in content_type.lower():
@@ -203,7 +203,7 @@ class paramminer_headers(BaseModule):
         elif content_type and "xml" in content_type.lower():
             return extract_params_xml(body)
         else:
-            return set(extract_params_html(body))
+            return set(await self.helpers.re.extract_params_html(body))
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:

@@ -1,6 +1,5 @@
 import re
 import json
-import asyncio
 import logging
 import ipaddress
 import traceback
@@ -9,14 +8,14 @@ from typing import Optional
 from datetime import datetime
 from contextlib import suppress
 from urllib.parse import urljoin
+from radixtarget import RadixTarget
 from pydantic import BaseModel, field_validator
 
 from .helpers import *
-from bbot.core.errors import *
+from bbot.errors import *
 from bbot.core.helpers import (
     extract_words,
     get_file_extension,
-    host_in_host,
     is_domain,
     is_subdomain,
     is_ip,
@@ -94,7 +93,7 @@ class BaseEvent:
     # Always emit this event type even if it's not in scope
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
-    _always_emit_tags = ["affiliate"]
+    _always_emit_tags = ["affiliate", "target"]
     # Bypass scope checking and dns resolution, distribute immediately to modules
     # This is useful for "end-of-line" events like FINDING and VULNERABILITY
     _quick_emit = False
@@ -152,8 +151,10 @@ class BaseEvent:
         self._port = None
         self.__words = None
         self._priority = None
+        self._host_original = None
         self._module_priority = None
         self._resolved_hosts = set()
+        self.dns_children = dict()
 
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
@@ -209,9 +210,6 @@ class BaseEvent:
             # removed this second part because it was making certain sslcert events internal
             if _internal:  # or source._internal:
                 self.internal = True
-
-        # an event indicating whether the event has undergone DNS resolution
-        self._resolved = asyncio.Event()
 
         # inherit web spider distance from parent
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
@@ -278,8 +276,23 @@ class BaseEvent:
         E.g. for IP_ADDRESS, it could be an ipaddress.IPv4Address() or IPv6Address() object
         """
         if self.__host is None:
-            self.__host = self._host()
+            self.host = self._host()
         return self.__host
+
+    @host.setter
+    def host(self, host):
+        if self._host_original is None:
+            self._host_original = host
+        self.__host = host
+
+    @property
+    def host_original(self):
+        """
+        Original host data, in case it was changed due to a wildcard DNS, etc.
+        """
+        if self._host_original is None:
+            return self.host
+        return self._host_original
 
     @property
     def port(self):
@@ -567,7 +580,9 @@ class BaseEvent:
             if self.host == other.host:
                 return True
             # hostnames and IPs
-            return host_in_host(other.host, self.host)
+            radixtarget = RadixTarget()
+            radixtarget.insert(self.host)
+            return bool(radixtarget.search(other.host))
         return False
 
     def json(self, mode="json", siem_friendly=False):
@@ -606,7 +621,7 @@ class BaseEvent:
             j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
         if self.host:
-            j["resolved_hosts"] = [str(h) for h in self.resolved_hosts]
+            j["resolved_hosts"] = sorted(str(h) for h in self.resolved_hosts)
         source_id = self.source_id
         if source_id:
             j["source"] = source_id
@@ -796,7 +811,7 @@ class IP_ADDRESS(BaseEvent):
         ip = ipaddress.ip_address(self.data)
         self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
-            self.add_tag("private")
+            self.add_tag("private-ip")
         self.dns_resolve_distance = getattr(self.source, "dns_resolve_distance", 0)
 
     def sanitize_data(self, data):
@@ -883,7 +898,7 @@ class URL_UNVERIFIED(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # increment the web spider distance
-        if self.type == "URL_UNVERIFIED" and getattr(self.module, "name", "") != "TARGET":
+        if self.type == "URL_UNVERIFIED":
             self.web_spider_distance += 1
         self.num_redirects = getattr(self.source, "num_redirects", 0)
 
@@ -953,7 +968,8 @@ class URL(URL_UNVERIFIED):
 
     @property
     def resolved_hosts(self):
-        return [".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")]
+        # TODO: remove this when we rip out httpx
+        return set(".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-"))
 
     @property
     def pretty_string(self):

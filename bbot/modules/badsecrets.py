@@ -8,7 +8,7 @@ from badsecrets.base import carve_all_modules
 class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
     deps_pip = ["badsecrets~=0.4.490"]
 
@@ -33,7 +33,7 @@ class badsecrets(BaseModule):
                         resp_cookies[c2[0]] = c2[1]
         if resp_body or resp_cookies:
             try:
-                r_list = await self.scan.run_in_executor_mp(
+                r_list = await self.helpers.run_in_executor_mp(
                     carve_all_modules,
                     body=resp_body,
                     headers=resp_headers,

@@ -1,29 +1,98 @@
+import re
 import ast
 import sys
+import atexit
+import pickle
+import logging
 import importlib
+import omegaconf
 import traceback
+from copy import copy
 from pathlib import Path
 from omegaconf import OmegaConf
 from contextlib import suppress
 
-from ..flags import flag_descriptions
-from .misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform
+from bbot.core import CORE
+from bbot.errors import BBOTError
+from bbot.logger import log_to_stderr
+
+from .flags import flag_descriptions
+from .shared_deps import SHARED_DEPS
+from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform, mkdir
+
+
+log = logging.getLogger("bbot.module_loader")
+
+bbot_code_dir = Path(__file__).parent.parent
 
 
 class ModuleLoader:
     """
-    Main class responsible for loading BBOT modules.
+    Main class responsible for preloading BBOT modules.
 
     This class is in charge of preloading modules to determine their dependencies.
     Once dependencies are identified, they are installed before the actual module is imported.
     This ensures that all requisite libraries and components are available for the module to function correctly.
     """
 
+    default_module_dir = bbot_code_dir / "modules"
+
+    module_dir_regex = re.compile(r"^[a-z][a-z0-9_]*$")
+
+    # if a module consumes these event types, automatically assume these dependencies
+    default_module_deps = {"HTTP_RESPONSE": "httpx", "URL": "httpx", "SOCIAL": "social"}
+
     def __init__(self):
-        self._preloaded = {}
-        self._preloaded_orig = None
+        self.core = CORE
+
+        self._shared_deps = dict(SHARED_DEPS)
+
+        self.__preloaded = {}
         self._modules = {}
         self._configs = {}
+        self.flag_choices = set()
+        self.all_module_choices = set()
+        self.scan_module_choices = set()
+        self.output_module_choices = set()
+        self.internal_module_choices = set()
+
+        self._preload_cache = None
+
+        self._module_dirs = set()
+        self._module_dirs_preloaded = set()
+        self.add_module_dir(self.default_module_dir)
+
+        # save preload cache before exiting
+        atexit.register(self.save_preload_cache)
+
+    def copy(self):
+        module_loader_copy = copy(self)
+        module_loader_copy.__preloaded = dict(self.__preloaded)
+        return module_loader_copy
+
+    @property
+    def preload_cache_file(self):
+        return self.core.cache_dir / "module_preload_cache"
+
+    @property
+    def module_dirs(self):
+        return self._module_dirs
+
+    def add_module_dir(self, module_dir):
+        module_dir = Path(module_dir).resolve()
+        if module_dir in self._module_dirs:
+            log.debug(f'Already added custom module dir "{module_dir}"')
+            return
+        if not module_dir.is_dir():
+            log.warning(f'Failed to add custom module dir "{module_dir}", please make sure it exists')
+            return
+        new_module_dirs = set()
+        for _module_dir in self.get_recursive_dirs(module_dir):
+            _module_dir = Path(_module_dir).resolve()
+            if _module_dir not in self._module_dirs:
+                self._module_dirs.add(_module_dir)
+                new_module_dirs.add(_module_dir)
+        self.preload(module_dirs=new_module_dirs)
 
     def file_filter(self, file):
         file = file.resolve()
@@ -31,11 +100,11 @@ class ModuleLoader:
             return False
         return file.suffix.lower() == ".py" and file.stem not in ["base", "__init__"]
 
-    def preload(self, module_dir):
-        """Preloads all modules within a directory.
+    def preload(self, module_dirs=None):
+        """Preloads all BBOT modules.
 
-        This function recursively iterates through each file in the specified directory
-        and preloads the BBOT module to gather its meta-information and dependencies.
+        This function recursively iterates through each file in the module directories
+        and preloads each BBOT module to gather its meta-information and dependencies.
 
         Args:
             module_dir (str or Path): Directory containing BBOT modules to be preloaded.
@@ -52,30 +121,120 @@ class ModuleLoader:
                 ...
             }
         """
-        module_dir = Path(module_dir)
-        for module_file in list_files(module_dir, filter=self.file_filter):
-            if module_dir.name == "modules":
-                namespace = f"bbot.modules"
-            else:
-                namespace = f"bbot.modules.{module_dir.name}"
-            try:
-                preloaded = self.preload_module(module_file)
-                module_type = "scan"
-                if module_dir.name in ("output", "internal"):
-                    module_type = str(module_dir.name)
-                elif module_dir.name not in ("modules"):
-                    preloaded["flags"] = list(set(preloaded["flags"] + [module_dir.name]))
-                preloaded["type"] = module_type
-                preloaded["namespace"] = namespace
-                config = OmegaConf.create(preloaded.get("config", {}))
-                self._configs[module_file.stem] = config
-                self._preloaded[module_file.stem] = preloaded
-            except Exception:
-                print(f"[CRIT] Error preloading {module_file}\n\n{traceback.format_exc()}")
-                print(f"[CRIT] Error in {module_file.name}")
-                sys.exit(1)
+        new_modules = False
+        if module_dirs is None:
+            module_dirs = self.module_dirs
 
-        return self._preloaded
+        for module_dir in module_dirs:
+            if module_dir in self._module_dirs_preloaded:
+                log.debug(f"Already preloaded modules from {module_dir}")
+                continue
+
+            log.debug(f"Preloading modules from {module_dir}")
+            new_modules = True
+            for module_file in list_files(module_dir, filter=self.file_filter):
+                module_name = module_file.stem
+                module_file = module_file.resolve()
+
+                # try to load from cache
+                module_cache_key = (str(module_file), tuple(module_file.stat()))
+                preloaded = self.preload_cache.get(module_name, {})
+                cache_key = preloaded.get("cache_key", ())
+                if preloaded and module_cache_key == cache_key:
+                    log.debug(f"Preloading {module_name} from cache")
+                else:
+                    log.debug(f"Preloading {module_name} from disk")
+                    if module_dir.name == "modules":
+                        namespace = f"bbot.modules"
+                    else:
+                        namespace = f"bbot.modules.{module_dir.name}"
+                    try:
+                        preloaded = self.preload_module(module_file)
+                        module_type = "scan"
+                        if module_dir.name in ("output", "internal"):
+                            module_type = str(module_dir.name)
+                        elif module_dir.name not in ("modules"):
+                            flags = set(preloaded["flags"] + [module_dir.name])
+                            preloaded["flags"] = sorted(flags)
+
+                        # derive module dependencies from watched event types (only for scan modules)
+                        if module_type == "scan":
+                            for event_type in preloaded["watched_events"]:
+                                if event_type in self.default_module_deps:
+                                    deps_modules = set(preloaded.get("deps", {}).get("modules", []))
+                                    deps_modules.add(self.default_module_deps[event_type])
+                                    preloaded["deps"]["modules"] = sorted(deps_modules)
+
+                        preloaded["type"] = module_type
+                        preloaded["namespace"] = namespace
+                        preloaded["cache_key"] = module_cache_key
+
+                    except Exception:
+                        log_to_stderr(f"Error preloading {module_file}\n\n{traceback.format_exc()}", level="CRITICAL")
+                        log_to_stderr(f"Error in {module_file.name}", level="CRITICAL")
+                        sys.exit(1)
+
+                self.all_module_choices.add(module_name)
+                module_type = preloaded.get("type", "scan")
+                if module_type == "scan":
+                    self.scan_module_choices.add(module_name)
+                elif module_type == "output":
+                    self.output_module_choices.add(module_name)
+                elif module_type == "internal":
+                    self.internal_module_choices.add(module_name)
+
+                flags = preloaded.get("flags", [])
+                self.flag_choices.update(set(flags))
+
+                self.__preloaded[module_name] = preloaded
+                config = OmegaConf.create(preloaded.get("config", {}))
+                self._configs[module_name] = config
+
+            self._module_dirs_preloaded.add(module_dir)
+
+        # update default config with module defaults
+        module_config = omegaconf.OmegaConf.create(
+            {
+                "modules": self.configs(),
+            }
+        )
+        self.core.merge_default(module_config)
+
+        return new_modules
+
+    @property
+    def preload_cache(self):
+        if self._preload_cache is None:
+            self._preload_cache = {}
+            if self.preload_cache_file.is_file():
+                with suppress(Exception):
+                    with open(self.preload_cache_file, "rb") as f:
+                        self._preload_cache = pickle.load(f)
+        return self._preload_cache
+
+    @preload_cache.setter
+    def preload_cache(self, value):
+        self._preload_cache = value
+        mkdir(self.preload_cache_file.parent)
+        with open(self.preload_cache_file, "wb") as f:
+            pickle.dump(self._preload_cache, f)
+
+    def save_preload_cache(self):
+        self.preload_cache = self.__preloaded
+
+    @property
+    def _preloaded(self):
+        return self.__preloaded
+
+    def get_recursive_dirs(self, *dirs):
+        dirs = set(Path(d).resolve() for d in dirs)
+        for d in list(dirs):
+            if not d.is_dir():
+                continue
+            for p in d.iterdir():
+                if p.is_dir() and self.module_dir_regex.match(p.name):
+                    dirs.update(self.get_recursive_dirs(p))
+        return dirs
 
     def preloaded(self, type=None):
         preloaded = {}
@@ -94,9 +253,8 @@ class ModuleLoader:
         return OmegaConf.create(configs)
 
     def find_and_replace(self, **kwargs):
-        if self._preloaded_orig is None:
-            self._preloaded_orig = dict(self._preloaded)
-        self._preloaded = search_format_dict(self._preloaded_orig, **kwargs)
+        self.__preloaded = search_format_dict(self.__preloaded, **kwargs)
+        self._shared_deps = search_format_dict(self._shared_deps, **kwargs)
 
     def check_type(self, module, type):
         return self._preloaded[module]["type"] == type
@@ -136,6 +294,9 @@ class ModuleLoader:
                 "options_desc": {},
                 "hash": "d5a88dd3866c876b81939c920bf4959716e2a374",
                 "deps": {
+                    "modules": [
+                        "httpx"
+                    ]
                     "pip": [
                         "python-Wappalyzer~=0.3.1"
                     ],
@@ -147,14 +308,16 @@ class ModuleLoader:
                 "sudo": false
             }
         """
-        watched_events = []
-        produced_events = []
-        flags = []
+        watched_events = set()
+        produced_events = set()
+        flags = set()
         meta = {}
-        pip_deps = []
-        pip_deps_constraints = []
-        shell_deps = []
-        apt_deps = []
+        deps_modules = set()
+        deps_pip = []
+        deps_pip_constraints = []
+        deps_shell = []
+        deps_apt = []
+        deps_common = []
         ansible_tasks = []
         python_code = open(module_file).read()
         # take a hash of the code so we can keep track of when it changes
@@ -166,84 +329,109 @@ class ModuleLoader:
             # look for classes
             if type(root_element) == ast.ClassDef:
                 for class_attr in root_element.body:
+
                     # class attributes that are dictionaries
                     if type(class_attr) == ast.Assign and type(class_attr.value) == ast.Dict:
                         # module options
                         if any([target.id == "options" for target in class_attr.targets]):
                             config.update(ast.literal_eval(class_attr.value))
                         # module options
-                        if any([target.id == "options_desc" for target in class_attr.targets]):
+                        elif any([target.id == "options_desc" for target in class_attr.targets]):
                             options_desc.update(ast.literal_eval(class_attr.value))
                         # module metadata
-                        if any([target.id == "meta" for target in class_attr.targets]):
+                        elif any([target.id == "meta" for target in class_attr.targets]):
                             meta = ast.literal_eval(class_attr.value)
+
                     # class attributes that are lists
                     if type(class_attr) == ast.Assign and type(class_attr.value) == ast.List:
                         # flags
                         if any([target.id == "flags" for target in class_attr.targets]):
                             for flag in class_attr.value.elts:
                                 if type(flag.value) == str:
-                                    flags.append(flag.value)
+                                    flags.add(flag.value)
                         # watched events
-                        if any([target.id == "watched_events" for target in class_attr.targets]):
+                        elif any([target.id == "watched_events" for target in class_attr.targets]):
                             for event_type in class_attr.value.elts:
                                 if type(event_type.value) == str:
-                                    watched_events.append(event_type.value)
+                                    watched_events.add(event_type.value)
                         # produced events
-                        if any([target.id == "produced_events" for target in class_attr.targets]):
+                        elif any([target.id == "produced_events" for target in class_attr.targets]):
                             for event_type in class_attr.value.elts:
                                 if type(event_type.value) == str:
-                                    produced_events.append(event_type.value)
+                                    produced_events.add(event_type.value)
+
+                        # bbot module dependencies
+                        elif any([target.id == "deps_modules" for target in class_attr.targets]):
+                            for dep_module in class_attr.value.elts:
+                                if type(dep_module.value) == str:
+                                    deps_modules.add(dep_module.value)
                         # python dependencies
-                        if any([target.id == "deps_pip" for target in class_attr.targets]):
-                            for python_dep in class_attr.value.elts:
-                                if type(python_dep.value) == str:
-                                    pip_deps.append(python_dep.value)
-
-                        if any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
-                            for python_dep in class_attr.value.elts:
-                                if type(python_dep.value) == str:
-                                    pip_deps_constraints.append(python_dep.value)
-
+                        elif any([target.id == "deps_pip" for target in class_attr.targets]):
+                            for dep_pip in class_attr.value.elts:
+                                if type(dep_pip.value) == str:
+                                    deps_pip.append(dep_pip.value)
+                        elif any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
+                            for dep_pip in class_attr.value.elts:
+                                if type(dep_pip.value) == str:
+                                    deps_pip_constraints.append(dep_pip.value)
                         # apt dependencies
                         elif any([target.id == "deps_apt" for target in class_attr.targets]):
-                            for apt_dep in class_attr.value.elts:
-                                if type(apt_dep.value) == str:
-                                    apt_deps.append(apt_dep.value)
+                            for dep_apt in class_attr.value.elts:
+                                if type(dep_apt.value) == str:
+                                    deps_apt.append(dep_apt.value)
                         # bash dependencies
                         elif any([target.id == "deps_shell" for target in class_attr.targets]):
-                            for shell_dep in class_attr.value.elts:
-                                shell_deps.append(ast.literal_eval(shell_dep))
+                            for dep_shell in class_attr.value.elts:
+                                deps_shell.append(ast.literal_eval(dep_shell))
                         # ansible playbook
                         elif any([target.id == "deps_ansible" for target in class_attr.targets]):
                             ansible_tasks = ast.literal_eval(class_attr.value)
+                        # shared/common module dependencies
+                        elif any([target.id == "deps_common" for target in class_attr.targets]):
+                            for dep_common in class_attr.value.elts:
+                                if type(dep_common.value) == str:
+                                    deps_common.append(dep_common.value)
+
         for task in ansible_tasks:
             if not "become" in task:
                 task["become"] = False
             # don't sudo brew
             elif os_platform() == "darwin" and ("package" in task and task.get("become", False) == True):
                 task["become"] = False
+
         preloaded_data = {
-            "watched_events": watched_events,
-            "produced_events": produced_events,
-            "flags": flags,
+            "watched_events": sorted(watched_events),
+            "produced_events": sorted(produced_events),
+            "flags": sorted(flags),
             "meta": meta,
             "config": config,
             "options_desc": options_desc,
             "hash": module_hash,
             "deps": {
-                "pip": pip_deps,
-                "pip_constraints": pip_deps_constraints,
-                "shell": shell_deps,
-                "apt": apt_deps,
+                "modules": sorted(deps_modules),
+                "pip": deps_pip,
+                "pip_constraints": deps_pip_constraints,
+                "shell": deps_shell,
+                "apt": deps_apt,
                 "ansible": ansible_tasks,
+                "common": deps_common,
             },
-            "sudo": len(apt_deps) > 0,
+            "sudo": len(deps_apt) > 0,
         }
-        if any(x == True for x in search_dict_by_key("become", ansible_tasks)) or any(
-            x == True for x in search_dict_by_key("ansible_become", ansible_tasks)
-        ):
-            preloaded_data["sudo"] = True
+        ansible_task_list = list(ansible_tasks)
+        for dep_common in deps_common:
+            try:
+                ansible_task_list.extend(self._shared_deps[dep_common])
+            except KeyError:
+                common_choices = ",".join(self._shared_deps)
+                raise BBOTError(
+                    f'Error while preloading module "{module_file}": No shared dependency named "{dep_common}" (choices: {common_choices})'
+                )
+        for ansible_task in ansible_task_list:
+            if any(x == True for x in search_dict_by_key("become", ansible_task)) or any(
+                x == True for x in search_dict_by_key("ansible_become", ansible_tasks)
+            ):
+                preloaded_data["sudo"] = True
         return preloaded_data
 
     def load_modules(self, module_names):
@@ -413,14 +601,10 @@ class ModuleLoader:
         modules_options = {}
         for module_name, preloaded in self.filter_modules(modules, mod_type):
             modules_options[module_name] = []
-            module_type = preloaded["type"]
             module_options = preloaded["config"]
             module_options_desc = preloaded["options_desc"]
             for k, v in sorted(module_options.items(), key=lambda x: x[0]):
-                module_key = "modules"
-                if module_type in ("internal", "output"):
-                    module_key = f"{module_type}_modules"
-                option_name = f"{module_key}.{module_name}.{k}"
+                option_name = f"modules.{module_name}.{k}"
                 option_type = type(v).__name__
                 option_description = module_options_desc[k]
                 modules_options[module_name].append((option_name, option_type, option_description, str(v)))
@@ -497,4 +681,4 @@ class ModuleLoader:
         return module_list
 
 
-module_loader = ModuleLoader()
+MODULE_LOADER = ModuleLoader()

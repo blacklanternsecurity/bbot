@@ -34,7 +34,7 @@ class Bucket_Amazon_Base(ModuleTestBase):
 
     @property
     def modules_overrides(self):
-        return ["excavate", "speculate", "httpx", self.module_name]
+        return ["excavate", "speculate", "httpx", self.module_name, "cloud"]
 
     def url_setup(self):
         self.url_1 = f"https://{self.random_bucket_1}/"
@@ -71,7 +71,7 @@ class Bucket_Amazon_Base(ModuleTestBase):
     def check(self, module_test, events):
         # make sure buckets were excavated
         assert any(
-            e.type == "STORAGE_BUCKET" and str(e.module) == f"{self.provider}_cloud" for e in events
+            e.type == "STORAGE_BUCKET" and str(e.module) == f"cloud_{self.provider}" for e in events
         ), f'bucket not found for module "{self.module_name}"'
         # make sure open buckets were found
         if module_test.module.supports_open_check:

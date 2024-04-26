@@ -9,11 +9,7 @@ from bbot.modules.internal.base import BaseInternalModule
 
 
 @pytest.mark.asyncio
-async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock):
-    fallback_nameservers = scan.helpers.temp_dir / "nameservers.txt"
-    with open(fallback_nameservers, "w") as f:
-        f.write("8.8.8.8\n")
-
+async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
     for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
 
@@ -80,12 +76,11 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     base_output_module.watched_events = ["IP_ADDRESS"]
 
     scan2 = bbot_scanner(
-        modules=list(set(available_modules + available_internal_modules)),
+        modules=list(available_modules),
         output_modules=list(available_output_modules),
-        config=bbot_config,
+        config={i: True for i in available_internal_modules},
         force_start=True,
     )
-    scan2.helpers.dns.fallback_nameservers_file = fallback_nameservers
     await scan2.load_modules()
     scan2.status = "RUNNING"
 
@@ -104,7 +99,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     assert not any(not_async)
 
     # module preloading
-    all_preloaded = module_loader.preloaded()
+    all_preloaded = DEFAULT_PRESET.module_loader.preloaded()
     assert "massdns" in all_preloaded
     assert "DNS_NAME" in all_preloaded["massdns"]["watched_events"]
     assert "DNS_NAME" in all_preloaded["massdns"]["produced_events"]
@@ -113,7 +108,8 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
     assert type(all_preloaded["massdns"]["config"]["max_resolvers"]) == int
     assert all_preloaded["sslcert"]["deps"]["pip"]
     assert all_preloaded["sslcert"]["deps"]["apt"]
-    assert all_preloaded["massdns"]["deps"]["ansible"]
+    assert all_preloaded["massdns"]["deps"]["common"]
+    assert all_preloaded["gowitness"]["deps"]["ansible"]
 
     all_flags = set()
 
@@ -129,6 +125,9 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
             assert ("safe" in flags and not "aggressive" in flags) or (
                 not "safe" in flags and "aggressive" in flags
             ), f'module "{module_name}" must have either "safe" or "aggressive" flag'
+            assert not (
+                "web-basic" in flags and "web-thorough" in flags
+            ), f'module "{module_name}" should have either "web-basic" or "web-thorough" flags, not both'
             assert preloaded.get("meta", {}).get("description", ""), f"{module_name} must have a description"
 
         # attribute checks
@@ -174,7 +173,7 @@ async def test_modules_basic(scan, helpers, events, bbot_config, bbot_scanner, h
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_perhostonly(helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_perhostonly(helpers, events, bbot_scanner, httpx_mock, monkeypatch):
     from bbot.modules.base import BaseModule
 
     class mod_normal(BaseModule):
@@ -198,7 +197,6 @@ async def test_modules_basic_perhostonly(helpers, events, bbot_config, bbot_scan
 
     scan = bbot_scanner(
         "evilcorp.com",
-        config=bbot_config,
         force_start=True,
     )
 
@@ -262,11 +260,11 @@ async def test_modules_basic_perhostonly(helpers, events, bbot_config, bbot_scan
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch):
+async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, httpx_mock, monkeypatch):
     per_domain_scan = bbot_scanner(
         "evilcorp.com",
-        modules=list(set(available_modules + available_internal_modules)),
-        config=bbot_config,
+        modules=list(available_modules),
+        config={i: True for i in available_internal_modules},
         force_start=True,
     )
 
@@ -303,7 +301,7 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_config, b
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, httpx_mock, monkeypatch, mock_dns):
+async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, monkeypatch):
     from bbot.modules.base import BaseModule
 
     class dummy(BaseModule):
@@ -320,12 +318,11 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
 
     scan = bbot_scanner(
         "evilcorp.com",
-        modules=["speculate"],
-        config=bbot_config,
+        config={"speculate": True},
+        output_modules=["python"],
         force_start=True,
     )
-    mock_dns(
-        scan,
+    await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"A": ["127.0.254.1"]},
             "www.evilcorp.com": {"A": ["127.0.254.2"]},
@@ -356,7 +353,7 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
         "ORG_STUB": 1,
     }
 
-    assert set(scan.stats.module_stats) == {"host", "speculate", "python", "dummy", "TARGET"}
+    assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "cloud", "dns"}
 
     target_stats = scan.stats.module_stats["TARGET"]
     assert target_stats.produced == {"SCAN": 1, "DNS_NAME": 1}
@@ -367,8 +364,15 @@ async def test_modules_basic_stats(helpers, events, bbot_config, bbot_scanner, h
     dummy_stats = scan.stats.module_stats["dummy"]
     assert dummy_stats.produced == {"FINDING": 1, "URL": 1}
     assert dummy_stats.produced_total == 2
-    assert dummy_stats.consumed == {"DNS_NAME": 2, "OPEN_TCP_PORT": 1, "SCAN": 1, "URL": 1, "URL_UNVERIFIED": 1}
-    assert dummy_stats.consumed_total == 6
+    assert dummy_stats.consumed == {
+        "DNS_NAME": 2,
+        "FINDING": 1,
+        "OPEN_TCP_PORT": 1,
+        "SCAN": 1,
+        "URL": 1,
+        "URL_UNVERIFIED": 1,
+    }
+    assert dummy_stats.consumed_total == 7
 
     python_stats = scan.stats.module_stats["python"]
     assert python_stats.produced == {}

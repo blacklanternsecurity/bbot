@@ -1,6 +1,3 @@
-from httpx import HTTPError, RequestError  # noqa
-
-
 class BBOTError(Exception):
     pass
 
@@ -50,4 +47,28 @@ class DNSWildcardBreak(DNSError):
 
 
 class CurlError(BBOTError):
+    pass
+
+
+class PresetNotFoundError(BBOTError):
+    pass
+
+
+class EnableModuleError(BBOTError):
+    pass
+
+
+class EnableFlagError(BBOTError):
+    pass
+
+
+class BBOTArgumentError(BBOTError):
+    pass
+
+
+class PresetConditionError(BBOTError):
+    pass
+
+
+class PresetAbortError(PresetConditionError):
     pass

@@ -4,8 +4,8 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_files(bbot_scanner, bbot_config):
-    scan1 = bbot_scanner(config=bbot_config)
+async def test_files(bbot_scanner):
+    scan1 = bbot_scanner()
 
     # tempfile
     tempfile = scan1.helpers.tempfile(("line1", "line2"), pipe=False)

@@ -1,42 +1,21 @@
 import os
-import re
 import sys
-import copy
-import idna
 import json
-import atexit
-import codecs
-import psutil
 import random
-import shutil
-import signal
 import string
 import asyncio
-import difflib
-import inspect
 import logging
-import platform
 import ipaddress
-import traceback
+import regex as re
 import subprocess as sp
 from pathlib import Path
-from itertools import islice
-from datetime import datetime
-from tabulate import tabulate
-import wordninja as _wordninja
 from contextlib import suppress
 from unidecode import unidecode  # noqa F401
-import cloudcheck as _cloudcheck
-import tldextract as _tldextract
-import xml.etree.ElementTree as ET
-from collections.abc import Mapping
-from hashlib import sha1 as hashlib_sha1
 from asyncio import create_task, gather, sleep, wait_for  # noqa
 from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 
 from .url import *  # noqa F401
-from .. import errors
-from .logger import log_to_stderr
+from ... import errors
 from . import regexes as bbot_regexes
 from .names_generator import random_name, names, adjectives  # noqa F401
 
@@ -479,6 +458,8 @@ def tldextract(data):
         - Utilizes `smart_decode` to preprocess the data.
         - Makes use of the `tldextract` library for extraction.
     """
+    import tldextract as _tldextract
+
     return _tldextract.extract(smart_decode(data))
 
 
@@ -656,7 +637,7 @@ def is_ip_type(i):
         >>> is_ip_type("192.168.1.0/24")
         False
     """
-    return isinstance(i, ipaddress._BaseV4) or isinstance(i, ipaddress._BaseV6)
+    return ipaddress._IPAddressBase in i.__class__.__mro__
 
 
 def make_ip_type(s):
@@ -682,76 +663,15 @@ def make_ip_type(s):
         >>> make_ip_type("evilcorp.com")
         'evilcorp.com'
     """
+    if not s:
+        raise ValueError(f'Invalid hostname: "{s}"')
     # IP address
     with suppress(Exception):
-        return ipaddress.ip_address(str(s).strip())
+        return ipaddress.ip_address(s)
     # IP network
     with suppress(Exception):
-        return ipaddress.ip_network(str(s).strip(), strict=False)
+        return ipaddress.ip_network(s, strict=False)
     return s
-
-
-def host_in_host(host1, host2):
-    """
-    Checks if host1 is included within host2, either as a subdomain, IP, or IP network.
-    Used for scope calculations/decisions within BBOT.
-
-    Args:
-        host1 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
-            The host to check for inclusion within host2.
-        host2 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
-            The host within which to check for the inclusion of host1.
-
-    Returns:
-        bool: True if host1 is included in host2, otherwise False.
-
-    Examples:
-        >>> host_in_host("www.evilcorp.com", "evilcorp.com")
-        True
-        >>> host_in_host("evilcorp.com", "www.evilcorp.com")
-        False
-        >>> host_in_host(ipaddress.IPv6Address('dead::beef'), ipaddress.IPv6Network('dead::/64'))
-        True
-        >>> host_in_host(ipaddress.IPv4Address('192.168.1.1'), ipaddress.IPv4Network('10.0.0.0/8'))
-        False
-
-    Notes:
-        - If checking an IP address/network, you MUST FIRST convert your IP into an ipaddress object (e.g. via `make_ip_type()`) before passing it to this function.
-    """
-
-    """
-    Is host1 included in host2?
-        "www.evilcorp.com" in "evilcorp.com"? --> True
-        "evilcorp.com" in "www.evilcorp.com"? --> False
-        IPv6Address('dead::beef') in IPv6Network('dead::/64')? --> True
-        IPv4Address('192.168.1.1') in IPv4Network('10.0.0.0/8')? --> False
-
-    Very important! Used throughout BBOT for scope calculations/decisions.
-
-    Works with hostnames, IPs, and IP networks.
-    """
-
-    if not host1 or not host2:
-        return False
-
-    # check if hosts are IP types
-    host1_ip_type = is_ip_type(host1)
-    host2_ip_type = is_ip_type(host2)
-    # if both hosts are IP types
-    if host1_ip_type and host2_ip_type:
-        if not host1.version == host2.version:
-            return False
-        host1_net = ipaddress.ip_network(host1)
-        host2_net = ipaddress.ip_network(host2)
-        return host1_net.subnet_of(host2_net)
-
-    # else hostnames
-    elif not (host1_ip_type or host2_ip_type):
-        host2_len = len(host2.split("."))
-        host1_truncated = ".".join(host1.split(".")[-host2_len:])
-        return host1_truncated == host2
-
-    return False
 
 
 def sha1(data):
@@ -768,6 +688,8 @@ def sha1(data):
         >>> sha1("asdf").hexdigest()
         '3da541559918a808c2402bba5012f6c60b27661c'
     """
+    from hashlib import sha1 as hashlib_sha1
+
     if isinstance(data, dict):
         data = json.dumps(data, sort_keys=True)
     return hashlib_sha1(smart_encode(data))
@@ -841,6 +763,8 @@ def recursive_decode(data, max_depth=5):
         >>> recursive_dcode("%5Cu0020%5Cu041f%5Cu0440%5Cu0438%5Cu0432%5Cu0435%5Cu0442%5Cu0021")
         " Привет!"
     """
+    import codecs
+
     # Decode newline and tab escapes
     data = backslash_regex.sub(
         lambda match: {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "v": "\v"}.get(match.group("char")), data
@@ -955,6 +879,8 @@ def extract_params_xml(xml_data):
         >>> extract_params_xml('<root><child1><child2/></child1></root>')
         {'child1', 'child2', 'root'}
     """
+    import xml.etree.ElementTree as ET
+
     try:
         root = ET.fromstring(xml_data)
     except ET.ParseError:
@@ -1047,6 +973,7 @@ def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=10
         >>> extract_words('blacklanternsecurity')
         {'black', 'lantern', 'security', 'bls', 'blacklanternsecurity'}
     """
+    import wordninja as _wordninja
 
     if word_regexes is None:
         word_regexes = bbot_regexes.word_regexes
@@ -1103,6 +1030,8 @@ def closest_match(s, choices, n=1, cutoff=0.0):
         >>> closest_match("asdf", ["asd", "fds", "asdff"], n=3)
         ['asdff', 'asd', 'fds']
     """
+    import difflib
+
     matches = difflib.get_close_matches(s, choices, n=n, cutoff=cutoff)
     if not choices or not matches:
         return
@@ -1111,8 +1040,8 @@ def closest_match(s, choices, n=1, cutoff=0.0):
     return matches
 
 
-def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
-    """Finds the closest match from a list of choices for a given string, logs a warning, and exits the program.
+def get_closest_match(s, choices, msg=None):
+    """Finds the closest match from a list of choices for a given string.
 
     This function is particularly useful for CLI applications where you want to validate flags or modules.
 
@@ -1124,27 +1053,32 @@ def match_and_exit(s, choices, msg=None, loglevel="HUGEWARNING", exitcode=2):
         exitcode (int, optional): The exit code to use when exiting the program. Defaults to 2.
 
     Examples:
-        >>> match_and_exit("some_module", ["some_mod", "some_other_mod"], msg="module")
+        >>> get_closest_match("some_module", ["some_mod", "some_other_mod"], msg="module")
         # Output: Could not find module "some_module". Did you mean "some_mod"?
-        # Exits with code 2
     """
     if msg is None:
         msg = ""
     else:
         msg += " "
     closest = closest_match(s, choices)
-    log_to_stderr(f'Could not find {msg}"{s}". Did you mean "{closest}"?', level="HUGEWARNING")
-    sys.exit(2)
+    return f'Could not find {msg}"{s}". Did you mean "{closest}"?'
 
 
-def kill_children(parent_pid=None, sig=signal.SIGTERM):
+def kill_children(parent_pid=None, sig=None):
     """
     Forgive me father for I have sinned
     """
+    import psutil
+    import signal
+
+    if sig is None:
+        sig = signal.SIGTERM
+
     try:
         parent = psutil.Process(parent_pid)
     except psutil.NoSuchProcess:
         log.debug(f"No such PID: {parent_pid}")
+        return
     log.debug(f"Killing children of process ID {parent.pid}")
     children = parent.children(recursive=True)
     for child in children:
@@ -1156,6 +1090,7 @@ def kill_children(parent_pid=None, sig=signal.SIGTERM):
                 log.debug(f"No such PID: {child.pid}")
             except psutil.AccessDenied:
                 log.debug(f"Error killing PID: {child.pid} - access denied")
+    log.debug(f"Finished killing children of process ID {parent.pid}")
 
 
 def str_or_file(s):
@@ -1263,6 +1198,8 @@ def rm_at_exit(path):
     Examples:
         >>> rm_at_exit("/tmp/test/file1.txt")
     """
+    import atexit
+
     atexit.register(delete_file, path)
 
 
@@ -1376,6 +1313,8 @@ def which(*executables):
         >>> which("python", "python3")
         "/usr/bin/python"
     """
+    import shutil
+
     for e in executables:
         location = shutil.which(e)
         if location:
@@ -1474,74 +1413,6 @@ def search_dict_values(d, *regexes):
             yield from search_dict_values(v, *regexes)
 
 
-def filter_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
-    """
-    Recursively filter a dictionary based on key names.
-
-    Args:
-        d (dict): The input dictionary.
-        *key_names: Names of keys to filter for.
-        fuzzy (bool): Whether to perform fuzzy matching on keys.
-        exclude_keys (list, None): List of keys to be excluded from the final dict.
-        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
-
-    Returns:
-        dict: A dictionary containing only the keys specified in key_names.
-
-    Examples:
-        >>> filter_dict({"key1": "test", "key2": "asdf"}, "key2")
-        {"key2": "asdf"}
-        >>> filter_dict({"key1": "test", "key2": {"key3": "asdf"}}, "key1", "key3", exclude_keys="key2")
-        {'key1': 'test'}
-    """
-    if exclude_keys is None:
-        exclude_keys = []
-    if isinstance(exclude_keys, str):
-        exclude_keys = [exclude_keys]
-    ret = {}
-    if isinstance(d, dict):
-        for key in d:
-            if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if not any(k in exclude_keys for k in [key, _prev_key]):
-                    ret[key] = copy.deepcopy(d[key])
-            elif isinstance(d[key], list) or isinstance(d[key], dict):
-                child = filter_dict(d[key], *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
-                if child:
-                    ret[key] = child
-    return ret
-
-
-def clean_dict(d, *key_names, fuzzy=False, exclude_keys=None, _prev_key=None):
-    """
-    Recursively clean unwanted keys from a dictionary.
-    Useful for removing secrets from a config.
-
-    Args:
-        d (dict): The input dictionary.
-        *key_names: Names of keys to remove.
-        fuzzy (bool): Whether to perform fuzzy matching on keys.
-        exclude_keys (list, None): List of keys to be excluded from removal.
-        _prev_key (str, None): For internal recursive use; the previous key in the hierarchy.
-
-    Returns:
-        dict: A dictionary cleaned of the keys specified in key_names.
-
-    """
-    if exclude_keys is None:
-        exclude_keys = []
-    if isinstance(exclude_keys, str):
-        exclude_keys = [exclude_keys]
-    d = copy.deepcopy(d)
-    if isinstance(d, dict):
-        for key, val in list(d.items()):
-            if key in key_names or (fuzzy and any(k in key for k in key_names)):
-                if _prev_key not in exclude_keys:
-                    d.pop(key)
-            else:
-                d[key] = clean_dict(val, *key_names, fuzzy=fuzzy, _prev_key=key, exclude_keys=exclude_keys)
-    return d
-
-
 def grouper(iterable, n):
     """
     Grouper groups an iterable into chunks of a given size.
@@ -1557,6 +1428,7 @@ def grouper(iterable, n):
         >>> list(grouper('ABCDEFG', 3))
         [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
     """
+    from itertools import islice
 
     iterable = iter(iterable)
     return iter(lambda: list(islice(iterable, n)), [])
@@ -1635,6 +1507,8 @@ def make_date(d=None, microseconds=False):
         >>> make_date(microseconds=True)
         "20220707_1330_35167617"
     """
+    from datetime import datetime
+
     f = "%Y%m%d_%H%M_%S"
     if microseconds:
         f += "%f"
@@ -1768,6 +1642,8 @@ def rm_rf(f):
     Examples:
         >>> rm_rf("/tmp/httpx98323849")
     """
+    import shutil
+
     shutil.rmtree(f)
 
 
@@ -1887,6 +1763,8 @@ def smart_encode_punycode(text: str) -> str:
     """
     ドメイン.テスト --> xn--eckwd4c7c.xn--zckzah
     """
+    import idna
+
     host, before, after = extract_host(text)
     if host is None:
         return text
@@ -1903,6 +1781,8 @@ def smart_decode_punycode(text: str) -> str:
     """
     xn--eckwd4c7c.xn--zckzah --> ドメイン.テスト
     """
+    import idna
+
     host, before, after = extract_host(text)
     if host is None:
         return text
@@ -1994,6 +1874,8 @@ def make_table(rows, header, **kwargs):
         | row2      | row2      |
         +-----------+-----------+
     """
+    from tabulate import tabulate
+
     # fix IndexError: list index out of range
     if not rows:
         rows = [[]]
@@ -2143,6 +2025,8 @@ def cpu_architecture():
         >>> cpu_architecture()
         'amd64'
     """
+    import platform
+
     uname = platform.uname()
     arch = uname.machine.lower()
     if arch.startswith("aarch"):
@@ -2165,6 +2049,8 @@ def os_platform():
         >>> os_platform()
         'linux'
     """
+    import platform
+
     return platform.system().lower()
 
 
@@ -2233,6 +2119,8 @@ def memory_status():
         >>> mem.percent
         79.0
     """
+    import psutil
+
     return psutil.virtual_memory()
 
 
@@ -2255,6 +2143,8 @@ def swap_status():
         >>> swap.used
         2097152
     """
+    import psutil
+
     return psutil.swap_memory()
 
 
@@ -2277,6 +2167,8 @@ def get_size(obj, max_depth=5, seen=None):
         >>> get_size(my_dict, max_depth=3)
         8400
     """
+    from collections.abc import Mapping
+
     # If seen is not provided, initialize an empty set
     if seen is None:
         seen = set()
@@ -2352,6 +2244,8 @@ def cloudcheck(ip):
         >>> cloudcheck("168.62.20.37")
         ('Azure', 'cloud', IPv4Network('168.62.0.0/19'))
     """
+    import cloudcheck as _cloudcheck
+
     return _cloudcheck.check(ip)
 
 
@@ -2371,6 +2265,8 @@ def is_async_function(f):
         >>> is_async_function(foo)
         True
     """
+    import inspect
+
     return inspect.iscoroutinefunction(f)
 
 
@@ -2449,6 +2345,8 @@ def get_traceback_details(e):
         ...     print(f"File: {filename}, Line: {lineno}, Function: {funcname}")
         File: <stdin>, Line: 2, Function: <module>
     """
+    import traceback
+
     tb = traceback.extract_tb(e.__traceback__)
     last_frame = tb[-1]  # Get the last frame in the traceback (the one where the exception was raised)
     filename = last_frame.filename
@@ -2487,6 +2385,8 @@ async def cancel_tasks(tasks, ignore_errors=True):
                 await task
             except BaseException as e:
                 if not isinstance(e, asyncio.CancelledError):
+                    import traceback
+
                     log.trace(traceback.format_exc())
 
 
@@ -2664,3 +2564,30 @@ async def as_completed(coros):
         for task in done:
             tasks.pop(task)
             yield task
+
+
+def clean_dns_record(record):
+    """
+    Cleans and formats a given DNS record for further processing.
+
+    This static method converts the DNS record to text format if it's not already a string.
+    It also removes any trailing dots and converts the record to lowercase.
+
+    Args:
+        record (str or dns.rdata.Rdata): The DNS record to clean.
+
+    Returns:
+        str: The cleaned and formatted DNS record.
+
+    Examples:
+        >>> clean_dns_record('www.evilcorp.com.')
+        'www.evilcorp.com'
+
+        >>> from dns.rrset import from_text
+        >>> record = from_text('www.evilcorp.com', 3600, 'IN', 'A', '1.2.3.4')[0]
+        >>> clean_dns_record(record)
+        '1.2.3.4'
+    """
+    if not isinstance(record, str):
+        record = str(record.to_text())
+    return str(record).rstrip(".").lower()

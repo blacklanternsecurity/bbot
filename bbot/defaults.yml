@@ -8,8 +8,6 @@ home: ~/.bbot
 scope_report_distance: 0
 # Generate new DNS_NAME and IP_ADDRESS events through DNS resolution
 dns_resolution: true
-# Limit the number of BBOT threads
-max_threads: 25
 # Rate-limit DNS
 dns_queries_per_second: 1000
 # Rate-limit HTTP
@@ -20,6 +18,11 @@ status_frequency: 15
 http_proxy: 
 # Web user-agent
 user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
+
+# Tool dependencies
+deps:
+  ffuf:
+    version: "2.1.0"
 
 ### WEB SPIDER ###
 
@@ -33,6 +36,8 @@ web_spider_links_per_page: 25
 
 ### ADVANCED OPTIONS ###
 
+module_paths: []
+
 # How far out from the main scope to search
 scope_search_distance: 0
 # How far out from the main scope to resolve DNS names / IPs
@@ -40,12 +45,27 @@ scope_dns_search_distance: 1
 # Limit how many DNS records can be followed in a row (stop malicious/runaway DNS records)
 dns_resolve_distance: 5
 
+# Limit the number of scan manager workers
+manager_tasks: 5
+
 # Infer certain events from others, e.g. IPs from IP ranges, DNS_NAMEs from URLs, etc.
 speculate: True
 # Passively search event data for URLs, hostnames, emails, etc.
 excavate: True
 # Summarize activity at the end of a scan
 aggregate: True
+# DNS resolution
+dnsresolve: True
+# Cloud provider tagging
+cloudcheck: True
+
+# How to handle installation of module dependencies
+# Choices are:
+#  - abort_on_failure (default) - if a module dependency fails to install, abort the scan
+#  - retry_failed - try again to install failed dependencies
+#  - ignore_failed - run the scan regardless of what happens with dependency installation
+#  - disable - completely disable BBOT's dependency system (you are responsible for install tools, pip packages, etc.)
+deps_behavior: abort_on_failure
 
 # HTTP timeout (for Python requests; API calls, etc.)
 http_timeout: 10
@@ -64,11 +84,14 @@ httpx_retries: 1
 http_debug: false
 # Maximum number of HTTP redirects to follow
 http_max_redirects: 5
+
 # DNS query timeout
 dns_timeout: 5
 # How many times to retry DNS queries
 dns_retries: 1
-# Disable BBOT's smart DNS wildcard handling for select domains
+# Completely disable BBOT's DNS wildcard detection
+dns_wildcard_disable: False
+# Disable BBOT's DNS wildcard detection for select domains
 dns_wildcard_ignore: []
 # How many sanity checks to make when verifying wildcard DNS
 # Increase this value if BBOT's wildcard detection isn't working
@@ -80,6 +103,7 @@ dns_abort_threshold: 50
 dns_filter_ptrs: true
 # Enable/disable debug messages for dns queries
 dns_debug: false
+
 # Whether to verify SSL certificates
 ssl_verify: false
 # How many scan results to keep before cleaning up the older ones
@@ -124,10 +148,6 @@ omit_event_types:
     - URL_UNVERIFIED
     - DNS_NAME_UNRESOLVED
     # - IP_ADDRESS
-# URL of BBOT server
-agent_url: ''
-# Agent Bearer authentication token
-agent_token: ''
 
 # Custom interactsh server settings
 interactsh_server: null

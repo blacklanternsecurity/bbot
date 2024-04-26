@@ -1,0 +1,7 @@
+description: Enumerate subdomains via APIs, brute-force
+
+flags:
+  - subdomain-enum
+
+output_modules:
+  - subdomains

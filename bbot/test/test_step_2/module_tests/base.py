@@ -5,20 +5,17 @@ import pytest_asyncio
 from omegaconf import OmegaConf
 from types import SimpleNamespace
 
+from ...bbot_fixtures import *
 from bbot.scanner import Scanner
-from bbot.modules import module_loader
 from bbot.core.helpers.misc import rand_string
-from ...bbot_fixtures import test_config, MockResolver
 
 log = logging.getLogger("bbot.test.modules")
 
 
 def tempwordlist(content):
-    tmp_path = "/tmp/.bbot_test/"
-    from bbot.core.helpers.misc import rand_string, mkdir
+    from bbot.core.helpers.misc import rand_string
 
-    mkdir(tmp_path)
-    filename = f"{tmp_path}{rand_string(8)}"
+    filename = bbot_test_dir / f"{rand_string(8)}"
     with open(filename, "w", errors="ignore") as f:
         for c in content:
             line = f"{c}\n"
@@ -52,14 +49,14 @@ class ModuleTestBase:
     class ModuleTest:
         def __init__(self, module_test_base, httpx_mock, httpserver, httpserver_ssl, monkeypatch, request):
             self.name = module_test_base.name
-            self.config = OmegaConf.merge(test_config, OmegaConf.create(module_test_base.config_overrides))
+            self.config = OmegaConf.merge(CORE.config, OmegaConf.create(module_test_base.config_overrides))
 
             self.httpx_mock = httpx_mock
             self.httpserver = httpserver
             self.httpserver_ssl = httpserver_ssl
             self.monkeypatch = monkeypatch
             self.request_fixture = request
-            self.preloaded = module_loader.preloaded()
+            self.preloaded = DEFAULT_PRESET.module_loader.preloaded()
 
             # handle output, internal module types
             output_modules = None
@@ -78,7 +75,7 @@ class ModuleTestBase:
                 *module_test_base.targets,
                 modules=modules,
                 output_modules=output_modules,
-                name=module_test_base._scan_name,
+                scan_name=module_test_base._scan_name,
                 config=self.config,
                 whitelist=module_test_base.whitelist,
                 blacklist=module_test_base.blacklist,
@@ -94,10 +91,10 @@ class ModuleTestBase:
         def set_expect_requests_handler(self, expect_args=None, request_handler=None):
             self.httpserver.expect_request(expect_args).respond_with_handler(request_handler)
 
-        def mock_dns(self, mock_data, scan=None):
+        async def mock_dns(self, mock_data, scan=None):
             if scan is None:
                 scan = self.scan
-            scan.helpers.dns.resolver = MockResolver(mock_data)
+            await scan.helpers.dns._mock_dns(mock_data)
 
         @property
         def module(self):

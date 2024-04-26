@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from httpx._models import Cookies
 from socksio.exceptions import SOCKSError
 
-from bbot.core.errors import WordlistError, CurlError
+from bbot.errors import WordlistError, CurlError
 from bbot.core.helpers.ratelimiter import RateLimiter
 
 from bs4 import MarkupResemblesLocatorWarning
@@ -50,18 +50,18 @@ class BBOTAsyncClient(httpx.AsyncClient):
     """
 
     def __init__(self, *args, **kwargs):
-        self._bbot_scan = kwargs.pop("_bbot_scan")
-        web_requests_per_second = self._bbot_scan.config.get("web_requests_per_second", 100)
+        self._preset = kwargs.pop("_preset")
+        web_requests_per_second = self._preset.config.get("web_requests_per_second", 100)
         self._rate_limiter = RateLimiter(web_requests_per_second, "Web")
 
-        http_debug = self._bbot_scan.config.get("http_debug", None)
+        http_debug = self._preset.config.get("http_debug", None)
         if http_debug:
             log.trace(f"Creating AsyncClient: {args}, {kwargs}")
 
         self._persist_cookies = kwargs.pop("persist_cookies", True)
 
         # timeout
-        http_timeout = self._bbot_scan.config.get("http_timeout", 20)
+        http_timeout = self._preset.config.get("http_timeout", 20)
         if not "timeout" in kwargs:
             kwargs["timeout"] = http_timeout
 
@@ -70,12 +70,12 @@ class BBOTAsyncClient(httpx.AsyncClient):
         if headers is None:
             headers = {}
         # user agent
-        user_agent = self._bbot_scan.config.get("user_agent", "BBOT")
+        user_agent = self._preset.config.get("user_agent", "BBOT")
         if "User-Agent" not in headers:
             headers["User-Agent"] = user_agent
         kwargs["headers"] = headers
         # proxy
-        proxies = self._bbot_scan.config.get("http_proxy", None)
+        proxies = self._preset.config.get("http_proxy", None)
         kwargs["proxies"] = proxies
 
         super().__init__(*args, **kwargs)
@@ -89,8 +89,8 @@ class BBOTAsyncClient(httpx.AsyncClient):
     def build_request(self, *args, **kwargs):
         request = super().build_request(*args, **kwargs)
         # add custom headers if the URL is in-scope
-        if self._bbot_scan.in_scope(str(request.url)):
-            for hk, hv in self._bbot_scan.config.get("http_headers", {}).items():
+        if self._preset.in_scope(str(request.url)):
+            for hk, hv in self._preset.config.get("http_headers", {}).items():
                 # don't clobber headers
                 if hk not in request.headers:
                     request.headers[hk] = hv
@@ -141,7 +141,7 @@ class WebHelper:
         self.web_client = self.AsyncClient(persist_cookies=False)
 
     def AsyncClient(self, *args, **kwargs):
-        kwargs["_bbot_scan"] = self.parent_helper.scan
+        kwargs["_preset"] = self.parent_helper.preset
         retries = kwargs.pop("retries", self.parent_helper.config.get("http_retries", 1))
         kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=self.ssl_verify)
         kwargs["verify"] = self.ssl_verify
@@ -479,8 +479,8 @@ class WebHelper:
                 headers["User-Agent"] = user_agent
 
             # only add custom headers if the URL is in-scope
-            if self.parent_helper.scan.in_scope(url):
-                for hk, hv in self.parent_helper.scan.config.get("http_headers", {}).items():
+            if self.parent_helper.preset.in_scope(url):
+                for hk, hv in self.parent_helper.config.get("http_headers", {}).items():
                     headers[hk] = hv
 
             # add the timeout
@@ -564,9 +564,9 @@ class WebHelper:
             False
         """
         url_depth = self.parent_helper.url_depth(url)
-        web_spider_depth = self.parent_helper.scan.config.get("web_spider_depth", 1)
+        web_spider_depth = self.parent_helper.config.get("web_spider_depth", 1)
         spider_distance = getattr(source_event, "web_spider_distance", 0) + 1
-        web_spider_distance = self.parent_helper.scan.config.get("web_spider_distance", 0)
+        web_spider_distance = self.parent_helper.config.get("web_spider_distance", 0)
         if (url_depth > web_spider_depth) or (spider_distance > web_spider_distance):
             return True
         return False

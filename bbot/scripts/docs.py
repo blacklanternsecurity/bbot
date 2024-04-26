@@ -5,8 +5,9 @@ import re
 import yaml
 from pathlib import Path
 
-from bbot.modules import module_loader
-from bbot.core.configurator.args import parser, scan_examples
+from bbot.scanner import Preset
+
+DEFAULT_PRESET = Preset()
 
 os.environ["BBOT_TABLE_FORMAT"] = "github"
 
@@ -16,6 +17,14 @@ blacklist_chars = ["<", ">"]
 blacklist_re = re.compile(r"\|([^|]*[" + re.escape("".join(blacklist_chars)) + r"][^|]*)\|")
 
 bbot_code_dir = Path(__file__).parent.parent.parent
+
+
+def homedir_collapseuser(f):
+    f = Path(f)
+    home_dir = Path.home()
+    if f.is_relative_to(home_dir):
+        return Path("~") / f.relative_to(home_dir)
+    return f
 
 
 def enclose_tags(text):
@@ -63,12 +72,12 @@ def update_docs():
                 content = f.read()
             for match in regex.finditer(content):
                 module_name = match.groups()[0].lower()
-                bbot_module_options_table = module_loader.modules_options_table(modules=[module_name])
+                bbot_module_options_table = DEFAULT_PRESET.module_loader.modules_options_table(modules=[module_name])
                 find_replace_file(file, f"BBOT MODULE OPTIONS {module_name.upper()}", bbot_module_options_table)
 
     # Example commands
     bbot_example_commands = []
-    for title, description, command in scan_examples:
+    for title, description, command in DEFAULT_PRESET.args.scan_examples:
         example = ""
         example += f"**{title}:**\n\n"
         # example += f"{description}\n"
@@ -79,36 +88,78 @@ def update_docs():
     update_md_files("BBOT EXAMPLE COMMANDS", bbot_example_commands)
 
     # Help output
-    bbot_help_output = parser.format_help().replace("docs.py", "bbot")
+    bbot_help_output = DEFAULT_PRESET.args.parser.format_help().replace("docs.py", "bbot")
     bbot_help_output = f"```text\n{bbot_help_output}\n```"
     assert len(bbot_help_output.splitlines()) > 50
     update_md_files("BBOT HELP OUTPUT", bbot_help_output)
 
     # BBOT events
-    bbot_event_table = module_loader.events_table()
+    bbot_event_table = DEFAULT_PRESET.module_loader.events_table()
     assert len(bbot_event_table.splitlines()) > 10
     update_md_files("BBOT EVENTS", bbot_event_table)
 
     # BBOT modules
-    bbot_module_table = module_loader.modules_table()
+    bbot_module_table = DEFAULT_PRESET.module_loader.modules_table()
     assert len(bbot_module_table.splitlines()) > 50
     update_md_files("BBOT MODULES", bbot_module_table)
 
     # BBOT output modules
-    bbot_output_module_table = module_loader.modules_table(mod_type="output")
+    bbot_output_module_table = DEFAULT_PRESET.module_loader.modules_table(mod_type="output")
     assert len(bbot_output_module_table.splitlines()) > 10
     update_md_files("BBOT OUTPUT MODULES", bbot_output_module_table)
 
     # BBOT module options
-    bbot_module_options_table = module_loader.modules_options_table()
+    bbot_module_options_table = DEFAULT_PRESET.module_loader.modules_options_table()
     assert len(bbot_module_options_table.splitlines()) > 100
     update_md_files("BBOT MODULE OPTIONS", bbot_module_options_table)
     update_individual_module_options()
 
     # BBOT module flags
-    bbot_module_flags_table = module_loader.flags_table()
+    bbot_module_flags_table = DEFAULT_PRESET.module_loader.flags_table()
     assert len(bbot_module_flags_table.splitlines()) > 10
     update_md_files("BBOT MODULE FLAGS", bbot_module_flags_table)
+
+    # BBOT presets
+    bbot_presets_table = DEFAULT_PRESET.presets_table(include_modules=True)
+    assert len(bbot_presets_table.splitlines()) > 5
+    update_md_files("BBOT PRESETS", bbot_presets_table)
+
+    # BBOT subdomain enum preset
+    for yaml_file, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
+        if loaded_preset.name == "subdomain-enum":
+            subdomain_enum_preset = f"""```yaml title="{yaml_file.name}"
+{loaded_preset._yaml_str}
+```"""
+            update_md_files("BBOT SUBDOMAIN ENUM PRESET", subdomain_enum_preset)
+            break
+
+    content = []
+    for yaml_file, (loaded_preset, category, preset_path, original_filename) in DEFAULT_PRESET.all_presets.items():
+        yaml_str = loaded_preset._yaml_str
+        indent = " " * 4
+        yaml_str = f"\n{indent}".join(yaml_str.splitlines())
+        filename = homedir_collapseuser(yaml_file)
+
+        num_modules = len(loaded_preset.scan_modules)
+        modules = ", ".join(sorted([f"`{m}`" for m in loaded_preset.scan_modules]))
+        category = f"Category: {category}" if category else ""
+
+        content.append(
+            f"""## **{loaded_preset.name}**
+
+{loaded_preset.description}
+
+??? note "`{filename.name}`"
+    ```yaml title="{filename}"
+    {yaml_str}
+    ```
+
+{category}
+
+Modules: [{num_modules:,}]("{modules}")"""
+        )
+    assert len(content) > 5
+    update_md_files("BBOT PRESET YAML", "\n\n".join(content))
 
     # Default config
     default_config_file = bbot_code_dir / "bbot" / "defaults.yml"

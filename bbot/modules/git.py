@@ -6,7 +6,7 @@ from bbot.modules.base import BaseModule
 class git(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic", "code-enum"]
     meta = {"description": "Check for exposed .git repositories"}
 
     in_scope_only = True

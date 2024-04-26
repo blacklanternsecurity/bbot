@@ -24,7 +24,7 @@ class TestBaddns_cname_nxdomain(BaseTestBaddns):
         from bbot.modules import baddns as baddns_module
         from baddns.lib.whoismanager import WhoisManager
 
-        module_test.mock_dns(
+        await module_test.mock_dns(
             {"bad.dns": {"CNAME": ["baddns.azurewebsites.net."]}, "_NXDOMAIN": ["baddns.azurewebsites.net"]}
         )
         module_test.monkeypatch.setattr(baddns_module.baddns, "select_modules", self.select_modules)
@@ -52,7 +52,7 @@ class TestBaddns_cname_signature(BaseTestBaddns):
         respond_args = {"response_data": "<h1>Oops! We couldn&#8217;t find that page.</h1>", "status": 200}
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
-        module_test.mock_dns(
+        await module_test.mock_dns(
             {"bad.dns": {"CNAME": ["baddns.bigcartel.com."]}, "baddns.bigcartel.com": {"A": ["127.0.0.1"]}}
         )
         module_test.monkeypatch.setattr(baddns_module.baddns, "select_modules", self.select_modules)

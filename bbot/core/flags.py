@@ -4,6 +4,7 @@ flag_descriptions = {
     "aggressive": "Generates a large amount of network traffic",
     "baddns": "Runs all modules from the DNS auditing tool BadDNS",
     "cloud-enum": "Enumerates cloud resources",
+    "code-enum": "Find public code repositories and search them for secrets etc.",
     "deadly": "Highly aggressive",
     "email-enum": "Enumerates email addresses",
     "iis-shortnames": "Scans for IIS Shortname vulnerability",

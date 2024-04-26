@@ -1,5 +1,5 @@
+from bbot.errors import HttpCompareError
 from bbot.modules.base import BaseModule
-from bbot.core.errors import HttpCompareError
 
 """
 Port of https://github.com/iamj0ker/bypass-403/ and https://portswigger.net/bappstore/444407b96d9c4de0adb7aed89e826122
