@@ -1,3 +1,4 @@
+from contextlib import suppress
 from neo4j import AsyncGraphDatabase
 
 from bbot.modules.output.base import BaseOutputModule
@@ -78,5 +79,7 @@ class neo4j(BaseOutputModule):
         return (await result.single()).get("id(_)")
 
     async def cleanup(self):
-        await self.session.close()
-        await self.driver.close()
+        with suppress(Exception):
+            await self.session.close()
+        with suppress(Exception):
+            await self.driver.close()

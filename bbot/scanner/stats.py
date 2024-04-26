@@ -23,6 +23,9 @@ class ScanStats:
             module_stat.increment_produced(event)
 
     def event_consumed(self, event, module):
+        # skip ingress/egress modules, etc.
+        if module.name.startswith("_"):
+            return
         module_stat = self.get(module)
         if module_stat is not None:
             module_stat.increment_consumed(event)

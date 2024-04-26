@@ -98,17 +98,17 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 3/3 internal modules (aggregate,excavate,speculate)" in caplog.text
+    assert "Loaded 5/5 internal modules (aggregate,cloud,dns,excavate,speculate)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "excavate", "speculate", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 1/1 internal modules (aggregate)" in caplog.text
+    assert "Loaded 3/3 internal modules (aggregate,cloud,dns)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "speculate=false", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 2/2 internal modules (aggregate,excavate)" in caplog.text
+    assert "Loaded 4/4 internal modules (aggregate,cloud,dns,excavate)" in caplog.text
 
     # list modules
     caplog.clear()

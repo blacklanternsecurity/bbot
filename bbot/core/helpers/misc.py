@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 import json
 import random
@@ -7,6 +6,7 @@ import string
 import asyncio
 import logging
 import ipaddress
+import regex as re
 import subprocess as sp
 from pathlib import Path
 from contextlib import suppress
@@ -637,7 +637,7 @@ def is_ip_type(i):
         >>> is_ip_type("192.168.1.0/24")
         False
     """
-    return isinstance(i, ipaddress._BaseV4) or isinstance(i, ipaddress._BaseV6)
+    return ipaddress._IPAddressBase in i.__class__.__mro__
 
 
 def make_ip_type(s):
@@ -663,76 +663,15 @@ def make_ip_type(s):
         >>> make_ip_type("evilcorp.com")
         'evilcorp.com'
     """
+    if not s:
+        raise ValueError(f'Invalid hostname: "{s}"')
     # IP address
     with suppress(Exception):
-        return ipaddress.ip_address(str(s).strip())
+        return ipaddress.ip_address(s)
     # IP network
     with suppress(Exception):
-        return ipaddress.ip_network(str(s).strip(), strict=False)
+        return ipaddress.ip_network(s, strict=False)
     return s
-
-
-def host_in_host(host1, host2):
-    """
-    Checks if host1 is included within host2, either as a subdomain, IP, or IP network.
-    Used for scope calculations/decisions within BBOT.
-
-    Args:
-        host1 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
-            The host to check for inclusion within host2.
-        host2 (str or ipaddress.IPv4Address or ipaddress.IPv6Address or ipaddress.IPv4Network or ipaddress.IPv6Network):
-            The host within which to check for the inclusion of host1.
-
-    Returns:
-        bool: True if host1 is included in host2, otherwise False.
-
-    Examples:
-        >>> host_in_host("www.evilcorp.com", "evilcorp.com")
-        True
-        >>> host_in_host("evilcorp.com", "www.evilcorp.com")
-        False
-        >>> host_in_host(ipaddress.IPv6Address('dead::beef'), ipaddress.IPv6Network('dead::/64'))
-        True
-        >>> host_in_host(ipaddress.IPv4Address('192.168.1.1'), ipaddress.IPv4Network('10.0.0.0/8'))
-        False
-
-    Notes:
-        - If checking an IP address/network, you MUST FIRST convert your IP into an ipaddress object (e.g. via `make_ip_type()`) before passing it to this function.
-    """
-
-    """
-    Is host1 included in host2?
-        "www.evilcorp.com" in "evilcorp.com"? --> True
-        "evilcorp.com" in "www.evilcorp.com"? --> False
-        IPv6Address('dead::beef') in IPv6Network('dead::/64')? --> True
-        IPv4Address('192.168.1.1') in IPv4Network('10.0.0.0/8')? --> False
-
-    Very important! Used throughout BBOT for scope calculations/decisions.
-
-    Works with hostnames, IPs, and IP networks.
-    """
-
-    if not host1 or not host2:
-        return False
-
-    # check if hosts are IP types
-    host1_ip_type = is_ip_type(host1)
-    host2_ip_type = is_ip_type(host2)
-    # if both hosts are IP types
-    if host1_ip_type and host2_ip_type:
-        if not host1.version == host2.version:
-            return False
-        host1_net = ipaddress.ip_network(host1)
-        host2_net = ipaddress.ip_network(host2)
-        return host1_net.subnet_of(host2_net)
-
-    # else hostnames
-    elif not (host1_ip_type or host2_ip_type):
-        host2_len = len(host2.split("."))
-        host1_truncated = ".".join(host1.split(".")[-host2_len:])
-        return host1_truncated == host2
-
-    return False
 
 
 def sha1(data):
@@ -2625,3 +2564,30 @@ async def as_completed(coros):
         for task in done:
             tasks.pop(task)
             yield task
+
+
+def clean_dns_record(record):
+    """
+    Cleans and formats a given DNS record for further processing.
+
+    This static method converts the DNS record to text format if it's not already a string.
+    It also removes any trailing dots and converts the record to lowercase.
+
+    Args:
+        record (str or dns.rdata.Rdata): The DNS record to clean.
+
+    Returns:
+        str: The cleaned and formatted DNS record.
+
+    Examples:
+        >>> clean_dns_record('www.evilcorp.com.')
+        'www.evilcorp.com'
+
+        >>> from dns.rrset import from_text
+        >>> record = from_text('www.evilcorp.com', 3600, 'IN', 'A', '1.2.3.4')[0]
+        >>> clean_dns_record(record)
+        '1.2.3.4'
+    """
+    if not isinstance(record, str):
+        record = str(record.to_text())
+    return str(record).rstrip(".").lower()
