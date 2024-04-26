@@ -173,8 +173,6 @@ class httpx(BaseModule):
             if url_event:
                 if url_event != source_event:
                     await self.emit_event(url_event)
-                else:
-                    url_event._resolved.set()
                 # HTTP response
                 await self.emit_event(j, "HTTP_RESPONSE", url_event, tags=url_event.tags)
 

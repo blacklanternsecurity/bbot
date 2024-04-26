@@ -410,8 +410,10 @@ class Preset:
         for flag in baked_preset.flags:
             for module, preloaded in baked_preset.module_loader.preloaded().items():
                 module_flags = preloaded.get("flags", [])
+                module_type = preloaded.get("type", "scan")
                 if flag in module_flags:
-                    baked_preset.add_module(module, raise_error=False)
+                    self.log_debug(f'Enabling module "{module}" because it has flag "{flag}"')
+                    baked_preset.add_module(module, module_type, raise_error=False)
 
         # ensure we have output modules
         if not baked_preset.output_modules:
@@ -462,7 +464,7 @@ class Preset:
         return [m for m in self.modules if self.preloaded_module(m).get("type", "scan") == "internal"]
 
     def add_module(self, module_name, module_type="scan", raise_error=True):
-        self.log_debug(f'Adding module "{module_name}"')
+        self.log_debug(f'Adding module "{module_name}" of type "{module_type}"')
         is_valid, reason, preloaded = self._is_valid_module(module_name, module_type, raise_error=raise_error)
         if not is_valid:
             self.log_debug(f'Unable to add {module_type} module "{module_name}": {reason}')

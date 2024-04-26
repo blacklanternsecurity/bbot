@@ -7,7 +7,6 @@ async def test_scan(
     helpers,
     monkeypatch,
     bbot_scanner,
-    mock_dns,
 ):
     scan0 = bbot_scanner(
         "1.1.1.1/31",
@@ -59,7 +58,7 @@ async def test_scan(
 
     # make sure DNS resolution works
     scan4 = bbot_scanner("1.1.1.1", config={"dns_resolution": True})
-    mock_dns(scan4, dns_table)
+    await scan4.helpers.dns._mock_dns(dns_table)
     events = []
     async for event in scan4.async_start():
         events.append(event)
@@ -68,7 +67,7 @@ async def test_scan(
 
     # make sure it doesn't work when you turn it off
     scan5 = bbot_scanner("1.1.1.1", config={"dns_resolution": False})
-    mock_dns(scan5, dns_table)
+    await scan5.helpers.dns._mock_dns(dns_table)
     events = []
     async for event in scan5.async_start():
         events.append(event)

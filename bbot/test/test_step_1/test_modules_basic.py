@@ -10,10 +10,6 @@ from bbot.modules.internal.base import BaseInternalModule
 
 @pytest.mark.asyncio
 async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
-    fallback_nameservers = scan.helpers.temp_dir / "nameservers.txt"
-    with open(fallback_nameservers, "w") as f:
-        f.write("8.8.8.8\n")
-
     for http_method in ("GET", "CONNECT", "HEAD", "POST", "PUT", "TRACE", "DEBUG", "PATCH", "DELETE", "OPTIONS"):
         httpx_mock.add_response(method=http_method, url=re.compile(r".*"), json={"test": "test"})
 
@@ -85,7 +81,6 @@ async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
         config={i: True for i in available_internal_modules},
         force_start=True,
     )
-    scan2.helpers.dns.fallback_nameservers_file = fallback_nameservers
     await scan2.load_modules()
     scan2.status = "RUNNING"
 
@@ -113,7 +108,8 @@ async def test_modules_basic(scan, helpers, events, bbot_scanner, httpx_mock):
     assert type(all_preloaded["massdns"]["config"]["max_resolvers"]) == int
     assert all_preloaded["sslcert"]["deps"]["pip"]
     assert all_preloaded["sslcert"]["deps"]["apt"]
-    assert all_preloaded["massdns"]["deps"]["ansible"]
+    assert all_preloaded["massdns"]["deps"]["common"]
+    assert all_preloaded["gowitness"]["deps"]["ansible"]
 
     all_flags = set()
 
@@ -305,7 +301,7 @@ async def test_modules_basic_perdomainonly(scan, helpers, events, bbot_scanner, 
 
 
 @pytest.mark.asyncio
-async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, monkeypatch, mock_dns):
+async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, monkeypatch):
     from bbot.modules.base import BaseModule
 
     class dummy(BaseModule):
@@ -326,8 +322,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         output_modules=["python"],
         force_start=True,
     )
-    mock_dns(
-        scan,
+    await scan.helpers.dns._mock_dns(
         {
             "evilcorp.com": {"A": ["127.0.254.1"]},
             "www.evilcorp.com": {"A": ["127.0.254.2"]},
@@ -358,7 +353,7 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
         "ORG_STUB": 1,
     }
 
-    assert set(scan.stats.module_stats) == {"host", "speculate", "python", "dummy", "TARGET"}
+    assert set(scan.stats.module_stats) == {"speculate", "host", "TARGET", "python", "dummy", "cloud", "dns"}
 
     target_stats = scan.stats.module_stats["TARGET"]
     assert target_stats.produced == {"SCAN": 1, "DNS_NAME": 1}
@@ -369,8 +364,15 @@ async def test_modules_basic_stats(helpers, events, bbot_scanner, httpx_mock, mo
     dummy_stats = scan.stats.module_stats["dummy"]
     assert dummy_stats.produced == {"FINDING": 1, "URL": 1}
     assert dummy_stats.produced_total == 2
-    assert dummy_stats.consumed == {"DNS_NAME": 2, "OPEN_TCP_PORT": 1, "SCAN": 1, "URL": 1, "URL_UNVERIFIED": 1}
-    assert dummy_stats.consumed_total == 6
+    assert dummy_stats.consumed == {
+        "DNS_NAME": 2,
+        "FINDING": 1,
+        "OPEN_TCP_PORT": 1,
+        "SCAN": 1,
+        "URL": 1,
+        "URL_UNVERIFIED": 1,
+    }
+    assert dummy_stats.consumed_total == 7
 
     python_stats = scan.stats.module_stats["python"]
     assert python_stats.produced == {}

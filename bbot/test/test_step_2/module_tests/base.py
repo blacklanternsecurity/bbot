@@ -96,10 +96,10 @@ class ModuleTestBase:
         def set_expect_requests_handler(self, expect_args=None, request_handler=None):
             self.httpserver.expect_request(expect_args).respond_with_handler(request_handler)
 
-        def mock_dns(self, mock_data, scan=None):
+        async def mock_dns(self, mock_data, scan=None):
             if scan is None:
                 scan = self.scan
-            scan.helpers.dns.resolver = MockResolver(mock_data)
+            await scan.helpers.dns._mock_dns(mock_data)
 
         @property
         def module(self):

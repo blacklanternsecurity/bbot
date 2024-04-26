@@ -142,14 +142,6 @@ class speculate(BaseInternalModule):
                         quick=True,
                     )
 
-        # storage buckets etc.
-        for cloud_kwargs in self.helpers.cloud.speculate(event):
-            module = None
-            provider = cloud_kwargs.pop("_provider", "")
-            if provider:
-                module = self.scan._make_dummy_module(provider)
-            await self.emit_event(module=module, **cloud_kwargs)
-
         # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
         org_stubs = set()
         if event.type == "DNS_NAME" and event.scope_distance == 0:
@@ -158,7 +150,9 @@ class speculate(BaseInternalModule):
             if registered_domain:
                 tld_stub = getattr(tldextracted, "domain", "")
                 if tld_stub:
-                    org_stubs.add(tld_stub)
+                    decoded_tld_stub = self.helpers.smart_decode_punycode(tld_stub)
+                    org_stubs.add(decoded_tld_stub)
+                    org_stubs.add(self.helpers.unidecode(decoded_tld_stub))
         elif event.type == "SOCIAL":
             stub = event.data.get("stub", "")
             if stub:

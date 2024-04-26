@@ -78,8 +78,13 @@ class sslcert(BaseModule):
                         self.debug(f"Discovered new {event_type} via SSL certificate parsing: [{event_data}]")
                         try:
                             ssl_event = self.make_event(event_data, event_type, source=event, raise_error=True)
+                            source_event = ssl_event.get_source()
+                            if source_event.scope_distance == 0:
+                                tags = ["affiliate"]
+                            else:
+                                tags = None
                             if ssl_event:
-                                await self.emit_event(ssl_event, on_success_callback=self.on_success_callback)
+                                await self.emit_event(ssl_event, tags=tags)
                         except ValidationError as e:
                             self.hugeinfo(f'Malformed {event_type} "{event_data}" at {event.data}')
                             self.debug(f"Invalid data at {host}:{port}: {e}")
@@ -114,7 +119,7 @@ class sslcert(BaseModule):
             # Connect to the host
             try:
                 transport, _ = await asyncio.wait_for(
-                    self.scan._loop.create_connection(lambda: asyncio.Protocol(), host, port, ssl=ssl_context),
+                    self.helpers.loop.create_connection(lambda: asyncio.Protocol(), host, port, ssl=ssl_context),
                     timeout=self.timeout,
                 )
             except asyncio.TimeoutError:

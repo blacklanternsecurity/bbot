@@ -188,12 +188,12 @@ async def _main():
                             module = kill_match.group("module")
                             if module in scan.modules:
                                 log.hugewarning(f'Killing module: "{module}"')
-                                scan.manager.kill_module(module, message="killed by user")
+                                scan.kill_module(module, message="killed by user")
                             else:
                                 log.warning(f'Invalid module: "{module}"')
                     else:
                         scan.preset.core.logger.toggle_log_level(logger=log)
-                        scan.manager.modules_status(_log=True)
+                        scan.modules_status(_log=True)
 
                 reader = asyncio.StreamReader()
                 protocol = asyncio.StreamReaderProtocol(reader)

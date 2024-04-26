@@ -148,6 +148,20 @@ class DepsInstaller:
         if deps_pip:
             success &= await self.pip_install(deps_pip, constraints=deps_pip_constraints)
 
+        # shared/common
+        deps_common = preloaded["deps"]["common"]
+        if deps_common:
+            for dep_common in deps_common:
+                if self.setup_status.get(dep_common, False) == True:
+                    log.critical(
+                        f'Skipping installation of dependency "{dep_common}" for module "{module}" since it is already installed'
+                    )
+                    continue
+                ansible_tasks = self.preset.module_loader._shared_deps[dep_common]
+                result = self.tasks(module, ansible_tasks)
+                self.setup_status[dep_common] = result
+                success &= result
+
         return success
 
     async def pip_install(self, packages, constraints=None):

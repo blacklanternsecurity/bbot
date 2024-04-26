@@ -13,9 +13,11 @@ from omegaconf import OmegaConf
 from contextlib import suppress
 
 from bbot.core import CORE
+from bbot.errors import BBOTError
+from bbot.logger import log_to_stderr
 
 from .flags import flag_descriptions
-from bbot.logger import log_to_stderr
+from .shared_deps import SHARED_DEPS
 from .helpers.misc import list_files, sha1, search_dict_by_key, search_format_dict, make_table, os_platform, mkdir
 
 
@@ -42,6 +44,8 @@ class ModuleLoader:
 
     def __init__(self):
         self.core = CORE
+
+        self._shared_deps = dict(SHARED_DEPS)
 
         self.__preloaded = {}
         self._modules = {}
@@ -250,6 +254,7 @@ class ModuleLoader:
 
     def find_and_replace(self, **kwargs):
         self.__preloaded = search_format_dict(self.__preloaded, **kwargs)
+        self._shared_deps = search_format_dict(self._shared_deps, **kwargs)
 
     def check_type(self, module, type):
         return self._preloaded[module]["type"] == type
@@ -312,6 +317,7 @@ class ModuleLoader:
         deps_pip_constraints = []
         deps_shell = []
         deps_apt = []
+        deps_common = []
         ansible_tasks = []
         python_code = open(module_file).read()
         # take a hash of the code so we can keep track of when it changes
@@ -330,10 +336,10 @@ class ModuleLoader:
                         if any([target.id == "options" for target in class_attr.targets]):
                             config.update(ast.literal_eval(class_attr.value))
                         # module options
-                        if any([target.id == "options_desc" for target in class_attr.targets]):
+                        elif any([target.id == "options_desc" for target in class_attr.targets]):
                             options_desc.update(ast.literal_eval(class_attr.value))
                         # module metadata
-                        if any([target.id == "meta" for target in class_attr.targets]):
+                        elif any([target.id == "meta" for target in class_attr.targets]):
                             meta = ast.literal_eval(class_attr.value)
 
                     # class attributes that are lists
@@ -344,27 +350,27 @@ class ModuleLoader:
                                 if type(flag.value) == str:
                                     flags.add(flag.value)
                         # watched events
-                        if any([target.id == "watched_events" for target in class_attr.targets]):
+                        elif any([target.id == "watched_events" for target in class_attr.targets]):
                             for event_type in class_attr.value.elts:
                                 if type(event_type.value) == str:
                                     watched_events.add(event_type.value)
                         # produced events
-                        if any([target.id == "produced_events" for target in class_attr.targets]):
+                        elif any([target.id == "produced_events" for target in class_attr.targets]):
                             for event_type in class_attr.value.elts:
                                 if type(event_type.value) == str:
                                     produced_events.add(event_type.value)
 
                         # bbot module dependencies
-                        if any([target.id == "deps_modules" for target in class_attr.targets]):
+                        elif any([target.id == "deps_modules" for target in class_attr.targets]):
                             for dep_module in class_attr.value.elts:
                                 if type(dep_module.value) == str:
                                     deps_modules.add(dep_module.value)
                         # python dependencies
-                        if any([target.id == "deps_pip" for target in class_attr.targets]):
+                        elif any([target.id == "deps_pip" for target in class_attr.targets]):
                             for dep_pip in class_attr.value.elts:
                                 if type(dep_pip.value) == str:
                                     deps_pip.append(dep_pip.value)
-                        if any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
+                        elif any([target.id == "deps_pip_constraints" for target in class_attr.targets]):
                             for dep_pip in class_attr.value.elts:
                                 if type(dep_pip.value) == str:
                                     deps_pip_constraints.append(dep_pip.value)
@@ -380,6 +386,11 @@ class ModuleLoader:
                         # ansible playbook
                         elif any([target.id == "deps_ansible" for target in class_attr.targets]):
                             ansible_tasks = ast.literal_eval(class_attr.value)
+                        # shared/common module dependencies
+                        elif any([target.id == "deps_common" for target in class_attr.targets]):
+                            for dep_common in class_attr.value.elts:
+                                if type(dep_common.value) == str:
+                                    deps_common.append(dep_common.value)
 
         for task in ansible_tasks:
             if not "become" in task:
@@ -403,13 +414,24 @@ class ModuleLoader:
                 "shell": deps_shell,
                 "apt": deps_apt,
                 "ansible": ansible_tasks,
+                "common": deps_common,
             },
             "sudo": len(deps_apt) > 0,
         }
-        if any(x == True for x in search_dict_by_key("become", ansible_tasks)) or any(
-            x == True for x in search_dict_by_key("ansible_become", ansible_tasks)
-        ):
-            preloaded_data["sudo"] = True
+        ansible_task_list = list(ansible_tasks)
+        for dep_common in deps_common:
+            try:
+                ansible_task_list.extend(self._shared_deps[dep_common])
+            except KeyError:
+                common_choices = ",".join(self._shared_deps)
+                raise BBOTError(
+                    f'Error while preloading module "{module_file}": No shared dependency named "{dep_common}" (choices: {common_choices})'
+                )
+        for ansible_task in ansible_task_list:
+            if any(x == True for x in search_dict_by_key("become", ansible_task)) or any(
+                x == True for x in search_dict_by_key("ansible_become", ansible_tasks)
+            ):
+                preloaded_data["sudo"] = True
         return preloaded_data
 
     def load_modules(self, module_names):

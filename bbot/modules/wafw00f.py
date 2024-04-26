@@ -34,14 +34,14 @@ class wafw00f(BaseModule):
 
     async def handle_event(self, event):
         url = f"{event.parsed.scheme}://{event.parsed.netloc}/"
-        WW = await self.scan.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
-        waf_detections = await self.scan.run_in_executor(WW.identwaf)
+        WW = await self.helpers.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
+        waf_detections = await self.helpers.run_in_executor(WW.identwaf)
         if waf_detections:
             for waf in waf_detections:
                 await self.emit_event({"host": str(event.host), "url": url, "WAF": waf}, "WAF", source=event)
         else:
             if self.config.get("generic_detect") == True:
-                generic = await self.scan.run_in_executor(WW.genericdetect)
+                generic = await self.helpers.run_in_executor(WW.genericdetect)
                 if generic:
                     await self.emit_event(
                         {

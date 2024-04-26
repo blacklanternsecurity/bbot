@@ -120,6 +120,9 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     out, err = capsys.readouterr()
     assert result == None
     assert out.count("modules.") == out.count("modules.massdns.")
+    assert not "| modules.wayback.urls" in out
+    assert "| modules.massdns.wordlist" in out
+    assert not "| modules.robots.include_allow" in out
 
     # list output module options by module
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "stdout", "-lmo"])
@@ -157,8 +160,6 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert not "| passive" in out
 
     # no args
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot"])
     result = await cli._main()
     out, err = capsys.readouterr()
@@ -234,17 +235,32 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 3/3 internal modules (aggregate,excavate,speculate)" in caplog.text
+    assert "Loaded 5/5 internal modules (aggregate,cloud,dns,excavate,speculate)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "excavate", "speculate", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 1/1 internal modules (aggregate)" in caplog.text
+    assert "Loaded 3/3 internal modules (aggregate,cloud,dns)" in caplog.text
     caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "speculate=false", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 2/2 internal modules (aggregate,excavate)" in caplog.text
+    assert "Loaded 4/4 internal modules (aggregate,cloud,dns,excavate)" in caplog.text
+
+    # custom target type
+    out, err = capsys.readouterr()
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "ORG:evilcorp", "-y"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == True
+    assert "[ORG_STUB]          	evilcorp	TARGET" in out
+
+    # activate modules by flag
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "passive"])
+    result = await cli._main()
+    assert result == True
 
     # unconsoleable output module
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "web_report"])

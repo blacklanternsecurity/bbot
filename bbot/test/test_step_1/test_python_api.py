@@ -51,6 +51,11 @@ async def test_python_api():
     scan5 = Scanner(output_modules=["json"])
     assert set(scan5.preset.output_modules) == {"json"}
 
+    # custom target types
+    custom_target_scan = Scanner("ORG:evilcorp")
+    events = [e async for e in custom_target_scan.async_start()]
+    assert 1 == len([e for e in events if e.type == "ORG_STUB" and e.data == "evilcorp" and "target" in e.tags])
+
 
 def test_python_api_sync():
     from bbot.scanner import Scanner
