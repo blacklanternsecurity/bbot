@@ -19,7 +19,7 @@ class bucket_template(BaseModule):
 
     async def setup(self):
         self.buckets_tried = set()
-        self.cloud_helper = self.helpers.cloud[self.cloud_helper_name]
+        self.cloud_helper = self.helpers.cloud.providers[self.cloud_helper_name]
         self.permutations = self.config.get("permutations", False)
         return True
 

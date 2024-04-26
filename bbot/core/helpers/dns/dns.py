@@ -2,13 +2,10 @@ import dns
 import logging
 import dns.exception
 import dns.asyncresolver
-from cachetools import LRUCache
-from contextlib import suppress
+from radixtarget import RadixTarget
 
-from bbot.errors import ValidationError
 from bbot.core.engine import EngineClient
-from bbot.core.helpers.async_helpers import NamedLock
-from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name, host_in_host
+from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name
 
 from .engine import DNSEngine
 
@@ -37,7 +34,6 @@ class DNSHelper(EngineClient):
         wildcard_tests (int): Number of tests to be run for wildcard detection. Defaults to 5.
         _wildcard_cache (dict): Cache for wildcard detection results.
         _dns_cache (LRUCache): Cache for DNS resolution results, limited in size.
-        _event_cache (LRUCache): Cache for event resolution results, tags. Limited in size.
         resolver_file (Path): File containing system's current resolver nameservers.
         filter_bad_ptrs (bool): Whether to filter out DNS names that appear to be auto-generated PTR records. Defaults to True.
 
@@ -67,14 +63,10 @@ class DNSHelper(EngineClient):
         self.max_dns_resolve_distance = self.config.get("max_dns_resolve_distance", 5)
 
         # wildcard handling
-        self.wildcard_ignore = self.config.get("dns_wildcard_ignore", None)
-        if not self.wildcard_ignore:
-            self.wildcard_ignore = []
-        self.wildcard_ignore = tuple([str(d).strip().lower() for d in self.wildcard_ignore])
-
-        # event resolution cache
-        self._event_cache = LRUCache(maxsize=10000)
-        self._event_cache_locks = NamedLock()
+        self.wildcard_disable = self.config.get("dns_wildcard_disable", False)
+        self.wildcard_ignore = RadixTarget()
+        for d in self.config.get("dns_wildcard_ignore", []):
+            self.wildcard_ignore.insert(d)
 
         # copy the system's current resolvers to a text file for tool use
         self.system_resolvers = dns.resolver.Resolver().nameservers
@@ -91,60 +83,6 @@ class DNSHelper(EngineClient):
     async def resolve_raw_batch(self, queries):
         async for _ in self.run_and_yield("resolve_raw_batch", queries=queries):
             yield _
-
-    async def resolve_event(self, event, minimal=False):
-        # abort if the event doesn't have a host
-        if (not event.host) or (event.type in ("IP_RANGE",)):
-            # tags, whitelisted, blacklisted, children
-            return set(), False, False, dict()
-
-        event_host = str(event.host)
-        event_type = str(event.type)
-        event_tags = set()
-        dns_children = dict()
-        event_whitelisted = False
-        event_blacklisted = False
-
-        if (not event.host) or (event.type in ("IP_RANGE",)):
-            return event_tags, event_whitelisted, event_blacklisted, dns_children
-
-        # lock to ensure resolution of the same host doesn't start while we're working here
-        async with self._event_cache_locks.lock(event_host):
-            # try to get data from cache
-            try:
-                _event_tags, _event_whitelisted, _event_blacklisted, _dns_children = self._event_cache[event_host]
-                event_tags.update(_event_tags)
-                # if we found it, return it
-                if _event_whitelisted is not None:
-                    return event_tags, _event_whitelisted, _event_blacklisted, _dns_children
-            except KeyError:
-                pass
-
-            kwargs = {"event_host": event_host, "event_type": event_type, "minimal": minimal}
-            event_tags, dns_children = await self.run_and_return("resolve_event", **kwargs)
-
-            # whitelisting / blacklisting based on resolved hosts
-            event_whitelisted = False
-            event_blacklisted = False
-            for rdtype, children in dns_children.items():
-                if event_blacklisted:
-                    break
-                for host in children:
-                    if rdtype in ("A", "AAAA", "CNAME"):
-                        # having a CNAME to an in-scope resource doesn't make you in-scope
-                        if not event_whitelisted and rdtype != "CNAME":
-                            with suppress(ValidationError):
-                                if self.parent_helper.scan.whitelisted(host):
-                                    event_whitelisted = True
-                        # CNAME to a blacklisted resources, means you're blacklisted
-                        with suppress(ValidationError):
-                            if self.parent_helper.scan.blacklisted(host):
-                                event_blacklisted = True
-                                break
-
-            self._event_cache[event_host] = (event_tags, event_whitelisted, event_blacklisted, dns_children)
-
-            return event_tags, event_whitelisted, event_blacklisted, dns_children
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """
@@ -181,20 +119,10 @@ class DNSHelper(EngineClient):
         if [ips, rdtype].count(None) == 1:
             raise ValueError("Both ips and rdtype must be specified")
 
-        # skip if query isn't a dns name
-        if not is_dns_name(query):
+        query = self._wildcard_prevalidation(query)
+        if not query:
             return {}
 
-        # skip check if the query's parent domain is excluded in the config
-        for d in self.wildcard_ignore:
-            if host_in_host(query, d):
-                log.debug(f"Skipping wildcard detection on {query} because it is excluded in the config")
-                return {}
-
-        query = clean_dns_record(query)
-        # skip check if it's an IP or a plain hostname
-        if is_ip(query) or not "." in query:
-            return {}
         # skip check if the query is a domain
         if is_domain(query):
             return {}
@@ -202,81 +130,32 @@ class DNSHelper(EngineClient):
         return await self.run_and_return("is_wildcard", query=query, ips=ips, rdtype=rdtype)
 
     async def is_wildcard_domain(self, domain, log_info=False):
+        domain = self._wildcard_prevalidation(domain)
+        if not domain:
+            return {}
+
         return await self.run_and_return("is_wildcard_domain", domain=domain, log_info=False)
 
-    async def handle_wildcard_event(self, event, children):
-        """
-        Used within BBOT's scan manager to detect and tag DNS wildcard events.
+    def _wildcard_prevalidation(self, host):
+        if self.wildcard_disable:
+            return False
 
-        Wildcards are detected for every major record type. If a wildcard is detected, its data
-        is overwritten, for example: `_wildcard.evilcorp.com`.
+        host = clean_dns_record(host)
+        # skip check if it's an IP or a plain hostname
+        if is_ip(host) or not "." in host:
+            return False
 
-        Args:
-            event (object): The event to check for wildcards.
-            children (list): A list of the event's resulting DNS children after resolution.
+        # skip if query isn't a dns name
+        if not is_dns_name(host):
+            return False
 
-        Returns:
-            None: This method modifies the `event` in place and does not return a value.
+        # skip check if the query's parent domain is excluded in the config
+        wildcard_ignore = self.wildcard_ignore.search(host)
+        if wildcard_ignore:
+            log.debug(f"Skipping wildcard detection on {host} because {wildcard_ignore} is excluded in the config")
+            return False
 
-        Examples:
-            >>> handle_wildcard_event(event, children)
-            # The `event` might now have tags like ["wildcard", "a-wildcard", "aaaa-wildcard"] and
-            # its `data` attribute might be modified to "_wildcard.evilcorp.com" if it was detected
-            # as a wildcard.
-        """
-        log.debug(f"Entering handle_wildcard_event({event}, children={children})")
-        try:
-            event_host = str(event.host)
-            # wildcard checks
-            if not is_ip(event.host):
-                # check if the dns name itself is a wildcard entry
-                wildcard_rdtypes = await self.is_wildcard(event_host)
-                for rdtype, (is_wildcard, wildcard_host) in wildcard_rdtypes.items():
-                    wildcard_tag = "error"
-                    if is_wildcard == True:
-                        event.add_tag("wildcard")
-                        wildcard_tag = "wildcard"
-                    event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
-
-            # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-            if not is_ip(event.host) and children:
-                if wildcard_rdtypes:
-                    # these are the rdtypes that successfully resolve
-                    resolved_rdtypes = set([c.upper() for c in children])
-                    # these are the rdtypes that have wildcards
-                    wildcard_rdtypes_set = set(wildcard_rdtypes)
-                    # consider the event a full wildcard if all its records are wildcards
-                    event_is_wildcard = False
-                    if resolved_rdtypes:
-                        event_is_wildcard = all(r in wildcard_rdtypes_set for r in resolved_rdtypes)
-
-                    if event_is_wildcard:
-                        if event.type in ("DNS_NAME",) and not "_wildcard" in event.data.split("."):
-                            wildcard_parent = self.parent_helper.parent_domain(event_host)
-                            for rdtype, (_is_wildcard, _parent_domain) in wildcard_rdtypes.items():
-                                if _is_wildcard:
-                                    wildcard_parent = _parent_domain
-                                    break
-                            wildcard_data = f"_wildcard.{wildcard_parent}"
-                            if wildcard_data != event.data:
-                                log.debug(
-                                    f'Wildcard detected, changing event.data "{event.data}" --> "{wildcard_data}"'
-                                )
-                                event.data = wildcard_data
-
-                # TODO: transplant this
-                # tag wildcard domains for convenience
-                # elif is_domain(event_host) or hash(event_host) in self._wildcard_cache:
-                #     event_target = "target" in event.tags
-                #     wildcard_domain_results = await self.is_wildcard_domain(event_host, log_info=event_target)
-                #     for hostname, wildcard_domain_rdtypes in wildcard_domain_results.items():
-                #         if wildcard_domain_rdtypes:
-                #             event.add_tag("wildcard-domain")
-                #             for rdtype, ips in wildcard_domain_rdtypes.items():
-                #                 event.add_tag(f"{rdtype.lower()}-wildcard-domain")
-
-        finally:
-            log.debug(f"Finished handle_wildcard_event({event}, children={children})")
+        return host
 
     async def _mock_dns(self, mock_data):
         from .mock import MockResolver

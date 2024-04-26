@@ -1,7 +1,7 @@
-import re
 import html
 import base64
 import jwt as j
+import regex as re
 from urllib.parse import urljoin
 
 from bbot.core.helpers.regexes import _email_regex, dns_name_regex
@@ -14,6 +14,7 @@ class BaseExtractor:
 
     def __init__(self, excavate):
         self.excavate = excavate
+        self.helpers = excavate.helpers
         self.compiled_regexes = {}
         for rname, r in self.regexes.items():
             self.compiled_regexes[rname] = re.compile(r)
@@ -29,7 +30,7 @@ class BaseExtractor:
         for name, regex in self.compiled_regexes.items():
             # yield to event loop
             await self.excavate.helpers.sleep(0)
-            for result in regex.findall(content):
+            for result in await self.helpers.re.findall(regex, content):
                 yield result, name
 
     async def report(self, result, name, event):
@@ -39,14 +40,14 @@ class BaseExtractor:
 class CSPExtractor(BaseExtractor):
     regexes = {"CSP": r"(?i)(?m)Content-Security-Policy:.+$"}
 
-    def extract_domains(self, csp):
-        domains = dns_name_regex.findall(csp)
+    async def extract_domains(self, csp):
+        domains = await self.helpers.re.findall(dns_name_regex, csp)
         unique_domains = set(domains)
         return unique_domains
 
     async def search(self, content, event, **kwargs):
         async for csp, name in self._search(content, event, **kwargs):
-            extracted_domains = self.extract_domains(csp)
+            extracted_domains = await self.extract_domains(csp)
             for domain in extracted_domains:
                 await self.report(domain, event, **kwargs)
 
@@ -125,7 +126,7 @@ class URLExtractor(BaseExtractor):
         for name, regex in self.compiled_regexes.items():
             # yield to event loop
             await self.excavate.helpers.sleep(0)
-            for result in regex.findall(content):
+            for result in await self.helpers.re.findall(regex, content):
                 if name.startswith("full"):
                     protocol, other = result
                     result = f"{protocol}://{other}"
@@ -386,15 +387,7 @@ class excavate(BaseInternalModule):
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")
 
-            body = self.helpers.recursive_decode(event.data.get("body", ""))
-
-            # Cloud extractors
-            for cloud_kwargs in self.helpers.cloud.excavate(event, body):
-                module = None
-                provider = cloud_kwargs.pop("_provider", "")
-                if provider:
-                    module = self.scan._make_dummy_module(f"{provider}_cloud")
-                await self.emit_event(module=module, **cloud_kwargs)
+            body = await self.helpers.re.recursive_decode(event.data.get("body", ""))
 
             await self.search(
                 body,
@@ -412,7 +405,7 @@ class excavate(BaseInternalModule):
                 consider_spider_danger=True,
             )
 
-            headers = self.helpers.recursive_decode(event.data.get("raw_header", ""))
+            headers = await self.helpers.re.recursive_decode(event.data.get("raw_header", ""))
             await self.search(
                 headers,
                 [self.hostname, self.url, self.email, self.error_extractor, self.jwt, self.serialization, self.csp],

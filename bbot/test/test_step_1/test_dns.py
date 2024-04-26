@@ -29,9 +29,20 @@ async def test_dns_engine(bbot_scanner):
             pass_2 = True
     assert pass_1 and pass_2
 
+    from bbot.core.helpers.dns.engine import DNSEngine
+    from bbot.core.helpers.dns.mock import MockResolver
+
+    # ensure dns records are being properly cleaned
+    mockresolver = MockResolver({"evilcorp.com": {"MX": ["0 ."]}})
+    mx_records = await mockresolver.resolve("evilcorp.com", rdtype="MX")
+    results = set()
+    for r in mx_records:
+        results.update(DNSEngine.extract_targets(r))
+    assert not results
+
 
 @pytest.mark.asyncio
-async def test_dns(bbot_scanner):
+async def test_dns_resolution(bbot_scanner):
     scan = bbot_scanner("1.1.1.1")
 
     from bbot.core.helpers.dns.engine import DNSEngine
@@ -108,21 +119,22 @@ async def test_dns(bbot_scanner):
     assert not hash(f"one.one.one.one:A") in dnsengine._dns_cache
 
     # Ensure events with hosts have resolved_hosts attribute populated
-    resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", dummy=True)
-    resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", dummy=True)
-    assert resolved_hosts_event1.host not in scan.helpers.dns._event_cache
-    assert resolved_hosts_event2.host not in scan.helpers.dns._event_cache
-    event_tags1, event_whitelisted1, event_blacklisted1, children1 = await scan.helpers.resolve_event(
-        resolved_hosts_event1
-    )
-    assert resolved_hosts_event1.host in scan.helpers.dns._event_cache
-    assert resolved_hosts_event2.host in scan.helpers.dns._event_cache
-    event_tags2, event_whitelisted2, event_blacklisted2, children2 = await scan.helpers.resolve_event(
-        resolved_hosts_event2
-    )
-    assert "1.1.1.1" in [str(x) for x in children1["A"]]
-    assert "1.1.1.1" in [str(x) for x in children2["A"]]
-    assert set(children1.keys()) == set(children2.keys())
+    await scan._prep()
+    resolved_hosts_event1 = scan.make_event("one.one.one.one", "DNS_NAME", source=scan.root_event)
+    resolved_hosts_event2 = scan.make_event("http://one.one.one.one/", "URL_UNVERIFIED", source=scan.root_event)
+    dnsresolve = scan.modules["dns"]
+    assert hash(resolved_hosts_event1.host) not in dnsresolve._event_cache
+    assert hash(resolved_hosts_event2.host) not in dnsresolve._event_cache
+    await dnsresolve.handle_event(resolved_hosts_event1, {})
+    assert hash(resolved_hosts_event1.host) in dnsresolve._event_cache
+    assert hash(resolved_hosts_event2.host) in dnsresolve._event_cache
+    await dnsresolve.handle_event(resolved_hosts_event2, {})
+    assert "1.1.1.1" in resolved_hosts_event2.resolved_hosts
+    assert "1.1.1.1" in resolved_hosts_event2.dns_children["A"]
+    assert resolved_hosts_event1.resolved_hosts == resolved_hosts_event2.resolved_hosts
+    assert resolved_hosts_event1.dns_children == resolved_hosts_event2.dns_children
+    assert "a-record" in resolved_hosts_event1.tags
+    assert not "a-record" in resolved_hosts_event2.tags
 
     scan2 = bbot_scanner("evilcorp.com", config={"dns_resolution": True})
     await scan2.helpers.dns._mock_dns(
@@ -178,12 +190,11 @@ async def test_wildcards(bbot_scanner):
     wildcard_event3 = scan.make_event("github.io", "DNS_NAME", dummy=True)
 
     # event resolution
-    event_tags1, event_whitelisted1, event_blacklisted1, children1 = await scan.helpers.resolve_event(wildcard_event1)
-    event_tags2, event_whitelisted2, event_blacklisted2, children2 = await scan.helpers.resolve_event(wildcard_event2)
-    event_tags3, event_whitelisted3, event_blacklisted3, children3 = await scan.helpers.resolve_event(wildcard_event3)
-    await helpers.handle_wildcard_event(wildcard_event1, children1)
-    await helpers.handle_wildcard_event(wildcard_event2, children2)
-    await helpers.handle_wildcard_event(wildcard_event3, children3)
+    await scan._prep()
+    dnsresolve = scan.modules["dns"]
+    await dnsresolve.handle_event(wildcard_event1, {})
+    await dnsresolve.handle_event(wildcard_event2, {})
+    await dnsresolve.handle_event(wildcard_event3, {})
     assert "wildcard" in wildcard_event1.tags
     assert "a-wildcard" in wildcard_event1.tags
     assert "srv-wildcard" not in wildcard_event1.tags
@@ -192,7 +203,63 @@ async def test_wildcards(bbot_scanner):
     assert "srv-wildcard" not in wildcard_event2.tags
     assert wildcard_event1.data == "_wildcard.github.io"
     assert wildcard_event2.data == "_wildcard.github.io"
-    # TODO: re-enable this?
-    # assert "wildcard-domain" in wildcard_event3.tags
-    # assert "a-wildcard-domain" in wildcard_event3.tags
-    # assert "srv-wildcard-domain" not in wildcard_event3.tags
+    assert wildcard_event3.data == "github.io"
+
+    # dns resolve distance
+    event_distance_0 = scan.make_event("8.8.8.8", module=scan._make_dummy_module_dns("PTR"), source=scan.root_event)
+    assert event_distance_0.dns_resolve_distance == 0
+    event_distance_1 = scan.make_event(
+        "evilcorp.com", module=scan._make_dummy_module_dns("A"), source=event_distance_0
+    )
+    assert event_distance_1.dns_resolve_distance == 1
+    event_distance_2 = scan.make_event("1.2.3.4", module=scan._make_dummy_module_dns("PTR"), source=event_distance_1)
+    assert event_distance_2.dns_resolve_distance == 1
+    event_distance_3 = scan.make_event(
+        "evilcorp.org", module=scan._make_dummy_module_dns("A"), source=event_distance_2
+    )
+    assert event_distance_3.dns_resolve_distance == 2
+
+    from bbot.scanner import Scanner
+
+    # test with full scan
+    scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", config={"dns_resolution": True})
+    events = [e async for e in scan2.async_start()]
+    assert len(events) == 2
+    assert 1 == len([e for e in events if e.type == "SCAN"])
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "_wildcard.github.io"
+            and all(
+                t in e.tags
+                for t in (
+                    "a-record",
+                    "target",
+                    "aaaa-wildcard",
+                    "in-scope",
+                    "subdomain",
+                    "aaaa-record",
+                    "wildcard",
+                    "a-wildcard",
+                )
+            )
+        ]
+    )
+
+    # test with full scan (wildcard detection disabled for domain)
+    scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", config={"dns_wildcard_ignore": ["github.io"]})
+    events = [e async for e in scan2.async_start()]
+    assert len(events) == 2
+    assert 1 == len([e for e in events if e.type == "SCAN"])
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "asdfl.gashdgkjsadgsdf.github.io"
+            and all(t in e.tags for t in ("a-record", "target", "in-scope", "subdomain", "aaaa-record"))
+            and not any(t in e.tags for t in ("wildcard", "a-wildcard", "aaaa-wildcard"))
+        ]
+    )

@@ -1,4 +1,4 @@
-import re
+import regex as re
 from bbot.modules.base import BaseModule
 
 
@@ -38,7 +38,7 @@ class ajaxpro(BaseModule):
         elif event.type == "HTTP_RESPONSE":
             resp_body = event.data.get("body", None)
             if resp_body:
-                ajaxpro_regex_result = self.ajaxpro_regex.search(resp_body)
+                ajaxpro_regex_result = await self.helpers.re.search(self.ajaxpro_regex, resp_body)
                 if ajaxpro_regex_result:
                     ajax_pro_path = ajaxpro_regex_result.group(0)
                     await self.emit_event(
