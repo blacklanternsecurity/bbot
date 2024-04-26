@@ -28,7 +28,7 @@ class pgp(subdomain_enum):
             url = url.replace("<query>", self.helpers.quote(query))
             response = await self.helpers.request(url)
             if response is not None:
-                for email in self.helpers.extract_emails(response.text):
+                for email in await self.helpers.re.extract_emails(response.text):
                     email = email.lower()
                     if email.endswith(query):
                         results.add(email)

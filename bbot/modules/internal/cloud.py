@@ -9,8 +9,9 @@ class cloud(InterceptModule):
 
     async def setup(self):
         self.dummy_modules = {}
-        for provider_name in self.helpers.cloud.providers:
+        for provider_name, provider in self.helpers.cloud.providers.items():
             self.dummy_modules[provider_name] = self.scan._make_dummy_module(f"cloud_{provider_name}", _type="scan")
+
         return True
 
     async def filter_event(self, event):
@@ -23,9 +24,9 @@ class cloud(InterceptModule):
         hosts_to_check = set(str(s) for s in event.resolved_hosts)
         hosts_to_check.add(str(event.host_original))
         for host in hosts_to_check:
-            provider, provider_type, subnet = self.helpers.cloudcheck(host)
-            if provider:
-                event.add_tag(f"{provider_type}-{provider}")
+            for provider, provider_type, subnet in self.helpers.cloudcheck(host):
+                if provider:
+                    event.add_tag(f"{provider_type}-{provider}")
 
         found = set()
         # look for cloud assets in hosts, http responses
@@ -43,7 +44,7 @@ class cloud(InterceptModule):
                 for sig in sigs:
                     matches = []
                     if event.type == "HTTP_RESPONSE":
-                        matches = sig.findall(event.data.get("body", ""))
+                        matches = await self.helpers.re.findall(sig, event.data.get("body", ""))
                     elif event.type.startswith("DNS_NAME"):
                         for host in hosts_to_check:
                             match = sig.match(host)

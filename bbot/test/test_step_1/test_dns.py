@@ -29,6 +29,17 @@ async def test_dns_engine(bbot_scanner):
             pass_2 = True
     assert pass_1 and pass_2
 
+    from bbot.core.helpers.dns.engine import DNSEngine
+    from bbot.core.helpers.dns.mock import MockResolver
+
+    # ensure dns records are being properly cleaned
+    mockresolver = MockResolver({"evilcorp.com": {"MX": ["0 ."]}})
+    mx_records = await mockresolver.resolve("evilcorp.com", rdtype="MX")
+    results = set()
+    for r in mx_records:
+        results.update(DNSEngine.extract_targets(r))
+    assert not results
+
 
 @pytest.mark.asyncio
 async def test_dns_resolution(bbot_scanner):

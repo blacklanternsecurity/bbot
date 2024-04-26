@@ -19,6 +19,11 @@ http_proxy:
 # Web user-agent
 user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.2151.97
 
+# Tool dependencies
+deps:
+  ffuf:
+    version: "2.1.0"
+
 ### WEB SPIDER ###
 
 # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)
