@@ -64,16 +64,5 @@ class Stdout(BaseOutputModule):
 
         print(event_str)
 
-    def human_event_str(self, event):
-        event_type = f"[{event.type}]"
-        if event.scope_distance == 0:
-            scope = "in-scope"
-        elif "affiliate" in event.tags:
-            scope = "affiliate"
-        else:
-            scope = f"distance-{event.scope_distance}"
-        event_str = f"{event_type:<20}\t{scope:<10}\t{event.data_human}"
-        return event_str
-
     async def handle_json(self, event, event_json):
         print(json.dumps(event_json))
