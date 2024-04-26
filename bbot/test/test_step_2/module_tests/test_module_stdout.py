@@ -8,8 +8,8 @@ class TestStdout(ModuleTestBase):
 
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
-        assert out.startswith("[SCAN]              \tin-scope  \tteststdout")
-        assert "[DNS_NAME]          	in-scope  	blacklanternsecurity.com" in out
+        assert out.startswith("[SCAN]              \tteststdout")
+        assert "[DNS_NAME]          \tblacklanternsecurity.com\tTARGET" in out
 
 
 class TestStdoutEventTypes(TestStdout):
@@ -18,7 +18,7 @@ class TestStdoutEventTypes(TestStdout):
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         assert len(out.splitlines()) == 1
-        assert out.startswith("[DNS_NAME]          	in-scope  	blacklanternsecurity.com")
+        assert out.startswith("[DNS_NAME]          \tblacklanternsecurity.com\tTARGET")
 
 
 class TestStdoutEventFields(TestStdout):
@@ -74,13 +74,13 @@ class TestStdoutDupes(TestStdout):
     }
 
     async def setup_after_prep(self, module_test):
-        module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.2"]}})
+        await module_test.mock_dns({"blacklanternsecurity.com": {"A": ["127.0.0.2"]}})
 
     def check(self, module_test, events):
         out, err = module_test.capsys.readouterr()
         lines = out.splitlines()
         assert len(lines) == 3
-        assert out.count("[IP_ADDRESS]        \tin-scope  \t127.0.0.2") == 2
+        assert out.count("[IP_ADDRESS]        \t127.0.0.2") == 2
 
 
 class TestStdoutNoDupes(TestStdoutDupes):
@@ -98,4 +98,4 @@ class TestStdoutNoDupes(TestStdoutDupes):
         out, err = module_test.capsys.readouterr()
         lines = out.splitlines()
         assert len(lines) == 2
-        assert out.count("[IP_ADDRESS]        \tin-scope  \t127.0.0.2") == 1
+        assert out.count("[IP_ADDRESS]        \t127.0.0.2") == 1
