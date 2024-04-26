@@ -95,6 +95,8 @@ class subdomain_enum(BaseModule):
         """
         This filter_event is used across many modules
         """
+        if "unresolved" in event.tags:
+            return False, "Event is unresolved"
         query = self.make_query(event)
         # reject if already processed
         if self.already_processed(query):
