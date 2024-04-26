@@ -38,3 +38,25 @@ def test_target(bbot_scanner):
     assert scan1.target.get("2001:4860:4860::888c") is None
     assert str(scan1.target.get("www.api.publicapis.org").host) == "api.publicapis.org"
     assert scan1.target.get("publicapis.org") is None
+
+    from bbot.scanner.target import Target
+
+    target = Target("evilcorp.com")
+    assert not "com" in target
+    assert "evilcorp.com" in target
+    assert "www.evilcorp.com" in target
+    strict_target = Target("evilcorp.com", strict_scope=True)
+    assert not "com" in strict_target
+    assert "evilcorp.com" in strict_target
+    assert not "www.evilcorp.com" in strict_target
+
+    target = Target()
+    target.add_target("evilcorp.com")
+    assert not "com" in target
+    assert "evilcorp.com" in target
+    assert "www.evilcorp.com" in target
+    strict_target = Target(strict_scope=True)
+    strict_target.add_target("evilcorp.com")
+    assert not "com" in strict_target
+    assert "evilcorp.com" in strict_target
+    assert not "www.evilcorp.com" in strict_target

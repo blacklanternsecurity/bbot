@@ -149,7 +149,7 @@ class asn(BaseReportModule):
             for item in record:
                 key = item.get("key", "")
                 value = item.get("value", "")
-                for email in self.helpers.extract_emails(value):
+                for email in await self.helpers.re.extract_emails(value):
                     emails.add(email.lower())
                 if not key:
                     continue

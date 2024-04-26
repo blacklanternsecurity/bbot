@@ -1,7 +1,7 @@
-import re
 import json
 import random
 import subprocess
+import regex as re
 
 from bbot.modules.templates.subdomain_enum import subdomain_enum
 

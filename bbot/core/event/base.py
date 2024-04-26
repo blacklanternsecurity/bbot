@@ -8,6 +8,7 @@ from typing import Optional
 from datetime import datetime
 from contextlib import suppress
 from urllib.parse import urljoin
+from radixtarget import RadixTarget
 from pydantic import BaseModel, field_validator
 
 from .helpers import *
@@ -15,7 +16,6 @@ from bbot.errors import *
 from bbot.core.helpers import (
     extract_words,
     get_file_extension,
-    host_in_host,
     is_domain,
     is_subdomain,
     is_ip,
@@ -93,7 +93,7 @@ class BaseEvent:
     # Always emit this event type even if it's not in scope
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
-    _always_emit_tags = ["affiliate"]
+    _always_emit_tags = ["affiliate", "target"]
     # Bypass scope checking and dns resolution, distribute immediately to modules
     # This is useful for "end-of-line" events like FINDING and VULNERABILITY
     _quick_emit = False
@@ -580,7 +580,9 @@ class BaseEvent:
             if self.host == other.host:
                 return True
             # hostnames and IPs
-            return host_in_host(other.host, self.host)
+            radixtarget = RadixTarget()
+            radixtarget.insert(self.host)
+            return bool(radixtarget.search(other.host))
         return False
 
     def json(self, mode="json", siem_friendly=False):
