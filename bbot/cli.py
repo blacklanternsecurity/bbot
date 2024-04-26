@@ -58,23 +58,23 @@ async def _main():
 
         # print help if no arguments
         if len(sys.argv) == 1:
-            log.stdout(preset.args.parser.format_help())
+            print(preset.args.parser.format_help())
             sys.exit(1)
             return
 
         # --version
         if options.version:
-            log.stdout(__version__)
+            print(__version__)
             sys.exit(0)
             return
 
         # --list-presets
         if options.list_presets:
-            log.stdout("")
-            log.stdout("### PRESETS ###")
-            log.stdout("")
+            print("")
+            print("### PRESETS ###")
+            print("")
             for row in preset.presets_table().splitlines():
-                log.stdout(row)
+                print(row)
             return
 
         # if we're listing modules or their options
@@ -86,34 +86,38 @@ async def _main():
                     module_type = preloaded.get("type", "scan")
                     preset.add_module(module, module_type=module_type)
 
+            if options.modules or options.output_modules or options.flags:
+                preset._default_output_modules = options.output_modules
+                preset._default_internal_modules = []
+
             preset.bake()
 
             # --list-modules
             if options.list_modules:
-                log.stdout("")
-                log.stdout("### MODULES ###")
-                log.stdout("")
+                print("")
+                print("### MODULES ###")
+                print("")
                 for row in preset.module_loader.modules_table(preset.modules).splitlines():
-                    log.stdout(row)
+                    print(row)
                 return
 
             # --list-module-options
             if options.list_module_options:
-                log.stdout("")
-                log.stdout("### MODULE OPTIONS ###")
-                log.stdout("")
+                print("")
+                print("### MODULE OPTIONS ###")
+                print("")
                 for row in preset.module_loader.modules_options_table(preset.modules).splitlines():
-                    log.stdout(row)
+                    print(row)
                 return
 
         # --list-flags
         if options.list_flags:
             flags = preset.flags if preset.flags else None
-            log.stdout("")
-            log.stdout("### FLAGS ###")
-            log.stdout("")
+            print("")
+            print("### FLAGS ###")
+            print("")
             for row in preset.module_loader.flags_table(flags=flags).splitlines():
-                log.stdout(row)
+                print(row)
             return
 
         try:
@@ -227,6 +231,10 @@ async def _main():
         await scan.async_start_without_generator()
 
         return True
+
+    except BBOTError as e:
+        log.error(str(e))
+        log.trace(traceback.format_exc())
 
     finally:
         # save word cloud

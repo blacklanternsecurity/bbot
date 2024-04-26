@@ -49,7 +49,7 @@ async def test_cli_scan(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_cli_args(monkeypatch, caplog, clean_default_config):
+async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     from bbot import cli
 
     caplog.set_level(logging.INFO)
@@ -58,13 +58,24 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
     # show version
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "--version"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert len(caplog.text.splitlines()) == 1
-    assert caplog.text.count(".") > 1
+    assert len(out.splitlines()) == 1
+    assert out.count(".") > 1
+
+    # list modules
+    monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
+    result = await cli._main()
+    assert result == None
+    out, err = capsys.readouterr()
+    # internal modules
+    assert "| excavate" in out
+    # output modules
+    assert "| csv" in out
+    # scan modules
+    assert "| wayback" in out
 
     # output dir and scan name
     output_dir = bbot_test_dir / "bbot_cli_args_output"
@@ -79,6 +90,124 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert "[SCAN]" in open(scan_dir / "output.txt").read()
     assert "[INFO]" in open(scan_dir / "scan.log").read()
 
+    # list module options
+    monkeypatch.setattr("sys.argv", ["bbot", "--list-module-options"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "| modules.wayback.urls" in out
+    assert "| bool" in out
+    assert "| emit URLs in addition to DNS_NAMEs" in out
+    assert "| False" in out
+    assert "| modules.massdns.wordlist" in out
+    assert "| modules.robots.include_allow" in out
+
+    # list module options by flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "--list-module-options"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "| modules.wayback.urls" in out
+    assert "| bool" in out
+    assert "| emit URLs in addition to DNS_NAMEs" in out
+    assert "| False" in out
+    assert "| modules.massdns.wordlist" in out
+    assert not "| modules.robots.include_allow" in out
+
+    # list module options by module
+    monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdns", "-lmo"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert out.count("modules.") == out.count("modules.massdns.")
+    assert not "| modules.wayback.urls" in out
+    assert "| modules.massdns.wordlist" in out
+    assert not "| modules.robots.include_allow" in out
+
+    # list output module options by module
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "stdout", "-lmo"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert out.count("modules.") == out.count("modules.stdout.")
+
+    # list flags
+    monkeypatch.setattr("sys.argv", ["bbot", "--list-flags"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "| safe" in out
+    assert "| Non-intrusive, safe to run" in out
+    assert "| active" in out
+    assert "| passive" in out
+
+    # list only a single flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "--list-flags"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert not "| safe" in out
+    assert "| active" in out
+    assert not "| passive" in out
+
+    # list multiple flags
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "safe", "--list-flags"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "| safe" in out
+    assert "| active" in out
+    assert not "| passive" in out
+
+    # no args
+    monkeypatch.setattr("sys.argv", ["bbot"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "Target:\n  -t TARGET [TARGET ...]" in out
+
+    # list modules
+    monkeypatch.setattr("sys.argv", ["bbot", "-l"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "| massdns" in out
+    assert "| httpx" in out
+    assert "| robots" in out
+
+    # list modules by flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-l"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "| massdns" in out
+    assert "| httpx" in out
+    assert not "| robots" in out
+
+    # list modules by flag + required flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-rf", "passive", "-l"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "| massdns" in out
+    assert not "| httpx" in out
+
+    # list modules by flag + excluded flag
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert "| massdns" in out
+    assert not "| httpx" in out
+
+    # list modules by flag + excluded module
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "massdns", "-l"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert not "| massdns" in out
+    assert "| httpx" in out
+
     # output modules override
     caplog.clear()
     assert not caplog.text
@@ -90,7 +219,15 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-em", "csv,json", "-y"])
     result = await cli._main()
     assert result == True
-    assert "Loaded 2/2 output modules, (human,python)" in caplog.text
+    assert "Loaded 3/3 output modules, (python,stdout,txt)" in caplog.text
+
+    # output modules override
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "subdomains", "-y"])
+    result = await cli._main()
+    assert result == True
+    assert "Loaded 6/6 output modules, (csv,json,python,stdout,subdomains,txt)" in caplog.text
 
     # internal modules override
     caplog.clear()
@@ -110,93 +247,13 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert result == True
     assert "Loaded 4/4 internal modules (aggregate,cloud,dns,excavate)" in caplog.text
 
-    # list modules
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
-    result = await cli._main()
-    assert result == None
-    # internal modules
-    assert "| excavate" in caplog.text
-    # output modules
-    assert "| csv" in caplog.text
-    # scan modules
-    assert "| wayback" in caplog.text
-
-    # list module options
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "--list-module-options"])
-    result = await cli._main()
-    assert result == None
-    assert "| modules.wayback.urls" in caplog.text
-    assert "| bool" in caplog.text
-    assert "| emit URLs in addition to DNS_NAMEs" in caplog.text
-    assert "| False" in caplog.text
-    assert "| modules.massdns.wordlist" in caplog.text
-    assert "| modules.robots.include_allow" in caplog.text
-
-    # list module options by flag
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "--list-module-options"])
-    result = await cli._main()
-    assert result == None
-    assert "| modules.wayback.urls" in caplog.text
-    assert "| bool" in caplog.text
-    assert "| emit URLs in addition to DNS_NAMEs" in caplog.text
-    assert "| False" in caplog.text
-    assert "| modules.massdns.wordlist" in caplog.text
-    assert not "| modules.robots.include_allow" in caplog.text
-
-    # list module options by module
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-m", "massdns", "-lmo"])
-    result = await cli._main()
-    assert result == None
-    assert not "| modules.wayback.urls" in caplog.text
-    assert "| modules.massdns.wordlist" in caplog.text
-    assert not "| modules.robots.include_allow" in caplog.text
-
-    # list flags
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "--list-flags"])
-    result = await cli._main()
-    assert result == None
-    assert "| safe" in caplog.text
-    assert "| Non-intrusive, safe to run" in caplog.text
-    assert "| active" in caplog.text
-    assert "| passive" in caplog.text
-
-    # list only a single flag
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "--list-flags"])
-    result = await cli._main()
-    assert result == None
-    assert not "| safe" in caplog.text
-    assert "| active" in caplog.text
-    assert not "| passive" in caplog.text
-
-    # list multiple flags
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "safe", "--list-flags"])
-    result = await cli._main()
-    assert result == None
-    assert "| safe" in caplog.text
-    assert "| active" in caplog.text
-    assert not "| passive" in caplog.text
-
     # custom target type
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-t", "ORG:evilcorp"])
+    out, err = capsys.readouterr()
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "ORG:evilcorp", "-y"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == True
-    assert "[ORG_STUB]          	evilcorp	TARGET" in caplog.text
+    assert "[ORG_STUB]          	evilcorp	TARGET" in out
 
     # activate modules by flag
     caplog.clear()
@@ -204,60 +261,6 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "passive"])
     result = await cli._main()
     assert result == True
-
-    # no args
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot"])
-    result = await cli._main()
-    assert result == None
-    assert "Target:\n  -t TARGET [TARGET ...]" in caplog.text
-
-    # list modules
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-l"])
-    result = await cli._main()
-    assert result == None
-    assert "| massdns" in caplog.text
-    assert "| httpx" in caplog.text
-    assert "| robots" in caplog.text
-
-    # list modules by flag
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-l"])
-    result = await cli._main()
-    assert result == None
-    assert "| massdns" in caplog.text
-    assert "| httpx" in caplog.text
-    assert not "| robots" in caplog.text
-
-    # list modules by flag + required flag
-    caplog.clear()
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-rf", "passive", "-l"])
-    result = await cli._main()
-    assert result == None
-    assert "| massdns" in caplog.text
-    assert not "| httpx" in caplog.text
-
-    # list modules by flag + excluded flag
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
-    result = await cli._main()
-    assert result == None
-    assert "| massdns" in caplog.text
-    assert not "| httpx" in caplog.text
-
-    # list modules by flag + excluded module
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "massdns", "-l"])
-    result = await cli._main()
-    assert result == None
-    assert not "| massdns" in caplog.text
-    assert "| httpx" in caplog.text
 
     # unconsoleable output module
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "web_report"])
@@ -363,6 +366,70 @@ def test_cli_module_validation(monkeypatch, caplog):
     cli.main()
     assert 'Could not find output module "neoo4j"' in caplog.text
     assert 'Did you mean "neo4j"?' in caplog.text
+
+    # output module setup failed
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "websocket", "-c", "modules.websocket.url=", "-y"])
+    cli.main()
+    lines = caplog.text.splitlines()
+    assert "Loaded 6/6 output modules, (csv,json,python,stdout,txt,websocket)" in caplog.text
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            and l.endswith("Setup hard-failed for websocket: Must set URL")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("ERROR    bbot.cli:cli.py")
+            and l.endswith("Setup hard-failed for 1 modules (websocket) (--force to run module anyway)")
+        ]
+    )
+
+    # only output module setup failed
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bbot", "-om", "websocket", "-em", "python,stdout,csv,json,txt", "-c", "modules.websocket.url=", "-y"],
+    )
+    cli.main()
+    lines = caplog.text.splitlines()
+    assert "Loaded 1/1 output modules, (websocket)" in caplog.text
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            and l.endswith("Setup hard-failed for websocket: Must set URL")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("ERROR    bbot.cli:cli.py") and l.endswith("Failed to load output modules. Aborting.")
+        ]
+    )
 
     # incorrect flag
     caplog.clear()

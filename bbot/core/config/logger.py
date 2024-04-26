@@ -45,8 +45,7 @@ class BBOTLogger:
 
     def __init__(self, core):
         # custom logging levels
-        if getattr(logging, "STDOUT", None) is None:
-            self.addLoggingLevel("STDOUT", 100)
+        if getattr(logging, "HUGEWARNING", None) is None:
             self.addLoggingLevel("TRACE", 49)
             self.addLoggingLevel("HUGEWARNING", 31)
             self.addLoggingLevel("HUGESUCCESS", 26)
@@ -191,9 +190,7 @@ class BBOTLogger:
             )
 
             def stderr_filter(record):
-                if record.levelno == logging.STDOUT or (
-                    record.levelno == logging.TRACE and self.log_level > logging.DEBUG
-                ):
+                if record.levelno == logging.TRACE and self.log_level > logging.DEBUG:
                     return False
                 if record.levelno < self.log_level:
                     return False
@@ -202,26 +199,17 @@ class BBOTLogger:
             # Log to stderr
             stderr_handler = logging.StreamHandler(sys.stderr)
             stderr_handler.addFilter(stderr_filter)
-            # Log to stdout
-            stdout_handler = logging.StreamHandler(sys.stdout)
-            stdout_handler.addFilter(lambda x: x.levelno == logging.STDOUT)
             # log to files
-            debug_handler.addFilter(
-                lambda x: x.levelno == logging.TRACE or (x.levelno < logging.VERBOSE and x.levelno != logging.STDOUT)
-            )
-            main_handler.addFilter(
-                lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE
-            )
+            debug_handler.addFilter(lambda x: x.levelno == logging.TRACE or (x.levelno < logging.VERBOSE))
+            main_handler.addFilter(lambda x: x.levelno != logging.TRACE and x.levelno >= logging.VERBOSE)
 
             # Set log format
             debug_handler.setFormatter(debug_format)
             main_handler.setFormatter(debug_format)
             stderr_handler.setFormatter(ColoredFormatter("%(levelname)s %(name)s: %(message)s"))
-            stdout_handler.setFormatter(logging.Formatter("%(message)s"))
 
             self._log_handlers = {
                 "stderr": stderr_handler,
-                "stdout": stdout_handler,
                 "file_debug": debug_handler,
                 "file_main": main_handler,
             }
