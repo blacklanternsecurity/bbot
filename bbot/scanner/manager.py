@@ -43,7 +43,6 @@ class ScanIngress(InterceptModule):
             sorted_events = sorted(events, key=lambda e: len(e.data))
             for event in [self.scan.root_event] + sorted_events:
                 event._dummy = False
-                event.scope_distance = 0
                 event.web_spider_distance = 0
                 event.scan = self.scan
                 if event.source is None:

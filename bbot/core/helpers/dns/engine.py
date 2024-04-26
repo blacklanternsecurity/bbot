@@ -403,7 +403,8 @@ class DNSEngine(EngineServer):
                 if queries:  # Start a new task for each one completed, if URLs remain
                     new_task(*queries.pop(0))
 
-    def extract_targets(self, record):
+    @staticmethod
+    def extract_targets(record):
         """
         Extracts hostnames or IP addresses from a given DNS record.
 
@@ -429,24 +430,30 @@ class DNSEngine(EngineServer):
 
         """
         results = set()
+
+        def add_result(rdtype, _record):
+            cleaned = clean_dns_record(_record)
+            if cleaned:
+                results.add((rdtype, cleaned))
+
         rdtype = str(record.rdtype.name).upper()
         if rdtype in ("A", "AAAA", "NS", "CNAME", "PTR"):
-            results.add((rdtype, clean_dns_record(record)))
+            add_result(rdtype, record)
         elif rdtype == "SOA":
-            results.add((rdtype, clean_dns_record(record.mname)))
+            add_result(rdtype, record.mname)
         elif rdtype == "MX":
-            results.add((rdtype, clean_dns_record(record.exchange)))
+            add_result(rdtype, record.exchange)
         elif rdtype == "SRV":
-            results.add((rdtype, clean_dns_record(record.target)))
+            add_result(rdtype, record.target)
         elif rdtype == "TXT":
             for s in record.strings:
                 s = smart_decode(s)
                 for match in dns_name_regex.finditer(s):
                     start, end = match.span()
                     host = s[start:end]
-                    results.add((rdtype, host))
+                    add_result(rdtype, host)
         elif rdtype == "NSEC":
-            results.add((rdtype, clean_dns_record(record.next)))
+            add_result(rdtype, record.next)
         else:
             log.warning(f'Unknown DNS record type "{rdtype}"')
         return results
