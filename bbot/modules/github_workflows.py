@@ -14,7 +14,7 @@ class github_workflows(github):
         "historical_logs": "Fetch logs that are at most this many days old (default: 7)",
     }
 
-    # scope_distance_modifier = 2
+    scope_distance_modifier = 2
 
     async def setup(self):
         self.historical_logs = int(self.options.get("historical_logs", 7))
@@ -63,13 +63,13 @@ class github_workflows(github):
                 if status_code != 200:
                     break
                 try:
-                    j = r.json()
+                    j = r.json().get("workflows", [])
                 except Exception as e:
                     self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
                     break
                 if not j:
                     break
-                for item in j.get("workflows", []):
+                for item in j:
                     workflows.append(item)
         finally:
             agen.aclose()
@@ -95,13 +95,13 @@ class github_workflows(github):
                 if status_code != 200:
                     break
                 try:
-                    j = r.json()
+                    j = r.json().get("workflow_runs", [])
                 except Exception as e:
                     self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
                     break
                 if not j:
                     break
-                for item in j.get("workflow_runs", []):
+                for item in j:
                     runs.append(item)
         finally:
             agen.aclose()
