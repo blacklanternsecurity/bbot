@@ -126,7 +126,7 @@ class BBOTArgs:
             args_preset.core.merge_custom({"modules": {"stdout": {"format": "json"}}})
         if self.parsed.brief:
             args_preset.core.merge_custom(
-                {"modules": {"stdout": {"event_fields": ["type", "scope_distance", "data"]}}}
+                {"modules": {"stdout": {"event_fields": ["type", "scope_description", "data"]}}}
             )
         if self.parsed.event_types:
             args_preset.core.merge_custom({"modules": {"stdout": {"event_types": self.parsed.event_types}}})

@@ -407,6 +407,19 @@ class BaseEvent:
                 self.source.scope_distance = scope_distance + 1
 
     @property
+    def scope_description(self):
+        """
+        Returns a single word describing the scope of the event.
+
+        "in-scope" if the event is in scope, "affiliate" if it's an affiliate, otherwise "distance-{scope_distance}"
+        """
+        if self.scope_distance == 0:
+            return "in-scope"
+        elif "affiliate" in self.tags:
+            return "affiliate"
+        return f"distance-{self.scope_distance}"
+
+    @property
     def source(self):
         return self._source
 
@@ -600,7 +613,7 @@ class BaseEvent:
             dict: JSON-serializable dictionary representation of the event object.
         """
         j = dict()
-        for i in ("type", "id"):
+        for i in ("type", "id", "scope_description"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
