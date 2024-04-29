@@ -26,28 +26,9 @@ class subdomain_enum(BaseModule):
 
     # how to deduplicate incoming events
     # options:
-    #   "root_domain": if a dns name has already been tried, don't try any of its children
-    #   "parent_domain": always try a domain unless its direct parent has already been tried
-    dedup_strategy = "root_domain"
-
-    async def setup(self):
-        strict_scope = self.dedup_strategy == "parent_domain"
-        self.processed = self.helpers.make_target(strict_scope=strict_scope)
-        return True
-
-    async def filter_event(self, event):
-        """
-        This filter_event is used across many modules
-        """
-        query = self.make_query(event)
-        # reject if already processed
-        if query in self.processed:
-            return False, "Event was already processed"
-        eligible, reason = await self.eligible_for_enumeration(event)
-        if eligible:
-            self.processed.add(query)
-            return True, reason
-        return False, reason
+    #   "highest_parent": dedupe by highest parent (highest parent of www.api.test.evilcorp.com is evilcorp.com)
+    #   "lowest_parent": dedupe by lowest parent (lowest parent of www.api.test.evilcorp.com is api.test.evilcorp.com)
+    dedup_strategy = "highest_parent"
 
     async def handle_event(self, event):
         query = self.make_query(event)
@@ -68,10 +49,18 @@ class subdomain_enum(BaseModule):
         return await self.request_with_fail_count(url)
 
     def make_query(self, event):
-        if "target" in event.tags:
-            query = str(event.data)
+        query = event.data
+        parents = list(self.helpers.domain_parents(event.data))
+        if self.dedup_strategy == "highest_parent":
+            parents = list(reversed(parents))
+        elif self.dedup_strategy == "lowest_parent":
+            pass
         else:
-            query = self.helpers.parent_domain(event.data).lower()
+            raise ValueError('self.dedup_strategy attribute must be set to either "highest_parent" or "lowest_parent"')
+        for p in parents:
+            if self.scan.in_scope(p):
+                query = p
+                break
         return ".".join([s for s in query.split(".") if s != "_wildcard"])
 
     def parse_results(self, r, query=None):
@@ -114,7 +103,7 @@ class subdomain_enum(BaseModule):
                     return True
         return False
 
-    async def eligible_for_enumeration(self, event):
+    async def filter_event(self, event):
         query = self.make_query(event)
         # check if wildcard
         is_wildcard = await self._is_wildcard(query)

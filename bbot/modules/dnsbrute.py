@@ -16,7 +16,7 @@ class dnsbrute(subdomain_enum):
     }
     deps_common = ["massdns"]
     reject_wildcards = "strict"
-    dedup_strategy = "parent_domain"
+    dedup_strategy = "lowest_parent"
     _qsize = 10000
 
     async def setup(self):
@@ -25,8 +25,8 @@ class dnsbrute(subdomain_enum):
         self.subdomain_list = set(self.helpers.read_file(self.subdomain_file))
         return await super().setup()
 
-    async def eligible_for_enumeration(self, event):
-        eligible, reason = await super().eligible_for_enumeration(event)
+    async def filter_event(self, event):
+        eligible, reason = await super().filter_event(event)
         query = self.make_query(event)
 
         # limit brute force depth
