@@ -19,6 +19,9 @@ class ScanIngress(InterceptModule):
     scope_distance_modifier = None
     _name = "_scan_ingress"
 
+    # small queue size so we don't drain modules' outgoing queues
+    _qsize = 10
+
     @property
     def priority(self):
         # we are the highest priority
