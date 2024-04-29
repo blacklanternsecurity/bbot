@@ -388,18 +388,20 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudcheck"
-version = "3.1.0.318"
+version = "5.0.0.350"
 description = "Check whether an IP address belongs to a cloud provider"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "cloudcheck-3.1.0.318-py3-none-any.whl", hash = "sha256:471dba97531e1f60aadab8daa6cb1d63727f67c16fd7b4758db46c9af2f362f1"},
-    {file = "cloudcheck-3.1.0.318.tar.gz", hash = "sha256:ba7fcc026817aa05f74c7789d2ac306469f3143f91b3ea9f95c57c70a7b0b787"},
+    {file = "cloudcheck-5.0.0.350-py3-none-any.whl", hash = "sha256:6f2ed981818bde6d8b6c5a6413a843e11d0aa1a4bf8b36452dcae1030a537dd6"},
+    {file = "cloudcheck-5.0.0.350.tar.gz", hash = "sha256:cb59dfef966268ebc176e242634b84a3423a84ffaf4fac40566f37edfaddc106"},
 ]
 
 [package.dependencies]
 httpx = ">=0.26,<0.28"
 pydantic = ">=2.4.2,<3.0.0"
+radixtarget = ">=1.0.0.14,<2.0.0.0"
+regex = ">=2024.4.16,<2025.0.0"
 
 [[package]]
 name = "colorama"
@@ -942,6 +944,7 @@ files = [
     {file = "lxml-5.2.1-cp36-cp36m-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c38d7b9a690b090de999835f0443d8aa93ce5f2064035dfc48f27f02b4afc3d0"},
     {file = "lxml-5.2.1-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5670fb70a828663cc37552a2a85bf2ac38475572b0e9b91283dc09efb52c41d1"},
     {file = "lxml-5.2.1-cp36-cp36m-manylinux_2_28_x86_64.whl", hash = "sha256:958244ad566c3ffc385f47dddde4145088a0ab893504b54b52c041987a8c1863"},
+    {file = "lxml-5.2.1-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:b6241d4eee5f89453307c2f2bfa03b50362052ca0af1efecf9fef9a41a22bb4f"},
     {file = "lxml-5.2.1-cp36-cp36m-musllinux_1_1_aarch64.whl", hash = "sha256:2a66bf12fbd4666dd023b6f51223aed3d9f3b40fef06ce404cb75bafd3d89536"},
     {file = "lxml-5.2.1-cp36-cp36m-musllinux_1_1_ppc64le.whl", hash = "sha256:9123716666e25b7b71c4e1789ec829ed18663152008b58544d95b008ed9e21e9"},
     {file = "lxml-5.2.1-cp36-cp36m-musllinux_1_1_s390x.whl", hash = "sha256:0c3f67e2aeda739d1cc0b1102c9a9129f7dc83901226cc24dd72ba275ced4218"},
@@ -1979,6 +1982,17 @@ files = [
 pyyaml = "*"
 
 [[package]]
+name = "radixtarget"
+version = "1.0.0.17"
+description = "Check whether an IP address belongs to a cloud provider"
+optional = false
+python-versions = "<4.0,>=3.9"
+files = [
+    {file = "radixtarget-1.0.0.17-py3-none-any.whl", hash = "sha256:79a1bb47bf7de74f28ed6e32d0555161ccd3d1cff0f45153372c80544edd7151"},
+    {file = "radixtarget-1.0.0.17.tar.gz", hash = "sha256:6ac7b07f5e39c9b4601264f4d8629db8d4f50b6b5507c3bfaad65870611d33e1"},
+]
+
+[[package]]
 name = "regex"
 version = "2024.4.16"
 description = "Alternative regular expression module, to replace re."
@@ -2109,6 +2123,7 @@ optional = false
 python-versions = "*"
 files = [
     {file = "requests-file-2.0.0.tar.gz", hash = "sha256:20c5931629c558fda566cacc10cfe2cd502433e628f568c34c80d96a0cc95972"},
+    {file = "requests_file-2.0.0-py2.py3-none-any.whl", hash = "sha256:3e493d390adb44aa102ebea827a48717336d5268968c370eaf19abaf5cae13bf"},
 ]
 
 [package.dependencies]
@@ -2519,4 +2534,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "f65140794e365b3fe93ff86e026591e528ab20ebcd278d4562a6cabe90ccac80"
+content-hash = "d537e94b3a80c4497942775884ae9211d14b6d5aadcbf61020def7f83192d332"
