@@ -1,19 +1,25 @@
+from datetime import date, timedelta
+
 from bbot.modules.templates.github import github
 
 
 class github_workflows(github):
     watched_events = ["CODE_REPOSITORY"]
-    produced_events = ["HTTP_RESPONSE"]
+    produced_events = ["FILESYSTEM"]
     flags = ["passive", "safe"]
-    meta = {"description": "Query Github's API for the repositories workflow logs"}
-    options = {"api_key": ""}
+    meta = {"description": "Download a github repositories workflow logs"}
+    options = {"api_key": "", "historical_logs": 7}
     options_desc = {
         "api_key": "Github token",
+        "historical_logs": "Fetch logs that are at most this many days old (default: 7)",
     }
 
     # scope_distance_modifier = 2
 
     async def setup(self):
+        self.historical_logs = int(self.options.get("historical_logs", 7))
+        self.output_dir = self.scan.home / "workflow_logs"
+        self.helpers.mkdir(self.output_dir)
         return await super().setup()
 
     async def filter_event(self, event):
@@ -32,33 +38,15 @@ class github_workflows(github):
             self.log.debug(f"Looking up runs for {workflow_name} in {owner}/{repo}")
             for run in await self.get_workflow_runs(owner, repo, workflow_id):
                 run_id = run.get("id")
-                self.log.debug(f"Looking up jobs for {workflow_name}/{run_id} in {owner}/{repo}")
-                for job in await self.get_run_jobs(owner, repo, run_id):
-                    job_id = job.get("id")
-                    commit_id = job.get("head_sha")
-                    steps = job.get("steps", [])
-                    for step in steps:
-                        if step.get("conclusion") == "success":
-                            step_name = step.get("name")
-                            number = step.get("number")
-                            self.log.debug(
-                                f"Requesting {workflow_name}/run {run_id}/job {job_id}/{step_name} log for {owner}/{repo}"
-                            )
-                            # Request log step from the html_url as that bypasses the admin restrictions from using the API
-                            response = await self.helpers.request(
-                                f"https://github.com/{owner}/{repo}/commit/{commit_id}/checks/{job_id}/logs/{number}",
-                                follow_redirects=True,
-                            )
-                            if response:
-                                blob_url = response.headers.get("Location", "")
-                                if blob_url:
-                                    url_event = self.make_event(
-                                        blob_url, "URL_UNVERIFIED", source=event, tags=["httpx-safe"]
-                                    )
-                                    if not url_event:
-                                        continue
-                                    url_event.scope_distance = event.scope_distance
-                                    await self.emit_event(url_event)
+                self.log.debug(f"Downloading logs for {workflow_name}/{run_id} in {owner}/{repo}")
+                log_path = await self.download_run_logs(owner, repo, run_id)
+                if log_path:
+                    self.verbose(f"Downloaded repository workflow logs to {log_path}")
+                    logfile_event = self.make_event(
+                        {"path": str(log_path)}, "FILESYSTEM", tags=["zipfile"], source=event
+                    )
+                    logfile_event.scope_distance = event.scope_distance
+                    await self.emit_event(logfile_event)
 
     async def get_workflows(self, owner, repo):
         workflows = []
@@ -89,8 +77,11 @@ class github_workflows(github):
 
     async def get_workflow_runs(self, owner, repo, workflow_id):
         runs = []
+        created_date = date.today() - timedelta(days=self.historical_logs)
+        formated_date = created_date.strftime("%Y-%m-%d")
         url = (
-            f"{self.base_url}/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs?per_page=100&page=" + "{page}"
+            f"{self.base_url}/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs?created=>{formated_date}&per_page=100&page="
+            + "{page}"
         )
         agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
         try:
@@ -116,29 +107,14 @@ class github_workflows(github):
             agen.aclose()
         return runs
 
-    async def get_run_jobs(self, owner, repo, run_id):
-        jobs = []
-        url = f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/jobs?per_page=100&page=" + "{page}"
-        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
-        try:
-            async for r in agen:
-                if r is None:
-                    break
-                status_code = getattr(r, "status_code", 0)
-                if status_code == 403:
-                    self.warning("Github is rate-limiting us (HTTP status: 403)")
-                    break
-                if status_code != 200:
-                    break
-                try:
-                    j = r.json()
-                except Exception as e:
-                    self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
-                    break
-                if not j:
-                    break
-                for item in j.get("jobs", []):
-                    jobs.append(item)
-        finally:
-            agen.aclose()
-        return jobs
+    async def download_run_logs(self, owner, repo, run_id):
+        file_destination = self.output_dir / f"{owner}_{repo}_run_{run_id}.zip"
+        result = await self.helpers.download(
+            f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs", filename=file_destination
+        )
+        if result:
+            self.info(f"Downloaded logs for {owner}/{repo}/{run_id} to {file_destination}")
+            return file_destination
+        else:
+            self.warning(f"Failed to download logs for {owner}/{repo}/{run_id}")
+            return None

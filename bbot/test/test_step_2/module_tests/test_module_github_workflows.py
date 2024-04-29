@@ -415,117 +415,15 @@ class TestGithub_Workflows(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/jobs?per_page=100&page=1",
-            json={
-                "total_count": 8,
-                "jobs": [
-                    {
-                        "id": 24272553740,
-                        "run_id": 8839360698,
-                        "workflow_name": "tests",
-                        "head_branch": "dnsbrute-helperify",
-                        "run_url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698",
-                        "run_attempt": 1,
-                        "node_id": "CR_kwDOG_O3ns8AAAAFpsHHDA",
-                        "head_sha": "c5de1360e8e5ccba04b23035f675a529282b7dc2",
-                        "url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/jobs/24272553740",
-                        "html_url": "https://github.com/blacklanternsecurity/bbot/actions/runs/8839360698/job/24272553740",
-                        "status": "completed",
-                        "conclusion": "success",
-                        "created_at": "2024-04-25T21:04:54Z",
-                        "started_at": "2024-04-25T21:05:01Z",
-                        "completed_at": "2024-04-25T21:05:18Z",
-                        "name": "lint",
-                        "steps": [
-                            {
-                                "name": "Set up job",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 1,
-                                "started_at": "2024-04-25T21:05:00.000Z",
-                                "completed_at": "2024-04-25T21:05:02.000Z",
-                            },
-                            {
-                                "name": "Run actions/checkout@v3",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 2,
-                                "started_at": "2024-04-25T21:05:02.000Z",
-                                "completed_at": "2024-04-25T21:05:04.000Z",
-                            },
-                            {
-                                "name": "Run psf/black@stable",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 3,
-                                "started_at": "2024-04-25T21:05:04.000Z",
-                                "completed_at": "2024-04-25T21:05:10.000Z",
-                            },
-                            {
-                                "name": "Install Python 3",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 4,
-                                "started_at": "2024-04-25T21:05:10.000Z",
-                                "completed_at": "2024-04-25T21:05:11.000Z",
-                            },
-                            {
-                                "name": "Install dependencies",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 5,
-                                "started_at": "2024-04-25T21:05:11.000Z",
-                                "completed_at": "2024-04-25T21:05:12.000Z",
-                            },
-                            {
-                                "name": "flake8",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 6,
-                                "started_at": "2024-04-25T21:05:12.000Z",
-                                "completed_at": "2024-04-25T21:05:14.000Z",
-                            },
-                            {
-                                "name": "Post Install Python 3",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 11,
-                                "started_at": "2024-04-25T21:05:15.000Z",
-                                "completed_at": "2024-04-25T21:05:15.000Z",
-                            },
-                            {
-                                "name": "Post Run actions/checkout@v3",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 12,
-                                "started_at": "2024-04-25T21:05:15.000Z",
-                                "completed_at": "2024-04-25T21:05:15.000Z",
-                            },
-                            {
-                                "name": "Complete job",
-                                "status": "completed",
-                                "conclusion": "success",
-                                "number": 13,
-                                "started_at": "2024-04-25T21:05:15.000Z",
-                                "completed_at": "2024-04-25T21:05:15.000Z",
-                            },
-                        ],
-                        "check_run_url": "https://api.github.com/repos/blacklanternsecurity/bbot/check-runs/24272553740",
-                        "labels": ["ubuntu-latest"],
-                        "runner_id": 60,
-                        "runner_name": "GitHub Actions 60",
-                        "runner_group_id": 2,
-                        "runner_group_name": "GitHub Actions",
-                    },
-                ],
-            },
-        )
-        module_test.httpx_mock.add_response(
-            url="https://github.com/blacklanternsecurity/bbot/commit/c5de1360e8e5ccba04b23035f675a529282b7dc2/checks/24272553740/logs/1",
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/logs",
             headers={
                 "location": "https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02"
             },
             status_code=302,
+        )
+        module_test.httpx_mock.add_response(
+            url="https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02",
+            content=self.zip_content,
         )
 
     def check(self, module_test, events):
@@ -565,9 +463,9 @@ class TestGithub_Workflows(ModuleTestBase):
             [
                 e
                 for e in events
-                if e.type == "URL_UNVERIFIED"
-                and e.data
-                == "https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02"
+                if e.type == "FILESYSTEM"
+                and "blacklanternsecurity/bbot/run_8839360698.zip" in e.data
+                and "zipfile" in e.tags
                 and e.scope_distance == 1
             ]
         ), "Failed to obtain redirect to the blob"
