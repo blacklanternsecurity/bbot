@@ -33,10 +33,14 @@ class BaseOutputModule(BaseModule):
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
             return False, "its extension was listed in url_extension_httpx_only"
 
-        # output module specific stuff
-        # omitted events such as HTTP_RESPONSE etc.
-        if event._omit and not event.type in self.get_watched_events():
-            return False, "_omit is True"
+        ### begin output-module specific ###
+
+        # events from omit_event_types, e.g. HTTP_RESPONSE, DNS_NAME_UNRESOLVED, etc.
+        # if the output module specifically requests a certain event type, we let it through anyway
+        # always_emit overrides _omit.
+        if event._omit:
+            if not event.always_emit and not event.type in self.get_watched_events():
+                return False, "_omit is True"
 
         # force-output certain events to the graph
         if self._is_graph_important(event):
