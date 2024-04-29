@@ -24,14 +24,14 @@ class github_workflows(github):
 
     async def filter_event(self, event):
         if event.type == "CODE_REPOSITORY":
-            if "git" not in event.tags:
+            if "git" not in event.tags and "github" not in event.data.get("url", ""):
                 return False, "event is not a git repository"
         return True
 
     async def handle_event(self, event):
-        # repo_url = event.data.get("url")
-        owner = "blacklanternsecurity"
-        repo = "bbot"
+        repo_url = event.data.get("url")
+        owner = repo_url.split("/")[-2]
+        repo = repo_url.split("/")[-1]
         for workflow in await self.get_workflows(owner, repo):
             workflow_name = workflow.get("name")
             workflow_id = workflow.get("id")
