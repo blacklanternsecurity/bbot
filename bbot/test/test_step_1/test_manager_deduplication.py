@@ -75,6 +75,7 @@ async def test_manager_deduplication(bbot_scanner):
         )
 
     dns_mock_chain = {
+        "test.notreal": {"A": ["127.0.0.3"]},
         "default_module.test.notreal": {"A": ["127.0.0.3"]},
         "everything_module.test.notreal": {"A": ["127.0.0.4"]},
         "no_suppress_dupes.test.notreal": {"A": ["127.0.0.5"]},
@@ -116,7 +117,7 @@ async def test_manager_deduplication(bbot_scanner):
     assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only"])
     assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
 
-    assert len(all_events) == 26
+    assert len(all_events) == 27
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "accept_dupes.test.notreal" and str(e.module) == "accept_dupes"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "default_module.test.notreal" and str(e.module) == "default_module"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "no_suppress_dupes.test.notreal" and str(e.module) == "no_suppress_dupes" and e.source.data == "accept_dupes.test.notreal"])
@@ -127,6 +128,7 @@ async def test_manager_deduplication(bbot_scanner):
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.3" and str(e.module) == "A" and e.source.data == "test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.3" and str(e.module) == "A" and e.source.data == "default_module.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.5" and str(e.module) == "A" and e.source.data == "no_suppress_dupes.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.6" and str(e.module) == "A" and e.source.data == "accept_dupes.test.notreal"])
