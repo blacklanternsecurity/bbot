@@ -37,9 +37,9 @@ class BaseOutputModule(BaseModule):
 
         # events from omit_event_types, e.g. HTTP_RESPONSE, DNS_NAME_UNRESOLVED, etc.
         # if the output module specifically requests a certain event type, we let it through anyway
-        # always_emit overrides _omit.
+        # an exception is also made for targets
         if event._omit:
-            if not event.always_emit and not event.type in self.get_watched_events():
+            if not "target" in event.tags and not event.type in self.get_watched_events():
                 return False, "_omit is True"
 
         # force-output certain events to the graph
