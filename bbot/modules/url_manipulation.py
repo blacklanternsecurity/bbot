@@ -94,10 +94,10 @@ class url_manipulation(BaseModule):
 
     def format_signature(self, sig, event):
         if sig[2] == True:
-            cleaned_path = event.parsed.path.strip("/")
+            cleaned_path = event.parsed_url.path.strip("/")
         else:
-            cleaned_path = event.parsed.path.lstrip("/")
+            cleaned_path = event.parsed_url.path.lstrip("/")
 
-        kwargs = {"scheme": event.parsed.scheme, "netloc": event.parsed.netloc, "path": cleaned_path}
+        kwargs = {"scheme": event.parsed_url.scheme, "netloc": event.parsed_url.netloc, "path": cleaned_path}
         formatted_url = sig[1].format(**kwargs)
         return (sig[0], formatted_url)

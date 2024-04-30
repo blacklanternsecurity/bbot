@@ -684,6 +684,7 @@ class BaseModule:
         if self.target_only:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
+
         # exclude certain URLs (e.g. javascript):
         # TODO: revisit this after httpx rework
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
@@ -952,7 +953,7 @@ class BaseModule:
             >>> event = self.make_event("https://example.com:8443")
             >>> self.get_per_hostport_hash(event)
         """
-        parsed = getattr(event, "parsed", None)
+        parsed = getattr(event, "parsed_url", None)
         if parsed is None:
             to_hash = self.helpers.make_netloc(event.host, event.port)
         else:

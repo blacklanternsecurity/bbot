@@ -33,7 +33,7 @@ class wafw00f(BaseModule):
         return True, ""
 
     async def handle_event(self, event):
-        url = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
         WW = await self.helpers.run_in_executor(wafw00f_main.WAFW00F, url, followredirect=False)
         waf_detections = await self.helpers.run_in_executor(WW.identwaf)
         if waf_detections:

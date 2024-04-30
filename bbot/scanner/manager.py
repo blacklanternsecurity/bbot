@@ -72,8 +72,27 @@ class ScanIngress(InterceptModule):
         # update event's scope distance based on its parent
         event.scope_distance = event.source.scope_distance + 1
 
-        # blacklist rejections
+        # special handling of URL extensions
+        parsed_url = getattr(event, "parsed_url", None)
+        if parsed_url is not None:
+            url_path = parsed_url.path
+            if url_path:
+                parsed_path_lower = str(url_path).lower()
+                extension = self.helpers.get_file_extension(parsed_path_lower)
+                if extension:
+                    event.add_tag(f"extension-{extension}")
+                if extension in self.scan.url_extension_httpx_only:
+                    event.add_tag("httpx-only")
+                    event._omit = True
+
+            # blacklist by extension
+            if extension in self.scan.url_extension_blacklist:
+                event.add_tag("blacklisted")
+
+        # main scan blacklist
         event_blacklisted = self.scan.blacklisted(event)
+
+        # reject all blacklisted events
         if event_blacklisted or "blacklisted" in event.tags:
             return False, f"Omitting blacklisted event: {event}"
 

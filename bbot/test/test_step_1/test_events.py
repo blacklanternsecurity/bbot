@@ -100,7 +100,7 @@ async def test_events(events, scan, helpers):
     # http response
     assert events.http_response.host == "example.com"
     assert events.http_response.port == 80
-    assert events.http_response.parsed.scheme == "http"
+    assert events.http_response.parsed_url.scheme == "http"
     assert events.http_response.with_port().geturl() == "http://example.com:80/"
 
     http_response = scan.make_event(

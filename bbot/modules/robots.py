@@ -21,7 +21,7 @@ class robots(BaseModule):
         return True
 
     async def handle_event(self, event):
-        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        host = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
         result = None
         url = f"{host}robots.txt"
         result = await self.helpers.request(url)

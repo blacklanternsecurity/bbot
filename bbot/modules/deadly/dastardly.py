@@ -27,7 +27,7 @@ class dastardly(BaseModule):
         return True
 
     async def handle_event(self, event):
-        host = event.parsed._replace(path="/").geturl()
+        host = event.parsed_url._replace(path="/").geturl()
         self.verbose(f"Running Dastardly scan against {host}")
         command, output_file = self.construct_command(host)
         finished_proc = await self.run_process(command, sudo=True)

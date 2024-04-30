@@ -15,7 +15,6 @@ from .helpers import *
 from bbot.errors import *
 from bbot.core.helpers import (
     extract_words,
-    get_file_extension,
     is_domain,
     is_subdomain,
     is_ip,
@@ -99,8 +98,6 @@ class BaseEvent:
     _quick_emit = False
     # Whether this event has been retroactively marked as part of an important discovery chain
     _graph_important = False
-    # Exclude from output modules
-    _omit = False
     # Disables certain data validations
     _dummy = False
     # Data validation, if data is a dictionary
@@ -149,6 +146,7 @@ class BaseEvent:
         self._hash = None
         self.__host = None
         self._port = None
+        self._omit = False
         self.__words = None
         self._priority = None
         self._host_original = None
@@ -184,9 +182,6 @@ class BaseEvent:
             self.scans = scans
         if self.scan:
             self.scans = list(set([self.scan.id] + self.scans))
-
-        # check type blacklist
-        self._check_omit()
 
         self._scope_distance = -1
 
@@ -297,12 +292,12 @@ class BaseEvent:
     @property
     def port(self):
         self.host
-        if getattr(self, "parsed", None):
-            if self.parsed.port is not None:
-                return self.parsed.port
-            elif self.parsed.scheme == "https":
+        if getattr(self, "parsed_url", None):
+            if self.parsed_url.port is not None:
+                return self.parsed_url.port
+            elif self.parsed_url.scheme == "https":
                 return 443
-            elif self.parsed.scheme == "http":
+            elif self.parsed_url.scheme == "http":
                 return 80
         return self._port
 
@@ -453,9 +448,9 @@ class BaseEvent:
 
     def get_source(self):
         """
-        Takes into account events with the _omit flag
+        Takes into account events with the omit flag
         """
-        if getattr(self.source, "_omit", False):
+        if getattr(self.source, "omit", False):
             return self.source.get_source()
         return self.source
 
@@ -669,7 +664,7 @@ class BaseEvent:
             str: The module sequence in human-friendly format.
         """
         module_name = getattr(self.module, "name", "")
-        if getattr(self.source, "_omit", False):
+        if getattr(self.source, "omit", False):
             module_name = f"{self.source.module_sequence}->{module_name}"
         return module_name
 
@@ -704,13 +699,6 @@ class BaseEvent:
         self._type = val
         self._hash = None
         self._id = None
-        self._check_omit()
-
-    def _check_omit(self):
-        if self.scan is not None:
-            omit_event_types = self.scan.config.get("omit_event_types", [])
-            if omit_event_types and self.type in omit_event_types:
-                self._omit = True
 
     def __iter__(self):
         """
@@ -770,7 +758,7 @@ class DictEvent(BaseEvent):
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
-            self.parsed = validators.validate_url_parsed(url)
+            self.parsed_url = validators.validate_url_parsed(url)
         return data
 
     def _data_load(self, data):
@@ -784,7 +772,7 @@ class DictHostEvent(DictEvent):
         if isinstance(self.data, dict) and "host" in self.data:
             return make_ip_type(self.data["host"])
         else:
-            parsed = getattr(self, "parsed")
+            parsed = getattr(self, "parsed_url", None)
             if parsed is not None:
                 return make_ip_type(parsed.hostname)
 
@@ -903,44 +891,29 @@ class URL_UNVERIFIED(BaseEvent):
         self.num_redirects = getattr(self.source, "num_redirects", 0)
 
     def sanitize_data(self, data):
-        self.parsed = validators.validate_url_parsed(data)
+        self.parsed_url = validators.validate_url_parsed(data)
 
         # tag as dir or endpoint
-        if str(self.parsed.path).endswith("/"):
+        if str(self.parsed_url.path).endswith("/"):
             self.add_tag("dir")
         else:
             self.add_tag("endpoint")
 
-        parsed_path_lower = str(self.parsed.path).lower()
-
-        scan = getattr(self, "scan", None)
-        url_extension_blacklist = getattr(scan, "url_extension_blacklist", [])
-        url_extension_httpx_only = getattr(scan, "url_extension_httpx_only", [])
-
-        extension = get_file_extension(parsed_path_lower)
-        if extension:
-            self.add_tag(f"extension-{extension}")
-            if extension in url_extension_blacklist:
-                self.add_tag("blacklisted")
-            if extension in url_extension_httpx_only:
-                self.add_tag("httpx-only")
-                self._omit = True
-
-        data = self.parsed.geturl()
+        data = self.parsed_url.geturl()
         return data
 
     def with_port(self):
         netloc_with_port = make_netloc(self.host, self.port)
-        return self.parsed._replace(netloc=netloc_with_port)
+        return self.parsed_url._replace(netloc=netloc_with_port)
 
     def _words(self):
-        first_elem = self.parsed.path.lstrip("/").split("/")[0]
+        first_elem = self.parsed_url.path.lstrip("/").split("/")[0]
         if not "." in first_elem:
             return extract_words(first_elem)
         return set()
 
     def _host(self):
-        return make_ip_type(self.parsed.hostname)
+        return make_ip_type(self.parsed_url.hostname)
 
     def _data_id(self):
         # consider spider-danger tag when deduping
@@ -1020,8 +993,8 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
     def sanitize_data(self, data):
         url = data.get("url", "")
-        self.parsed = validators.validate_url_parsed(url)
-        data["url"] = self.parsed.geturl()
+        self.parsed_url = validators.validate_url_parsed(url)
+        data["url"] = self.parsed_url.geturl()
 
         header_dict = {}
         for i in data.get("raw_header", "").splitlines():

@@ -29,22 +29,26 @@ class BaseOutputModule(BaseModule):
         if self.target_only:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
-        # exclude certain URLs (e.g. javascript):
-        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
-            return False, "its extension was listed in url_extension_httpx_only"
 
         ### begin output-module specific ###
-
-        # events from omit_event_types, e.g. HTTP_RESPONSE, DNS_NAME_UNRESOLVED, etc.
-        # if the output module specifically requests a certain event type, we let it through anyway
-        # an exception is also made for targets
-        if event._omit:
-            if not "target" in event.tags and not event.type in self.get_watched_events():
-                return False, "_omit is True"
 
         # force-output certain events to the graph
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
+
+        # exclude certain URLs (e.g. javascript):
+        # TODO: revisit this after httpx rework
+        if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
+            return False, (f"Omitting {event} from output because it's marked as httpx-only")
+
+        # omit certain event types
+        if event.type in self.scan.omitted_event_types:
+            if "target" in event.tags:
+                self.debug(f"Allowing omitted event: {event} because it's a target")
+            elif event.type in self.get_watched_events():
+                self.debug(f"Allowing omitted event: {event} because its type is explicitly in watched_events")
+            else:
+                return False, f"its type is omitted in the config"
 
         # internal events like those from speculate, ipneighbor
         # or events that are over our report distance

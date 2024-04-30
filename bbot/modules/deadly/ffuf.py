@@ -57,7 +57,7 @@ class ffuf(BaseModule):
             return
 
         # only FFUF against a directory
-        if "." in event.parsed.path.split("/")[-1]:
+        if "." in event.parsed_url.path.split("/")[-1]:
             self.debug("Aborting FFUF as period was detected in right-most path segment (likely a file)")
             return
         else:
