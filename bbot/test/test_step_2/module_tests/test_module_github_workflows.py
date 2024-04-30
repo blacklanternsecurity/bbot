@@ -1,4 +1,5 @@
 import io
+import re
 import zipfile
 from pathlib import Path
 
@@ -13,7 +14,6 @@ class TestGithub_Workflows(ModuleTestBase):
     with zipfile.ZipFile(data, mode="w", compression=zipfile.ZIP_DEFLATED) as zipfile:
         zipfile.writestr("test.txt", "This is some test data")
     data.seek(0)
-
     zip_content = data.getvalue()
 
     async def setup_before_prep(self, module_test):
@@ -180,7 +180,9 @@ class TestGithub_Workflows(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?created=>2024-04-23&per_page=100&page=1",
+            url=re.compile(
+                r"https://api\.github\.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs\?created=.*&per_page=100&page=1"
+            ),
             json={
                 "total_count": 2993,
                 "workflow_runs": [
