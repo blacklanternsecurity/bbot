@@ -1,5 +1,4 @@
 import io
-import re
 import zipfile
 from pathlib import Path
 
@@ -180,9 +179,7 @@ class TestGithub_Workflows(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url=re.compile(
-                r"https://api\.github\.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs\?created=.*&per_page=100&page=1"
-            ),
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?status=success&per_page=1",
             json={
                 "total_count": 2993,
                 "workflow_runs": [
@@ -197,7 +194,7 @@ class TestGithub_Workflows(ModuleTestBase):
                         "run_number": 4520,
                         "event": "pull_request",
                         "status": "completed",
-                        "conclusion": "failure",
+                        "conclusion": "success",
                         "workflow_id": 22452226,
                         "check_suite_id": 23162098295,
                         "check_suite_node_id": "CS_kwDOG_O3ns8AAAAFZJGSdw",

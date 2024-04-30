@@ -1,5 +1,3 @@
-from datetime import date, timedelta
-
 from bbot.modules.templates.github import github
 
 
@@ -8,16 +6,19 @@ class github_workflows(github):
     produced_events = ["FILESYSTEM"]
     flags = ["passive", "safe"]
     meta = {"description": "Download a github repositories workflow logs"}
-    options = {"api_key": "", "historical_logs": 7}
+    options = {"api_key": "", "num_logs": 1}
     options_desc = {
         "api_key": "Github token",
-        "historical_logs": "Fetch logs that are at most this many days old (default: 7)",
+        "num_logs": "For each workflow fetch the last N successful runs logs (max 100)",
     }
 
     scope_distance_modifier = 2
 
     async def setup(self):
-        self.historical_logs = int(self.options.get("historical_logs", 7))
+        self.num_logs = int(self.options.get("num_logs", 1))
+        if self.num_logs > 100:
+            self.log.error("num_logs option is capped at 100")
+            return False
         self.output_dir = self.scan.home / "workflow_logs"
         self.helpers.mkdir(self.output_dir)
         return await super().setup()
@@ -77,34 +78,25 @@ class github_workflows(github):
 
     async def get_workflow_runs(self, owner, repo, workflow_id):
         runs = []
-        created_date = date.today() - timedelta(days=self.historical_logs)
-        formated_date = created_date.strftime("%Y-%m-%d")
-        url = (
-            f"{self.base_url}/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs?created=>{formated_date}&per_page=100&page="
-            + "{page}"
-        )
-        agen = self.helpers.api_page_iter(url, headers=self.headers, json=False)
+        url = f"{self.base_url}/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs?status=success&per_page={self.num_logs}"
+        r = await self.helpers.request(url, headers=self.headers)
+        if r is None:
+            return runs
+        status_code = getattr(r, "status_code", 0)
+        if status_code == 403:
+            self.warning("Github is rate-limiting us (HTTP status: 403)")
+            return runs
+        if status_code != 200:
+            return runs
         try:
-            async for r in agen:
-                if r is None:
-                    break
-                status_code = getattr(r, "status_code", 0)
-                if status_code == 403:
-                    self.warning("Github is rate-limiting us (HTTP status: 403)")
-                    break
-                if status_code != 200:
-                    break
-                try:
-                    j = r.json().get("workflow_runs", [])
-                except Exception as e:
-                    self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
-                    break
-                if not j:
-                    break
-                for item in j:
-                    runs.append(item)
-        finally:
-            agen.aclose()
+            j = r.json().get("workflow_runs", [])
+        except Exception as e:
+            self.warning(f"Failed to decode JSON for {r.url} (HTTP status: {status_code}): {e}")
+            return runs
+        if not j:
+            return runs
+        for item in j:
+            runs.append(item)
         return runs
 
     async def download_run_logs(self, owner, repo, run_id):
