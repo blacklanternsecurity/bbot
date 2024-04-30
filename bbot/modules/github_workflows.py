@@ -108,9 +108,12 @@ class github_workflows(github):
         return runs
 
     async def download_run_logs(self, owner, repo, run_id):
-        file_destination = self.output_dir / f"{owner}_{repo}_run_{run_id}.zip"
+        folder = self.output_dir / owner / repo
+        self.helpers.mkdir(folder)
+        filename = f"run_{run_id}.zip"
+        file_destination = folder / filename
         result = await self.helpers.download(
-            f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs", filename=file_destination
+            f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs", filename=file_destination, headers=self.headers
         )
         if result:
             self.info(f"Downloaded logs for {owner}/{repo}/{run_id} to {file_destination}")
