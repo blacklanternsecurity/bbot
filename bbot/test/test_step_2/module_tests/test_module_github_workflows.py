@@ -1,9 +1,20 @@
+import io
+import zipfile
+from pathlib import Path
+
 from .base import ModuleTestBase
 
 
 class TestGithub_Workflows(ModuleTestBase):
     config_overrides = {"modules": {"github_org": {"api_key": "asdf"}}}
     modules_overrides = ["github_workflows", "github_org", "speculate"]
+
+    data = io.BytesIO()
+    with zipfile.ZipFile(data, mode="w", compression=zipfile.ZIP_DEFLATED) as zipfile:
+        zipfile.writestr("test.txt", "This is some test data")
+    data.seek(0)
+
+    zip_content = data.getvalue()
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(url="https://api.github.com/zen")
@@ -71,7 +82,7 @@ class TestGithub_Workflows(ModuleTestBase):
                         "type": "Organization",
                         "site_admin": False,
                     },
-                    "html_url": "https://github.com/blacklanternsecurity/test_keys",
+                    "html_url": "https://github.com/blacklanternsecurity/bbot",
                     "description": None,
                     "fork": False,
                     "url": "https://api.github.com/repos/blacklanternsecurity/test_keys",
@@ -116,8 +127,8 @@ class TestGithub_Workflows(ModuleTestBase):
                     "pushed_at": "2023-10-19T02:56:46Z",
                     "git_url": "git://github.com/blacklanternsecurity/test_keys.git",
                     "ssh_url": "git@github.com:blacklanternsecurity/test_keys.git",
-                    "clone_url": "https://github.com/blacklanternsecurity/test_keys.git",
-                    "svn_url": "https://github.com/blacklanternsecurity/test_keys",
+                    "clone_url": "https://github.com/blacklanternsecurity/bbot.git",
+                    "svn_url": "https://github.com/blacklanternsecurity/bbot",
                     "homepage": None,
                     "size": 2,
                     "stargazers_count": 2,
@@ -169,7 +180,7 @@ class TestGithub_Workflows(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?per_page=100&page=1",
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?created=>2024-04-23&per_page=100&page=1",
             json={
                 "total_count": 2993,
                 "workflow_runs": [
@@ -415,7 +426,7 @@ class TestGithub_Workflows(ModuleTestBase):
             },
         )
         module_test.httpx_mock.add_response(
-            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/logs",
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
             headers={
                 "location": "https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02"
             },
@@ -427,7 +438,7 @@ class TestGithub_Workflows(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 5
+        assert len(events) == 6
         assert 1 == len(
             [
                 e
@@ -455,17 +466,22 @@ class TestGithub_Workflows(ModuleTestBase):
                 for e in events
                 if e.type == "CODE_REPOSITORY"
                 and "git" in e.tags
-                and e.data["url"] == "https://github.com/blacklanternsecurity/test_keys"
+                and e.data["url"] == "https://github.com/blacklanternsecurity/bbot"
                 and e.scope_distance == 1
             ]
         ), "Failed to find blacklanternsecurity github repo"
-        assert 1 == len(
-            [
-                e
-                for e in events
-                if e.type == "FILESYSTEM"
-                and "blacklanternsecurity/bbot/run_8839360698.zip" in e.data
-                and "zipfile" in e.tags
-                and e.scope_distance == 1
-            ]
-        ), "Failed to obtain redirect to the blob"
+        filesystem_events = [
+            e
+            for e in events
+            if e.type == "FILESYSTEM"
+            and "workflow_logs/blacklanternsecurity/bbot/run_8839360698.zip" in e.data["path"]
+            and "zipfile" in e.tags
+            and e.scope_distance == 1
+        ]
+        assert 1 == len(filesystem_events), "Failed to download workflow logs"
+        filesystem_event = filesystem_events[0]
+        file = Path(filesystem_event.data["path"])
+        assert file.is_file(), "Destination zip does not exist"
+        with zipfile.ZipFile(file, "r") as zip_ref:
+            assert "test.txt" in zip_ref.namelist(), "test.txt not in zip"
+            assert zip_ref.read("test.txt") == b"This is some test data", "test.txt contents incorrect"

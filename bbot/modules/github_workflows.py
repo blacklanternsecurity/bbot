@@ -113,7 +113,9 @@ class github_workflows(github):
         filename = f"run_{run_id}.zip"
         file_destination = folder / filename
         result = await self.helpers.download(
-            f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs", filename=file_destination, headers=self.headers
+            f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs",
+            filename=file_destination,
+            headers=self.headers,
         )
         if result:
             self.info(f"Downloaded logs for {owner}/{repo}/{run_id} to {file_destination}")
