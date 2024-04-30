@@ -113,5 +113,5 @@ class github_workflows(github):
             self.info(f"Downloaded logs for {owner}/{repo}/{run_id} to {file_destination}")
             return file_destination
         else:
-            self.warning(f"Failed to download logs for {owner}/{repo}/{run_id}")
+            self.warning(f"The logs for {owner}/{repo}/{run_id} have expired and are no longer available.")
             return None
