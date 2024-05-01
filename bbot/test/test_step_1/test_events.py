@@ -467,3 +467,28 @@ async def test_events(events, helpers):
     )
     assert bucket_event.data["name"] == "asdf.s3.amazonaws.com"
     assert bucket_event.data["url"] == "https://asdf.s3.amazonaws.com/"
+
+    # test module sequence
+    module = scan._make_dummy_module("mymodule")
+    source_event_1 = scan.make_event("127.0.0.1", module=module, source=scan.root_event)
+    assert str(source_event_1.module) == "mymodule"
+    assert str(source_event_1.module_sequence) == "mymodule"
+    source_event_2 = scan.make_event("127.0.0.2", module=module, source=source_event_1)
+    assert str(source_event_2.module) == "mymodule"
+    assert str(source_event_2.module_sequence) == "mymodule"
+    source_event_3 = scan.make_event("127.0.0.3", module=module, source=source_event_2)
+    assert str(source_event_3.module) == "mymodule"
+    assert str(source_event_3.module_sequence) == "mymodule"
+
+    module = scan._make_dummy_module("mymodule")
+    source_event_1 = scan.make_event("127.0.0.1", module=module, source=scan.root_event)
+    source_event_1._omit = True
+    assert str(source_event_1.module) == "mymodule"
+    assert str(source_event_1.module_sequence) == "mymodule"
+    source_event_2 = scan.make_event("127.0.0.2", module=module, source=source_event_1)
+    source_event_2._omit = True
+    assert str(source_event_2.module) == "mymodule"
+    assert str(source_event_2.module_sequence) == "mymodule->mymodule"
+    source_event_3 = scan.make_event("127.0.0.3", module=module, source=source_event_2)
+    assert str(source_event_3.module) == "mymodule"
+    assert str(source_event_3.module_sequence) == "mymodule->mymodule->mymodule"
