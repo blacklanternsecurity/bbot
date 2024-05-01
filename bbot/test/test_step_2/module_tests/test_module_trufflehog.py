@@ -1,6 +1,7 @@
 import subprocess
 import shutil
 import io
+import zipfile
 import tarfile
 from pathlib import Path
 
@@ -8,7 +9,15 @@ from .base import ModuleTestBase
 
 
 class TestTrufflehog(ModuleTestBase):
-    modules_overrides = ["github_org", "speculate", "git_clone", "dockerhub", "docker_pull", "trufflehog"]
+    modules_overrides = [
+        "github_org",
+        "speculate",
+        "git_clone",
+        "github_workflows",
+        "dockerhub",
+        "docker_pull",
+        "trufflehog",
+    ]
 
     file_content = "Verifyable Secret:\nhttps://admin:admin@the-internet.herokuapp.com/basic_auth\n\nUnverifyable Secret:\nhttps://admin:admin@internal.host.com"
 
@@ -152,8 +161,391 @@ class TestTrufflehog(ModuleTestBase):
                     "watchers": 2,
                     "default_branch": "main",
                     "permissions": {"admin": False, "maintain": False, "push": False, "triage": False, "pull": True},
-                }
+                },
+                {
+                    "id": 459780477,
+                    "node_id": "R_kgDOG2exfQ",
+                    "name": "bbot",
+                    "full_name": "blacklanternsecurity/bbot",
+                    "private": False,
+                    "owner": {
+                        "login": "blacklanternsecurity",
+                        "id": 79229934,
+                        "node_id": "MDEyOk9yZ2FuaXphdGlvbjc5MjI5OTM0",
+                        "avatar_url": "https://avatars.githubusercontent.com/u/79229934?v=4",
+                        "gravatar_id": "",
+                        "url": "https://api.github.com/users/blacklanternsecurity",
+                        "html_url": "https://github.com/blacklanternsecurity",
+                        "followers_url": "https://api.github.com/users/blacklanternsecurity/followers",
+                        "following_url": "https://api.github.com/users/blacklanternsecurity/following{/other_user}",
+                        "gists_url": "https://api.github.com/users/blacklanternsecurity/gists{/gist_id}",
+                        "starred_url": "https://api.github.com/users/blacklanternsecurity/starred{/owner}{/repo}",
+                        "subscriptions_url": "https://api.github.com/users/blacklanternsecurity/subscriptions",
+                        "organizations_url": "https://api.github.com/users/blacklanternsecurity/orgs",
+                        "repos_url": "https://api.github.com/users/blacklanternsecurity/repos",
+                        "events_url": "https://api.github.com/users/blacklanternsecurity/events{/privacy}",
+                        "received_events_url": "https://api.github.com/users/blacklanternsecurity/received_events",
+                        "type": "Organization",
+                        "site_admin": False,
+                    },
+                    "html_url": "https://github.com/blacklanternsecurity/bbot",
+                    "description": None,
+                    "fork": False,
+                    "url": "https://api.github.com/repos/blacklanternsecurity/bbot",
+                    "forks_url": "https://api.github.com/repos/blacklanternsecurity/bbot/forks",
+                    "keys_url": "https://api.github.com/repos/blacklanternsecurity/bbot/keys{/key_id}",
+                    "collaborators_url": "https://api.github.com/repos/blacklanternsecurity/bbot/collaborators{/collaborator}",
+                    "teams_url": "https://api.github.com/repos/blacklanternsecurity/bbot/teams",
+                    "hooks_url": "https://api.github.com/repos/blacklanternsecurity/bbot/hooks",
+                    "issue_events_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues/events{/number}",
+                    "events_url": "https://api.github.com/repos/blacklanternsecurity/bbot/events",
+                    "assignees_url": "https://api.github.com/repos/blacklanternsecurity/bbot/assignees{/user}",
+                    "branches_url": "https://api.github.com/repos/blacklanternsecurity/bbot/branches{/branch}",
+                    "tags_url": "https://api.github.com/repos/blacklanternsecurity/bbot/tags",
+                    "blobs_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/blobs{/sha}",
+                    "git_tags_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/tags{/sha}",
+                    "git_refs_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/refs{/sha}",
+                    "trees_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/trees{/sha}",
+                    "statuses_url": "https://api.github.com/repos/blacklanternsecurity/bbot/statuses/{sha}",
+                    "languages_url": "https://api.github.com/repos/blacklanternsecurity/bbot/languages",
+                    "stargazers_url": "https://api.github.com/repos/blacklanternsecurity/bbot/stargazers",
+                    "contributors_url": "https://api.github.com/repos/blacklanternsecurity/bbot/contributors",
+                    "subscribers_url": "https://api.github.com/repos/blacklanternsecurity/bbot/subscribers",
+                    "subscription_url": "https://api.github.com/repos/blacklanternsecurity/bbot/subscription",
+                    "commits_url": "https://api.github.com/repos/blacklanternsecurity/bbot/commits{/sha}",
+                    "git_commits_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/commits{/sha}",
+                    "comments_url": "https://api.github.com/repos/blacklanternsecurity/bbot/comments{/number}",
+                    "issue_comment_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues/comments{/number}",
+                    "contents_url": "https://api.github.com/repos/blacklanternsecurity/bbot/contents/{+path}",
+                    "compare_url": "https://api.github.com/repos/blacklanternsecurity/bbot/compare/{base}...{head}",
+                    "merges_url": "https://api.github.com/repos/blacklanternsecurity/bbot/merges",
+                    "archive_url": "https://api.github.com/repos/blacklanternsecurity/bbot/{archive_format}{/ref}",
+                    "downloads_url": "https://api.github.com/repos/blacklanternsecurity/bbot/downloads",
+                    "issues_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues{/number}",
+                    "pulls_url": "https://api.github.com/repos/blacklanternsecurity/bbot/pulls{/number}",
+                    "milestones_url": "https://api.github.com/repos/blacklanternsecurity/bbot/milestones{/number}",
+                    "notifications_url": "https://api.github.com/repos/blacklanternsecurity/bbot/notifications{?since,all,participating}",
+                    "labels_url": "https://api.github.com/repos/blacklanternsecurity/bbot/labels{/name}",
+                    "releases_url": "https://api.github.com/repos/blacklanternsecurity/bbot/releases{/id}",
+                    "deployments_url": "https://api.github.com/repos/blacklanternsecurity/bbot/deployments",
+                    "created_at": "2022-02-15T23:10:51Z",
+                    "updated_at": "2023-09-02T12:20:13Z",
+                    "pushed_at": "2023-10-19T02:56:46Z",
+                    "git_url": "git://github.com/blacklanternsecurity/bbot.git",
+                    "ssh_url": "git@github.com:blacklanternsecurity/bbot.git",
+                    "clone_url": "https://github.com/blacklanternsecurity/bbot.git",
+                    "svn_url": "https://github.com/blacklanternsecurity/bbot",
+                    "homepage": None,
+                    "size": 2,
+                    "stargazers_count": 2,
+                    "watchers_count": 2,
+                    "language": None,
+                    "has_issues": True,
+                    "has_projects": True,
+                    "has_downloads": True,
+                    "has_wiki": True,
+                    "has_pages": False,
+                    "has_discussions": False,
+                    "forks_count": 32,
+                    "mirror_url": None,
+                    "archived": False,
+                    "disabled": False,
+                    "open_issues_count": 2,
+                    "license": None,
+                    "allow_forking": True,
+                    "is_template": False,
+                    "web_commit_signoff_required": False,
+                    "topics": [],
+                    "visibility": "public",
+                    "forks": 32,
+                    "open_issues": 2,
+                    "watchers": 2,
+                    "default_branch": "main",
+                    "permissions": {"admin": False, "maintain": False, "push": False, "triage": False, "pull": True},
+                },
             ],
+        )
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows?per_page=100&page=1",
+            json={
+                "total_count": 3,
+                "workflows": [
+                    {
+                        "id": 22452226,
+                        "node_id": "W_kwDOG_O3ns4BVpgC",
+                        "name": "tests",
+                        "path": ".github/workflows/tests.yml",
+                        "state": "active",
+                        "created_at": "2022-03-23T15:09:22.000Z",
+                        "updated_at": "2022-09-27T17:49:34.000Z",
+                        "url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226",
+                        "html_url": "https://github.com/blacklanternsecurity/bbot/blob/stable/.github/workflows/tests.yml",
+                        "badge_url": "https://github.com/blacklanternsecurity/bbot/workflows/tests/badge.svg",
+                    },
+                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226/runs?status=success&per_page=1",
+            json={
+                "total_count": 2993,
+                "workflow_runs": [
+                    {
+                        "id": 8839360698,
+                        "name": "tests",
+                        "node_id": "WFR_kwLOG_O3ns8AAAACDt3wug",
+                        "head_branch": "dnsbrute-helperify",
+                        "head_sha": "c5de1360e8e5ccba04b23035f675a529282b7dc2",
+                        "path": ".github/workflows/tests.yml",
+                        "display_title": "Helperify Massdns",
+                        "run_number": 4520,
+                        "event": "pull_request",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "workflow_id": 22452226,
+                        "check_suite_id": 23162098295,
+                        "check_suite_node_id": "CS_kwDOG_O3ns8AAAAFZJGSdw",
+                        "url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698",
+                        "html_url": "https://github.com/blacklanternsecurity/bbot/actions/runs/8839360698",
+                        "pull_requests": [
+                            {
+                                "url": "https://api.github.com/repos/blacklanternsecurity/bbot/pulls/1303",
+                                "id": 1839332952,
+                                "number": 1303,
+                                "head": {
+                                    "ref": "dnsbrute-helperify",
+                                    "sha": "c5de1360e8e5ccba04b23035f675a529282b7dc2",
+                                    "repo": {
+                                        "id": 468957086,
+                                        "url": "https://api.github.com/repos/blacklanternsecurity/bbot",
+                                        "name": "bbot",
+                                    },
+                                },
+                                "base": {
+                                    "ref": "faster-regexes",
+                                    "sha": "7baf219c7f3a4ba165639c5ddb62322453a8aea8",
+                                    "repo": {
+                                        "id": 468957086,
+                                        "url": "https://api.github.com/repos/blacklanternsecurity/bbot",
+                                        "name": "bbot",
+                                    },
+                                },
+                            }
+                        ],
+                        "created_at": "2024-04-25T21:04:32Z",
+                        "updated_at": "2024-04-25T21:19:43Z",
+                        "actor": {
+                            "login": "TheTechromancer",
+                            "id": 20261699,
+                            "node_id": "MDQ6VXNlcjIwMjYxNjk5",
+                            "avatar_url": "https://avatars.githubusercontent.com/u/20261699?v=4",
+                            "gravatar_id": "",
+                            "url": "https://api.github.com/users/TheTechromancer",
+                            "html_url": "https://github.com/TheTechromancer",
+                            "followers_url": "https://api.github.com/users/TheTechromancer/followers",
+                            "following_url": "https://api.github.com/users/TheTechromancer/following{/other_user}",
+                            "gists_url": "https://api.github.com/users/TheTechromancer/gists{/gist_id}",
+                            "starred_url": "https://api.github.com/users/TheTechromancer/starred{/owner}{/repo}",
+                            "subscriptions_url": "https://api.github.com/users/TheTechromancer/subscriptions",
+                            "organizations_url": "https://api.github.com/users/TheTechromancer/orgs",
+                            "repos_url": "https://api.github.com/users/TheTechromancer/repos",
+                            "events_url": "https://api.github.com/users/TheTechromancer/events{/privacy}",
+                            "received_events_url": "https://api.github.com/users/TheTechromancer/received_events",
+                            "type": "User",
+                            "site_admin": False,
+                        },
+                        "run_attempt": 1,
+                        "referenced_workflows": [],
+                        "run_started_at": "2024-04-25T21:04:32Z",
+                        "triggering_actor": {
+                            "login": "TheTechromancer",
+                            "id": 20261699,
+                            "node_id": "MDQ6VXNlcjIwMjYxNjk5",
+                            "avatar_url": "https://avatars.githubusercontent.com/u/20261699?v=4",
+                            "gravatar_id": "",
+                            "url": "https://api.github.com/users/TheTechromancer",
+                            "html_url": "https://github.com/TheTechromancer",
+                            "followers_url": "https://api.github.com/users/TheTechromancer/followers",
+                            "following_url": "https://api.github.com/users/TheTechromancer/following{/other_user}",
+                            "gists_url": "https://api.github.com/users/TheTechromancer/gists{/gist_id}",
+                            "starred_url": "https://api.github.com/users/TheTechromancer/starred{/owner}{/repo}",
+                            "subscriptions_url": "https://api.github.com/users/TheTechromancer/subscriptions",
+                            "organizations_url": "https://api.github.com/users/TheTechromancer/orgs",
+                            "repos_url": "https://api.github.com/users/TheTechromancer/repos",
+                            "events_url": "https://api.github.com/users/TheTechromancer/events{/privacy}",
+                            "received_events_url": "https://api.github.com/users/TheTechromancer/received_events",
+                            "type": "User",
+                            "site_admin": False,
+                        },
+                        "jobs_url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/jobs",
+                        "logs_url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
+                        "check_suite_url": "https://api.github.com/repos/blacklanternsecurity/bbot/check-suites/23162098295",
+                        "artifacts_url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/artifacts",
+                        "cancel_url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/cancel",
+                        "rerun_url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/rerun",
+                        "previous_attempt_url": None,
+                        "workflow_url": "https://api.github.com/repos/blacklanternsecurity/bbot/actions/workflows/22452226",
+                        "head_commit": {
+                            "id": "c5de1360e8e5ccba04b23035f675a529282b7dc2",
+                            "tree_id": "fe9b345c0745a5bbacb806225e92e1c48fccf35c",
+                            "message": "remove debug message",
+                            "timestamp": "2024-04-25T21:02:37Z",
+                            "author": {"name": "TheTechromancer", "email": "thetechromancer@protonmail.com"},
+                            "committer": {"name": "TheTechromancer", "email": "thetechromancer@protonmail.com"},
+                        },
+                        "repository": {
+                            "id": 468957086,
+                            "node_id": "R_kgDOG_O3ng",
+                            "name": "bbot",
+                            "full_name": "blacklanternsecurity/bbot",
+                            "private": False,
+                            "owner": {
+                                "login": "blacklanternsecurity",
+                                "id": 25311592,
+                                "node_id": "MDEyOk9yZ2FuaXphdGlvbjI1MzExNTky",
+                                "avatar_url": "https://avatars.githubusercontent.com/u/25311592?v=4",
+                                "gravatar_id": "",
+                                "url": "https://api.github.com/users/blacklanternsecurity",
+                                "html_url": "https://github.com/blacklanternsecurity",
+                                "followers_url": "https://api.github.com/users/blacklanternsecurity/followers",
+                                "following_url": "https://api.github.com/users/blacklanternsecurity/following{/other_user}",
+                                "gists_url": "https://api.github.com/users/blacklanternsecurity/gists{/gist_id}",
+                                "starred_url": "https://api.github.com/users/blacklanternsecurity/starred{/owner}{/repo}",
+                                "subscriptions_url": "https://api.github.com/users/blacklanternsecurity/subscriptions",
+                                "organizations_url": "https://api.github.com/users/blacklanternsecurity/orgs",
+                                "repos_url": "https://api.github.com/users/blacklanternsecurity/repos",
+                                "events_url": "https://api.github.com/users/blacklanternsecurity/events{/privacy}",
+                                "received_events_url": "https://api.github.com/users/blacklanternsecurity/received_events",
+                                "type": "Organization",
+                                "site_admin": False,
+                            },
+                            "html_url": "https://github.com/blacklanternsecurity/bbot",
+                            "description": "A recursive internet scanner for hackers.",
+                            "fork": False,
+                            "url": "https://api.github.com/repos/blacklanternsecurity/bbot",
+                            "forks_url": "https://api.github.com/repos/blacklanternsecurity/bbot/forks",
+                            "keys_url": "https://api.github.com/repos/blacklanternsecurity/bbot/keys{/key_id}",
+                            "collaborators_url": "https://api.github.com/repos/blacklanternsecurity/bbot/collaborators{/collaborator}",
+                            "teams_url": "https://api.github.com/repos/blacklanternsecurity/bbot/teams",
+                            "hooks_url": "https://api.github.com/repos/blacklanternsecurity/bbot/hooks",
+                            "issue_events_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues/events{/number}",
+                            "events_url": "https://api.github.com/repos/blacklanternsecurity/bbot/events",
+                            "assignees_url": "https://api.github.com/repos/blacklanternsecurity/bbot/assignees{/user}",
+                            "branches_url": "https://api.github.com/repos/blacklanternsecurity/bbot/branches{/branch}",
+                            "tags_url": "https://api.github.com/repos/blacklanternsecurity/bbot/tags",
+                            "blobs_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/blobs{/sha}",
+                            "git_tags_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/tags{/sha}",
+                            "git_refs_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/refs{/sha}",
+                            "trees_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/trees{/sha}",
+                            "statuses_url": "https://api.github.com/repos/blacklanternsecurity/bbot/statuses/{sha}",
+                            "languages_url": "https://api.github.com/repos/blacklanternsecurity/bbot/languages",
+                            "stargazers_url": "https://api.github.com/repos/blacklanternsecurity/bbot/stargazers",
+                            "contributors_url": "https://api.github.com/repos/blacklanternsecurity/bbot/contributors",
+                            "subscribers_url": "https://api.github.com/repos/blacklanternsecurity/bbot/subscribers",
+                            "subscription_url": "https://api.github.com/repos/blacklanternsecurity/bbot/subscription",
+                            "commits_url": "https://api.github.com/repos/blacklanternsecurity/bbot/commits{/sha}",
+                            "git_commits_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/commits{/sha}",
+                            "comments_url": "https://api.github.com/repos/blacklanternsecurity/bbot/comments{/number}",
+                            "issue_comment_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues/comments{/number}",
+                            "contents_url": "https://api.github.com/repos/blacklanternsecurity/bbot/contents/{+path}",
+                            "compare_url": "https://api.github.com/repos/blacklanternsecurity/bbot/compare/{base}...{head}",
+                            "merges_url": "https://api.github.com/repos/blacklanternsecurity/bbot/merges",
+                            "archive_url": "https://api.github.com/repos/blacklanternsecurity/bbot/{archive_format}{/ref}",
+                            "downloads_url": "https://api.github.com/repos/blacklanternsecurity/bbot/downloads",
+                            "issues_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues{/number}",
+                            "pulls_url": "https://api.github.com/repos/blacklanternsecurity/bbot/pulls{/number}",
+                            "milestones_url": "https://api.github.com/repos/blacklanternsecurity/bbot/milestones{/number}",
+                            "notifications_url": "https://api.github.com/repos/blacklanternsecurity/bbot/notifications{?since,all,participating}",
+                            "labels_url": "https://api.github.com/repos/blacklanternsecurity/bbot/labels{/name}",
+                            "releases_url": "https://api.github.com/repos/blacklanternsecurity/bbot/releases{/id}",
+                            "deployments_url": "https://api.github.com/repos/blacklanternsecurity/bbot/deployments",
+                        },
+                        "head_repository": {
+                            "id": 468957086,
+                            "node_id": "R_kgDOG_O3ng",
+                            "name": "bbot",
+                            "full_name": "blacklanternsecurity/bbot",
+                            "private": False,
+                            "owner": {
+                                "login": "blacklanternsecurity",
+                                "id": 25311592,
+                                "node_id": "MDEyOk9yZ2FuaXphdGlvbjI1MzExNTky",
+                                "avatar_url": "https://avatars.githubusercontent.com/u/25311592?v=4",
+                                "gravatar_id": "",
+                                "url": "https://api.github.com/users/blacklanternsecurity",
+                                "html_url": "https://github.com/blacklanternsecurity",
+                                "followers_url": "https://api.github.com/users/blacklanternsecurity/followers",
+                                "following_url": "https://api.github.com/users/blacklanternsecurity/following{/other_user}",
+                                "gists_url": "https://api.github.com/users/blacklanternsecurity/gists{/gist_id}",
+                                "starred_url": "https://api.github.com/users/blacklanternsecurity/starred{/owner}{/repo}",
+                                "subscriptions_url": "https://api.github.com/users/blacklanternsecurity/subscriptions",
+                                "organizations_url": "https://api.github.com/users/blacklanternsecurity/orgs",
+                                "repos_url": "https://api.github.com/users/blacklanternsecurity/repos",
+                                "events_url": "https://api.github.com/users/blacklanternsecurity/events{/privacy}",
+                                "received_events_url": "https://api.github.com/users/blacklanternsecurity/received_events",
+                                "type": "Organization",
+                                "site_admin": False,
+                            },
+                            "html_url": "https://github.com/blacklanternsecurity/bbot",
+                            "description": "A recursive internet scanner for hackers.",
+                            "fork": False,
+                            "url": "https://api.github.com/repos/blacklanternsecurity/bbot",
+                            "forks_url": "https://api.github.com/repos/blacklanternsecurity/bbot/forks",
+                            "keys_url": "https://api.github.com/repos/blacklanternsecurity/bbot/keys{/key_id}",
+                            "collaborators_url": "https://api.github.com/repos/blacklanternsecurity/bbot/collaborators{/collaborator}",
+                            "teams_url": "https://api.github.com/repos/blacklanternsecurity/bbot/teams",
+                            "hooks_url": "https://api.github.com/repos/blacklanternsecurity/bbot/hooks",
+                            "issue_events_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues/events{/number}",
+                            "events_url": "https://api.github.com/repos/blacklanternsecurity/bbot/events",
+                            "assignees_url": "https://api.github.com/repos/blacklanternsecurity/bbot/assignees{/user}",
+                            "branches_url": "https://api.github.com/repos/blacklanternsecurity/bbot/branches{/branch}",
+                            "tags_url": "https://api.github.com/repos/blacklanternsecurity/bbot/tags",
+                            "blobs_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/blobs{/sha}",
+                            "git_tags_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/tags{/sha}",
+                            "git_refs_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/refs{/sha}",
+                            "trees_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/trees{/sha}",
+                            "statuses_url": "https://api.github.com/repos/blacklanternsecurity/bbot/statuses/{sha}",
+                            "languages_url": "https://api.github.com/repos/blacklanternsecurity/bbot/languages",
+                            "stargazers_url": "https://api.github.com/repos/blacklanternsecurity/bbot/stargazers",
+                            "contributors_url": "https://api.github.com/repos/blacklanternsecurity/bbot/contributors",
+                            "subscribers_url": "https://api.github.com/repos/blacklanternsecurity/bbot/subscribers",
+                            "subscription_url": "https://api.github.com/repos/blacklanternsecurity/bbot/subscription",
+                            "commits_url": "https://api.github.com/repos/blacklanternsecurity/bbot/commits{/sha}",
+                            "git_commits_url": "https://api.github.com/repos/blacklanternsecurity/bbot/git/commits{/sha}",
+                            "comments_url": "https://api.github.com/repos/blacklanternsecurity/bbot/comments{/number}",
+                            "issue_comment_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues/comments{/number}",
+                            "contents_url": "https://api.github.com/repos/blacklanternsecurity/bbot/contents/{+path}",
+                            "compare_url": "https://api.github.com/repos/blacklanternsecurity/bbot/compare/{base}...{head}",
+                            "merges_url": "https://api.github.com/repos/blacklanternsecurity/bbot/merges",
+                            "archive_url": "https://api.github.com/repos/blacklanternsecurity/bbot/{archive_format}{/ref}",
+                            "downloads_url": "https://api.github.com/repos/blacklanternsecurity/bbot/downloads",
+                            "issues_url": "https://api.github.com/repos/blacklanternsecurity/bbot/issues{/number}",
+                            "pulls_url": "https://api.github.com/repos/blacklanternsecurity/bbot/pulls{/number}",
+                            "milestones_url": "https://api.github.com/repos/blacklanternsecurity/bbot/milestones{/number}",
+                            "notifications_url": "https://api.github.com/repos/blacklanternsecurity/bbot/notifications{?since,all,participating}",
+                            "labels_url": "https://api.github.com/repos/blacklanternsecurity/bbot/labels{/name}",
+                            "releases_url": "https://api.github.com/repos/blacklanternsecurity/bbot/releases{/id}",
+                            "deployments_url": "https://api.github.com/repos/blacklanternsecurity/bbot/deployments",
+                        },
+                    },
+                ],
+            },
+        )
+        module_test.httpx_mock.add_response(
+            url="https://api.github.com/repos/blacklanternsecurity/bbot/actions/runs/8839360698/logs",
+            headers={
+                "location": "https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02"
+            },
+            status_code=302,
+        )
+        data = io.BytesIO()
+        with zipfile.ZipFile(data, mode="w", compression=zipfile.ZIP_DEFLATED) as z:
+            z.writestr("test.txt", self.file_content)
+        data.seek(0)
+        zip_content = data.getvalue()
+        module_test.httpx_mock.add_response(
+            url="https://productionresultssa10.blob.core.windows.net/actions-results/7beb304e-f42c-4830-a027-4f5dec53107d/workflow-job-run-3a559e2a-952e-58d2-b8db-2e604a9266d7/logs/steps/step-logs-0e34a19a-18b0-4208-b27a-f8c031db2d17.txt?rsct=text%2Fplain&se=2024-04-26T16%3A25%3A39Z&sig=a%2FiN8dOw0e3tiBQZAfr80veI8OYChb9edJ1eFY136B4%3D&sp=r&spr=https&sr=b&st=2024-04-26T16%3A15%3A34Z&sv=2021-12-02",
+            content=zip_content,
         )
         module_test.httpx_mock.add_response(
             url="https://hub.docker.com/v2/users/blacklanternsecurity",
@@ -460,13 +852,16 @@ class TestTrufflehog(ModuleTestBase):
             and "Verified Secret Found." in e.data["description"]
             and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
         ]
-        assert 2 == len(vuln_events), "Failed to find secret in events"
-        github_repo_event = [e for e in vuln_events if e.data["host"] == "github.com"][0].source
+        assert 3 == len(vuln_events), "Failed to find secret in events"
+        github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].source
         folder = Path(github_repo_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
+        github_workflow_event = [e for e in vuln_events if "bbot" in e.data["description"]][0].source
+        file = Path(github_workflow_event.data["path"])
+        assert file.is_file(), "Destination zip does not exist"
         docker_source_event = [e for e in vuln_events if e.data["host"] == "hub.docker.com"][0].source
         file = Path(docker_source_event.data["path"])
         assert file.is_file(), "Destination image does not exist"
@@ -484,13 +879,16 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             and "Potential Secret Found." in e.data["description"]
             and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
         ]
-        assert 2 == len(finding_events), "Failed to find secret in events"
-        github_repo_event = [e for e in finding_events if e.data["host"] == "github.com"][0].source
+        assert 3 == len(finding_events), "Failed to find secret in events"
+        github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].source
         folder = Path(github_repo_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
+        github_workflow_event = [e for e in finding_events if "bbot" in e.data["description"]][0].source
+        file = Path(github_workflow_event.data["path"])
+        assert file.is_file(), "Destination zip does not exist"
         docker_source_event = [e for e in finding_events if e.data["host"] == "hub.docker.com"][0].source
         file = Path(docker_source_event.data["path"])
         assert file.is_file(), "Destination image does not exist"
