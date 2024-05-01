@@ -28,6 +28,7 @@ from bbot.core.helpers import (
     split_host_port,
     tagify,
     validators,
+    get_file_extension,
 )
 
 
@@ -450,7 +451,7 @@ class BaseEvent:
         """
         Takes into account events with the omit flag
         """
-        if getattr(self.source, "omit", False):
+        if getattr(self.source, "_omit", False):
             return self.source.get_source()
         return self.source
 
@@ -893,6 +894,16 @@ class URL_UNVERIFIED(BaseEvent):
     def sanitize_data(self, data):
         self.parsed_url = validators.validate_url_parsed(data)
 
+        # special handling of URL extensions
+        if self.parsed_url is not None:
+            url_path = self.parsed_url.path
+            if url_path:
+                parsed_path_lower = str(url_path).lower()
+                extension = get_file_extension(parsed_path_lower)
+                if extension:
+                    self.url_extension = extension
+                    self.add_tag(f"extension-{extension}")
+
         # tag as dir or endpoint
         if str(self.parsed_url.path).endswith("/"):
             self.add_tag("dir")
@@ -1042,7 +1053,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
             # if there's no scheme (i.e. it's a relative redirect)
             if not scheme:
                 # then join the location with the current url
-                location = urljoin(self.parsed.geturl(), location)
+                location = urljoin(self.parsed_url.geturl(), location)
         return location
 
 

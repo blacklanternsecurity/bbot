@@ -6,7 +6,13 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_events(events, scan, helpers):
+async def test_events(events, helpers):
+
+    from bbot.scanner import Scanner
+
+    scan = Scanner()
+    await scan._prep()
+
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
     assert events.netv4.type == "IP_RANGE"
@@ -159,8 +165,9 @@ async def test_events(events, scan, helpers):
     assert events.ipv6_url_unverified.host == ipaddress.ip_address("2001:4860:4860::8888")
     assert events.ipv6_url_unverified.port == 443
 
-    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", dummy=True)
+    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", source=scan.root_event)
     assert "extension-js" in javascript_event.tags
+    await scan.ingress_module.handle_event(javascript_event, {})
     assert "httpx-only" in javascript_event.tags
 
     # scope distance
