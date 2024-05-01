@@ -110,14 +110,25 @@ class github_workflows(github):
         self.helpers.mkdir(folder)
         filename = f"run_{run_id}.zip"
         file_destination = folder / filename
-        result = await self.helpers.download(
-            f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs",
-            filename=file_destination,
-            headers=self.headers,
-        )
-        if result:
+        try:
+            result = await self.helpers.download(
+                f"{self.base_url}/repos/{owner}/{repo}/actions/runs/{run_id}/logs",
+                filename=file_destination,
+                headers=self.headers,
+                raise_error=True,
+                warn=False,
+            )
             self.info(f"Downloaded logs for {owner}/{repo}/{run_id} to {file_destination}")
             return file_destination
-        else:
-            self.warning(f"The logs for {owner}/{repo}/{run_id} have expired and are no longer available.")
-            return None
+        except Exception as e:
+            response = getattr(e, "response", None)
+            status_code = getattr(response, "status_code", 0)
+            if status_code == 403:
+                self.warning(
+                    f"The current access key does not have access to workflow {owner}/{repo}/{run_id} (status: {status_code})"
+                )
+            else:
+                self.info(
+                    f"The logs for {owner}/{repo}/{run_id} have expired and are no longer available (status: {status_code})"
+                )
+        return None
