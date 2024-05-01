@@ -23,7 +23,7 @@ class DNSBrute:
         self.parent_helper = parent_helper
         self.log = logging.getLogger("bbot.helper.dns.brute")
         self.num_canaries = 100
-        self.max_resolvers = 1000
+        self.max_resolvers = self.parent_helper.config.get("dns", {}).get("brute_threads", 1000)
         self.devops_mutations = list(self.parent_helper.word_cloud.devops_mutations)
         self.digit_regex = self.parent_helper.re.compile(r"\d+")
         self._resolver_file = None
@@ -142,8 +142,9 @@ class DNSBrute:
 
     async def gen_subdomains(self, prefixes, domain):
         for p in prefixes:
-            d = f"{p}.{domain}"
-            yield d
+            if domain:
+                p = f"{p}.{domain}"
+            yield p
 
     async def resolver_file(self):
         if self._resolver_file is None:
