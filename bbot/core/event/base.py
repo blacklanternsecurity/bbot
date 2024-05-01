@@ -449,7 +449,7 @@ class BaseEvent:
 
     def get_source(self):
         """
-        Takes into account events with the omit flag
+        Takes into account events with the _omit flag
         """
         if getattr(self.source, "_omit", False):
             return self.source.get_source()
@@ -665,7 +665,7 @@ class BaseEvent:
             str: The module sequence in human-friendly format.
         """
         module_name = getattr(self.module, "name", "")
-        if getattr(self.source, "omit", False):
+        if getattr(self.source, "_omit", False):
             module_name = f"{self.source.module_sequence}->{module_name}"
         return module_name
 
