@@ -44,7 +44,7 @@ class github_workflows(github):
                 if log_path:
                     self.verbose(f"Downloaded repository workflow logs to {log_path}")
                     logfile_event = self.make_event(
-                        {"path": str(log_path)}, "FILESYSTEM", tags=["zipfile"], source=event
+                        {"path": str(log_path), "description": f"Workflow run logs from https://github.com/{owner}/{repo}/actions/runs/{run_id}"}, "FILESYSTEM", tags=["zipfile"], source=event
                     )
                     logfile_event.scope_distance = event.scope_distance
                     await self.emit_event(logfile_event)
