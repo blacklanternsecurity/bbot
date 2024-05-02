@@ -43,7 +43,7 @@ class nmap(portscanner):
             for host in self.parse_nmap_xml(output_file):
                 source_event = None
                 for h in [host.address] + host.hostnames:
-                    source_event = target.get(h)
+                    source_event = target.get_host(h)
                     if source_event is not None:
                         break
                 if source_event is None:

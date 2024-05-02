@@ -7,6 +7,7 @@ from radixtarget import RadixTarget
 
 from bbot.errors import *
 from bbot.modules.base import BaseModule
+from bbot.core.helpers.misc import make_ip_type
 from bbot.core.event import make_event, is_event
 
 log = logging.getLogger("bbot.core.target")
@@ -212,20 +213,27 @@ class Target:
         """
 
         try:
-            other = make_event(host, dummy=True)
+            event = make_event(host, dummy=True)
         except ValidationError:
             return
-        if other.host:
-            with suppress(KeyError, StopIteration):
-                result = self._radix.search(other.host)
-                if result is not None:
-                    for event in result:
-                        # if the result is a dns name and strict scope is enabled
-                        if isinstance(event.host, str) and self.strict_scope:
-                            # if the result doesn't exactly equal the host, abort
-                            if event.host != other.host:
-                                return
-                        return event
+        if event.host:
+            return self.get_host(event.host)
+
+    def get_host(self, host):
+        """
+        A more efficient version of .get() that only accepts hostnames and IP addresses
+        """
+        host = make_ip_type(host)
+        with suppress(KeyError, StopIteration):
+            result = self._radix.search(host)
+            if result is not None:
+                for event in result:
+                    # if the result is a dns name and strict scope is enabled
+                    if isinstance(event.host, str) and self.strict_scope:
+                        # if the result doesn't exactly equal the host, abort
+                        if event.host != host:
+                            return
+                    return event
 
     def _add_event(self, event):
         radix_data = self._radix.search(event.host)
