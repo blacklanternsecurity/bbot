@@ -85,7 +85,6 @@ class trufflehog(BaseModule):
             command.append("filesystem")
             command.append(path)
 
-        emitted_raw_results = set()
         stats_file = self.helpers.tempfile_tail(callback=self.log_trufflehog_status)
         try:
             with open(stats_file, "w") as stats_fh:
@@ -106,10 +105,6 @@ class trufflehog(BaseModule):
 
                     source_metadata = j.get("SourceMetadata", {})
 
-                    if raw_result in emitted_raw_results:
-                        continue
-
-                    emitted_raw_results.add(raw_result)
                     yield (decoder_name, detector_name, raw_result, verified, source_metadata)
         finally:
             stats_file.unlink()
