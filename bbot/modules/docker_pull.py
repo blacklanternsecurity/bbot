@@ -50,7 +50,7 @@ class docker_pull(BaseModule):
         if repo_path:
             self.verbose(f"Downloaded docker repository {repo_url} to {repo_path}")
             codebase_event = self.make_event(
-                {"path": str(repo_path), "description": f"Docker image: {repo_url}"},
+                {"path": str(repo_path), "description": f"Docker image repository: {repo_url}"},
                 "FILESYSTEM",
                 tags=["docker", "tarball"],
                 source=event,
