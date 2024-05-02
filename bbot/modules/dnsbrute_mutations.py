@@ -104,7 +104,7 @@ class dnsbrute_mutations(BaseModule):
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(trimmed_found)})")
                         results = await self.helpers.dns.brute(self, query, mutations)
                         for hostname in results:
-                            source_event = self.source_events.get(hostname)
+                            source_event = self.source_events.get_host(hostname)
                             if source_event is None:
                                 self.warning(f"Could not correlate source event from: {hostname}")
                                 self.warning(self.source_events._radix.dns_tree.root.children)
