@@ -18,6 +18,9 @@ from bbot.core.helpers.misc import make_table, mkdir, get_closest_match
 log = logging.getLogger("bbot.presets")
 
 
+_preset_cache = dict()
+
+
 # cache default presets to prevent having to reload from disk
 DEFAULT_PRESETS = None
 
@@ -664,7 +667,11 @@ class Preset:
 
     def include_preset(self, filename):
         """
-        Load a preset from a yaml file and merge it into this one
+        Load a preset from a yaml file and merge it into this one.
+
+        If the full path is not specified, BBOT will look in all the usual places for it.
+
+        The file extension is optional.
 
         Args:
             filename (Path): The preset YAML file to merge
@@ -679,26 +686,30 @@ class Preset:
     @classmethod
     def from_yaml_file(cls, filename, _exclude=None, _log=False):
         """
-        Create a preset from a YAML file. If the full path is not specified, BBOT will look in all the usual places for it.
-
-        The file extension is optional.
+        Load a preset from a YAML file.
         """
         filename = Path(filename).resolve()
-        if _exclude is None:
-            _exclude = set()
-        if _exclude is not None and filename in _exclude:
-            log.debug(f"Not loading {filename} because it was already loaded {_exclude}")
-            return False
-        log.debug(f"Loading {filename} because it's not in excluded list ({_exclude})")
-        _exclude = set(_exclude)
-        _exclude.add(filename)
         try:
-            yaml_str = open(filename).read()
-        except FileNotFoundError:
-            raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
-        preset = cls.from_dict(omegaconf.OmegaConf.create(yaml_str), name=filename.stem, _exclude=_exclude, _log=_log)
-        preset._yaml_str = yaml_str
-        return preset
+            return _preset_cache[filename]
+        except KeyError:
+            if _exclude is None:
+                _exclude = set()
+            if _exclude is not None and filename in _exclude:
+                log.debug(f"Not loading {filename} because it was already loaded {_exclude}")
+                return False
+            log.debug(f"Loading {filename} because it's not in excluded list ({_exclude})")
+            _exclude = set(_exclude)
+            _exclude.add(filename)
+            try:
+                yaml_str = open(filename).read()
+            except FileNotFoundError:
+                raise PresetNotFoundError(f'Could not find preset at "{filename}" - file does not exist')
+            preset = cls.from_dict(
+                omegaconf.OmegaConf.create(yaml_str), name=filename.stem, _exclude=_exclude, _log=_log
+            )
+            preset._yaml_str = yaml_str
+            _preset_cache[filename] = preset
+            return preset
 
     @classmethod
     def from_yaml_string(cls, yaml_preset):
