@@ -72,3 +72,7 @@ class PresetConditionError(BBOTError):
 
 class PresetAbortError(PresetConditionError):
     pass
+
+
+class BBOTEngineError(BBOTError):
+    pass

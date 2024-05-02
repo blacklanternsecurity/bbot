@@ -4,6 +4,13 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
+async def test_web_engine(bbot_scanner):
+    scan = bbot_scanner()
+    response = await scan.helpers.request("http://example.com")
+    log.critical(response)
+
+
+@pytest.mark.asyncio
 async def test_web_helpers(bbot_scanner, bbot_httpserver):
     scan1 = bbot_scanner("8.8.8.8")
     scan2 = bbot_scanner("127.0.0.1")

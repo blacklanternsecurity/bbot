@@ -7,10 +7,12 @@ import logging
 import tempfile
 import traceback
 import zmq.asyncio
+import multiprocessing
 from pathlib import Path
 from contextlib import asynccontextmanager, suppress
 
 from bbot.core import CORE
+from bbot.errors import BBOTEngineError
 from bbot.core.helpers.misc import rand_string
 
 CMD_EXIT = 1000
@@ -22,6 +24,7 @@ class EngineClient:
 
     def __init__(self, **kwargs):
         self.name = f"EngineClient {self.__class__.__name__}"
+        self.process_name = multiprocessing.current_process().name
         if self.SERVER_CLASS is None:
             raise ValueError(f"Must set EngineClient SERVER_CLASS, {self.SERVER_CLASS}")
         self.CMDS = dict(self.SERVER_CLASS.CMDS)
@@ -35,9 +38,9 @@ class EngineClient:
         self.context = zmq.asyncio.Context()
         atexit.register(self.cleanup)
 
-    async def run_and_return(self, command, **kwargs):
+    async def run_and_return(self, command, *args, **kwargs):
         async with self.new_socket() as socket:
-            message = self.make_message(command, args=kwargs)
+            message = self.make_message(command, args=args, kwargs=kwargs)
             await socket.send(message)
             binary = await socket.recv()
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
@@ -48,8 +51,8 @@ class EngineClient:
             return
         return message
 
-    async def run_and_yield(self, command, **kwargs):
-        message = self.make_message(command, args=kwargs)
+    async def run_and_yield(self, command, *args, **kwargs):
+        message = self.make_message(command, args=args, kwargs=kwargs)
         async with self.new_socket() as socket:
             await socket.send(message)
             while 1:
@@ -75,28 +78,37 @@ class EngineClient:
             return True
         return False
 
-    def make_message(self, command, args):
+    def make_message(self, command, args=None, kwargs=None):
         try:
             cmd_id = self.CMDS[command]
         except KeyError:
             raise KeyError(f'Command "{command}" not found. Available commands: {",".join(self.available_commands)}')
-        return pickle.dumps(dict(c=cmd_id, a=args))
+        message = {"c": cmd_id}
+        if args:
+            message["a"] = args
+        if kwargs:
+            message["k"] = kwargs
+        return pickle.dumps(message)
 
     @property
     def available_commands(self):
         return [s for s in self.CMDS if isinstance(s, str)]
 
     def start_server(self):
-        process = CORE.create_process(
-            target=self.server_process,
-            args=(
-                self.SERVER_CLASS,
-                self.socket_path,
-            ),
-            kwargs=self.server_kwargs,
-        )
-        process.start()
-        return process
+        self.log.critical(f"STARTING SERVER from {self.process_name}")
+        if self.process_name == "MainProcess":
+            process = CORE.create_process(
+                target=self.server_process,
+                args=(
+                    self.SERVER_CLASS,
+                    self.socket_path,
+                ),
+                kwargs=self.server_kwargs,
+            )
+            process.start()
+            return process
+        else:
+            raise BBOTEngineError(f"Tried to start server from process {self.process_name}")
 
     @staticmethod
     def server_process(server_class, socket_path, **kwargs):
@@ -145,20 +157,20 @@ class EngineServer:
             # create socket file
             self.socket.bind(f"ipc://{socket_path}")
 
-    async def run_and_return(self, client_id, command_fn, **kwargs):
+    async def run_and_return(self, client_id, command_fn, *args, **kwargs):
         self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({kwargs})")
         try:
-            result = await command_fn(**kwargs)
+            result = await command_fn(*args, **kwargs)
         except Exception as e:
             error = f"Unhandled error in {self.name}.{command_fn.__name__}({kwargs}): {e}"
             trace = traceback.format_exc()
             result = {"_e": (error, trace)}
         await self.send_socket_multipart([client_id, pickle.dumps(result)])
 
-    async def run_and_yield(self, client_id, command_fn, **kwargs):
+    async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
         self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({kwargs})")
         try:
-            async for _ in command_fn(**kwargs):
+            async for _ in command_fn(*args, **kwargs):
                 await self.send_socket_multipart([client_id, pickle.dumps(_)])
             await self.send_socket_multipart([client_id, pickle.dumps({"_s": None})])
         except Exception as e:
@@ -186,9 +198,13 @@ class EngineServer:
                     self.log.warning(f"No command sent in message: {message}")
                     continue
 
-                kwargs = message.get("a", {})
+                args = message.get("a", ())
+                if not isinstance(args, tuple):
+                    self.log.warning(f"{self.name}: received invalid args of type {type(args)}, should be tuple")
+                    continue
+                kwargs = message.get("k", {})
                 if not isinstance(kwargs, dict):
-                    self.log.warning(f"{self.name}: received invalid message of type {type(kwargs)}, should be dict")
+                    self.log.warning(f"{self.name}: received invalid kwargs of type {type(kwargs)}, should be dict")
                     continue
 
                 command_name = self.CMDS[cmd]
@@ -199,9 +215,9 @@ class EngineServer:
                     continue
 
                 if inspect.isasyncgenfunction(command_fn):
-                    coroutine = self.run_and_yield(client_id, command_fn, **kwargs)
+                    coroutine = self.run_and_yield(client_id, command_fn, *args, **kwargs)
                 else:
-                    coroutine = self.run_and_return(client_id, command_fn, **kwargs)
+                    coroutine = self.run_and_return(client_id, command_fn, *args, **kwargs)
 
                 asyncio.create_task(coroutine)
         except Exception as e:
