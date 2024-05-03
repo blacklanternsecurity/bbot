@@ -1,18 +1,12 @@
 import re
-import anyio
-import httpx
-import asyncio
 import logging
 import warnings
 import traceback
 from pathlib import Path
 from bs4 import BeautifulSoup
 
-from socksio.exceptions import SOCKSError
-
 from bbot.core.engine import EngineClient
 from bbot.errors import WordlistError, CurlError
-from bbot.core.helpers.ratelimiter import RateLimiter
 
 from bs4 import MarkupResemblesLocatorWarning
 from bs4.builder import XMLParsedAsHTMLWarning
@@ -101,8 +95,15 @@ class WebHelper(EngineClient):
         Note:
             If the web request fails, it will return None unless `raise_error` is `True`.
         """
-        self.log.critical(f"CLIENT {args} / {kwargs}")
         return await self.run_and_return("request", *args, **kwargs)
+
+    async def request_batch(self, urls, *args, **kwargs):
+        async for _ in self.run_and_yield("request_batch", urls, *args, **kwargs):
+            yield _
+
+    async def request_custom_batch(self, urls_and_args):
+        async for _ in self.run_and_yield("request_custom_batch", urls_and_args):
+            yield _
 
     async def download(self, url, **kwargs):
         """
@@ -129,56 +130,21 @@ class WebHelper(EngineClient):
         """
         success = False
         filename = kwargs.pop("filename", self.parent_helper.cache_filename(url))
-        follow_redirects = kwargs.pop("follow_redirects", True)
+        filename = Path(filename).resolve()
+        kwargs["filename"] = filename
         max_size = kwargs.pop("max_size", None)
-        warn = kwargs.pop("warn", True)
-        raise_error = kwargs.pop("raise_error", False)
         if max_size is not None:
             max_size = self.parent_helper.human_to_bytes(max_size)
+            kwargs["max_size"] = max_size
         cache_hrs = float(kwargs.pop("cache_hrs", -1))
-        total_size = 0
-        chunk_size = 8192
-        log.debug(f"Downloading file from {url} with cache_hrs={cache_hrs}")
         if cache_hrs > 0 and self.parent_helper.is_cached(url):
             log.debug(f"{url} is cached at {self.parent_helper.cache_filename(url)}")
             success = True
         else:
-            # kwargs["raise_error"] = True
-            # kwargs["stream"] = True
-            kwargs["follow_redirects"] = follow_redirects
-            if not "method" in kwargs:
-                kwargs["method"] = "GET"
-            try:
-                async with self._acatch(url, raise_error=True), self.AsyncClient().stream(
-                    url=url, **kwargs
-                ) as response:
-                    status_code = getattr(response, "status_code", 0)
-                    log.debug(f"Download result: HTTP {status_code}")
-                    if status_code != 0:
-                        response.raise_for_status()
-                        with open(filename, "wb") as f:
-                            agen = response.aiter_bytes(chunk_size=chunk_size)
-                            async for chunk in agen:
-                                if max_size is not None and total_size + chunk_size > max_size:
-                                    log.verbose(
-                                        f"Filesize of {url} exceeds {self.parent_helper.bytes_to_human(max_size)}, file will be truncated"
-                                    )
-                                    agen.aclose()
-                                    break
-                                total_size += chunk_size
-                                f.write(chunk)
-                        success = True
-            except httpx.HTTPError as e:
-                log_fn = log.verbose
-                if warn:
-                    log_fn = log.warning
-                log_fn(f"Failed to download {url}: {e}")
-                if raise_error:
-                    raise
-                return
+            success = await self.run_and_return("download", url, **kwargs)
 
         if success:
-            return filename.resolve()
+            return filename
 
     async def wordlist(self, path, lines=None, **kwargs):
         """

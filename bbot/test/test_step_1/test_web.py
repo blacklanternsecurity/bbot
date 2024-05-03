@@ -4,10 +4,28 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_web_engine(bbot_scanner):
+async def test_web_engine(bbot_scanner, bbot_httpserver):
+
+    url = bbot_httpserver.url_for("/test")
+    bbot_httpserver.expect_request(uri="/test").respond_with_data("hello_there")
+
     scan = bbot_scanner()
-    response = await scan.helpers.request("http://example.com")
-    log.critical(response)
+
+    # request
+    response = await scan.helpers.request(url)
+    assert response.status_code > 0
+    assert response.text == "hello_there"
+
+    # request_batch
+    responses = [r async for r in scan.helpers.request_batch([url] * 100)]
+    assert len(responses) == 100
+    assert all([r[0] == url for r in responses])
+    assert all([r[1].status_code > 0 and r[1].text == "hello_there" for r in responses])
+
+    # download
+    filename = await scan.helpers.download(url)
+    file_content = open(filename).read()
+    assert file_content == "hello_there"
 
 
 @pytest.mark.asyncio
