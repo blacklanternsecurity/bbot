@@ -13,7 +13,7 @@ class zoomeye(subdomain_enum_apikey):
         "include_related": "Include domains which may be related to the target",
     }
 
-    base_url = "https://api.zoomeye.org"
+    base_url = "https://api.zoomeye.hk"
 
     async def setup(self):
         self.max_pages = self.config.get("max_pages", 20)
