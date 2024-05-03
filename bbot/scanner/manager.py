@@ -19,6 +19,9 @@ class ScanIngress(InterceptModule):
     scope_distance_modifier = None
     _name = "_scan_ingress"
 
+    # small queue size so we don't drain modules' outgoing queues
+    _qsize = 10
+
     @property
     def priority(self):
         # we are the highest priority
@@ -31,7 +34,7 @@ class ScanIngress(InterceptModule):
         # track incoming duplicates module-by-module (for `suppress_dupes` attribute of modules)
         self.incoming_dup_tracker = set()
 
-    async def init_events(self, events):
+    async def init_events(self, events=None):
         """
         Initializes events by seeding the scanner with target events and distributing them for further processing.
 
@@ -39,6 +42,8 @@ class ScanIngress(InterceptModule):
             - This method populates the event queue with initial target events.
             - It also marks the Scan object as finished with initialization by setting `_finished_init` to True.
         """
+        if events is None:
+            events = self.scan.target.events
         async with self.scan._acatch(self.init_events), self._task_counter.count(self.init_events):
             sorted_events = sorted(events, key=lambda e: len(e.data))
             for event in [self.scan.root_event] + sorted_events:

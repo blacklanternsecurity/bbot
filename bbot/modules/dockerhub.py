@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class dockerhub(BaseModule):
     watched_events = ["SOCIAL", "ORG_STUB"]
     produced_events = ["SOCIAL", "CODE_REPOSITORY", "URL_UNVERIFIED"]
-    flags = ["active", "safe", "code-enum"]
+    flags = ["passive", "safe", "code-enum"]
     meta = {"description": "Search for docker repositories of discovered orgs/usernames"}
 
     site_url = "https://hub.docker.com"

@@ -11,21 +11,38 @@ class TestSocial(ModuleTestBase):
             "response_data": """
             <html>
                 <a href="https://discord.gg/asdf"/><a href="https://github.com/blacklanternsecurity/bbot"/>
+                <a href="https://hub.docker.com/r/blacklanternsecurity"/>
                 <a href="https://hub.docker.com/r/blacklanternsecurity/bbot"/>
+                <a href="https://hub.docker.com/r/blacklanternSECURITY/bbot"/>
             </html>
             """
         }
         module_test.set_expect_requests(expect_args=expect_args, respond_args=respond_args)
 
     def check(self, module_test, events):
-        assert any(
-            e.type == "SOCIAL" and e.data["platform"] == "discord" and e.data["profile_name"] == "asdf" for e in events
+        assert 3 == len([e for e in events if e.type == "SOCIAL"])
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL" and e.data["platform"] == "discord" and e.data["profile_name"] == "asdf"
+            ]
         )
-        assert any(
-            e.type == "SOCIAL" and e.data["platform"] == "docker" and e.data["profile_name"] == "blacklanternsecurity"
-            for e in events
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "docker"
+                and e.data["profile_name"] == "blacklanternsecurity"
+            ]
         )
-        assert any(
-            e.type == "SOCIAL" and e.data["platform"] == "github" and e.data["profile_name"] == "blacklanternsecurity"
-            for e in events
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "blacklanternsecurity"
+            ]
         )

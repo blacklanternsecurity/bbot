@@ -208,9 +208,9 @@ def test_preset_scope():
     assert not preset1.in_scope("asdf.test.www.evilcorp.ce")
 
     preset4 = Preset(output_modules="neo4j")
-    set(preset1.output_modules) == {"python", "csv", "human", "json"}
+    set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout"}
     preset1.merge(preset4)
-    set(preset1.output_modules) == {"python", "csv", "human", "json", "neo4j"}
+    set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout", "neo4j"}
 
 
 def test_preset_logging():
@@ -253,7 +253,7 @@ def test_preset_module_resolution(clean_default_config):
 
     # make sure we have the expected defaults
     assert not preset.scan_modules
-    assert set(preset.output_modules) == {"python", "csv", "human", "json"}
+    assert set(preset.output_modules) == {"python", "csv", "txt", "json"}
     assert set(preset.internal_modules) == {"aggregate", "excavate", "speculate", "cloud", "dns"}
     assert preset.modules == set(preset.output_modules).union(set(preset.internal_modules))
 
@@ -566,8 +566,8 @@ def test_preset_module_disablement(clean_default_config):
 
     # internal module disablement
     preset = Preset().bake()
-    assert set(preset.output_modules) == {"python", "human", "csv", "json"}
-    preset = Preset(exclude_modules=["human", "csv"]).bake()
+    assert set(preset.output_modules) == {"python", "txt", "csv", "json"}
+    preset = Preset(exclude_modules=["txt", "csv"]).bake()
     assert set(preset.output_modules) == {"python", "json"}
     preset = Preset(output_modules=["json"]).bake()
     assert set(preset.output_modules) == {"json"}

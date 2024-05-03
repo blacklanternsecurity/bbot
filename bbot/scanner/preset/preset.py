@@ -148,6 +148,9 @@ class Preset:
         self._debug = False
         self._silent = False
 
+        self._default_output_modules = None
+        self._default_internal_modules = None
+
         # modules / flags
         self.modules = set()
         self.exclude_modules = set()
@@ -268,6 +271,25 @@ class Preset:
     def preset_dir(self):
         return self.bbot_home / "presets"
 
+    @property
+    def default_output_modules(self):
+        if self._default_output_modules is not None:
+            output_modules = self._default_output_modules
+        else:
+            output_modules = ["python", "csv", "txt", "json"]
+            if self._cli:
+                output_modules.append("stdout")
+        return output_modules
+
+    @property
+    def default_internal_modules(self):
+        preloaded_internal = self.module_loader.preloaded(type="internal")
+        if self._default_internal_modules is not None:
+            internal_modules = self._default_internal_modules
+        else:
+            internal_modules = list(preloaded_internal)
+        return {k: preloaded_internal[k] for k in internal_modules}
+
     def merge(self, other):
         """
         Merge another preset into this one.
@@ -326,6 +348,7 @@ class Preset:
             self.conditions.extend(other.conditions)
         # misc
         self.force_start = self.force_start | other.force_start
+        self._cli = self._cli | other._cli
 
     def bake(self):
         """
@@ -361,12 +384,18 @@ class Preset:
         # enable scan modules
         for module in baked_preset.explicit_scan_modules:
             baked_preset.add_module(module, module_type="scan")
+
         # enable output modules
-        for module in baked_preset.explicit_output_modules:
+        output_modules_to_enable = baked_preset.explicit_output_modules
+        output_module_override = any(m in self.default_output_modules for m in output_modules_to_enable)
+        # enable the default  if none of the default output modules have been explicitly specified, enable them
+        if not output_module_override:
+            output_modules_to_enable.update(self.default_output_modules)
+        for module in output_modules_to_enable:
             baked_preset.add_module(module, module_type="output", raise_error=False)
 
         # enable internal modules
-        for internal_module, preloaded in baked_preset.module_loader.preloaded(type="internal").items():
+        for internal_module, preloaded in self.default_internal_modules.items():
             is_enabled = baked_preset.config.get(internal_module, True)
             is_excluded = internal_module in baked_preset.exclude_modules
             if is_enabled and not is_excluded:
@@ -388,7 +417,7 @@ class Preset:
 
         # ensure we have output modules
         if not baked_preset.output_modules:
-            for output_module in ("python", "csv", "human", "json"):
+            for output_module in self.default_output_modules:
                 baked_preset.add_module(output_module, module_type="output", raise_error=False)
 
         # evaluate conditions

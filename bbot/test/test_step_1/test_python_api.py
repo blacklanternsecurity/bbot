@@ -45,6 +45,12 @@ async def test_python_api():
     Scanner("127.0.0.1", config={"home": bbot_home})
     assert os.environ["BBOT_TOOLS"] == str(Path(bbot_home) / "tools")
 
+    # output modules override
+    scan4 = Scanner()
+    assert set(scan4.preset.output_modules) == {"csv", "json", "python", "txt"}
+    scan5 = Scanner(output_modules=["json"])
+    assert set(scan5.preset.output_modules) == {"json"}
+
     # custom target types
     custom_target_scan = Scanner("ORG:evilcorp")
     events = [e async for e in custom_target_scan.async_start()]

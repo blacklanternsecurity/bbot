@@ -241,12 +241,12 @@ class Scanner:
 
             # intercept modules get sewn together like human centipede
             self.intercept_modules = [m for m in self.modules.values() if m._intercept]
-            for i, intercept_module in enumerate(self.intercept_modules[:-1]):
-                next_intercept_module = self.intercept_modules[i + 1]
+            for i, intercept_module in enumerate(self.intercept_modules[1:]):
+                prev_intercept_module = self.intercept_modules[i]
                 self.debug(
-                    f"Setting intercept module {intercept_module.name}.outgoing_event_queue to next intercept module {next_intercept_module.name}.incoming_event_queue"
+                    f"Setting intercept module {intercept_module.name}._incoming_event_queue to previous intercept module {prev_intercept_module.name}.outgoing_event_queue"
                 )
-                intercept_module._outgoing_event_queue = next_intercept_module.incoming_event_queue
+                intercept_module._incoming_event_queue = prev_intercept_module.outgoing_event_queue
 
             # abort if there are no output modules
             num_output_modules = len([m for m in self.modules.values() if m._type == "output"])
@@ -1046,13 +1046,11 @@ class Scanner:
             main_handler = logging.handlers.TimedRotatingFileHandler(
                 str(self.home / "scan.log"), when="d", interval=1, backupCount=14
             )
-            main_handler.addFilter(
-                lambda x: x.levelno not in (logging.STDOUT, logging.TRACE) and x.levelno >= logging.VERBOSE
-            )
+            main_handler.addFilter(lambda x: x.levelno != logging.TRACE and x.levelno >= logging.VERBOSE)
             debug_handler = logging.handlers.TimedRotatingFileHandler(
                 str(self.home / "debug.log"), when="d", interval=1, backupCount=14
             )
-            debug_handler.addFilter(lambda x: x.levelno != logging.STDOUT and x.levelno >= logging.DEBUG)
+            debug_handler.addFilter(lambda x: x.levelno >= logging.DEBUG)
             self.__log_handlers = [main_handler, debug_handler]
         return self.__log_handlers
 

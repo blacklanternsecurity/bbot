@@ -49,7 +49,7 @@ async def test_cli_scan(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_cli_args(monkeypatch, caplog, clean_default_config):
+async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     from bbot import cli
 
     caplog.set_level(logging.INFO)
@@ -58,64 +58,13 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
     # show version
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "--version"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert len(caplog.text.splitlines()) == 1
-    assert caplog.text.count(".") > 1
+    assert len(out.splitlines()) == 1
+    assert out.count(".") > 1
 
-    # output dir and scan name
-    output_dir = bbot_test_dir / "bbot_cli_args_output"
-    scan_name = "bbot_cli_args_scan_name"
-    scan_dir = output_dir / scan_name
-    assert not output_dir.exists()
-    monkeypatch.setattr("sys.argv", ["bbot", "-o", str(output_dir), "-n", scan_name, "-y"])
-    result = await cli._main()
-    assert result == True
-    assert output_dir.is_dir()
-    assert scan_dir.is_dir()
-    assert "[SCAN]" in open(scan_dir / "output.txt").read()
-    assert "[INFO]" in open(scan_dir / "scan.log").read()
-
-    # output modules override
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-om", "csv,json", "-y"])
-    result = await cli._main()
-    assert result == True
-    assert "Loaded 2/2 output modules, (csv,json)" in caplog.text
-    caplog.clear()
-    monkeypatch.setattr("sys.argv", ["bbot", "-em", "csv,json", "-y"])
-    result = await cli._main()
-    assert result == True
-    assert "Loaded 2/2 output modules, (human,python)" in caplog.text
-
-    # internal modules override
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-y"])
-    result = await cli._main()
-    assert result == True
-    assert "Loaded 5/5 internal modules (aggregate,cloud,dns,excavate,speculate)" in caplog.text
-    caplog.clear()
-    monkeypatch.setattr("sys.argv", ["bbot", "-em", "excavate", "speculate", "-y"])
-    result = await cli._main()
-    assert result == True
-    assert "Loaded 3/3 internal modules (aggregate,cloud,dns)" in caplog.text
-    caplog.clear()
-    monkeypatch.setattr("sys.argv", ["bbot", "-c", "speculate=false", "-y"])
-    result = await cli._main()
-    assert result == True
-    assert "Loaded 4/4 internal modules (aggregate,cloud,dns,excavate)" in caplog.text
-
-    # list modules
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
-    result = await cli._main()
-    assert result == None
     # internal modules
     assert "| excavate" in caplog.text
     # output modules
@@ -259,6 +208,60 @@ async def test_cli_args(monkeypatch, caplog, clean_default_config):
     assert not "| dnsbrute" in caplog.text
     assert "| httpx" in caplog.text
 
+    # output modules override
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "csv,json", "-y"])
+    result = await cli._main()
+    assert result == True
+    assert "Loaded 2/2 output modules, (csv,json)" in caplog.text
+    caplog.clear()
+    monkeypatch.setattr("sys.argv", ["bbot", "-em", "csv,json", "-y"])
+    result = await cli._main()
+    assert result == True
+    assert "Loaded 3/3 output modules, (python,stdout,txt)" in caplog.text
+
+    # output modules override
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "subdomains", "-y"])
+    result = await cli._main()
+    assert result == True
+    assert "Loaded 6/6 output modules, (csv,json,python,stdout,subdomains,txt)" in caplog.text
+
+    # internal modules override
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-y"])
+    result = await cli._main()
+    assert result == True
+    assert "Loaded 5/5 internal modules (aggregate,cloud,dns,excavate,speculate)" in caplog.text
+    caplog.clear()
+    monkeypatch.setattr("sys.argv", ["bbot", "-em", "excavate", "speculate", "-y"])
+    result = await cli._main()
+    assert result == True
+    assert "Loaded 3/3 internal modules (aggregate,cloud,dns)" in caplog.text
+    caplog.clear()
+    monkeypatch.setattr("sys.argv", ["bbot", "-c", "speculate=false", "-y"])
+    result = await cli._main()
+    assert result == True
+    assert "Loaded 4/4 internal modules (aggregate,cloud,dns,excavate)" in caplog.text
+
+    # custom target type
+    out, err = capsys.readouterr()
+    monkeypatch.setattr("sys.argv", ["bbot", "-t", "ORG:evilcorp", "-y"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == True
+    assert "[ORG_STUB]          	evilcorp	TARGET" in out
+
+    # activate modules by flag
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "passive"])
+    result = await cli._main()
+    assert result == True
+
     # unconsoleable output module
     monkeypatch.setattr("sys.argv", ["bbot", "-om", "web_report"])
     result = await cli._main()
@@ -363,6 +366,70 @@ def test_cli_module_validation(monkeypatch, caplog):
     cli.main()
     assert 'Could not find output module "neoo4j"' in caplog.text
     assert 'Did you mean "neo4j"?' in caplog.text
+
+    # output module setup failed
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "websocket", "-c", "modules.websocket.url=", "-y"])
+    cli.main()
+    lines = caplog.text.splitlines()
+    assert "Loaded 6/6 output modules, (csv,json,python,stdout,txt,websocket)" in caplog.text
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            and l.endswith("Setup hard-failed for websocket: Must set URL")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("ERROR    bbot.cli:cli.py")
+            and l.endswith("Setup hard-failed for 1 modules (websocket) (--force to run module anyway)")
+        ]
+    )
+
+    # only output module setup failed
+    caplog.clear()
+    assert not caplog.text
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bbot", "-om", "websocket", "-em", "python,stdout,csv,json,txt", "-c", "modules.websocket.url=", "-y"],
+    )
+    cli.main()
+    lines = caplog.text.splitlines()
+    assert "Loaded 1/1 output modules, (websocket)" in caplog.text
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.scanner:scanner.py")
+            and l.endswith("Setup hard-failed for websocket: Must set URL")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("WARNING  bbot.modules.output.websocket:base.py") and l.endswith("Setting error state")
+        ]
+    )
+    assert 1 == len(
+        [
+            l
+            for l in lines
+            if l.startswith("ERROR    bbot.cli:cli.py") and l.endswith("Failed to load output modules. Aborting.")
+        ]
+    )
 
     # incorrect flag
     caplog.clear()

@@ -38,7 +38,7 @@ class wafw00f(BaseModule):
         waf_detections = await self.helpers.run_in_executor(WW.identwaf)
         if waf_detections:
             for waf in waf_detections:
-                await self.emit_event({"host": str(event.host), "url": url, "WAF": waf}, "WAF", source=event)
+                await self.emit_event({"host": str(event.host), "url": url, "waf": waf}, "WAF", source=event)
         else:
             if self.config.get("generic_detect") == True:
                 generic = await self.helpers.run_in_executor(WW.genericdetect)
@@ -47,7 +47,7 @@ class wafw00f(BaseModule):
                         {
                             "host": str(event.host),
                             "url": url,
-                            "WAF": "generic detection",
+                            "waf": "generic detection",
                             "info": WW.knowledge["generic"]["reason"],
                         },
                         "WAF",

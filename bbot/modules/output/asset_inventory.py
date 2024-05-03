@@ -316,7 +316,7 @@ class Asset:
             self.technologies.add(event.data["technology"])
 
         if event.type == "WAF":
-            if waf := event.data.get("WAF", ""):
+            if waf := event.data.get("waf", ""):
                 if update_http_status or not self.waf:
                     self.waf = waf
 

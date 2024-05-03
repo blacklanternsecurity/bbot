@@ -1194,20 +1194,6 @@ class BaseModule:
             preserve_graph = self._preserve_graph
         return preserve_graph
 
-    def stdout(self, *args, **kwargs):
-        """Writes log messages directly to standard output.
-
-        This is typically reserved for output modules only, e.g. `human` or `json`.
-
-        Args:
-            *args: Variable length argument list to be passed to `self.log.stdout`.
-            **kwargs: Arbitrary keyword arguments to be passed to `self.log.stdout`.
-
-        Examples:
-            >>> self.stdout("This will be printed to stdout")
-        """
-        self.log.stdout(*args, extra={"scan_id": self.scan.id}, **kwargs)
-
     def debug(self, *args, trace=False, **kwargs):
         """Logs debug messages and optionally the stack trace of the most recent exception.
 
@@ -1448,12 +1434,12 @@ class InterceptModule(BaseModule):
                     async with self._task_counter.count(f"event_precheck({event})"):
                         precheck_pass, reason = self._event_precheck(event)
                     if not precheck_pass:
-                        self.debug(f"Not hooking {event} because precheck failed ({reason})")
+                        self.debug(f"Not intercepting {event} because precheck failed ({reason})")
                         acceptable = False
                     async with self._task_counter.count(f"event_postcheck({event})"):
                         postcheck_pass, reason = await self._event_postcheck(event)
                     if not postcheck_pass:
-                        self.debug(f"Not hooking {event} because postcheck failed ({reason})")
+                        self.debug(f"Not intercepting {event} because postcheck failed ({reason})")
                         acceptable = False
 
                     # whether to pass the event on to the rest of the scan
@@ -1464,13 +1450,13 @@ class InterceptModule(BaseModule):
                     if acceptable:
                         context = f"{self.name}.handle_event({event, kwargs})"
                         self.scan.stats.event_consumed(event, self)
-                        self.debug(f"Hooking {event}")
+                        self.debug(f"Intercepting {event}")
                         async with self.scan._acatch(context), self._task_counter.count(context):
                             forward_event = await self.handle_event(event, kwargs)
                             with suppress(ValueError, TypeError):
                                 forward_event, forward_event_reason = forward_event
 
-                        self.debug(f"Finished hooking {event}")
+                        self.debug(f"Finished intercepting {event}")
 
                         if forward_event is False:
                             self.debug(f"Not forwarding {event} because {forward_event_reason}")

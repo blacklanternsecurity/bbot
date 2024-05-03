@@ -121,6 +121,16 @@ class BBOTArgs:
         args_preset.explicit_output_modules.update(set(self.parsed.output_modules))
         args_preset.flags.update(set(self.parsed.flags))
 
+        # output
+        if self.parsed.json:
+            args_preset.core.merge_custom({"modules": {"stdout": {"format": "json"}}})
+        if self.parsed.brief:
+            args_preset.core.merge_custom(
+                {"modules": {"stdout": {"event_fields": ["type", "scope_description", "data"]}}}
+            )
+        if self.parsed.event_types:
+            args_preset.core.merge_custom({"modules": {"stdout": {"event_types": self.parsed.event_types}}})
+
         # dependencies
         if self.parsed.retry_deps:
             args_preset.core.custom_config["deps_behavior"] = "retry_failed"
@@ -153,6 +163,7 @@ class BBOTArgs:
             )
         )
         p = argparse.ArgumentParser(*args, **kwargs)
+
         target = p.add_argument_group(title="Target")
         target.add_argument(
             "-t", "--targets", nargs="+", default=[], help="Targets to seed the scan", metavar="TARGET"
@@ -188,6 +199,7 @@ class BBOTArgs:
             default=[],
         )
         presets.add_argument("-lp", "--list-presets", action="store_true", help=f"List available presets.")
+
         modules = p.add_argument_group(title="Modules")
         modules.add_argument(
             "-m",
@@ -203,14 +215,6 @@ class BBOTArgs:
         )
         modules.add_argument(
             "-em", "--exclude-modules", nargs="+", default=[], help=f"Exclude these modules.", metavar="MODULE"
-        )
-        modules.add_argument(
-            "-om",
-            "--output-modules",
-            nargs="+",
-            default=[],
-            help=f'Output module(s). Choices: {",".join(self.preset.module_loader.output_module_choices)}',
-            metavar="MODULE",
         )
         modules.add_argument(
             "-f",
@@ -238,13 +242,9 @@ class BBOTArgs:
             metavar="FLAG",
         )
         modules.add_argument("--allow-deadly", action="store_true", help="Enable the use of highly aggressive modules")
+
         scan = p.add_argument_group(title="Scan")
         scan.add_argument("-n", "--name", help="Name of scan (default: random)", metavar="SCAN_NAME")
-        scan.add_argument(
-            "-o",
-            "--output-dir",
-            metavar="DIR",
-        )
         scan.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
         scan.add_argument("-d", "--debug", action="store_true", help="Enable debugging")
         scan.add_argument("-s", "--silent", action="store_true", help="Be quiet")
@@ -265,6 +265,26 @@ class BBOTArgs:
             action="store_true",
             help="Show the current preset in its full form, including defaults",
         )
+
+        output = p.add_argument_group(title="Output")
+        output.add_argument(
+            "-o",
+            "--output-dir",
+            help="Directory to output scan results",
+            metavar="DIR",
+        )
+        output.add_argument(
+            "-om",
+            "--output-modules",
+            nargs="+",
+            default=[],
+            help=f'Output module(s). Choices: {",".join(self.preset.module_loader.output_module_choices)}',
+            metavar="MODULE",
+        )
+        output.add_argument("--json", "-j", action="store_true", help="Output scan data in JSON format")
+        output.add_argument("--brief", "-br", action="store_true", help="Output only the data itself")
+        output.add_argument("--event-types", nargs="+", default=[], help="Choose which event types to display")
+
         deps = p.add_argument_group(
             title="Module dependencies", description="Control how modules install their dependencies"
         )
@@ -276,6 +296,7 @@ class BBOTArgs:
             "--ignore-failed-deps", action="store_true", help="Run modules even if they have failed dependencies"
         )
         g2.add_argument("--install-all-deps", action="store_true", help="Install dependencies for all modules")
+
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
         return p
@@ -300,6 +321,7 @@ class BBOTArgs:
         self.parsed.flags = chain_lists(self.parsed.flags)
         self.parsed.exclude_flags = chain_lists(self.parsed.exclude_flags)
         self.parsed.require_flags = chain_lists(self.parsed.require_flags)
+        self.parsed.event_types = [t.upper() for t in chain_lists(self.parsed.event_types)]
 
     def validate(self):
         # validate config options
