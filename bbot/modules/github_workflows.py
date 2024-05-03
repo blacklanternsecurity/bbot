@@ -1,3 +1,6 @@
+import zipfile
+import fnmatch
+
 from bbot.modules.templates.github import github
 
 
@@ -40,16 +43,14 @@ class github_workflows(github):
             for run in await self.get_workflow_runs(owner, repo, workflow_id):
                 run_id = run.get("id")
                 self.log.debug(f"Downloading logs for {workflow_name}/{run_id} in {owner}/{repo}")
-                log_path = await self.download_run_logs(owner, repo, run_id)
-                if log_path:
-                    self.verbose(f"Downloaded repository workflow logs to {log_path}")
+                for log in await self.download_run_logs(owner, repo, run_id):
                     logfile_event = self.make_event(
                         {
-                            "path": str(log_path),
+                            "path": str(log),
                             "description": f"Workflow run logs from https://github.com/{owner}/{repo}/actions/runs/{run_id}",
                         },
                         "FILESYSTEM",
-                        tags=["zipfile"],
+                        tags=["textfile"],
                         source=event,
                     )
                     logfile_event.scope_distance = event.scope_distance
@@ -119,8 +120,8 @@ class github_workflows(github):
                 warn=False,
             )
             self.info(f"Downloaded logs for {owner}/{repo}/{run_id} to {file_destination}")
-            return file_destination
         except Exception as e:
+            file_destination = None
             response = getattr(e, "response", None)
             status_code = getattr(response, "status_code", 0)
             if status_code == 403:
@@ -131,4 +132,14 @@ class github_workflows(github):
                 self.info(
                     f"The logs for {owner}/{repo}/{run_id} have expired and are no longer available (status: {status_code})"
                 )
-        return None
+        # Secrets are duplicated in the individual workflow steps so just extract the main log files from the top folder
+        if file_destination:
+            main_logs = []
+            with zipfile.ZipFile(file_destination, "r") as logzip:
+                for name in logzip.namelist():
+                    if fnmatch.fnmatch(name, "*.txt") and not "/" in name:
+                        logzip.extract(name, folder)
+                        main_logs.append(folder / name)
+            return main_logs
+        else:
+            return []

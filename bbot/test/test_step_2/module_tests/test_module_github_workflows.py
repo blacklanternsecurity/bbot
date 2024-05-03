@@ -12,6 +12,8 @@ class TestGithub_Workflows(ModuleTestBase):
     data = io.BytesIO()
     with zipfile.ZipFile(data, mode="w", compression=zipfile.ZIP_DEFLATED) as zipfile:
         zipfile.writestr("test.txt", "This is some test data")
+        zipfile.writestr("test2.txt", "This is some more test data")
+        zipfile.writestr("folder/test3.txt", "This is yet more test data")
     data.seek(0)
     zip_content = data.getvalue()
 
@@ -437,7 +439,7 @@ class TestGithub_Workflows(ModuleTestBase):
         )
 
     def check(self, module_test, events):
-        assert len(events) == 6
+        assert len(events) == 7
         assert 1 == len(
             [
                 e
@@ -469,18 +471,8 @@ class TestGithub_Workflows(ModuleTestBase):
                 and e.scope_distance == 1
             ]
         ), "Failed to find blacklanternsecurity github repo"
-        filesystem_events = [
-            e
-            for e in events
-            if e.type == "FILESYSTEM"
-            and "workflow_logs/blacklanternsecurity/bbot/run_8839360698.zip" in e.data["path"]
-            and "zipfile" in e.tags
-            and e.scope_distance == 1
-        ]
-        assert 1 == len(filesystem_events), "Failed to download workflow logs"
-        filesystem_event = filesystem_events[0]
-        file = Path(filesystem_event.data["path"])
-        assert file.is_file(), "Destination zip does not exist"
-        with zipfile.ZipFile(file, "r") as zip_ref:
-            assert "test.txt" in zip_ref.namelist(), "test.txt not in zip"
-            assert zip_ref.read("test.txt") == b"This is some test data", "test.txt contents incorrect"
+        filesystem_events = [e for e in events if e.type == "FILESYSTEM"]
+        assert 2 == len(filesystem_events), filesystem_events
+        for filesystem_event in filesystem_events:
+            file = Path(filesystem_event.data["path"])
+            assert file.is_file(), "Destination file does not exist"
