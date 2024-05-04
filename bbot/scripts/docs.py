@@ -5,7 +5,7 @@ import re
 import yaml
 from pathlib import Path
 
-from bbot.scanner import Preset
+from bbot import Preset
 
 DEFAULT_PRESET = Preset()
 
