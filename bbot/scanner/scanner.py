@@ -121,8 +121,9 @@ class Scanner:
 
         preset = kwargs.pop("preset", None)
         kwargs["_log"] = True
+        from .preset import Preset
+
         if preset is None:
-            from .preset import Preset
 
             preset = Preset(*targets, **kwargs)
         else:
