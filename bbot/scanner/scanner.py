@@ -11,10 +11,6 @@ from collections import OrderedDict
 
 from bbot import __version__
 
-
-from .preset import Preset
-from .stats import ScanStats
-from .dispatcher import Dispatcher
 from bbot.core.event import make_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
@@ -126,6 +122,8 @@ class Scanner:
         preset = kwargs.pop("preset", None)
         kwargs["_log"] = True
         if preset is None:
+            from .preset import Preset
+
             preset = Preset(*targets, **kwargs)
         else:
             if not isinstance(preset, Preset):
@@ -168,10 +166,14 @@ class Scanner:
         self.dummy_modules = {}
 
         if dispatcher is None:
+            from .dispatcher import Dispatcher
+
             self.dispatcher = Dispatcher()
         else:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
+
+        from .stats import ScanStats
 
         self.stats = ScanStats(self)
 
