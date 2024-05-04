@@ -164,10 +164,10 @@ class bypass403(BaseModule):
 
     def format_signature(self, sig, event):
         if sig[3] == True:
-            cleaned_path = event.parsed.path.strip("/")
+            cleaned_path = event.parsed_url.path.strip("/")
         else:
-            cleaned_path = event.parsed.path.lstrip("/")
-        kwargs = {"scheme": event.parsed.scheme, "netloc": event.parsed.netloc, "path": cleaned_path}
+            cleaned_path = event.parsed_url.path.lstrip("/")
+        kwargs = {"scheme": event.parsed_url.scheme, "netloc": event.parsed_url.netloc, "path": cleaned_path}
         formatted_url = sig[1].format(**kwargs)
         if sig[2] != None:
             formatted_headers = {k: v.format(**kwargs) for k, v in sig[2].items()}

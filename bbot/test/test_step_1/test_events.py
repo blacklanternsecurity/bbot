@@ -6,7 +6,13 @@ from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_events(events, scan, helpers):
+async def test_events(events, helpers):
+
+    from bbot.scanner import Scanner
+
+    scan = Scanner()
+    await scan._prep()
+
     assert events.ipv4.type == "IP_ADDRESS"
     assert events.ipv6.type == "IP_ADDRESS"
     assert events.netv4.type == "IP_RANGE"
@@ -100,7 +106,7 @@ async def test_events(events, scan, helpers):
     # http response
     assert events.http_response.host == "example.com"
     assert events.http_response.port == 80
-    assert events.http_response.parsed.scheme == "http"
+    assert events.http_response.parsed_url.scheme == "http"
     assert events.http_response.with_port().geturl() == "http://example.com:80/"
 
     http_response = scan.make_event(
@@ -159,8 +165,9 @@ async def test_events(events, scan, helpers):
     assert events.ipv6_url_unverified.host == ipaddress.ip_address("2001:4860:4860::8888")
     assert events.ipv6_url_unverified.port == 443
 
-    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", dummy=True)
+    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", source=scan.root_event)
     assert "extension-js" in javascript_event.tags
+    await scan.ingress_module.handle_event(javascript_event, {})
     assert "httpx-only" in javascript_event.tags
 
     # scope distance
@@ -460,3 +467,28 @@ async def test_events(events, scan, helpers):
     )
     assert bucket_event.data["name"] == "asdf.s3.amazonaws.com"
     assert bucket_event.data["url"] == "https://asdf.s3.amazonaws.com/"
+
+    # test module sequence
+    module = scan._make_dummy_module("mymodule")
+    source_event_1 = scan.make_event("127.0.0.1", module=module, source=scan.root_event)
+    assert str(source_event_1.module) == "mymodule"
+    assert str(source_event_1.module_sequence) == "mymodule"
+    source_event_2 = scan.make_event("127.0.0.2", module=module, source=source_event_1)
+    assert str(source_event_2.module) == "mymodule"
+    assert str(source_event_2.module_sequence) == "mymodule"
+    source_event_3 = scan.make_event("127.0.0.3", module=module, source=source_event_2)
+    assert str(source_event_3.module) == "mymodule"
+    assert str(source_event_3.module_sequence) == "mymodule"
+
+    module = scan._make_dummy_module("mymodule")
+    source_event_1 = scan.make_event("127.0.0.1", module=module, source=scan.root_event)
+    source_event_1._omit = True
+    assert str(source_event_1.module) == "mymodule"
+    assert str(source_event_1.module_sequence) == "mymodule"
+    source_event_2 = scan.make_event("127.0.0.2", module=module, source=source_event_1)
+    source_event_2._omit = True
+    assert str(source_event_2.module) == "mymodule"
+    assert str(source_event_2.module_sequence) == "mymodule->mymodule"
+    source_event_3 = scan.make_event("127.0.0.3", module=module, source=source_event_2)
+    assert str(source_event_3.module) == "mymodule"
+    assert str(source_event_3.module_sequence) == "mymodule->mymodule->mymodule"

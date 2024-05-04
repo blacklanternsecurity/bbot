@@ -684,6 +684,7 @@ class BaseModule:
         if self.target_only:
             if "target" not in event.tags:
                 return False, "it did not meet target_only filter criteria"
+
         # exclude certain URLs (e.g. javascript):
         # TODO: revisit this after httpx rework
         if event.type.startswith("URL") and self.name != "httpx" and "httpx-only" in event.tags:
@@ -728,13 +729,6 @@ class BaseModule:
         # force-output certain events to the graph
         if self._is_graph_important(event):
             return True, "event is critical to the graph"
-
-        # don't send out-of-scope targets to active modules (excluding portscanners, because they can handle it)
-        # this only takes effect if your target and whitelist are different
-        # TODO: the logic here seems incomplete, it could probably use some work.
-        if "active" in self.flags and "portscan" not in self.flags:
-            if "target" in event.tags and event not in self.scan.whitelist:
-                return False, "it is not in whitelist and module has active flag"
 
         # check scope distance
         filter_result, reason = self._scope_distance_check(event)
@@ -952,7 +946,7 @@ class BaseModule:
             >>> event = self.make_event("https://example.com:8443")
             >>> self.get_per_hostport_hash(event)
         """
-        parsed = getattr(event, "parsed", None)
+        parsed = getattr(event, "parsed_url", None)
         if parsed is None:
             to_hash = self.helpers.make_netloc(event.host, event.port)
         else:
