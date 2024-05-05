@@ -92,7 +92,7 @@ class ffuf_shortnames(ffuf):
 
     def build_extension_list(self, event):
         used_extensions = []
-        extension_hint = event.parsed.path.rsplit(".", 1)[1].lower().strip()
+        extension_hint = event.parsed_url.path.rsplit(".", 1)[1].lower().strip()
         if len(extension_hint) == 3:
             with open(self.wordlist_extensions) as f:
                 for l in f:
@@ -117,9 +117,9 @@ class ffuf_shortnames(ffuf):
         return True
 
     async def handle_event(self, event):
-        filename_hint = re.sub(r"~\d", "", event.parsed.path.rsplit(".", 1)[0].split("/")[-1]).lower()
+        filename_hint = re.sub(r"~\d", "", event.parsed_url.path.rsplit(".", 1)[0].split("/")[-1]).lower()
 
-        host = f"{event.source.parsed.scheme}://{event.source.parsed.netloc}/"
+        host = f"{event.source.parsed_url.scheme}://{event.source.parsed_url.netloc}/"
         if host not in self.per_host_collection.keys():
             self.per_host_collection[host] = [(filename_hint, event.source.data)]
 
@@ -128,8 +128,8 @@ class ffuf_shortnames(ffuf):
 
         self.shortname_to_event[filename_hint] = event
 
-        root_stub = "/".join(event.parsed.path.split("/")[:-1])
-        root_url = f"{event.parsed.scheme}://{event.parsed.netloc}{root_stub}/"
+        root_stub = "/".join(event.parsed_url.path.split("/")[:-1])
+        root_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{root_stub}/"
 
         if "shortname-file" in event.tags:
             used_extensions = self.build_extension_list(event)

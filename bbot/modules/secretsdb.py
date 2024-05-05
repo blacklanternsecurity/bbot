@@ -51,7 +51,7 @@ class secretsdb(BaseModule):
             matches = [m.string[m.start() : m.end()] for m in matches]
             description = f"Possible secret ({name}): {matches}"
             event_data = {"host": str(event.host), "description": description}
-            parsed_url = getattr(event, "parsed", None)
+            parsed_url = getattr(event, "parsed_url", None)
             if parsed_url:
                 event_data["url"] = parsed_url.geturl()
             await self.emit_event(

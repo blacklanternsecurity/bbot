@@ -84,7 +84,7 @@ class httpx(BaseModule):
             if e.type.startswith("URL"):
                 # we NEED the port, otherwise httpx will try HTTPS even for HTTP URLs
                 url = e.with_port().geturl()
-                if e.parsed.path == "/":
+                if e.parsed_url.path == "/":
                     url_hash = hash((e.host, e.port))
             else:
                 url = str(e.data)

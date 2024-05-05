@@ -52,7 +52,7 @@ class TestDastardly(ModuleTestBase):
         def new_filter_event(event):
             self.new_url = f"http://{docker_ip}:5556/"
             event.data["url"] = self.new_url
-            event.parsed = module_test.scan.helpers.urlparse(self.new_url)
+            event.parsed_url = module_test.scan.helpers.urlparse(self.new_url)
             return old_filter_event(event)
 
         module_test.monkeypatch.setattr(module_test.module, "filter_event", new_filter_event)

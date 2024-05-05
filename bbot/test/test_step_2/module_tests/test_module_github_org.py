@@ -399,7 +399,7 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
     config_overrides = {"scope_report_distance": 10, "omit_event_types": [], "speculate": True}
 
     def check(self, module_test, events):
-        assert len(events) == 7
+        assert len(events) == 8
         assert 1 == len(
             [e for e in events if e.type == "ORG_STUB" and e.data == "blacklanternsecurity" and e.scope_distance == 1]
         )
@@ -411,6 +411,20 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
                 and e.data["platform"] == "github"
                 and e.data["profile_name"] == "blacklanternsecurity"
                 and e.scope_distance == 1
+                and str(e.module) == "social"
+                and e.source.type == "URL_UNVERIFIED"
+            ]
+        )
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "SOCIAL"
+                and e.data["platform"] == "github"
+                and e.data["profile_name"] == "blacklanternsecurity"
+                and e.scope_distance == 1
+                and str(e.module) == "github_org"
+                and e.source.type == "ORG_STUB"
             ]
         )
         assert 1 == len(

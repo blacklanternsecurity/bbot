@@ -325,7 +325,7 @@ def test_cli_config_validation(monkeypatch, caplog):
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "modules.ipnegibhor.num_bits=4"])
     cli.main()
-    assert 'Could not find module option "modules.ipnegibhor.num_bits"' in caplog.text
+    assert 'Could not find config option "modules.ipnegibhor.num_bits"' in caplog.text
     assert 'Did you mean "modules.ipneighbor.num_bits"?' in caplog.text
 
     # incorrect global option
@@ -333,7 +333,7 @@ def test_cli_config_validation(monkeypatch, caplog):
     assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-c", "web_spier_distance=4"])
     cli.main()
-    assert 'Could not find module option "web_spier_distance"' in caplog.text
+    assert 'Could not find config option "web_spier_distance"' in caplog.text
     assert 'Did you mean "web_spider_distance"?' in caplog.text
 
 

@@ -122,7 +122,7 @@ class ntlm(BaseModule):
             }
         if self.try_all:
             for endpoint in ntlm_discovery_endpoints:
-                urls.add(f"{event.parsed.scheme}://{event.parsed.netloc}/{endpoint}")
+                urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
 
         tasks = []
         for url in urls:

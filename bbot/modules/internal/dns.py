@@ -164,7 +164,7 @@ class DNS(InterceptModule):
                 event.add_tag(tag)
 
         # If the event is unresolved, change its type to DNS_NAME_UNRESOLVED
-        if event.type == "DNS_NAME" and "unresolved" in event.tags and not "target" in event.tags:
+        if event.type == "DNS_NAME" and "unresolved" in event.tags:
             event.type = "DNS_NAME_UNRESOLVED"
 
         # speculate DNS_NAMES and IP_ADDRESSes from other event types

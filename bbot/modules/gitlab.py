@@ -47,7 +47,7 @@ class gitlab(BaseModule):
         # HTTP_RESPONSE --> FINDING
         headers = event.data.get("header", {})
         if "x_gitlab_meta" in headers:
-            url = event.parsed._replace(path="/").geturl()
+            url = event.parsed_url._replace(path="/").geturl()
             await self.emit_event(
                 {"host": str(event.host), "technology": "GitLab", "url": url}, "TECHNOLOGY", source=event
             )
