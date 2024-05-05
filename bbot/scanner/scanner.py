@@ -200,6 +200,7 @@ class Scanner:
         self._finished_init = False
         self._new_activity = False
         self._cleanedup = False
+        self._omitted_event_types = None
 
         self.__loop = None
         self._manager_worker_loop_tasks = []
@@ -863,6 +864,12 @@ class Scanner:
     @property
     def status(self):
         return self._status
+
+    @property
+    def omitted_event_types(self):
+        if self._omitted_event_types is None:
+            self._omitted_event_types = self.config.get("omit_event_types", [])
+        return self._omitted_event_types
 
     @status.setter
     def status(self, status):
