@@ -12,7 +12,9 @@ class TestDnsbrute(ModuleTestBase):
 
         async def new_run_live(*command, check=False, text=True, **kwargs):
             if "massdns" in command[:2]:
-                yield """{"name": "asdf.blacklanternsecurity.com.", "type": "A", "class": "IN", "status": "NOERROR", "rx_ts": 1713974911725326170, "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "asdf.blacklanternsecurity.com.", "data": "1.2.3.4."}]}, "flags": ["rd", "ra"], "resolver": "195.226.187.130:53", "proto": "UDP"}"""
+                _input = [l async for l in kwargs["input"]]
+                if "asdf.blacklanternsecurity.com" in _input:
+                    yield """{"name": "asdf.blacklanternsecurity.com.", "type": "A", "class": "IN", "status": "NOERROR", "rx_ts": 1713974911725326170, "data": {"answers": [{"ttl": 86400, "type": "A", "class": "IN", "name": "asdf.blacklanternsecurity.com.", "data": "1.2.3.4."}]}, "flags": ["rd", "ra"], "resolver": "195.226.187.130:53", "proto": "UDP"}"""
             else:
                 async for _ in old_run_live(*command, check=False, text=True, **kwargs):
                     yield _
@@ -21,6 +23,7 @@ class TestDnsbrute(ModuleTestBase):
 
         await module_test.mock_dns(
             {
+                "blacklanternsecurity.com": {"A": ["4.3.2.1"]},
                 "asdf.blacklanternsecurity.com": {"A": ["1.2.3.4"]},
             }
         )

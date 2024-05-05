@@ -31,6 +31,7 @@ class TestDnsbrute_mutations(ModuleTestBase):
 
         await module_test.mock_dns(
             {
+                "blacklanternsecurity.com": {"A": ["1.2.3.4"]},
                 # targets
                 "rrrr.blacklanternsecurity.com": {"A": ["1.2.3.4"]},
                 "asdff-ffdsa.blacklanternsecurity.com": {"A": ["1.2.3.4"]},

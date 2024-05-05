@@ -10,7 +10,9 @@ class TestDNSCommonSRV(ModuleTestBase):
 
         async def new_run_live(*command, check=False, text=True, **kwargs):
             if "massdns" in command[:2]:
-                yield """{"name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","type":"SRV","class":"IN","status":"NOERROR","rx_ts":1713974911725326170,"data":{"answers":[{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."},{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."}]},"flags":["rd","ra"],"resolver":"195.226.187.130:53","proto":"UDP"}"""
+                _input = [l async for l in kwargs["input"]]
+                if "_ldap._tcp.gc._msdcs.blacklanternsecurity.com" in _input:
+                    yield """{"name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","type":"SRV","class":"IN","status":"NOERROR","rx_ts":1713974911725326170,"data":{"answers":[{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."},{"ttl":86400,"type":"SRV","class":"IN","name":"_ldap._tcp.gc._msdcs.blacklanternsecurity.com.","data":"10 10 1720 asdf.blacklanternsecurity.com."}]},"flags":["rd","ra"],"resolver":"195.226.187.130:53","proto":"UDP"}"""
             else:
                 async for _ in old_run_live(*command, check=False, text=True, **kwargs):
                     yield _
