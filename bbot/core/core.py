@@ -52,10 +52,6 @@ class BBOTCore:
         self._config = None
         self._custom_config = None
 
-        # ensure bbot home dir
-        if not "home" in self.config:
-            self.custom_config["home"] = "~/.bbot"
-
         # bare minimum == logging
         self.logger
         self.log = logging.getLogger("bbot.core")
@@ -105,6 +101,9 @@ class BBOTCore:
         global DEFAULT_CONFIG
         if DEFAULT_CONFIG is None:
             self.default_config = self.files_config.get_default_config()
+            # ensure bbot home dir
+            if not "home" in self.default_config:
+                self.default_config["home"] = "~/.bbot"
         return DEFAULT_CONFIG
 
     @default_config.setter

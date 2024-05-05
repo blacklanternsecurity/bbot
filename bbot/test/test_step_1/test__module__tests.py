@@ -2,7 +2,7 @@ import logging
 import importlib
 from pathlib import Path
 
-from bbot.scanner import Preset
+from bbot import Preset
 from ..test_step_2.module_tests.base import ModuleTestBase
 
 log = logging.getLogger("bbot.test.modules")
