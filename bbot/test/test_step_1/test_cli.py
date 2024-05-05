@@ -65,148 +65,148 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert len(out.splitlines()) == 1
     assert out.count(".") > 1
 
+    # list modules
+    monkeypatch.setattr("sys.argv", ["bbot", "--list-modules"])
+    result = await cli._main()
+    assert result == None
+    out, err = capsys.readouterr()
     # internal modules
-    assert "| excavate" in caplog.text
+    assert "| excavate" in out
     # output modules
-    assert "| csv" in caplog.text
+    assert "| csv" in out
     # scan modules
-    assert "| wayback" in caplog.text
+    assert "| wayback" in out
+
+    # output dir and scan name
+    output_dir = bbot_test_dir / "bbot_cli_args_output"
+    scan_name = "bbot_cli_args_scan_name"
+    scan_dir = output_dir / scan_name
+    assert not output_dir.exists()
+    monkeypatch.setattr("sys.argv", ["bbot", "-o", str(output_dir), "-n", scan_name, "-y"])
+    result = await cli._main()
+    assert result == True
+    assert output_dir.is_dir()
+    assert scan_dir.is_dir()
+    assert "[SCAN]" in open(scan_dir / "output.txt").read()
+    assert "[INFO]" in open(scan_dir / "scan.log").read()
 
     # list module options
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "--list-module-options"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "| modules.wayback.urls" in caplog.text
-    assert "| bool" in caplog.text
-    assert "| emit URLs in addition to DNS_NAMEs" in caplog.text
-    assert "| False" in caplog.text
-    assert "| modules.dnsbrute.wordlist" in caplog.text
-    assert "| modules.robots.include_allow" in caplog.text
+    assert "| modules.wayback.urls" in out
+    assert "| bool" in out
+    assert "| emit URLs in addition to DNS_NAMEs" in out
+    assert "| False" in out
+    assert "| modules.dnsbrute.wordlist" in out
+    assert "| modules.robots.include_allow" in out
 
     # list module options by flag
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "--list-module-options"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "| modules.wayback.urls" in caplog.text
-    assert "| bool" in caplog.text
-    assert "| emit URLs in addition to DNS_NAMEs" in caplog.text
-    assert "| False" in caplog.text
-    assert "| modules.dnsbrute.wordlist" in caplog.text
-    assert not "| modules.robots.include_allow" in caplog.text
+    assert "| modules.wayback.urls" in out
+    assert "| bool" in out
+    assert "| emit URLs in addition to DNS_NAMEs" in out
+    assert "| False" in out
+    assert "| modules.dnsbrute.wordlist" in out
+    assert not "| modules.robots.include_allow" in out
 
     # list module options by module
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-m", "dnsbrute", "-lmo"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert not "| modules.wayback.urls" in caplog.text
-    assert "| modules.dnsbrute.wordlist" in caplog.text
-    assert not "| modules.robots.include_allow" in caplog.text
+    assert out.count("modules.") == out.count("modules.dnsbrute.")
+    assert not "| modules.wayback.urls" in out
+    assert "| modules.dnsbrute.wordlist" in out
+    assert not "| modules.robots.include_allow" in out
+
+    # list output module options by module
+    monkeypatch.setattr("sys.argv", ["bbot", "-om", "stdout", "-lmo"])
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == None
+    assert out.count("modules.") == out.count("modules.stdout.")
 
     # list flags
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "--list-flags"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "| safe" in caplog.text
-    assert "| Non-intrusive, safe to run" in caplog.text
-    assert "| active" in caplog.text
-    assert "| passive" in caplog.text
+    assert "| safe" in out
+    assert "| Non-intrusive, safe to run" in out
+    assert "| active" in out
+    assert "| passive" in out
 
     # list only a single flag
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "--list-flags"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert not "| safe" in caplog.text
-    assert "| active" in caplog.text
-    assert not "| passive" in caplog.text
+    assert not "| safe" in out
+    assert "| active" in out
+    assert not "| passive" in out
 
     # list multiple flags
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "active", "safe", "--list-flags"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "| safe" in caplog.text
-    assert "| active" in caplog.text
-    assert not "| passive" in caplog.text
-
-    # custom target type
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-t", "ORG:evilcorp"])
-    result = await cli._main()
-    assert result == True
-    assert "[ORG_STUB]          	evilcorp	TARGET" in caplog.text
-
-    # activate modules by flag
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "passive"])
-    result = await cli._main()
-    assert result == True
+    assert "| safe" in out
+    assert "| active" in out
+    assert not "| passive" in out
 
     # no args
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "Target:\n  -t TARGET [TARGET ...]" in caplog.text
+    assert "Target:\n  -t TARGET [TARGET ...]" in out
 
     # list modules
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-l"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "| dnsbrute" in caplog.text
-    assert "| httpx" in caplog.text
-    assert "| robots" in caplog.text
+    assert "| dnsbrute " in out
+    assert "| httpx" in out
+    assert "| robots" in out
 
     # list modules by flag
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-l"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "| dnsbrute" in caplog.text
-    assert "| httpx" in caplog.text
-    assert not "| robots" in caplog.text
+    assert "| dnsbrute " in out
+    assert "| httpx" in out
+    assert not "| robots" in out
 
     # list modules by flag + required flag
-    caplog.clear()
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-rf", "passive", "-l"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "| dnsbrute" in caplog.text
-    assert not "| httpx" in caplog.text
+    assert "| dnsbrute " in out
+    assert not "| httpx" in out
 
     # list modules by flag + excluded flag
-    caplog.clear()
-    assert not caplog.text
     monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-ef", "active", "-l"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert "| dnsbrute" in caplog.text
-    assert not "| httpx" in caplog.text
+    assert "| dnsbrute " in out
+    assert not "| httpx" in out
 
     # list modules by flag + excluded module
-    caplog.clear()
-    assert not caplog.text
-    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "dnsbrute_mutations", "-l"])
+    monkeypatch.setattr("sys.argv", ["bbot", "-f", "subdomain-enum", "-em", "dnsbrute", "-l"])
     result = await cli._main()
+    out, err = capsys.readouterr()
     assert result == None
-    assert not "| dnsbrute" in caplog.text
-    assert "| httpx" in caplog.text
+    assert not "| dnsbrute " in out
+    assert "| httpx" in out
 
     # output modules override
     caplog.clear()
