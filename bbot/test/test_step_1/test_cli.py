@@ -309,9 +309,9 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert result == True, "-m nuclei failed to run with --allow-deadly"
 
     # install all deps
-    # monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
-    # success = await cli._main()
-    # assert success, "--install-all-deps failed for at least one module"
+    monkeypatch.setattr("sys.argv", ["bbot", "--install-all-deps"])
+    success = await cli._main()
+    assert success == True, "--install-all-deps failed for at least one module"
 
 
 def test_cli_config_validation(monkeypatch, caplog):
