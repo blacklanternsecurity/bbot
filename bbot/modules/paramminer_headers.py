@@ -199,11 +199,11 @@ class paramminer_headers(BaseModule):
         if not body:
             return None
         if content_type and "json" in content_type.lower():
-            return extract_params_json(body)
+            return extract_params_json(body, self.compare_mode)
         elif content_type and "xml" in content_type.lower():
-            return extract_params_xml(body)
+            return extract_params_xml(body, self.compare_mode)
         else:
-            return set(extract_params_html(body))
+            return set(extract_params_html(body, self.compare_mode))
 
     async def binary_search(self, compare_helper, url, group, reasons=None, reflection=False):
         if reasons is None:
@@ -249,4 +249,5 @@ class paramminer_headers(BaseModule):
                 results = await self.do_mining(untested_matches_copy, url, batch_size, compare_helper)
             except HttpCompareError as e:
                 self.debug(f"Encountered HttpCompareError: [{e}] for URL [{url}]")
+                continue
             await self.process_results(event, results)

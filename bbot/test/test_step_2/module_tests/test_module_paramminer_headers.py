@@ -86,6 +86,7 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
     <title>the title</title>
     <body>
     <a href="/page?foo=AAAAAAAAAAAAAA">Click Me</a>
+    <a href="/page?foo=http://thisisjunk.com?whatever=value">Click Me</a>
     <p>Secret param "foo" found with value: AAAAAAAAAAAAAA</p>
     </body>
     </html>
@@ -113,5 +114,3 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
             and "[Paramminer] Header: [foo] Reasons: [body] Reflection: [True]" in e.data["description"]
             for e in events
         )
-
-

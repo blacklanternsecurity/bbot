@@ -972,15 +972,21 @@ def extract_params_xml(xml_data):
     return tags
 
 
-def extract_params_html(html_data):
+def extract_params_html(html_data, compare_mode="getparam"):
     """
-    Extracts parameters from an HTML object, yielding them one at a time.
+    Extracts parameters from an HTML object, yielding them one at a time. This function filters
+    these parameters based on a specified mode that determines the type of validation
+    or comparison against rules for headers, GET parameters, or cookies. If no mode is specified,
+    it defaults to 'getparam', which is the least restrictive.
 
     Args:
         html_data (str): HTML-formatted string.
+        compare_mode (str, optional): The mode to compare extracted parameter names against.
+            Defaults to 'getparam'. Valid modes are 'header', 'getparam', 'cookie'.
 
     Yields:
-        str: A string containing the parameter found in HTML object.
+        str: A string containing the parameter found in the HTML object that meets the
+        criteria of the specified mode.
 
     Examples:
         >>> html_data = '''
@@ -996,20 +1002,46 @@ def extract_params_html(html_data):
         ... </html>
         ... '''
         >>> list(extract_params_html(html_data))
-        ['user', 'param2', 'param3']
+        ['user', 'param1', 'param2', 'param3']
     """
+
+    def validate_param(param, compare_mode):
+        if len(param) > 100:
+            return False
+
+        # Define valid characters for each mode based on RFCs
+        valid_chars = {
+            "header": "".join(
+                chr(c) for c in range(33, 127) if chr(c) not in '"(),;:\\'
+            ),  # HTTP headers exclude CTLs, SP, DQUOTE, comma, semicolon, and backslash
+            "getparam": "".join(
+                chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="
+            ),  # URI reserved characters should be avoided or percent-encoded
+            "cookie": "".join(
+                chr(c) for c in range(33, 127) if chr(c) not in ' ",;=\\'
+            ),  # Cookies exclude spaces, quotes, comma, semicolon, equals, and backslash
+        }
+
+        if compare_mode not in valid_chars:
+            raise ValueError(f"Invalid compare_mode: {compare_mode}")
+
+        allowed_chars = set(valid_chars[compare_mode])
+        return set(param).issubset(allowed_chars)
+
     input_tag = bbot_regexes.input_tag_regex.findall(html_data)
 
     for i in input_tag:
         log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
-        yield i
+        if validate_param(i, compare_mode):
+            yield i
 
     # check for jquery get parameters
     jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
 
     for i in jquery_get:
         log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
-        yield i
+        if validate_param(i, compare_mode):
+            yield i
 
     # check for jquery post parameters
     jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
@@ -1018,12 +1050,14 @@ def extract_params_html(html_data):
             for x in i.split(","):
                 s = x.split(":")[0].rstrip()
                 log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
-                yield s
+                if validate_param(s, compare_mode):
+                    yield s
 
     a_tag = bbot_regexes.a_tag_regex.findall(html_data)
     for s in a_tag:
         log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
-        yield s
+        if validate_param(s, compare_mode):
+            yield s
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):

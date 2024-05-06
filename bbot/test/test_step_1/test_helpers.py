@@ -745,3 +745,52 @@ def test_liststring_invalidfnchars(helpers):
     with pytest.raises(ValueError) as e:
         helpers.parse_list_string("hello,world,bbot|test")
     assert str(e.value) == "Invalid character in string: bbot|test"
+
+
+# test extract_params_html
+def test_extract_params_html(helpers):
+    html_tests = """
+    <html>
+    <head>
+        <title>Test Links for Parameter Names</title>
+    </head>
+    <body>
+        <!-- Universal Valid: All parameter names should pass -->
+        <a href="/validPath?name=123&age=456">Universal Valid</a>
+
+        <!-- Mixed Validity: Different rules for headers, GET parameters, and cookies -->
+        <a href="/test?valid_name=1&valid-name=2&invalid,name=3">Mixed Validity</a>
+        <a href="/test?session_token=1&user.id=2&auth-token=3">Token Examples</a>
+
+        <!-- Valid for GET and Cookies, questionable for headers due to dashes or dots -->
+        <a href="/details?user-name=1&session-token=2">Common Web Names</a>
+        <a href="/info?client.id=1&access_token=2">API Style Names</a>
+
+        <!-- Bad examples that should fail all validations -->
+        <a href="/badPath?this_parameter_name_is_way_too_long_to_be_practical_but_hey_its_still_technically_valid=foo">Terrible Names</a>
+    </body>
+    </html>
+    """
+    extract_results = helpers.extract_params_html(html_tests)
+    valid_params = {"name", "valid_name", "session_token", "user-name", "client.id"}
+    invalid_params = {
+        "valid-name",
+        "invalid,name",
+        "auth-token",
+        "access_token",
+        "<script>",
+        "###$$$",
+        "this_parameter_name_is_way_too_long_to_be_practical_but_hey_look_its_still_technically_valid_yay",
+    }
+
+    extracted_params = set(
+        extract_results
+    )  # Assuming `extract_results` is a list of parameter names extracted from the HTML.
+
+    # Check that all valid parameters are present
+    for expected_param in valid_params:
+        assert expected_param in extracted_params, f"Missing expected parameter: {expected_param}"
+
+    # Check that no invalid parameters are present
+    for bad_param in invalid_params:
+        assert bad_param not in extracted_params, f"Invalid parameter found: {bad_param}"
