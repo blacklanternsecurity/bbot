@@ -547,7 +547,7 @@ class Scanner:
             queues.add(module.outgoing_event_queue)
 
         for q in queues:
-            for item in q._queue:
+            for item in getattr(q, "_queue", []):
                 try:
                     event, _ = item
                 except ValueError:

@@ -631,6 +631,7 @@ class BaseEvent:
         j["timestamp"] = self.timestamp.timestamp()
         if self.host:
             j["resolved_hosts"] = sorted(str(h) for h in self.resolved_hosts)
+            j["dns_children"] = {k: list(v) for k, v in self.dns_children.items()}
         source_id = self.source_id
         if source_id:
             j["source"] = source_id
@@ -645,7 +646,7 @@ class BaseEvent:
         for k, v in list(j.items()):
             if k == "data":
                 continue
-            if type(v) not in (str, int, float, bool, list, type(None)):
+            if type(v) not in (str, int, float, bool, list, dict, type(None)):
                 try:
                     j[k] = json.dumps(v, sort_keys=True)
                 except Exception:
