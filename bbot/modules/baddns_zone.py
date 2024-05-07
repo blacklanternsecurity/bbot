@@ -1,11 +1,6 @@
 from baddns.base import get_all_modules
 from .baddns import baddns as baddns_module
 
-import logging
-from bbot.core.logger.logger import include_logger
-
-include_logger(logging.getLogger("baddns_zone"))
-
 
 class baddns_zone(baddns_module):
     watched_events = ["DNS_NAME"]

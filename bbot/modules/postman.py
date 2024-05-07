@@ -4,7 +4,7 @@ from bbot.modules.templates.subdomain_enum import subdomain_enum
 class postman(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["passive", "subdomain-enum", "safe"]
+    flags = ["passive", "subdomain-enum", "safe", "code-enum"]
     meta = {"description": "Query Postman's API for related workspaces, collections, requests"}
 
     base_url = "https://www.postman.com/_api"

@@ -29,45 +29,8 @@ class gowitness(BaseModule):
         "output_path": "where to save screenshots",
         "social": "Whether to screenshot social media webpages",
     }
+    deps_common = ["chromium"]
     deps_ansible = [
-        {
-            "name": "Install Chromium (Non-Debian)",
-            "package": {"name": "chromium", "state": "present"},
-            "become": True,
-            "when": "ansible_facts['os_family'] != 'Debian'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Install Chromium dependencies (Debian)",
-            "package": {
-                "name": "libasound2,libatk-bridge2.0-0,libatk1.0-0,libcairo2,libcups2,libdrm2,libgbm1,libnss3,libpango-1.0-0,libxcomposite1,libxdamage1,libxfixes3,libxkbcommon0,libxrandr2",
-                "state": "present",
-            },
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'Debian'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Get latest Chromium version (Debian)",
-            "uri": {
-                "url": "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2FLAST_CHANGE?alt=media",
-                "return_content": True,
-            },
-            "register": "chromium_version",
-            "when": "ansible_facts['os_family'] == 'Debian'",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Download Chromium (Debian)",
-            "unarchive": {
-                "src": "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F{{ chromium_version.content }}%2Fchrome-linux.zip?alt=media",
-                "remote_src": True,
-                "dest": "#{BBOT_TOOLS}",
-                "creates": "#{BBOT_TOOLS}/chrome-linux",
-            },
-            "when": "ansible_facts['os_family'] == 'Debian'",
-            "ignore_errors": True,
-        },
         {
             "name": "Download gowitness",
             "get_url": {

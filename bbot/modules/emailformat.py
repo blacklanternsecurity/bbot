@@ -17,6 +17,6 @@ class emailformat(BaseModule):
         r = await self.request_with_fail_count(url)
         if not r:
             return
-        for email in self.helpers.extract_emails(r.text):
+        for email in await self.helpers.re.extract_emails(r.text):
             if email.endswith(query):
                 await self.emit_event(email, "EMAIL_ADDRESS", source=event)

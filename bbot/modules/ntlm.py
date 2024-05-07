@@ -1,4 +1,4 @@
-from bbot.core.errors import NTLMError
+from bbot.errors import NTLMError
 from bbot.modules.base import BaseModule
 
 ntlm_discovery_endpoints = [
@@ -68,7 +68,7 @@ class ntlm(BaseModule):
 
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["FINDING", "DNS_NAME"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Watch for HTTP endpoints that support NTLM authentication"}
     options = {"try_all": False}
     options_desc = {"try_all": "Try every NTLM endpoint"}
@@ -122,7 +122,7 @@ class ntlm(BaseModule):
             }
         if self.try_all:
             for endpoint in ntlm_discovery_endpoints:
-                urls.add(f"{event.parsed.scheme}://{event.parsed.netloc}/{endpoint}")
+                urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
 
         tasks = []
         for url in urls:

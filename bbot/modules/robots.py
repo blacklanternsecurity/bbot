@@ -4,7 +4,7 @@ from bbot.modules.base import BaseModule
 class robots(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_UNVERIFIED"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Look for and parse robots.txt"}
 
     options = {"include_sitemap": False, "include_allow": True, "include_disallow": True}
@@ -21,7 +21,7 @@ class robots(BaseModule):
         return True
 
     async def handle_event(self, event):
-        host = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        host = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
         result = None
         url = f"{host}robots.txt"
         result = await self.helpers.request(url)

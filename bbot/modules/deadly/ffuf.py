@@ -17,7 +17,6 @@ class ffuf(BaseModule):
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/raft-small-directories.txt",
         "lines": 5000,
         "max_depth": 0,
-        "version": "2.0.0",
         "extensions": "",
     }
 
@@ -25,21 +24,10 @@ class ffuf(BaseModule):
         "wordlist": "Specify wordlist to use when finding directories",
         "lines": "take only the first N lines from the wordlist when finding directories",
         "max_depth": "the maximum directory depth to attempt to solve",
-        "version": "ffuf version",
         "extensions": "Optionally include a list of extensions to extend the keyword with (comma separated)",
     }
 
-    deps_ansible = [
-        {
-            "name": "Download ffuf",
-            "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
-                "include": "ffuf",
-                "dest": "#{BBOT_TOOLS}",
-                "remote_src": True,
-            },
-        }
-    ]
+    deps_common = ["ffuf"]
 
     banned_characters = [" "]
 
@@ -69,7 +57,7 @@ class ffuf(BaseModule):
             return
 
         # only FFUF against a directory
-        if "." in event.parsed.path.split("/")[-1]:
+        if "." in event.parsed_url.path.split("/")[-1]:
             self.debug("Aborting FFUF as period was detected in right-most path segment (likely a file)")
             return
         else:

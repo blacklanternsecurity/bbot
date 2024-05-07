@@ -6,4 +6,4 @@ class TestSlack(DiscordBase):
     modules_overrides = ["slack", "excavate", "badsecrets", "httpx"]
 
     webhook_url = "https://hooks.slack.com/services/deadbeef/deadbeef/deadbeef"
-    config_overrides = {"output_modules": {"slack": {"webhook_url": webhook_url}}}
+    config_overrides = {"modules": {"slack": {"webhook_url": webhook_url}}}

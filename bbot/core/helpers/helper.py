@@ -1,18 +1,21 @@
 import os
+import asyncio
 import logging
 from pathlib import Path
+import multiprocessing as mp
+from functools import partial
+from cloudcheck import cloud_providers
+from concurrent.futures import ProcessPoolExecutor
 
 from . import misc
 from .dns import DNSHelper
 from .web import WebHelper
 from .diff import HttpCompare
-from .cloud import CloudHelper
+from .regex import RegexHelper
 from .wordcloud import WordCloud
 from .interactsh import Interactsh
 from ...scanner.target import Target
-from ...modules.base import BaseModule
 from .depsinstaller import DepsInstaller
-
 
 log = logging.getLogger("bbot.core.helpers")
 
@@ -51,10 +54,9 @@ class ConfigAwareHelper:
     from .cache import cache_get, cache_put, cache_filename, is_cached
     from .command import run, run_live, _spawn_proc, _prepare_command_kwargs
 
-    def __init__(self, config, scan=None):
-        self.config = config
-        self._scan = scan
-        self.bbot_home = Path(self.config.get("home", "~/.bbot")).expanduser().resolve()
+    def __init__(self, preset):
+        self.preset = preset
+        self.bbot_home = self.preset.bbot_home
         self.cache_dir = self.bbot_home / "cache"
         self.temp_dir = self.bbot_home / "temp"
         self.tools_dir = self.bbot_home / "tools"
@@ -68,14 +70,26 @@ class ConfigAwareHelper:
         self.mkdir(self.tools_dir)
         self.mkdir(self.lib_dir)
 
+        self._loop = None
+
+        # multiprocessing thread pool
+        start_method = mp.get_start_method()
+        if start_method != "spawn":
+            self.warning(f"Multiprocessing spawn method is set to {start_method}.")
+
+        # we spawn 1 fewer processes than cores
+        # this helps to avoid locking up the system or competing with the main python process for cpu time
+        num_processes = max(1, mp.cpu_count() - 1)
+        self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
+
+        self.cloud = cloud_providers
+
+        self.re = RegexHelper(self)
         self.dns = DNSHelper(self)
         self.web = WebHelper(self)
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
-
-        # cloud helpers
-        self.cloud = CloudHelper(self)
 
     def interactsh(self, *args, **kwargs):
         return Interactsh(self, *args, **kwargs)
@@ -97,30 +111,51 @@ class ConfigAwareHelper:
         self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
 
     def make_target(self, *events):
-        return Target(self.scan, *events)
+        return Target(*events)
+
+    @property
+    def config(self):
+        return self.preset.config
 
     @property
     def scan(self):
-        if self._scan is None:
-            from bbot.scanner import Scanner
+        return self.preset.scan
 
-            self._scan = Scanner()
-        return self._scan
+    @property
+    def loop(self):
+        """
+        Get the current event loop
+        """
+        if self._loop is None:
+            self._loop = asyncio.get_running_loop()
+        return self._loop
+
+    def run_in_executor(self, callback, *args, **kwargs):
+        """
+        Run a synchronous task in the event loop's default thread pool executor
+
+        Examples:
+            Execute callback:
+            >>> result = await self.helpers.run_in_executor(callback_fn, arg1, arg2)
+        """
+        callback = partial(callback, **kwargs)
+        return self.loop.run_in_executor(None, callback, *args)
+
+    def run_in_executor_mp(self, callback, *args, **kwargs):
+        """
+        Same as run_in_executor() except with a process pool executor
+        Use only in cases where callback is CPU-bound
+
+        Examples:
+            Execute callback:
+            >>> result = await self.helpers.run_in_executor_mp(callback_fn, arg1, arg2)
+        """
+        callback = partial(callback, **kwargs)
+        return self.loop.run_in_executor(self.process_pool, callback, *args)
 
     @property
     def in_tests(self):
         return os.environ.get("BBOT_TESTING", "") == "True"
-
-    def _make_dummy_module(self, name, _type="scan"):
-        """
-        Construct a dummy module, for attachment to events
-        """
-        try:
-            return self.dummy_modules[name]
-        except KeyError:
-            dummy = DummyModule(scan=self.scan, name=name, _type=_type)
-            self.dummy_modules[name] = dummy
-            return dummy
 
     def __getattribute__(self, attr):
         """
@@ -163,12 +198,3 @@ class ConfigAwareHelper:
                         except AttributeError:
                             # then die
                             raise AttributeError(f'Helper has no attribute "{attr}"')
-
-
-class DummyModule(BaseModule):
-    _priority = 4
-
-    def __init__(self, *args, **kwargs):
-        self._name = kwargs.pop("name")
-        self._type = kwargs.pop("_type")
-        super().__init__(*args, **kwargs)

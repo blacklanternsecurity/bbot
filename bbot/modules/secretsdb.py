@@ -7,7 +7,7 @@ from .base import BaseModule
 class secretsdb(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {"description": "Detect common secrets with secrets-patterns-db"}
     options = {
         "min_confidence": 99,
@@ -46,12 +46,12 @@ class secretsdb(BaseModule):
     async def handle_event(self, event):
         resp_body = event.data.get("body", "")
         resp_headers = event.data.get("raw_header", "")
-        all_matches = await self.scan.run_in_executor(self.search_data, resp_body, resp_headers)
+        all_matches = await self.helpers.run_in_executor(self.search_data, resp_body, resp_headers)
         for matches, name in all_matches:
             matches = [m.string[m.start() : m.end()] for m in matches]
             description = f"Possible secret ({name}): {matches}"
             event_data = {"host": str(event.host), "description": description}
-            parsed_url = getattr(event, "parsed", None)
+            parsed_url = getattr(event, "parsed_url", None)
             if parsed_url:
                 event_data["url"] = parsed_url.geturl()
             await self.emit_event(

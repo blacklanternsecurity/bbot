@@ -22,17 +22,7 @@ class vhost(ffuf):
         "lines": "take only the first N lines from the wordlist when finding directories",
     }
 
-    deps_ansible = [
-        {
-            "name": "Download ffuf",
-            "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS}_#{BBOT_CPU_ARCH}.tar.gz",
-                "include": "ffuf",
-                "dest": "#{BBOT_TOOLS}",
-                "remote_src": True,
-            },
-        }
-    ]
+    deps_common = ["ffuf"]
 
     in_scope_only = True
 
@@ -43,7 +33,7 @@ class vhost(ffuf):
 
     async def handle_event(self, event):
         if not self.helpers.is_ip(event.host) or self.config.get("force_basehost"):
-            host = f"{event.parsed.scheme}://{event.parsed.netloc}"
+            host = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}"
             if host in self.scanned_hosts.keys():
                 return
             else:
@@ -54,7 +44,7 @@ class vhost(ffuf):
             if self.config.get("force_basehost"):
                 basehost = self.config.get("force_basehost")
             else:
-                basehost = self.helpers.parent_domain(event.parsed.netloc)
+                basehost = self.helpers.parent_domain(event.parsed_url.netloc)
 
             self.debug(f"Using basehost: {basehost}")
             async for vhost in self.ffuf_vhost(host, f".{basehost}", event):
@@ -65,7 +55,7 @@ class vhost(ffuf):
             # check existing host for mutations
             self.verbose("Checking for vhost mutations on main host")
             async for vhost in self.ffuf_vhost(
-                host, f".{basehost}", event, wordlist=self.mutations_check(event.parsed.netloc.split(".")[0])
+                host, f".{basehost}", event, wordlist=self.mutations_check(event.parsed_url.netloc.split(".")[0])
             ):
                 pass
 
@@ -91,7 +81,7 @@ class vhost(ffuf):
         ):
             found_vhost_b64 = r["input"]["FUZZ"]
             vhost_dict = {"host": str(event.host), "url": host, "vhost": base64.b64decode(found_vhost_b64).decode()}
-            if f"{vhost_dict['vhost']}{basehost}" != event.parsed.netloc:
+            if f"{vhost_dict['vhost']}{basehost}" != event.parsed_url.netloc:
                 await self.emit_event(vhost_dict, "VHOST", source=event)
                 if skip_dns_host == False:
                     await self.emit_event(f"{vhost_dict['vhost']}{basehost}", "DNS_NAME", source=event, tags=["vhost"])
@@ -112,13 +102,13 @@ class vhost(ffuf):
 
         for host, event in self.scanned_hosts.items():
             if host not in self.wordcloud_tried_hosts:
-                event.parsed = urlparse(host)
+                event.parsed_url = urlparse(host)
 
                 self.verbose("Checking main host with wordcloud")
                 if self.config.get("force_basehost"):
                     basehost = self.config.get("force_basehost")
                 else:
-                    basehost = self.helpers.parent_domain(event.parsed.netloc)
+                    basehost = self.helpers.parent_domain(event.parsed_url.netloc)
 
                 async for vhost in self.ffuf_vhost(host, f".{basehost}", event, wordlist=tempfile):
                     pass

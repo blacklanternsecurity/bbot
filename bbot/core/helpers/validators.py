@@ -5,7 +5,7 @@ from functools import wraps
 from contextlib import suppress
 
 from bbot.core.helpers import regexes
-from bbot.core.errors import ValidationError
+from bbot.errors import ValidationError
 from bbot.core.helpers.url import parse_url, hash_url
 from bbot.core.helpers.misc import smart_encode_punycode, split_host_port, make_netloc, is_ip
 

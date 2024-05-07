@@ -13,7 +13,7 @@ warnings.filterwarnings(
 class wappalyzer(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["TECHNOLOGY"]
-    flags = ["active", "safe", "web-basic", "web-thorough"]
+    flags = ["active", "safe", "web-basic"]
     meta = {
         "description": "Extract technologies from web responses",
     }
@@ -23,11 +23,11 @@ class wappalyzer(BaseModule):
     _max_event_handlers = 5
 
     async def setup(self):
-        self.wappalyzer = await self.scan.run_in_executor(Wappalyzer.latest)
+        self.wappalyzer = await self.helpers.run_in_executor(Wappalyzer.latest)
         return True
 
     async def handle_event(self, event):
-        for res in await self.scan.run_in_executor(self.wappalyze, event.data):
+        for res in await self.helpers.run_in_executor(self.wappalyze, event.data):
             await self.emit_event(
                 {"technology": res.lower(), "url": event.data["url"], "host": str(event.host)}, "TECHNOLOGY", event
             )

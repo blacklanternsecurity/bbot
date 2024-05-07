@@ -13,8 +13,6 @@ class TestWebReport(ModuleTestBase):
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-        for e in events:
-            module_test.log.critical(e)
         report_file = module_test.scan.home / "web_report.html"
         with open(report_file) as f:
             report_content = f.read()

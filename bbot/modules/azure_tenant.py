@@ -1,4 +1,4 @@
-import re
+import regex as re
 from contextlib import suppress
 
 from bbot.modules.base import BaseModule
@@ -25,7 +25,7 @@ class azure_tenant(BaseModule):
 
         tenant_id = None
         authorization_endpoint = openid_config.get("authorization_endpoint", "")
-        matches = self.helpers.regexes.uuid_regex.findall(authorization_endpoint)
+        matches = await self.helpers.re.findall(self.helpers.regexes.uuid_regex, authorization_endpoint)
         if matches:
             tenant_id = matches[0]
 
@@ -86,7 +86,7 @@ class azure_tenant(BaseModule):
         if status_code not in (200, 421):
             self.verbose(f'Error retrieving azure_tenant domains for "{domain}" (status code: {status_code})')
             return set(), dict()
-        found_domains = list(set(self.d_xml_regex.findall(r.text)))
+        found_domains = list(set(await self.helpers.re.findall(self.d_xml_regex, r.text)))
         domains = set()
 
         for d in found_domains:

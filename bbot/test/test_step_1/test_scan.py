@@ -4,18 +4,15 @@ from ..bbot_fixtures import *
 @pytest.mark.asyncio
 async def test_scan(
     events,
-    bbot_config,
     helpers,
     monkeypatch,
     bbot_scanner,
-    mock_dns,
 ):
     scan0 = bbot_scanner(
         "1.1.1.1/31",
         "evilcorp.com",
         blacklist=["1.1.1.1/28", "www.evilcorp.com"],
         modules=["ipneighbor"],
-        config=bbot_config,
     )
     await scan0.load_modules()
     assert scan0.whitelisted("1.1.1.1")
@@ -38,7 +35,7 @@ async def test_scan(
     assert "1.1.1.0/28" in j["blacklist"]
     assert "ipneighbor" in j["modules"]
 
-    scan1 = bbot_scanner("1.1.1.1", whitelist=["1.0.0.1"], config=bbot_config)
+    scan1 = bbot_scanner("1.1.1.1", whitelist=["1.0.0.1"])
     assert not scan1.blacklisted("1.1.1.1")
     assert not scan1.blacklisted("1.0.0.1")
     assert not scan1.whitelisted("1.1.1.1")
@@ -46,7 +43,7 @@ async def test_scan(
     assert scan1.in_scope("1.0.0.1")
     assert not scan1.in_scope("1.1.1.1")
 
-    scan2 = bbot_scanner("1.1.1.1", config=bbot_config)
+    scan2 = bbot_scanner("1.1.1.1")
     assert not scan2.blacklisted("1.1.1.1")
     assert not scan2.blacklisted("1.0.0.1")
     assert scan2.whitelisted("1.1.1.1")
@@ -60,10 +57,8 @@ async def test_scan(
     }
 
     # make sure DNS resolution works
-    dns_config = OmegaConf.create({"dns_resolution": True})
-    dns_config = OmegaConf.merge(bbot_config, dns_config)
-    scan4 = bbot_scanner("1.1.1.1", config=dns_config)
-    mock_dns(scan4, dns_table)
+    scan4 = bbot_scanner("1.1.1.1", config={"dns_resolution": True})
+    await scan4.helpers.dns._mock_dns(dns_table)
     events = []
     async for event in scan4.async_start():
         events.append(event)
@@ -71,12 +66,32 @@ async def test_scan(
     assert "one.one.one.one" in event_data
 
     # make sure it doesn't work when you turn it off
-    no_dns_config = OmegaConf.create({"dns_resolution": False})
-    no_dns_config = OmegaConf.merge(bbot_config, no_dns_config)
-    scan5 = bbot_scanner("1.1.1.1", config=no_dns_config)
-    mock_dns(scan5, dns_table)
+    scan5 = bbot_scanner("1.1.1.1", config={"dns_resolution": False})
+    await scan5.helpers.dns._mock_dns(dns_table)
     events = []
     async for event in scan5.async_start():
         events.append(event)
     event_data = [e.data for e in events]
     assert "one.one.one.one" not in event_data
+
+
+@pytest.mark.asyncio
+async def test_url_extension_handling(bbot_scanner):
+    scan = bbot_scanner(config={"url_extension_blacklist": ["css"], "url_extension_httpx_only": ["js"]})
+    await scan._prep()
+    assert scan.url_extension_blacklist == {"css"}
+    assert scan.url_extension_httpx_only == {"js"}
+    good_event = scan.make_event("https://evilcorp.com/a.txt", "URL", tags=["status-200"], source=scan.root_event)
+    bad_event = scan.make_event("https://evilcorp.com/a.css", "URL", tags=["status-200"], source=scan.root_event)
+    httpx_event = scan.make_event("https://evilcorp.com/a.js", "URL", tags=["status-200"], source=scan.root_event)
+    assert "blacklisted" not in bad_event.tags
+    assert "httpx-only" not in httpx_event.tags
+    result = await scan.ingress_module.handle_event(good_event, {})
+    assert result == None
+    result, reason = await scan.ingress_module.handle_event(bad_event, {})
+    assert result == False
+    assert reason == "event is blacklisted"
+    assert "blacklisted" in bad_event.tags
+    result = await scan.ingress_module.handle_event(httpx_event, {})
+    assert result == None
+    assert "httpx-only" in httpx_event.tags

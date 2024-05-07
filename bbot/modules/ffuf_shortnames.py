@@ -59,17 +59,7 @@ class ffuf_shortnames(ffuf):
         "find_delimiters": "Attempt to detect common delimiters and make additional ffuf runs against them",
     }
 
-    deps_ansible = [
-        {
-            "name": "Download ffuf",
-            "unarchive": {
-                "src": "https://github.com/ffuf/ffuf/releases/download/v#{BBOT_MODULES_FFUF_VERSION}/ffuf_#{BBOT_MODULES_FFUF_VERSION}_#{BBOT_OS_PLATFORM}_#{BBOT_CPU_ARCH}.tar.gz",
-                "include": "ffuf",
-                "dest": "#{BBOT_TOOLS}",
-                "remote_src": True,
-            },
-        }
-    ]
+    deps_common = ["ffuf"]
 
     in_scope_only = True
 
@@ -92,8 +82,7 @@ class ffuf_shortnames(ffuf):
             self.extensions = parse_list_string(self.config.get("extensions", ""))
             self.debug(f"Using custom extensions: [{','.join(self.extensions)}]")
         except ValueError as e:
-            self.warning(f"Error parsing extensions: {e}")
-            return False
+            return False, f"Error parsing extensions: {e}"
 
         self.ignore_redirects = self.config.get("ignore_redirects")
 
@@ -103,7 +92,7 @@ class ffuf_shortnames(ffuf):
 
     def build_extension_list(self, event):
         used_extensions = []
-        extension_hint = event.parsed.path.rsplit(".", 1)[1].lower().strip()
+        extension_hint = event.parsed_url.path.rsplit(".", 1)[1].lower().strip()
         if len(extension_hint) == 3:
             with open(self.wordlist_extensions) as f:
                 for l in f:
@@ -123,77 +112,72 @@ class ffuf_shortnames(ffuf):
         return None
 
     async def filter_event(self, event):
+        if event.source.type != "URL":
+            return False, "its source event is not of type URL"
         return True
 
     async def handle_event(self, event):
-        if event.source.type == "URL":
-            filename_hint = re.sub(r"~\d", "", event.parsed.path.rsplit(".", 1)[0].split("/")[-1]).lower()
+        filename_hint = re.sub(r"~\d", "", event.parsed_url.path.rsplit(".", 1)[0].split("/")[-1]).lower()
 
-            host = f"{event.source.parsed.scheme}://{event.source.parsed.netloc}/"
-            if host not in self.per_host_collection.keys():
-                self.per_host_collection[host] = [(filename_hint, event.source.data)]
+        host = f"{event.source.parsed_url.scheme}://{event.source.parsed_url.netloc}/"
+        if host not in self.per_host_collection.keys():
+            self.per_host_collection[host] = [(filename_hint, event.source.data)]
 
-            else:
-                self.per_host_collection[host].append((filename_hint, event.source.data))
+        else:
+            self.per_host_collection[host].append((filename_hint, event.source.data))
 
-            self.shortname_to_event[filename_hint] = event
+        self.shortname_to_event[filename_hint] = event
 
-            root_stub = "/".join(event.parsed.path.split("/")[:-1])
-            root_url = f"{event.parsed.scheme}://{event.parsed.netloc}{root_stub}/"
+        root_stub = "/".join(event.parsed_url.path.split("/")[:-1])
+        root_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}{root_stub}/"
 
+        if "shortname-file" in event.tags:
+            used_extensions = self.build_extension_list(event)
+
+        if len(filename_hint) == 6:
+            tempfile, tempfile_len = self.generate_templist(prefix=filename_hint)
+            self.verbose(
+                f"generated temp word list of size [{str(tempfile_len)}] for filename hint: [{filename_hint}]"
+            )
+
+        else:
+            tempfile = self.helpers.tempfile([filename_hint], pipe=False)
+            tempfile_len = 1
+
+        if tempfile_len > 0:
             if "shortname-file" in event.tags:
-                used_extensions = self.build_extension_list(event)
+                for ext in used_extensions:
+                    async for r in self.execute_ffuf(tempfile, root_url, suffix=f".{ext}"):
+                        await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
-            if len(filename_hint) == 6:
-                tempfile, tempfile_len = self.generate_templist(prefix=filename_hint)
-                self.verbose(
-                    f"generated temp word list of size [{str(tempfile_len)}] for filename hint: [{filename_hint}]"
-                )
+            elif "shortname-directory" in event.tags:
+                async for r in self.execute_ffuf(tempfile, root_url, exts=["/"]):
+                    r_url = f"{r['url'].rstrip('/')}/"
+                    await self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
-            else:
-                tempfile = self.helpers.tempfile([filename_hint], pipe=False)
-                tempfile_len = 1
+        if self.config.get("find_delimiters"):
+            if "shortname-directory" in event.tags:
+                delimiter_r = self.find_delimiter(filename_hint)
+                if delimiter_r:
+                    delimiter, prefix, partial_hint = delimiter_r
+                    self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
+                    tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
+                    async for r in self.execute_ffuf(tempfile, root_url, prefix=f"{prefix}{delimiter}", exts=["/"]):
+                        await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
 
-            if tempfile_len > 0:
-                if "shortname-file" in event.tags:
-                    for ext in used_extensions:
-                        async for r in self.execute_ffuf(tempfile, root_url, suffix=f".{ext}"):
-                            await self.emit_event(
-                                r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
-                            )
-
-                elif "shortname-directory" in event.tags:
-                    async for r in self.execute_ffuf(tempfile, root_url, exts=["/"]):
-                        r_url = f"{r['url'].rstrip('/')}/"
-                        await self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
-
-            if self.config.get("find_delimiters"):
-                if "shortname-directory" in event.tags:
+            elif "shortname-file" in event.tags:
+                for ext in used_extensions:
                     delimiter_r = self.find_delimiter(filename_hint)
                     if delimiter_r:
                         delimiter, prefix, partial_hint = delimiter_r
                         self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                         tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
                         async for r in self.execute_ffuf(
-                            tempfile, root_url, prefix=f"{prefix}{delimiter}", exts=["/"]
+                            tempfile, root_url, prefix=f"{prefix}{delimiter}", suffix=f".{ext}"
                         ):
                             await self.emit_event(
                                 r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
                             )
-
-                elif "shortname-file" in event.tags:
-                    for ext in used_extensions:
-                        delimiter_r = self.find_delimiter(filename_hint)
-                        if delimiter_r:
-                            delimiter, prefix, partial_hint = delimiter_r
-                            self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
-                            tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
-                            async for r in self.execute_ffuf(
-                                tempfile, root_url, prefix=f"{prefix}{delimiter}", suffix=f".{ext}"
-                            ):
-                                await self.emit_event(
-                                    r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
-                                )
 
     async def finish(self):
         if self.config.get("find_common_prefixes"):

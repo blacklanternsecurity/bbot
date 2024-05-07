@@ -1,0 +1,13 @@
+description: Basic web directory brute-force (surface-level directories only)
+
+include:
+  - iis-shortnames
+
+modules:
+  - ffuf
+
+config:
+  modules:
+    ffuf:
+      # wordlist size = 1000
+      lines: 1000

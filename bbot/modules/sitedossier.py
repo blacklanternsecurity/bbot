@@ -36,12 +36,11 @@ class sitedossier(subdomain_enum):
             if response.status_code == 302:
                 self.verbose("Hit rate limit captcha")
                 break
-            for regex in self.scan.dns_regexes:
-                for match in regex.finditer(response.text):
-                    hostname = match.group().lower()
-                    if hostname and hostname not in results:
-                        results.add(hostname)
-                        yield hostname
+            for match in await self.helpers.re.finditer_multi(self.scan.dns_regexes, response.text):
+                hostname = match.group().lower()
+                if hostname and hostname not in results:
+                    results.add(hostname)
+                    yield hostname
             if '<a href="/parentdomain/' not in response.text:
                 self.debug(f"Next page not found")
                 break

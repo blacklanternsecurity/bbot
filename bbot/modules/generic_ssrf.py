@@ -1,5 +1,5 @@
+from bbot.errors import InteractshError
 from bbot.modules.base import BaseModule
-from bbot.core.errors import InteractshError
 
 
 ssrf_params = [
@@ -44,7 +44,7 @@ class BaseSubmodule:
         self.test_paths = self.create_paths()
 
     def set_base_url(self, event):
-        return f"{event.parsed.scheme}://{event.parsed.netloc}"
+        return f"{event.parsed_url.scheme}://{event.parsed_url.netloc}"
 
     def create_paths(self):
         return self.paths
@@ -140,7 +140,7 @@ class Generic_XXE(BaseSubmodule):
 <!ENTITY % {rand_entity} SYSTEM "http://{subdomain_tag}.{self.parent_module.interactsh_domain}" >
 ]>
 <foo>&{rand_entity};</foo>"""
-        test_url = f"{event.parsed.scheme}://{event.parsed.netloc}/"
+        test_url = f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/"
         r = await self.parent_module.helpers.curl(
             url=test_url, method="POST", raw_body=post_body, headers={"Content-type": "application/xml"}
         )

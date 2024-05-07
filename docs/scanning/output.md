@@ -11,9 +11,23 @@ If you reuse a scan name, it will append to its original output files and levera
 
 Multiple simultaneous output formats are possible because of **output modules**. Output modules are similar to normal modules except they are enabled with `-om`.
 
-### Human
+### STDOUT
 
-`human` output is tab-delimited, so it's easy to grep:
+The `stdout` output module is what you see when you execute BBOT in the terminal. By default it looks the same as the [`txt`](#txt) module, but it has options you can customize. You can filter by event type, choose the data format (`text`, `json`), and which fields you want to see:
+
+<!-- BBOT MODULE OPTIONS STDOUT -->
+| Config Option                | Type   | Description                                      | Default   |
+|------------------------------|--------|--------------------------------------------------|-----------|
+| modules.stdout.accept_dupes  | bool   | Whether to show duplicate events, default True   | True      |
+| modules.stdout.event_fields  | list   | Which event fields to display                    | []        |
+| modules.stdout.event_types   | list   | Which events to display, default all event types | []        |
+| modules.stdout.format        | str    | Which text format to display, choices: text,json | text      |
+| modules.stdout.in_scope_only | bool   | Whether to only show in-scope events             | False     |
+<!-- END BBOT MODULE OPTIONS STDOUT -->
+
+### TXT
+
+`txt` output is tab-delimited, so it's easy to grep:
 
 ```bash
 # grep out only the DNS_NAMEs
@@ -64,7 +78,7 @@ You can filter on the JSON output with `jq`:
 
 ```bash
 # pull out only the .data attribute of every DNS_NAME
-$ jq -r 'select(.type=="DNS_NAME") | .data' ~/.bbot/scans/extreme_johnny/output.ndjson
+$ jq -r 'select(.type=="DNS_NAME") | .data' ~/.bbot/scans/extreme_johnny/output.json
 evilcorp.com
 www.evilcorp.com
 mail.evilcorp.com
@@ -77,7 +91,7 @@ mail.evilcorp.com
 BBOT supports output via webhooks to `discord`, `slack`, and `teams`. To use them, you must specify a webhook URL either in the config:
 
 ```yaml title="~/.bbot/config/bbot.yml"
-output_modules:
+modules:
   discord:
     webhook_url: https://discord.com/api/webhooks/1234/deadbeef
 ```
@@ -90,7 +104,7 @@ bbot -t evilcorp.com -om discord -c output_modules.discord.webhook_url=https://d
 By default, only `VULNERABILITY` and `FINDING` events are sent, but this can be customized by setting `event_types` in the config like so:
 
 ```yaml title="~/.bbot/config/bbot.yml"
-output_modules:
+modules:
   discord:
     event_types:
       - VULNERABILITY
@@ -107,7 +121,7 @@ You can also filter on the severity of `VULNERABILITY` events by setting `min_se
 
 
 ```yaml title="~/.bbot/config/bbot.yml"
-output_modules:
+modules:
   discord:
     min_severity: HIGH
 ```
@@ -124,7 +138,7 @@ bbot -t evilcorp.com -om http -c output_modules.http.url=http://localhost:8000
 You can customize the HTTP method if needed. Authentication is also supported:
 
 ```yaml title="~/.bbot/config/bbot.yml"
-output_modules:
+modules:
   http:
     url: https://localhost:8000
     method: PUT
@@ -142,7 +156,7 @@ The `splunk` output module sends [events](events.md) in JSON format to a desired
 You can customize this output with the following config options:
 
 ```yaml title="~/.bbot/config/bbot.yml"
-output_modules:
+modules:
   splunk:
     # The full URL with the URI `/services/collector/event`
     url: https://localhost:8088/services/collector/event

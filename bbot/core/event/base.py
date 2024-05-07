@@ -1,6 +1,5 @@
 import re
 import json
-import asyncio
 import logging
 import ipaddress
 import traceback
@@ -9,14 +8,13 @@ from typing import Optional
 from datetime import datetime
 from contextlib import suppress
 from urllib.parse import urljoin
+from radixtarget import RadixTarget
 from pydantic import BaseModel, field_validator
 
 from .helpers import *
-from bbot.core.errors import *
+from bbot.errors import *
 from bbot.core.helpers import (
     extract_words,
-    get_file_extension,
-    host_in_host,
     is_domain,
     is_subdomain,
     is_ip,
@@ -30,6 +28,7 @@ from bbot.core.helpers import (
     split_host_port,
     tagify,
     validators,
+    get_file_extension,
 )
 
 
@@ -94,14 +93,12 @@ class BaseEvent:
     # Always emit this event type even if it's not in scope
     _always_emit = False
     # Always emit events with these tags even if they're not in scope
-    _always_emit_tags = ["affiliate"]
+    _always_emit_tags = ["affiliate", "target"]
     # Bypass scope checking and dns resolution, distribute immediately to modules
     # This is useful for "end-of-line" events like FINDING and VULNERABILITY
     _quick_emit = False
     # Whether this event has been retroactively marked as part of an important discovery chain
     _graph_important = False
-    # Exclude from output modules
-    _omit = False
     # Disables certain data validations
     _dummy = False
     # Data validation, if data is a dictionary
@@ -150,10 +147,13 @@ class BaseEvent:
         self._hash = None
         self.__host = None
         self._port = None
+        self._omit = False
         self.__words = None
         self._priority = None
+        self._host_original = None
         self._module_priority = None
         self._resolved_hosts = set()
+        self.dns_children = dict()
 
         # keep track of whether this event has been recorded by the scan
         self._stats_recorded = False
@@ -184,9 +184,6 @@ class BaseEvent:
         if self.scan:
             self.scans = list(set([self.scan.id] + self.scans))
 
-        # check type blacklist
-        self._check_omit()
-
         self._scope_distance = -1
 
         try:
@@ -209,9 +206,6 @@ class BaseEvent:
             # removed this second part because it was making certain sslcert events internal
             if _internal:  # or source._internal:
                 self.internal = True
-
-        # an event indicating whether the event has undergone DNS resolution
-        self._resolved = asyncio.Event()
 
         # inherit web spider distance from parent
         self.web_spider_distance = getattr(self.source, "web_spider_distance", 0)
@@ -278,18 +272,33 @@ class BaseEvent:
         E.g. for IP_ADDRESS, it could be an ipaddress.IPv4Address() or IPv6Address() object
         """
         if self.__host is None:
-            self.__host = self._host()
+            self.host = self._host()
         return self.__host
+
+    @host.setter
+    def host(self, host):
+        if self._host_original is None:
+            self._host_original = host
+        self.__host = host
+
+    @property
+    def host_original(self):
+        """
+        Original host data, in case it was changed due to a wildcard DNS, etc.
+        """
+        if self._host_original is None:
+            return self.host
+        return self._host_original
 
     @property
     def port(self):
         self.host
-        if getattr(self, "parsed", None):
-            if self.parsed.port is not None:
-                return self.parsed.port
-            elif self.parsed.scheme == "https":
+        if getattr(self, "parsed_url", None):
+            if self.parsed_url.port is not None:
+                return self.parsed_url.port
+            elif self.parsed_url.scheme == "https":
                 return 443
-            elif self.parsed.scheme == "http":
+            elif self.parsed_url.scheme == "http":
                 return 80
         return self._port
 
@@ -392,6 +401,19 @@ class BaseEvent:
             source_scope_distance = getattr(self.source, "scope_distance", -1)
             if source_scope_distance >= 0 and self != self.source:
                 self.source.scope_distance = scope_distance + 1
+
+    @property
+    def scope_description(self):
+        """
+        Returns a single word describing the scope of the event.
+
+        "in-scope" if the event is in scope, "affiliate" if it's an affiliate, otherwise "distance-{scope_distance}"
+        """
+        if self.scope_distance == 0:
+            return "in-scope"
+        elif "affiliate" in self.tags:
+            return "affiliate"
+        return f"distance-{self.scope_distance}"
 
     @property
     def source(self):
@@ -567,7 +589,9 @@ class BaseEvent:
             if self.host == other.host:
                 return True
             # hostnames and IPs
-            return host_in_host(other.host, self.host)
+            radixtarget = RadixTarget()
+            radixtarget.insert(self.host)
+            return bool(radixtarget.search(other.host))
         return False
 
     def json(self, mode="json", siem_friendly=False):
@@ -585,7 +609,7 @@ class BaseEvent:
             dict: JSON-serializable dictionary representation of the event object.
         """
         j = dict()
-        for i in ("type", "id"):
+        for i in ("type", "id", "scope_description"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
@@ -606,7 +630,7 @@ class BaseEvent:
             j["scan"] = self.scan.id
         j["timestamp"] = self.timestamp.timestamp()
         if self.host:
-            j["resolved_hosts"] = [str(h) for h in self.resolved_hosts]
+            j["resolved_hosts"] = sorted(str(h) for h in self.resolved_hosts)
         source_id = self.source_id
         if source_id:
             j["source"] = source_id
@@ -689,13 +713,6 @@ class BaseEvent:
         self._type = val
         self._hash = None
         self._id = None
-        self._check_omit()
-
-    def _check_omit(self):
-        if self.scan is not None:
-            omit_event_types = self.scan.config.get("omit_event_types", [])
-            if omit_event_types and self.type in omit_event_types:
-                self._omit = True
 
     def __iter__(self):
         """
@@ -755,7 +772,7 @@ class DictEvent(BaseEvent):
     def sanitize_data(self, data):
         url = data.get("url", "")
         if url:
-            self.parsed = validators.validate_url_parsed(url)
+            self.parsed_url = validators.validate_url_parsed(url)
         return data
 
     def _data_load(self, data):
@@ -769,7 +786,7 @@ class DictHostEvent(DictEvent):
         if isinstance(self.data, dict) and "host" in self.data:
             return make_ip_type(self.data["host"])
         else:
-            parsed = getattr(self, "parsed")
+            parsed = getattr(self, "parsed_url", None)
             if parsed is not None:
                 return make_ip_type(parsed.hostname)
 
@@ -796,7 +813,7 @@ class IP_ADDRESS(BaseEvent):
         ip = ipaddress.ip_address(self.data)
         self.add_tag(f"ipv{ip.version}")
         if ip.is_private:
-            self.add_tag("private")
+            self.add_tag("private-ip")
         self.dns_resolve_distance = getattr(self.source, "dns_resolve_distance", 0)
 
     def sanitize_data(self, data):
@@ -883,49 +900,44 @@ class URL_UNVERIFIED(BaseEvent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # increment the web spider distance
-        if self.type == "URL_UNVERIFIED" and getattr(self.module, "name", "") != "TARGET":
+        if self.type == "URL_UNVERIFIED":
             self.web_spider_distance += 1
         self.num_redirects = getattr(self.source, "num_redirects", 0)
 
     def sanitize_data(self, data):
-        self.parsed = validators.validate_url_parsed(data)
+        self.parsed_url = validators.validate_url_parsed(data)
+
+        # special handling of URL extensions
+        if self.parsed_url is not None:
+            url_path = self.parsed_url.path
+            if url_path:
+                parsed_path_lower = str(url_path).lower()
+                extension = get_file_extension(parsed_path_lower)
+                if extension:
+                    self.url_extension = extension
+                    self.add_tag(f"extension-{extension}")
 
         # tag as dir or endpoint
-        if str(self.parsed.path).endswith("/"):
+        if str(self.parsed_url.path).endswith("/"):
             self.add_tag("dir")
         else:
             self.add_tag("endpoint")
 
-        parsed_path_lower = str(self.parsed.path).lower()
-
-        scan = getattr(self, "scan", None)
-        url_extension_blacklist = getattr(scan, "url_extension_blacklist", [])
-        url_extension_httpx_only = getattr(scan, "url_extension_httpx_only", [])
-
-        extension = get_file_extension(parsed_path_lower)
-        if extension:
-            self.add_tag(f"extension-{extension}")
-            if extension in url_extension_blacklist:
-                self.add_tag("blacklisted")
-            if extension in url_extension_httpx_only:
-                self.add_tag("httpx-only")
-                self._omit = True
-
-        data = self.parsed.geturl()
+        data = self.parsed_url.geturl()
         return data
 
     def with_port(self):
         netloc_with_port = make_netloc(self.host, self.port)
-        return self.parsed._replace(netloc=netloc_with_port)
+        return self.parsed_url._replace(netloc=netloc_with_port)
 
     def _words(self):
-        first_elem = self.parsed.path.lstrip("/").split("/")[0]
+        first_elem = self.parsed_url.path.lstrip("/").split("/")[0]
         if not "." in first_elem:
             return extract_words(first_elem)
         return set()
 
     def _host(self):
-        return make_ip_type(self.parsed.hostname)
+        return make_ip_type(self.parsed_url.hostname)
 
     def _data_id(self):
         # consider spider-danger tag when deduping
@@ -953,7 +965,8 @@ class URL(URL_UNVERIFIED):
 
     @property
     def resolved_hosts(self):
-        return [".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-")]
+        # TODO: remove this when we rip out httpx
+        return set(".".join(i.split("-")[1:]) for i in self.tags if i.startswith("ip-"))
 
     @property
     def pretty_string(self):
@@ -1004,8 +1017,8 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
 
     def sanitize_data(self, data):
         url = data.get("url", "")
-        self.parsed = validators.validate_url_parsed(url)
-        data["url"] = self.parsed.geturl()
+        self.parsed_url = validators.validate_url_parsed(url)
+        data["url"] = self.parsed_url.geturl()
 
         header_dict = {}
         for i in data.get("raw_header", "").splitlines():
@@ -1053,7 +1066,7 @@ class HTTP_RESPONSE(URL_UNVERIFIED, DictEvent):
             # if there's no scheme (i.e. it's a relative redirect)
             if not scheme:
                 # then join the location with the current url
-                location = urljoin(self.parsed.geturl(), location)
+                location = urljoin(self.parsed_url.geturl(), location)
         return location
 
 

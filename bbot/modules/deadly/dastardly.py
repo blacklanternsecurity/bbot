@@ -9,29 +9,7 @@ class dastardly(BaseModule):
     meta = {"description": "Lightweight web application security scanner"}
 
     deps_pip = ["lxml~=4.9.2"]
-    deps_ansible = [
-        {
-            "name": "Check if Docker is already installed",
-            "command": "docker --version",
-            "register": "docker_installed",
-            "ignore_errors": True,
-        },
-        {
-            "name": "Install Docker (Non-Debian)",
-            "package": {"name": "docker", "state": "present"},
-            "become": True,
-            "when": "ansible_facts['os_family'] != 'Debian' and docker_installed.rc != 0",
-        },
-        {
-            "name": "Install Docker (Debian)",
-            "package": {
-                "name": "docker.io",
-                "state": "present",
-            },
-            "become": True,
-            "when": "ansible_facts['os_family'] == 'Debian' and docker_installed.rc != 0",
-        },
-    ]
+    deps_common = ["docker"]
     per_hostport_only = True
 
     async def setup(self):
@@ -49,7 +27,7 @@ class dastardly(BaseModule):
         return True
 
     async def handle_event(self, event):
-        host = event.parsed._replace(path="/").geturl()
+        host = event.parsed_url._replace(path="/").geturl()
         self.verbose(f"Running Dastardly scan against {host}")
         command, output_file = self.construct_command(host)
         finished_proc = await self.run_process(command, sudo=True)

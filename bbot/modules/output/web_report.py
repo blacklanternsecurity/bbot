@@ -34,7 +34,7 @@ class web_report(BaseOutputModule):
 
     async def handle_event(self, event):
         if event.type == "URL":
-            parsed = event.parsed
+            parsed = event.parsed_url
             host = f"{parsed.scheme}://{parsed.netloc}/"
             if host not in self.web_assets.keys():
                 self.web_assets[host] = {"URL": []}
@@ -60,7 +60,7 @@ class web_report(BaseOutputModule):
             parsed = None
             while 1:
                 if current_parent.type == "URL":
-                    parsed = current_parent.parsed
+                    parsed = current_parent.parsed_url
                     break
                 current_parent = current_parent.source
                 if current_parent.source.type == "SCAN":

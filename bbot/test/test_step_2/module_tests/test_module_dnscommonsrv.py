@@ -6,8 +6,9 @@ class TestDNSCommonSRV(ModuleTestBase):
     config_overrides = {"dns_resolution": True}
 
     async def setup_after_prep(self, module_test):
-        module_test.mock_dns(
+        await module_test.mock_dns(
             {
+                "blacklanternsecurity.notreal": {"A": ["127.0.0.5"]},
                 "_ldap._tcp.gc._msdcs.blacklanternsecurity.notreal": {
                     "SRV": ["0 100 3268 asdf.blacklanternsecurity.notreal"]
                 },

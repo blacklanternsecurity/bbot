@@ -126,6 +126,15 @@ class TestSitedossier(ModuleTestBase):
     targets = ["evilcorp.com"]
 
     async def setup_after_prep(self, module_test):
+        await module_test.mock_dns(
+            {
+                "evilcorp.com": {"A": ["127.0.0.1"]},
+                "asdf.evilcorp.com": {"A": ["127.0.0.1"]},
+                "zzzz.evilcorp.com": {"A": ["127.0.0.1"]},
+                "xxxx.evilcorp.com": {"A": ["127.0.0.1"]},
+                "ffff.evilcorp.com": {"A": ["127.0.0.1"]},
+            }
+        )
         module_test.httpx_mock.add_response(
             url=f"http://www.sitedossier.com/parentdomain/evilcorp.com",
             text=page1,

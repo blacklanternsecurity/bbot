@@ -33,7 +33,7 @@ class dehashed(BaseModule):
             for entry in entries:
                 # we have to clean up the email field because dehashed does a poor job of it
                 email_str = entry.get("email", "").replace("\\", "")
-                found_emails = list(self.helpers.extract_emails(email_str))
+                found_emails = list(await self.helpers.re.extract_emails(email_str))
                 if not found_emails:
                     self.debug(f"Invalid email from dehashed.com: {email_str}")
                     continue

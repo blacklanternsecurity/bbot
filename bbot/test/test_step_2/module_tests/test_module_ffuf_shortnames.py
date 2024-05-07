@@ -143,7 +143,7 @@ class TestFFUFShortnames(ModuleTestBase):
                 tags=["shortname-file"],
             )
         )
-        module_test.scan.target._events["http://127.0.0.1:8888"] = seed_events
+        module_test.scan.target._events = set(seed_events)
 
         expect_args = {"method": "GET", "uri": "/administrator.aspx"}
         respond_args = {"response_data": "alive"}

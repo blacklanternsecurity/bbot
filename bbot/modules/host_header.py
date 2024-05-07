@@ -1,5 +1,5 @@
+from bbot.errors import InteractshError
 from bbot.modules.base import BaseModule
-from bbot.core.errors import InteractshError
 
 
 class host_header(BaseModule):
