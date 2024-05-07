@@ -105,10 +105,7 @@ class TestParamminer_Headers_extract(Paramminer_Headers):
         module_test.set_expect_requests(respond_args=respond_args)
 
     def check(self, module_test, events):
-        for e in events:
 
-            print(e)
-            print(e.type)
         assert any(
             e.type == "FINDING"
             and "[Paramminer] Header: [foo] Reasons: [body] Reflection: [True]" in e.data["description"]
