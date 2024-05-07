@@ -2366,6 +2366,27 @@ def get_exception_chain(e):
     return exception_chain
 
 
+def in_exception_chain(e, exc_types):
+    """
+    Given an Exception and a list of Exception types, returns whether any of the specified types are contained anywhere in the Exception chain.
+
+    Args:
+        e (BaseException): The exception to check
+        exc_types (list[Exception]): Exception types to consider intentional cancellations. Default is KeyboardInterrupt
+
+    Returns:
+        bool: Whether the error is the result of an intentional cancellaion
+
+    Examples:
+        >>> try:
+        ...     raise ValueError("This is a value error")
+        ... except Exception as e:
+        ...     if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+        ...         raise
+    """
+    return any([isinstance(_, exc_types) for _ in get_exception_chain(e)])
+
+
 def get_traceback_details(e):
     """
     Retrieves detailed information from the traceback of an exception.

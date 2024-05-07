@@ -8,6 +8,7 @@ class BaseOutputModule(BaseModule):
     _type = "output"
     scope_distance_modifier = None
     _stats_exclude = True
+    _shuffle_incoming_queue = False
 
     def human_event_str(self, event):
         event_type = f"[{event.type}]"

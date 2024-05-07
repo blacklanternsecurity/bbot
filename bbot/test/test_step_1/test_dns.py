@@ -222,44 +222,90 @@ async def test_wildcards(bbot_scanner):
     from bbot.scanner import Scanner
 
     # test with full scan
-    scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", config={"dns_resolution": True})
-    events = [e async for e in scan2.async_start()]
-    assert len(events) == 2
-    assert 1 == len([e for e in events if e.type == "SCAN"])
-    assert 1 == len(
-        [
-            e
-            for e in events
-            if e.type == "DNS_NAME"
-            and e.data == "_wildcard.github.io"
-            and all(
-                t in e.tags
-                for t in (
-                    "a-record",
-                    "target",
-                    "aaaa-wildcard",
-                    "in-scope",
-                    "subdomain",
-                    "aaaa-record",
-                    "wildcard",
-                    "a-wildcard",
-                )
-            )
-        ]
+    scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", whitelist=["github.io"], config={"dns_resolution": True})
+    await scan2._prep()
+    other_event = scan2.make_event(
+        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], source=scan2.root_event
     )
+    await scan2.ingress_module.queue_event(other_event, {})
+    events = [e async for e in scan2.async_start()]
+    assert len(events) == 3
+    assert 1 == len([e for e in events if e.type == "SCAN"])
+    unmodified_wildcard_events = [
+        e for e in events if e.type == "DNS_NAME" and e.data == "asdfl.gashdgkjsadgsdf.github.io"
+    ]
+    assert len(unmodified_wildcard_events) == 1
+    assert unmodified_wildcard_events[0].tags == {
+        "a-record",
+        "target",
+        "aaaa-wildcard",
+        "in-scope",
+        "subdomain",
+        "cdn-github",
+        "aaaa-record",
+        "wildcard",
+        "a-wildcard",
+    }
+    modified_wildcard_events = [e for e in events if e.type == "DNS_NAME" and e.data == "_wildcard.github.io"]
+    assert len(modified_wildcard_events) == 1
+    assert modified_wildcard_events[0].tags == {
+        "a-record",
+        "aaaa-wildcard",
+        "in-scope",
+        "subdomain",
+        "cdn-github",
+        "aaaa-record",
+        "wildcard",
+        "a-wildcard",
+    }
+    assert modified_wildcard_events[0].host_original == "lkjg.sdfgsg.jgkhajshdsadf.github.io"
 
     # test with full scan (wildcard detection disabled for domain)
-    scan2 = Scanner("asdfl.gashdgkjsadgsdf.github.io", config={"dns_wildcard_ignore": ["github.io"]})
+    scan2 = Scanner(
+        "asdfl.gashdgkjsadgsdf.github.io",
+        whitelist=["github.io"],
+        config={"dns_wildcard_ignore": ["github.io"], "dns_resolution": True},
+    )
+    await scan2._prep()
+    other_event = scan2.make_event(
+        "lkjg.sdfgsg.jgkhajshdsadf.github.io", module=scan2.modules["dns"], source=scan2.root_event
+    )
+    await scan2.ingress_module.queue_event(other_event, {})
     events = [e async for e in scan2.async_start()]
-    assert len(events) == 2
+    assert len(events) == 3
     assert 1 == len([e for e in events if e.type == "SCAN"])
+    unmodified_wildcard_events = [e for e in events if e.type == "DNS_NAME" and "_wildcard" not in e.data]
+    assert len(unmodified_wildcard_events) == 2
     assert 1 == len(
         [
             e
-            for e in events
-            if e.type == "DNS_NAME"
-            and e.data == "asdfl.gashdgkjsadgsdf.github.io"
-            and all(t in e.tags for t in ("a-record", "target", "in-scope", "subdomain", "aaaa-record"))
-            and not any(t in e.tags for t in ("wildcard", "a-wildcard", "aaaa-wildcard"))
+            for e in unmodified_wildcard_events
+            if e.data == "asdfl.gashdgkjsadgsdf.github.io"
+            and e.tags
+            == {
+                "target",
+                "a-record",
+                "in-scope",
+                "subdomain",
+                "cdn-github",
+                "aaaa-record",
+            }
         ]
     )
+    assert 1 == len(
+        [
+            e
+            for e in unmodified_wildcard_events
+            if e.data == "lkjg.sdfgsg.jgkhajshdsadf.github.io"
+            and e.tags
+            == {
+                "a-record",
+                "in-scope",
+                "subdomain",
+                "cdn-github",
+                "aaaa-record",
+            }
+        ]
+    )
+    modified_wildcard_events = [e for e in events if e.type == "DNS_NAME" and e.data == "_wildcard.github.io"]
+    assert len(modified_wildcard_events) == 0

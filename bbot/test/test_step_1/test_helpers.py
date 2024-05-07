@@ -451,6 +451,37 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
         < first_frequencies["e"]
     )
 
+    # error handling helpers
+    test_ran = False
+    try:
+        try:
+            raise KeyboardInterrupt("asdf")
+        except KeyboardInterrupt:
+            raise ValueError("asdf")
+    except Exception as e:
+        assert len(helpers.get_exception_chain(e)) == 2
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, KeyboardInterrupt)]) == 1
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, ValueError)]) == 1
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) == True
+        assert helpers.in_exception_chain(e, (TypeError, OSError)) == False
+        test_ran = True
+    assert test_ran
+    test_ran = False
+    try:
+        try:
+            raise AttributeError("asdf")
+        except AttributeError:
+            raise ValueError("asdf")
+    except Exception as e:
+        assert len(helpers.get_exception_chain(e)) == 2
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, AttributeError)]) == 1
+        assert len([_ for _ in helpers.get_exception_chain(e) if isinstance(_, ValueError)]) == 1
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)) == False
+        assert helpers.in_exception_chain(e, (KeyboardInterrupt, AttributeError)) == True
+        assert helpers.in_exception_chain(e, (AttributeError,)) == True
+        test_ran = True
+    assert test_ran
+
 
 def test_word_cloud(helpers, bbot_scanner):
     number_mutations = helpers.word_cloud.get_number_mutations("base2_p013", n=5, padding=2)
