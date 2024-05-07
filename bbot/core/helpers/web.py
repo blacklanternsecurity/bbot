@@ -693,8 +693,12 @@ class WebHelper:
                 log.trace(traceback.format_exc())
         except BaseException as e:
             # don't log if the error is the result of an intentional cancellation
-            if not any(
-                isinstance(_e, asyncio.exceptions.CancelledError) for _e in self.parent_helper.get_exception_chain(e)
+            if not self.parent_helper.in_exception_chain(
+                e,
+                (
+                    KeyboardInterrupt,
+                    asyncio.CancelledError,
+                ),
             ):
                 log.trace(f"Unhandled exception with request to URL: {url}: {e}")
                 log.trace(traceback.format_exc())

@@ -2,6 +2,7 @@ import random
 
 adjectives = [
     "abnormal",
+    "accidental",
     "acoustic",
     "acrophobic",
     "adorable",
@@ -9,6 +10,7 @@ adjectives = [
     "affectionate",
     "aggravated",
     "aggrieved",
+    "almighty",
     "anal",
     "atrocious",
     "awkward",
@@ -140,6 +142,7 @@ adjectives = [
     "medicated",
     "mediocre",
     "melodramatic",
+    "mighty",
     "moist",
     "molten",
     "monstrous",
