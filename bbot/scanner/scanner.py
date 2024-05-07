@@ -338,8 +338,7 @@ class Scanner:
             failed = False
 
         except BaseException as e:
-            exception_chain = self.helpers.get_exception_chain(e)
-            if any(isinstance(exc, (KeyboardInterrupt, asyncio.CancelledError)) for exc in exception_chain):
+            if self.helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                 self.stop()
                 failed = False
             else:
@@ -1131,8 +1130,7 @@ class Scanner:
         if callable(context):
             context = f"{context.__qualname__}()"
         filename, lineno, funcname = self.helpers.get_traceback_details(e)
-        exception_chain = self.helpers.get_exception_chain(e)
-        if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+        if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
             log.debug(f"Interrupted")
             self.stop()
         elif isinstance(e, BrokenPipeError):

@@ -125,6 +125,7 @@ class EngineClient(EngineBase):
                 self.socket_path,
             ),
             kwargs=self.server_kwargs,
+            custom_name="bbot dnshelper",
         )
         process.start()
         return process
