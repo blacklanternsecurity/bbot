@@ -1012,7 +1012,7 @@ def extract_params_html(html_data, compare_mode="getparam"):
         # Define valid characters for each mode based on RFCs
         valid_chars = {
             "header": "".join(
-                chr(c) for c in range(33, 127) if chr(c) not in '"(),;:\\'
+                chr(c) for c in range(33, 127) if chr(c) not in '."(),;:\\'
             ),  # HTTP headers exclude CTLs, SP, DQUOTE, comma, semicolon, and backslash
             "getparam": "".join(
                 chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="
@@ -1031,17 +1031,19 @@ def extract_params_html(html_data, compare_mode="getparam"):
     input_tag = bbot_regexes.input_tag_regex.findall(html_data)
 
     for i in input_tag:
-        log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
         if validate_param(i, compare_mode):
+            log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
             yield i
 
     # check for jquery get parameters
     jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
-
-    for i in jquery_get:
-        log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
-        if validate_param(i, compare_mode):
-            yield i
+    if jquery_get:
+        for i in jquery_get:
+            for x in i.split(","):
+                s = x.split(":")[0].rstrip()
+                if validate_param(s, compare_mode):
+                    log.debug(f"FOUND PARAM ({s}) IN A JQUERY GET PARAMS")
+                    yield s
 
     # check for jquery post parameters
     jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
@@ -1049,15 +1051,19 @@ def extract_params_html(html_data, compare_mode="getparam"):
         for i in jquery_post:
             for x in i.split(","):
                 s = x.split(":")[0].rstrip()
-                log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
                 if validate_param(s, compare_mode):
+                    log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
                     yield s
 
     a_tag = bbot_regexes.a_tag_regex.findall(html_data)
-    for s in a_tag:
-        log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
-        if validate_param(s, compare_mode):
-            yield s
+    for tag in a_tag:
+        a_tag_querystring = tag.split("&") if tag else []
+        for s in a_tag_querystring:
+            if "=" in s:
+                s0 = s.split("=")[0]
+                if validate_param(s0, compare_mode):
+                    log.debug(f"FOUND PARAM ({s0}) IN A TAG GET PARAMS")
+                    yield s0
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
