@@ -239,7 +239,7 @@ class paramminer_headers(BaseModule):
                 compare_helper = self.helpers.http_compare(url)
             except HttpCompareError as e:
                 self.debug(f"Error initializing compare helper: {e}")
-                return
+                continue
             untested_matches_copy = untested_matches.copy()
             for i in untested_matches:
                 h = hash(i + url)
