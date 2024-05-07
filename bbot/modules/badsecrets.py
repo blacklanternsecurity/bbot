@@ -1,7 +1,6 @@
 import multiprocessing
-
+from pathlib import Path
 from .base import BaseModule
-
 from badsecrets.base import carve_all_modules
 
 
@@ -10,7 +9,22 @@ class badsecrets(BaseModule):
     produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "safe", "web-basic"]
     meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
+    options = {"custom_secrets": None}
+    options_desc = {
+        "custom_secrets": "Include custom secrets loaded from a local file",
+    }
     deps_pip = ["badsecrets~=0.4.490"]
+
+    async def setup(self):
+        self.custom_secrets = None
+        custom_secrets = self.config.get("custom_secrets", None)
+        if custom_secrets:
+            if Path(custom_secrets).is_file():
+                self.custom_secrets = custom_secrets
+            else:
+                self.warning(f"custom secrets file [{custom_secrets}] is not valid")
+                return None, "Custom secrets file not valid"
+        return True
 
     @property
     def _max_event_handlers(self):
@@ -39,6 +53,7 @@ class badsecrets(BaseModule):
                     headers=resp_headers,
                     cookies=resp_cookies,
                     url=event.data.get("url", None),
+                    custom_resource=self.custom_secrets,
                 )
             except Exception as e:
                 self.warning(f"Error processing {event}: {e}")

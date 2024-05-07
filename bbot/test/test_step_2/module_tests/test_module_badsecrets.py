@@ -121,3 +121,26 @@ class TestBadSecrets(ModuleTestBase):
         assert CookieBasedDetection, "No JWT cookie vuln detected"
         assert CookieBasedDetection_2, "No Express.js cookie vuln detected"
         assert CookieBasedDetection_3, "No Express.js (cs dual cookies) vuln detected"
+
+
+# class TestBadSecrets_customsedrets(TestBadSecrets):
+
+
+#     sample_viewstate = """
+#     <form method="post" action="./query.aspx" id="form1">
+# <div class="aspNetHidden">
+# <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="rJdyYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESf4nBu" />
+# </div>
+
+# <div class="aspNetHidden">
+
+#     <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="EDD8C9AE" />
+#     <input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
+# </div>
+#     </form>
+# </body>
+# </html>
+# """
+
+
+# # config_overrides = {"custom_secrets": TEMP FILE}
