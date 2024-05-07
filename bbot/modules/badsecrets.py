@@ -21,6 +21,7 @@ class badsecrets(BaseModule):
         if custom_secrets:
             if Path(custom_secrets).is_file():
                 self.custom_secrets = custom_secrets
+                self.info(f"Successfully loaded secrets file [{custom_secrets}]")
             else:
                 self.warning(f"custom secrets file [{custom_secrets}] is not valid")
                 return None, "Custom secrets file not valid"

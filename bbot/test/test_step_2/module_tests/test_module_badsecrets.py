@@ -1,4 +1,4 @@
-from .base import ModuleTestBase
+from .base import ModuleTestBase, tempwordlist
 
 
 class TestBadSecrets(ModuleTestBase):
@@ -123,24 +123,42 @@ class TestBadSecrets(ModuleTestBase):
         assert CookieBasedDetection_3, "No Express.js (cs dual cookies) vuln detected"
 
 
-# class TestBadSecrets_customsedrets(TestBadSecrets):
+class TestBadSecrets_customsecrets(TestBadSecrets):
+    config_overrides = {
+        "modules": {
+            "badsecrets": {
+                "custom_secrets": tempwordlist(
+                    [
+                        "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF,DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"
+                    ]
+                )
+            }
+        }
+    }
 
+    sample_viewstate = """
+    <form method="post" action="./query.aspx" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJODExMDE5NzY5ZGS02CHaDxi5Kw19mPShbrrOUCJ4pA==" />
+</div>
 
-#     sample_viewstate = """
-#     <form method="post" action="./query.aspx" id="form1">
-# <div class="aspNetHidden">
-# <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="rJdyYspajyiWEjvZ/SMXsU/1Q6Dp1XZ/19fZCABpGqWu+s7F1F/JT1s9mP9ED44fMkninhDc8eIq7IzSllZeJ9JVUME41i8ozheGunVSaESf4nBu" />
-# </div>
+<div class="aspNetHidden">
 
-# <div class="aspNetHidden">
+    <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="75BBA7D6" />
+    <input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
+</div>
+    </form>
+</body>
+</html>
+"""
 
-#     <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="EDD8C9AE" />
-#     <input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
-# </div>
-#     </form>
-# </body>
-# </html>
-# """
-
-
-# # config_overrides = {"custom_secrets": TEMP FILE}
+    def check(self, module_test, events):
+        SecretFound = False
+        for e in events:
+            if (
+                e.type == "VULNERABILITY"
+                and "Known Secret Found." in e.data["description"]
+                and "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF" in e.data["description"]
+            ):
+                SecretFound = True
+        assert SecretFound, "No secret found"
