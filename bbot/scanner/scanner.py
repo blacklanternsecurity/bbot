@@ -11,10 +11,6 @@ from collections import OrderedDict
 
 from bbot import __version__
 
-
-from .preset import Preset
-from .stats import ScanStats
-from .dispatcher import Dispatcher
 from bbot.core.event import make_event
 from .manager import ScanIngress, ScanEgress
 from bbot.core.helpers.misc import sha1, rand_string
@@ -125,6 +121,9 @@ class Scanner:
 
         preset = kwargs.pop("preset", None)
         kwargs["_log"] = True
+
+        from .preset import Preset
+
         if preset is None:
             preset = Preset(*targets, **kwargs)
         else:
@@ -168,10 +167,14 @@ class Scanner:
         self.dummy_modules = {}
 
         if dispatcher is None:
+            from .dispatcher import Dispatcher
+
             self.dispatcher = Dispatcher()
         else:
             self.dispatcher = dispatcher
         self.dispatcher.set_scan(self)
+
+        from .stats import ScanStats
 
         self.stats = ScanStats(self)
 
@@ -335,8 +338,7 @@ class Scanner:
             failed = False
 
         except BaseException as e:
-            exception_chain = self.helpers.get_exception_chain(e)
-            if any(isinstance(exc, (KeyboardInterrupt, asyncio.CancelledError)) for exc in exception_chain):
+            if self.helpers.in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
                 self.stop()
                 failed = False
             else:
@@ -544,7 +546,7 @@ class Scanner:
             queues.add(module.outgoing_event_queue)
 
         for q in queues:
-            for item in q._queue:
+            for item in getattr(q, "_queue", []):
                 try:
                     event, _ = item
                 except ValueError:
@@ -1128,8 +1130,7 @@ class Scanner:
         if callable(context):
             context = f"{context.__qualname__}()"
         filename, lineno, funcname = self.helpers.get_traceback_details(e)
-        exception_chain = self.helpers.get_exception_chain(e)
-        if any(isinstance(exc, KeyboardInterrupt) for exc in exception_chain):
+        if self.helpers.in_exception_chain(e, (KeyboardInterrupt,)):
             log.debug(f"Interrupted")
             self.stop()
         elif isinstance(e, BrokenPipeError):

@@ -466,7 +466,6 @@ class WebHelper(EngineClient):
             log.debug(f"Error parsing beautifulsoup: {e}")
             return False
 
-
 user_keywords = [re.compile(r, re.I) for r in ["user", "login", "email"]]
 pass_keywords = [re.compile(r, re.I) for r in ["pass"]]
 

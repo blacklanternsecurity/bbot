@@ -220,7 +220,7 @@ class DNS(InterceptModule):
                 event.add_tag(f"{rdtype.lower()}-{wildcard_tag}")
 
             # wildcard event modification (www.evilcorp.com --> _wildcard.evilcorp.com)
-            if wildcard_rdtypes:
+            if wildcard_rdtypes and not "target" in event.tags:
                 # these are the rdtypes that successfully resolve
                 resolved_rdtypes = set([c.upper() for c in event.dns_children])
                 # these are the rdtypes that have wildcards

@@ -18,11 +18,47 @@ from bbot.core.helpers.misc import rand_string
 CMD_EXIT = 1000
 
 
-class EngineClient:
+error_sentinel = object()
+
+
+class EngineBase:
+    def __init__(self):
+        self.log = logging.getLogger(f"bbot.core.{self.__class__.__name__.lower()}")
+
+    def pickle(self, obj):
+        try:
+            return pickle.dumps(obj)
+        except Exception as e:
+            self.log.error(f"Error serializing object: {obj}: {e}")
+            self.log.trace(traceback.format_exc())
+        return error_sentinel
+
+    def unpickle(self, binary):
+        try:
+            return pickle.loads(binary)
+        except Exception as e:
+            self.log.error(f"Error deserializing binary: {e}")
+            self.log.trace(f"Offending binary: {binary}")
+            self.log.trace(traceback.format_exc())
+        return error_sentinel
+
+    def check_error(self, message):
+        if message is error_sentinel:
+            return True
+        if isinstance(message, dict) and len(message) == 1 and "_e" in message:
+            error, trace = message["_e"]
+            self.log.error(error)
+            self.log.trace(trace)
+            return True
+        return False
+
+
+class EngineClient(EngineBase):
 
     SERVER_CLASS = None
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.name = f"EngineClient {self.__class__.__name__}"
         self.process_name = multiprocessing.current_process().name
         if self.SERVER_CLASS is None:
@@ -30,7 +66,6 @@ class EngineClient:
         self.CMDS = dict(self.SERVER_CLASS.CMDS)
         for k, v in list(self.CMDS.items()):
             self.CMDS[v] = k
-        self.log = logging.getLogger(f"bbot.core.{self.__class__.__name__.lower()}")
         self.socket_address = f"zmq_{rand_string(8)}.sock"
         self.socket_path = Path(tempfile.gettempdir()) / self.socket_address
         self.server_kwargs = kwargs.pop("server_kwargs", {})
@@ -41,10 +76,12 @@ class EngineClient:
     async def run_and_return(self, command, *args, **kwargs):
         async with self.new_socket() as socket:
             message = self.make_message(command, args=args, kwargs=kwargs)
+            if message is error_sentinel:
+                return
             await socket.send(message)
             binary = await socket.recv()
         # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
-        message = pickle.loads(binary)
+        message = self.unpickle(binary)
         self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
         # error handling
         if self.check_error(message):
@@ -53,25 +90,19 @@ class EngineClient:
 
     async def run_and_yield(self, command, *args, **kwargs):
         message = self.make_message(command, args=args, kwargs=kwargs)
+        if message is error_sentinel:
+            return
         async with self.new_socket() as socket:
             await socket.send(message)
             while 1:
                 binary = await socket.recv()
                 # self.log.debug(f"{self.name}.{command}({kwargs}) got binary: {binary}")
-                message = pickle.loads(binary)
+                message = self.unpickle(binary)
                 self.log.debug(f"{self.name}.{command}({kwargs}) got message: {message}")
                 # error handling
                 if self.check_error(message) or self.check_stop(message):
                     break
                 yield message
-
-    def check_error(self, message):
-        if isinstance(message, dict) and len(message) == 1 and "_e" in message:
-            error, trace = message["_e"]
-            self.log.error(error)
-            self.log.trace(trace)
-            return True
-        return False
 
     def check_stop(self, message):
         if isinstance(message, dict) and len(message) == 1 and "_s" in message:
@@ -95,7 +126,6 @@ class EngineClient:
         return [s for s in self.CMDS if isinstance(s, str)]
 
     def start_server(self):
-        self.log.critical(f"STARTING SERVER from {self.process_name}")
         if self.process_name == "MainProcess":
             process = CORE.create_process(
                 target=self.server_process,
@@ -104,6 +134,7 @@ class EngineClient:
                     self.socket_path,
                 ),
                 kwargs=self.server_kwargs,
+                custom_name="bbot dnshelper",
             )
             process.start()
             return process
@@ -142,12 +173,12 @@ class EngineClient:
         self.socket_path.unlink(missing_ok=True)
 
 
-class EngineServer:
+class EngineServer(EngineBase):
 
     CMDS = {}
 
     def __init__(self, socket_path):
-        self.log = logging.getLogger(f"bbot.core.{self.__class__.__name__.lower()}")
+        super().__init__()
         self.name = f"EngineServer {self.__class__.__name__}"
         if socket_path is not None:
             # create ZeroMQ context
@@ -190,8 +221,10 @@ class EngineServer:
         try:
             while 1:
                 client_id, binary = await self.socket.recv_multipart()
-                message = pickle.loads(binary)
+                message = self.unpickle(binary)
                 self.log.debug(f"{self.name} got message: {message}")
+                if self.check_error(message):
+                    continue
 
                 cmd = message.get("c", None)
                 if not isinstance(cmd, int):

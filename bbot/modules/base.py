@@ -112,6 +112,7 @@ class BaseModule:
     _name = "base"
     _type = "scan"
     _intercept = False
+    _shuffle_incoming_queue = True
 
     def __init__(self, scan):
         """Initializes a module instance.
@@ -1089,7 +1090,10 @@ class BaseModule:
     @property
     def incoming_event_queue(self):
         if self._incoming_event_queue is None:
-            self._incoming_event_queue = ShuffleQueue()
+            if self._shuffle_incoming_queue:
+                self._incoming_event_queue = ShuffleQueue()
+            else:
+                self._incoming_event_queue = asyncio.Queue()
         return self._incoming_event_queue
 
     @property

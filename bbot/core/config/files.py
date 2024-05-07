@@ -49,6 +49,7 @@ class BBOTConfigFiles:
             return OmegaConf.create()
 
     def get_custom_config(self):
+        self.ensure_config_file()
         return self._get_config(self.config_filename, name="config")
 
     def get_default_config(self):
