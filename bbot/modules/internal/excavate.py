@@ -68,7 +68,7 @@ class HostnameExtractor(BaseExtractor):
 
 
 class URLExtractor(BaseExtractor):
-    url_path_regex = r"((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]+)*/?)"
+    url_path_regex = r"((?:\w|\d)(?:[\d\w-]+\.?)+(?::\d{1,5})?(?:/[-\w\.\(\)]*[-\w\.]+)*/?)"
     regexes = {
         "fulluri": r"(?i)" + r"([a-z]\w{1,15})://" + url_path_regex,
         "fullurl": r"(?i)" + r"(https?)://" + url_path_regex,
@@ -122,7 +122,7 @@ class URLExtractor(BaseExtractor):
                     urls_found += 1
 
     async def _search(self, content, event, **kwargs):
-        parsed = getattr(event, "parsed", None)
+        parsed = getattr(event, "parsed_url", None)
         for name, regex in self.compiled_regexes.items():
             # yield to event loop
             await self.excavate.helpers.sleep(0)
@@ -142,7 +142,7 @@ class URLExtractor(BaseExtractor):
                             continue
 
                     if not self.compiled_regexes["fullurl"].match(path):
-                        source_url = event.parsed.geturl()
+                        source_url = event.parsed_url.geturl()
                         result = urljoin(source_url, path)
                         # this is necessary to weed out mailto: and such
                         if not self.compiled_regexes["fullurl"].match(result):
@@ -167,7 +167,7 @@ class URLExtractor(BaseExtractor):
             # these findings are pretty mundane so don't bother with them if they aren't in scope
             abort_if = lambda e: e.scope_distance > 0
             event_data = {"host": str(host), "description": f"Non-HTTP URI: {result}"}
-            parsed_url = getattr(event, "parsed", None)
+            parsed_url = getattr(event, "parsed_url", None)
             if parsed_url:
                 event_data["url"] = parsed_url.geturl()
             await self.excavate.emit_event(

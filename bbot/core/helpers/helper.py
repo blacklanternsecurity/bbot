@@ -91,6 +91,11 @@ class ConfigAwareHelper:
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
 
+    def bloom_filter(self, size):
+        from .bloom import BloomFilter
+
+        return BloomFilter(size)
+
     def interactsh(self, *args, **kwargs):
         return Interactsh(self, *args, **kwargs)
 
@@ -110,8 +115,8 @@ class ConfigAwareHelper:
         _filter = lambda x: x.is_dir() and self.regexes.scan_name_regex.match(x.name)
         self.clean_old(self.scans_dir, keep=self.keep_old_scans, filter=_filter)
 
-    def make_target(self, *events):
-        return Target(*events)
+    def make_target(self, *events, **kwargs):
+        return Target(*events, **kwargs)
 
     @property
     def config(self):

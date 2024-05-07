@@ -338,4 +338,4 @@ class BBOTArgs:
                 if self.exclude_from_validation.match(c):
                     continue
                 # otherwise, ensure it exists as a module option
-                raise ValidationError(get_closest_match(c, all_options, msg="module option"))
+                raise ValidationError(get_closest_match(c, all_options, msg="config option"))

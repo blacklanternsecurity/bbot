@@ -27,7 +27,7 @@ class dastardly(BaseModule):
         return True
 
     async def handle_event(self, event):
-        host = event.parsed._replace(path="/").geturl()
+        host = event.parsed_url._replace(path="/").geturl()
         self.verbose(f"Running Dastardly scan against {host}")
         command, output_file = self.construct_command(host)
         finished_proc = await self.run_process(command, sudo=True)
@@ -82,7 +82,7 @@ class dastardly(BaseModule):
     def parse_dastardly_xml(self, xml_file):
         try:
             with open(xml_file, "rb") as f:
-                et = etree.parse(f)
+                et = etree.parse(f, parser=etree.XMLParser(recover=True))
                 for testsuite in et.iter("testsuite"):
                     yield TestSuite(testsuite)
         except FileNotFoundError:

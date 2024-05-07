@@ -73,3 +73,25 @@ async def test_scan(
         events.append(event)
     event_data = [e.data for e in events]
     assert "one.one.one.one" not in event_data
+
+
+@pytest.mark.asyncio
+async def test_url_extension_handling(bbot_scanner):
+    scan = bbot_scanner(config={"url_extension_blacklist": ["css"], "url_extension_httpx_only": ["js"]})
+    await scan._prep()
+    assert scan.url_extension_blacklist == {"css"}
+    assert scan.url_extension_httpx_only == {"js"}
+    good_event = scan.make_event("https://evilcorp.com/a.txt", "URL", tags=["status-200"], source=scan.root_event)
+    bad_event = scan.make_event("https://evilcorp.com/a.css", "URL", tags=["status-200"], source=scan.root_event)
+    httpx_event = scan.make_event("https://evilcorp.com/a.js", "URL", tags=["status-200"], source=scan.root_event)
+    assert "blacklisted" not in bad_event.tags
+    assert "httpx-only" not in httpx_event.tags
+    result = await scan.ingress_module.handle_event(good_event, {})
+    assert result == None
+    result, reason = await scan.ingress_module.handle_event(bad_event, {})
+    assert result == False
+    assert reason == "event is blacklisted"
+    assert "blacklisted" in bad_event.tags
+    result = await scan.ingress_module.handle_event(httpx_event, {})
+    assert result == None
+    assert "httpx-only" in httpx_event.tags

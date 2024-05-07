@@ -44,7 +44,7 @@ class TestDastardly(ModuleTestBase):
 
         # get docker IP
         docker_ip = await self.get_docker_ip(module_test)
-        module_test.scan.target.add_target(docker_ip)
+        module_test.scan.target.add(docker_ip)
 
         # replace 127.0.0.1 with docker host IP to allow dastardly access to local http server
         old_filter_event = module_test.module.filter_event
@@ -52,7 +52,7 @@ class TestDastardly(ModuleTestBase):
         def new_filter_event(event):
             self.new_url = f"http://{docker_ip}:5556/"
             event.data["url"] = self.new_url
-            event.parsed = module_test.scan.helpers.urlparse(self.new_url)
+            event.parsed_url = module_test.scan.helpers.urlparse(self.new_url)
             return old_filter_event(event)
 
         module_test.monkeypatch.setattr(module_test.module, "filter_event", new_filter_event)

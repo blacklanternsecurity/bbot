@@ -169,6 +169,7 @@ url_extension_blacklist:
     - woff
     - woff2
     - ttf
+    - eot
     - sass
     - scss
     # audio
