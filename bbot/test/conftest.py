@@ -10,7 +10,6 @@ from pytest_httpserver import HTTPServer
 
 from bbot.core import CORE
 from bbot.core.helpers.misc import execute_sync_or_async
-from bbot.core.helpers.interactsh import server_list as interactsh_servers
 
 
 test_config = OmegaConf.load(Path(__file__).parent / "test.conf")
@@ -41,11 +40,6 @@ def pytest_sessionfinish(session, exitstatus):
     shutil.rmtree("/tmp/.bbot_test", ignore_errors=True)
 
     yield
-
-
-@pytest.fixture
-def non_mocked_hosts() -> list:
-    return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
 
 
 @pytest.fixture

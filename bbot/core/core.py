@@ -1,3 +1,4 @@
+import os
 import logging
 from copy import copy
 from pathlib import Path
@@ -143,9 +144,16 @@ class BBOTCore:
         return self._files_config
 
     def create_process(self, *args, **kwargs):
-        from .helpers.process import BBOTProcess
+        if os.environ.get("BBOT_TESTING", "") == "True":
+            import threading
 
-        process = BBOTProcess(*args, **kwargs)
+            kwargs.pop("custom_name", None)
+            process = threading.Thread(*args, **kwargs)
+        else:
+            from .helpers.process import BBOTProcess
+
+            process = BBOTProcess(*args, **kwargs)
+        process.daemon = True
         return process
 
     @property

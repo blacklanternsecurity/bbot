@@ -60,6 +60,7 @@ class EngineClient(EngineBase):
     def __init__(self, **kwargs):
         super().__init__()
         self.name = f"EngineClient {self.__class__.__name__}"
+        self.process = None
         self.process_name = multiprocessing.current_process().name
         if self.SERVER_CLASS is None:
             raise ValueError(f"Must set EngineClient SERVER_CLASS, {self.SERVER_CLASS}")
@@ -127,7 +128,7 @@ class EngineClient(EngineBase):
 
     def start_server(self):
         if self.process_name == "MainProcess":
-            process = CORE.create_process(
+            self.process = CORE.create_process(
                 target=self.server_process,
                 args=(
                     self.SERVER_CLASS,
@@ -136,8 +137,8 @@ class EngineClient(EngineBase):
                 kwargs=self.server_kwargs,
                 custom_name="bbot dnshelper",
             )
-            process.start()
-            return process
+            self.process.start()
+            return self.process
         else:
             raise BBOTEngineError(f"Tried to start server from process {self.process_name}")
 

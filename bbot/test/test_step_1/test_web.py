@@ -298,11 +298,13 @@ async def test_http_ssl(bbot_scanner, bbot_httpserver_ssl):
 @pytest.mark.asyncio
 async def test_web_cookies(bbot_scanner, httpx_mock):
     import httpx
+    from bbot.core.helpers.web.client import BBOTAsyncClient
 
     # make sure cookies work when enabled
     httpx_mock.add_response(url="http://www.evilcorp.com/cookies", headers=[("set-cookie", "wat=asdf; path=/")])
     scan = bbot_scanner()
-    client = scan.helpers.AsyncClient(persist_cookies=True)
+
+    client = BBOTAsyncClient(persist_cookies=True, _config=scan.config, _target=scan.target)
     r = await client.get(url="http://www.evilcorp.com/cookies")
     assert r.cookies["wat"] == "asdf"
     httpx_mock.add_response(url="http://www.evilcorp.com/cookies/test", match_headers={"Cookie": "wat=asdf"})
@@ -315,7 +317,7 @@ async def test_web_cookies(bbot_scanner, httpx_mock):
     # make sure they don't when they're not
     httpx_mock.add_response(url="http://www2.evilcorp.com/cookies", headers=[("set-cookie", "wats=fdsa; path=/")])
     scan = bbot_scanner()
-    client2 = scan.helpers.AsyncClient(persist_cookies=False)
+    client2 = BBOTAsyncClient(persist_cookies=False, _config=scan.config, _target=scan.target)
     r = await client2.get(url="http://www2.evilcorp.com/cookies")
     # make sure we can access the cookies
     assert "wats" in r.cookies

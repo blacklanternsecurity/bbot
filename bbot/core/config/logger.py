@@ -172,6 +172,13 @@ class BBOTLogger:
         for handler in self.log_handlers.values():
             self.add_log_handler(handler)
 
+    def stderr_filter(self, record):
+        if record.levelno == logging.TRACE and self.log_level > logging.DEBUG:
+            return False
+        if record.levelno < self.log_level:
+            return False
+        return True
+
     @property
     def log_handlers(self):
         if self._log_handlers is None:
@@ -189,16 +196,9 @@ class BBOTLogger:
                 f"{log_dir}/bbot.debug.log", when="d", interval=1, backupCount=14
             )
 
-            def stderr_filter(record):
-                if record.levelno == logging.TRACE and self.log_level > logging.DEBUG:
-                    return False
-                if record.levelno < self.log_level:
-                    return False
-                return True
-
             # Log to stderr
             stderr_handler = logging.StreamHandler(sys.stderr)
-            stderr_handler.addFilter(stderr_filter)
+            stderr_handler.addFilter(self.stderr_filter)
             # log to files
             debug_handler.addFilter(lambda x: x.levelno == logging.TRACE or (x.levelno < logging.VERBOSE))
             main_handler.addFilter(lambda x: x.levelno != logging.TRACE and x.levelno >= logging.VERBOSE)

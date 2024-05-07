@@ -4,85 +4,14 @@ import httpx
 import asyncio
 import logging
 import traceback
-from httpx._models import Cookies
 from socksio.exceptions import SOCKSError
 from contextlib import asynccontextmanager
 
+from .client import BBOTAsyncClient
 from bbot.core.engine import EngineServer
 from bbot.core.helpers.misc import bytes_to_human, human_to_bytes, get_exception_chain
 
 log = logging.getLogger("bbot.core.helpers.web.engine")
-
-
-class DummyCookies(Cookies):
-    def extract_cookies(self, *args, **kwargs):
-        pass
-
-
-class BBOTAsyncClient(httpx.AsyncClient):
-    """
-    A subclass of httpx.AsyncClient tailored with BBOT-specific configurations and functionalities.
-    This class provides rate limiting, logging, configurable timeouts, user-agent customization, custom
-    headers, and proxy settings. Additionally, it allows the disabling of cookies, making it suitable
-    for use across an entire scan.
-
-    Attributes:
-        _bbot_scan (object): BBOT scan object containing configuration details.
-        _persist_cookies (bool): Flag to determine whether cookies should be persisted across requests.
-
-    Examples:
-        >>> async with BBOTAsyncClient(_bbot_scan=bbot_scan_object) as client:
-        >>>     response = await client.request("GET", "https://example.com")
-        >>>     print(response.status_code)
-        200
-    """
-
-    def __init__(self, *args, **kwargs):
-        self._config = kwargs.pop("_config")
-
-        http_debug = self._config.get("http_debug", None)
-        if http_debug:
-            log.trace(f"Creating AsyncClient: {args}, {kwargs}")
-
-        self._persist_cookies = kwargs.pop("persist_cookies", True)
-
-        # timeout
-        http_timeout = self._config.get("http_timeout", 20)
-        if not "timeout" in kwargs:
-            kwargs["timeout"] = http_timeout
-
-        # headers
-        headers = kwargs.get("headers", None)
-        if headers is None:
-            headers = {}
-        # user agent
-        user_agent = self._config.get("user_agent", "BBOT")
-        if "User-Agent" not in headers:
-            headers["User-Agent"] = user_agent
-        kwargs["headers"] = headers
-        # proxy
-        proxies = self._config.get("http_proxy", None)
-        kwargs["proxies"] = proxies
-
-        super().__init__(*args, **kwargs)
-        if not self._persist_cookies:
-            self._cookies = DummyCookies()
-
-    def build_request(self, *args, **kwargs):
-        request = super().build_request(*args, **kwargs)
-        # add custom headers if the URL is in-scope
-        # TODO: re-enable this
-        # if self._preset.in_scope(str(request.url)):
-        #     for hk, hv in self._config.get("http_headers", {}).items():
-        #         # don't clobber headers
-        #         if hk not in request.headers:
-        #             request.headers[hk] = hv
-        return request
-
-    def _merge_cookies(self, cookies):
-        if self._persist_cookies:
-            return super()._merge_cookies(cookies)
-        return cookies
 
 
 class HTTPEngine(EngineServer):
@@ -92,7 +21,7 @@ class HTTPEngine(EngineServer):
         1: "request_batch",
         2: "request_custom_batch",
         3: "download",
-        99: "_mock",
+        99: "mock",
     }
 
     client_only_options = (
@@ -100,9 +29,9 @@ class HTTPEngine(EngineServer):
         "max_redirects",
     )
 
-    def __init__(self, socket_path, config={}):
+    def __init__(self, socket_path, target, config={}):
         super().__init__(socket_path)
-        self.log.critical("doing")
+        self.target = target
         self.config = config
         self.http_debug = self.config.get("http_debug", False)
         self._ssl_context_noverify = None
@@ -113,13 +42,13 @@ class HTTPEngine(EngineServer):
 
     def AsyncClient(self, *args, **kwargs):
         kwargs["_config"] = self.config
+        kwargs["_target"] = self.target
         retries = kwargs.pop("retries", self.config.get("http_retries", 1))
         kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=self.ssl_verify)
         kwargs["verify"] = self.ssl_verify
         return BBOTAsyncClient(*args, **kwargs)
 
     async def request(self, *args, **kwargs):
-        self.log.critical(f"SERVER {args} / {kwargs}")
         raise_error = kwargs.pop("raise_error", False)
         # TODO: use this
         cache_for = kwargs.pop("cache_for", None)  # noqa
@@ -295,3 +224,11 @@ class HTTPEngine(EngineServer):
                 log.trace(f"Unhandled exception with request to URL: {url}: {e}")
                 log.trace(traceback.format_exc())
             raise
+
+    def mock(self, *args, **kwargs):
+        import pytest
+        from bbot.core.helpers.interactsh import server_list as interactsh_servers
+
+        @pytest.fixture
+        def non_mocked_hosts() -> list:
+            return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
