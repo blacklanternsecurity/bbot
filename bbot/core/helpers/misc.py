@@ -821,7 +821,7 @@ def truncate_string(s, n):
         return s
 
 
-def extract_params_json(json_data):
+def extract_params_json(json_data, compare_mode="getparam"):
     """
     Extracts keys from a JSON object and returns them as a set. Used by the `paramminer_headers` module.
 
@@ -851,18 +851,18 @@ def extract_params_json(json_data):
         current_data = stack.pop()
         if isinstance(current_data, dict):
             for key, value in current_data.items():
-                keys.add(key)
+                if _validate_param(key, compare_mode):
+                    keys.add(key)
                 if isinstance(value, (dict, list)):
                     stack.append(value)
         elif isinstance(current_data, list):
             for item in current_data:
                 if isinstance(item, (dict, list)):
                     stack.append(item)
-
     return keys
 
 
-def extract_params_xml(xml_data):
+def extract_params_xml(xml_data, compare_mode="getparam"):
     """
     Extracts tags from an XML object and returns them as a set.
 
@@ -892,7 +892,8 @@ def extract_params_xml(xml_data):
 
     while stack:
         current_element = stack.pop()
-        tags.add(current_element.tag)
+        if _validate_param(current_element.tag, compare_mode):
+            tags.add(current_element.tag)
         for child in current_element:
             stack.append(child)
     return tags
