@@ -608,11 +608,13 @@ class BaseEvent:
         Returns:
             dict: JSON-serializable dictionary representation of the event object.
         """
+        # type, ID, scope description
         j = dict()
         for i in ("type", "id", "scope_description"):
             v = getattr(self, i, "")
             if v:
                 j.update({i: v})
+        # event data
         data_attr = getattr(self, f"data_{mode}", None)
         if data_attr is not None:
             data = data_attr
@@ -622,23 +624,33 @@ class BaseEvent:
             j["data"] = {self.type: data}
         else:
             j["data"] = data
+        # host, dns children
+        if self.host:
+            j["host"] = str(self.host)
+            j["resolved_hosts"] = sorted(str(h) for h in self.resolved_hosts)
+            j["dns_children"] = {k: list(v) for k, v in self.dns_children.items()}
+        # web spider distance
         web_spider_distance = getattr(self, "web_spider_distance", None)
         if web_spider_distance is not None:
             j["web_spider_distance"] = web_spider_distance
+        # scope distance
         j["scope_distance"] = self.scope_distance
+        # scan
         if self.scan:
             j["scan"] = self.scan.id
+        # timestamp
         j["timestamp"] = self.timestamp.timestamp()
-        if self.host:
-            j["resolved_hosts"] = sorted(str(h) for h in self.resolved_hosts)
-            j["dns_children"] = {k: list(v) for k, v in self.dns_children.items()}
+        # parent event
         source_id = self.source_id
         if source_id:
             j["source"] = source_id
+        # tags
         if self.tags:
             j.update({"tags": list(self.tags)})
+        # source module
         if self.module:
             j.update({"module": str(self.module)})
+        # sequence of modules that led to discovery
         if self.module_sequence:
             j.update({"module_sequence": str(self.module_sequence)})
 
