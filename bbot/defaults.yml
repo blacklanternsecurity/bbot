@@ -24,6 +24,10 @@ deps:
   ffuf:
     version: "2.1.0"
 
+dns:
+  # Number of concurrent massdns lookups (-s)
+  brute_threads: 1000
+
 ### WEB SPIDER ###
 
 # Set the maximum number of HTTP links that can be followed in a row (0 == no spidering allowed)

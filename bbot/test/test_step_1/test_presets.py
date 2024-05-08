@@ -584,13 +584,13 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    massdns_flags = preset.preloaded_module("massdns").get("flags", [])
-    assert "subdomain-enum" in massdns_flags
-    assert "passive" in massdns_flags
-    assert not "active" in massdns_flags
-    assert "aggressive" in massdns_flags
-    assert not "safe" in massdns_flags
-    assert "massdns" in [x[0] for x in module_flags]
+    dnsbrute_flags = preset.preloaded_module("dnsbrute").get("flags", [])
+    assert "subdomain-enum" in dnsbrute_flags
+    assert "passive" in dnsbrute_flags
+    assert not "active" in dnsbrute_flags
+    assert "aggressive" in dnsbrute_flags
+    assert not "safe" in dnsbrute_flags
+    assert "dnsbrute" in [x[0] for x in module_flags]
     assert "certspotter" in [x[0] for x in module_flags]
     assert "c99" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
@@ -602,7 +602,7 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], require_flags=["passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert "massdns" in [x[0] for x in module_flags]
+    assert "dnsbrute" in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -612,17 +612,17 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], exclude_flags=["active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert "massdns" in [x[0] for x in module_flags]
+    assert "dnsbrute" in [x[0] for x in module_flags]
     assert all("passive" in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
     assert any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, one excluded module
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert not "massdns" in [x[0] for x in module_flags]
+    assert not "dnsbrute" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)
     assert any("active" in flags for module, flags in module_flags)
     assert any("safe" in flags for module, flags in module_flags)
@@ -632,7 +632,7 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], require_flags=["safe", "passive"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert not "massdns" in [x[0] for x in module_flags]
+    assert not "dnsbrute" in [x[0] for x in module_flags]
     assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
     assert all("active" not in flags and "aggressive" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
@@ -642,17 +642,17 @@ def test_preset_require_exclude():
     preset = Preset(flags=["subdomain-enum"], exclude_flags=["aggressive", "active"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert not "massdns" in [x[0] for x in module_flags]
+    assert not "dnsbrute" in [x[0] for x in module_flags]
     assert all("passive" in flags and "safe" in flags for module, flags in module_flags)
     assert all("active" not in flags and "aggressive" not in flags for module, flags in module_flags)
     assert not any("active" in flags for module, flags in module_flags)
     assert not any("aggressive" in flags for module, flags in module_flags)
 
     # enable by flag, multiple excluded modules
-    preset = Preset(flags=["subdomain-enum"], exclude_modules=["massdns", "c99"]).bake()
+    preset = Preset(flags=["subdomain-enum"], exclude_modules=["dnsbrute", "c99"]).bake()
     assert len(preset.modules) > 25
     module_flags = list(get_module_flags(preset))
-    assert not "massdns" in [x[0] for x in module_flags]
+    assert not "dnsbrute" in [x[0] for x in module_flags]
     assert "certspotter" in [x[0] for x in module_flags]
     assert not "c99" in [x[0] for x in module_flags]
     assert any("passive" in flags for module, flags in module_flags)

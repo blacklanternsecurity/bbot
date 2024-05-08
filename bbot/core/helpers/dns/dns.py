@@ -73,6 +73,9 @@ class DNSHelper(EngineClient):
         # TODO: DNS server speed test (start in background task)
         self.resolver_file = self.parent_helper.tempfile(self.system_resolvers, pipe=False)
 
+        # brute force helper
+        self._brute = None
+
     async def resolve(self, query, **kwargs):
         return await self.run_and_return("resolve", query=query, **kwargs)
 
@@ -83,6 +86,14 @@ class DNSHelper(EngineClient):
     async def resolve_raw_batch(self, queries):
         async for _ in self.run_and_yield("resolve_raw_batch", queries=queries):
             yield _
+
+    @property
+    def brute(self):
+        if self._brute is None:
+            from .brute import DNSBrute
+
+            self._brute = DNSBrute(self.parent_helper)
+        return self._brute
 
     async def is_wildcard(self, query, ips=None, rdtype=None):
         """

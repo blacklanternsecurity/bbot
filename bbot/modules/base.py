@@ -1465,6 +1465,10 @@ class InterceptModule(BaseModule):
             except asyncio.CancelledError:
                 self.log.trace("Worker cancelled")
                 raise
+            except BaseException as e:
+                self.critical(f"Critical failure in intercept module {self.name}: {e}")
+                self.critical(traceback.format_exc())
+                self.scan.stop()
         self.log.trace(f"Worker stopped")
 
     async def get_incoming_event(self):

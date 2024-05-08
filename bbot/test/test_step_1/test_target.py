@@ -51,12 +51,12 @@ def test_target(bbot_scanner):
     assert not "www.evilcorp.com" in strict_target
 
     target = Target()
-    target.add_target("evilcorp.com")
+    target.add("evilcorp.com")
     assert not "com" in target
     assert "evilcorp.com" in target
     assert "www.evilcorp.com" in target
     strict_target = Target(strict_scope=True)
-    strict_target.add_target("evilcorp.com")
+    strict_target.add("evilcorp.com")
     assert not "com" in strict_target
     assert "evilcorp.com" in strict_target
     assert not "www.evilcorp.com" in strict_target

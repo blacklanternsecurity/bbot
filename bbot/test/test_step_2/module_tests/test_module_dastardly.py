@@ -44,7 +44,7 @@ class TestDastardly(ModuleTestBase):
 
         # get docker IP
         docker_ip = await self.get_docker_ip(module_test)
-        module_test.scan.target.add_target(docker_ip)
+        module_test.scan.target.add(docker_ip)
 
         # replace 127.0.0.1 with docker host IP to allow dastardly access to local http server
         old_filter_event = module_test.module.filter_event
