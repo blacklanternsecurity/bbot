@@ -821,7 +821,7 @@ def truncate_string(s, n):
         return s
 
 
-def extract_params_json(json_data):
+def extract_params_json(json_data, compare_mode="getparam"):
     """
     Extracts keys from a JSON object and returns them as a set. Used by the `paramminer_headers` module.
 
@@ -851,18 +851,18 @@ def extract_params_json(json_data):
         current_data = stack.pop()
         if isinstance(current_data, dict):
             for key, value in current_data.items():
-                keys.add(key)
+                if _validate_param(key, compare_mode):
+                    keys.add(key)
                 if isinstance(value, (dict, list)):
                     stack.append(value)
         elif isinstance(current_data, list):
             for item in current_data:
                 if isinstance(item, (dict, list)):
                     stack.append(item)
-
     return keys
 
 
-def extract_params_xml(xml_data):
+def extract_params_xml(xml_data, compare_mode="getparam"):
     """
     Extracts tags from an XML object and returns them as a set.
 
@@ -892,21 +892,45 @@ def extract_params_xml(xml_data):
 
     while stack:
         current_element = stack.pop()
-        tags.add(current_element.tag)
+        if _validate_param(current_element.tag, compare_mode):
+            tags.add(current_element.tag)
         for child in current_element:
             stack.append(child)
     return tags
 
 
-def extract_params_html(html_data):
+# Define valid characters for each mode based on RFCs
+valid_chars = {
+    "header": set(chr(c) for c in range(33, 127) if chr(c) not in '."(),;:\\'),
+    "getparam": set(chr(c) for c in range(33, 127) if chr(c) not in ":/?#[]@!$&'()*+,;="),
+    "cookie": set(chr(c) for c in range(33, 127) if chr(c) not in ' ",;=\\'),
+}
+
+
+def _validate_param(param, compare_mode):
+    if len(param) > 100:
+        return False
+    if compare_mode not in valid_chars:
+        raise ValueError(f"Invalid compare_mode: {compare_mode}")
+    allowed_chars = valid_chars[compare_mode]
+    return set(param).issubset(allowed_chars)
+
+
+def extract_params_html(html_data, compare_mode="getparam"):
     """
-    Extracts parameters from an HTML object, yielding them one at a time.
+    Extracts parameters from an HTML object, yielding them one at a time. This function filters
+    these parameters based on a specified mode that determines the type of validation
+    or comparison against rules for headers, GET parameters, or cookies. If no mode is specified,
+    it defaults to 'getparam', which is the least restrictive.
 
     Args:
         html_data (str): HTML-formatted string.
+        compare_mode (str, optional): The mode to compare extracted parameter names against.
+            Defaults to 'getparam'. Valid modes are 'header', 'getparam', 'cookie'.
 
     Yields:
-        str: A string containing the parameter found in HTML object.
+        str: A string containing the parameter found in the HTML object that meets the
+        criteria of the specified mode.
 
     Examples:
         >>> html_data = '''
@@ -922,20 +946,27 @@ def extract_params_html(html_data):
         ... </html>
         ... '''
         >>> list(extract_params_html(html_data))
-        ['user', 'param2', 'param3']
+        ['user', 'param1', 'param2', 'param3']
     """
+
+    found_params = []
+
     input_tag = bbot_regexes.input_tag_regex.findall(html_data)
 
     for i in input_tag:
-        log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
-        yield i
+        if _validate_param(i, compare_mode):
+            log.debug(f"FOUND PARAM ({i}) IN INPUT TAGS")
+            found_params.append(i)
 
     # check for jquery get parameters
     jquery_get = bbot_regexes.jquery_get_regex.findall(html_data)
-
-    for i in jquery_get:
-        log.debug(f"FOUND PARAM ({i}) IN JQUERY GET PARAMS")
-        yield i
+    if jquery_get:
+        for i in jquery_get:
+            for x in i.split(","):
+                s = x.split(":")[0].rstrip()
+                if _validate_param(s, compare_mode):
+                    log.debug(f"FOUND PARAM ({s}) IN A JQUERY GET PARAMS")
+                    found_params.append(s)
 
     # check for jquery post parameters
     jquery_post = bbot_regexes.jquery_post_regex.findall(html_data)
@@ -943,13 +974,21 @@ def extract_params_html(html_data):
         for i in jquery_post:
             for x in i.split(","):
                 s = x.split(":")[0].rstrip()
-                log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
-                yield s
+                if _validate_param(s, compare_mode):
+                    log.debug(f"FOUND PARAM ({s}) IN A JQUERY POST PARAMS")
+                    found_params.append(s)
 
     a_tag = bbot_regexes.a_tag_regex.findall(html_data)
-    for s in a_tag:
-        log.debug(f"FOUND PARAM ({s}) IN A TAG GET PARAMS")
-        yield s
+    for tag in a_tag:
+        a_tag_querystring = tag.split("&") if tag else []
+        for s in a_tag_querystring:
+            if "=" in s:
+                s0 = s.split("=")[0]
+                if _validate_param(s0, compare_mode):
+                    log.debug(f"FOUND PARAM ({s0}) IN A TAG GET PARAMS")
+                    found_params.append(s0)
+
+    return found_params
 
 
 def extract_words(data, acronyms=True, wordninja=True, model=None, max_length=100, word_regexes=None):
@@ -2325,6 +2364,27 @@ def get_exception_chain(e):
         exception_chain.append(current_exception)
         current_exception = getattr(current_exception, "__context__", None)
     return exception_chain
+
+
+def in_exception_chain(e, exc_types):
+    """
+    Given an Exception and a list of Exception types, returns whether any of the specified types are contained anywhere in the Exception chain.
+
+    Args:
+        e (BaseException): The exception to check
+        exc_types (list[Exception]): Exception types to consider intentional cancellations. Default is KeyboardInterrupt
+
+    Returns:
+        bool: Whether the error is the result of an intentional cancellaion
+
+    Examples:
+        >>> try:
+        ...     raise ValueError("This is a value error")
+        ... except Exception as e:
+        ...     if not in_exception_chain(e, (KeyboardInterrupt, asyncio.CancelledError)):
+        ...         raise
+    """
+    return any([isinstance(_, exc_types) for _ in get_exception_chain(e)])
 
 
 def get_traceback_details(e):

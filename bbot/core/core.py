@@ -1,9 +1,8 @@
 import logging
-import traceback
 from copy import copy
-import multiprocessing
 from pathlib import Path
 from omegaconf import OmegaConf
+
 
 DEFAULT_CONFIG = None
 
@@ -22,27 +21,6 @@ class BBOTCore:
     - load quickly
     """
 
-    class BBOTProcess(multiprocessing.Process):
-
-        def __init__(self, *args, **kwargs):
-            self.logging_queue = kwargs.pop("logging_queue")
-            self.log_level = kwargs.pop("log_level")
-            super().__init__(*args, **kwargs)
-
-        def run(self):
-            log = logging.getLogger("bbot.core.process")
-            try:
-                from bbot.core import CORE
-
-                CORE.logger.setup_queue_handler(self.logging_queue, self.log_level)
-                super().run()
-            except KeyboardInterrupt:
-                log.warning(f"Got KeyboardInterrupt in {self.name}")
-                log.trace(traceback.format_exc())
-            except BaseException as e:
-                log.warning(f"Error in {self.name}: {e}")
-                log.trace(traceback.format_exc())
-
     def __init__(self):
         self._logger = None
         self._files_config = None
@@ -51,10 +29,6 @@ class BBOTCore:
 
         self._config = None
         self._custom_config = None
-
-        # ensure bbot home dir
-        if not "home" in self.config:
-            self.custom_config["home"] = "~/.bbot"
 
         # bare minimum == logging
         self.logger
@@ -105,6 +79,9 @@ class BBOTCore:
         global DEFAULT_CONFIG
         if DEFAULT_CONFIG is None:
             self.default_config = self.files_config.get_default_config()
+            # ensure bbot home dir
+            if not "home" in self.default_config:
+                self.default_config["home"] = "~/.bbot"
         return DEFAULT_CONFIG
 
     @default_config.setter
@@ -166,8 +143,9 @@ class BBOTCore:
         return self._files_config
 
     def create_process(self, *args, **kwargs):
-        process = self.BBOTProcess(*args, logging_queue=self.logger.queue, log_level=self.logger.log_level, **kwargs)
-        process.daemon = True
+        from .helpers.process import BBOTProcess
+
+        process = BBOTProcess(*args, **kwargs)
         return process
 
     @property

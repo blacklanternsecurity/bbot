@@ -75,7 +75,6 @@ async def test_modules_basic(helpers, events, bbot_scanner, httpx_mock):
     # omitted event types should be rejected
     url_unverified = scan.make_event("http://127.0.0.1", "URL_UNVERIFIED", source=scan.root_event)
     result, reason = base_output_module_2._event_precheck(url_unverified)
-    log.critical(f"{url_unverified} / {result} / {reason}")
     assert result == False
     assert reason == "its type is omitted in the config"
 
