@@ -6,26 +6,38 @@ from ..bbot_fixtures import *
 @pytest.mark.asyncio
 async def test_web_engine(bbot_scanner, bbot_httpserver):
 
+    web_body = "hello_there" * 1000
     url = bbot_httpserver.url_for("/test")
-    bbot_httpserver.expect_request(uri="/test").respond_with_data("hello_there")
+    bbot_httpserver.expect_request(uri="/test").respond_with_data(web_body)
 
     scan = bbot_scanner()
 
     # request
     response = await scan.helpers.request(url)
     assert response.status_code > 0
-    assert response.text == "hello_there"
+    assert response.text == web_body
 
     # request_batch
     responses = [r async for r in scan.helpers.request_batch([url] * 100)]
     assert len(responses) == 100
     assert all([r[0] == url for r in responses])
-    assert all([r[1].status_code > 0 and r[1].text == "hello_there" for r in responses])
+    assert all([r[1].status_code > 0 and r[1].text == web_body for r in responses])
+
+    # request_batch w/ cancellation
+    agen = scan.helpers.request_batch([url] * 100)
+    async for url, response in agen:
+        assert response.text == web_body
+        await agen.aclose()
+        break
+
+    import asyncio
+
+    await asyncio.sleep(5)
 
     # download
     filename = await scan.helpers.download(url)
     file_content = open(filename).read()
-    assert file_content == "hello_there"
+    assert file_content == web_body
 
 
 @pytest.mark.asyncio

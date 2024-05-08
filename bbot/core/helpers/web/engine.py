@@ -21,7 +21,6 @@ class HTTPEngine(EngineServer):
         1: "request_batch",
         2: "request_custom_batch",
         3: "download",
-        99: "mock",
     }
 
     client_only_options = (
@@ -107,12 +106,10 @@ class HTTPEngine(EngineServer):
             done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
             for task in done:
-                results = task.result()
+                response = task.result()
                 url = tasks.pop(task)
-
-                if results:
-                    yield (url, results)
-
+                if response:
+                    yield (url, response)
                 if urls:  # Start a new task for each one completed, if URLs remain
                     new_task(urls.pop(0))
 
@@ -224,11 +221,3 @@ class HTTPEngine(EngineServer):
                 log.trace(f"Unhandled exception with request to URL: {url}: {e}")
                 log.trace(traceback.format_exc())
             raise
-
-    def mock(self, *args, **kwargs):
-        import pytest
-        from bbot.core.helpers.interactsh import server_list as interactsh_servers
-
-        @pytest.fixture
-        def non_mocked_hosts() -> list:
-            return ["127.0.0.1", "localhost", "raw.githubusercontent.com"] + interactsh_servers
