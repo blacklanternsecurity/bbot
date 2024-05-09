@@ -240,9 +240,8 @@ class Preset:
         from bbot.scanner.target import Target
 
         self.target = Target(*targets, strict_scope=self.strict_scope)
-        if not whitelist:
-            self.whitelist = self.target.copy()
-        else:
+        self.whitelist = None
+        if whitelist:
             self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
         if not blacklist:
             blacklist = []
@@ -326,11 +325,16 @@ class Preset:
         self.flags.update(other.flags)
         # scope
         self.target.add(other.target)
-        self.whitelist.add(other.whitelist)
+        if other.whitelist:
+            if self.whitelist is None:
+                self.whitelist = other.whitelist.copy()
+            else:
+                self.whitelist.add(other.whitelist)
         self.blacklist.add(other.blacklist)
         self.strict_scope = self.strict_scope or other.strict_scope
         for t in (self.target, self.whitelist):
-            t.strict_scope = self.strict_scope
+            if t is not None:
+                t.strict_scope = self.strict_scope
         # log verbosity
         if other.silent:
             self.silent = other.silent
@@ -376,6 +380,10 @@ class Preset:
         # update os environ
         os.environ.clear()
         os.environ.update(os_environ)
+
+        # ensure whitelist
+        if baked_preset.whitelist is None:
+            baked_preset.whitelist = baked_preset.target.copy()
 
         # validate flags, config options
         baked_preset.validate()
@@ -615,8 +623,11 @@ class Preset:
             >>> preset.whitelisted("http://www.evilcorp.com")
             True
         """
+        whitelist = self.whitelist
+        if whitelist is None:
+            whitelist = self.target
         e = make_event(host, dummy=True)
-        return e in self.whitelist
+        return e in whitelist
 
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
