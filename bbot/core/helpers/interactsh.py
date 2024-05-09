@@ -233,11 +233,27 @@ class Interactsh:
             headers["Authorization"] = self.token
 
         try:
-            r = await self.parent_helper.request(
-                f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
+            log.debug(
+                f"Polling Interactsh Server at 'https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}', 'headers={headers}'"
             )
+
+            # Try 5 Times to Request(Interactsh Server)
+            for x in range(5):
+
+                # Make Get-Request to the newly created Interactsh Server
+                r = await self.parent_helper.request(
+                    f"https://{self.server}/poll?id={self.correlation_id}&secret={self.secret}", headers=headers
+                )
+
+                if r:
+                    break
+
+                # If the Request didn't return, then sleep to give Interactsh Team time to spin up Interactsh Server to connect to then Connect (Request)
+                await asyncio.sleep(0.2)
+
+            # If after 5 tries we get nothing... then finally give up and Raise ERROR
             if r is None:
-                raise InteractshError("Error polling interact.sh: No response from server")
+                raise InteractshError("No response from server")
 
             ret = []
             data_list = r.json().get("data", None)
