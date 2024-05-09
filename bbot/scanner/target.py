@@ -147,7 +147,7 @@ class Target:
                     # allow commented lines
                     if not str(t).startswith("#"):
                         raise ValidationError(f'Could not add target "{t}": {e}')
-            if self.make_in_scope:
+            if self.make_in_scope and event.host:
                 event.scope_distance = 0
             try:
                 self._events[event.host].add(event)
