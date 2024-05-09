@@ -36,7 +36,9 @@ class HTTPEngine(EngineServer):
         self._ssl_context_noverify = None
         self.ssl_verify = self.config.get("ssl_verify", False)
         if self.ssl_verify is False:
-            self.ssl_verify = self.ssl_context_noverify()
+            from .ssl_context import ssl_context_noverify
+
+            self.ssl_verify = ssl_context_noverify
         self.web_client = self.AsyncClient(persist_cookies=False)
 
     def AsyncClient(self, *args, **kwargs):
