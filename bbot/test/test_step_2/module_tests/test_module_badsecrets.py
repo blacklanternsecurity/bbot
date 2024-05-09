@@ -1,4 +1,4 @@
-from .base import ModuleTestBase
+from .base import ModuleTestBase, tempwordlist
 
 
 class TestBadSecrets(ModuleTestBase):
@@ -121,3 +121,44 @@ class TestBadSecrets(ModuleTestBase):
         assert CookieBasedDetection, "No JWT cookie vuln detected"
         assert CookieBasedDetection_2, "No Express.js cookie vuln detected"
         assert CookieBasedDetection_3, "No Express.js (cs dual cookies) vuln detected"
+
+
+class TestBadSecrets_customsecrets(TestBadSecrets):
+    config_overrides = {
+        "modules": {
+            "badsecrets": {
+                "custom_secrets": tempwordlist(
+                    [
+                        "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF,DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF"
+                    ]
+                )
+            }
+        }
+    }
+
+    sample_viewstate = """
+    <form method="post" action="./query.aspx" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJODExMDE5NzY5ZGS02CHaDxi5Kw19mPShbrrOUCJ4pA==" />
+</div>
+
+<div class="aspNetHidden">
+
+    <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="75BBA7D6" />
+    <input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
+</div>
+    </form>
+</body>
+</html>
+"""
+
+    def check(self, module_test, events):
+        SecretFound = False
+        for e in events:
+            if (
+                e.type == "VULNERABILITY"
+                and "Known Secret Found." in e.data["description"]
+                and "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF" in e.data["description"]
+            ):
+                SecretFound = True
+        assert SecretFound, "No secret found"
