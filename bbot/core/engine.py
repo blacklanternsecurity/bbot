@@ -46,6 +46,8 @@ class EngineBase:
         if message is error_sentinel:
             return True
         if isinstance(message, dict) and len(message) == 1 and "_e" in message:
+            error = message["_e"][0]
+            raise BBOTEngineError(error)
             return True
         return False
 
@@ -201,11 +203,11 @@ class EngineServer(EngineBase):
             self.tasks = dict()
 
     async def run_and_return(self, client_id, command_fn, *args, **kwargs):
-        self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({kwargs})")
+        self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
         try:
             result = await command_fn(*args, **kwargs)
-        except ValueError as e:
-            error = f"Unhandled error in {self.name}.{command_fn.__name__}({kwargs}): {e}"
+        except BaseException as e:
+            error = f"Unhandled error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
             trace = traceback.format_exc()
             self.log.error(error)
             self.log.trace(trace)
@@ -215,13 +217,13 @@ class EngineServer(EngineBase):
         await self.send_socket_multipart([client_id, pickle.dumps(result)])
 
     async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
-        self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({kwargs})")
+        self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({args}, {kwargs})")
         try:
             async for _ in command_fn(*args, **kwargs):
                 await self.send_socket_multipart([client_id, pickle.dumps(_)])
             await self.send_socket_multipart([client_id, pickle.dumps({"_s": None})])
-        except ValueError as e:
-            error = f"Unhandled error in {self.name}.{command_fn.__name__}({kwargs}): {e}"
+        except BaseException as e:
+            error = f"Unhandled error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
             trace = traceback.format_exc()
             self.log.error(error)
             self.log.trace(trace)
@@ -252,18 +254,20 @@ class EngineServer(EngineBase):
                     continue
 
                 if cmd == -1:
-                    task, _cmd, _args, _kwargs = self.tasks.get(client_id, None)
-                    if task is not None:
-                        self.log.debug(f"Cancelling client id {client_id} (task: {task})")
-                        task.cancel()
-                        try:
-                            await task
-                        except (KeyboardInterrupt, asyncio.CancelledError):
-                            pass
-                        except BaseException as e:
-                            self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
-                            self.log.trace(traceback.format_exc())
-                        self.tasks.pop(client_id, None)
+                    task = self.tasks.get(client_id, None)
+                    if task is None:
+                        continue
+                    task, _cmd, _args, _kwargs = task
+                    self.log.debug(f"Cancelling client id {client_id} (task: {task})")
+                    task.cancel()
+                    try:
+                        await task
+                    except (KeyboardInterrupt, asyncio.CancelledError):
+                        pass
+                    except BaseException as e:
+                        self.log.error(f"Unhandled error in {_cmd}({_args}, {_kwargs}): {e}")
+                        self.log.trace(traceback.format_exc())
+                    self.tasks.pop(client_id, None)
                     continue
 
                 args = message.get("a", ())

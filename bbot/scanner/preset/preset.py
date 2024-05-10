@@ -325,8 +325,8 @@ class Preset:
         self.flags.update(other.flags)
         # scope
         self.target.seeds.add(other.target.seeds)
-        if other.whitelist:
-            if self.target.whitelist is None:
+        if other.target.whitelist is not None:
+            if self.whitelist is None:
                 self.target.whitelist = other.whitelist.copy()
             else:
                 self.whitelist.add(other.whitelist)
@@ -369,6 +369,8 @@ class Preset:
         baked_preset = copy(self)
         # copy core
         baked_preset.core = self.core.copy()
+        # copy target
+        baked_preset.target = self.target.copy()
         # copy module loader
         baked_preset._module_loader = self.module_loader.copy()
         # prepare os environment
@@ -579,10 +581,7 @@ class Preset:
         return self.target.blacklisted(host)
 
     def whitelisted(self, host):
-        whitelist = self.whitelist
-        if whitelist is None:
-            whitelist = self.target.seeds
-        return host in whitelist
+        return self.target.whitelisted(host)
 
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):
@@ -700,7 +699,9 @@ class Preset:
         # scope
         if include_target:
             target = sorted(str(t.data) for t in self.target.seeds)
-            whitelist = sorted(str(t.data) for t in self.target.whitelist)
+            whitelist = set()
+            if self.target.whitelist is not None:
+                whitelist = sorted(str(t.data) for t in self.target.whitelist)
             blacklist = sorted(str(t.data) for t in self.target.blacklist)
             if target:
                 preset_dict["target"] = target

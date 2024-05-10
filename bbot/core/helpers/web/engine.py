@@ -110,8 +110,7 @@ class HTTPEngine(EngineServer):
             for task in done:
                 response = task.result()
                 url = tasks.pop(task)
-                if response:
-                    yield (url, response)
+                yield (url, response)
                 if urls:  # Start a new task for each one completed, if URLs remain
                     new_task(urls.pop(0))
 

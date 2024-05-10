@@ -40,6 +40,14 @@ class BBOTTarget:
     def __contains__(self, other):
         return other in self.seeds
 
+    def copy(self):
+        self_copy = copy.copy(self)
+        self_copy.seeds = self.seeds.copy()
+        if self.whitelist is not None:
+            self_copy.whitelist = self.whitelist.copy()
+        self_copy.blacklist = self.blacklist.copy()
+        return self_copy
+
     @property
     def events(self):
         return self.seeds.events
@@ -96,7 +104,10 @@ class BBOTTarget:
             True
         """
         e = make_event(host, dummy=True)
-        return e in self.whitelist
+        whitelist = self.whitelist
+        if whitelist is None:
+            whitelist = self.seeds
+        return e in whitelist
 
     @property
     def radix_only(self):
