@@ -212,6 +212,92 @@ def test_preset_scope():
     preset1.merge(preset4)
     set(preset1.output_modules) == {"python", "csv", "txt", "json", "stdout", "neo4j"}
 
+    # test preset merging + whitelist
+
+    preset_nowhitelist = Preset("evilcorp.com")
+    preset_whitelist = Preset("evilcorp.org", whitelist=["1.2.3.4/24"])
+    assert preset_nowhitelist.in_scope("www.evilcorp.com")
+    assert not preset_nowhitelist.in_scope("www.evilcorp.de")
+    assert not preset_nowhitelist.in_scope("1.2.3.4/24")
+
+    assert "www.evilcorp.org" in preset_whitelist.target
+    assert "1.2.3.4" in preset_whitelist.whitelist
+    assert not preset_whitelist.in_scope("www.evilcorp.org")
+    assert not preset_whitelist.in_scope("www.evilcorp.de")
+    assert not preset_whitelist.whitelisted("www.evilcorp.org")
+    assert not preset_whitelist.whitelisted("www.evilcorp.de")
+    assert preset_whitelist.in_scope("1.2.3.4")
+    assert preset_whitelist.in_scope("1.2.3.4/28")
+    assert preset_whitelist.in_scope("1.2.3.4/24")
+    assert preset_whitelist.whitelisted("1.2.3.4")
+    assert preset_whitelist.whitelisted("1.2.3.4/28")
+    assert preset_whitelist.whitelisted("1.2.3.4/24")
+
+    assert set([e.data for e in preset_nowhitelist.target]) == {"evilcorp.com"}
+    assert preset_nowhitelist.whitelist is None
+    assert set([e.data for e in preset_whitelist.target]) == {"evilcorp.org"}
+    baked_nowhitelist = preset_nowhitelist.bake()
+    assert set([e.data for e in baked_nowhitelist.whitelist]) == {"evilcorp.com"}
+    baked_whitelist = preset_whitelist.bake()
+    assert set([e.data for e in baked_whitelist.whitelist]) == {"1.2.3.0/24"}
+
+    preset_nowhitelist.merge(preset_whitelist)
+    assert set([e.data for e in preset_nowhitelist.target]) == {"evilcorp.com", "evilcorp.org"}
+    assert set([e.data for e in preset_nowhitelist.whitelist]) == {"1.2.3.0/24"}
+    assert "www.evilcorp.org" in preset_nowhitelist.target
+    assert "www.evilcorp.com" in preset_nowhitelist.target
+    assert "1.2.3.4" in preset_nowhitelist.whitelist
+    assert not preset_nowhitelist.in_scope("www.evilcorp.org")
+    assert not preset_nowhitelist.in_scope("www.evilcorp.com")
+    assert not preset_nowhitelist.whitelisted("www.evilcorp.org")
+    assert not preset_nowhitelist.whitelisted("www.evilcorp.com")
+    assert preset_nowhitelist.in_scope("1.2.3.4")
+
+    preset_nowhitelist = Preset("evilcorp.com")
+    preset_whitelist = Preset("evilcorp.org", whitelist=["1.2.3.4/24"])
+    preset_whitelist.merge(preset_nowhitelist)
+    assert set([e.data for e in preset_whitelist.target]) == {"evilcorp.com", "evilcorp.org"}
+    assert set([e.data for e in preset_whitelist.whitelist]) == {"1.2.3.0/24"}
+    assert "www.evilcorp.org" in preset_whitelist.target
+    assert "www.evilcorp.com" in preset_whitelist.target
+    assert "1.2.3.4" in preset_whitelist.whitelist
+    assert not preset_whitelist.in_scope("www.evilcorp.org")
+    assert not preset_whitelist.in_scope("www.evilcorp.com")
+    assert not preset_whitelist.whitelisted("www.evilcorp.org")
+    assert not preset_whitelist.whitelisted("www.evilcorp.com")
+    assert preset_whitelist.in_scope("1.2.3.4")
+
+    preset_nowhitelist1 = Preset("evilcorp.com")
+    preset_nowhitelist2 = Preset("evilcorp.de")
+    assert set([e.data for e in preset_nowhitelist1.target]) == {"evilcorp.com"}
+    assert set([e.data for e in preset_nowhitelist2.target]) == {"evilcorp.de"}
+    assert preset_nowhitelist1.whitelist is None
+    assert preset_nowhitelist2.whitelist is None
+    preset_nowhitelist1.merge(preset_nowhitelist2)
+    assert set([e.data for e in preset_nowhitelist1.target]) == {"evilcorp.com", "evilcorp.de"}
+    assert set([e.data for e in preset_nowhitelist2.target]) == {"evilcorp.de"}
+    assert preset_nowhitelist1.whitelist is None
+    assert preset_nowhitelist2.whitelist is None
+    assert "www.evilcorp.com" in preset_nowhitelist1.target
+    assert "www.evilcorp.de" in preset_nowhitelist1.target
+    assert preset_nowhitelist1.whitelisted("www.evilcorp.com")
+    assert preset_nowhitelist1.whitelisted("www.evilcorp.de")
+    assert not preset_nowhitelist1.whitelisted("1.2.3.4")
+    assert preset_nowhitelist1.in_scope("www.evilcorp.com")
+    assert preset_nowhitelist1.in_scope("www.evilcorp.de")
+    assert not preset_nowhitelist1.in_scope("1.2.3.4")
+
+    preset_nowhitelist1 = Preset("evilcorp.com")
+    preset_nowhitelist2 = Preset("evilcorp.de")
+    preset_nowhitelist2.merge(preset_nowhitelist1)
+    assert set([e.data for e in preset_nowhitelist1.target]) == {"evilcorp.com"}
+    assert set([e.data for e in preset_nowhitelist2.target]) == {"evilcorp.com", "evilcorp.de"}
+    assert preset_nowhitelist1.whitelist is None
+    assert preset_nowhitelist2.whitelist is None
+    baked_nowhitelist2 = preset_nowhitelist2.bake()
+    assert set([e.data for e in baked_nowhitelist2.target]) == {"evilcorp.com", "evilcorp.de"}
+    assert set([e.data for e in baked_nowhitelist2.whitelist]) == {"evilcorp.com", "evilcorp.de"}
+
 
 def test_preset_logging():
     # test verbosity levels (conflicting verbose/debug/silent)

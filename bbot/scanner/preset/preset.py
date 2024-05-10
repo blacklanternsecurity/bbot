@@ -325,11 +325,16 @@ class Preset:
         self.flags.update(other.flags)
         # scope
         self.target.target.add(other.target.target)
-        self.target.whitelist.add(other.target.whitelist)
-        self.target.blacklist.add(other.target.blacklist)
+        if other.whitelist:
+            if self.whitelist is None:
+                self.whitelist = other.whitelist.copy()
+            else:
+                self.whitelist.add(other.whitelist)
+        self.blacklist.add(other.blacklist)
         self.strict_scope = self.strict_scope or other.strict_scope
-        for t in (self.target.target, self.target.whitelist):
-            t.strict_scope = self.strict_scope
+        for t in (self.target.target, self.whitelist):
+            if t is not None:
+                t.strict_scope = self.strict_scope
         # log verbosity
         if other.silent:
             self.silent = other.silent
@@ -375,6 +380,10 @@ class Preset:
         # update os environ
         os.environ.clear()
         os.environ.update(os_environ)
+
+        # ensure whitelist
+        if baked_preset.whitelist is None:
+            baked_preset.whitelist = baked_preset.target.copy()
 
         # validate flags, config options
         baked_preset.validate()
@@ -570,7 +579,10 @@ class Preset:
         return self.target.blacklisted(host)
 
     def whitelisted(self, host):
-        return self.target.whitelisted(host)
+        whitelist = self.whitelist
+        if whitelist is None:
+            whitelist = self.target.target
+        return host in whitelist
 
     @classmethod
     def from_dict(cls, preset_dict, name=None, _exclude=None, _log=False):

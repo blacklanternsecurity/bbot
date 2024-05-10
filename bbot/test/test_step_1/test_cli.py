@@ -1,10 +1,90 @@
 from ..bbot_fixtures import *
 
+from bbot import cli
+
+
+@pytest.mark.asyncio
+async def test_cli_scope(monkeypatch, capsys):
+    import json
+
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+
+    # basic target without whitelist
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bbot", "-t", "one.one.one.one", "-c", "scope_report_distance=10", "dns_resolution=true", "--json"],
+    )
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == True
+    lines = [json.loads(l) for l in out.splitlines()]
+    dns_events = [l for l in lines if l["type"] == "DNS_NAME" and l["data"] == "one.one.one.one"]
+    assert dns_events
+    assert all([l["scope_distance"] == 0 and "in-scope" in l["tags"] for l in dns_events])
+    assert 1 == len(
+        [
+            l
+            for l in dns_events
+            if l["module"] == "TARGET"
+            and l["scope_distance"] == 0
+            and "in-scope" in l["tags"]
+            and "target" in l["tags"]
+        ]
+    )
+    ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.1.1.1"]
+    assert ip_events
+    assert all([l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in ip_events])
+    ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.0.0.1"]
+    assert ip_events
+    assert all([l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in ip_events])
+
+    # with whitelist
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "bbot",
+            "-t",
+            "one.one.one.one",
+            "-w",
+            "192.168.0.1",
+            "-c",
+            "scope_report_distance=10",
+            "dns_resolution=true",
+            "scope_dns_search_distance=2",
+            "--json",
+        ],
+    )
+    result = await cli._main()
+    out, err = capsys.readouterr()
+    assert result == True
+    lines = [json.loads(l) for l in out.splitlines()]
+    lines = [l for l in lines if l["type"] != "SCAN"]
+    assert lines
+    assert not any([l["scope_distance"] == 0 for l in lines])
+    dns_events = [l for l in lines if l["type"] == "DNS_NAME" and l["data"] == "one.one.one.one"]
+    assert dns_events
+    assert all([l["scope_distance"] == 1 and "distance-1" in l["tags"] for l in dns_events])
+    assert 1 == len(
+        [
+            l
+            for l in dns_events
+            if l["module"] == "TARGET"
+            and l["scope_distance"] == 1
+            and "distance-1" in l["tags"]
+            and "target" in l["tags"]
+        ]
+    )
+    ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.1.1.1"]
+    assert ip_events
+    assert all([l["scope_distance"] == 2 and "distance-2" in l["tags"] for l in ip_events])
+    ip_events = [l for l in lines if l["type"] == "IP_ADDRESS" and l["data"] == "1.0.0.1"]
+    assert ip_events
+    assert all([l["scope_distance"] == 2 and "distance-2" in l["tags"] for l in ip_events])
+
 
 @pytest.mark.asyncio
 async def test_cli_scan(monkeypatch):
-    from bbot import cli
-
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
@@ -50,8 +130,6 @@ async def test_cli_scan(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
-    from bbot import cli
-
     caplog.set_level(logging.INFO)
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
@@ -315,8 +393,6 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
 
 
 def test_cli_config_validation(monkeypatch, caplog):
-    from bbot import cli
-
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
@@ -338,8 +414,6 @@ def test_cli_config_validation(monkeypatch, caplog):
 
 
 def test_cli_module_validation(monkeypatch, caplog):
-    from bbot import cli
-
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
 
@@ -458,7 +532,6 @@ def test_cli_module_validation(monkeypatch, caplog):
 
 def test_cli_presets(monkeypatch, capsys, caplog):
     import yaml
-    from bbot import cli
 
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
