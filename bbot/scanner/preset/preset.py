@@ -383,7 +383,7 @@ class Preset:
 
         # ensure whitelist
         if baked_preset.target.whitelist is None:
-            baked_preset.target.whitelist = baked_preset.target.target.copy()
+            baked_preset.target.whitelist = baked_preset.target.seeds.copy()
 
         # validate flags, config options
         baked_preset.validate()
