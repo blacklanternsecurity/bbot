@@ -392,6 +392,43 @@ async def test_cli_args(monkeypatch, caplog, capsys, clean_default_config):
     assert success == True, "--install-all-deps failed for at least one module"
 
 
+@pytest.mark.asyncio
+async def test_cli_customheaders(monkeypatch, caplog, capsys):
+    monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
+    monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
+    import yaml
+
+    # test custom headers
+    monkeypatch.setattr(
+        "sys.argv", ["bbot", "--custom-headers", "foo=bar", "foo2=bar2", "foo3=bar=3", "--current-preset"]
+    )
+    success = await cli._main()
+    assert success == None, "setting custom headers on command line failed"
+    captured = capsys.readouterr()
+    stdout_preset = yaml.safe_load(captured.out)
+    assert stdout_preset["config"]["http_headers"] == {"foo": "bar", "foo2": "bar2", "foo3": "bar=3"}
+
+    # test custom headers invalid (no "=")
+    monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "justastring", "--current-preset"])
+    result = await cli._main()
+    assert result == None
+    assert "Custom headers not formatted correctly (missing '=')" in caplog.text
+    caplog.clear()
+
+    # test custom headers invalid (missing key)
+    monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "=nokey", "--current-preset"])
+    result = await cli._main()
+    assert result == None
+    assert "Custom headers not formatted correctly (missing header name or value)" in caplog.text
+    caplog.clear()
+
+    # test custom headers invalid (missing value)
+    monkeypatch.setattr("sys.argv", ["bbot", "--custom-headers", "missingvalue=", "--current-preset"])
+    result = await cli._main()
+    assert result == None
+    assert "Custom headers not formatted correctly (missing header name or value)" in caplog.text
+
+
 def test_cli_config_validation(monkeypatch, caplog):
     monkeypatch.setattr(sys, "exit", lambda *args, **kwargs: True)
     monkeypatch.setattr(os, "_exit", lambda *args, **kwargs: True)
