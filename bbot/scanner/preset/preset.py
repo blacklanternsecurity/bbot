@@ -324,15 +324,15 @@ class Preset:
         self.explicit_output_modules.update(other.explicit_output_modules)
         self.flags.update(other.flags)
         # scope
-        self.target.target.add(other.target.target)
+        self.target.seeds.add(other.target.seeds)
         if other.whitelist:
-            if self.whitelist is None:
-                self.whitelist = other.whitelist.copy()
+            if self.target.whitelist is None:
+                self.target.whitelist = other.whitelist.copy()
             else:
                 self.whitelist.add(other.whitelist)
         self.blacklist.add(other.blacklist)
         self.strict_scope = self.strict_scope or other.strict_scope
-        for t in (self.target.target, self.whitelist):
+        for t in (self.target.seeds, self.target.whitelist):
             if t is not None:
                 t.strict_scope = self.strict_scope
         # log verbosity
@@ -382,8 +382,8 @@ class Preset:
         os.environ.update(os_environ)
 
         # ensure whitelist
-        if baked_preset.whitelist is None:
-            baked_preset.whitelist = baked_preset.target.copy()
+        if baked_preset.target.whitelist is None:
+            baked_preset.target.whitelist = baked_preset.target.target.copy()
 
         # validate flags, config options
         baked_preset.validate()
@@ -581,7 +581,7 @@ class Preset:
     def whitelisted(self, host):
         whitelist = self.whitelist
         if whitelist is None:
-            whitelist = self.target.target
+            whitelist = self.target.seeds
         return host in whitelist
 
     @classmethod
@@ -699,7 +699,7 @@ class Preset:
 
         # scope
         if include_target:
-            target = sorted(str(t.data) for t in self.target)
+            target = sorted(str(t.data) for t in self.target.seeds)
             whitelist = sorted(str(t.data) for t in self.target.whitelist)
             blacklist = sorted(str(t.data) for t in self.target.blacklist)
             if target:

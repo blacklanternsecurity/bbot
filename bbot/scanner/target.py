@@ -22,9 +22,9 @@ class BBOTTarget:
 
     def __init__(self, targets, whitelist=None, blacklist=None, strict_scope=False):
         self.strict_scope = strict_scope
-        self.target = Target(*targets, strict_scope=self.strict_scope)
+        self.seeds = Target(*targets, strict_scope=self.strict_scope)
         if whitelist is None:
-            self.whitelist = self.target.copy()
+            self.whitelist = None
         else:
             self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
         if blacklist is None:
@@ -32,17 +32,17 @@ class BBOTTarget:
         self.blacklist = Target(*blacklist)
 
     def __iter__(self):
-        return iter(self.target)
+        return iter(self.seeds)
 
     def __len__(self):
-        return len(self.target)
+        return len(self.seeds)
 
     def __contains__(self, other):
-        return other in self.target
+        return other in self.seeds
 
     @property
     def events(self):
-        return self.target.events
+        return self.seeds.events
 
     def in_scope(self, host):
         """
@@ -104,16 +104,11 @@ class BBOTTarget:
         A slimmer, serializable version of the target designed for simple scope checks
         """
         return self.__class__(
-            targets=[e.host for e in self.target if e.host],
+            targets=[e.host for e in self.seeds if e.host],
             whitelist=[e.host for e in self.whitelist if e.host],
             blacklist=[e.host for e in self.blacklist if e.host],
             strict_scope=self.strict_scope,
         )
-        # class RadixOnlyTarget:
-        #     def __init__(self, targets, whitelist, blacklist):
-        #         self.target = Target(*targets, strict_scope=self.strict_scope)
-        #         self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
-        #         self.blacklist = Target(*blacklist)
 
 
 class Target:
