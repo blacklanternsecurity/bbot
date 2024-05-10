@@ -145,6 +145,7 @@ class BBOTArgs:
         args_preset.scan_name = self.parsed.name
         args_preset.output_dir = self.parsed.output_dir
         args_preset.force_start = self.parsed.force
+        args_preset.core.merge_custom({"http_headers": self.parsed.custom_headers})
 
         # CLI config options (dot-syntax)
         for config_arg in self.parsed.config:
@@ -299,6 +300,13 @@ class BBOTArgs:
 
         misc = p.add_argument_group(title="Misc")
         misc.add_argument("--version", action="store_true", help="show BBOT version and exit")
+        misc.add_argument(
+            "-H",
+            "--custom-headers",
+            nargs="+",
+            default=[],
+            help="List of custom headers as key value pairs (header=value).",
+        )
         return p
 
     def sanitize_args(self):
@@ -322,6 +330,22 @@ class BBOTArgs:
         self.parsed.exclude_flags = chain_lists(self.parsed.exclude_flags)
         self.parsed.require_flags = chain_lists(self.parsed.require_flags)
         self.parsed.event_types = [t.upper() for t in chain_lists(self.parsed.event_types)]
+
+        # Custom Header Parsing / Validation
+        custom_headers_dict = {}
+        custom_header_example = "Example: --custom-headers foo=bar foo2=bar2"
+
+        for i in self.parsed.custom_headers:
+            parts = i.split("=", 1)
+            if len(parts) != 2:
+                raise ValidationError(f"Custom headers not formatted correctly (missing '='). {custom_header_example}")
+            k, v = parts
+            if not k or not v:
+                raise ValidationError(
+                    f"Custom headers not formatted correctly (missing header name or value). {custom_header_example}"
+                )
+            custom_headers_dict[k] = v
+        self.parsed.custom_headers = custom_headers_dict
 
     def validate(self):
         # validate config options
