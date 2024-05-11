@@ -28,6 +28,20 @@ class BBOTAsyncClient(httpx.AsyncClient):
         200
     """
 
+    @classmethod
+    def from_config(cls, config, target, *args, **kwargs):
+        kwargs["_config"] = config
+        kwargs["_target"] = target
+        retries = kwargs.pop("retries", config.get("http_retries", 1))
+        ssl_verify = config.get("ssl_verify", False)
+        if ssl_verify is False:
+            from .ssl_context import ssl_context_noverify
+
+            ssl_verify = ssl_context_noverify
+        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=ssl_verify)
+        kwargs["verify"] = ssl_verify
+        return cls(*args, **kwargs)
+
     def __init__(self, *args, **kwargs):
         self._config = kwargs.pop("_config")
         self._target = kwargs.pop("_target")

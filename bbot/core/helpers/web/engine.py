@@ -34,20 +34,7 @@ class HTTPEngine(EngineServer):
         self.config = config
         self.http_debug = self.config.get("http_debug", False)
         self._ssl_context_noverify = None
-        self.ssl_verify = self.config.get("ssl_verify", False)
-        if self.ssl_verify is False:
-            from .ssl_context import ssl_context_noverify
-
-            self.ssl_verify = ssl_context_noverify
-        self.web_client = self.AsyncClient(persist_cookies=False)
-
-    def AsyncClient(self, *args, **kwargs):
-        kwargs["_config"] = self.config
-        kwargs["_target"] = self.target
-        retries = kwargs.pop("retries", self.config.get("http_retries", 1))
-        kwargs["transport"] = httpx.AsyncHTTPTransport(retries=retries, verify=self.ssl_verify)
-        kwargs["verify"] = self.ssl_verify
-        return BBOTAsyncClient(*args, **kwargs)
+        self.web_client = BBOTAsyncClient.from_config(self.config, self.target, persist_cookies=False)
 
     async def request(self, *args, **kwargs):
         raise_error = kwargs.pop("raise_error", False)

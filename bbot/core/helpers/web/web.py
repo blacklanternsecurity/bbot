@@ -48,9 +48,16 @@ class WebHelper(EngineClient):
 
     def __init__(self, parent_helper):
         self.parent_helper = parent_helper
-        self.config = self.parent_helper.config
+        self.preset = self.parent_helper.preset
+        self.config = self.preset.config
+        self.target = self.preset.target
         self.ssl_verify = self.config.get("ssl_verify", False)
         super().__init__(server_kwargs={"config": self.config, "target": self.parent_helper.preset.target.radix_only})
+
+    def AsyncClient(self, *args, **kwargs):
+        from .client import BBOTAsyncClient
+
+        return BBOTAsyncClient.from_config(self.config, self.target, *args, persist_cookies=False, **kwargs)
 
     async def request(self, *args, **kwargs):
         """
