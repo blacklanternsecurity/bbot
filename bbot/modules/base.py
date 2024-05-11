@@ -1488,7 +1488,7 @@ class InterceptModule(BaseModule):
         Used by emit_event() to raise new events to the scan
         """
         # if this was a normal module, we'd put it in the outgoing queue
-        # but because it's a intercept module, we need to queue it with the first intercept module
+        # but because it's an intercept module, we need to queue it at the scan's ingress
         await self.scan.ingress_module.queue_event(event, kwargs)
 
     async def queue_event(self, event, kwargs=None):
