@@ -655,3 +655,6 @@ config:
     monkeypatch.setattr("sys.argv", ["bbot", "-p", "asdfasdfasdf", "-y"])
     cli.main()
     assert "file does not exist. Use -lp to list available presets" in caplog.text
+
+    preset1_file.unlink()
+    preset2_file.unlink()
