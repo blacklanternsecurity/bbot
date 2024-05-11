@@ -75,13 +75,13 @@ async def test_manager_deduplication(bbot_scanner):
         )
 
     dns_mock_chain = {
-        "test.notreal": {"A": ["169.169.0.3"]},
-        "default_module.test.notreal": {"A": ["169.169.0.3"]},
-        "everything_module.test.notreal": {"A": ["169.169.0.4"]},
-        "no_suppress_dupes.test.notreal": {"A": ["169.169.0.5"]},
-        "accept_dupes.test.notreal": {"A": ["169.169.0.6"]},
-        "per_hostport_only.test.notreal": {"A": ["169.169.0.7"]},
-        "per_domain_only.test.notreal": {"A": ["169.169.0.8"]},
+        "test.notreal": {"A": ["127.0.0.3"]},
+        "default_module.test.notreal": {"A": ["127.0.0.3"]},
+        "everything_module.test.notreal": {"A": ["127.0.0.4"]},
+        "no_suppress_dupes.test.notreal": {"A": ["127.0.0.5"]},
+        "accept_dupes.test.notreal": {"A": ["127.0.0.6"]},
+        "per_hostport_only.test.notreal": {"A": ["127.0.0.7"]},
+        "per_domain_only.test.notreal": {"A": ["127.0.0.8"]},
     }
 
     # dns search distance = 1, report distance = 0
@@ -130,12 +130,12 @@ async def test_manager_deduplication(bbot_scanner):
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "per_domain_only.test.notreal" and str(e.module) == "per_domain_only"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
-    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "169.169.0.3" and str(e.module) == "A" and e.source.data == "test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "169.169.0.3" and str(e.module) == "A" and e.source.data == "default_module.test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "169.169.0.5" and str(e.module) == "A" and e.source.data == "no_suppress_dupes.test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "169.169.0.6" and str(e.module) == "A" and e.source.data == "accept_dupes.test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "169.169.0.7" and str(e.module) == "A" and e.source.data == "per_hostport_only.test.notreal"])
-    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "169.169.0.8" and str(e.module) == "A" and e.source.data == "per_domain_only.test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.3" and str(e.module) == "A" and e.source.data == "test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.3" and str(e.module) == "A" and e.source.data == "default_module.test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.5" and str(e.module) == "A" and e.source.data == "no_suppress_dupes.test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.6" and str(e.module) == "A" and e.source.data == "accept_dupes.test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.7" and str(e.module) == "A" and e.source.data == "per_hostport_only.test.notreal"])
+    assert 1 == len([e for e in all_events if e.type == "IP_ADDRESS" and e.data == "127.0.0.8" and str(e.module) == "A" and e.source.data == "per_domain_only.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "accept_dupes.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "accept_dupes.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "default_module.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "default_module.test.notreal"])
     assert 1 == len([e for e in all_events if e.type == "OPEN_TCP_PORT" and e.data == "per_domain_only.test.notreal:88" and str(e.module) == "everything_module" and e.source.data == "per_domain_only.test.notreal"])
