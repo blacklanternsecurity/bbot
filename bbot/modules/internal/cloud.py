@@ -8,11 +8,18 @@ class cloud(InterceptModule):
     _priority = 3
 
     async def setup(self):
-        self.dummy_modules = {}
-        for provider_name, provider in self.helpers.cloud.providers.items():
-            self.dummy_modules[provider_name] = self.scan._make_dummy_module(f"cloud_{provider_name}", _type="scan")
-
+        self._dummy_modules = None
         return True
+
+    @property
+    def dummy_modules(self):
+        if self._dummy_modules is None:
+            self._dummy_modules = {}
+            for provider_name, provider in self.helpers.cloud.providers.items():
+                self._dummy_modules[provider_name] = self.scan._make_dummy_module(
+                    f"cloud_{provider_name}", _type="scan"
+                )
+        return self._dummy_modules
 
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):

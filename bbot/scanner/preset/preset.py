@@ -323,18 +323,8 @@ class Preset:
         self.explicit_scan_modules.update(other.explicit_scan_modules)
         self.explicit_output_modules.update(other.explicit_output_modules)
         self.flags.update(other.flags)
-        # scope
-        self.target.seeds.add(other.target.seeds)
-        if other.target.whitelist is not None:
-            if self.whitelist is None:
-                self.target.whitelist = other.whitelist.copy()
-            else:
-                self.whitelist.add(other.whitelist)
-        self.blacklist.add(other.blacklist)
-        self.strict_scope = self.strict_scope or other.strict_scope
-        for t in (self.target.seeds, self.target.whitelist):
-            if t is not None:
-                t.strict_scope = self.strict_scope
+        # target / scope
+        self.target.merge(other.target)
         # log verbosity
         if other.silent:
             self.silent = other.silent

@@ -4,7 +4,6 @@ import logging
 from pathlib import Path
 import multiprocessing as mp
 from functools import partial
-from cloudcheck import cloud_providers
 from concurrent.futures import ProcessPoolExecutor
 
 from . import misc
@@ -82,7 +81,7 @@ class ConfigAwareHelper:
         num_processes = max(1, mp.cpu_count() - 1)
         self.process_pool = ProcessPoolExecutor(max_workers=num_processes)
 
-        self.cloud = cloud_providers
+        self._cloud = None
 
         self.re = RegexHelper(self)
         self.dns = DNSHelper(self)
@@ -90,6 +89,14 @@ class ConfigAwareHelper:
         self.depsinstaller = DepsInstaller(self)
         self.word_cloud = WordCloud(self)
         self.dummy_modules = {}
+
+    @property
+    def cloud(self):
+        if self._cloud is None:
+            from cloudcheck import cloud_providers
+
+            self._cloud = cloud_providers
+        return self._cloud
 
     def bloom_filter(self, size):
         from .bloom import BloomFilter

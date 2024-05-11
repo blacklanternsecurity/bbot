@@ -31,6 +31,25 @@ class BBOTTarget:
             blacklist = []
         self.blacklist = Target(*blacklist)
 
+    def merge(self, other):
+        self.seeds.add(other.seeds)
+        if other.whitelist is not None:
+            if self.whitelist is None:
+                self.whitelist = other.whitelist.copy()
+            else:
+                self.whitelist.add(other.whitelist)
+        self.blacklist.add(other.blacklist)
+        self.strict_scope = self.strict_scope or other.strict_scope
+        for t in (self.seeds, self.whitelist):
+            if t is not None:
+                t.strict_scope = self.strict_scope
+
+    def get(self, host):
+        return self.seeds.get(host)
+
+    def get_host(self, host):
+        return self.seeds.get(host)
+
     def __iter__(self):
         return iter(self.seeds)
 
@@ -38,7 +57,18 @@ class BBOTTarget:
         return len(self.seeds)
 
     def __contains__(self, other):
+        if isinstance(other, self.__class__):
+            other = other.seeds
         return other in self.seeds
+
+    def __bool__(self):
+        return bool(self.seeds)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(self.seeds)
 
     def copy(self):
         self_copy = copy.copy(self)
@@ -367,7 +397,7 @@ class Target:
 
     def __contains__(self, other):
         # if "other" is a Target
-        if type(other) == self.__class__:
+        if isinstance(other, self.__class__):
             contained_in_self = [self._contains(e) for e in other.events]
             return all(contained_in_self)
         else:
