@@ -705,7 +705,7 @@ class BaseModule:
             # check duplicates
             is_incoming_duplicate, reason = self.is_incoming_duplicate(event, add=True)
             if is_incoming_duplicate and not self.accept_dupes:
-                return False, f"module has already seen {event}" + (f" ({reason})" if reason else "")
+                return False, f"module has already seen it" + (f" ({reason})" if reason else "")
 
         return acceptable, reason
 

@@ -7,7 +7,6 @@ import traceback
 from socksio.exceptions import SOCKSError
 from contextlib import asynccontextmanager
 
-from .client import BBOTAsyncClient
 from bbot.core.engine import EngineServer
 from bbot.core.helpers.misc import bytes_to_human, human_to_bytes, get_exception_chain
 
@@ -34,7 +33,12 @@ class HTTPEngine(EngineServer):
         self.config = config
         self.http_debug = self.config.get("http_debug", False)
         self._ssl_context_noverify = None
-        self.web_client = BBOTAsyncClient.from_config(self.config, self.target, persist_cookies=False)
+        self.web_client = self.AsyncClient(persist_cookies=False)
+
+    def AsyncClient(self, *args, **kwargs):
+        from .client import BBOTAsyncClient
+
+        return BBOTAsyncClient.from_config(self.config, self.target, *args, **kwargs)
 
     async def request(self, *args, **kwargs):
         raise_error = kwargs.pop("raise_error", False)
