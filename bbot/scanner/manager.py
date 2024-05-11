@@ -69,8 +69,11 @@ class ScanIngress(InterceptModule):
             return False, "event's source is itself"
 
         # don't accept duplicates
-        if (not event._graph_important) and self.is_incoming_duplicate(event, add=True):
-            return False, "event was already emitted by its module"
+        if self.is_incoming_duplicate(event, add=True):
+            if not event._graph_important:
+                return False, "event was already emitted by its module"
+            else:
+                self.debug(f"Event {event} was already emitted by its module, but this time it's graph-important")
 
         # update event's scope distance based on its parent
         event.scope_distance = event.source.scope_distance + 1
