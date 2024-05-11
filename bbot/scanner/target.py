@@ -31,6 +31,9 @@ class BBOTTarget:
             blacklist = []
         self.blacklist = Target(*blacklist)
 
+    def add(self, *args, **kwargs):
+        self.seeds.add(*args, **kwargs)
+
     def merge(self, other):
         self.seeds.add(other.seeds)
         if other.whitelist is not None:
