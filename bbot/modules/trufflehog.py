@@ -9,7 +9,7 @@ class trufflehog(BaseModule):
     meta = {"description": "TruffleHog is a tool for finding credentials"}
 
     options = {
-        "version": "3.69.0",
+        "version": "3.75.1",
         "only_verified": True,
         "concurrency": 8,
     }
@@ -37,18 +37,15 @@ class trufflehog(BaseModule):
         self.concurrency = int(self.config.get("concurrency", 8))
         return True
 
-    async def filter_event(self, event):
-        if event.type == "FILESYSTEM":
-            if "git" not in event.tags and "docker" not in event.tags:
-                return False, "event is not a git repository or a docker image"
-        return True
-
     async def handle_event(self, event):
         path = event.data["path"]
+        description = event.data.get("description", "")
         if "git" in event.tags:
             module = "git"
         elif "docker" in event.tags:
             module = "docker"
+        else:
+            module = "filesystem"
         async for decoder_name, detector_name, raw_result, verified, source_metadata in self.execute_trufflehog(
             module, path
         ):
@@ -58,12 +55,16 @@ class trufflehog(BaseModule):
                     "description": f"Verified Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
                     "host": str(event.source.host),
                 }
+                if description:
+                    data["description"] += f" Description: [{description}]"
                 await self.emit_event(data, "VULNERABILITY", event)
             else:
                 data = {
                     "description": f"Potential Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
                     "host": str(event.source.host),
                 }
+                if description:
+                    data["description"] += f" Description: [{description}]"
                 await self.emit_event(data, "FINDING", event)
 
     async def execute_trufflehog(self, module, path):
@@ -80,6 +81,9 @@ class trufflehog(BaseModule):
         elif module == "docker":
             command.append("docker")
             command.append("--image=file://" + path)
+        elif module == "filesystem":
+            command.append("filesystem")
+            command.append(path)
 
         stats_file = self.helpers.tempfile_tail(callback=self.log_trufflehog_status)
         try:
