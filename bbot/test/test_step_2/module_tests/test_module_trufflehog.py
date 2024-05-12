@@ -541,6 +541,7 @@ class TestTrufflehog(ModuleTestBase):
         data = io.BytesIO()
         with zipfile.ZipFile(data, mode="w", compression=zipfile.ZIP_DEFLATED) as z:
             z.writestr("test.txt", self.file_content)
+            z.writestr("folder/test2.txt", self.file_content)
         data.seek(0)
         zip_content = data.getvalue()
         module_test.httpx_mock.add_response(
@@ -861,7 +862,7 @@ class TestTrufflehog(ModuleTestBase):
             assert content == self.file_content, "File content doesn't match"
         github_workflow_event = [e for e in vuln_events if "bbot" in e.data["description"]][0].source
         file = Path(github_workflow_event.data["path"])
-        assert file.is_file(), "Destination zip does not exist"
+        assert file.is_file(), "Destination file does not exist"
         docker_source_event = [e for e in vuln_events if e.data["host"] == "hub.docker.com"][0].source
         file = Path(docker_source_event.data["path"])
         assert file.is_file(), "Destination image does not exist"
@@ -888,7 +889,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             assert content == self.file_content, "File content doesn't match"
         github_workflow_event = [e for e in finding_events if "bbot" in e.data["description"]][0].source
         file = Path(github_workflow_event.data["path"])
-        assert file.is_file(), "Destination zip does not exist"
+        assert file.is_file(), "Destination file does not exist"
         docker_source_event = [e for e in finding_events if e.data["host"] == "hub.docker.com"][0].source
         file = Path(docker_source_event.data["path"])
         assert file.is_file(), "Destination image does not exist"
