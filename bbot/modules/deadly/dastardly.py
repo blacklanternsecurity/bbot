@@ -104,7 +104,7 @@ class dastardly(BaseModule):
     def parse_dastardly_xml(self, xml_file):
         try:
             with open(xml_file, "rb") as f:
-                et = etree.parse(f)
+                et = etree.parse(f, parser=etree.XMLParser(recover=True))
                 for testsuite in et.iter("testsuite"):
                     yield TestSuite(testsuite)
         except FileNotFoundError:

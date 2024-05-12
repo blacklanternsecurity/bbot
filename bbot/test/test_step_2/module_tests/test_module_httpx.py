@@ -98,3 +98,29 @@ class TestHTTPX_Redirect(ModuleTestBase):
                 if e.type.startswith("DNS_NAME") and e.data == "www.evilcorp.com" and "affiliate" in e.tags
             ]
         )
+
+
+class TestHTTPX_URLBlacklist(ModuleTestBase):
+    targets = ["http://127.0.0.1:8888"]
+    modules_overrides = ["httpx", "speculate", "excavate"]
+    config_overrides = {"web_spider_distance": 10, "web_spider_depth": 10}
+
+    async def setup_after_prep(self, module_test):
+        module_test.httpserver.expect_request("/").respond_with_data(
+            """
+            <a href="/test.aspx"/>
+            <a href="/test.svg"/>
+            <a href="/test.woff2"/>
+            <a href="/test.txt"/>
+            """
+        )
+
+    def check(self, module_test, events):
+        assert 4 == len([e for e in events if e.type == "URL_UNVERIFIED"])
+        assert 3 == len([e for e in events if e.type == "HTTP_RESPONSE"])
+        assert 3 == len([e for e in events if e.type == "URL"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/test.aspx"])
+        assert 1 == len([e for e in events if e.type == "URL" and e.data == "http://127.0.0.1:8888/test.txt"])
+        assert not any([e for e in events if "URL" in e.type and ".svg" in e.data])
+        assert not any([e for e in events if "URL" in e.type and ".woff" in e.data])
