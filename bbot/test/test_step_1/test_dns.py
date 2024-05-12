@@ -4,6 +4,9 @@ from ..bbot_fixtures import *
 @pytest.mark.asyncio
 async def test_dns_engine(bbot_scanner):
     scan = bbot_scanner()
+    await scan.helpers._mock_dns(
+        {"one.one.one.one": {"A": ["1.1.1.1"]}, "1.1.1.1.in-addr.arpa": {"PTR": ["one.one.one.one"]}}
+    )
     result = await scan.helpers.resolve("one.one.one.one")
     assert "1.1.1.1" in result
     assert not "2606:4700:4700::1111" in result

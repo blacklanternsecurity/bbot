@@ -1,10 +1,11 @@
 import re
+import httpx
 
 from ..bbot_fixtures import *
 
 
 @pytest.mark.asyncio
-async def test_web_engine(bbot_scanner, bbot_httpserver):
+async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
     web_body = "hello_there" * 1000
     url = bbot_httpserver.url_for("/test")
@@ -38,6 +39,10 @@ async def test_web_engine(bbot_scanner, bbot_httpserver):
     filename = await scan.helpers.download(url)
     file_content = open(filename).read()
     assert file_content == web_body
+
+    # raise_error=True
+    with pytest.raises(httpx.TimeoutException):
+        await scan.helpers.request("http://www.example.com/", raise_error=True)
 
 
 @pytest.mark.asyncio

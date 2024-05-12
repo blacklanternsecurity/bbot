@@ -46,9 +46,8 @@ class EngineBase:
         if message is error_sentinel:
             return True
         if isinstance(message, dict) and len(message) == 1 and "_e" in message:
-            error = message["_e"][0]
-            raise BBOTEngineError(error)
-            return True
+            error = message["_e"]
+            raise error
         return False
 
 
@@ -211,7 +210,7 @@ class EngineServer(EngineBase):
             trace = traceback.format_exc()
             self.log.error(error)
             self.log.trace(trace)
-            result = {"_e": (error, trace)}
+            result = {"_e": e}
         finally:
             self.tasks.pop(client_id, None)
         await self.send_socket_multipart([client_id, pickle.dumps(result)])
@@ -227,7 +226,7 @@ class EngineServer(EngineBase):
             trace = traceback.format_exc()
             self.log.error(error)
             self.log.trace(trace)
-            result = {"_e": (error, trace)}
+            result = {"_e": e}
             await self.send_socket_multipart([client_id, pickle.dumps(result)])
         finally:
             self.tasks.pop(client_id, None)

@@ -3,7 +3,6 @@ from ..bbot_fixtures import *
 
 @pytest.mark.asyncio
 async def test_engine():
-    from bbot.errors import BBOTEngineError
     from bbot.core.engine import EngineClient, EngineServer
 
     counter = 0
@@ -97,7 +96,7 @@ async def test_engine():
     yield_cancelled = False
     yield_errored = False
     agen = test_engine.yield_stuff(None)
-    with pytest.raises(BBOTEngineError):
+    with pytest.raises(TypeError):
         async for _ in agen:
             pass
     assert yield_cancelled == False
@@ -139,7 +138,7 @@ async def test_engine():
     return_finished = False
     return_cancelled = False
     return_errored = False
-    with pytest.raises(BBOTEngineError):
+    with pytest.raises(TypeError):
         result = await test_engine.return_thing(None)
     assert return_started == True
     assert return_finished == False
