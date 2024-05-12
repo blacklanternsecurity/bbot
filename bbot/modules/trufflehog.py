@@ -9,7 +9,7 @@ class trufflehog(BaseModule):
     meta = {"description": "TruffleHog is a tool for finding credentials"}
 
     options = {
-        "version": "3.74.0",
+        "version": "3.75.1",
         "only_verified": True,
         "concurrency": 8,
     }
