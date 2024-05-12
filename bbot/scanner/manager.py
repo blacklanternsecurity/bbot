@@ -152,20 +152,15 @@ class ScanIngress(InterceptModule):
         """
         try:
             event_hash = event.module._outgoing_dedup_hash(event)
-            log.critical(f"{event} native hash == {event_hash}")
         except AttributeError:
             module_name = str(getattr(event, "module", ""))
             event_hash = hash((event, module_name))
-            log.critical(f"{event} fallback hash == {event_hash}")
         is_dup = event_hash in self.incoming_dup_tracker
         if add:
             self.incoming_dup_tracker.add(event_hash)
         suppress_dupes = getattr(event.module, "suppress_dupes", True)
-        log.critical(f"event module {event.module} suppress dupes == {suppress_dupes} and is_dup={is_dup}")
         if suppress_dupes and is_dup:
-            log.critical(f"{event} is dup!!!")
             return True
-        log.critical(f"{event} is NOT dup!#@#@")
         return False
 
 

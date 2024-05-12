@@ -117,8 +117,6 @@ async def test_manager_deduplication(bbot_scanner):
     assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "per_hostport_only.test.notreal" and str(e.module) == "per_hostport_only"])
     assert 1 == len([e for e in default_events if e.type == "DNS_NAME" and e.data == "test.notreal" and str(e.module) == "TARGET" and "SCAN:" in e.source.data])
 
-    for e in all_events:
-        log.critical(f"{e}:{e._graph_important} <-- {e.source}:{e.source._graph_important} <-- {e.source.source}:{e.source.source._graph_important}")
     assert len(all_events) == 27
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "accept_dupes.test.notreal" and str(e.module) == "accept_dupes"])
     assert 1 == len([e for e in all_events if e.type == "DNS_NAME" and e.data == "default_module.test.notreal" and str(e.module) == "default_module"])
