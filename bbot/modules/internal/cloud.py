@@ -8,18 +8,13 @@ class cloud(InterceptModule):
     _priority = 3
 
     async def setup(self):
-        self._dummy_modules = None
+        self.dummy_modules = None
         return True
 
-    @property
-    def dummy_modules(self):
-        if self._dummy_modules is None:
-            self._dummy_modules = {}
-            for provider_name, provider in self.helpers.cloud.providers.items():
-                self._dummy_modules[provider_name] = self.scan._make_dummy_module(
-                    f"cloud_{provider_name}", _type="scan"
-                )
-        return self._dummy_modules
+    def get_dummy_modules(self):
+        self.dummy_modules = {}
+        for provider_name, provider in self.helpers.cloud.providers.items():
+            self.dummy_modules[provider_name] = self.scan._make_dummy_module(f"cloud_{provider_name}", _type="scan")
 
     async def filter_event(self, event):
         if (not event.host) or (event.type in ("IP_RANGE",)):
@@ -27,6 +22,9 @@ class cloud(InterceptModule):
         return True
 
     async def handle_event(self, event, kwargs):
+        # don't hold up the event loop loading cloud IPs etc.
+        if self.dummy_modules is None:
+            await self.helpers.run_in_executor(self.get_dummy_modules)
         # cloud tagging by hosts
         hosts_to_check = set(str(s) for s in event.resolved_hosts)
         hosts_to_check.add(str(event.host_original))
