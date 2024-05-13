@@ -1,7 +1,7 @@
-from bbot.modules.templates.subdomain_enum import subdomain_enum
+from bbot.modules.base import BaseModule
 
 
-class github(subdomain_enum):
+class github(BaseModule):
     """
     A template module for use of the GitHub API
     Inherited by several other github modules.

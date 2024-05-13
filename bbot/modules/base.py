@@ -738,7 +738,12 @@ class BaseModule:
 
         # custom filtering
         async with self.scan._acatch(context=self.filter_event):
-            filter_result = await self.filter_event(event)
+            try:
+                filter_result = await self.filter_event(event)
+            except Exception as e:
+                msg = f"Unhandled exception in {self.name}.filter_event({event}): {e}"
+                self.error(msg)
+                return False, msg
             msg = str(self._custom_filter_criteria_msg)
             with suppress(ValueError, TypeError):
                 filter_result, reason = filter_result
@@ -886,7 +891,12 @@ class BaseModule:
         if event.type in ("FINISHED",):
             return False, ""
         reason = ""
-        event_hash = self._incoming_dedup_hash(event)
+        try:
+            event_hash = self._incoming_dedup_hash(event)
+        except Exception as e:
+            msg = f"Unhandled exception in {self.name}._incoming_dedup_hash({event}): {e}"
+            self.error(msg)
+            return True, msg
         with suppress(TypeError, ValueError):
             event_hash, reason = event_hash
         is_dup = event_hash in self._incoming_dup_tracker

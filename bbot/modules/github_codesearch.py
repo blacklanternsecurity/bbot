@@ -1,7 +1,8 @@
 from bbot.modules.templates.github import github
+from bbot.modules.templates.subdomain_enum import subdomain_enum
 
 
-class github_codesearch(github):
+class github_codesearch(github, subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["CODE_REPOSITORY", "URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe", "code-enum"]
