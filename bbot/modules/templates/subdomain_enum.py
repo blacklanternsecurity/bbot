@@ -70,6 +70,7 @@ class subdomain_enum(BaseModule):
                 yield hostname
 
     async def query(self, query, parse_fn=None, request_fn=None):
+        self.hugesuccess(query)
         if parse_fn is None:
             parse_fn = self.parse_results
         if request_fn is None:
@@ -86,7 +87,7 @@ class subdomain_enum(BaseModule):
                     self.info(
                         f'Error parsing results for query "{query}" (status code {response.status_code})', trace=True
                     )
-                    self.log.trace(response.text)
+                    self.log.trace(repr(response.text))
                 else:
                     self.info(f'Error parsing results for "{query}": {e}', trace=True)
                 return

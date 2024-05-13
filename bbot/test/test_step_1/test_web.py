@@ -1,5 +1,4 @@
 import re
-import httpx
 
 from ..bbot_fixtures import *
 
@@ -41,12 +40,29 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
     assert file_content == web_body
 
     # raise_error=True
-    with pytest.raises(httpx.TimeoutException):
+    with pytest.raises(WebError):
         await scan.helpers.request("http://www.example.com/", raise_error=True)
 
 
 @pytest.mark.asyncio
-async def test_web_helpers(bbot_scanner, bbot_httpserver):
+async def test_web_helpers(bbot_scanner, bbot_httpserver, httpx_mock):
+
+    # json conversion
+    scan = bbot_scanner("evilcorp.com")
+    url = "http://www.evilcorp.com/json_test?a=b"
+    httpx_mock.add_response(url=url, text="hello\nworld")
+    response = await scan.helpers.web.request(url)
+    j = scan.helpers.response_to_json(response)
+    assert j["status_code"] == 200
+    assert j["host"] == "www.evilcorp.com"
+    assert j["scheme"] == "http"
+    assert j["method"] == "GET"
+    assert j["port"] == 80
+    assert j["path"] == "/json_test"
+    assert j["body"] == "hello\nworld"
+    assert j["content_type"] == "text/plain"
+    assert j["url"] == "http://www.evilcorp.com/json_test?a=b"
+
     scan1 = bbot_scanner("8.8.8.8")
     scan2 = bbot_scanner("127.0.0.1")
 
@@ -118,6 +134,8 @@ async def test_web_helpers(bbot_scanner, bbot_httpserver):
     filename = await scan1.helpers.download(url)
     assert filename is None
     assert not scan1.helpers.is_cached(url)
+    with pytest.raises(WebError):
+        filename = await scan1.helpers.download(url, raise_error=True)
 
     # wordlist
     path = "/test_http_helpers_wordlist"

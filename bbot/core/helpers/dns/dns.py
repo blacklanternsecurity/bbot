@@ -4,6 +4,7 @@ import dns.exception
 import dns.asyncresolver
 from radixtarget import RadixTarget
 
+from bbot.errors import DNSError
 from bbot.core.engine import EngineClient
 from ..misc import clean_dns_record, is_ip, is_domain, is_dns_name
 
@@ -15,6 +16,7 @@ log = logging.getLogger("bbot.core.helpers.dns")
 class DNSHelper(EngineClient):
 
     SERVER_CLASS = DNSEngine
+    ERROR_CLASS = DNSError
 
     """Helper class for DNS-related operations within BBOT.
 

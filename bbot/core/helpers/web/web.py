@@ -6,7 +6,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 from bbot.core.engine import EngineClient
-from bbot.errors import WordlistError, CurlError
+from bbot.errors import WordlistError, CurlError, WebError
 
 from bs4 import MarkupResemblesLocatorWarning
 from bs4.builder import XMLParsedAsHTMLWarning
@@ -22,6 +22,7 @@ log = logging.getLogger("bbot.core.helpers.web")
 class WebHelper(EngineClient):
 
     SERVER_CLASS = HTTPEngine
+    ERROR_CLASS = WebError
 
     """
     Main utility class for managing HTTP operations in BBOT. It serves as a wrapper around the BBOTAsyncClient,
@@ -552,3 +553,58 @@ class WebHelper(EngineClient):
             if user_fields and pass_fields:
                 return True
         return False
+
+    def response_to_json(self, response):
+        """
+        Convert web response to JSON object, similar to the output of `httpx -irr -json`
+        """
+
+        if response is None:
+            return
+
+        import mmh3
+        from datetime import datetime
+        from hashlib import md5, sha256
+        from bbot.core.helpers.misc import tagify, urlparse, split_host_port, smart_decode
+
+        request = response.request
+        url = str(request.url)
+        parsed_url = urlparse(url)
+        netloc = parsed_url.netloc
+        scheme = parsed_url.scheme.lower()
+        host, port = split_host_port(f"{scheme}://{netloc}")
+
+        raw_headers = "\r\n".join([f"{k}: {v}" for k, v in response.headers.items()])
+        raw_headers_encoded = raw_headers.encode()
+
+        headers = {}
+        for k, v in response.headers.items():
+            k = tagify(k, delimiter="_")
+            headers[k] = v
+
+        j = {
+            "timestamp": datetime.now().isoformat(),
+            "hash": {
+                "body_md5": md5(response.content).hexdigest(),
+                "body_mmh3": mmh3.hash(response.content),
+                "body_sha256": sha256(response.content).hexdigest(),
+                # "body_simhash": "TODO",
+                "header_md5": md5(raw_headers_encoded).hexdigest(),
+                "header_mmh3": mmh3.hash(raw_headers_encoded),
+                "header_sha256": sha256(raw_headers_encoded).hexdigest(),
+                # "header_simhash": "TODO",
+            },
+            "header": headers,
+            "body": smart_decode(response.content),
+            "content_type": headers.get("content_type", "").split(";")[0].strip(),
+            "url": url,
+            "host": str(host),
+            "port": port,
+            "scheme": scheme,
+            "method": response.request.method,
+            "path": parsed_url.path,
+            "raw_header": raw_headers,
+            "status_code": response.status_code,
+        }
+
+        return j

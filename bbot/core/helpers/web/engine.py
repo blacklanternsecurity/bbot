@@ -74,10 +74,10 @@ class HTTPEngine(EngineServer):
         async with self._acatch(url, raise_error):
             if self.http_debug:
                 logstr = f"Web request: {str(args)}, {str(kwargs)}"
-                self.log.trace(logstr)
+                log.trace(logstr)
             response = await client.request(*args, **kwargs)
             if self.http_debug:
-                self.log.trace(
+                log.trace(
                     f"Web response from {url}: {response} (Length: {len(response.content)}) headers: {response.headers}"
                 )
             return response
@@ -106,10 +106,27 @@ class HTTPEngine(EngineServer):
                     new_task(urls.pop(0))
 
     async def download(self, url, **kwargs):
-        follow_redirects = kwargs.pop("follow_redirects", True)
-        filename = kwargs.pop("filename")
-        max_size = kwargs.pop("max_size", None)
         warn = kwargs.pop("warn", True)
+        filename = kwargs.pop("filename")
+        raise_error = kwargs.get("raise_error", False)
+        try:
+            content, response = await self.stream_request(url, **kwargs)
+            log.debug(f"Download result: HTTP {response.status_code}")
+            response.raise_for_status()
+            with open(filename, "wb") as f:
+                f.write(content)
+            return filename
+        except httpx.HTTPError as e:
+            log_fn = log.verbose
+            if warn:
+                log_fn = log.warning
+            log_fn(f"Failed to download {url}: {e}")
+            if raise_error:
+                raise
+
+    async def stream_request(self, url, **kwargs):
+        follow_redirects = kwargs.pop("follow_redirects", True)
+        max_size = kwargs.pop("max_size", None)
         raise_error = kwargs.pop("raise_error", False)
         if max_size is not None:
             max_size = human_to_bytes(max_size)
@@ -119,29 +136,23 @@ class HTTPEngine(EngineServer):
         try:
             total_size = 0
             chunk_size = 8192
+            chunks = []
 
             async with self._acatch(url, raise_error=True), self.web_client.stream(url=url, **kwargs) as response:
-                status_code = getattr(response, "status_code", 0)
-                self.log.debug(f"Download result: HTTP {status_code}")
-                if status_code != 0:
-                    response.raise_for_status()
-                    with open(filename, "wb") as f:
-                        agen = response.aiter_bytes(chunk_size=chunk_size)
-                        async for chunk in agen:
-                            if max_size is not None and total_size + chunk_size > max_size:
-                                self.log.verbose(
-                                    f"Filesize of {url} exceeds {bytes_to_human(max_size)}, file will be truncated"
-                                )
-                                agen.aclose()
-                                break
-                            total_size += chunk_size
-                            f.write(chunk)
-                    return True
+                agen = response.aiter_bytes(chunk_size=chunk_size)
+                async for chunk in agen:
+                    _chunk_size = len(chunk)
+                    if max_size is not None and total_size + _chunk_size > max_size:
+                        log.verbose(
+                            f"Size of response from {url} exceeds {bytes_to_human(max_size)}, file will be truncated"
+                        )
+                        agen.aclose()
+                        break
+                    total_size += _chunk_size
+                    chunks.append(chunk)
+                return b"".join(chunks), response
         except httpx.HTTPError as e:
-            log_fn = self.log.verbose
-            if warn:
-                log_fn = self.log.warning
-            log_fn(f"Failed to download {url}: {e}")
+            self.debug(f"Error requesting {url}: {e}")
             if raise_error:
                 raise
 

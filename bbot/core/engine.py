@@ -22,6 +22,9 @@ error_sentinel = object()
 
 
 class EngineBase:
+
+    ERROR_CLASS = BBOTEngineError
+
     def __init__(self):
         self.log = logging.getLogger(f"bbot.core.{self.__class__.__name__.lower()}")
 
@@ -41,14 +44,6 @@ class EngineBase:
             self.log.trace(f"Offending binary: {binary}")
             self.log.trace(traceback.format_exc())
         return error_sentinel
-
-    def check_error(self, message):
-        if message is error_sentinel:
-            return True
-        if isinstance(message, dict) and len(message) == 1 and "_e" in message:
-            error = message["_e"]
-            raise error
-        return False
 
 
 class EngineClient(EngineBase):
@@ -71,6 +66,14 @@ class EngineClient(EngineBase):
         self._server_process = None
         self.context = zmq.asyncio.Context()
         atexit.register(self.cleanup)
+
+    def check_error(self, message):
+        if isinstance(message, dict) and len(message) == 1 and "_e" in message:
+            error, trace = message["_e"]
+            error = self.ERROR_CLASS(error)
+            error.engine_traceback = trace
+            raise error
+        return False
 
     async def run_and_return(self, command, *args, **kwargs):
         async with self.new_socket() as socket:
@@ -202,41 +205,58 @@ class EngineServer(EngineBase):
             self.tasks = dict()
 
     async def run_and_return(self, client_id, command_fn, *args, **kwargs):
-        self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
         try:
-            result = await command_fn(*args, **kwargs)
+            self.log.debug(f"{self.name} run-and-return {command_fn.__name__}({args}, {kwargs})")
+            try:
+                result = await command_fn(*args, **kwargs)
+            except BaseException as e:
+                error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                trace = traceback.format_exc()
+                self.log.error(error)
+                self.log.trace(trace)
+                result = {"_e": (error, trace)}
+            finally:
+                self.tasks.pop(client_id, None)
+            await self.send_socket_multipart(client_id, result)
         except BaseException as e:
-            error = f"Unhandled error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
-            trace = traceback.format_exc()
-            self.log.error(error)
-            self.log.trace(trace)
-            result = {"_e": e}
-        finally:
-            self.tasks.pop(client_id, None)
-        await self.send_socket_multipart([client_id, pickle.dumps(result)])
+            self.log.critical(
+                f"Unhandled exception in {self.name}.run_and_return({client_id}, {command_fn}, {args}, {kwargs}): {e}"
+            )
+            self.log.critical(traceback.format_exc())
 
     async def run_and_yield(self, client_id, command_fn, *args, **kwargs):
-        self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({args}, {kwargs})")
         try:
-            async for _ in command_fn(*args, **kwargs):
-                await self.send_socket_multipart([client_id, pickle.dumps(_)])
-            await self.send_socket_multipart([client_id, pickle.dumps({"_s": None})])
+            self.log.debug(f"{self.name} run-and-yield {command_fn.__name__}({args}, {kwargs})")
+            try:
+                async for _ in command_fn(*args, **kwargs):
+                    await self.send_socket_multipart(client_id, _)
+                await self.send_socket_multipart(client_id, {"_s": None})
+            except BaseException as e:
+                error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
+                trace = traceback.format_exc()
+                self.log.error(error)
+                self.log.trace(trace)
+                result = {"_e": (error, trace)}
+                await self.send_socket_multipart(client_id, result)
+            finally:
+                self.tasks.pop(client_id, None)
         except BaseException as e:
-            error = f"Unhandled error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
-            trace = traceback.format_exc()
-            self.log.error(error)
-            self.log.trace(trace)
-            result = {"_e": e}
-            await self.send_socket_multipart([client_id, pickle.dumps(result)])
-        finally:
-            self.tasks.pop(client_id, None)
+            self.log.critical(
+                f"Unhandled exception in {self.name}.run_and_yield({client_id}, {command_fn}, {args}, {kwargs}): {e}"
+            )
+            self.log.critical(traceback.format_exc())
 
-    async def send_socket_multipart(self, *args, **kwargs):
+    async def send_socket_multipart(self, client_id, message):
         try:
-            await self.socket.send_multipart(*args, **kwargs)
+            message = pickle.dumps(message)
+            await self.socket.send_multipart([client_id, message])
         except Exception as e:
             self.log.warning(f"Error sending ZMQ message: {e}")
             self.log.trace(traceback.format_exc())
+
+    def check_error(self, message):
+        if message is error_sentinel:
+            return True
 
     async def worker(self):
         try:
