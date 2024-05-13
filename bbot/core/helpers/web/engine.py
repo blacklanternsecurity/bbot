@@ -85,14 +85,16 @@ class HTTPEngine(EngineServer):
     async def request_batch(self, urls, *args, threads=10, **kwargs):
         tasks = {}
 
-        def new_task(url):
-            task = asyncio.create_task(self.request(url, *args, **kwargs))
-            tasks[task] = url
-
         urls = list(urls)
+
+        def new_task():
+            if urls:
+                url = urls.pop(0)
+                task = asyncio.create_task(self.request(url, *args, **kwargs))
+                tasks[task] = url
+
         for _ in range(threads):  # Start initial batch of tasks
-            if urls:  # Ensure there are args to process
-                new_task(urls.pop(0))
+            new_task()
 
         while tasks:  # While there are tasks pending
             # Wait for the first task to complete
@@ -102,8 +104,30 @@ class HTTPEngine(EngineServer):
                 response = task.result()
                 url = tasks.pop(task)
                 yield (url, response)
-                if urls:  # Start a new task for each one completed, if URLs remain
-                    new_task(urls.pop(0))
+                new_task()
+
+    async def request_custom_batch(self, urls_and_kwargs, threads=10):
+        tasks = {}
+        urls_and_kwargs = list(urls_and_kwargs)
+
+        def new_task():
+            if urls_and_kwargs:  # Ensure there are args to process
+                url, kwargs, custom_tracker = urls_and_kwargs.pop(0)
+                task = asyncio.create_task(self.request(url, **kwargs))
+                tasks[task] = (url, kwargs, custom_tracker)
+
+        for _ in range(threads):  # Start initial batch of tasks
+            new_task()
+
+        while tasks:  # While there are tasks pending
+            # Wait for the first task to complete
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                response = task.result()
+                url, kwargs, custom_tracker = tasks.pop(task)
+                yield (url, kwargs, custom_tracker, response)
+                new_task()
 
     async def download(self, url, **kwargs):
         warn = kwargs.pop("warn", True)

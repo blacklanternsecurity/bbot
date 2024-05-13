@@ -123,7 +123,7 @@ class WebHelper(EngineClient):
         async for _ in self.run_and_yield("request_batch", urls, *args, **kwargs):
             yield _
 
-    async def request_custom_batch(self, urls_and_args):
+    async def request_custom_batch(self, urls_and_kwargs):
         """
         Make web requests in parallel with custom options for each request. Yield responses as they come in.
 
@@ -145,7 +145,7 @@ class WebHelper(EngineClient):
             >>>     if response is not None and response.status_code == 200:
             >>>         self.hugesuccess(response)
         """
-        async for _ in self.run_and_yield("request_custom_batch", urls_and_args):
+        async for _ in self.run_and_yield("request_custom_batch", urls_and_kwargs):
             yield _
 
     async def download(self, url, **kwargs):

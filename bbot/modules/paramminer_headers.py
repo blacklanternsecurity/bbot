@@ -179,9 +179,9 @@ class paramminer_headers(BaseModule):
             return
         if str(baseline.status_code)[0] in ("4", "5"):
             return
-        for count, args, kwargs in self.gen_count_args(url):
-            r = await self.helpers.request(*args, **kwargs)
-            if r is not None and not ((str(r.status_code)[0] in ("4", "5"))):
+        urls_and_args = list(self.gen_count_args(url))
+        async for _url, kwargs, count, response in self.helpers.request_custom_batch(urls_and_args):
+            if response is not None and not ((str(response.status_code)[0] in ("4", "5"))):
                 return count
 
     def gen_count_args(self, url):
@@ -192,7 +192,7 @@ class paramminer_headers(BaseModule):
             fake_headers = {}
             for i in range(0, header_count):
                 fake_headers[self.rand_string(14)] = self.rand_string(14)
-            yield header_count, (url,), {"headers": fake_headers}
+            yield url, {"headers": fake_headers}, header_count
             header_count -= 5
 
     async def load_extracted_words(self, body, content_type):

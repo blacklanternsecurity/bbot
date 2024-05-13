@@ -6,38 +6,57 @@ from ..bbot_fixtures import *
 @pytest.mark.asyncio
 async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
 
-    web_body = "hello_there" * 1000
-    url = bbot_httpserver.url_for("/test")
-    bbot_httpserver.expect_request(uri="/test").respond_with_data(web_body)
+    from werkzeug.wrappers import Response
+
+    def server_handler(request):
+        return Response(f"{request.url}: {request.headers}")
+
+    base_url = bbot_httpserver.url_for("/test/")
+    bbot_httpserver.expect_request(uri=re.compile(r"/test/\d+")).respond_with_handler(server_handler)
 
     scan = bbot_scanner()
 
     # request
-    response = await scan.helpers.request(url)
-    assert response.status_code > 0
-    assert response.text == web_body
+    response = await scan.helpers.request(f"{base_url}1")
+    assert response.status_code == 200
+    assert response.text.startswith(f"{base_url}1: ")
+
+    num_urls = 100
 
     # request_batch
-    responses = [r async for r in scan.helpers.request_batch([url] * 100)]
+    urls = [f"{base_url}{i}" for i in range(num_urls)]
+    responses = [r async for r in scan.helpers.request_batch(urls)]
     assert len(responses) == 100
-    assert all([r[0] == url for r in responses])
-    assert all([r[1].status_code > 0 and r[1].text == web_body for r in responses])
+    assert all([r[1].status_code == 200 and r[1].text.startswith(f"{r[0]}: ") for r in responses])
 
     # request_batch w/ cancellation
-    agen = scan.helpers.request_batch([url] * 100)
+    agen = scan.helpers.request_batch(urls)
     async for url, response in agen:
-        assert response.text == web_body
+        assert response.text.startswith(base_url)
         await agen.aclose()
         break
 
-    import asyncio
-
-    await asyncio.sleep(5)
+    # request_custom_batch
+    urls_and_kwargs = [(urls[i], {"headers": {f"h{i}": f"v{i}"}}, i) for i in range(num_urls)]
+    results = [r async for r in scan.helpers.request_custom_batch(urls_and_kwargs)]
+    assert len(responses) == 100
+    for i in range(num_urls):
+        url, kwargs, custom_tracker, response = results[i]
+        expected_url = f"{base_url}{i}"
+        assert url == expected_url
+        assert "headers" in kwargs
+        assert f"h{i}" in kwargs["headers"]
+        assert kwargs["headers"][f"h{i}"] == f"v{i}"
+        assert custom_tracker == i
+        assert response.status_code == 200
+        assert response.text.startswith(f"{expected_url}: ")
+        assert f"H{i}: v{i}" in response.text
 
     # download
+    url = f"{base_url}999"
     filename = await scan.helpers.download(url)
     file_content = open(filename).read()
-    assert file_content == web_body
+    assert file_content.startswith(f"{url}: ")
 
     # raise_error=True
     with pytest.raises(WebError):
