@@ -106,10 +106,44 @@ class WebHelper(EngineClient):
         return await self.run_and_return("request", *args, **kwargs)
 
     async def request_batch(self, urls, *args, **kwargs):
+        """
+        Given a list of URLs, request them in parallel and yield responses as they come in.
+
+        Args:
+            urls (list[str]): List of URLs to visit
+            *args: Positional arguments to pass through to httpx
+            **kwargs: Keyword arguments to pass through to httpx
+
+        Examples:
+            >>> async for url, response in self.helpers.request_batch(urls, headers={"X-Test": "Test"}):
+            >>>     if response is not None and response.status_code == 200:
+            >>>         self.hugesuccess(response)
+        """
         async for _ in self.run_and_yield("request_batch", urls, *args, **kwargs):
             yield _
 
     async def request_custom_batch(self, urls_and_args):
+        """
+        Make web requests in parallel with custom options for each request. Yield responses as they come in.
+
+        Similar to `request_batch` except it allows individual arguments for each URL.
+
+        Args:
+            urls_and_kwargs (list[tuple]): List of tuples in the format: (url, kwargs, custom_tracker)
+                where custom_tracker is an optional value for your own internal use. You may use it to
+                help correlate requests, etc.
+
+        Examples:
+            >>> urls_and_kwargs = [
+            >>>     ("http://evilcorp.com/1", {"method": "GET"}, "request-1"),
+            >>>     ("http://evilcorp.com/2", {"method": "POST"}, "request-2"),
+            >>> ]
+            >>> async for url, kwargs, custom_tracker, response in self.helpers.request_custom_batch(
+            >>>     urls_and_kwargs
+            >>> ):
+            >>>     if response is not None and response.status_code == 200:
+            >>>         self.hugesuccess(response)
+        """
         async for _ in self.run_and_yield("request_custom_batch", urls_and_args):
             yield _
 
