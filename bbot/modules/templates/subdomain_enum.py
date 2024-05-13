@@ -30,6 +30,12 @@ class subdomain_enum(BaseModule):
     #   "lowest_parent": dedupe by lowest parent (lowest parent of www.api.test.evilcorp.com is api.test.evilcorp.com)
     dedup_strategy = "highest_parent"
 
+    def _incoming_dedup_hash(self, event):
+        """
+        Determines the criteria for what is considered to be a duplicate event if `accept_dupes` is False.
+        """
+        return hash(self.make_query(event)), f"dedup_strategy={self.dedup_strategy}"
+
     async def handle_event(self, event):
         query = self.make_query(event)
         results = await self.query(query)
