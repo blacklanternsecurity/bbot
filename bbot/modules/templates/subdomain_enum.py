@@ -67,7 +67,11 @@ class subdomain_enum(BaseModule):
             if self.scan.in_scope(p):
                 query = p
                 break
-        return ".".join([s for s in query.split(".") if s != "_wildcard"])
+        try:
+            return ".".join([s for s in query.split(".") if s != "_wildcard"])
+        except Exception:
+            self.critical(query)
+            raise
 
     def parse_results(self, r, query=None):
         json = r.json()
