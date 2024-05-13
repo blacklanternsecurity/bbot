@@ -40,15 +40,14 @@ async def test_web_engine(bbot_scanner, bbot_httpserver, httpx_mock):
     urls_and_kwargs = [(urls[i], {"headers": {f"h{i}": f"v{i}"}}, i) for i in range(num_urls)]
     results = [r async for r in scan.helpers.request_custom_batch(urls_and_kwargs)]
     assert len(responses) == 100
-    for i in range(num_urls):
-        url, kwargs, custom_tracker, response = results[i]
+    for result in results:
+        url, kwargs, custom_tracker, response = result
         assert "headers" in kwargs
-        assert f"h{i}" in kwargs["headers"]
-        assert kwargs["headers"][f"h{i}"] == f"v{i}"
-        assert custom_tracker == i
+        assert f"h{custom_tracker}" in kwargs["headers"]
+        assert kwargs["headers"][f"h{custom_tracker}"] == f"v{custom_tracker}"
         assert response.status_code == 200
         assert response.text.startswith(f"{url}: ")
-        assert f"H{i}: v{i}" in response.text
+        assert f"H{custom_tracker}: v{custom_tracker}" in response.text
 
     # download
     url = f"{base_url}999"
