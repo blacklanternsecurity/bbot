@@ -96,7 +96,7 @@ async def test_engine():
     yield_cancelled = False
     yield_errored = False
     agen = test_engine.yield_stuff(None)
-    with pytest.raises(TypeError):
+    with pytest.raises(BBOTEngineError):
         async for _ in agen:
             pass
     assert yield_cancelled == False
@@ -138,7 +138,7 @@ async def test_engine():
     return_finished = False
     return_cancelled = False
     return_errored = False
-    with pytest.raises(TypeError):
+    with pytest.raises(BBOTEngineError):
         result = await test_engine.return_thing(None)
     assert return_started == True
     assert return_finished == False
