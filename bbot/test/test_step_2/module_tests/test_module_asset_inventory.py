@@ -4,8 +4,8 @@ from .base import ModuleTestBase
 class TestAsset_Inventory(ModuleTestBase):
     targets = ["127.0.0.1", "bbottest.notreal"]
     scan_name = "asset_inventory_test"
-    config_overrides = {"dns_resolution": True, "modules": {"nmap": {"ports": "9999"}}}
-    modules_overrides = ["asset_inventory", "nmap", "sslcert"]
+    config_overrides = {"dns_resolution": True, "modules": {"portscan": {"ports": "9999"}}}
+    modules_overrides = ["asset_inventory", "portscan", "sslcert"]
 
     async def setup_before_prep(self, module_test):
         await module_test.mock_dns(

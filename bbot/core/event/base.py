@@ -1269,7 +1269,7 @@ def make_event(
     Examples:
         If inside a module, e.g. from within its `handle_event()`:
         >>> self.make_event("1.2.3.4", source=event)
-        IP_ADDRESS("1.2.3.4", module=nmap, tags={'ipv4', 'distance-1'})
+        IP_ADDRESS("1.2.3.4", module=portscan, tags={'ipv4', 'distance-1'})
 
         If you're outside a module but you have a scan object:
         >>> scan.make_event("1.2.3.4", source=scan.root_event)

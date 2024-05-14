@@ -212,7 +212,7 @@ dns_omit_queries:
 
 ## Module Config Options
 
-Many modules accept their own configuration options. These options have the ability to change their behavior. For example, the `nmap` module accepts options for `ports`, `timing`, etc. Below is a list of all possible module config options.
+Many modules accept their own configuration options. These options have the ability to change their behavior. For example, the `portscan` module accepts options for `ports`, `rate`, etc. Below is a list of all possible module config options.
 
 <!-- BBOT MODULE OPTIONS -->
 | Config Option                                  | Type   | Description                                                                                                                                                                                                                                                                                                                    | Default                                                                                                                                                                                                                                                                                                                                                                           |
