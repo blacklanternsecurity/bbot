@@ -38,6 +38,8 @@ class TestGeneric_SSRF(ModuleTestBase):
         module_test.set_expect_requests_handler(expect_args=expect_args, request_handler=self.request_handler)
 
     def check(self, module_test, events):
+        for e in events:
+            self.log.critical(e)
         assert any(
             e.type == "VULNERABILITY" and "Out-of-band interaction: [Generic SSRF (GET)]" in e.data["description"]
             for e in events
