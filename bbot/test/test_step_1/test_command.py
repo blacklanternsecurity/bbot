@@ -10,14 +10,14 @@ async def test_command(bbot_scanner, bbot_config):
     # test timeouts
     command = ["sleep", "3"]
     start = time.time()
-    with pytest.raises(TimeoutError):
+    with pytest.raises(asyncio.exceptions.TimeoutError):
         await scan1.helpers.run(command, idle_timeout=1)
     end = time.time()
     elapsed = end - start
     assert 0 < elapsed < 2
 
     start = time.time()
-    with pytest.raises(TimeoutError):
+    with pytest.raises(asyncio.exceptions.TimeoutError):
         async for line in scan1.helpers.run_live(command, idle_timeout=1):
             print(line)
     end = time.time()
