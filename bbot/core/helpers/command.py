@@ -2,6 +2,7 @@ import os
 import asyncio
 import logging
 import traceback
+from signal import SIGINT
 from subprocess import CompletedProcess, CalledProcessError
 
 from .misc import smart_decode, smart_encode
@@ -46,10 +47,15 @@ async def run(self, *command, check=False, text=True, idle_timeout=None, **kwarg
                     _input = b"\n".join(smart_encode(i) for i in _input) + b"\n"
                 else:
                     _input = smart_encode(_input)
-            if idle_timeout is not None:
-                stdout, stderr = await asyncio.wait_for(proc.communicate(_input), timeout=idle_timeout)
-            else:
-                stdout, stderr = await proc.communicate(_input)
+
+            try:
+                if idle_timeout is not None:
+                    stdout, stderr = await asyncio.wait_for(proc.communicate(_input), timeout=idle_timeout)
+                else:
+                    stdout, stderr = await proc.communicate(_input)
+            except TimeoutError:
+                proc.send_signal(SIGINT)
+                raise
 
             # surface stderr
             if text:
@@ -111,6 +117,9 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                         line = await asyncio.wait_for(proc.stdout.readline(), timeout=idle_timeout)
                     else:
                         line = await proc.stdout.readline()
+                except TimeoutError as e:
+                    proc.send_signal(SIGINT)
+                    raise
                 except ValueError as e:
                     command_str = " ".join([str(c) for c in command])
                     log.warning(f"Error executing command {command_str}: {e}")
