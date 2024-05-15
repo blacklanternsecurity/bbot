@@ -117,7 +117,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                         line = await asyncio.wait_for(proc.stdout.readline(), timeout=idle_timeout)
                     else:
                         line = await proc.stdout.readline()
-                except TimeoutError as e:
+                except TimeoutError:
                     proc.send_signal(SIGINT)
                     raise
                 except ValueError as e:
