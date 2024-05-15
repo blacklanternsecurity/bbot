@@ -70,7 +70,6 @@ class subdomain_enum(BaseModule):
                 yield hostname
 
     async def query(self, query, parse_fn=None, request_fn=None):
-        self.hugesuccess(query)
         if parse_fn is None:
             parse_fn = self.parse_results
         if request_fn is None:

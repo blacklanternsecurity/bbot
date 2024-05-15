@@ -210,7 +210,7 @@ class EngineServer(EngineBase):
             try:
                 result = await command_fn(*args, **kwargs)
             except (asyncio.CancelledError, KeyboardInterrupt):
-                pass
+                return
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
                 trace = traceback.format_exc()
@@ -234,7 +234,7 @@ class EngineServer(EngineBase):
                     await self.send_socket_multipart(client_id, _)
                 await self.send_socket_multipart(client_id, {"_s": None})
             except (asyncio.CancelledError, KeyboardInterrupt):
-                pass
+                return
             except BaseException as e:
                 error = f"Error in {self.name}.{command_fn.__name__}({args}, {kwargs}): {e}"
                 trace = traceback.format_exc()
