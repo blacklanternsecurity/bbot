@@ -7,7 +7,24 @@ class TestAsset_Inventory(ModuleTestBase):
     config_overrides = {"dns_resolution": True, "modules": {"portscan": {"ports": "9999"}}}
     modules_overrides = ["asset_inventory", "portscan", "sslcert"]
 
+    masscan_output = """{   "ip": "127.0.0.1",   "timestamp": "1680197558", "ports": [ {"port": 9999, "proto": "tcp", "status": "open", "reason": "syn-ack", "ttl": 54} ] }"""
+
     async def setup_before_prep(self, module_test):
+
+        async def run_masscan(command, *args, **kwargs):
+            if "masscan" in command[:2]:
+                targets = open(command[11]).read().splitlines()
+                yield "["
+                for l in self.masscan_output.splitlines():
+                    if "127.0.0.1/32" in targets:
+                        yield self.masscan_output
+                yield "]"
+            else:
+                async for l in module_test.scan.helpers.run_live(command, *args, **kwargs):
+                    yield l
+
+        module_test.monkeypatch.setattr(module_test.scan.helpers, "run_live", run_masscan)
+
         await module_test.mock_dns(
             {
                 "1.0.0.127.in-addr.arpa": {"PTR": ["www.bbottest.notreal"]},
