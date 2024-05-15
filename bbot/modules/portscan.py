@@ -7,7 +7,7 @@ from bbot.modules.base import BaseModule
 
 
 class portscan(BaseModule):
-    flags = ["active", "portscan"]
+    flags = ["active", "portscan", "safe"]
     watched_events = ["IP_ADDRESS", "IP_RANGE", "DNS_NAME"]
     produced_events = ["OPEN_TCP_PORT"]
     meta = {"description": "Port scan with masscan. By default, scans top 100 ports."}
@@ -15,7 +15,7 @@ class portscan(BaseModule):
         "top_ports": 100,
         "ports": "",
         # ping scan at 600 packets/s ~= private IP space in 8 hours
-        "rate": 600,
+        "rate": 300,
         "wait": 5,
         "ping_first": False,
         "ping_only": False,
@@ -33,7 +33,7 @@ class portscan(BaseModule):
 
     async def setup(self):
         self.top_ports = self.config.get("top_ports", 100)
-        self.rate = self.config.get("rate", 600)
+        self.rate = self.config.get("rate", 300)
         self.wait = self.config.get("wait", 10)
         self.ping_first = self.config.get("ping_first", False)
         self.ping_only = self.config.get("ping_only", False)
