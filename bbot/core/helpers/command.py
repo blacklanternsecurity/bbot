@@ -9,7 +9,7 @@ from .misc import smart_decode, smart_encode
 log = logging.getLogger("bbot.core.helpers.command")
 
 
-async def run(self, *command, check=False, text=True, **kwargs):
+async def run(self, *command, check=False, text=True, idle_timeout=None, **kwargs):
     """Runs a command asynchronously and gets its output as a string.
 
     This method is a simple helper for executing a command and capturing its output.
@@ -45,7 +45,10 @@ async def run(self, *command, check=False, text=True, **kwargs):
                     _input = b"\n".join(smart_encode(i) for i in _input) + b"\n"
                 else:
                     _input = smart_encode(_input)
-            stdout, stderr = await proc.communicate(_input)
+            if idle_timeout is not None:
+                stdout, stderr = await asyncio.wait_for(proc.communicate(_input), timeout=idle_timeout)
+            else:
+                stdout, stderr = await proc.communicate(_input)
 
             # surface stderr
             if text:
@@ -65,7 +68,7 @@ async def run(self, *command, check=False, text=True, **kwargs):
             proc_tracker.remove(proc)
 
 
-async def run_live(self, *command, check=False, text=True, **kwargs):
+async def run_live(self, *command, check=False, text=True, idle_timeout=None, **kwargs):
     """Runs a command asynchronously and iterates through its output line by line in realtime.
 
     This method is useful for executing a command and capturing its output on-the-fly, as it is generated.
@@ -102,7 +105,10 @@ async def run_live(self, *command, check=False, text=True, **kwargs):
 
             while 1:
                 try:
-                    line = await proc.stdout.readline()
+                    if idle_timeout is not None:
+                        line = await asyncio.wait_for(proc.stdout.readline(), timeout=idle_timeout)
+                    else:
+                        line = await proc.stdout.readline()
                 except ValueError as e:
                     command_str = " ".join([str(c) for c in command])
                     log.warning(f"Error executing command {command_str}: {e}")

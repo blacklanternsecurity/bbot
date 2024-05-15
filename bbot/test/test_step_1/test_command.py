@@ -1,3 +1,4 @@
+import time
 from ..bbot_fixtures import *
 from subprocess import CalledProcessError
 
@@ -5,6 +6,23 @@ from subprocess import CalledProcessError
 @pytest.mark.asyncio
 async def test_command(bbot_scanner, bbot_config):
     scan1 = bbot_scanner(config=bbot_config)
+
+    # test timeouts
+    command = ["sleep", "3"]
+    start = time.time()
+    with pytest.raises(TimeoutError):
+        await scan1.helpers.run(command, idle_timeout=1)
+    end = time.time()
+    elapsed = end - start
+    assert 0 < elapsed < 2
+
+    start = time.time()
+    with pytest.raises(TimeoutError):
+        async for line in scan1.helpers.run_live(command, idle_timeout=1):
+            print(line)
+    end = time.time()
+    elapsed = end - start
+    assert 0 < elapsed < 2
 
     # run
     assert "plumbus\n" == (await scan1.helpers.run(["echo", "plumbus"])).stdout
