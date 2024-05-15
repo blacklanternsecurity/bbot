@@ -202,7 +202,6 @@ class gowitness(BaseModule):
             await self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
 
     def construct_command(self):
-        return ["sleep", "999"]
         # base executable
         command = ["gowitness"]
         # chrome path
