@@ -20,6 +20,7 @@ async def run(self, *command, check=False, text=True, idle_timeout=None, **kwarg
         check (bool, optional): If set to True, raises an error if the subprocess exits with a non-zero status.
                                 Defaults to False.
         text (bool, optional): If set to True, decodes the subprocess output to string. Defaults to True.
+        idle_timeout (int, optional): Sets a limit on the number of seconds the process can run before throwing a TimeoutError
         **kwargs (dict): Additional keyword arguments for the subprocess.
 
     Returns:
@@ -79,6 +80,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
         check (bool, optional): If set to True, raises an error if the subprocess exits with a non-zero status.
                                 Defaults to False.
         text (bool, optional): If set to True, decodes the subprocess output to string. Defaults to True.
+        idle_timeout (int, optional): Sets a limit on the number of seconds the process can remain idle (no lines sent to stdout) before throwing a TimeoutError
         **kwargs (dict): Additional keyword arguments for the subprocess.
 
     Yields:
