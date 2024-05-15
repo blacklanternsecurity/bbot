@@ -164,7 +164,7 @@ class gowitness(BaseModule):
         try:
             async for line in self.run_process_live(self.command, input=stdin, idle_timeout=self.idle_timeout):
                 self.debug(line)
-        except TimeoutError as e:
+        except TimeoutError:
             urls_str = ",".join(event_dict)
             self.warning(f"Gowitness timed out while visiting the following URLs: {urls_str}", trace=False)
             return
