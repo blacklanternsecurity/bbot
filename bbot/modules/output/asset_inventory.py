@@ -34,10 +34,11 @@ class asset_inventory(CSV):
     ]
     produced_events = ["IP_ADDRESS", "OPEN_TCP_PORT"]
     meta = {"description": "Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV"}
-    options = {"output_file": "", "use_previous": False, "summary_netmask": 16}
+    options = {"output_file": "", "use_previous": False, "recheck": False, "summary_netmask": 16}
     options_desc = {
         "output_file": "Set a custom output file",
         "use_previous": "Emit previous asset inventory as new events (use in conjunction with -n <old_scan_name>)",
+        "recheck": "When use_previous=True, don't retain past details like open ports or findings. Instead, allow them to be rediscovered by the new scan",
         "summary_netmask": "Subnet mask to use when summarizing IP addresses at end of scan",
     }
 
@@ -60,6 +61,7 @@ class asset_inventory(CSV):
     async def setup(self):
         self.assets = {}
         self.use_previous = self.config.get("use_previous", False)
+        self.recheck = self.config.get("recheck", False)
         self.summary_netmask = self.config.get("summary_netmask", 16)
         self.emitted_contents = False
         self._ran_hooks = False
@@ -81,7 +83,7 @@ class asset_inventory(CSV):
         if (await self.filter_event(event))[0]:
             hostkey = _make_hostkey(event.host, event.resolved_hosts)
             if hostkey not in self.assets:
-                self.assets[hostkey] = Asset(event.host)
+                self.assets[hostkey] = Asset(event.host, self.recheck)
             self.assets[hostkey].absorb_event(event)
 
     async def report(self):
@@ -171,25 +173,31 @@ class asset_inventory(CSV):
                         hostkey = _make_hostkey(host, ips)
                         asset = self.assets.get(hostkey, None)
                         if asset is None:
-                            asset = Asset(host)
+                            asset = Asset(host, self.recheck)
                             self.assets[hostkey] = asset
                         asset.absorb_csv_row(row)
                         self.add_custom_headers(list(asset.custom_fields))
                         if not is_ip(asset.host):
-                            host_event = self.make_event(asset.host, "DNS_NAME", source=self.scan.root_event)
+                            host_event = self.make_event(
+                                asset.host, "DNS_NAME", source=self.scan.root_event, raise_error=True
+                            )
                             await self.emit_event(host_event)
                             for port in asset.ports:
                                 netloc = self.helpers.make_netloc(asset.host, port)
                                 open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=host_event)
-                                await self.emit_event(open_port_event)
+                                if open_port_event:
+                                    await self.emit_event(open_port_event)
                         else:
                             for ip in asset.ip_addresses:
-                                ip_event = self.make_event(ip, "IP_ADDRESS", source=self.scan.root_event)
+                                ip_event = self.make_event(
+                                    ip, "IP_ADDRESS", source=self.scan.root_event, raise_error=True
+                                )
                                 await self.emit_event(ip_event)
                                 for port in asset.ports:
                                     netloc = self.helpers.make_netloc(ip, port)
                                     open_port_event = self.make_event(netloc, "OPEN_TCP_PORT", source=ip_event)
-                                    await self.emit_event(open_port_event)
+                                    if open_port_event:
+                                        await self.emit_event(open_port_event)
             else:
                 self.warning(
                     f"use_previous=True was set but no previous asset inventory was found at {self.output_file}"
@@ -211,7 +219,7 @@ class asset_inventory(CSV):
 
 
 class Asset:
-    def __init__(self, host):
+    def __init__(self, host, recheck):
         self.host = host
         self.ip_addresses = set()
         self.dns_records = set()
@@ -227,6 +235,7 @@ class Asset:
         self.http_status = 0
         self.http_title = ""
         self.redirect_location = ""
+        self.recheck = recheck
 
     def absorb_csv_row(self, row):
         # host
@@ -236,23 +245,25 @@ class Asset:
         # ips
         self.ip_addresses = set(_make_ip_list(row.get("IP (External)", "")))
         self.ip_addresses.update(set(_make_ip_list(row.get("IP (Internal)", ""))))
-        # ports
-        ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
-        self.ports.update(set(i for i in ports if i and is_port(i)))
-        # findings
-        findings = [i.strip() for i in row.get("Findings", "").splitlines()]
-        self.findings.update(set(i for i in findings if i))
-        # technologies
-        technologies = [i.strip() for i in row.get("Technologies", "").splitlines()]
-        self.technologies.update(set(i for i in technologies if i))
-        # risk rating
-        risk_rating = row.get("Risk Rating", "").strip()
-        if risk_rating and risk_rating.isdigit() and int(risk_rating) > self.risk_rating:
-            self.risk_rating = int(risk_rating)
-        # provider
-        provider = row.get("Provider", "").strip()
-        if provider:
-            self.provider = provider
+        # If user reqests a recheck dont import the following fields to force them to be rechecked
+        if not self.recheck:
+            # ports
+            ports = [i.strip() for i in row.get("Open Ports", "").split(",")]
+            self.ports.update(set(i for i in ports if i and is_port(i)))
+            # findings
+            findings = [i.strip() for i in row.get("Findings", "").splitlines()]
+            self.findings.update(set(i for i in findings if i))
+            # technologies
+            technologies = [i.strip() for i in row.get("Technologies", "").splitlines()]
+            self.technologies.update(set(i for i in technologies if i))
+            # risk rating
+            risk_rating = row.get("Risk Rating", "").strip()
+            if risk_rating and risk_rating.isdigit() and int(risk_rating) > self.risk_rating:
+                self.risk_rating = int(risk_rating)
+            # provider
+            provider = row.get("Provider", "").strip()
+            if provider:
+                self.provider = provider
         # custom fields
         for k, v in row.items():
             v = str(v)
@@ -305,7 +316,7 @@ class Asset:
             self.technologies.add(event.data["technology"])
 
         if event.type == "WAF":
-            if waf := event.data.get("WAF", ""):
+            if waf := event.data.get("waf", ""):
                 if update_http_status or not self.waf:
                     self.waf = waf
 

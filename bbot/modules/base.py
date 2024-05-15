@@ -127,6 +127,8 @@ class BaseModule:
         self._outgoing_event_queue = None
         # track incoming events to prevent unwanted duplicates
         self._incoming_dup_tracker = set()
+        # tracks which subprocesses are running under this module
+        self._proc_tracker = set()
         # seconds since we've submitted a batch
         self._last_submitted_batch = None
         # additional callbacks to be executed alongside self.cleanup()
@@ -150,13 +152,41 @@ class BaseModule:
         self._per_host_tracker = set()
 
     async def setup(self):
-        """Asynchronously sets up the module at the beginning of the scan.
+        """
+        Performs one-time setup tasks for the module.
 
-        This method can be overridden to perform any necessary setup logic.
+        This method is responsible for preparing the module for its operation, which may include tasks
+        such as downloading necessary resources, validating configuration parameters, or other preliminary
+        checks.
 
         Returns:
-            bool or None: True if setup was successful. None for a soft-fail, which will produce a warning but not abort the scan. False for a hard-fail, which will abort the scan.
+            tuple:
+                - bool or None: A status indicating the outcome of the setup process. Returns `True` if
+                the setup was successful, `None` for a soft-fail where the module setup did not succeed
+                but the scan will continue with the module disabled, and `False` for a hard-fail where
+                the setup failure causes the scan to abort.
+                - str, optional: A reason for the setup failure, provided only when the setup does not
+                succeed (i.e., returns `None` or `False`).
+
+        Examples:
+            >>> async def setup(self):
+            >>>     if not self.config.get("api_key"):
+            >>>         # Soft-fail: Configuration missing an API key
+            >>>         return None, "No API key specified"
+
+            >>> async def setup(self):
+            >>>     try:
+            >>>         wordlist = await self.helpers.wordlist("https://raw.githubusercontent.com/user/wordlist.txt")
+            >>>     except WordlistError as e:
+            >>>         # Hard-fail: Error retrieving wordlist
+            >>>         return False, f"Error retrieving wordlist: {e}"
+
+            >>> async def setup(self):
+            >>>     self.timeout = self.config.get("timeout", 5)
+            >>>     # Success: Setup completed without issues
+            >>>     return True
         """
+
         return True
 
     async def handle_event(self, event):
@@ -1002,6 +1032,15 @@ class BaseModule:
             bool: True if the module has finished processing, False otherwise.
         """
         return not self.running and self.num_incoming_events <= 0 and self.outgoing_event_queue.qsize() <= 0
+
+    async def run_process(self, *args, **kwargs):
+        kwargs["_proc_tracker"] = self._proc_tracker
+        return await self.helpers.run(*args, **kwargs)
+
+    async def run_process_live(self, *args, **kwargs):
+        kwargs["_proc_tracker"] = self._proc_tracker
+        async for line in self.helpers.run_live(*args, **kwargs):
+            yield line
 
     async def request_with_fail_count(self, *args, **kwargs):
         """Asynchronously perform an HTTP request while keeping track of consecutive failures.

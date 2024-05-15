@@ -23,5 +23,5 @@ class TestBucket_Google(Bucket_Amazon_Base):
 
     def url_setup(self):
         self.url_1 = f"{random_bucket_name_1}.storage.googleapis.com"
-        self.url_2 = f"https://www.googleapis.com/storage/v1/b/{random_bucket_name_2}/iam/testPermissions?permissions=storage.buckets.setIamPolicy&permissions=storage.objects.list&permissions=storage.objects.get&permissions=storage.objects.create"
+        self.url_2 = f"https://www.googleapis.com/storage/v1/b/{random_bucket_name_2}/iam/testPermissions?&permissions=storage.buckets.get&permissions=storage.buckets.list&permissions=storage.buckets.create&permissions=storage.buckets.delete&permissions=storage.buckets.setIamPolicy&permissions=storage.objects.get&permissions=storage.objects.list&permissions=storage.objects.create&permissions=storage.objects.delete&permissions=storage.objects.setIamPolicy"
         self.url_3 = f"https://www.googleapis.com/storage/v1/b/{random_bucket_name_3}"

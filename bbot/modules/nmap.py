@@ -39,7 +39,7 @@ class nmap(portscanner):
         targets = list(set(str(e.data) for e in events))
         command, output_file = self.construct_command(targets)
         try:
-            await self.helpers.run(command, sudo=True)
+            await self.run_process(command, sudo=True)
             for host in self.parse_nmap_xml(output_file):
                 source_event = None
                 for h in [host.address] + host.hostnames:

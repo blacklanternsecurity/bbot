@@ -25,13 +25,14 @@ from datetime import datetime
 from tabulate import tabulate
 import wordninja as _wordninja
 from contextlib import suppress
+from unidecode import unidecode  # noqa F401
 import cloudcheck as _cloudcheck
 import tldextract as _tldextract
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping
 from hashlib import sha1 as hashlib_sha1
 from asyncio import create_task, gather, sleep, wait_for  # noqa
-from urllib.parse import urlparse, quote, unquote, urlunparse  # noqa F401
+from urllib.parse import urlparse, quote, unquote, urlunparse, urljoin  # noqa F401
 
 from .url import *  # noqa F401
 from .. import errors
@@ -1144,6 +1145,7 @@ def kill_children(parent_pid=None, sig=signal.SIGTERM):
         parent = psutil.Process(parent_pid)
     except psutil.NoSuchProcess:
         log.debug(f"No such PID: {parent_pid}")
+        return
     log.debug(f"Killing children of process ID {parent.pid}")
     children = parent.children(recursive=True)
     for child in children:
@@ -1155,6 +1157,7 @@ def kill_children(parent_pid=None, sig=signal.SIGTERM):
                 log.debug(f"No such PID: {child.pid}")
             except psutil.AccessDenied:
                 log.debug(f"Error killing PID: {child.pid} - access denied")
+    log.debug(f"Finished killing children of process ID {parent.pid}")
 
 
 def str_or_file(s):
@@ -1605,7 +1608,8 @@ def mkdir(path, check_writable=True, raise_error=True):
     touchfile = path / f".{rand_string()}"
     try:
         path.mkdir(exist_ok=True, parents=True)
-        touchfile.touch()
+        if check_writable:
+            touchfile.touch()
         return True
     except Exception as e:
         if raise_error:
@@ -1966,7 +1970,7 @@ def verify_sudo_password(sudo_pass):
     return True
 
 
-def make_table(*args, **kwargs):
+def make_table(rows, header, **kwargs):
     """Generate a formatted table from the given rows and headers.
 
     This function uses the `tabulate` package to generate a table with formatting options.
@@ -1993,8 +1997,8 @@ def make_table(*args, **kwargs):
         +-----------+-----------+
     """
     # fix IndexError: list index out of range
-    if args and not args[0]:
-        args = ([[]],) + args[1:]
+    if not rows:
+        rows = [[]]
     tablefmt = os.environ.get("BBOT_TABLE_FORMAT", None)
     defaults = {"tablefmt": "grid", "disable_numparse": True, "maxcolwidths": None}
     if tablefmt is None:
@@ -2007,7 +2011,14 @@ def make_table(*args, **kwargs):
     # don't wrap columns in markdown
     if tablefmt in ("github", "markdown"):
         kwargs.pop("maxcolwidths")
-    return tabulate(*args, **kwargs)
+        # escape problematic markdown characters in rows
+
+        def markdown_escape(s):
+            return str(s).replace("|", "&#124;")
+
+        rows = [[markdown_escape(f) for f in row] for row in rows]
+        header = [markdown_escape(h) for h in header]
+    return tabulate(rows, header, **kwargs)
 
 
 def human_timedelta(d):

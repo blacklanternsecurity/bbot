@@ -23,16 +23,16 @@ class TestGowitness(ModuleTestBase):
         }
         module_test.set_expect_requests(respond_args=respond_args)
         request_args = dict(uri="/blacklanternsecurity")
-        respond_args = dict(response_data="blacklanternsecurity github")
+        respond_args = dict(response_data="""blacklanternsecurity github <a data-bem""")
         module_test.set_expect_requests(request_args, respond_args)
 
         # monkeypatch social
         old_emit_event = module_test.scan.modules["social"].emit_event
 
-        async def new_emit_event(event_data, event_type, **kwargs):
-            if event_data["url"] == "https://github.com/blacklanternsecurity":
-                event_data["url"] = event_data["url"].replace("https://github.com", "http://127.0.0.1:8888")
-            await old_emit_event(event_data, event_type, **kwargs)
+        async def new_emit_event(event):
+            if event.data["url"] == "https://github.com/blacklanternsecurity":
+                event.data["url"] = event.data["url"].replace("https://github.com", "http://127.0.0.1:8888")
+            await old_emit_event(event)
 
         module_test.monkeypatch.setattr(module_test.scan.modules["social"], "emit_event", new_emit_event)
 
@@ -60,3 +60,12 @@ class TestGowitness(ModuleTestBase):
             ]
         )
         assert len([e for e in events if e.type == "TECHNOLOGY"])
+        assert 1 == len(
+            [
+                e
+                for e in events
+                if e.type == "TECHNOLOGY"
+                and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
+                and e.source.type == "SOCIAL"
+            ]
+        )

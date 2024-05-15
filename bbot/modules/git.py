@@ -1,5 +1,4 @@
 import re
-from urllib.parse import urljoin
 
 from bbot.modules.base import BaseModule
 
@@ -17,9 +16,9 @@ class git(BaseModule):
     async def handle_event(self, event):
         base_url = event.data.rstrip("/")
         urls = {
-            # git config
-            urljoin(base_url, ".git/config"),
-            urljoin(f"{base_url}/", ".git/config"),
+            # look for git config in both
+            self.helpers.urljoin(base_url, ".git/config"),
+            self.helpers.urljoin(f"{base_url}/", ".git/config"),
         }
         tasks = [self.get_url(u) for u in urls]
         async for task in self.helpers.as_completed(tasks):

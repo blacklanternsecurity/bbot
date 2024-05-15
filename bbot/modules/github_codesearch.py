@@ -18,7 +18,7 @@ class github_codesearch(github):
     async def handle_event(self, event):
         query = self.make_query(event)
         for repo_url, raw_urls in (await self.query(query)).items():
-            repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
+            repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", source=event)
             if repo_event is None:
                 continue
             await self.emit_event(repo_event)

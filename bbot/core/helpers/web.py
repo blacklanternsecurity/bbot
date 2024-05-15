@@ -278,7 +278,9 @@ class WebHelper:
             if not "method" in kwargs:
                 kwargs["method"] = "GET"
             try:
-                async with self._acatch(url, raise_error), self.AsyncClient().stream(url=url, **kwargs) as response:
+                async with self._acatch(url, raise_error=True), self.AsyncClient().stream(
+                    url=url, **kwargs
+                ) as response:
                     status_code = getattr(response, "status_code", 0)
                     log.debug(f"Download result: HTTP {status_code}")
                     if status_code != 0:
@@ -300,6 +302,8 @@ class WebHelper:
                 if warn:
                     log_fn = log.warning
                 log_fn(f"Failed to download {url}: {e}")
+                if raise_error:
+                    raise
                 return
 
         if success:
@@ -651,36 +655,42 @@ class WebHelper:
         try:
             yield
         except httpx.TimeoutException:
-            log.verbose(f"HTTP timeout to URL: {url}")
             if raise_error:
                 raise
+            else:
+                log.verbose(f"HTTP timeout to URL: {url}")
         except httpx.ConnectError:
-            log.debug(f"HTTP connect failed to URL: {url}")
             if raise_error:
                 raise
-        except httpx.RequestError as e:
-            log.trace(f"Error with request to URL: {url}: {e}")
-            log.trace(traceback.format_exc())
+            else:
+                log.debug(f"HTTP connect failed to URL: {url}")
+        except httpx.HTTPError as e:
             if raise_error:
                 raise
+            else:
+                log.trace(f"Error with request to URL: {url}: {e}")
+                log.trace(traceback.format_exc())
         except ssl.SSLError as e:
             msg = f"SSL error with request to URL: {url}: {e}"
-            log.trace(msg)
-            log.trace(traceback.format_exc())
             if raise_error:
                 raise httpx.RequestError(msg)
+            else:
+                log.trace(msg)
+                log.trace(traceback.format_exc())
         except anyio.EndOfStream as e:
             msg = f"AnyIO error with request to URL: {url}: {e}"
-            log.trace(msg)
-            log.trace(traceback.format_exc())
             if raise_error:
                 raise httpx.RequestError(msg)
+            else:
+                log.trace(msg)
+                log.trace(traceback.format_exc())
         except SOCKSError as e:
             msg = f"SOCKS error with request to URL: {url}: {e}"
-            log.trace(msg)
-            log.trace(traceback.format_exc())
             if raise_error:
                 raise httpx.RequestError(msg)
+            else:
+                log.trace(msg)
+                log.trace(traceback.format_exc())
         except BaseException as e:
             # don't log if the error is the result of an intentional cancellation
             if not any(

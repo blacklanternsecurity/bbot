@@ -5,11 +5,11 @@ class TestInternetDB(ModuleTestBase):
     config_overrides = {"dns_resolution": True}
 
     async def setup_before_prep(self, module_test):
-        module_test.scan.helpers.mock_dns(
+        module_test.mock_dns(
             {
-                ("blacklanternsecurity.com", "A"): "1.2.3.4",
-                ("autodiscover.blacklanternsecurity.com", "A"): "2.3.4.5",
-                ("mail.blacklanternsecurity.com", "A"): "3.4.5.6",
+                "blacklanternsecurity.com": {"A": ["1.2.3.4"]},
+                "autodiscover.blacklanternsecurity.com": {"A": ["2.3.4.5"]},
+                "mail.blacklanternsecurity.com": {"A": ["3.4.5.6"]},
             }
         )
 

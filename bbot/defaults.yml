@@ -94,11 +94,13 @@ url_extension_blacklist:
     - jpeg
     - gif
     - svg
+    - webp
     # web/fonts
     - css
     - woff
     - woff2
     - ttf
+    - eot
     - sass
     - scss
     # audio

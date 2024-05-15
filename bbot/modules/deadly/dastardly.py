@@ -35,8 +35,8 @@ class dastardly(BaseModule):
     per_hostport_only = True
 
     async def setup(self):
-        await self.helpers.run("systemctl", "start", "docker", sudo=True)
-        await self.helpers.run("docker", "pull", "public.ecr.aws/portswigger/dastardly:latest", sudo=True)
+        await self.run_process("systemctl", "start", "docker", sudo=True)
+        await self.run_process("docker", "pull", "public.ecr.aws/portswigger/dastardly:latest", sudo=True)
         self.output_dir = self.scan.home / "dastardly"
         self.helpers.mkdir(self.output_dir)
         return True
@@ -52,7 +52,7 @@ class dastardly(BaseModule):
         host = event.parsed._replace(path="/").geturl()
         self.verbose(f"Running Dastardly scan against {host}")
         command, output_file = self.construct_command(host)
-        finished_proc = await self.helpers.run(command, sudo=True)
+        finished_proc = await self.run_process(command, sudo=True)
         self.debug(f'dastardly stdout: {getattr(finished_proc, "stdout", "")}')
         self.debug(f'dastardly stderr: {getattr(finished_proc, "stderr", "")}')
         for testsuite in self.parse_dastardly_xml(output_file):
@@ -104,10 +104,12 @@ class dastardly(BaseModule):
     def parse_dastardly_xml(self, xml_file):
         try:
             with open(xml_file, "rb") as f:
-                et = etree.parse(f)
+                et = etree.parse(f, parser=etree.XMLParser(recover=True))
                 for testsuite in et.iter("testsuite"):
                     yield TestSuite(testsuite)
-        except Exception as e:
+        except FileNotFoundError:
+            pass
+        except etree.ParseError as e:
             self.warning(f"Error parsing Dastardly XML at {xml_file}: {e}")
 
 

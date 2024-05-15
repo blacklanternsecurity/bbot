@@ -6,24 +6,24 @@ class TestZoomEye(ModuleTestBase):
 
     async def setup_before_prep(self, module_test):
         module_test.httpx_mock.add_response(
-            url="https://api.zoomeye.org/resources-info",
+            url="https://api.zoomeye.hk/resources-info",
             match_headers={"API-KEY": "asdf"},
             json={"quota_info": {"remain_total_quota": 5}},
         )
         module_test.httpx_mock.add_response(
-            url="https://api.zoomeye.org/domain/search?q=blacklanternsecurity.com&type=0&page=1",
+            url="https://api.zoomeye.hk/domain/search?q=blacklanternsecurity.com&type=0&page=1",
             json={"list": [{"name": "asdf.blacklanternsecurity.com"}]},
         )
         module_test.httpx_mock.add_response(
-            url="https://api.zoomeye.org/domain/search?q=blacklanternsecurity.com&type=0&page=2",
+            url="https://api.zoomeye.hk/domain/search?q=blacklanternsecurity.com&type=0&page=2",
             json={"list": [{"name": "zzzz.blacklanternsecurity.com"}]},
         )
         module_test.httpx_mock.add_response(
-            url="https://api.zoomeye.org/domain/search?q=blacklanternsecurity.com&type=0&page=3",
+            url="https://api.zoomeye.hk/domain/search?q=blacklanternsecurity.com&type=0&page=3",
             json={"list": [{"name": "ffff.blacklanternsecurity.com"}, {"name": "affiliate.bls"}]},
         )
         module_test.httpx_mock.add_response(
-            url="https://api.zoomeye.org/domain/search?q=blacklanternsecurity.com&type=0&page=4",
+            url="https://api.zoomeye.hk/domain/search?q=blacklanternsecurity.com&type=0&page=4",
             json={"list": [{"name": "nope.blacklanternsecurity.com"}]},
         )
 

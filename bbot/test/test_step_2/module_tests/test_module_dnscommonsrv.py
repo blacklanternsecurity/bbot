@@ -3,22 +3,21 @@ from .base import ModuleTestBase
 
 class TestDNSCommonSRV(ModuleTestBase):
     targets = ["blacklanternsecurity.notreal"]
+    config_overrides = {"dns_resolution": True}
 
     async def setup_after_prep(self, module_test):
-        old_resolve_fn = module_test.scan.helpers.dns.resolve
-
-        async def resolve(query, **kwargs):
-            if (
-                query == "_ldap._tcp.gc._msdcs.blacklanternsecurity.notreal"
-                and kwargs.get("type", "").upper() == "SRV"
-            ):
-                return {"asdf.blacklanternsecurity.notreal"}
-            return await old_resolve_fn(query, **kwargs)
-
-        module_test.monkeypatch.setattr(module_test.scan.helpers.dns, "resolve", resolve)
+        module_test.mock_dns(
+            {
+                "_ldap._tcp.gc._msdcs.blacklanternsecurity.notreal": {
+                    "SRV": ["0 100 3268 asdf.blacklanternsecurity.notreal"]
+                },
+                "asdf.blacklanternsecurity.notreal": {"A": "1.2.3.4"},
+            }
+        )
 
     def check(self, module_test, events):
         assert any(
             e.data == "_ldap._tcp.gc._msdcs.blacklanternsecurity.notreal" for e in events
         ), "Failed to detect subdomain"
+        assert any(e.data == "asdf.blacklanternsecurity.notreal" for e in events), "Failed to detect subdomain"
         assert not any(e.data == "_ldap._tcp.dc._msdcs.blacklanternsecurity.notreal" for e in events), "False positive"

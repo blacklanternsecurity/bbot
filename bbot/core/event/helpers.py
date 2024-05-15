@@ -3,8 +3,8 @@ import ipaddress
 from contextlib import suppress
 
 from bbot.core.errors import ValidationError
+from bbot.core.helpers.regexes import event_type_regexes
 from bbot.core.helpers import sha1, smart_decode, smart_encode_punycode
-from bbot.core.helpers.regexes import event_type_regexes, event_id_regex
 
 
 log = logging.getLogger("bbot.core.event.helpers")
@@ -50,12 +50,6 @@ def get_event_type(data):
                 return t, data
 
     raise ValidationError(f'Unable to autodetect event type from "{data}"')
-
-
-def is_event_id(s):
-    if event_id_regex.match(str(s)):
-        return True
-    return False
 
 
 def make_event_id(data, event_type):

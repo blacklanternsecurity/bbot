@@ -65,13 +65,15 @@ class OAUTH(BaseModule):
                     "FINDING",
                     source=event,
                 )
-                finding_event.source_domain = source_domain
-                await self.emit_event(finding_event)
+                if finding_event:
+                    finding_event.source_domain = source_domain
+                    await self.emit_event(finding_event)
                 url_event = self.make_event(
                     token_endpoint, "URL_UNVERIFIED", source=event, tags=["affiliate", "oauth-token-endpoint"]
                 )
-                url_event.source_domain = source_domain
-                await self.emit_event(url_event)
+                if url_event:
+                    url_event.source_domain = source_domain
+                    await self.emit_event(url_event)
             for result in oidc_results:
                 if result not in (domain, event.data):
                     event_type = "URL_UNVERIFIED" if self.helpers.is_url(result) else "DNS_NAME"
@@ -89,8 +91,9 @@ class OAUTH(BaseModule):
                     "FINDING",
                     source=event,
                 )
-                oauth_finding.source_domain = source_domain
-                await self.emit_event(oauth_finding)
+                if oauth_finding:
+                    oauth_finding.source_domain = source_domain
+                    await self.emit_event(oauth_finding)
 
     def url_and_base(self, url):
         yield url

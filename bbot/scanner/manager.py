@@ -44,19 +44,12 @@ class ScanManager:
         self.incoming_dup_tracker = set()
         # track outgoing duplicates (for `accept_dupes` attribute of modules)
         self.outgoing_dup_tracker = set()
-        # tracks duplicate events
-        self.events_accepted = set()
-        # tracks duplicate events for graph purposes
-        # (allows certain duplicates in order to maintain a complete graph)
-        self.events_accepted_graph = set()
         self.dns_resolution = self.scan.config.get("dns_resolution", False)
         self._task_counter = TaskCounter()
         self._new_activity = True
         self._modules_by_priority = None
         self._incoming_queues = None
         self._module_priority_weights = None
-        # emit_event timeout - 5 minutes
-        self._emit_event_timeout = 5 * 60
 
     async def init_events(self):
         """
@@ -330,20 +323,6 @@ class ScanManager:
             event._resolved.set()
             log.debug(f"{event.module}.emit_event() finished for {event}")
 
-    def hash_event_graph(self, event):
-        """
-        Hash an event for graph duplicate detection
-
-        This is necessary because duplicate events from certain sources (e.g. DNS)
-            need to be allowed in order to preserve their relationship trail
-        """
-        module_type = getattr(event.module, "_type", "")
-        if module_type == "DNS":
-            # allow duplicate events from dns resolution as long as their source event is unique
-            return hash((event, str(event.module), event.source_id))
-        else:
-            return hash((event, str(event.module)))
-
     def is_incoming_duplicate(self, event, add=False):
         """
         Calculate whether an event is a duplicate in the context of the module that emitted it
@@ -432,8 +411,13 @@ class ScanManager:
             log.critical(traceback.format_exc())
 
     def kill_module(self, module_name, message=None):
+        from signal import SIGINT
+
         module = self.scan.modules[module_name]
         module.set_error_state(message=message, clear_outgoing_queue=True)
+        for proc in module._proc_tracker:
+            with suppress(Exception):
+                proc.send_signal(SIGINT)
         self.scan.helpers.cancel_tasks_sync(module._tasks)
 
     @property

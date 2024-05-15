@@ -33,7 +33,7 @@ class smuggler(BaseModule):
             "-u",
             event.data,
         ]
-        async for line in self.helpers.run_live(command):
+        async for line in self.run_process_live(command):
             for f in line.split("\r"):
                 if "Issue Found" in f:
                     technique = f.split(":")[0].rstrip()

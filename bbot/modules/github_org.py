@@ -55,7 +55,9 @@ class github_org(github):
                 self.verbose(f"Searching for repos belonging to user {user}")
                 repos = await self.query_user_repos(user)
             for repo_url in repos:
-                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", source=event)
+                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", source=event)
+                if not repo_event:
+                    continue
                 repo_event.scope_distance = event.scope_distance
                 await self.emit_event(repo_event)
 
@@ -66,21 +68,25 @@ class github_org(github):
                 for member in org_members:
                     event_data = {"platform": "github", "profile_name": member, "url": f"https://github.com/{member}"}
                     member_event = self.make_event(event_data, "SOCIAL", tags="github-org-member", source=event)
-                    await self.emit_event(member_event)
+                    if member_event:
+                        await self.emit_event(member_event)
 
         # find valid orgs from stub (ORG_STUB --> SOCIAL)
         elif event.type == "ORG_STUB":
             user = event.data
             self.verbose(f"Validating whether the organization {user} is within our scope...")
             is_org, in_scope = await self.validate_org(user)
+            if "target" in event.tags:
+                in_scope = True
             if not is_org or not in_scope:
                 self.verbose(f"Unable to validate that {user} is in-scope, skipping...")
                 return
 
             event_data = {"platform": "github", "profile_name": user, "url": f"https://github.com/{user}"}
             github_org_event = self.make_event(event_data, "SOCIAL", tags="github-org", source=event)
-            github_org_event.scope_distance = event.scope_distance
-            await self.emit_event(github_org_event)
+            if github_org_event:
+                github_org_event.scope_distance = event.scope_distance
+                await self.emit_event(github_org_event)
 
     async def query_org_repos(self, query):
         repos = []

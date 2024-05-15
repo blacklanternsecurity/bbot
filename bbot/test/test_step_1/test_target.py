@@ -1,7 +1,8 @@
 from ..bbot_fixtures import *  # noqa: F401
 
 
-def test_target(bbot_config, bbot_scanner):
+@pytest.mark.asyncio
+async def test_target(bbot_config, bbot_scanner):
     scan1 = bbot_scanner("api.publicapis.org", "8.8.8.8/30", "2001:4860:4860::8888/126", config=bbot_config)
     scan2 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)
     scan3 = bbot_scanner("8.8.8.8/29", "publicapis.org", "2001:4860:4860::8888/125", config=bbot_config)

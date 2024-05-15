@@ -58,7 +58,12 @@ class TestDastardly(ModuleTestBase):
         module_test.monkeypatch.setattr(module_test.module, "filter_event", new_filter_event)
 
     def check(self, module_test, events):
-        assert 1 == len([e for e in events if e.type == "VULNERABILITY"])
         assert 1 == len(
-            [e for e in events if e.type == "VULNERABILITY" and f"{self.new_url}test" in e.data["description"]]
+            [
+                e
+                for e in events
+                if e.type == "VULNERABILITY"
+                and f"{self.new_url}test" in e.data["description"]
+                and "Cross-site scripting".lower() in e.data["description"].lower()
+            ]
         )

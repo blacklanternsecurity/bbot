@@ -119,6 +119,12 @@ async def test_events(events, scan, helpers, bbot_config):
     assert http_response.http_title == "HTTP RESPONSE"
     assert http_response.redirect_location == "http://www.evilcorp.com/asdf"
 
+    # http response url validation
+    http_response_2 = scan.make_event(
+        {"port": "80", "url": "http://evilcorp.com:80/asdf"}, "HTTP_RESPONSE", dummy=True
+    )
+    assert http_response_2.data["url"] == "http://evilcorp.com/asdf"
+
     # open port tests
     assert events.open_port in events.domain
     assert "api.publicapis.org:443" in events.open_port
@@ -197,6 +203,23 @@ async def test_events(events, scan, helpers, bbot_config):
         affiliate_event3 = scan.make_event("4.3.2.1:88", source=affiliate_event)
         assert tag in affiliate_event2.tags
         assert tag not in affiliate_event3.tags
+
+    # updating an already-created event with make_event()
+    # updating tags
+    event1 = scan.make_event("127.0.0.1", source=scan.root_event)
+    updated_event = scan.make_event(event1, tags="asdf")
+    assert "asdf" not in event1.tags
+    assert "asdf" in updated_event.tags
+    # updating source
+    event2 = scan.make_event("127.0.0.1", source=scan.root_event)
+    updated_event = scan.make_event(event2, source=event1)
+    assert event2.source == scan.root_event
+    assert updated_event.source == event1
+    # updating module
+    event3 = scan.make_event("127.0.0.1", source=scan.root_event)
+    updated_event = scan.make_event(event3, internal=True)
+    assert event3.internal == False
+    assert updated_event.internal == True
 
     # event sorting
     parent1 = scan.make_event("127.0.0.1", source=scan.root_event)
@@ -421,3 +444,12 @@ async def test_events(events, scan, helpers, bbot_config):
     event_5 = scan.make_event("127.0.0.5", source=event_4)
     assert event_5.get_sources() == [event_4, event_3, event_2, event_1, scan.root_event]
     assert event_5.get_sources(omit=True) == [event_4, event_2, event_1, scan.root_event]
+
+    # test storage bucket validation
+    bucket_event = scan.make_event(
+        {"name": "ASDF.s3.amazonaws.com", "url": "https://ASDF.s3.amazonaws.com"},
+        "STORAGE_BUCKET",
+        source=scan.root_event,
+    )
+    assert bucket_event.data["name"] == "asdf.s3.amazonaws.com"
+    assert bucket_event.data["url"] == "https://asdf.s3.amazonaws.com/"

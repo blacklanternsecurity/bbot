@@ -83,13 +83,11 @@ class speculate(BaseInternalModule):
             if parent != event.data:
                 await self.emit_event(parent, "DNS_NAME", source=event, internal=True)
 
-        # generate open ports
-
         # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
         speculate_open_ports = self.emit_open_ports and event_in_scope_distance
 
-        # from URLs
+        # URL --> OPEN_TCP_PORT
         if event.type == "URL" or (event.type == "URL_UNVERIFIED" and self.open_port_consumers):
             # only speculate port from a URL if it wouldn't be speculated naturally from the host
             if event.host and (event.port not in self.ports or not speculate_open_ports):
@@ -101,7 +99,7 @@ class speculate(BaseInternalModule):
                     quick=(event.type == "URL"),
                 )
 
-        # generate sub-directory URLS from URLS
+        # speculate sub-directory URLS from URLS
         if event.type == "URL":
             url_parents = self.helpers.url_parents(event.data)
             for up in url_parents:
@@ -111,6 +109,20 @@ class speculate(BaseInternalModule):
                     source_web_spider_distance = getattr(event, "web_spider_distance", 0)
                     url_event.web_spider_distance = source_web_spider_distance
                     await self.emit_event(url_event)
+
+        # speculate URL_UNVERIFIED from URL or any event with "url" attribute
+        event_is_url = event.type == "URL"
+        event_has_url = isinstance(event.data, dict) and "url" in event.data
+        if event_is_url or event_has_url:
+            if event_is_url:
+                url = event.data
+            else:
+                url = event.data["url"]
+            if not any(e.type == "URL_UNVERIFIED" and e.data == url for e in event.get_sources()):
+                tags = None
+                if self.helpers.is_spider_danger(event.source, url):
+                    tags = ["spider-danger"]
+                await self.emit_event(url, "URL_UNVERIFIED", tags=tags, source=event)
 
         # from hosts
         if speculate_open_ports:
@@ -141,7 +153,9 @@ class speculate(BaseInternalModule):
             if registered_domain:
                 tld_stub = getattr(tldextracted, "domain", "")
                 if tld_stub:
-                    org_stubs.add(tld_stub)
+                    decoded_tld_stub = self.helpers.smart_decode_punycode(tld_stub)
+                    org_stubs.add(decoded_tld_stub)
+                    org_stubs.add(self.helpers.unidecode(decoded_tld_stub))
         elif event.type == "SOCIAL":
             stub = event.data.get("stub", "")
             if stub:
@@ -154,17 +168,19 @@ class speculate(BaseInternalModule):
             if stub_hash not in self.org_stubs_seen:
                 self.org_stubs_seen.add(stub_hash)
                 stub_event = self.make_event(stub, "ORG_STUB", source=event)
-                if event.scope_distance > 0:
-                    stub_event.scope_distance = event.scope_distance
-                await self.emit_event(stub_event)
+                if stub_event:
+                    if event.scope_distance > 0:
+                        stub_event.scope_distance = event.scope_distance
+                    await self.emit_event(stub_event)
 
         # USERNAME --> EMAIL
         if event.type == "USERNAME":
             email = event.data.split(":", 1)[-1]
             if validators.soft_validate(email, "email"):
                 email_event = self.make_event(email, "EMAIL_ADDRESS", source=event, tags=["affiliate"])
-                email_event.scope_distance = event.scope_distance
-                await self.emit_event(email_event)
+                if email_event:
+                    email_event.scope_distance = event.scope_distance
+                    await self.emit_event(email_event)
 
     async def filter_event(self, event):
         # don't accept errored DNS_NAMEs
