@@ -43,7 +43,7 @@ class ModuleTestBase:
     whitelist = None
     module_name = None
     config_overrides = {}
-    modules_overrides = []
+    modules_overrides = None
     log = logging.getLogger("bbot")
 
     class ModuleTest:
@@ -147,7 +147,7 @@ class ModuleTestBase:
 
     @property
     def modules(self):
-        if self.modules_overrides:
+        if self.modules_overrides is not None:
             return self.modules_overrides
         return [self.name]
 
