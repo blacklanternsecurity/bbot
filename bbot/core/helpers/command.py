@@ -53,7 +53,7 @@ async def run(self, *command, check=False, text=True, idle_timeout=None, **kwarg
                     stdout, stderr = await asyncio.wait_for(proc.communicate(_input), timeout=idle_timeout)
                 else:
                     stdout, stderr = await proc.communicate(_input)
-            except TimeoutError:
+            except asyncio.exceptions.TimeoutError:
                 proc.send_signal(SIGINT)
                 raise
 
@@ -117,7 +117,7 @@ async def run_live(self, *command, check=False, text=True, idle_timeout=None, **
                         line = await asyncio.wait_for(proc.stdout.readline(), timeout=idle_timeout)
                     else:
                         line = await proc.stdout.readline()
-                except TimeoutError:
+                except asyncio.exceptions.TimeoutError:
                     proc.send_signal(SIGINT)
                     raise
                 except ValueError as e:
