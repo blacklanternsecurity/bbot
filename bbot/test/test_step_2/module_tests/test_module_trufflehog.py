@@ -854,17 +854,17 @@ class TestTrufflehog(ModuleTestBase):
             and "Secret: [https://admin:admin@the-internet.herokuapp.com]" in e.data["description"]
         ]
         assert 3 == len(vuln_events), "Failed to find secret in events"
-        github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].source
+        github_repo_event = [e for e in vuln_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-        github_workflow_event = [e for e in vuln_events if "bbot" in e.data["description"]][0].source
+        github_workflow_event = [e for e in vuln_events if "bbot" in e.data["description"]][0].parent
         file = Path(github_workflow_event.data["path"])
         assert file.is_file(), "Destination file does not exist"
-        docker_source_event = [e for e in vuln_events if e.data["host"] == "hub.docker.com"][0].source
-        file = Path(docker_source_event.data["path"])
+        docker_parent_event = [e for e in vuln_events if e.data["host"] == "hub.docker.com"][0].parent
+        file = Path(docker_parent_event.data["path"])
         assert file.is_file(), "Destination image does not exist"
 
 
@@ -881,15 +881,15 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
             and "Secret: [https://admin:admin@internal.host.com]" in e.data["description"]
         ]
         assert 3 == len(finding_events), "Failed to find secret in events"
-        github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].source
+        github_repo_event = [e for e in finding_events if "test_keys" in e.data["description"]][0].parent
         folder = Path(github_repo_event.data["path"])
         assert folder.is_dir(), "Destination folder doesn't exist"
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-        github_workflow_event = [e for e in finding_events if "bbot" in e.data["description"]][0].source
+        github_workflow_event = [e for e in finding_events if "bbot" in e.data["description"]][0].parent
         file = Path(github_workflow_event.data["path"])
         assert file.is_file(), "Destination file does not exist"
-        docker_source_event = [e for e in finding_events if e.data["host"] == "hub.docker.com"][0].source
-        file = Path(docker_source_event.data["path"])
+        docker_parent_event = [e for e in finding_events if e.data["host"] == "hub.docker.com"][0].parent
+        file = Path(docker_parent_event.data["path"])
         assert file.is_file(), "Destination image does not exist"

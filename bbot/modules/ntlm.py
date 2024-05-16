@@ -94,11 +94,11 @@ class ntlm(BaseModule):
                             "description": f"NTLM AUTH: {result}",
                         },
                         "FINDING",
-                        source=event,
+                        parent=event,
                     )
                     fqdn = result.get("FQDN", "")
                     if fqdn:
-                        await self.emit_event(fqdn, "DNS_NAME", source=event)
+                        await self.emit_event(fqdn, "DNS_NAME", parent=event)
                     break
 
     async def filter_event(self, event):

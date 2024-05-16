@@ -49,12 +49,12 @@ class gitlab(BaseModule):
         if "x_gitlab_meta" in headers:
             url = event.parsed_url._replace(path="/").geturl()
             await self.emit_event(
-                {"host": str(event.host), "technology": "GitLab", "url": url}, "TECHNOLOGY", source=event
+                {"host": str(event.host), "technology": "GitLab", "url": url}, "TECHNOLOGY", parent=event
             )
             await self.emit_event(
                 {"host": str(event.host), "description": f"GitLab server at {event.host}"},
                 "FINDING",
-                source=event,
+                parent=event,
             )
 
     async def handle_technology(self, event):
@@ -89,7 +89,7 @@ class gitlab(BaseModule):
         for project in await self.gitlab_json_request(projects_url):
             project_url = project.get("web_url", "")
             if project_url:
-                code_event = self.make_event({"url": project_url}, "CODE_REPOSITORY", tags="git", source=event)
+                code_event = self.make_event({"url": project_url}, "CODE_REPOSITORY", tags="git", parent=event)
                 code_event.scope_distance = event.scope_distance
                 await self.emit_event(code_event)
             namespace = project.get("namespace", {})
@@ -120,7 +120,7 @@ class gitlab(BaseModule):
             social_event = self.make_event(
                 {"platform": "gitlab", "profile_name": namespace_path, "url": namespace_url},
                 "SOCIAL",
-                source=event,
+                parent=event,
             )
             social_event.scope_distance = event.scope_distance
             await self.emit_event(social_event)

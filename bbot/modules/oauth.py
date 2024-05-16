@@ -63,13 +63,13 @@ class OAUTH(BaseModule):
                         "url": url,
                     },
                     "FINDING",
-                    source=event,
+                    parent=event,
                 )
                 if finding_event:
                     finding_event.source_domain = source_domain
                     await self.emit_event(finding_event)
                 url_event = self.make_event(
-                    token_endpoint, "URL_UNVERIFIED", source=event, tags=["affiliate", "oauth-token-endpoint"]
+                    token_endpoint, "URL_UNVERIFIED", parent=event, tags=["affiliate", "oauth-token-endpoint"]
                 )
                 if url_event:
                     url_event.source_domain = source_domain
@@ -77,7 +77,7 @@ class OAUTH(BaseModule):
             for result in oidc_results:
                 if result not in (domain, event.data):
                     event_type = "URL_UNVERIFIED" if self.helpers.is_url(result) else "DNS_NAME"
-                    await self.emit_event(result, event_type, source=event, tags=["affiliate"])
+                    await self.emit_event(result, event_type, parent=event, tags=["affiliate"])
 
         for oauth_task in oauth_tasks:
             url = await oauth_task
@@ -89,7 +89,7 @@ class OAUTH(BaseModule):
                         "url": url,
                     },
                     "FINDING",
-                    source=event,
+                    parent=event,
                 )
                 if oauth_finding:
                     oauth_finding.source_domain = source_domain

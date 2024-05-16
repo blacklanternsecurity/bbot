@@ -46,4 +46,4 @@ class dnsbrute(subdomain_enum):
         query = self.make_query(event)
         self.info(f"Brute-forcing subdomains for {query} (source: {event.data})")
         for hostname in await self.helpers.dns.brute(self, query, self.subdomain_list):
-            await self.emit_event(hostname, "DNS_NAME", source=event)
+            await self.emit_event(hostname, "DNS_NAME", parent=event)

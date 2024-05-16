@@ -412,7 +412,7 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
                 and e.data["profile_name"] == "blacklanternsecurity"
                 and e.scope_distance == 1
                 and str(e.module) == "social"
-                and e.source.type == "URL_UNVERIFIED"
+                and e.parent.type == "URL_UNVERIFIED"
             ]
         )
         assert 1 == len(
@@ -424,7 +424,7 @@ class TestGithub_Org_Custom_Target(TestGithub_Org):
                 and e.data["profile_name"] == "blacklanternsecurity"
                 and e.scope_distance == 1
                 and str(e.module) == "github_org"
-                and e.source.type == "ORG_STUB"
+                and e.parent.type == "ORG_STUB"
             ]
         )
         assert 1 == len(

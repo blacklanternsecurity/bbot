@@ -20,22 +20,22 @@ class urlscan(subdomain_enum):
     async def handle_event(self, event):
         query = self.make_query(event)
         for domain, url in await self.query(query):
-            source_event = event
+            parent_event = event
             if domain and domain != query:
-                domain_event = self.make_event(domain, "DNS_NAME", source=event)
+                domain_event = self.make_event(domain, "DNS_NAME", parent=event)
                 if domain_event:
                     if str(domain_event.host).endswith(query) and not str(domain_event.host) == str(event.host):
                         await self.emit_event(domain_event, abort_if=self.abort_if)
-                        source_event = domain_event
+                        parent_event = domain_event
             if url:
-                url_event = self.make_event(url, "URL_UNVERIFIED", source=source_event)
+                url_event = self.make_event(url, "URL_UNVERIFIED", parent=parent_event)
                 if url_event:
                     if str(url_event.host).endswith(query):
                         if self.urls:
                             await self.emit_event(url_event, abort_if=self.abort_if)
                         else:
                             await self.emit_event(
-                                str(url_event.host), "DNS_NAME", source=event, abort_if=self.abort_if
+                                str(url_event.host), "DNS_NAME", parent=event, abort_if=self.abort_if
                             )
                     else:
                         self.debug(f"{url_event.host} does not match {query}")

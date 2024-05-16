@@ -90,12 +90,12 @@ class internetdb(BaseModule):
         data: dict  # has keys: cpes, hostnames, ip, ports, tags, vulns
         # ip is a string, ports is a list of ports, the rest is a list of strings
         for hostname in data.get("hostnames", []):
-            await self.emit_event(hostname, "DNS_NAME", source=event)
+            await self.emit_event(hostname, "DNS_NAME", parent=event)
         for cpe in data.get("cpes", []):
-            await self.emit_event({"technology": cpe, "host": str(event.host)}, "TECHNOLOGY", source=event)
+            await self.emit_event({"technology": cpe, "host": str(event.host)}, "TECHNOLOGY", parent=event)
         for port in data.get("ports", []):
             await self.emit_event(
-                self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", source=event, internal=True, quick=True
+                self.helpers.make_netloc(event.data, port), "OPEN_TCP_PORT", parent=event, internal=True, quick=True
             )
         vulns = data.get("vulns", [])
         if vulns:
@@ -103,7 +103,7 @@ class internetdb(BaseModule):
             await self.emit_event(
                 {"description": f"Shodan reported verified vulnerabilities: {vulns_str}", "host": str(event.host)},
                 "FINDING",
-                source=event,
+                parent=event,
             )
 
     def get_ip(self, event):

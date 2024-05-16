@@ -160,4 +160,4 @@ class dnscommonsrv(subdomain_enum):
         query = self.make_query(event)
         self.verbose(f'Brute-forcing SRV records for "{query}"')
         for hostname in await self.helpers.dns.brute(self, query, common_srvs, type="SRV"):
-            await self.emit_event(hostname, "DNS_NAME", source=event)
+            await self.emit_event(hostname, "DNS_NAME", parent=event)

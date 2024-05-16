@@ -19,7 +19,7 @@ class azure_realm(BaseModule):
             auth_url = await self.getuserrealm(domain)
             if auth_url:
                 url_event = self.make_event(
-                    auth_url, "URL_UNVERIFIED", source=event, tags=["affiliate", "ms-auth-url"]
+                    auth_url, "URL_UNVERIFIED", parent=event, tags=["affiliate", "ms-auth-url"]
                 )
                 url_event.source_domain = domain
                 await self.emit_event(url_event)

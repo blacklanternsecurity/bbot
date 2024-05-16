@@ -24,6 +24,6 @@ class baddns_zone(baddns_module):
 
     # minimize nsec records feeding back into themselves
     async def filter_event(self, event):
-        if "baddns-nsec" in event.tags or "baddns-nsec" in event.source.tags:
+        if "baddns-nsec" in event.tags or "baddns-nsec" in event.parent.tags:
             return False
         return True

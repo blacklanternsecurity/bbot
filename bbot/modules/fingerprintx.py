@@ -46,10 +46,10 @@ class fingerprintx(BaseModule):
             if host and ip:
                 tags.add(f"ip-{ip}")
             if host and port and protocol:
-                source_event = _input.get(port_data)
+                parent_event = _input.get(port_data)
                 protocol_data = {"host": host, "protocol": protocol.upper()}
                 if port:
                     protocol_data["port"] = port
                 if banner:
                     protocol_data["banner"] = banner
-                await self.emit_event(protocol_data, "PROTOCOL", source=source_event, tags=tags)
+                await self.emit_event(protocol_data, "PROTOCOL", parent=parent_event, tags=tags)

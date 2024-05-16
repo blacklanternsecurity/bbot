@@ -36,7 +36,7 @@ class dockerhub(BaseModule):
                 site_url = f"{self.site_url}/u/{p}"
                 # emit social event
                 await self.emit_event(
-                    {"platform": "docker", "url": site_url, "profile_name": p}, "SOCIAL", source=event
+                    {"platform": "docker", "url": site_url, "profile_name": p}, "SOCIAL", parent=event
                 )
 
     async def handle_social(self, event):
@@ -44,11 +44,11 @@ class dockerhub(BaseModule):
         if not username:
             return
         # emit API endpoint to be visited by httpx (for url/email extraction, etc.)
-        await self.emit_event(f"{self.api_url}/users/{username}", "URL_UNVERIFIED", source=event, tags="httpx-safe")
+        await self.emit_event(f"{self.api_url}/users/{username}", "URL_UNVERIFIED", parent=event, tags="httpx-safe")
         self.verbose(f"Searching for docker images belonging to {username}")
         repos = await self.get_repos(username)
         for repo in repos:
-            await self.emit_event({"url": repo}, "CODE_REPOSITORY", tags="docker", source=event)
+            await self.emit_event({"url": repo}, "CODE_REPOSITORY", tags="docker", parent=event)
 
     async def get_repos(self, username):
         repos = []

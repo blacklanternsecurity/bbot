@@ -51,7 +51,7 @@ class github_workflows(github):
                         },
                         "FILESYSTEM",
                         tags=["textfile"],
-                        source=event,
+                        parent=event,
                     )
                     logfile_event.scope_distance = event.scope_distance
                     await self.emit_event(logfile_event)

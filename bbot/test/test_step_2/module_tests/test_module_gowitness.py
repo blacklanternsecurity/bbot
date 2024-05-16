@@ -66,6 +66,6 @@ class TestGowitness(ModuleTestBase):
                 for e in events
                 if e.type == "TECHNOLOGY"
                 and e.data["url"] == "http://127.0.0.1:8888/blacklanternsecurity"
-                and e.source.type == "SOCIAL"
+                and e.parent.type == "SOCIAL"
             ]
         )

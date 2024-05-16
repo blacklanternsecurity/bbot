@@ -415,7 +415,7 @@ class BaseModule:
             raise_error (bool, optional): Whether to raise a validation error if the event could not be created. Defaults to False.
 
         Examples:
-            >>> new_event = self.make_event("1.2.3.4", source=event)
+            >>> new_event = self.make_event("1.2.3.4", parent=event)
             >>> await self.emit_event(new_event)
 
         Returns:
@@ -454,9 +454,9 @@ class BaseModule:
                 ```
 
         Examples:
-            >>> await self.emit_event("www.evilcorp.com", source=event, tags=["affiliate"])
+            >>> await self.emit_event("www.evilcorp.com", parent=event, tags=["affiliate"])
 
-            >>> new_event = self.make_event("1.2.3.4", source=event)
+            >>> new_event = self.make_event("1.2.3.4", parent=event)
             >>> await self.emit_event(new_event)
 
         Returns:

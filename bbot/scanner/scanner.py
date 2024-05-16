@@ -908,7 +908,7 @@ class Scanner:
               "scope_distance": 0,
               "scan": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
               "timestamp": 1694548779.616255,
-              "source": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
+              "parent": "SCAN:1188928d942ace8e3befae0bdb9c3caa22705f54",
               "tags": [
                 "distance-0"
               ],
@@ -920,7 +920,7 @@ class Scanner:
         root_event = self.make_event(data=f"{self.name} ({self.id})", event_type="SCAN", dummy=True)
         root_event._id = self.id
         root_event.scope_distance = 0
-        root_event.source = root_event
+        root_event.parent = root_event
         root_event.module = self._make_dummy_module(name="TARGET", _type="TARGET")
         return root_event
 

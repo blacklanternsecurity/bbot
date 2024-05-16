@@ -165,7 +165,7 @@ async def test_events(events, helpers):
     assert events.ipv6_url_unverified.host == ipaddress.ip_address("2001:4860:4860::8888")
     assert events.ipv6_url_unverified.port == 443
 
-    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", source=scan.root_event)
+    javascript_event = scan.make_event("http://evilcorp.com/asdf/a.js?b=c#d", "URL_UNVERIFIED", parent=scan.root_event)
     assert "extension-js" in javascript_event.tags
     await scan.ingress_module.handle_event(javascript_event, {})
     assert "httpx-only" in javascript_event.tags
@@ -175,70 +175,70 @@ async def test_events(events, helpers):
     assert event1._scope_distance == -1
     event1.scope_distance = 0
     assert event1._scope_distance == 0
-    event2 = scan.make_event("2.3.4.5", source=event1)
+    event2 = scan.make_event("2.3.4.5", parent=event1)
     assert event2._scope_distance == 1
-    event3 = scan.make_event("3.4.5.6", source=event2)
+    event3 = scan.make_event("3.4.5.6", parent=event2)
     assert event3._scope_distance == 2
-    event4 = scan.make_event("3.4.5.6", source=event3)
+    event4 = scan.make_event("3.4.5.6", parent=event3)
     assert event4._scope_distance == 2
-    event5 = scan.make_event("4.5.6.7", source=event4)
+    event5 = scan.make_event("4.5.6.7", parent=event4)
     assert event5._scope_distance == 3
 
-    url_1 = scan.make_event("https://127.0.0.1/asdf", "URL_UNVERIFIED", source=scan.root_event)
+    url_1 = scan.make_event("https://127.0.0.1/asdf", "URL_UNVERIFIED", parent=scan.root_event)
     assert url_1.scope_distance == 1
-    url_2 = scan.make_event("https://127.0.0.1/test", "URL_UNVERIFIED", source=url_1)
+    url_2 = scan.make_event("https://127.0.0.1/test", "URL_UNVERIFIED", parent=url_1)
     assert url_2.scope_distance == 1
-    url_3 = scan.make_event("https://127.0.0.2/asdf", "URL_UNVERIFIED", source=url_1)
+    url_3 = scan.make_event("https://127.0.0.2/asdf", "URL_UNVERIFIED", parent=url_1)
     assert url_3.scope_distance == 2
 
-    org_stub_1 = scan.make_event("STUB1", "ORG_STUB", source=scan.root_event)
+    org_stub_1 = scan.make_event("STUB1", "ORG_STUB", parent=scan.root_event)
     org_stub_1.scope_distance == 1
-    org_stub_2 = scan.make_event("STUB2", "ORG_STUB", source=org_stub_1)
+    org_stub_2 = scan.make_event("STUB2", "ORG_STUB", parent=org_stub_1)
     org_stub_2.scope_distance == 2
 
     # internal event tracking
     root_event = scan.make_event("0.0.0.0", dummy=True)
-    internal_event1 = scan.make_event("1.2.3.4", source=root_event, internal=True)
+    internal_event1 = scan.make_event("1.2.3.4", parent=root_event, internal=True)
     assert internal_event1._internal == True
     assert "internal" in internal_event1.tags
 
     # tag inheritance
     for tag in ("affiliate", "mutation-1"):
-        affiliate_event = scan.make_event("1.2.3.4", source=root_event, tags=tag)
+        affiliate_event = scan.make_event("1.2.3.4", parent=root_event, tags=tag)
         assert tag in affiliate_event.tags
-        affiliate_event2 = scan.make_event("1.2.3.4:88", source=affiliate_event)
-        affiliate_event3 = scan.make_event("4.3.2.1:88", source=affiliate_event)
+        affiliate_event2 = scan.make_event("1.2.3.4:88", parent=affiliate_event)
+        affiliate_event3 = scan.make_event("4.3.2.1:88", parent=affiliate_event)
         assert tag in affiliate_event2.tags
         assert tag not in affiliate_event3.tags
 
     # updating an already-created event with make_event()
     # updating tags
-    event1 = scan.make_event("127.0.0.1", source=scan.root_event)
+    event1 = scan.make_event("127.0.0.1", parent=scan.root_event)
     updated_event = scan.make_event(event1, tags="asdf")
     assert "asdf" not in event1.tags
     assert "asdf" in updated_event.tags
-    # updating source
-    event2 = scan.make_event("127.0.0.1", source=scan.root_event)
-    updated_event = scan.make_event(event2, source=event1)
-    assert event2.source == scan.root_event
-    assert updated_event.source == event1
+    # updating parent
+    event2 = scan.make_event("127.0.0.1", parent=scan.root_event)
+    updated_event = scan.make_event(event2, parent=event1)
+    assert event2.parent == scan.root_event
+    assert updated_event.parent == event1
     # updating module
-    event3 = scan.make_event("127.0.0.1", source=scan.root_event)
+    event3 = scan.make_event("127.0.0.1", parent=scan.root_event)
     updated_event = scan.make_event(event3, internal=True)
     assert event3.internal == False
     assert updated_event.internal == True
 
     # event sorting
-    parent1 = scan.make_event("127.0.0.1", source=scan.root_event)
-    parent2 = scan.make_event("127.0.0.1", source=scan.root_event)
-    parent2_child1 = scan.make_event("127.0.0.1", source=parent2)
-    parent1_child1 = scan.make_event("127.0.0.1", source=parent1)
-    parent1_child2 = scan.make_event("127.0.0.1", source=parent1)
-    parent1_child2_child1 = scan.make_event("127.0.0.1", source=parent1_child2)
-    parent1_child2_child2 = scan.make_event("127.0.0.1", source=parent1_child2)
-    parent1_child1_child1 = scan.make_event("127.0.0.1", source=parent1_child1)
-    parent2_child2 = scan.make_event("127.0.0.1", source=parent2)
-    parent1_child2_child1_child1 = scan.make_event("127.0.0.1", source=parent1_child2_child1)
+    parent1 = scan.make_event("127.0.0.1", parent=scan.root_event)
+    parent2 = scan.make_event("127.0.0.1", parent=scan.root_event)
+    parent2_child1 = scan.make_event("127.0.0.1", parent=parent2)
+    parent1_child1 = scan.make_event("127.0.0.1", parent=parent1)
+    parent1_child2 = scan.make_event("127.0.0.1", parent=parent1)
+    parent1_child2_child1 = scan.make_event("127.0.0.1", parent=parent1_child2)
+    parent1_child2_child2 = scan.make_event("127.0.0.1", parent=parent1_child2)
+    parent1_child1_child1 = scan.make_event("127.0.0.1", parent=parent1_child1)
+    parent2_child2 = scan.make_event("127.0.0.1", parent=parent2)
+    parent1_child2_child1_child1 = scan.make_event("127.0.0.1", parent=parent1_child2_child1)
 
     sortable_events = {
         "parent1": parent1,
@@ -437,8 +437,8 @@ async def test_events(events, helpers):
     assert reconstituted_event2.host == "evilcorp.com"
     assert "127.0.0.1" in reconstituted_event2.resolved_hosts
 
-    http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", source=scan.root_event)
-    assert http_response.source_id == scan.root_event.id
+    http_response = scan.make_event(httpx_response, "HTTP_RESPONSE", parent=scan.root_event)
+    assert http_response.parent_id == scan.root_event.id
     assert http_response.data["input"] == "http://example.com:80"
     json_event = http_response.json(mode="graph")
     assert isinstance(json_event["data"], str)
@@ -446,25 +446,25 @@ async def test_events(events, helpers):
     assert isinstance(json_event["data"], dict)
     assert json_event["type"] == "HTTP_RESPONSE"
     assert json_event["host"] == "example.com"
-    assert json_event["source"] == scan.root_event.id
+    assert json_event["parent"] == scan.root_event.id
     reconstituted_event = event_from_json(json_event)
     assert isinstance(reconstituted_event.data, dict)
     assert reconstituted_event.data["input"] == "http://example.com:80"
     assert reconstituted_event.host == "example.com"
     assert reconstituted_event.type == "HTTP_RESPONSE"
-    assert reconstituted_event.source_id == scan.root_event.id
+    assert reconstituted_event.parent_id == scan.root_event.id
 
-    event_1 = scan.make_event("127.0.0.1", source=scan.root_event)
-    event_2 = scan.make_event("127.0.0.2", source=event_1)
-    event_3 = scan.make_event("127.0.0.3", source=event_2)
+    event_1 = scan.make_event("127.0.0.1", parent=scan.root_event)
+    event_2 = scan.make_event("127.0.0.2", parent=event_1)
+    event_3 = scan.make_event("127.0.0.3", parent=event_2)
     event_3._omit = True
-    event_4 = scan.make_event("127.0.0.4", source=event_3)
-    event_5 = scan.make_event("127.0.0.5", source=event_4)
-    assert event_5.get_sources() == [event_4, event_3, event_2, event_1, scan.root_event]
-    assert event_5.get_sources(omit=True) == [event_4, event_2, event_1, scan.root_event]
+    event_4 = scan.make_event("127.0.0.4", parent=event_3)
+    event_5 = scan.make_event("127.0.0.5", parent=event_4)
+    assert event_5.get_parents() == [event_4, event_3, event_2, event_1, scan.root_event]
+    assert event_5.get_parents(omit=True) == [event_4, event_2, event_1, scan.root_event]
 
     # test host backup
-    host_event = scan.make_event("asdf.evilcorp.com", "DNS_NAME", source=scan.root_event)
+    host_event = scan.make_event("asdf.evilcorp.com", "DNS_NAME", parent=scan.root_event)
     assert host_event.host_original == "asdf.evilcorp.com"
     host_event.host = "_wildcard.evilcorp.com"
     assert host_event.host == "_wildcard.evilcorp.com"
@@ -474,32 +474,32 @@ async def test_events(events, helpers):
     bucket_event = scan.make_event(
         {"name": "ASDF.s3.amazonaws.com", "url": "https://ASDF.s3.amazonaws.com"},
         "STORAGE_BUCKET",
-        source=scan.root_event,
+        parent=scan.root_event,
     )
     assert bucket_event.data["name"] == "asdf.s3.amazonaws.com"
     assert bucket_event.data["url"] == "https://asdf.s3.amazonaws.com/"
 
     # test module sequence
     module = scan._make_dummy_module("mymodule")
-    source_event_1 = scan.make_event("127.0.0.1", module=module, source=scan.root_event)
-    assert str(source_event_1.module) == "mymodule"
-    assert str(source_event_1.module_sequence) == "mymodule"
-    source_event_2 = scan.make_event("127.0.0.2", module=module, source=source_event_1)
-    assert str(source_event_2.module) == "mymodule"
-    assert str(source_event_2.module_sequence) == "mymodule"
-    source_event_3 = scan.make_event("127.0.0.3", module=module, source=source_event_2)
-    assert str(source_event_3.module) == "mymodule"
-    assert str(source_event_3.module_sequence) == "mymodule"
+    parent_event_1 = scan.make_event("127.0.0.1", module=module, parent=scan.root_event)
+    assert str(parent_event_1.module) == "mymodule"
+    assert str(parent_event_1.module_sequence) == "mymodule"
+    parent_event_2 = scan.make_event("127.0.0.2", module=module, parent=parent_event_1)
+    assert str(parent_event_2.module) == "mymodule"
+    assert str(parent_event_2.module_sequence) == "mymodule"
+    parent_event_3 = scan.make_event("127.0.0.3", module=module, parent=parent_event_2)
+    assert str(parent_event_3.module) == "mymodule"
+    assert str(parent_event_3.module_sequence) == "mymodule"
 
     module = scan._make_dummy_module("mymodule")
-    source_event_1 = scan.make_event("127.0.0.1", module=module, source=scan.root_event)
-    source_event_1._omit = True
-    assert str(source_event_1.module) == "mymodule"
-    assert str(source_event_1.module_sequence) == "mymodule"
-    source_event_2 = scan.make_event("127.0.0.2", module=module, source=source_event_1)
-    source_event_2._omit = True
-    assert str(source_event_2.module) == "mymodule"
-    assert str(source_event_2.module_sequence) == "mymodule->mymodule"
-    source_event_3 = scan.make_event("127.0.0.3", module=module, source=source_event_2)
-    assert str(source_event_3.module) == "mymodule"
-    assert str(source_event_3.module_sequence) == "mymodule->mymodule->mymodule"
+    parent_event_1 = scan.make_event("127.0.0.1", module=module, parent=scan.root_event)
+    parent_event_1._omit = True
+    assert str(parent_event_1.module) == "mymodule"
+    assert str(parent_event_1.module_sequence) == "mymodule"
+    parent_event_2 = scan.make_event("127.0.0.2", module=module, parent=parent_event_1)
+    parent_event_2._omit = True
+    assert str(parent_event_2.module) == "mymodule"
+    assert str(parent_event_2.module_sequence) == "mymodule->mymodule"
+    parent_event_3 = scan.make_event("127.0.0.3", module=module, parent=parent_event_2)
+    assert str(parent_event_3.module) == "mymodule"
+    assert str(parent_event_3.module_sequence) == "mymodule->mymodule->mymodule"

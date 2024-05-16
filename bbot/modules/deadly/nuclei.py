@@ -140,19 +140,19 @@ class nuclei(BaseModule):
         async for severity, template, tags, host, url, name, extracted_results in self.execute_nuclei(nuclei_input):
             # this is necessary because sometimes nuclei is inconsistent about the data returned in the host field
             cleaned_host = temp_target.get(host)
-            source_event = self.correlate_event(events, cleaned_host)
+            parent_event = self.correlate_event(events, cleaned_host)
 
-            if not source_event:
+            if not parent_event:
                 continue
 
             if url == "":
-                url = str(source_event.data)
+                url = str(parent_event.data)
 
             if severity == "INFO" and "tech" in tags:
                 await self.emit_event(
-                    {"technology": str(name).lower(), "url": url, "host": str(source_event.host)},
+                    {"technology": str(name).lower(), "url": url, "host": str(parent_event.host)},
                     "TECHNOLOGY",
-                    source_event,
+                    parent_event,
                 )
                 continue
 
@@ -163,30 +163,30 @@ class nuclei(BaseModule):
             if severity in ["INFO", "UNKNOWN"]:
                 await self.emit_event(
                     {
-                        "host": str(source_event.host),
+                        "host": str(parent_event.host),
                         "url": url,
                         "description": description_string,
                     },
                     "FINDING",
-                    source_event,
+                    parent_event,
                 )
             else:
                 await self.emit_event(
                     {
                         "severity": severity,
-                        "host": str(source_event.host),
+                        "host": str(parent_event.host),
                         "url": url,
                         "description": description_string,
                     },
                     "VULNERABILITY",
-                    source_event,
+                    parent_event,
                 )
 
     def correlate_event(self, events, host):
         for event in events:
             if host in event:
                 return event
-        self.verbose(f"Failed to correlate nuclei result for {host}. Possible source events:")
+        self.verbose(f"Failed to correlate nuclei result for {host}. Possible parent events:")
         for event in events:
             self.verbose(f" - {event.data}")
 

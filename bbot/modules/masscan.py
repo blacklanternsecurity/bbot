@@ -36,7 +36,7 @@ class masscan(portscanner):
             "ignore_errors": True,
         },
         {
-            "name": "Download masscan source code",
+            "name": "Download masscan parent code",
             "git": {
                 "repo": "https://github.com/robertdavidgraham/masscan.git",
                 "dest": "#{BBOT_TEMP}/masscan",
@@ -186,28 +186,28 @@ class masscan(portscanner):
             if proto == "" or port_number == "":
                 continue
             result = str(ip)
-            source = None
+            parent = None
             with suppress(KeyError):
-                source = self.alive_hosts[ip]
+                parent = self.alive_hosts[ip]
             if proto != "icmp":
                 result = self.helpers.make_netloc(result, port_number)
-                if source is None:
-                    source = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
-                    if not source:
+                if parent is None:
+                    parent = self.make_event(ip, "IP_ADDRESS", parent=self.get_parent_event(ip))
+                    if not parent:
                         continue
-                    await self.emit_event(source)
-            await result_callback(result, source=source)
+                    await self.emit_event(parent)
+            await result_callback(result, parent=parent)
 
-    async def append_alive_host(self, host, source):
-        host_event = self.make_event(host, "IP_ADDRESS", source=self.get_source_event(host))
+    async def append_alive_host(self, host, parent):
+        host_event = self.make_event(host, "IP_ADDRESS", parent=self.get_parent_event(host))
         if host_event:
             self.alive_hosts[host] = host_event
             self._write_ping_result(host)
             await self.emit_event(host_event)
 
-    async def emit_open_tcp_port(self, data, source):
+    async def emit_open_tcp_port(self, data, parent):
         self._write_syn_result(data)
-        await self.emit_event(data, "OPEN_TCP_PORT", source=source)
+        await self.emit_event(data, "OPEN_TCP_PORT", parent=parent)
 
     async def emit_from_cache(self):
         ip_events = {}
@@ -221,7 +221,7 @@ class masscan(portscanner):
             for ip in cached_pings:
                 if self.scan.stopping:
                     break
-                ip_event = self.make_event(ip, "IP_ADDRESS", source=self.get_source_event(ip))
+                ip_event = self.make_event(ip, "IP_ADDRESS", parent=self.get_parent_event(ip))
                 if ip_event:
                     ip_events[ip] = ip_event
                     await self.emit_event(ip_event)
@@ -237,22 +237,22 @@ class masscan(portscanner):
                     break
                 host, port = self.helpers.split_host_port(line)
                 host = str(host)
-                source_event = ip_events.get(host)
-                if source_event is None:
-                    self.verbose(f"Source event not found for {line}")
-                    source_event = self.make_event(line, "IP_ADDRESS", source=self.get_source_event(line))
-                    if not source_event:
+                parent_event = ip_events.get(host)
+                if parent_event is None:
+                    self.verbose(f"Parent event not found for {line}")
+                    parent_event = self.make_event(line, "IP_ADDRESS", parent=self.get_parent_event(line))
+                    if not parent_event:
                         continue
-                    await self.emit_event(source_event)
-                await self.emit_event(line, "OPEN_TCP_PORT", source=source_event)
+                    await self.emit_event(parent_event)
+                await self.emit_event(line, "OPEN_TCP_PORT", parent=parent_event)
 
-    def get_source_event(self, host):
-        source_event = self.scan.target.get(host)
-        if source_event is None:
-            source_event = self.scan.whitelist.get(host)
-            if source_event is None:
-                source_event = self.scan.root_event
-        return source_event
+    def get_parent_event(self, host):
+        parent_event = self.scan.target.get(host)
+        if parent_event is None:
+            parent_event = self.scan.whitelist.get(host)
+            if parent_event is None:
+                parent_event = self.scan.root_event
+        return parent_event
 
     async def cleanup(self):
         if self.ping_first:

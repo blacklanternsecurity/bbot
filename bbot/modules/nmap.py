@@ -41,21 +41,21 @@ class nmap(portscanner):
         try:
             await self.run_process(command, sudo=True)
             for host in self.parse_nmap_xml(output_file):
-                source_event = None
+                parent_event = None
                 for h in [host.address] + host.hostnames:
-                    source_event = target.get_host(h)
-                    if source_event is not None:
+                    parent_event = target.get_host(h)
+                    if parent_event is not None:
                         break
-                if source_event is None:
-                    self.warning(f"Failed to correlate source event from {host}")
-                    source_event = self.scan.root_event
+                if parent_event is None:
+                    self.warning(f"Failed to correlate parent event from {host}")
+                    parent_event = self.scan.root_event
                 for port in host.open_ports:
                     port_number = int(port.split("/")[0])
                     netloc = self.helpers.make_netloc(host.address, port_number)
-                    await self.emit_event(netloc, "OPEN_TCP_PORT", source=source_event)
+                    await self.emit_event(netloc, "OPEN_TCP_PORT", parent=parent_event)
                     for hostname in host.hostnames:
                         netloc = self.helpers.make_netloc(hostname, port_number)
-                        await self.emit_event(netloc, "OPEN_TCP_PORT", source=source_event)
+                        await self.emit_event(netloc, "OPEN_TCP_PORT", parent=parent_event)
         finally:
             output_file.unlink(missing_ok=True)
 

@@ -54,37 +54,37 @@ class TestDnsbrute(ModuleTestBase):
         module.dedup_strategy = "lowest_parent"
 
         # test recursive brute-force event filtering
-        event = module_test.scan.make_event("blacklanternsecurity.com", "DNS_NAME", source=module_test.scan.root_event)
+        event = module_test.scan.make_event("blacklanternsecurity.com", "DNS_NAME", parent=module_test.scan.root_event)
         event.scope_distance = 0
         result, reason = await module_test.module.filter_event(event)
         assert result == True
         event = module_test.scan.make_event(
-            "www.blacklanternsecurity.com", "DNS_NAME", source=module_test.scan.root_event
+            "www.blacklanternsecurity.com", "DNS_NAME", parent=module_test.scan.root_event
         )
         event.scope_distance = 0
         result, reason = await module_test.module.filter_event(event)
         assert result == True
         event = module_test.scan.make_event(
-            "test.www.blacklanternsecurity.com", "DNS_NAME", source=module_test.scan.root_event
+            "test.www.blacklanternsecurity.com", "DNS_NAME", parent=module_test.scan.root_event
         )
         event.scope_distance = 0
         result, reason = await module_test.module.filter_event(event)
         assert result == True
         event = module_test.scan.make_event(
-            "asdf.test.www.blacklanternsecurity.com", "DNS_NAME", source=module_test.scan.root_event
+            "asdf.test.www.blacklanternsecurity.com", "DNS_NAME", parent=module_test.scan.root_event
         )
         event.scope_distance = 0
         result, reason = await module_test.module.filter_event(event)
         assert result == True
         event = module_test.scan.make_event(
-            "wat.asdf.test.www.blacklanternsecurity.com", "DNS_NAME", source=module_test.scan.root_event
+            "wat.asdf.test.www.blacklanternsecurity.com", "DNS_NAME", parent=module_test.scan.root_event
         )
         event.scope_distance = 0
         result, reason = await module_test.module.filter_event(event)
         assert result == False
         assert reason == f"subdomain depth of *.asdf.test.www.blacklanternsecurity.com (4) > max_depth (3)"
         event = module_test.scan.make_event(
-            "hmmm.ptr1234.blacklanternsecurity.com", "DNS_NAME", source=module_test.scan.root_event
+            "hmmm.ptr1234.blacklanternsecurity.com", "DNS_NAME", parent=module_test.scan.root_event
         )
         event.scope_distance = 0
         result, reason = await module_test.module.filter_event(event)

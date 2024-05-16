@@ -81,9 +81,9 @@ async def test_url_extension_handling(bbot_scanner):
     await scan._prep()
     assert scan.url_extension_blacklist == {"css"}
     assert scan.url_extension_httpx_only == {"js"}
-    good_event = scan.make_event("https://evilcorp.com/a.txt", "URL", tags=["status-200"], source=scan.root_event)
-    bad_event = scan.make_event("https://evilcorp.com/a.css", "URL", tags=["status-200"], source=scan.root_event)
-    httpx_event = scan.make_event("https://evilcorp.com/a.js", "URL", tags=["status-200"], source=scan.root_event)
+    good_event = scan.make_event("https://evilcorp.com/a.txt", "URL", tags=["status-200"], parent=scan.root_event)
+    bad_event = scan.make_event("https://evilcorp.com/a.css", "URL", tags=["status-200"], parent=scan.root_event)
+    httpx_event = scan.make_event("https://evilcorp.com/a.js", "URL", tags=["status-200"], parent=scan.root_event)
     assert "blacklisted" not in bad_event.tags
     assert "httpx-only" not in httpx_event.tags
     result = await scan.ingress_module.handle_event(good_event, {})

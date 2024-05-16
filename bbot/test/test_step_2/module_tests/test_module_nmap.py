@@ -8,7 +8,7 @@ class TestNmap(ModuleTestBase):
     async def setup_after_prep(self, module_test):
         # make sure our IP_RANGE / IP_ADDRESS filtering is working right
         # IPs within the target IP range should be rejected
-        ip_event_1 = module_test.scan.make_event("127.0.0.0", source=module_test.scan.root_event)
+        ip_event_1 = module_test.scan.make_event("127.0.0.0", parent=module_test.scan.root_event)
         ip_event_1.scope_distance = 0
         ip_event_1_result = await module_test.module._event_postcheck(ip_event_1)
         assert ip_event_1_result[0] == False
@@ -17,7 +17,7 @@ class TestNmap(ModuleTestBase):
             in ip_event_1_result[1]
         )
         # but ones outside should be accepted
-        ip_event_2 = module_test.scan.make_event("127.0.0.3", source=module_test.scan.root_event)
+        ip_event_2 = module_test.scan.make_event("127.0.0.3", parent=module_test.scan.root_event)
         ip_event_2.scope_distance = 0
         assert (await module_test.module._event_postcheck(ip_event_2))[0] == True
 
@@ -52,15 +52,15 @@ class TestNmapAssetInventory(ModuleTestBase):
         assert "127.0.0.1," in open(asset_inventory_output_file).read()
         # make sure our IP_RANGE / IP_ADDRESS filtering is working right
         # IPs within the target IP range should not be rejected because asset_inventory.use_previous=true
-        ip_event_1 = module_test.scan.make_event("127.0.0.0", source=module_test.scan.root_event)
+        ip_event_1 = module_test.scan.make_event("127.0.0.0", parent=module_test.scan.root_event)
         ip_event_1.scope_distance = 0
         assert (await module_test.module._event_postcheck(ip_event_1))[0] == True
         # but ones outside should be accepted
-        ip_event_2 = module_test.scan.make_event("127.0.0.3", source=module_test.scan.root_event)
+        ip_event_2 = module_test.scan.make_event("127.0.0.3", parent=module_test.scan.root_event)
         ip_event_2.scope_distance = 0
         assert (await module_test.module._event_postcheck(ip_event_2))[0] == True
 
-        ip_range_event = module_test.scan.make_event("127.0.0.1/31", source=module_test.scan.root_event)
+        ip_range_event = module_test.scan.make_event("127.0.0.1/31", parent=module_test.scan.root_event)
         ip_range_event.scope_distance = 0
         ip_range_filter_result = await module_test.module._event_postcheck(ip_range_event)
         assert ip_range_filter_result[0] == False
@@ -72,8 +72,8 @@ class TestNmapAssetInventory(ModuleTestBase):
                 e
                 for e in events
                 if e.data == "127.0.0.1:8888"
-                and e.source.data == "127.0.0.1"
-                and str(e.source.module) == "asset_inventory"
+                and e.parent.data == "127.0.0.1"
+                and str(e.parent.module) == "asset_inventory"
             ]
         )
         assert not any(e.data == "127.0.0.1:8889" for e in events)

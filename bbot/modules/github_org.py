@@ -55,7 +55,7 @@ class github_org(github):
                 self.verbose(f"Searching for repos belonging to user {user}")
                 repos = await self.query_user_repos(user)
             for repo_url in repos:
-                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", source=event)
+                repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", parent=event)
                 if not repo_event:
                     continue
                 repo_event.scope_distance = event.scope_distance
@@ -67,7 +67,7 @@ class github_org(github):
                 org_members = await self.query_org_members(user)
                 for member in org_members:
                     event_data = {"platform": "github", "profile_name": member, "url": f"https://github.com/{member}"}
-                    member_event = self.make_event(event_data, "SOCIAL", tags="github-org-member", source=event)
+                    member_event = self.make_event(event_data, "SOCIAL", tags="github-org-member", soparenturce=event)
                     if member_event:
                         await self.emit_event(member_event)
 
@@ -83,7 +83,7 @@ class github_org(github):
                 return
 
             event_data = {"platform": "github", "profile_name": user, "url": f"https://github.com/{user}"}
-            github_org_event = self.make_event(event_data, "SOCIAL", tags="github-org", source=event)
+            github_org_event = self.make_event(event_data, "SOCIAL", tags="github-org", parent=event)
             if github_org_event:
                 github_org_event.scope_distance = event.scope_distance
                 await self.emit_event(github_org_event)

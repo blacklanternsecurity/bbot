@@ -19,12 +19,12 @@ class github_codesearch(github, subdomain_enum):
     async def handle_event(self, event):
         query = self.make_query(event)
         for repo_url, raw_urls in (await self.query(query)).items():
-            repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", source=event)
+            repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", parent=event)
             if repo_event is None:
                 continue
             await self.emit_event(repo_event)
             for raw_url in raw_urls:
-                url_event = self.make_event(raw_url, "URL_UNVERIFIED", source=repo_event, tags=["httpx-safe"])
+                url_event = self.make_event(raw_url, "URL_UNVERIFIED", parent=repo_event, tags=["httpx-safe"])
                 if not url_event:
                     continue
                 url_event.scope_distance = repo_event.scope_distance

@@ -41,12 +41,12 @@ class asn(BaseReportModule):
                 for asn in asns:
                     emails = asn.pop("emails", [])
                     self.cache_put(asn)
-                    asn_event = self.make_event(asn, "ASN", source=event)
+                    asn_event = self.make_event(asn, "ASN", parent=event)
                     if not asn_event:
                         continue
                     await self.emit_event(asn_event)
                     for email in emails:
-                        await self.emit_event(email, "EMAIL_ADDRESS", source=asn_event)
+                        await self.emit_event(email, "EMAIL_ADDRESS", parent=asn_event)
 
     async def report(self):
         asn_data = sorted(self.asn_cache.items(), key=lambda x: self.asn_counts[x[0]], reverse=True)

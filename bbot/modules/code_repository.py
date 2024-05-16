@@ -42,7 +42,7 @@ class code_repository(BaseModule):
                         {"url": f"https://{url}"},
                         "CODE_REPOSITORY",
                         tags=platform,
-                        source=event,
+                        parent=event,
                     )
                     repo_event.scope_distance = event.scope_distance
                     await self.emit_event(repo_event)

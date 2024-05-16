@@ -52,7 +52,7 @@ class CSPExtractor(BaseExtractor):
                 await self.report(domain, event, **kwargs)
 
     async def report(self, domain, event, **kwargs):
-        await self.excavate.emit_event(domain, "DNS_NAME", source=event, tags=["affiliate"])
+        await self.excavate.emit_event(domain, "DNS_NAME", parent=event, tags=["affiliate"])
 
 
 class HostnameExtractor(BaseExtractor):
@@ -64,7 +64,7 @@ class HostnameExtractor(BaseExtractor):
         super().__init__(excavate)
 
     async def report(self, result, name, event, **kwargs):
-        await self.excavate.emit_event(result, "DNS_NAME", source=event)
+        await self.excavate.emit_event(result, "DNS_NAME", parent=event)
 
 
 class URLExtractor(BaseExtractor):
@@ -173,7 +173,7 @@ class URLExtractor(BaseExtractor):
             await self.excavate.emit_event(
                 event_data,
                 "FINDING",
-                source=event,
+                parent=event,
                 abort_if=abort_if,
             )
             protocol_data = {"protocol": parsed_uri.scheme, "host": str(host)}
@@ -182,12 +182,12 @@ class URLExtractor(BaseExtractor):
             await self.excavate.emit_event(
                 protocol_data,
                 "PROTOCOL",
-                source=event,
+                parent=event,
                 abort_if=abort_if,
             )
             return
 
-        return self.excavate.make_event(result, "URL_UNVERIFIED", source=event)
+        return self.excavate.make_event(result, "URL_UNVERIFIED", parent=event)
 
 
 class EmailExtractor(BaseExtractor):
@@ -199,7 +199,7 @@ class EmailExtractor(BaseExtractor):
         tld = result.split(".")[-1]
         if tld not in self.tld_blacklist:
             self.excavate.debug(f"Found email address [{result}] from parsing [{event.data.get('url')}]")
-            await self.excavate.emit_event(result, "EMAIL_ADDRESS", source=event)
+            await self.excavate.emit_event(result, "EMAIL_ADDRESS", parent=event)
 
 
 class ErrorExtractor(BaseExtractor):
@@ -226,7 +226,7 @@ class ErrorExtractor(BaseExtractor):
         await self.excavate.emit_event(
             {"host": str(event.host), "url": event.data.get("url", ""), "description": description},
             "FINDING",
-            source=event,
+            parent=event,
         )
 
 
@@ -381,8 +381,8 @@ class excavate(BaseInternalModule):
                         url_event = self.make_event(location, "URL_UNVERIFIED", event, tags="affiliate")
                         if url_event is not None:
                             # inherit web spider distance from parent (don't increment)
-                            source_web_spider_distance = getattr(event, "web_spider_distance", 0)
-                            url_event.web_spider_distance = source_web_spider_distance
+                            parent_web_spider_distance = getattr(event, "web_spider_distance", 0)
+                            url_event.web_spider_distance = parent_web_spider_distance
                             await self.emit_event(url_event)
                     else:
                         self.verbose(f"Exceeded max HTTP redirects ({self.max_redirects}): {location}")

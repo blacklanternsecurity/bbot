@@ -168,19 +168,19 @@ class DNS(InterceptModule):
             event.type = "DNS_NAME_UNRESOLVED"
 
         # speculate DNS_NAMES and IP_ADDRESSes from other event types
-        source_event = event
+        parent_event = event
         if (
             event.host
             and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
             and not ((event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate"))
         ):
-            source_event = self.scan.make_event(event.host, "DNS_NAME", module=self.host_module, source=event)
+            parent_event = self.scan.make_event(event.host, "DNS_NAME", module=self.host_module, parent=event)
             # only emit the event if it's not already in the parent chain
-            if source_event is not None and (source_event.always_emit or source_event not in event.get_sources()):
-                source_event.scope_distance = event.scope_distance
+            if parent_event is not None and (parent_event.always_emit or parent_event not in event.get_parents()):
+                parent_event.scope_distance = event.scope_distance
                 if "target" in event.tags:
-                    source_event.add_tag("target")
-                await self.emit_event(source_event)
+                    parent_event.add_tag("target")
+                await self.emit_event(parent_event)
 
         # emit DNS children
         if emit_children:
@@ -192,7 +192,7 @@ class DNS(InterceptModule):
                     module._priority = 4
                     for record in records:
                         try:
-                            child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)
+                            child_event = self.scan.make_event(record, "DNS_NAME", module=module, parent=parent_event)
                             # if it's a hostname and it's only one hop away, mark it as affiliate
                             if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
                                 child_event.add_tag("affiliate")
@@ -200,7 +200,7 @@ class DNS(InterceptModule):
                                 dns_child_events.append(child_event)
                         except ValidationError as e:
                             self.warning(
-                                f'Event validation failed for DNS child of {source_event}: "{record}" ({rdtype}): {e}'
+                                f'Event validation failed for DNS child of {parent_event}: "{record}" ({rdtype}): {e}'
                             )
             for child_event in dns_child_events:
                 self.debug(f"Queueing DNS child for {event}: {child_event}")

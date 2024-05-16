@@ -53,7 +53,7 @@ class bucket_template(BaseModule):
                 bucket_name = d.join(split)
                 buckets.add(bucket_name)
         async for bucket_name, url, tags in self.brute_buckets(buckets, permutations=self.permutations):
-            await self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", source=event, tags=tags)
+            await self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", parent=event, tags=tags)
 
     async def handle_storage_bucket(self, event):
         url = event.data["url"]
@@ -62,12 +62,12 @@ class bucket_template(BaseModule):
             description, tags = await self._check_bucket_open(bucket_name, url)
             if description:
                 event_data = {"host": event.host, "url": url, "description": description}
-                await self.emit_event(event_data, "FINDING", source=event, tags=tags)
+                await self.emit_event(event_data, "FINDING", parent=event, tags=tags)
 
         async for bucket_name, url, tags in self.brute_buckets(
             [bucket_name], permutations=self.permutations, omit_base=True
         ):
-            await self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", source=event, tags=tags)
+            await self.emit_event({"name": bucket_name, "url": url}, "STORAGE_BUCKET", parent=event, tags=tags)
 
     async def brute_buckets(self, buckets, permutations=False, omit_base=False):
         buckets = set(buckets)

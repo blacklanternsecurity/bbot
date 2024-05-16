@@ -53,7 +53,7 @@ class docker_pull(BaseModule):
                 {"path": str(repo_path), "description": f"Docker image repository: {repo_url}"},
                 "FILESYSTEM",
                 tags=["docker", "tarball"],
-                source=event,
+                parent=event,
             )
             codebase_event.scope_distance = event.scope_distance
             await self.emit_event(codebase_event)

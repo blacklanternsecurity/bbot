@@ -53,7 +53,7 @@ class trufflehog(BaseModule):
                 data = {
                     "severity": "High",
                     "description": f"Verified Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
-                    "host": str(event.source.host),
+                    "host": str(event.parent.host),
                 }
                 if description:
                     data["description"] += f" Description: [{description}]"
@@ -61,7 +61,7 @@ class trufflehog(BaseModule):
             else:
                 data = {
                     "description": f"Potential Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
-                    "host": str(event.source.host),
+                    "host": str(event.parent.host),
                 }
                 if description:
                     data["description"] += f" Description: [{description}]"

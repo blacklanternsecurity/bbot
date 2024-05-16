@@ -40,7 +40,7 @@ class social(BaseModule):
                 social_event = self.make_event(
                     {"platform": platform, "url": f"https://{url}", "profile_name": profile_name},
                     "SOCIAL",
-                    source=event,
+                    parent=event,
                 )
                 social_event.scope_distance = event.scope_distance
                 await self.emit_event(social_event)

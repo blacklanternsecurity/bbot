@@ -127,8 +127,8 @@ class gowitness(BaseModule):
             final_url = screenshot["final_url"]
             filename = screenshot["filename"]
             webscreenshot_data = {"filename": filename, "url": final_url}
-            source_event = event_dict[url]
-            await self.emit_event(webscreenshot_data, "WEBSCREENSHOT", source=source_event)
+            parent_event = event_dict[url]
+            await self.emit_event(webscreenshot_data, "WEBSCREENSHOT", parent=parent_event)
 
         # emit URLs
         for url, row in self.new_network_logs.items():
@@ -137,21 +137,21 @@ class gowitness(BaseModule):
             tags = [f"status-{status_code}", f"ip-{ip}"]
 
             _id = row["url_id"]
-            source_url = self.screenshots_taken[_id]
-            source_event = event_dict[source_url]
-            if self.helpers.is_spider_danger(source_event, url):
+            parent_url = self.screenshots_taken[_id]
+            parent_event = event_dict[parent_url]
+            if self.helpers.is_spider_danger(parent_event, url):
                 tags.append("spider-danger")
             if url and url.startswith("http"):
-                await self.emit_event(url, "URL_UNVERIFIED", source=source_event, tags=tags)
+                await self.emit_event(url, "URL_UNVERIFIED", parent=parent_event, tags=tags)
 
         # emit technologies
         for _, row in self.new_technologies.items():
-            source_id = row["url_id"]
-            source_url = self.screenshots_taken[source_id]
-            source_event = event_dict[source_url]
+            parent_id = row["url_id"]
+            parent_url = self.screenshots_taken[parent_id]
+            parent_event = event_dict[parent_url]
             technology = row["value"]
-            tech_data = {"technology": technology, "url": source_url, "host": str(source_event.host)}
-            await self.emit_event(tech_data, "TECHNOLOGY", source=source_event)
+            tech_data = {"technology": technology, "url": parent_url, "host": str(parent_event.host)}
+            await self.emit_event(tech_data, "TECHNOLOGY", parent=parent_event)
 
     def construct_command(self):
         # base executable

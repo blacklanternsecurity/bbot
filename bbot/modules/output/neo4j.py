@@ -53,7 +53,7 @@ class neo4j(BaseOutputModule):
 
     async def handle_event(self, event):
         # create events
-        src_id = await self.merge_event(event.get_source(), id_only=True)
+        src_id = await self.merge_event(event.get_parent(), id_only=True)
         dst_id = await self.merge_event(event)
         # create relationship
         cypher = f"""

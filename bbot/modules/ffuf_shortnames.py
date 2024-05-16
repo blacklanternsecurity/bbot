@@ -112,19 +112,19 @@ class ffuf_shortnames(ffuf):
         return None
 
     async def filter_event(self, event):
-        if event.source.type != "URL":
-            return False, "its source event is not of type URL"
+        if event.parent.type != "URL":
+            return False, "its parent event is not of type URL"
         return True
 
     async def handle_event(self, event):
         filename_hint = re.sub(r"~\d", "", event.parsed_url.path.rsplit(".", 1)[0].split("/")[-1]).lower()
 
-        host = f"{event.source.parsed_url.scheme}://{event.source.parsed_url.netloc}/"
+        host = f"{event.parent.parsed_url.scheme}://{event.parent.parsed_url.netloc}/"
         if host not in self.per_host_collection.keys():
-            self.per_host_collection[host] = [(filename_hint, event.source.data)]
+            self.per_host_collection[host] = [(filename_hint, event.parent.data)]
 
         else:
-            self.per_host_collection[host].append((filename_hint, event.source.data))
+            self.per_host_collection[host].append((filename_hint, event.parent.data))
 
         self.shortname_to_event[filename_hint] = event
 
@@ -148,12 +148,12 @@ class ffuf_shortnames(ffuf):
             if "shortname-file" in event.tags:
                 for ext in used_extensions:
                     async for r in self.execute_ffuf(tempfile, root_url, suffix=f".{ext}"):
-                        await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                        await self.emit_event(r["url"], "URL_UNVERIFIED", parent=event, tags=[f"status-{r['status']}"])
 
             elif "shortname-directory" in event.tags:
                 async for r in self.execute_ffuf(tempfile, root_url, exts=["/"]):
                     r_url = f"{r['url'].rstrip('/')}/"
-                    await self.emit_event(r_url, "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                    await self.emit_event(r_url, "URL_UNVERIFIED", parent=event, tags=[f"status-{r['status']}"])
 
         if self.config.get("find_delimiters"):
             if "shortname-directory" in event.tags:
@@ -163,7 +163,7 @@ class ffuf_shortnames(ffuf):
                     self.verbose(f"Detected delimiter [{delimiter}] in hint [{filename_hint}]")
                     tempfile, tempfile_len = self.generate_templist(prefix=partial_hint)
                     async for r in self.execute_ffuf(tempfile, root_url, prefix=f"{prefix}{delimiter}", exts=["/"]):
-                        await self.emit_event(r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"])
+                        await self.emit_event(r["url"], "URL_UNVERIFIED", parent=event, tags=[f"status-{r['status']}"])
 
             elif "shortname-file" in event.tags:
                 for ext in used_extensions:
@@ -176,7 +176,7 @@ class ffuf_shortnames(ffuf):
                             tempfile, root_url, prefix=f"{prefix}{delimiter}", suffix=f".{ext}"
                         ):
                             await self.emit_event(
-                                r["url"], "URL_UNVERIFIED", source=event, tags=[f"status-{r['status']}"]
+                                r["url"], "URL_UNVERIFIED", parent=event, tags=[f"status-{r['status']}"]
                             )
 
     async def finish(self):
@@ -208,7 +208,7 @@ class ffuf_shortnames(ffuf):
                                         await self.emit_event(
                                             r["url"],
                                             "URL_UNVERIFIED",
-                                            source=self.shortname_to_event[hint],
+                                            parent=self.shortname_to_event[hint],
                                             tags=[f"status-{r['status']}"],
                                         )
                                 elif "shortname-file" in self.shortname_to_event[hint].tags:
@@ -224,6 +224,6 @@ class ffuf_shortnames(ffuf):
                                             await self.emit_event(
                                                 r["url"],
                                                 "URL_UNVERIFIED",
-                                                source=self.shortname_to_event[hint],
+                                                parent=self.shortname_to_event[hint],
                                                 tags=[f"status-{r['status']}"],
                                             )

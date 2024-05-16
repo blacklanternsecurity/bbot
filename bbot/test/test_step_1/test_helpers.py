@@ -214,7 +214,7 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.get_file_extension("/etc/passwd") == ""
 
     assert helpers.tagify("HttP  -_Web  Title--  ") == "http-web-title"
-    tagged_event = scan.make_event("127.0.0.1", source=scan.root_event, tags=["HttP  web -__- title  "])
+    tagged_event = scan.make_event("127.0.0.1", parent=scan.root_event, tags=["HttP  web -__- title  "])
     assert "http-web-title" in tagged_event.tags
     tagged_event.remove_tag("http-web-title")
     assert "http-web-title" not in tagged_event.tags

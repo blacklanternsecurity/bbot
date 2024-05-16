@@ -17,7 +17,7 @@ class dnsbrute_mutations(BaseModule):
 
     async def setup(self):
         self.found = {}
-        self.source_events = self.helpers.make_target()
+        self.parent_events = self.helpers.make_target()
         self.max_mutations = self.config.get("max_mutations", 500)
         # 800M bits == 100MB bloom filter == 10M entries before false positives start emerging
         self.mutations_tried = self.helpers.bloom_filter(800000000)
@@ -29,7 +29,7 @@ class dnsbrute_mutations(BaseModule):
         self.add_found(event)
 
     def add_found(self, event):
-        self.source_events.add(event)
+        self.parent_events.add(event)
         host = str(event.host)
         if self.helpers.is_subdomain(host):
             subdomain, domain = host.split(".", 1)
@@ -104,19 +104,19 @@ class dnsbrute_mutations(BaseModule):
                         self.info(f"Trying {len(mutations):,} mutations against {domain} ({i+1}/{len(trimmed_found)})")
                         results = await self.helpers.dns.brute(self, query, mutations)
                         for hostname in results:
-                            source_event = self.source_events.get_host(hostname)
-                            if source_event is None:
-                                self.warning(f"Could not correlate source event from: {hostname}")
-                                self.warning(self.source_events._radix.dns_tree.root.children)
-                                self.warning(self.source_events._radix.dns_tree.root.children["com"].children)
+                            parent_event = self.parent_events.get_host(hostname)
+                            if parent_event is None:
+                                self.warning(f"Could not correlate parent event from: {hostname}")
+                                self.warning(self.parent_events._radix.dns_tree.root.children)
+                                self.warning(self.parent_events._radix.dns_tree.root.children["com"].children)
                                 self.warning(
-                                    self.source_events._radix.dns_tree.root.children["com"].children["tesla"].children
+                                    self.parent_events._radix.dns_tree.root.children["com"].children["tesla"].children
                                 )
-                                source_event = self.scan.root_event
+                                parent_event = self.scan.root_event
                             await self.emit_event(
                                 hostname,
                                 "DNS_NAME",
-                                source=source_event,
+                                parent=parent_event,
                                 tags=[f"mutation-{self._mutation_run}"],
                                 abort_if=self.abort_if,
                             )

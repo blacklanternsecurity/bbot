@@ -57,7 +57,7 @@ class secretsdb(BaseModule):
             await self.emit_event(
                 event_data,
                 "FINDING",
-                source=event,
+                parent=event,
             )
 
     def search_data(self, resp_body, resp_headers):

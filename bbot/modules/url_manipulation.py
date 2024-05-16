@@ -77,7 +77,7 @@ class url_manipulation(BaseModule):
                                 await self.emit_event(
                                     {"description": description, "host": str(event.host), "url": event.data},
                                     "FINDING",
-                                    source=event,
+                                    parent=event,
                                 )
                         else:
                             self.debug(f"Status code changed to {str(subject_response.status_code)}, ignoring")

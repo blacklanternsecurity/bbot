@@ -267,7 +267,7 @@ async def test_manager_scope_accuracy(bbot_scanner, bbot_httpserver, bbot_other_
 
         async def handle_event(self, event):
             await self.emit_event(
-                {"host": str(event.host), "description": "yep", "severity": "CRITICAL"}, "VULNERABILITY", source=event
+                {"host": str(event.host), "description": "yep", "severity": "CRITICAL"}, "VULNERABILITY", parent=event
             )
 
     def custom_setup(scan):
@@ -826,12 +826,12 @@ async def test_manager_blacklist(bbot_scanner, bbot_httpserver, caplog):
 @pytest.mark.asyncio
 async def test_manager_scope_tagging(bbot_scanner):
     scan = bbot_scanner("test.notreal")
-    e1 = scan.make_event("www.test.notreal", source=scan.root_event, tags=["affiliate"])
+    e1 = scan.make_event("www.test.notreal", parent=scan.root_event, tags=["affiliate"])
     assert e1.scope_distance == 1
     assert "distance-1" in e1.tags
     assert "affiliate" in e1.tags
 
-    e2 = scan.make_event("dev.test.notreal", source=e1, tags=["affiliate"])
+    e2 = scan.make_event("dev.test.notreal", parent=e1, tags=["affiliate"])
     assert e2.scope_distance == 2
     assert "affiliate" in e2.tags
     assert "in-scope" not in e2.tags
