@@ -67,7 +67,7 @@ class github_org(github):
                 org_members = await self.query_org_members(user)
                 for member in org_members:
                     event_data = {"platform": "github", "profile_name": member, "url": f"https://github.com/{member}"}
-                    member_event = self.make_event(event_data, "SOCIAL", tags="github-org-member", soparenturce=event)
+                    member_event = self.make_event(event_data, "SOCIAL", tags="github-org-member", parent=event)
                     if member_event:
                         await self.emit_event(member_event)
 
