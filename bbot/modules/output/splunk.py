@@ -1,5 +1,4 @@
-from httpx import RequestError
-
+from bbot.errors import WebError
 from bbot.modules.output.base import BaseOutputModule
 
 
@@ -54,6 +53,6 @@ class Splunk(BaseOutputModule):
                     raise_error=True,
                 )
                 break
-            except RequestError as e:
+            except WebError as e:
                 self.warning(f"Error sending {event}: {e}, retrying...")
                 await self.helpers.sleep(1)

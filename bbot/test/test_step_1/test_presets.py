@@ -214,8 +214,12 @@ def test_preset_scope():
 
     # test preset merging + whitelist
 
-    preset_nowhitelist = Preset("evilcorp.com")
-    preset_whitelist = Preset("evilcorp.org", whitelist=["1.2.3.4/24"])
+    preset_nowhitelist = Preset("evilcorp.com", name="nowhitelist")
+    preset_whitelist = Preset("evilcorp.org", name="whitelist", whitelist=["1.2.3.4/24"])
+
+    assert preset_nowhitelist.to_dict(include_target=True) == {"target": ["evilcorp.com"]}
+    assert preset_whitelist.to_dict(include_target=True) == {"target": ["evilcorp.org"], "whitelist": ["1.2.3.0/24"]}
+
     assert preset_nowhitelist.in_scope("www.evilcorp.com")
     assert not preset_nowhitelist.in_scope("www.evilcorp.de")
     assert not preset_nowhitelist.in_scope("1.2.3.4/24")

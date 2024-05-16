@@ -69,8 +69,13 @@ class ScanIngress(InterceptModule):
             return False, "event's parent is itself"
 
         # don't accept duplicates
-        if (not event._graph_important) and self.is_incoming_duplicate(event, add=True):
-            return False, "event was already emitted by its module"
+        if self.is_incoming_duplicate(event, add=True):
+            if not event._graph_important:
+                return False, "event was already emitted by its module"
+            else:
+                self.debug(
+                    f"Event {event} was already emitted by its module, but it's graph-important so it gets a pass"
+                )
 
         # update event's scope distance based on its parent
         event.scope_distance = event.parent.scope_distance + 1
@@ -175,11 +180,6 @@ class ScanEgress(InterceptModule):
         # we are the lowest priority
         return 99
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # track outgoing duplicates (for `accept_dupes` attribute of modules)
-        self.outgoing_dup_tracker = set()
-
     async def handle_event(self, event, kwargs):
         abort_if = kwargs.pop("abort_if", None)
         on_success_callback = kwargs.pop("on_success_callback", None)
@@ -225,31 +225,11 @@ class ScanEgress(InterceptModule):
         """
         Queue event with modules
         """
-        is_outgoing_duplicate = self.is_outgoing_duplicate(event)
-        if is_outgoing_duplicate:
-            self.verbose(f"{event.module}: Duplicate event: {event}")
         # absorb event into the word cloud if it's in scope
-        if not is_outgoing_duplicate and -1 < event.scope_distance < 1:
+        if -1 < event.scope_distance < 1:
             self.scan.word_cloud.absorb_event(event)
 
         for mod in self.scan.modules.values():
             # don't distribute events to intercept modules
-            if mod._intercept:
-                continue
-            acceptable_dup = (not is_outgoing_duplicate) or mod.accept_dupes
-            graph_important = mod._is_graph_important(event)
-            if acceptable_dup or graph_important:
+            if not mod._intercept:
                 await mod.queue_event(event)
-
-    def is_outgoing_duplicate(self, event, add=False):
-        """
-        Calculate whether an event is a duplicate in the context of the whole scan,
-        This will return True if the same event (regardless of its parent module) has been emitted before.
-
-        TODO: Allow modules to use this for custom deduplication such as on a per-host or per-domain basis.
-        """
-        event_hash = hash(event)
-        is_dup = event_hash in self.outgoing_dup_tracker
-        if add:
-            self.outgoing_dup_tracker.add(event_hash)
-        return is_dup
