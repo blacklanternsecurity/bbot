@@ -236,6 +236,7 @@ def split_host_port(d):
 
     port = match.group(3)
     if port is None and scheme is not None:
+        scheme = scheme.lower()
         if scheme in ("https", "wss"):
             port = 443
         elif scheme in ("http", "ws"):
@@ -2115,7 +2116,7 @@ def os_platform_friendly():
 tag_filter_regex = re.compile(r"[^a-z0-9]+")
 
 
-def tagify(s, maxlen=None):
+def tagify(s, delimiter=None, maxlen=None):
     """Sanitize a string into a tag-friendly format.
 
     Converts a given string to lowercase and replaces all characters not matching
@@ -2134,8 +2135,10 @@ def tagify(s, maxlen=None):
         >>> tagify("HTTP Web Title", maxlen=8)
         'http-web'
     """
+    if delimiter is None:
+        delimiter = "-"
     ret = str(s).lower()
-    return tag_filter_regex.sub("-", ret)[:maxlen].strip("-")
+    return tag_filter_regex.sub(delimiter, ret)[:maxlen].strip(delimiter)
 
 
 def memory_status():

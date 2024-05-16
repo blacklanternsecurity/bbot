@@ -178,7 +178,11 @@ async def test_helpers_misc(helpers, scan, bbot_scanner, bbot_httpserver):
     assert helpers.subdomain_depth("a.evilcorp.com") == 1
     assert helpers.subdomain_depth("a.s.d.f.evilcorp.notreal") == 4
 
+    assert helpers.split_host_port("http://evilcorp.co.uk") == ("evilcorp.co.uk", 80)
     assert helpers.split_host_port("https://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
+    assert helpers.split_host_port("ws://evilcorp.co.uk") == ("evilcorp.co.uk", 80)
+    assert helpers.split_host_port("wss://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
+    assert helpers.split_host_port("WSS://evilcorp.co.uk") == ("evilcorp.co.uk", 443)
     assert helpers.split_host_port("http://evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk:666") == ("evilcorp.co.uk", 666)
     assert helpers.split_host_port("evilcorp.co.uk") == ("evilcorp.co.uk", None)

@@ -1,4 +1,3 @@
-import asyncio
 from sys import executable
 from urllib.parse import urlparse
 
@@ -249,31 +248,25 @@ class telerik(BaseModule):
                                     )
                                     break
 
-            tasks = []
+            urls = {}
             for dh in self.DialogHandlerUrls:
-                tasks.append(self.helpers.create_task(self.test_detector(event.data, f"{dh}?dp=1")))
+                url = self.create_url(event.data, f"{dh}?dp=1")
+                urls[url] = dh
 
+            gen = self.helpers.request_batch(list(urls))
             fail_count = 0
-            gen = self.helpers.as_completed(tasks)
-            async for task in gen:
-                try:
-                    result, dh = await task
-                except asyncio.CancelledError:
-                    continue
-
+            async for url, response in gen:
                 # cancel if we run into timeouts etc.
-                if result is None:
+                if response is None:
                     fail_count += 1
 
                     # tolerate some random errors
                     if fail_count < 2:
                         continue
                     self.debug(f"Cancelling run against {event.data} due to failed request")
-                    await self.helpers.cancel_tasks(tasks)
                     await gen.aclose()
                 else:
-                    if "Cannot deserialize dialog parameters" in result.text:
-                        await self.helpers.cancel_tasks(tasks)
+                    if "Cannot deserialize dialog parameters" in response.text:
                         self.debug(f"Detected Telerik UI instance ({dh})")
                         description = f"Telerik DialogHandler detected"
                         await self.emit_event(
@@ -283,8 +276,6 @@ class telerik(BaseModule):
                         )
                         # Once we have a match we need to stop, because the basic handler (Telerik.Web.UI.DialogHandler.aspx) usually works with a path wildcard
                         await gen.aclose()
-
-            await self.helpers.cancel_tasks(tasks)
 
             spellcheckhandler = "Telerik.Web.UI.SpellCheckHandler.axd"
             result, _ = await self.test_detector(event.data, spellcheckhandler)
@@ -352,12 +343,16 @@ class telerik(BaseModule):
 
         # Check for RAD Controls in URL
 
-    async def test_detector(self, baseurl, detector):
-        result = None
-        if "/" != baseurl[-1]:
+    def create_url(self, baseurl, detector):
+        if not baseurl.endswith("/"):
             url = f"{baseurl}/{detector}"
         else:
             url = f"{baseurl}{detector}"
+        return url
+
+    async def test_detector(self, baseurl, detector):
+        result = None
+        url = self.create_url(baseurl, detector)
         result = await self.helpers.request(url, timeout=self.timeout)
         return result, detector
 

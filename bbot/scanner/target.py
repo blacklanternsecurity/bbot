@@ -13,6 +13,148 @@ from bbot.core.event import make_event, is_event
 log = logging.getLogger("bbot.core.target")
 
 
+class BBOTTarget:
+    """
+    A convenient abstraction of a scan target that includes whitelisting and blacklisting
+
+    Provides high-level functions like in_scope(), which includes both whitelist and blacklist checks.
+    """
+
+    def __init__(self, targets, whitelist=None, blacklist=None, strict_scope=False):
+        self.strict_scope = strict_scope
+        self.seeds = Target(*targets, strict_scope=self.strict_scope)
+        if whitelist is None:
+            self.whitelist = None
+        else:
+            self.whitelist = Target(*whitelist, strict_scope=self.strict_scope)
+        if blacklist is None:
+            blacklist = []
+        self.blacklist = Target(*blacklist)
+
+    def add(self, *args, **kwargs):
+        self.seeds.add(*args, **kwargs)
+
+    def merge(self, other):
+        self.seeds.add(other.seeds)
+        if other.whitelist is not None:
+            if self.whitelist is None:
+                self.whitelist = other.whitelist.copy()
+            else:
+                self.whitelist.add(other.whitelist)
+        self.blacklist.add(other.blacklist)
+        self.strict_scope = self.strict_scope or other.strict_scope
+        for t in (self.seeds, self.whitelist):
+            if t is not None:
+                t.strict_scope = self.strict_scope
+
+    def get(self, host):
+        return self.seeds.get(host)
+
+    def get_host(self, host):
+        return self.seeds.get(host)
+
+    def __iter__(self):
+        return iter(self.seeds)
+
+    def __len__(self):
+        return len(self.seeds)
+
+    def __contains__(self, other):
+        if isinstance(other, self.__class__):
+            other = other.seeds
+        return other in self.seeds
+
+    def __bool__(self):
+        return bool(self.seeds)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(self.seeds)
+
+    def copy(self):
+        self_copy = copy.copy(self)
+        self_copy.seeds = self.seeds.copy()
+        if self.whitelist is not None:
+            self_copy.whitelist = self.whitelist.copy()
+        self_copy.blacklist = self.blacklist.copy()
+        return self_copy
+
+    @property
+    def events(self):
+        return self.seeds.events
+
+    def in_scope(self, host):
+        """
+        Check whether a hostname, url, IP, etc. is in scope.
+        Accepts either events or string data.
+
+        Checks whitelist and blacklist.
+        If `host` is an event and its scope distance is zero, it will automatically be considered in-scope.
+
+        Examples:
+            Check if a URL is in scope:
+            >>> preset.in_scope("http://www.evilcorp.com")
+            True
+        """
+        try:
+            e = make_event(host, dummy=True)
+        except ValidationError:
+            return False
+        in_scope = e.scope_distance == 0 or self.whitelisted(e)
+        return in_scope and not self.blacklisted(e)
+
+    def blacklisted(self, host):
+        """
+        Check whether a hostname, url, IP, etc. is blacklisted.
+
+        Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
+
+        Args:
+            host (str or IPAddress or Event): The host to check against the blacklist
+
+        Examples:
+            Check if a URL's host is blacklisted:
+            >>> preset.blacklisted("http://www.evilcorp.com")
+            True
+        """
+        e = make_event(host, dummy=True)
+        return e in self.blacklist
+
+    def whitelisted(self, host):
+        """
+        Check whether a hostname, url, IP, etc. is whitelisted.
+
+        Note that `host` can be a hostname, IP address, CIDR, email address, or any BBOT `Event` with the `host` attribute.
+
+        Args:
+            host (str or IPAddress or Event): The host to check against the whitelist
+
+        Examples:
+            Check if a URL's host is whitelisted:
+            >>> preset.whitelisted("http://www.evilcorp.com")
+            True
+        """
+        e = make_event(host, dummy=True)
+        whitelist = self.whitelist
+        if whitelist is None:
+            whitelist = self.seeds
+        return e in whitelist
+
+    @property
+    def radix_only(self):
+        """
+        A slimmer, serializable version of the target designed for simple scope checks
+        """
+        return self.__class__(
+            targets=[e.host for e in self.seeds if e.host],
+            whitelist=[e.host for e in self.whitelist if e.host],
+            blacklist=[e.host for e in self.blacklist if e.host],
+            strict_scope=self.strict_scope,
+        )
+
+
 class Target:
     """
     A class representing a target. Can contain an unlimited number of hosts, IP or IP ranges, URLs, etc.
@@ -118,13 +260,14 @@ class Target:
         if not isinstance(t, (list, tuple, set)):
             t = [t]
         for single_target in t:
-            if type(single_target) == self.__class__:
+            if isinstance(single_target, self.__class__):
                 for event in single_target.events:
                     self._add_event(event)
             else:
                 if is_event(single_target):
                     event = single_target
                 else:
+                    single_target = str(single_target)
                     for eventtype, regex in self.special_event_types.items():
                         match = regex.match(single_target)
                         if match:
@@ -257,7 +400,7 @@ class Target:
 
     def __contains__(self, other):
         # if "other" is a Target
-        if type(other) == self.__class__:
+        if isinstance(other, self.__class__):
             contained_in_self = [self._contains(e) for e in other.events]
             return all(contained_in_self)
         else:

@@ -54,13 +54,11 @@ class DNS(InterceptModule):
         dns_children = dict()
         event_whitelisted = False
         event_blacklisted = False
+        emit_children = False
 
         event_host = str(event.host)
         event_host_hash = hash(str(event.host))
         event_is_ip = self.helpers.is_ip(event.host)
-
-        # only emit DNS children if we haven't seen this host before
-        emit_children = self.dns_resolution and event_host_hash not in self._event_cache
 
         # we do DNS resolution inside a lock to make sure we don't duplicate work
         # once the resolution happens, it will be cached so it doesn't need to happen again
@@ -122,6 +120,9 @@ class DNS(InterceptModule):
                                 dns_tags.add("private-ip")
                         except ValueError:
                             continue
+
+                # only emit DNS children if we haven't seen this host before
+                emit_children = self.dns_resolution and event_host_hash not in self._event_cache
 
                 # store results in cache
                 self._event_cache[event_host_hash] = dns_tags, dns_children, event_whitelisted, event_blacklisted
@@ -189,7 +190,6 @@ class DNS(InterceptModule):
             if dns_children:
                 for rdtype, records in dns_children.items():
                     module = self.scan._make_dummy_module_dns(rdtype)
-                    module._priority = 4
                     for record in records:
                         try:
                             child_event = self.scan.make_event(record, "DNS_NAME", module=module, source=source_event)

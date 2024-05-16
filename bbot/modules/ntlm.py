@@ -76,15 +76,15 @@ class ntlm(BaseModule):
     in_scope_only = True
 
     async def setup(self):
-        self.processed = set()
         self.found = set()
         self.try_all = self.config.get("try_all", False)
         return True
 
     async def handle_event(self, event):
         found_hash = hash(f"{event.host}:{event.port}")
+        agen = self.handle_url(event)
         if found_hash not in self.found:
-            for result, request_url in await self.handle_url(event):
+            async for result, request_url in agen:
                 if result and request_url:
                     self.found.add(found_hash)
                     await self.emit_event(
@@ -99,6 +99,7 @@ class ntlm(BaseModule):
                     fqdn = result.get("FQDN", "")
                     if fqdn:
                         await self.emit_event(fqdn, "DNS_NAME", source=event)
+                    await agen.aclose()
                     break
 
     async def filter_event(self, event):
@@ -124,28 +125,15 @@ class ntlm(BaseModule):
             for endpoint in ntlm_discovery_endpoints:
                 urls.add(f"{event.parsed_url.scheme}://{event.parsed_url.netloc}/{endpoint}")
 
-        tasks = []
-        for url in urls:
-            url_hash = hash(url)
-            if url_hash in self.processed:
-                continue
-            self.processed.add(url_hash)
-            tasks.append(self.helpers.create_task(self.check_ntlm(url)))
-
-        return await self.helpers.gather(*tasks)
-
-    async def check_ntlm(self, test_url):
-        # use lower timeout value
-        http_timeout = self.config.get("httpx_timeout", 5)
-        r = await self.helpers.request(test_url, headers=NTLM_test_header, allow_redirects=False, timeout=http_timeout)
-        ntlm_resp = r.headers.get("WWW-Authenticate", "")
-        if ntlm_resp:
-            ntlm_resp_b64 = max(ntlm_resp.split(","), key=lambda x: len(x)).split()[-1]
-            try:
-                ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
-                if ntlm_resp_decoded:
-                    return ntlm_resp_decoded, test_url
-            except NTLMError as e:
-                self.verbose(str(e))
-                return None, test_url
-        return None, test_url
+        async for url, response in self.helpers.request_batch(
+            urls, headers=NTLM_test_header, allow_redirects=False, timeout=self.http_timeout
+        ):
+            ntlm_resp = response.headers.get("WWW-Authenticate", "")
+            if ntlm_resp:
+                ntlm_resp_b64 = max(ntlm_resp.split(","), key=lambda x: len(x)).split()[-1]
+                try:
+                    ntlm_resp_decoded = self.helpers.ntlm.ntlmdecode(ntlm_resp_b64)
+                    if ntlm_resp_decoded:
+                        yield ntlm_resp_decoded, url
+                except NTLMError as e:
+                    self.verbose(str(e))

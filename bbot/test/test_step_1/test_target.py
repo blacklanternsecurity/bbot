@@ -32,6 +32,39 @@ def test_target(bbot_scanner):
     assert scan2.target == scan3.target
     assert scan4.target != scan1.target
 
+    assert not scan5.target.seeds
+    assert len(scan1.target.seeds) == 9
+    assert len(scan4.target.seeds) == 8
+    assert "8.8.8.9" in scan1.target.seeds
+    assert "8.8.8.12" not in scan1.target.seeds
+    assert "8.8.8.8/31" in scan1.target.seeds
+    assert "8.8.8.8/30" in scan1.target.seeds
+    assert "8.8.8.8/29" not in scan1.target.seeds
+    assert "2001:4860:4860::8889" in scan1.target.seeds
+    assert "2001:4860:4860::888c" not in scan1.target.seeds
+    assert "www.api.publicapis.org" in scan1.target.seeds
+    assert "api.publicapis.org" in scan1.target.seeds
+    assert "publicapis.org" not in scan1.target.seeds
+    assert "bob@www.api.publicapis.org" in scan1.target.seeds
+    assert "https://www.api.publicapis.org" in scan1.target.seeds
+    assert "www.api.publicapis.org:80" in scan1.target.seeds
+    assert scan1.make_event("https://[2001:4860:4860::8888]:80", dummy=True) in scan1.target.seeds
+    assert scan1.make_event("[2001:4860:4860::8888]:80", "OPEN_TCP_PORT", dummy=True) in scan1.target.seeds
+    assert scan1.make_event("[2001:4860:4860::888c]:80", "OPEN_TCP_PORT", dummy=True) not in scan1.target.seeds
+
+    assert scan1.whitelisted("https://[2001:4860:4860::8888]:80")
+    assert scan1.whitelisted("[2001:4860:4860::8888]:80")
+    assert not scan1.whitelisted("[2001:4860:4860::888c]:80")
+    assert scan1.whitelisted("www.api.publicapis.org")
+    assert scan1.whitelisted("api.publicapis.org")
+    assert not scan1.whitelisted("publicapis.org")
+
+    assert scan1.target.seeds in scan2.target.seeds
+    assert scan2.target.seeds not in scan1.target.seeds
+    assert scan3.target.seeds in scan2.target.seeds
+    assert scan2.target.seeds == scan3.target.seeds
+    assert scan4.target.seeds != scan1.target.seeds
+
     assert str(scan1.target.get("8.8.8.9").host) == "8.8.8.8/30"
     assert scan1.target.get("8.8.8.12") is None
     assert str(scan1.target.get("2001:4860:4860::8889").host) == "2001:4860:4860::8888/126"
