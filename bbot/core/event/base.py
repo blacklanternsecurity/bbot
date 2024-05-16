@@ -161,7 +161,10 @@ class BaseEvent:
         if timestamp is not None:
             self.timestamp = timestamp
         else:
-            self.timestamp = datetime.datetime.now(datetime.UTC)
+            try:
+                self.timestamp = datetime.datetime.now(datetime.UTC)
+            except AttributeError:
+                self.timestamp = datetime.datetime.utcnow()
 
         self._tags = set()
         if tags is not None:
