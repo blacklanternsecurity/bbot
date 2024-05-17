@@ -111,6 +111,7 @@ class BaseEvent:
         data,
         event_type,
         parent=None,
+        context=None,
         module=None,
         scan=None,
         scans=None,
@@ -216,6 +217,12 @@ class BaseEvent:
         # inherit web spider distance from parent
         self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
 
+        if (not context) and (not self._dummy):
+            raise ValidationError(f"Must specify event discovery context")
+        self._discovery_context = ""
+        if context is not None:
+            self.discovery_context = context
+
     @property
     def data(self):
         return self._data
@@ -318,6 +325,26 @@ class BaseEvent:
             return domain_stem(self.host)
         else:
             return f"{self.host}"
+
+    @property
+    def discovery_context(self):
+        return self._discovery_context
+
+    @discovery_context.setter
+    def discovery_context(self, context):
+        try:
+            self._discovery_context = context.format(module=self.module, event=self)
+        except Exception as e:
+            log.warning(f"Error formatting discovery context for {self}: {e}")
+            self._discovery_context = context
+
+    @property
+    def full_discovery_context(self):
+        """
+        This event's full discovery context, including those of all its parents
+        """
+        full_event_chain = list(reversed(self.get_parents())) + [self]
+        return [e.discovery_context for e in full_event_chain if e.type != "SCAN"]
 
     @property
     def words(self):
@@ -1239,6 +1266,7 @@ def make_event(
     data,
     event_type=None,
     parent=None,
+    context=None,
     module=None,
     scan=None,
     scans=None,
@@ -1258,6 +1286,7 @@ def make_event(
         data (Union[str, dict, BaseEvent]): The primary data for the event or an existing event object.
         event_type (str, optional): Type of the event, e.g., 'IP_ADDRESS'. Auto-detected if not provided.
         parent (BaseEvent, optional): Parent event leading to this event's discovery.
+        context (str, optional): Description of circumstances leading to event's discovery.
         module (str, optional): Module that discovered the event.
         scan (Scan, optional): BBOT Scan object associated with the event.
         scans (List[Scan], optional): Multiple BBOT Scan objects, primarily used for unserialization.
@@ -1308,6 +1337,8 @@ def make_event(
             data.module = module
         if parent is not None:
             data.parent = parent
+        if context is not None:
+            data.context = context
         if internal == True:
             data.internal = True
         if tags:
@@ -1350,6 +1381,7 @@ def make_event(
             data,
             event_type=event_type,
             parent=parent,
+            context=context,
             module=module,
             scan=scan,
             scans=scans,

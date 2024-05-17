@@ -105,6 +105,8 @@ class BaseModule:
     batch_wait = 10
     failed_request_abort_threshold = 5
 
+    default_discovery_context = "{module} discovered {event.type}: {event.data}"
+
     _preserve_graph = False
     _stats_exclude = False
     _qsize = 1000
@@ -425,6 +427,12 @@ class BaseModule:
             ValidationError: If the event could not be validated and raise_error is True.
         """
         raise_error = kwargs.pop("raise_error", False)
+        context = kwargs.pop("context", None)
+        if context is None:
+            kwargs["context"] = self.default_discovery_context
+        module = kwargs.pop("module", None)
+        if module is None:
+            kwargs["module"] = self
         try:
             event = self.scan.make_event(*args, **kwargs)
         except ValidationError as e:
@@ -432,8 +440,6 @@ class BaseModule:
                 raise
             self.warning(f"{e}")
             return
-        if not event.module:
-            event.module = self
         return event
 
     async def emit_event(self, *args, **kwargs):

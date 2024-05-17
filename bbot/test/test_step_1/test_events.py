@@ -3,12 +3,11 @@ import random
 import ipaddress
 
 from ..bbot_fixtures import *
+from bbot.scanner import Scanner
 
 
 @pytest.mark.asyncio
 async def test_events(events, helpers):
-
-    from bbot.scanner import Scanner
 
     scan = Scanner()
     await scan._prep()
@@ -503,3 +502,149 @@ async def test_events(events, helpers):
     parent_event_3 = scan.make_event("127.0.0.3", module=module, parent=parent_event_2)
     assert str(parent_event_3.module) == "mymodule"
     assert str(parent_event_3.module_sequence) == "mymodule->mymodule->mymodule"
+
+
+@pytest.mark.asyncio
+async def test_event_discovery_context():
+
+    from bbot.modules.base import BaseModule
+
+    scan = Scanner("evilcorp.com")
+    await scan.helpers.dns._mock_dns(
+        {
+            "evilcorp.com": {"A": ["1.2.3.4"]},
+            "one.evilcorp.com": {"A": ["1.2.3.4"]},
+            "two.evilcorp.com": {"A": ["1.2.3.4"]},
+            "three.evilcorp.com": {"A": ["1.2.3.4"]},
+            "four.evilcorp.com": {"A": ["1.2.3.4"]},
+        }
+    )
+    await scan._prep()
+
+    dummy_module_1 = scan._make_dummy_module("module_1")
+    dummy_module_2 = scan._make_dummy_module("module_2")
+
+    class DummyModule(BaseModule):
+        watched_events = ["DNS_NAME"]
+        _name = "dummy_module"
+
+        async def handle_event(self, event):
+            new_event = None
+            if event.data == "evilcorp.com":
+                new_event = scan.make_event(
+                    "one.evilcorp.com",
+                    "DNS_NAME",
+                    event,
+                    context="{module} invoked forbidden magick to discover {event.type} {event.data}",
+                    module=dummy_module_1,
+                )
+            elif event.data == "one.evilcorp.com":
+                new_event = scan.make_event(
+                    "two.evilcorp.com",
+                    "DNS_NAME",
+                    event,
+                    context="{module} pledged its allegiance to cthulu and was awarded {event.type} {event.data}",
+                    module=dummy_module_1,
+                )
+            elif event.data == "two.evilcorp.com":
+                new_event = scan.make_event(
+                    "three.evilcorp.com",
+                    "DNS_NAME",
+                    event,
+                    context="{module} asked nicely and was given {event.type} {event.data}",
+                    module=dummy_module_2,
+                )
+            elif event.data == "three.evilcorp.com":
+                new_event = scan.make_event(
+                    "four.evilcorp.com",
+                    "DNS_NAME",
+                    event,
+                    context="{module} used brute force to obtain {event.type} {event.data}",
+                    module=dummy_module_2,
+                )
+            if new_event is not None:
+                await self.emit_event(new_event)
+
+    dummy_module = DummyModule(scan)
+
+    scan.modules["dummy_module"] = dummy_module
+
+    test_event = dummy_module.make_event("evilcorp.com", "DNS_NAME", parent=scan.root_event)
+    assert test_event.discovery_context == "dummy_module discovered DNS_NAME: evilcorp.com"
+
+    events = [e async for e in scan.async_start()]
+    assert len(events) == 6
+
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "evilcorp.com"
+            and e.discovery_context == f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"
+            and e.full_discovery_context == [f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"]
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "one.evilcorp.com"
+            and e.discovery_context == "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com"
+            and e.full_discovery_context
+            == [
+                f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+                "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+            ]
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "two.evilcorp.com"
+            and e.discovery_context
+            == "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com"
+            and e.full_discovery_context
+            == [
+                f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+                "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+                "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com",
+            ]
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "three.evilcorp.com"
+            and e.discovery_context == "module_2 asked nicely and was given DNS_NAME three.evilcorp.com"
+            and e.full_discovery_context
+            == [
+                f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+                "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+                "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com",
+                "module_2 asked nicely and was given DNS_NAME three.evilcorp.com",
+            ]
+        ]
+    )
+    assert 1 == len(
+        [
+            e
+            for e in events
+            if e.type == "DNS_NAME"
+            and e.data == "four.evilcorp.com"
+            and e.discovery_context == "module_2 used brute force to obtain DNS_NAME four.evilcorp.com"
+            and e.full_discovery_context
+            == [
+                f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+                "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+                "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com",
+                "module_2 asked nicely and was given DNS_NAME three.evilcorp.com",
+                "module_2 used brute force to obtain DNS_NAME four.evilcorp.com",
+            ]
+        ]
+    )
