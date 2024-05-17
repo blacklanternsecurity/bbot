@@ -19,6 +19,9 @@ class portscan(BaseModule):
         "wait": 5,
         "ping_first": False,
         "ping_only": False,
+        "adapter_ip": "",
+        "adapter_mac": "",
+        "router_mac": "",
     }
     options_desc = {
         "top_ports": "Top ports to scan (default 100) (to override, specify 'ports')",
@@ -27,6 +30,9 @@ class portscan(BaseModule):
         "wait": "Seconds to wait for replies after scan is complete",
         "ping_first": "Only portscan hosts that reply to pings",
         "ping_only": "Ping sweep only, no portscan",
+        "adapter_ip": "Send packets using this IP address. Not needed unless masscan's autodetection fails",
+        "adapter_mac": "Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
+        "router_mac": "Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
     }
     deps_shared = ["masscan"]
     batch_size = 1000000
@@ -37,6 +43,9 @@ class portscan(BaseModule):
         self.wait = self.config.get("wait", 10)
         self.ping_first = self.config.get("ping_first", False)
         self.ping_only = self.config.get("ping_only", False)
+        self.adapter_ip = self.config.get("adapter_ip", "")
+        self.adapter_mac = self.config.get("adapter_mac", "")
+        self.router_mac = self.config.get("router_mac", "")
         self.ports = self.config.get("ports", "")
         if self.ports:
             try:
@@ -47,6 +56,16 @@ class portscan(BaseModule):
         self.scanned_tracker = RadixTarget()
         self.prep_blacklist()
         self.helpers.depsinstaller.ensure_root(message="Masscan requires root privileges")
+        # check if we're set up for IPv6
+        self.ipv6_support = True
+        ipv6_result = await self.run_process(
+            ["masscan", "-p1", "--wait", "0", "-iL", self.helpers.tempfile(["::1"], pipe=False)],
+            sudo=True,
+            _log_stderr=False,
+        )
+        if ipv6_result.returncode and "failed to detect IPv6 address" in ipv6_result.stderr:
+            self.warning(f"It looks like you are not set up for IPv6. IPv6 targets will not be scanned.")
+            self.ipv6_support = False
         return True
 
     async def handle_batch(self, *events):
@@ -92,7 +111,7 @@ class portscan(BaseModule):
             for file in (stats_file, target_file):
                 file.unlink()
 
-    def _build_masscan_command(self, target_file=None, dry_run=False, ping=False):
+    def _build_masscan_command(self, target_file=None, ping=False, dry_run=False):
         command = (
             "masscan",
             "--excludefile",
@@ -107,15 +126,22 @@ class portscan(BaseModule):
         )
         if target_file is not None:
             command += ("-iL", str(target_file))
-        if ping:
-            command += ("--ping",)
-        else:
-            if self.ports:
-                command += ("-p", self.ports)
-            else:
-                command += ("--top-ports", str(self.top_ports))
         if dry_run:
-            command += ("--echo",)
+            command += ("-p1", "--wait", "0")
+        else:
+            if self.adapter_ip:
+                command += ("--adapter-ip", self.adapter_ip)
+            if self.adapter_mac:
+                command += ("--adapter-mac", self.adapter_mac)
+            if self.router_mac:
+                command += ("--router-mac", self.router_mac)
+            if ping:
+                command += ("--ping",)
+            else:
+                if self.ports:
+                    command += ("-p", self.ports)
+                else:
+                    command += ("--top-ports", str(self.top_ports))
         return command
 
     def make_targets(self, events):
@@ -146,6 +172,9 @@ class portscan(BaseModule):
                 for h in hosts:
                     targets.add(h)
                     self.scanned_tracker.insert(h, e)
+        # remove IPv6 addresses if we're not scanning IPv6
+        if not self.ipv6_support:
+            targets = [t for t in targets if t.version != 6]
         return targets
 
     def parse_json_line(self, line):
