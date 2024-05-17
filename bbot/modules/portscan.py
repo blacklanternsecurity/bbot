@@ -101,7 +101,7 @@ class portscan(BaseModule):
 
         target_file = self.helpers.tempfile(targets, pipe=False)
         command = self._build_masscan_command(target_file, ping=ping)
-        stats_file = self.helpers.tempfile_tail(callback=self.verbose)
+        stats_file = self.helpers.tempfile_tail(callback=self.log_masscan_status)
         try:
             with open(stats_file, "w") as stats_fh:
                 async for line in self.run_process_live(command, sudo=True, stderr=stats_fh):
@@ -110,6 +110,15 @@ class portscan(BaseModule):
         finally:
             for file in (stats_file, target_file):
                 file.unlink()
+
+    def log_masscan_status(self, s):
+        if "FAIL" in s:
+            self.warning(s)
+            self.warning(
+                f'Masscan failed to detect interface. Recommend passing "adapter_ip", "adapter_mac", and "router_mac" config options to portscan module.'
+            )
+        else:
+            self.verbose(s)
 
     def _build_masscan_command(self, target_file=None, ping=False, dry_run=False):
         command = (
