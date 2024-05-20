@@ -121,6 +121,8 @@ class ModuleTestBase:
 
     @pytest.mark.asyncio
     async def test_module_run(self, module_test):
+        for e in module_test.events:
+            self.log.critical(f"{e} <-- {e.source}")
         self.check(module_test, module_test.events)
         module_test.log.info(f"Finished {self.name} module test")
         current_task = asyncio.current_task()
