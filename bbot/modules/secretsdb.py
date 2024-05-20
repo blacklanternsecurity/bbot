@@ -8,7 +8,11 @@ class secretsdb(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
-    meta = {"description": "Detect common secrets with secrets-patterns-db"}
+    meta = {
+        "description": "Detect common secrets with secrets-patterns-db",
+        "created_date": "2023-03-17",
+        "author": "@TheTechromancer"
+        }
     options = {
         "min_confidence": 99,
         "signatures": "https://raw.githubusercontent.com/blacklanternsecurity/secrets-patterns-db/master/db/rules-stable.yml",

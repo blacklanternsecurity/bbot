@@ -5,7 +5,12 @@ class zoomeye(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query ZoomEye's API for subdomains", "auth_required": True}
+    meta = {
+        "description": "Query ZoomEye's API for subdomains",
+        "created_date": "2022-08-03",
+        "author": "@TheTechromancer",
+        "auth_required": True
+        }
     options = {"api_key": "", "max_pages": 20, "include_related": False}
     options_desc = {
         "api_key": "ZoomEye API key",

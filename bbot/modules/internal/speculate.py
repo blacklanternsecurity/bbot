@@ -26,7 +26,11 @@ class speculate(BaseInternalModule):
     ]
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
     flags = ["passive"]
-    meta = {"description": "Derive certain event types from others by common sense"}
+    meta = {
+        "description": "Derive certain event types from others by common sense",
+        "created_date": "2022-05-03",
+        "author": "@liquidsec"
+        }
 
     options = {"max_hosts": 65536, "ports": "80,443"}
     options_desc = {

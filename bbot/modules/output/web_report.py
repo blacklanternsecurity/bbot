@@ -5,7 +5,11 @@ import html
 
 class web_report(BaseOutputModule):
     watched_events = ["URL", "TECHNOLOGY", "FINDING", "VULNERABILITY", "VHOST"]
-    meta = {"description": "Create a markdown report with web assets"}
+    meta = {
+        "description": "Create a markdown report with web assets",
+        "created_date": "2023-02-08",
+        "author": "@liquidsec"
+        }
     options = {
         "output_file": "",
         "css_theme_file": "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css",

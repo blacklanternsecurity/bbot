@@ -5,7 +5,12 @@ class shodan_dns(shodan):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query Shodan for subdomains", "auth_required": True}
+    meta = {
+        "description": "Query Shodan for subdomains",
+        "created_date": "2022-07-03",
+        "author": "@TheTechromancer",
+        "auth_required": True
+        }
     options = {"api_key": ""}
     options_desc = {"api_key": "Shodan API key"}
 

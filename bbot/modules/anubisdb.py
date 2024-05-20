@@ -5,7 +5,11 @@ class anubisdb(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query jldc.me's database for subdomains"}
+    meta = {
+        "description": "Query jldc.me's database for subdomains",
+        "created_date": "2022-10-04",
+        "author": "@TheTechromancer"
+        }
     options = {"limit": 1000}
     options_desc = {
         "limit": "Limit the number of subdomains returned per query (increasing this may slow the scan due to garbage results from this API)"

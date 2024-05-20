@@ -6,7 +6,11 @@ from bbot.modules.output.base import BaseOutputModule
 
 class Human(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Output to text"}
+    meta = {
+        "description": "Output to text",
+        "created_date": "2022-04-07",
+        "author": "@TheTechromancer"
+        }
     options = {"output_file": "", "console": True}
     options_desc = {"output_file": "Output to file", "console": "Output to console"}
     vuln_severity_map = {"LOW": "HUGEWARNING", "MEDIUM": "HUGEWARNING", "HIGH": "CRITICAL", "CRITICAL": "CRITICAL"}

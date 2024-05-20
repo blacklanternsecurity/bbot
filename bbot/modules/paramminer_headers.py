@@ -11,7 +11,11 @@ class paramminer_headers(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
-    meta = {"description": "Use smart brute-force to check for common HTTP header parameters"}
+    meta = {
+        "description": "Use smart brute-force to check for common HTTP header parameters",
+        "created_date": "2022-04-15",
+        "author": "@pmueller"
+        }
     options = {
         "wordlist": "",  # default is defined within setup function
         "http_extract": True,

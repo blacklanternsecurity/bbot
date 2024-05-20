@@ -7,7 +7,11 @@ class dnsdumpster(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query dnsdumpster for subdomains"}
+    meta = {
+        "description": "Query dnsdumpster for subdomains",
+        "created_date": "2022-03-12",
+        "author": "@TheTechromancer"
+        }
 
     base_url = "https://dnsdumpster.com"
 

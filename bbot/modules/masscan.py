@@ -8,7 +8,11 @@ class masscan(portscanner):
     flags = ["active", "portscan", "aggressive"]
     watched_events = ["IP_ADDRESS", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
-    meta = {"description": "Port scan with masscan. By default, scans top 100 ports."}
+    meta = {
+        "description": "Port scan with masscan. By default, scans top 100 ports.",
+        "created_date": "2023-01-27",
+        "author": "@TheTechromancer"
+        }
     options = {
         "top_ports": 100,
         "ports": "",

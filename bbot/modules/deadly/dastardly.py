@@ -6,7 +6,11 @@ class dastardly(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["active", "aggressive", "slow", "web-thorough"]
-    meta = {"description": "Lightweight web application security scanner"}
+    meta = {
+        "description": "Lightweight web application security scanner",
+        "created_date": "2023-12-11",
+        "author": "@domwhewell-sage"
+        }
 
     deps_pip = ["lxml~=4.9.2"]
     deps_ansible = [

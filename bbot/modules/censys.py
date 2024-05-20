@@ -9,7 +9,12 @@ class censys(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query the Censys API", "auth_required": True}
+    meta = {
+        "description": "Query the Censys API",
+        "created_date": "2022-08-04",
+        "author": "@TheTechromancer",
+        "auth_required": True
+        }
     options = {"api_id": "", "api_secret": "", "max_pages": 5}
     options_desc = {
         "api_id": "Censys.io API ID",

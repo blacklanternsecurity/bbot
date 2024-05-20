@@ -7,7 +7,11 @@ class digitorus(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query certificatedetails.com for subdomains"}
+    meta = {
+        "description": "Query certificatedetails.com for subdomains",
+        "created_date": "2023-07-25",
+        "author": "@TheTechromancer"
+        }
 
     base_url = "https://certificatedetails.com"
 

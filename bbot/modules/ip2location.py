@@ -9,7 +9,12 @@ class IP2Location(BaseModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["GEOLOCATION"]
     flags = ["passive", "safe"]
-    meta = {"description": "Query IP2location.io's API for geolocation information. ", "auth_required": True}
+    meta = {
+        "description": "Query IP2location.io's API for geolocation information. ",
+        "created_date": "2023-09-12",
+        "author": "@TheTechromancer",
+        "auth_required": True
+        }
     options = {"api_key": "", "lang": ""}
     options_desc = {
         "api_key": "IP2location.io API Key",

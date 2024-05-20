@@ -20,7 +20,11 @@ class dotnetnuke(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "aggressive", "web-thorough"]
-    meta = {"description": "Scan for critical DotNetNuke (DNN) vulnerabilities"}
+    meta = {
+        "description": "Scan for critical DotNetNuke (DNN) vulnerabilities",
+        "created_date": "2023-11-21",
+        "author": "@liquidsec"
+        }
 
     async def setup(self):
         self.event_dict = {}

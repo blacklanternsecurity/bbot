@@ -7,7 +7,11 @@ class ipneighbor(BaseModule):
     watched_events = ["IP_ADDRESS"]
     produced_events = ["IP_ADDRESS"]
     flags = ["passive", "subdomain-enum", "aggressive"]
-    meta = {"description": "Look beside IPs in their surrounding subnet"}
+    meta = {
+        "description": "Look beside IPs in their surrounding subnet",
+        "created_date": "2022-06-08",
+        "author": "@TheTechromancer"
+        }
     options = {"num_bits": 4}
     options_desc = {"num_bits": "Netmask size (in CIDR notation) to check. Default is 4 bits (16 hosts)"}
     scope_distance_modifier = 1

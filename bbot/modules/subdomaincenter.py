@@ -5,7 +5,11 @@ class subdomaincenter(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query subdomain.center's API for subdomains"}
+    meta = {
+        "description": "Query subdomain.center's API for subdomains",
+        "created_date": "2023-07-26",
+        "author": "@TheTechromancer"
+        }
 
     base_url = "https://api.subdomain.center"
     retries = 2

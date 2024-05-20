@@ -6,7 +6,11 @@ class url_manipulation(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "web-thorough"]
-    meta = {"description": "Attempt to identify URL parsing/routing based vulnerabilities"}
+    meta = {
+        "description": "Attempt to identify URL parsing/routing based vulnerabilities",
+        "created_date": "2022-09-27",
+        "author": "@liquidsec"
+        }
     in_scope_only = True
 
     options = {"allow_redirects": True}

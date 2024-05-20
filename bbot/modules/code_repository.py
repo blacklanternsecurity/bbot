@@ -5,7 +5,11 @@ from bbot.modules.base import BaseModule
 class code_repository(BaseModule):
     watched_events = ["URL_UNVERIFIED"]
     produced_events = ["CODE_REPOSITORY"]
-    meta = {"description": "Look for code repository links in webpages"}
+    meta = {
+        "description": "Look for code repository links in webpages",
+        "created_date": "2024-05-15",
+        "author": "@domwhewell-sage"
+        }
     flags = ["passive", "safe", "repo-enum"]
 
     # platform name : (regex, case_sensitive)

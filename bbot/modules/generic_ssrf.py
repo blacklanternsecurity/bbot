@@ -152,7 +152,11 @@ class generic_ssrf(BaseModule):
     watched_events = ["URL"]
     produced_events = ["VULNERABILITY"]
     flags = ["active", "aggressive", "web-thorough"]
-    meta = {"description": "Check for generic SSRFs"}
+    meta = {
+        "description": "Check for generic SSRFs",
+        "created_date": "2022-07-30",
+        "author": "@liquidsec"
+        }
     in_scope_only = True
 
     deps_apt = ["curl"]

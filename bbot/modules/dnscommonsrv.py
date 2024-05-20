@@ -153,7 +153,11 @@ class dnscommonsrv(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Check for common SRV records"}
+    meta = {
+        "description": "Check for common SRV records",
+        "created_date": "2022-05-15",
+        "author": "@TheTechromancer"
+        }
     options = {"top": 50, "max_event_handlers": 10}
     options_desc = {
         "top": "How many of the top SRV records to check",

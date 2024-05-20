@@ -5,7 +5,11 @@ class dockerhub(BaseModule):
     watched_events = ["SOCIAL", "ORG_STUB"]
     produced_events = ["SOCIAL", "CODE_REPOSITORY", "URL_UNVERIFIED"]
     flags = ["passive", "safe"]
-    meta = {"description": "Search for docker repositories of discovered orgs/usernames"}
+    meta = {
+        "description": "Search for docker repositories of discovered orgs/usernames",
+        "created_date": "2024-03-12",
+        "author": "@domwhewell-sage"
+        }
 
     site_url = "https://hub.docker.com"
     api_url = f"{site_url}/v2"

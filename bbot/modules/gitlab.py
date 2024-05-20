@@ -5,7 +5,11 @@ class gitlab(BaseModule):
     watched_events = ["HTTP_RESPONSE", "TECHNOLOGY", "SOCIAL"]
     produced_events = ["TECHNOLOGY", "SOCIAL", "CODE_REPOSITORY", "FINDING"]
     flags = ["active", "safe"]
-    meta = {"description": "Detect GitLab instances and query them for repositories"}
+    meta = {
+        "description": "Detect GitLab instances and query them for repositories",
+        "created_date": "2024-03-11",
+        "author": "@TheTechromancer"
+        }
     options = {"api_key": ""}
     options_desc = {"api_key": "Gitlab access token"}
 

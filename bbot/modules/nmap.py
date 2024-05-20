@@ -6,7 +6,11 @@ class nmap(portscanner):
     watched_events = ["IP_ADDRESS", "DNS_NAME", "IP_RANGE"]
     produced_events = ["OPEN_TCP_PORT"]
     flags = ["active", "portscan", "aggressive", "web-thorough"]
-    meta = {"description": "Port scan with nmap. By default, scans top 100 ports."}
+    meta = {
+        "description": "Port scan with nmap. By default, scans top 100 ports.",
+        "created_date": "2022-03-12",
+        "author": "@TheTechromancer"
+        }
     options = {
         "top_ports": 100,
         "ports": "",

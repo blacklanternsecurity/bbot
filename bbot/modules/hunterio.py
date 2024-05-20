@@ -5,7 +5,12 @@ class hunterio(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS", "DNS_NAME", "URL_UNVERIFIED"]
     flags = ["passive", "email-enum", "subdomain-enum", "safe"]
-    meta = {"description": "Query hunter.io for emails", "auth_required": True}
+    meta = {
+        "description": "Query hunter.io for emails",
+        "created_date": "2022-04-25",
+        "author": "@TheTechromancer",
+        "auth_required": True
+        }
     options = {"api_key": ""}
     options_desc = {"api_key": "Hunter.IO API key"}
 

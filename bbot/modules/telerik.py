@@ -9,7 +9,11 @@ class telerik(BaseModule):
     watched_events = ["URL", "HTTP_RESPONSE"]
     produced_events = ["VULNERABILITY", "FINDING"]
     flags = ["active", "aggressive", "web-thorough"]
-    meta = {"description": "Scan for critical Telerik vulnerabilities"}
+    meta = {
+        "description": "Scan for critical Telerik vulnerabilities",
+        "created_date": "2022-04-10",
+        "author": "@liquidsec"
+        }
 
     telerikVersions = [
         "2007.1423",

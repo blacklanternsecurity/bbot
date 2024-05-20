@@ -11,6 +11,8 @@ class paramminer_cookies(paramminer_headers):
     flags = ["active", "aggressive", "slow", "web-paramminer"]
     meta = {
         "description": "Smart brute-force to check for common HTTP cookie parameters",
+        "created_date": "2022-06-27",
+        "author": "@liquidsec"
     }
     options = {
         "wordlist": "",  # default is defined within setup function

@@ -5,7 +5,11 @@ class bucket_azure(bucket_template):
     watched_events = ["DNS_NAME", "STORAGE_BUCKET"]
     produced_events = ["STORAGE_BUCKET", "FINDING"]
     flags = ["active", "safe", "cloud-enum", "web-basic", "web-thorough"]
-    meta = {"description": "Check for Azure storage blobs related to target"}
+    meta = {
+        "description": "Check for Azure storage blobs related to target",
+        "created_date": "2022-11-04",
+        "author": "@TheTechromancer"
+        }
     options = {"permutations": False}
     options_desc = {
         "permutations": "Whether to try permutations",

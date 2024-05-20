@@ -6,7 +6,11 @@ from bbot.modules.output.base import BaseOutputModule
 
 class JSON(BaseOutputModule):
     watched_events = ["*"]
-    meta = {"description": "Output to Newline-Delimited JSON (NDJSON)"}
+    meta = {
+        "description": "Output to Newline-Delimited JSON (NDJSON)",
+        "created_date": "2022-04-07",
+        "author": "@TheTechromancer"
+        }
     options = {"output_file": "", "console": False, "siem_friendly": False}
     options_desc = {
         "output_file": "Output to file",

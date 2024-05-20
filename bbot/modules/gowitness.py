@@ -10,7 +10,11 @@ class gowitness(BaseModule):
     watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["active", "safe", "web-screenshots"]
-    meta = {"description": "Take screenshots of webpages"}
+    meta = {
+        "description": "Take screenshots of webpages",
+        "created_date": "2022-07-08",
+        "author": "@TheTechromancer"
+        }
     options = {
         "version": "2.4.2",
         "threads": 4,

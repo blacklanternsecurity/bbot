@@ -19,7 +19,11 @@ class newsletters(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "safe"]
-    meta = {"description": "Searches for Newsletter Submission Entry Fields on Websites"}
+    meta = {
+        "description": "Searches for Newsletter Submission Entry Fields on Websites",
+        "created_date": "2024-02-02",
+        "author": "@stryker2k2"
+        }
 
     # Parse through Website to find a Text Entry Box of 'type = email'
     # and ensure that there is placeholder text within it.

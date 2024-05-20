@@ -79,7 +79,11 @@ class bypass403(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "web-thorough"]
-    meta = {"description": "Check 403 pages for common bypasses"}
+    meta = {
+        "description": "Check 403 pages for common bypasses",
+        "created_date": "2022-07-05",
+        "author": "@liquidsec"
+        }
     in_scope_only = True
 
     async def do_checks(self, compare_helper, event, collapse_threshold):

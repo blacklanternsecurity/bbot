@@ -17,7 +17,12 @@ class builtwith(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query Builtwith.com for subdomains", "auth_required": True}
+    meta = {
+        "description": "Query Builtwith.com for subdomains",
+        "created_date": "2022-08-23",
+        "author": "@TheTechromancer",
+        "auth_required": True
+        }
     options = {"api_key": "", "redirects": True}
     options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
     base_url = "https://api.builtwith.com"

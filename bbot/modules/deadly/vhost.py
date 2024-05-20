@@ -8,7 +8,11 @@ class vhost(ffuf):
     watched_events = ["URL"]
     produced_events = ["VHOST", "DNS_NAME"]
     flags = ["active", "aggressive", "slow"]
-    meta = {"description": "Fuzz for virtual hosts"}
+    meta = {
+        "description": "Fuzz for virtual hosts",
+        "created_date": "2022-05-02",
+        "author": "@liquidsec"
+        }
 
     special_vhost_list = ["127.0.0.1", "localhost", "host.docker.internal"]
     options = {

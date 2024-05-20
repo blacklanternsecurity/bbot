@@ -275,7 +275,11 @@ class hunt(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "safe", "web-thorough"]
-    meta = {"description": "Watch for commonly-exploitable HTTP parameters"}
+    meta = {
+        "description": "Watch for commonly-exploitable HTTP parameters",
+        "created_date": "2022-07-20",
+        "author": "@liquidsec"
+        }
     # accept all events regardless of scope distance
     scope_distance_modifier = None
 

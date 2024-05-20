@@ -9,7 +9,11 @@ class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "safe", "web-basic", "web-thorough"]
-    meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
+    meta = {
+        "description": "Library for detecting known or weak secrets across many web frameworks",
+        "created_date": "2022-11-19",
+        "author": "@liquidsec"
+        }
     deps_pip = ["badsecrets~=0.4.490"]
 
     @property

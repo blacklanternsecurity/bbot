@@ -5,7 +5,11 @@ from bbot.modules.output.human import Human
 class Emails(Human):
     watched_events = ["EMAIL_ADDRESS"]
     flags = ["email-enum"]
-    meta = {"description": "Output any email addresses found belonging to the target domain"}
+    meta = {
+        "description": "Output any email addresses found belonging to the target domain",
+        "created_date": "2023-12-23",
+        "author": "@domwhewell-sage"
+        }
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to file"}
     in_scope_only = True

@@ -9,6 +9,8 @@ class wayback(subdomain_enum):
     produced_events = ["URL_UNVERIFIED", "DNS_NAME"]
     meta = {
         "description": "Query archive.org's API for subdomains",
+        "created_date": "2022-04-01",
+        "author": "@pmueller"
     }
     options = {"urls": False, "garbage_threshold": 10}
     options_desc = {
