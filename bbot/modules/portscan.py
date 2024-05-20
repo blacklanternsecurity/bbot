@@ -19,6 +19,7 @@ class portscan(BaseModule):
         "wait": 5,
         "ping_first": False,
         "ping_only": False,
+        "adapter": "",
         "adapter_ip": "",
         "adapter_mac": "",
         "router_mac": "",
@@ -30,6 +31,7 @@ class portscan(BaseModule):
         "wait": "Seconds to wait for replies after scan is complete",
         "ping_first": "Only portscan hosts that reply to pings",
         "ping_only": "Ping sweep only, no portscan",
+        "adapter": 'Manually specify a network interface, such as "eth0" or "tun0". If not specified, the first network interface found with a default gateway will be used.',
         "adapter_ip": "Send packets using this IP address. Not needed unless masscan's autodetection fails",
         "adapter_mac": "Send packets using this as the source MAC address. Not needed unless masscan's autodetection fails",
         "router_mac": "Send packets to this MAC address as the destination. Not needed unless masscan's autodetection fails",
@@ -43,6 +45,7 @@ class portscan(BaseModule):
         self.wait = self.config.get("wait", 10)
         self.ping_first = self.config.get("ping_first", False)
         self.ping_only = self.config.get("ping_only", False)
+        self.adapter = self.config.get("adapter", "")
         self.adapter_ip = self.config.get("adapter_ip", "")
         self.adapter_mac = self.config.get("adapter_mac", "")
         self.router_mac = self.config.get("router_mac", "")
@@ -138,6 +141,8 @@ class portscan(BaseModule):
         if dry_run:
             command += ("-p1", "--wait", "0")
         else:
+            if self.adapter:
+                command += ("--adapter", self.adapter)
             if self.adapter_ip:
                 command += ("--adapter-ip", self.adapter_ip)
             if self.adapter_mac:
