@@ -8,8 +8,8 @@ class crt(subdomain_enum):
     meta = {
         "description": "Query crt.sh (certificate transparency) for subdomains",
         "created_date": "2022-05-13",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://crt.sh"
     reject_wildcards = False

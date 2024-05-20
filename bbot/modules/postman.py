@@ -8,8 +8,8 @@ class postman(subdomain_enum):
     meta = {
         "description": "Query Postman's API for related workspaces, collections, requests",
         "created_date": "2023-12-23",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
 
     base_url = "https://www.postman.com/_api"
 

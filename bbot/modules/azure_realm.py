@@ -8,8 +8,8 @@ class azure_realm(BaseModule):
     meta = {
         "description": 'Retrieves the "AuthURL" from login.microsoftonline.com/getuserrealm',
         "created_date": "2023-07-12",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     async def setup(self):
         self.processed = set()

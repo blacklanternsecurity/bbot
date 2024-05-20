@@ -16,8 +16,8 @@ class baddns(BaseModule):
     meta = {
         "description": "Check hosts for domain/subdomain takeovers",
         "created_date": "2024-01-18",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     options = {"custom_nameservers": [], "only_high_confidence": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",

@@ -13,8 +13,8 @@ class censys(subdomain_enum_apikey):
         "description": "Query the Censys API",
         "created_date": "2022-08-04",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_id": "", "api_secret": "", "max_pages": 5}
     options_desc = {
         "api_id": "Censys.io API ID",

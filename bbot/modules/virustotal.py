@@ -9,8 +9,8 @@ class virustotal(subdomain_enum_apikey):
         "description": "Query VirusTotal's API for subdomains",
         "created_date": "2022-08-25",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "VirusTotal API Key"}
 

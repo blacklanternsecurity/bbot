@@ -8,8 +8,8 @@ class github_org(github):
     meta = {
         "description": "Query Github's API for organization and member repositories",
         "created_date": "2023-12-14",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
     options = {"api_key": "", "include_members": True, "include_member_repos": False}
     options_desc = {
         "api_key": "Github token",

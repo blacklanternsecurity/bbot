@@ -278,8 +278,8 @@ class hunt(BaseModule):
     meta = {
         "description": "Watch for commonly-exploitable HTTP parameters",
         "created_date": "2022-07-20",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     # accept all events regardless of scope distance
     scope_distance_modifier = None
 

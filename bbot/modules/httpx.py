@@ -14,8 +14,8 @@ class httpx(BaseModule):
     meta = {
         "description": "Visit webpages. Many other modules rely on httpx",
         "created_date": "2022-07-08",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     options = {
         "threads": 50,

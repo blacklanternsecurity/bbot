@@ -8,8 +8,8 @@ class Subdomains(Human):
     meta = {
         "description": "Output only resolved, in-scope subdomains",
         "created_date": "2023-07-31",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {"output_file": "", "include_unresolved": False}
     options_desc = {"output_file": "Output to file", "include_unresolved": "Include unresolved subdomains in output"}
     accept_dupes = False

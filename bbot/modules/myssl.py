@@ -8,8 +8,8 @@ class myssl(subdomain_enum):
     meta = {
         "description": "Query myssl.com's API for subdomains",
         "created_date": "2023-07-10",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://myssl.com/api/v1/discover_sub_domain"
 

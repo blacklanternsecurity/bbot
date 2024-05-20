@@ -8,9 +8,9 @@ class securitytrails(subdomain_enum_apikey):
     meta = {
         "description": "Query the SecurityTrails API for subdomains",
         "created_date": "2022-07-03",
-        "author": "@TheTechromancer"
-        "auth_required": True
-        }
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "SecurityTrails API key"}
 

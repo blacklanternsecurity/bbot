@@ -9,8 +9,8 @@ class url_manipulation(BaseModule):
     meta = {
         "description": "Attempt to identify URL parsing/routing based vulnerabilities",
         "created_date": "2022-09-27",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     in_scope_only = True
 
     options = {"allow_redirects": True}

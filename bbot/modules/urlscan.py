@@ -8,7 +8,7 @@ class urlscan(subdomain_enum):
     meta = {
         "description": "Query urlscan.io for subdomains",
         "created_date": "2022-06-09",
-        "author": "@TheTechromancer"
+        "author": "@TheTechromancer",
     }
     options = {"urls": False}
     options_desc = {"urls": "Emit URLs in addition to DNS_NAMEs"}

@@ -14,8 +14,8 @@ class baddns_zone(baddns_module):
     meta = {
         "description": "Check hosts for DNS zone transfers and NSEC walks",
         "created_date": "2024-01-29",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     options = {"custom_nameservers": [], "only_high_confidence": False}
     options_desc = {
         "custom_nameservers": "Force BadDNS to use a list of custom nameservers",

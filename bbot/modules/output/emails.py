@@ -8,8 +8,8 @@ class Emails(Human):
     meta = {
         "description": "Output any email addresses found belonging to the target domain",
         "created_date": "2023-12-23",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
     options = {"output_file": ""}
     options_desc = {"output_file": "Output to file"}
     in_scope_only = True

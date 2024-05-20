@@ -10,8 +10,8 @@ class fingerprintx(BaseModule):
     meta = {
         "description": "Fingerprint exposed services like RDP, SSH, MySQL, etc.",
         "created_date": "2023-01-30",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {"version": "1.1.4"}
     options_desc = {"version": "fingerprintx version"}
     _batch_size = 10

@@ -9,8 +9,8 @@ class hunterio(subdomain_enum_apikey):
         "description": "Query hunter.io for emails",
         "created_date": "2022-04-25",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "Hunter.IO API key"}
 

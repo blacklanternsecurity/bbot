@@ -8,8 +8,8 @@ class anubisdb(subdomain_enum):
     meta = {
         "description": "Query jldc.me's database for subdomains",
         "created_date": "2022-10-04",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {"limit": 1000}
     options_desc = {
         "limit": "Limit the number of subdomains returned per query (increasing this may slow the scan due to garbage results from this API)"

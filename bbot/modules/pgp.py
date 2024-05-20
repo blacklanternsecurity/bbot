@@ -8,8 +8,8 @@ class pgp(subdomain_enum):
     meta = {
         "description": "Query common PGP servers for email addresses",
         "created_date": "2022-08-10",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {
         "search_urls": [
             "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=vindex&search=<query>",

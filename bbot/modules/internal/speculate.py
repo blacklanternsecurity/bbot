@@ -29,8 +29,8 @@ class speculate(BaseInternalModule):
     meta = {
         "description": "Derive certain event types from others by common sense",
         "created_date": "2022-05-03",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
 
     options = {"max_hosts": 65536, "ports": "80,443"}
     options_desc = {

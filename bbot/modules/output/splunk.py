@@ -8,8 +8,8 @@ class Splunk(BaseOutputModule):
     meta = {
         "description": "Send every event to a splunk instance through HTTP Event Collector",
         "created_date": "2024-02-17",
-        "author": "@w0Tx"
-        }
+        "author": "@w0Tx",
+    }
     options = {
         "url": "",
         "hectoken": "",

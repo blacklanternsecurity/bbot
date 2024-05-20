@@ -8,8 +8,8 @@ class columbus(subdomain_enum):
     meta = {
         "description": "Query the Columbus Project API for subdomains",
         "created_date": "2023-06-01",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://columbus.elmasy.com/api/lookup"
 

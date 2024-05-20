@@ -11,8 +11,8 @@ class dehashed(BaseModule):
         "description": "Execute queries against dehashed.com for exposed credentials",
         "created_date": "2023-10-12",
         "author": "@SpamFaux",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"username": "", "api_key": ""}
     options_desc = {"username": "Email Address associated with your API key", "api_key": "DeHashed API Key"}
     target_only = True

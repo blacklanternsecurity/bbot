@@ -8,8 +8,8 @@ class asn(BaseReportModule):
     meta = {
         "description": "Query ripe and bgpview.io for ASNs",
         "created_date": "2022-07-25",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     scope_distance_modifier = 1
     # we accept dupes to avoid missing data
     # because sometimes IP addresses are re-emitted with lower scope distances

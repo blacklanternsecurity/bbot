@@ -8,8 +8,8 @@ class gitlab(BaseModule):
     meta = {
         "description": "Detect GitLab instances and query them for repositories",
         "created_date": "2024-03-11",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "Gitlab access token"}
 

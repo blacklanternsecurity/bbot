@@ -10,8 +10,8 @@ class digitorus(subdomain_enum):
     meta = {
         "description": "Query certificatedetails.com for subdomains",
         "created_date": "2023-07-25",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://certificatedetails.com"
 

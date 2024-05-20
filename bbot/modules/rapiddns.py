@@ -8,8 +8,8 @@ class rapiddns(subdomain_enum):
     meta = {
         "description": "Query rapiddns.io for subdomains",
         "created_date": "2022-08-24",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://rapiddns.io"
 

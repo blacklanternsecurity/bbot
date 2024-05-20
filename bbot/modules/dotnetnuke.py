@@ -23,8 +23,8 @@ class dotnetnuke(BaseModule):
     meta = {
         "description": "Scan for critical DotNetNuke (DNN) vulnerabilities",
         "created_date": "2023-11-21",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
 
     async def setup(self):
         self.event_dict = {}

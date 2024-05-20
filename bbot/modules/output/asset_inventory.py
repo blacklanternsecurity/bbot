@@ -36,8 +36,8 @@ class asset_inventory(CSV):
     meta = {
         "description": "Merge hosts, open ports, technologies, findings, etc. into a single asset inventory CSV",
         "created_date": "2022-09-30",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     options = {"output_file": "", "use_previous": False, "recheck": False, "summary_netmask": 16}
     options_desc = {
         "output_file": "Set a custom output file",

@@ -8,8 +8,8 @@ class sitedossier(subdomain_enum):
     meta = {
         "description": "Query sitedossier.com for subdomains",
         "created_date": "2023-08-04",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "http://www.sitedossier.com/parentdomain"
     max_pages = 10

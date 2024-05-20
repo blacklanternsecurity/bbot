@@ -9,8 +9,8 @@ class nmap(portscanner):
     meta = {
         "description": "Port scan with nmap. By default, scans top 100 ports.",
         "created_date": "2022-03-12",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {
         "top_ports": 100,
         "ports": "",

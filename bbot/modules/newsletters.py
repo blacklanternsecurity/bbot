@@ -22,8 +22,8 @@ class newsletters(BaseModule):
     meta = {
         "description": "Searches for Newsletter Submission Entry Fields on Websites",
         "created_date": "2024-02-02",
-        "author": "@stryker2k2"
-        }
+        "author": "@stryker2k2",
+    }
 
     # Parse through Website to find a Text Entry Box of 'type = email'
     # and ensure that there is placeholder text within it.

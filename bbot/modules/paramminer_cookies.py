@@ -12,7 +12,7 @@ class paramminer_cookies(paramminer_headers):
     meta = {
         "description": "Smart brute-force to check for common HTTP cookie parameters",
         "created_date": "2022-06-27",
-        "author": "@liquidsec"
+        "author": "@liquidsec",
     }
     options = {
         "wordlist": "",  # default is defined within setup function

@@ -341,8 +341,8 @@ class excavate(BaseInternalModule):
     meta = {
         "description": "Passively extract juicy tidbits from scan data",
         "created_date": "2022-06-27",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
 
     scope_distance_modifier = None
 

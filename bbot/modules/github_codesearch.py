@@ -9,8 +9,8 @@ class github_codesearch(github):
         "description": "Query Github's API for code containing the target domain name",
         "created_date": "2023-12-14",
         "author": "@domwhewell-sage",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": "", "limit": 100}
     options_desc = {"api_key": "Github token", "limit": "Limit code search to this many results"}
 

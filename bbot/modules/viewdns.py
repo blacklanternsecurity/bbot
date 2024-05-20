@@ -14,7 +14,7 @@ class viewdns(BaseModule):
     meta = {
         "description": "Query viewdns.info's reverse whois for related domains",
         "created_date": "2022-07-04",
-        "author": "@TheTechromancer"
+        "author": "@TheTechromancer",
     }
     base_url = "https://viewdns.info"
     in_scope_only = True

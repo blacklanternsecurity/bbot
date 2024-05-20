@@ -11,8 +11,8 @@ class leakix(subdomain_enum_apikey):
     meta = {
         "description": "Query leakix.net for subdomains",
         "created_date": "2022-07-11",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://leakix.net"
 

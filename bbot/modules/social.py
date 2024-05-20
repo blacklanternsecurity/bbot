@@ -8,8 +8,8 @@ class social(BaseModule):
     meta = {
         "description": "Look for social media links in webpages",
         "created_date": "2023-03-28",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     flags = ["passive", "safe", "social-enum"]
 
     # platform name : (regex, case_sensitive)

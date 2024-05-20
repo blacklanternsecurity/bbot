@@ -11,8 +11,8 @@ class github_workflows(github):
     meta = {
         "description": "Download a github repositories workflow logs",
         "created_date": "2024-04-29",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
     options = {"api_key": "", "num_logs": 1}
     options_desc = {
         "api_key": "Github token",

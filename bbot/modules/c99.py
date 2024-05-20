@@ -9,8 +9,8 @@ class c99(subdomain_enum_apikey):
         "description": "Query the C99 API for subdomains",
         "created_date": "2022-07-08",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "c99.nl API key"}
 

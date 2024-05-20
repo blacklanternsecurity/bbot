@@ -8,8 +8,8 @@ class affiliates(BaseReportModule):
     meta = {
         "description": "Summarize affiliate domains at the end of a scan",
         "created_date": "2022-07-25",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     scope_distance_modifier = None
     accept_dupes = True
 

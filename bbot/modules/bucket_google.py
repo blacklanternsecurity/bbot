@@ -12,8 +12,8 @@ class bucket_google(bucket_template):
     meta = {
         "description": "Check for Google object storage related to target",
         "created_date": "2022-11-04",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {"permutations": False}
     options_desc = {
         "permutations": "Whether to try permutations",

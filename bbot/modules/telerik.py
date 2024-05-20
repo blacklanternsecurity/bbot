@@ -12,8 +12,8 @@ class telerik(BaseModule):
     meta = {
         "description": "Scan for critical Telerik vulnerabilities",
         "created_date": "2022-04-10",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
 
     telerikVersions = [
         "2007.1423",

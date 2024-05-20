@@ -20,8 +20,8 @@ class iis_shortnames(BaseModule):
     meta = {
         "description": "Check for IIS shortname vulnerability",
         "created_date": "2022-04-15",
-        "author": "@pmueller"
-        }
+        "author": "@pmueller",
+    }
     options = {"detect_only": True, "max_node_count": 50}
     options_desc = {
         "detect_only": "Only detect the vulnerability and do not run the shortname scanner",

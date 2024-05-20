@@ -12,8 +12,8 @@ class badsecrets(BaseModule):
     meta = {
         "description": "Library for detecting known or weak secrets across many web frameworks",
         "created_date": "2022-11-19",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     deps_pip = ["badsecrets~=0.4.490"]
 
     @property

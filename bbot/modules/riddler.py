@@ -8,8 +8,8 @@ class riddler(subdomain_enum):
     meta = {
         "description": "Query riddler.io for subdomains",
         "created_date": "2022-08-25",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://riddler.io"
 

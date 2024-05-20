@@ -10,8 +10,8 @@ class OAUTH(BaseModule):
     meta = {
         "description": "Enumerate OAUTH and OpenID Connect services",
         "created_date": "2023-07-12",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {"try_all": False}
     options_desc = {"try_all": "Check for OAUTH/IODC on every subdomain and URL."}
 

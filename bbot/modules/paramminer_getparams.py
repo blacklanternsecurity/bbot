@@ -12,8 +12,8 @@ class paramminer_getparams(paramminer_headers):
     meta = {
         "description": "Use smart brute-force to check for common HTTP GET parameters",
         "created_date": "2022-06-28",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     scanned_hosts = []
     options = {
         "wordlist": "",  # default is defined within setup function

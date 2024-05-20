@@ -19,8 +19,8 @@ class wafw00f(BaseModule):
     meta = {
         "description": "Web Application Firewall Fingerprinting Tool",
         "created_date": "2023-02-15",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
 
     deps_pip = ["wafw00f~=2.2.0"]
 

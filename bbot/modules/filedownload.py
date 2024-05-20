@@ -18,8 +18,8 @@ class filedownload(BaseModule):
     meta = {
         "description": "Download common filetypes such as PDF, DOCX, PPTX, etc.",
         "created_date": "2023-10-11",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {
         "extensions": [
             "bak",  #  Backup File

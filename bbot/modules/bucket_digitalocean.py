@@ -8,8 +8,8 @@ class bucket_digitalocean(bucket_template):
     meta = {
         "description": "Check for DigitalOcean spaces related to target",
         "created_date": "2022-11-08",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {"permutations": False}
     options_desc = {
         "permutations": "Whether to try permutations",

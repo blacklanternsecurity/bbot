@@ -41,8 +41,8 @@ class internetdb(BaseModule):
     meta = {
         "description": "Query Shodan's InternetDB for open ports, hostnames, technologies, and vulnerabilities",
         "created_date": "2023-12-22",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     _qsize = 500
 

@@ -72,8 +72,8 @@ class ntlm(BaseModule):
     meta = {
         "description": "Watch for HTTP endpoints that support NTLM authentication",
         "created_date": "2022-07-25",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     options = {"try_all": False}
     options_desc = {"try_all": "Try every NTLM endpoint"}
 

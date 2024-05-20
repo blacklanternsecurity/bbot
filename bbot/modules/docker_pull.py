@@ -12,8 +12,8 @@ class docker_pull(BaseModule):
     meta = {
         "description": "Download images from a docker repository",
         "created_date": "2024-03-24",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
     options = {"all_tags": False, "output_folder": ""}
     options_desc = {
         "all_tags": "Download all tags from each registry (Default False)",

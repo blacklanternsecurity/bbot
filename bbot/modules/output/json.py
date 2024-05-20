@@ -9,8 +9,8 @@ class JSON(BaseOutputModule):
     meta = {
         "description": "Output to Newline-Delimited JSON (NDJSON)",
         "created_date": "2022-04-07",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {"output_file": "", "console": False, "siem_friendly": False}
     options_desc = {
         "output_file": "Output to file",

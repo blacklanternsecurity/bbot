@@ -14,8 +14,8 @@ class Ipstack(BaseModule):
         "description": "Query IPStack's GeoIP API",
         "created_date": "2022-11-26",
         "author": "@tycoonslive",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "IPStack GeoIP API Key"}
     scope_distance_modifier = 1

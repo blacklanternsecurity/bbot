@@ -8,8 +8,8 @@ class code_repository(BaseModule):
     meta = {
         "description": "Look for code repository links in webpages",
         "created_date": "2024-05-15",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
     flags = ["passive", "safe", "repo-enum"]
 
     # platform name : (regex, case_sensitive)

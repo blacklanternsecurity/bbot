@@ -10,8 +10,8 @@ class git(BaseModule):
     meta = {
         "description": "Check for exposed .git repositories",
         "created_date": "2023-05-30",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     in_scope_only = True
 

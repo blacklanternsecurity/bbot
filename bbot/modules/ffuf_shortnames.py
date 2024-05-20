@@ -36,8 +36,8 @@ class ffuf_shortnames(ffuf):
     meta = {
         "description": "Use ffuf in combination IIS shortnames",
         "created_date": "2022-07-05",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
 
     options = {
         "wordlist": "",  # default is defined within setup function

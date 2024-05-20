@@ -8,8 +8,8 @@ class hackertarget(subdomain_enum):
     meta = {
         "description": "Query the hackertarget.com API for subdomains",
         "created_date": "2022-07-28",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://api.hackertarget.com"
 

@@ -8,8 +8,8 @@ class dockerhub(BaseModule):
     meta = {
         "description": "Search for docker repositories of discovered orgs/usernames",
         "created_date": "2024-03-12",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
 
     site_url = "https://hub.docker.com"
     api_url = f"{site_url}/v2"

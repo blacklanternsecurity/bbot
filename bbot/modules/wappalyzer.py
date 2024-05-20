@@ -17,7 +17,7 @@ class wappalyzer(BaseModule):
     meta = {
         "description": "Extract technologies from web responses",
         "created_date": "2022-04-15",
-        "author": "@liquidsec"
+        "author": "@liquidsec",
     }
     deps_pip = ["python-Wappalyzer~=0.3.1", "aiohttp~=3.9.0b0"]
     # accept all events regardless of scope distance

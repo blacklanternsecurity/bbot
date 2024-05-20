@@ -9,8 +9,8 @@ class binaryedge(subdomain_enum_apikey):
         "description": "Query the BinaryEdge API",
         "created_date": "2024-08-18",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": "", "max_records": 1000}
     options_desc = {
         "api_key": "BinaryEdge API key",

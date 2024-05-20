@@ -11,8 +11,8 @@ class nuclei(BaseModule):
     meta = {
         "description": "Fast and customisable vulnerability scanner",
         "created_date": "2022-03-12",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     options = {
         "version": "3.2.0",

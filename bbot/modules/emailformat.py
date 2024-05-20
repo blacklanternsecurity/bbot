@@ -8,8 +8,8 @@ class emailformat(BaseModule):
     meta = {
         "description": "Query email-format.com for email addresses",
         "created_date": "2022-07-11",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     in_scope_only = False
     per_domain_only = True
 

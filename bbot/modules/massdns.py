@@ -28,8 +28,8 @@ class massdns(subdomain_enum):
     meta = {
         "description": "Brute-force subdomains with massdns (highly effective)",
         "created_date": "2023-03-29",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {
         "wordlist": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt",
         "max_resolvers": 1000,

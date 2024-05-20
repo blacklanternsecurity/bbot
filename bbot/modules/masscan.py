@@ -11,8 +11,8 @@ class masscan(portscanner):
     meta = {
         "description": "Port scan with masscan. By default, scans top 100 ports.",
         "created_date": "2023-01-27",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
     options = {
         "top_ports": 100,
         "ports": "",

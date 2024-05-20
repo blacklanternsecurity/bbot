@@ -8,8 +8,8 @@ class certspotter(subdomain_enum):
     meta = {
         "description": "Query Certspotter's API for subdomains",
         "created_date": "2022-07-28",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://api.certspotter.com/v1"
 

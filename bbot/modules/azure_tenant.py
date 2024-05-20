@@ -11,8 +11,8 @@ class azure_tenant(BaseModule):
     meta = {
         "description": "Query Azure for tenant sister domains",
         "created_date": "2024-07-04",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://autodiscover-s.outlook.com"
     in_scope_only = True

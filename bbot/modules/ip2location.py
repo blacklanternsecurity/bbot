@@ -13,8 +13,8 @@ class IP2Location(BaseModule):
         "description": "Query IP2location.io's API for geolocation information. ",
         "created_date": "2023-09-12",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": "", "lang": ""}
     options_desc = {
         "api_key": "IP2location.io API Key",

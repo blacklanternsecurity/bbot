@@ -9,8 +9,8 @@ class host_header(BaseModule):
     meta = {
         "description": "Try common HTTP Host header spoofing techniques",
         "created_date": "2022-07-27",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
 
     in_scope_only = True
     per_hostport_only = True

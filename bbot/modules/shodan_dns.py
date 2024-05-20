@@ -9,8 +9,8 @@ class shodan_dns(shodan):
         "description": "Query Shodan for subdomains",
         "created_date": "2022-07-03",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "Shodan API key"}
 

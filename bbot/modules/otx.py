@@ -8,8 +8,8 @@ class otx(subdomain_enum):
     meta = {
         "description": "Query otx.alienvault.com for subdomains",
         "created_date": "2022-08-24",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://otx.alienvault.com"
 

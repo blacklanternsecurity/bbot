@@ -10,8 +10,8 @@ class skymem(emailformat):
     meta = {
         "description": "Query skymem.info for email addresses",
         "created_date": "2022-07-11",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://www.skymem.info"
 

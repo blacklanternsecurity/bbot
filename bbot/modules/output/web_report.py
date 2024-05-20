@@ -8,8 +8,8 @@ class web_report(BaseOutputModule):
     meta = {
         "description": "Create a markdown report with web assets",
         "created_date": "2023-02-08",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
     options = {
         "output_file": "",
         "css_theme_file": "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css",

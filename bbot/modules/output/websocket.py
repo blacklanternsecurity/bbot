@@ -7,11 +7,7 @@ from bbot.modules.output.base import BaseOutputModule
 
 class Websocket(BaseOutputModule):
     watched_events = ["*"]
-    meta = {
-        "description": "Output to websockets",
-        "created_date": "2022-04-15",
-        "author": "@TheTechromancer"
-        }
+    meta = {"description": "Output to websockets", "created_date": "2022-04-15", "author": "@TheTechromancer"}
     options = {"url": "", "token": "", "preserve_graph": True}
     options_desc = {
         "url": "Web URL",

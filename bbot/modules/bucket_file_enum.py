@@ -12,7 +12,7 @@ class bucket_file_enum(BaseModule):
     meta = {
         "description": "Works in conjunction with the filedownload module to download files from open storage buckets. Currently supported cloud providers: AWS",
         "created_date": "2023-11-14",
-        "author": "@TheTechromancer"
+        "author": "@TheTechromancer",
     }
     flags = ["passive", "safe", "cloud-enum"]
     options = {

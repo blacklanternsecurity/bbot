@@ -9,8 +9,8 @@ class fullhunt(subdomain_enum_apikey):
         "description": "Query the fullhunt.io API for subdomains",
         "created_date": "2022-08-24",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "FullHunt API Key"}
 

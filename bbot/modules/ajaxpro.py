@@ -14,8 +14,8 @@ class ajaxpro(BaseModule):
     meta = {
         "description": "Check for potentially vulnerable Ajaxpro instances",
         "created_date": "2024-01-18",
-        "author": "@liquidsec"
-        }
+        "author": "@liquidsec",
+    }
 
     async def handle_event(self, event):
         if event.type == "URL":

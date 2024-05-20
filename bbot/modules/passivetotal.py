@@ -9,8 +9,8 @@ class passivetotal(subdomain_enum_apikey):
         "description": "Query the PassiveTotal API for subdomains",
         "created_date": "2022-08-08",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"username": "", "api_key": ""}
     options_desc = {"username": "RiskIQ Username", "api_key": "RiskIQ API Key"}
 

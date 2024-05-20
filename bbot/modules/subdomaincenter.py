@@ -8,8 +8,8 @@ class subdomaincenter(subdomain_enum):
     meta = {
         "description": "Query subdomain.center's API for subdomains",
         "created_date": "2023-07-26",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://api.subdomain.center"
     retries = 2

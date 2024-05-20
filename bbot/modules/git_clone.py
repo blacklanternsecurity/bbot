@@ -9,8 +9,8 @@ class git_clone(github):
     meta = {
         "description": "Clone code github repositories",
         "created_date": "2024-03-08",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
     options = {"api_key": "", "output_folder": ""}
     options_desc = {"api_key": "Github token", "output_folder": "Folder to clone repositories to"}
 

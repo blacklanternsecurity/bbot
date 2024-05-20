@@ -10,8 +10,8 @@ class dnsdumpster(subdomain_enum):
     meta = {
         "description": "Query dnsdumpster for subdomains",
         "created_date": "2022-03-12",
-        "author": "@TheTechromancer"
-        }
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://dnsdumpster.com"
 

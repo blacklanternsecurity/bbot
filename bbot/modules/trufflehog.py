@@ -9,8 +9,8 @@ class trufflehog(BaseModule):
     meta = {
         "description": "TruffleHog is a tool for finding credentials",
         "created_date": "2024-03-12",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
 
     options = {
         "version": "3.75.1",

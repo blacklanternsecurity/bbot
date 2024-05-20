@@ -9,8 +9,8 @@ class dastardly(BaseModule):
     meta = {
         "description": "Lightweight web application security scanner",
         "created_date": "2023-12-11",
-        "author": "@domwhewell-sage"
-        }
+        "author": "@domwhewell-sage",
+    }
 
     deps_pip = ["lxml~=4.9.2"]
     deps_ansible = [

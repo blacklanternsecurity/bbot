@@ -21,8 +21,8 @@ class builtwith(subdomain_enum_apikey):
         "description": "Query Builtwith.com for subdomains",
         "created_date": "2022-08-23",
         "author": "@TheTechromancer",
-        "auth_required": True
-        }
+        "auth_required": True,
+    }
     options = {"api_key": "", "redirects": True}
     options_desc = {"api_key": "Builtwith API key", "redirects": "Also look up inbound and outbound redirects"}
     base_url = "https://api.builtwith.com"
