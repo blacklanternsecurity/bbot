@@ -109,20 +109,19 @@ def bbot_httpserver_allinterfaces():
     server.clear()
 
 
-@pytest.fixture
-def interactsh_mock_instance():
-    interactsh_mock = Interactsh_mock()
-    return interactsh_mock
-
-
 class Interactsh_mock:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
+        self.log = logging.getLogger(f"bbot.interactsh.{self.name}")
         self.interactions = []
         self.correlation_id = "deadbeef-dead-beef-dead-beefdeadbeef"
         self.stop = False
         self.poll_task = None
 
-    def mock_interaction(self, subdomain_tag):
+    def mock_interaction(self, subdomain_tag, msg=None):
+        self.log.critical(f"Mocking interaction to subdomain tag: {subdomain_tag}")
+        if msg is not None:
+            self.log.critical(msg)
         self.interactions.append(subdomain_tag)
 
     async def register(self, callback=None):
