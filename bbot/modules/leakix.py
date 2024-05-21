@@ -8,7 +8,11 @@ class leakix(subdomain_enum_apikey):
     options = {"api_key": ""}
     # NOTE: API key is not required (but having one will get you more results)
     options_desc = {"api_key": "LeakIX API Key"}
-    meta = {"description": "Query leakix.net for subdomains"}
+    meta = {
+        "description": "Query leakix.net for subdomains",
+        "created_date": "2022-07-11",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://leakix.net"
 

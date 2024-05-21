@@ -5,7 +5,11 @@ class sitedossier(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
-    meta = {"description": "Query sitedossier.com for subdomains"}
+    meta = {
+        "description": "Query sitedossier.com for subdomains",
+        "created_date": "2023-08-04",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "http://www.sitedossier.com/parentdomain"
     max_pages = 10

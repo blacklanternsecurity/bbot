@@ -17,7 +17,11 @@ class iis_shortnames(BaseModule):
     watched_events = ["URL"]
     produced_events = ["URL_HINT"]
     flags = ["active", "safe", "web-basic", "web-thorough", "iis-shortnames"]
-    meta = {"description": "Check for IIS shortname vulnerability"}
+    meta = {
+        "description": "Check for IIS shortname vulnerability",
+        "created_date": "2022-04-15",
+        "author": "@pmueller",
+    }
     options = {"detect_only": True, "max_node_count": 50}
     options_desc = {
         "detect_only": "Only detect the vulnerability and do not run the shortname scanner",

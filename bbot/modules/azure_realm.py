@@ -5,7 +5,11 @@ class azure_realm(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["affiliates", "subdomain-enum", "cloud-enum", "web-basic", "web-thorough", "passive", "safe"]
-    meta = {"description": 'Retrieves the "AuthURL" from login.microsoftonline.com/getuserrealm'}
+    meta = {
+        "description": 'Retrieves the "AuthURL" from login.microsoftonline.com/getuserrealm',
+        "created_date": "2023-07-12",
+        "author": "@TheTechromancer",
+    }
 
     async def setup(self):
         self.processed = set()
