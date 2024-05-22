@@ -7,7 +7,11 @@ class git(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING"]
     flags = ["active", "safe", "web-basic", "code-enum"]
-    meta = {"description": "Check for exposed .git repositories"}
+    meta = {
+        "description": "Check for exposed .git repositories",
+        "created_date": "2023-05-30",
+        "author": "@TheTechromancer",
+    }
 
     in_scope_only = True
 

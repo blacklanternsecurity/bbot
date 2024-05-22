@@ -16,7 +16,11 @@ class wafw00f(BaseModule):
     watched_events = ["URL"]
     produced_events = ["WAF"]
     flags = ["active", "aggressive"]
-    meta = {"description": "Web Application Firewall Fingerprinting Tool"}
+    meta = {
+        "description": "Web Application Firewall Fingerprinting Tool",
+        "created_date": "2023-02-15",
+        "author": "@liquidsec",
+    }
 
     deps_pip = ["wafw00f~=2.2.0"]
 

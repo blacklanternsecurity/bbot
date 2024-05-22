@@ -6,7 +6,11 @@ class trufflehog(BaseModule):
     watched_events = ["FILESYSTEM"]
     produced_events = ["FINDING", "VULNERABILITY"]
     flags = ["passive", "safe", "code-enum"]
-    meta = {"description": "TruffleHog is a tool for finding credentials"}
+    meta = {
+        "description": "TruffleHog is a tool for finding credentials",
+        "created_date": "2024-03-12",
+        "author": "@domwhewell-sage",
+    }
 
     options = {
         "version": "3.75.1",

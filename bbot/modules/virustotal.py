@@ -5,7 +5,12 @@ class virustotal(subdomain_enum_apikey):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["subdomain-enum", "passive", "safe"]
-    meta = {"description": "Query VirusTotal's API for subdomains", "auth_required": True}
+    meta = {
+        "description": "Query VirusTotal's API for subdomains",
+        "created_date": "2022-08-25",
+        "author": "@TheTechromancer",
+        "auth_required": True,
+    }
     options = {"api_key": ""}
     options_desc = {"api_key": "VirusTotal API Key"}
 
