@@ -85,7 +85,7 @@ class speculate(BaseInternalModule):
         if event.type == "DNS_NAME":
             parent = self.helpers.parent_domain(event.data)
             if parent != event.data:
-                await self.emit_event(parent, "DNS_NAME", source=event, internal=True)
+                await self.emit_event(parent, "DNS_NAME", source=event)
 
         # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
