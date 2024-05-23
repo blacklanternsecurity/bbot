@@ -20,7 +20,7 @@ word_regex = re.compile(r"[^\d\W_]+")
 word_num_regex = re.compile(r"[^\W_]+")
 num_regex = re.compile(r"\d+")
 
-_ipv4_regex = r"([0-9]{1,3}\.){3,3}[0-9]{1,3}"
+_ipv4_regex = r"(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}"
 ipv4_regex = re.compile(_ipv4_regex, re.I)
 
 # IPv6 is complicated, so we have accomodate alternative patterns,
