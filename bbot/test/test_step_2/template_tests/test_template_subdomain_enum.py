@@ -68,8 +68,9 @@ class TestSubdomainEnumHighestParent(TestSubdomainEnum):
         assert 1 == len([e for e in in_scope_dns_names if e.data == "asdf.www.blacklanternsecurity.com"])
         assert 1 == len([e for e in in_scope_dns_names if e.data == "test.asdf.www.blacklanternsecurity.com"])
         assert 1 == len([e for e in in_scope_dns_names if e.data == "api.test.asdf.www.blacklanternsecurity.com"])
-        assert len(distance_1_dns_names) == 1
+        assert len(distance_1_dns_names) == 2
         assert 1 == len([e for e in distance_1_dns_names if e.data == "evilcorp.com"])
+        assert 1 == len([e for e in distance_1_dns_names if e.data == "blacklanternsecurity.com"])
         assert len(self.queries) == 1
         assert self.queries[0] == "www.blacklanternsecurity.com"
 

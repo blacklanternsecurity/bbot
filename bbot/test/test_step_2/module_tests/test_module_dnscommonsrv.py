@@ -39,11 +39,12 @@ class TestDNSCommonSRV(ModuleTestBase):
                     "SRV": ["0 100 3268 asdf.blacklanternsecurity.com"]
                 },
                 "asdf.blacklanternsecurity.com": {"A": ["1.2.3.5"]},
+                "_msdcs.api.blacklanternsecurity.com": {"A": ["1.2.3.5"]},
             }
         )
 
     def check(self, module_test, events):
-        assert len(events) == 11
+        assert len(events) == 15
         assert 1 == len([e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"])
         assert 1 == len(
             [
@@ -73,6 +74,11 @@ class TestDNSCommonSRV(ModuleTestBase):
             [e for e in events if e.type == "DNS_NAME" and e.data == "test.api.blacklanternsecurity.com"]
         ), "Failed to detect subdomain 5"
         assert 1 == len(
+            [e for e in events if e.type == "DNS_NAME" and e.data == "_msdcs.api.blacklanternsecurity.com"]
+        ), "Failed to detect subdomain 5"
+        assert 1 == len(
             [e for e in events if e.type == "DNS_NAME" and e.data == "blacklanternsecurity.com"]
         ), "Failed to detect main domain"
-        assert 2 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED" and str(e.module) == "speculate"])
+        assert 8 == len([e for e in events if e.type == "DNS_NAME"])
+        assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED"])
+        assert 5 == len([e for e in events if e.type == "DNS_NAME_UNRESOLVED" and str(e.module) == "speculate"])
