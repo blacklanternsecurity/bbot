@@ -7,7 +7,11 @@ class skymem(emailformat):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
     flags = ["passive", "email-enum", "safe"]
-    meta = {"description": "Query skymem.info for email addresses"}
+    meta = {
+        "description": "Query skymem.info for email addresses",
+        "created_date": "2022-07-11",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://www.skymem.info"
 

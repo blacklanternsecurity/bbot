@@ -9,7 +9,11 @@ class paramminer_getparams(paramminer_headers):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING"]
     flags = ["active", "aggressive", "slow", "web-paramminer"]
-    meta = {"description": "Use smart brute-force to check for common HTTP GET parameters"}
+    meta = {
+        "description": "Use smart brute-force to check for common HTTP GET parameters",
+        "created_date": "2022-06-28",
+        "author": "@liquidsec",
+    }
     scanned_hosts = []
     options = {
         "wordlist": "",  # default is defined within setup function

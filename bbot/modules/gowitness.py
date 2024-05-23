@@ -12,10 +12,10 @@ class gowitness(BaseModule):
     watched_events = ["URL", "SOCIAL"]
     produced_events = ["WEBSCREENSHOT", "URL", "URL_UNVERIFIED", "TECHNOLOGY"]
     flags = ["active", "safe", "web-screenshots"]
-    meta = {"description": "Take screenshots of webpages"}
+    meta = {"description": "Take screenshots of webpages", "created_date": "2022-07-08", "author": "@TheTechromancer"}
     options = {
         "version": "2.4.2",
-        "threads": 4,
+        "threads": 0,
         "timeout": 10,
         "resolution_x": 1440,
         "resolution_y": 900,
@@ -25,7 +25,7 @@ class gowitness(BaseModule):
     }
     options_desc = {
         "version": "Gowitness version",
-        "threads": "How many gowitness threads to spawn - default is number of CPUs x 2",
+        "threads": "How many gowitness threads to spawn (default is number of CPUs x 2)",
         "timeout": "Preflight check timeout",
         "resolution_x": "Screenshot resolution x",
         "resolution_y": "Screenshot resolution y",
@@ -53,7 +53,9 @@ class gowitness(BaseModule):
         default_thread_count = min(20, num_cpus * 2)
         self.timeout = self.config.get("timeout", 10)
         self.idle_timeout = self.config.get("idle_timeout", 1800)
-        self.threads = self.config.get("threads", default_thread_count)
+        self.threads = self.config.get("threads", 0)
+        if not self.threads:
+            self.threads = default_thread_count
         self.proxy = self.scan.config.get("http_proxy", "")
         self.resolution_x = self.config.get("resolution_x")
         self.resolution_y = self.config.get("resolution_y")
