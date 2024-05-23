@@ -66,8 +66,11 @@ class ScanIngress(InterceptModule):
             return False, "cannot emit dummy event"
 
         # don't accept events with self as parent
-        if (not event.type == "SCAN") and (event == event.get_parent()):
-            return False, "event's parent is itself"
+        if not event.type == "SCAN":
+            if event == event.get_parent():
+                return False, "event's parent is itself"
+            if not event.discovery_context:
+                self.warning(f"Event {event} has no discovery context")
 
         # don't accept duplicates
         if self.is_incoming_duplicate(event, add=True):

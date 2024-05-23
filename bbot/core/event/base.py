@@ -217,10 +217,10 @@ class BaseEvent:
         # inherit web spider distance from parent
         self.web_spider_distance = getattr(self.parent, "web_spider_distance", 0)
 
-        if (not context) and (not self._dummy):
-            raise ValidationError(f"Must specify event discovery context")
+        if not context:
+            context = getattr(self.module, "default_discovery_context", "")
         self._discovery_context = ""
-        if context is not None:
+        if context:
             self.discovery_context = context
 
     @property
@@ -509,6 +509,8 @@ class BaseEvent:
                 parent = e.get_parent()
             else:
                 parent = e.parent
+            if parent is None:
+                break
             if e == parent:
                 break
             parents.append(parent)
@@ -686,6 +688,8 @@ class BaseEvent:
         # sequence of modules that led to discovery
         if self.module_sequence:
             j.update({"module_sequence": str(self.module_sequence)})
+        # discovery context
+        j["discovery_context"] = self.full_discovery_context
 
         # normalize non-primitive python objects
         for k, v in list(j.items()):

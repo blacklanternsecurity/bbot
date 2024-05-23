@@ -427,7 +427,7 @@ class BaseModule:
             ValidationError: If the event could not be validated and raise_error is True.
         """
         raise_error = kwargs.pop("raise_error", False)
-        context = kwargs.pop("context", None)
+        context = kwargs.get("context", None)
         if context is None:
             kwargs["context"] = self.default_discovery_context
         module = kwargs.pop("module", None)

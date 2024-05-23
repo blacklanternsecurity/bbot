@@ -175,7 +175,13 @@ class DNS(InterceptModule):
             and event.type not in ("DNS_NAME", "DNS_NAME_UNRESOLVED", "IP_ADDRESS", "IP_RANGE")
             and not ((event.type in ("OPEN_TCP_PORT", "URL_UNVERIFIED") and str(event.module) == "speculate"))
         ):
-            parent_event = self.scan.make_event(event.host, "DNS_NAME", module=self.host_module, parent=event)
+            parent_event = self.scan.make_event(
+                event.host,
+                "DNS_NAME",
+                module=self.host_module,
+                parent=event,
+                context="{event.parent.type} has host {event.type} {event.host}",
+            )
             # only emit the event if it's not already in the parent chain
             if parent_event is not None and (parent_event.always_emit or parent_event not in event.get_parents()):
                 parent_event.scope_distance = event.scope_distance

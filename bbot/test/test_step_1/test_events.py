@@ -210,6 +210,12 @@ async def test_events(events, helpers):
         assert tag in affiliate_event2.tags
         assert tag not in affiliate_event3.tags
 
+    # discovery context
+    event = scan.make_event(
+        "127.0.0.1", parent=scan.root_event, context="something discovered {event.type}: {event.data}"
+    )
+    assert event.discovery_context == "something discovered IP_ADDRESS: 127.0.0.1"
+
     # updating an already-created event with make_event()
     # updating tags
     event1 = scan.make_event("127.0.0.1", parent=scan.root_event)
