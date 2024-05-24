@@ -15,7 +15,6 @@ flag_descriptions = {
     "service-enum": "Identifies protocols running on open ports",
     "slow": "May take a long time to complete",
     "social-enum": "Enumerates social media",
-    "repo-enum": "Enumerates code repositories",
     "subdomain-enum": "Enumerates subdomains",
     "subdomain-hijack": "Detects hijackable subdomains",
     "web-basic": "Basic, non-intrusive web scan functionality",

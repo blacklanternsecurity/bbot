@@ -24,19 +24,16 @@ class git(BaseModule):
             self.helpers.urljoin(base_url, ".git/config"),
             self.helpers.urljoin(f"{base_url}/", ".git/config"),
         }
-        tasks = [self.get_url(u) for u in urls]
-        async for task in self.helpers.as_completed(tasks):
-            result, url = await task
-            text = getattr(result, "text", "")
+        async for url, response in self.helpers.request_batch(urls):
+            text = getattr(response, "text", "")
             if not text:
                 text = ""
             if text:
-                if getattr(result, "status_code", 0) == 200 and "[core]" in text and not self.fp_regex.match(text):
+                if getattr(response, "status_code", 0) == 200 and "[core]" in text and not self.fp_regex.match(text):
+                    description = f"Exposed .git config at {url}"
                     await self.emit_event(
-                        {"host": str(event.host), "url": url, "description": f"Exposed .git config at {url}"},
+                        {"host": str(event.host), "url": url, "description": description},
                         "FINDING",
                         event,
+                        context="git detected {event.type}: {description}",
                     )
-
-    async def get_url(self, url):
-        return (await self.helpers.request(url), url)

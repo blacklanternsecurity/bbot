@@ -53,12 +53,17 @@ class gitlab(BaseModule):
         if "x_gitlab_meta" in headers:
             url = event.parsed_url._replace(path="/").geturl()
             await self.emit_event(
-                {"host": str(event.host), "technology": "GitLab", "url": url}, "TECHNOLOGY", parent=event
+                {"host": str(event.host), "technology": "GitLab", "url": url},
+                "TECHNOLOGY",
+                parent=event,
+                context=f"{{module}} detected {{event.type}}: GitLab at {url}",
             )
+            description = f"GitLab server at {event.host}"
             await self.emit_event(
-                {"host": str(event.host), "description": f"GitLab server at {event.host}"},
+                {"host": str(event.host), "description": description},
                 "FINDING",
                 parent=event,
+                context=f"{{module}} detected {{event.type}}: {description}",
             )
 
     async def handle_technology(self, event):
@@ -95,7 +100,9 @@ class gitlab(BaseModule):
             if project_url:
                 code_event = self.make_event({"url": project_url}, "CODE_REPOSITORY", tags="git", parent=event)
                 code_event.scope_distance = event.scope_distance
-                await self.emit_event(code_event)
+                await self.emit_event(
+                    code_event, context=f"{{module}} enumerated projects and found {{event.type}} at {project_url}"
+                )
             namespace = project.get("namespace", {})
             if namespace:
                 await self.handle_namespace(namespace, event)
@@ -127,7 +134,10 @@ class gitlab(BaseModule):
                 parent=event,
             )
             social_event.scope_distance = event.scope_distance
-            await self.emit_event(social_event)
+            await self.emit_event(
+                social_event,
+                context=f'{{module}} found GitLab namespace ({{event.type}}) "{namespace_name}" at {namespace_url}',
+            )
 
     def get_base_url(self, event):
         base_url = event.data.get("url", "")

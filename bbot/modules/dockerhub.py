@@ -40,7 +40,10 @@ class dockerhub(BaseModule):
                 site_url = f"{self.site_url}/u/{p}"
                 # emit social event
                 await self.emit_event(
-                    {"platform": "docker", "url": site_url, "profile_name": p}, "SOCIAL", parent=event
+                    {"platform": "docker", "url": site_url, "profile_name": p},
+                    "SOCIAL",
+                    parent=event,
+                    context=f"{{module}} tried {event.type} {event.data} and found docker profile ({{event.type}}) at {p}",
                 )
 
     async def handle_social(self, event):
@@ -48,11 +51,24 @@ class dockerhub(BaseModule):
         if not username:
             return
         # emit API endpoint to be visited by httpx (for url/email extraction, etc.)
-        await self.emit_event(f"{self.api_url}/users/{username}", "URL_UNVERIFIED", parent=event, tags="httpx-safe")
+        profile_url = f"{self.api_url}/users/{username}"
+        await self.emit_event(
+            profile_url,
+            "URL_UNVERIFIED",
+            parent=event,
+            tags="httpx-safe",
+            context=f"{{module}} produced {{event.type}}: {profile_url}",
+        )
         self.verbose(f"Searching for docker images belonging to {username}")
         repos = await self.get_repos(username)
         for repo in repos:
-            await self.emit_event({"url": repo}, "CODE_REPOSITORY", tags="docker", parent=event)
+            await self.emit_event(
+                {"url": repo},
+                "CODE_REPOSITORY",
+                tags="docker",
+                parent=event,
+                context=f"{{module}} found docker image {{event.type}}: {repo}",
+            )
 
     async def get_repos(self, username):
         repos = []

@@ -27,13 +27,16 @@ class github_codesearch(github, subdomain_enum):
             repo_event = self.make_event({"url": repo_url}, "CODE_REPOSITORY", tags="git", parent=event)
             if repo_event is None:
                 continue
-            await self.emit_event(repo_event)
+            await self.emit_event(
+                repo_event,
+                context=f'{{module}} searched github.com for "{query}" and found {{event.type}} with matching content at {repo_url}',
+            )
             for raw_url in raw_urls:
                 url_event = self.make_event(raw_url, "URL_UNVERIFIED", parent=repo_event, tags=["httpx-safe"])
                 if not url_event:
                     continue
                 url_event.scope_distance = repo_event.scope_distance
-                await self.emit_event(url_event)
+                await self.emit_event(url_event, f'file matching query "{query}" is at {{event.type}}: {raw_url}')
 
     async def query(self, query):
         repos = {}

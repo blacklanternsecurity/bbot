@@ -61,7 +61,12 @@ class trufflehog(BaseModule):
                 }
                 if description:
                     data["description"] += f" Description: [{description}]"
-                await self.emit_event(data, "VULNERABILITY", event)
+                await self.emit_event(
+                    data,
+                    "VULNERABILITY",
+                    event,
+                    context=f'{{module}} searched {event.type} using "{module}" method and found verified secret ({{event.type}}): {raw_result}',
+                )
             else:
                 data = {
                     "description": f"Potential Secret Found. Detector Type: [{detector_name}] Decoder Type: [{decoder_name}] Secret: [{raw_result}] Details: [{source_metadata}]",
@@ -69,7 +74,12 @@ class trufflehog(BaseModule):
                 }
                 if description:
                     data["description"] += f" Description: [{description}]"
-                await self.emit_event(data, "FINDING", event)
+                await self.emit_event(
+                    data,
+                    "FINDING",
+                    event,
+                    context=f'{{module}} searched {event.type} using "{module}" method and found verified secret ({{event.type}}): {raw_result}',
+                )
 
     async def execute_trufflehog(self, module, path):
         command = [
