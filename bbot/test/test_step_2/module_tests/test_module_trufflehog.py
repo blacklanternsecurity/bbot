@@ -907,14 +907,6 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-<<<<<<< HEAD
-        github_workflow_event = [e for e in finding_events if "bbot" in e.data["description"]][0].parent
-        file = Path(github_workflow_event.data["path"])
-        assert file.is_file(), "Destination file does not exist"
-        docker_parent_event = [e for e in finding_events if e.data["host"] == "hub.docker.com"][0].parent
-        file = Path(docker_parent_event.data["path"])
-        assert file.is_file(), "Destination image does not exist"
-=======
         filesystem_events = [e.source for e in finding_events if "bbot" in e.data["description"]]
         assert len(filesystem_events) == 3
         assert all([e.type == "FILESYSTEM" for e in filesystem_events])
@@ -941,4 +933,3 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
                 and Path(e.data["path"]).is_file()
             ]
         ), "Docker image file does not exist"
->>>>>>> bbot-2.0
