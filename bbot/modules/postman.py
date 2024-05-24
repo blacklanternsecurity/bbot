@@ -5,7 +5,11 @@ class postman(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["URL_UNVERIFIED"]
     flags = ["passive", "subdomain-enum", "safe", "code-enum"]
-    meta = {"description": "Query Postman's API for related workspaces, collections, requests"}
+    meta = {
+        "description": "Query Postman's API for related workspaces, collections, requests",
+        "created_date": "2023-12-23",
+        "author": "@domwhewell-sage",
+    }
 
     base_url = "https://www.postman.com/_api"
 

@@ -7,6 +7,8 @@ class threatminer(subdomain_enum):
     flags = ["subdomain-enum", "passive", "safe"]
     meta = {
         "description": "Query threatminer's API for subdomains",
+        "created_date": "2022-07-28",
+        "author": "@TheTechromancer",
     }
 
     base_url = "https://api.threatminer.org/v2"

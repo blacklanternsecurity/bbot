@@ -8,7 +8,11 @@ class nuclei(BaseModule):
     watched_events = ["URL"]
     produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "aggressive"]
-    meta = {"description": "Fast and customisable vulnerability scanner"}
+    meta = {
+        "description": "Fast and customisable vulnerability scanner",
+        "created_date": "2022-03-12",
+        "author": "@TheTechromancer",
+    }
 
     options = {
         "version": "3.2.0",

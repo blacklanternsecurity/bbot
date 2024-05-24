@@ -9,6 +9,8 @@ class credshed(BaseModule):
     flags = ["passive", "safe"]
     meta = {
         "description": "Send queries to your own credshed server to check for known credentials of your targets",
+        "created_date": "2023-10-12",
+        "author": "@SpamFaux",
         "auth_required": True,
     }
     options = {"username": "", "password": "", "credshed_url": ""}

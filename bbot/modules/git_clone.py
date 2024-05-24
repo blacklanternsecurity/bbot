@@ -6,7 +6,11 @@ class git_clone(github):
     watched_events = ["CODE_REPOSITORY"]
     produced_events = ["FILESYSTEM"]
     flags = ["passive", "safe", "slow"]
-    meta = {"description": "Clone code github repositories"}
+    meta = {
+        "description": "Clone code github repositories",
+        "created_date": "2024-03-08",
+        "author": "@domwhewell-sage",
+    }
     options = {"api_key": "", "output_folder": ""}
     options_desc = {"api_key": "Github token", "output_folder": "Folder to clone repositories to"}
 

@@ -5,7 +5,11 @@ class pgp(subdomain_enum):
     watched_events = ["DNS_NAME"]
     produced_events = ["EMAIL_ADDRESS"]
     flags = ["passive", "email-enum", "safe"]
-    meta = {"description": "Query common PGP servers for email addresses"}
+    meta = {
+        "description": "Query common PGP servers for email addresses",
+        "created_date": "2022-08-10",
+        "author": "@TheTechromancer",
+    }
     options = {
         "search_urls": [
             "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=vindex&search=<query>",

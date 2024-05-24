@@ -26,7 +26,11 @@ class speculate(BaseInternalModule):
     ]
     produced_events = ["DNS_NAME", "OPEN_TCP_PORT", "IP_ADDRESS", "FINDING", "ORG_STUB"]
     flags = ["passive"]
-    meta = {"description": "Derive certain event types from others by common sense"}
+    meta = {
+        "description": "Derive certain event types from others by common sense",
+        "created_date": "2022-05-03",
+        "author": "@liquidsec",
+    }
 
     options = {"max_hosts": 65536, "ports": "80,443"}
     options_desc = {
@@ -80,10 +84,10 @@ class speculate(BaseInternalModule):
                 await self.emit_event(ip, "IP_ADDRESS", parent=event, internal=True)
 
         # parent domains
-        if event.type == "DNS_NAME":
+        if event.type.startswith("DNS_NAME"):
             parent = self.helpers.parent_domain(event.data)
             if parent != event.data:
-                await self.emit_event(parent, "DNS_NAME", parent=event, internal=True)
+                await self.emit_event(parent, "DNS_NAME", parent=event)
 
         # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
@@ -180,9 +184,3 @@ class speculate(BaseInternalModule):
                 if email_event:
                     email_event.scope_distance = event.scope_distance
                     await self.emit_event(email_event)
-
-    async def filter_event(self, event):
-        # don't accept errored DNS_NAMEs
-        if any(t in event.tags for t in ("unresolved", "a-error", "aaaa-error")):
-            return False, "there were errors resolving this hostname"
-        return True

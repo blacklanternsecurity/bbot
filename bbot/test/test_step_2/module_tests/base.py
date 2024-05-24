@@ -101,6 +101,11 @@ class ModuleTestBase:
                 scan = self.scan
             await scan.helpers.dns._mock_dns(mock_data)
 
+        def mock_interactsh(self, name):
+            from ...conftest import Interactsh_mock
+
+            return Interactsh_mock(name)
+
         @property
         def module(self):
             return self.scan.modules[self.name]

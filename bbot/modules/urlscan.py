@@ -7,6 +7,8 @@ class urlscan(subdomain_enum):
     produced_events = ["DNS_NAME", "URL_UNVERIFIED"]
     meta = {
         "description": "Query urlscan.io for subdomains",
+        "created_date": "2022-06-09",
+        "author": "@TheTechromancer",
     }
     options = {"urls": False}
     options_desc = {"urls": "Emit URLs in addition to DNS_NAMEs"}

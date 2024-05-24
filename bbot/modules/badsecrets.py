@@ -8,7 +8,11 @@ class badsecrets(BaseModule):
     watched_events = ["HTTP_RESPONSE"]
     produced_events = ["FINDING", "VULNERABILITY", "TECHNOLOGY"]
     flags = ["active", "safe", "web-basic"]
-    meta = {"description": "Library for detecting known or weak secrets across many web frameworks"}
+    meta = {
+        "description": "Library for detecting known or weak secrets across many web frameworks",
+        "created_date": "2022-11-19",
+        "author": "@liquidsec",
+    }
     options = {"custom_secrets": None}
     options_desc = {
         "custom_secrets": "Include custom secrets loaded from a local file",

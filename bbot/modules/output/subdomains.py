@@ -4,7 +4,12 @@ from bbot.modules.base import BaseModule
 
 class Subdomains(TXT):
     watched_events = ["DNS_NAME", "DNS_NAME_UNRESOLVED"]
-    meta = {"description": "Output only resolved, in-scope subdomains"}
+    flags = ["subdomain-enum"]
+    meta = {
+        "description": "Output only resolved, in-scope subdomains",
+        "created_date": "2023-07-31",
+        "author": "@TheTechromancer",
+    }
     options = {"output_file": "", "include_unresolved": False}
     options_desc = {"output_file": "Output to file", "include_unresolved": "Include unresolved subdomains in output"}
     accept_dupes = False

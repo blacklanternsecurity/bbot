@@ -8,7 +8,11 @@ class azure_tenant(BaseModule):
     watched_events = ["DNS_NAME"]
     produced_events = ["DNS_NAME"]
     flags = ["affiliates", "subdomain-enum", "cloud-enum", "passive", "safe"]
-    meta = {"description": "Query Azure for tenant sister domains"}
+    meta = {
+        "description": "Query Azure for tenant sister domains",
+        "created_date": "2024-07-04",
+        "author": "@TheTechromancer",
+    }
 
     base_url = "https://autodiscover-s.outlook.com"
     in_scope_only = True

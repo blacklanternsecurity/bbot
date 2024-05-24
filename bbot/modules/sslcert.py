@@ -14,6 +14,8 @@ class sslcert(BaseModule):
     flags = ["affiliates", "subdomain-enum", "email-enum", "active", "safe", "web-basic"]
     meta = {
         "description": "Visit open ports and retrieve SSL certificates",
+        "created_date": "2022-03-30",
+        "author": "@TheTechromancer",
     }
     options = {"timeout": 5.0, "skip_non_ssl": True}
     options_desc = {"timeout": "Socket connect timeout in seconds", "skip_non_ssl": "Don't try common non-SSL ports"}
