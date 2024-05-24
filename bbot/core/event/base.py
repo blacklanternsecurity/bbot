@@ -339,7 +339,7 @@ class BaseEvent:
             self._discovery_context = context
 
     @property
-    def full_discovery_context(self):
+    def discovery_path(self):
         """
         This event's full discovery context, including those of all its parents
         """
@@ -689,7 +689,8 @@ class BaseEvent:
         if self.module_sequence:
             j.update({"module_sequence": str(self.module_sequence)})
         # discovery context
-        j["discovery_context"] = self.full_discovery_context
+        j["discovery_context"] = self.discovery_context
+        j["discovery_path"] = self.discovery_path
 
         # normalize non-primitive python objects
         for k, v in list(j.items()):

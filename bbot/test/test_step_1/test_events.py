@@ -588,7 +588,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "evilcorp.com"
             and e.discovery_context == f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"
-            and e.full_discovery_context == [f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"]
+            and e.discovery_path == [f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com"]
         ]
     )
     assert 1 == len(
@@ -598,7 +598,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "one.evilcorp.com"
             and e.discovery_context == "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com"
-            and e.full_discovery_context
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -613,7 +613,7 @@ async def test_event_discovery_context():
             and e.data == "two.evilcorp.com"
             and e.discovery_context
             == "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com"
-            and e.full_discovery_context
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -628,7 +628,7 @@ async def test_event_discovery_context():
             if e.type == "DNS_NAME"
             and e.data == "three.evilcorp.com"
             and e.discovery_context == "module_2 asked nicely and was given DNS_NAME three.evilcorp.com"
-            and e.full_discovery_context
+            and e.discovery_path
             == [
                 f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
                 "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
@@ -637,20 +637,21 @@ async def test_event_discovery_context():
             ]
         ]
     )
-    assert 1 == len(
-        [
-            e
-            for e in events
-            if e.type == "DNS_NAME"
-            and e.data == "four.evilcorp.com"
-            and e.discovery_context == "module_2 used brute force to obtain DNS_NAME four.evilcorp.com"
-            and e.full_discovery_context
-            == [
-                f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
-                "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
-                "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com",
-                "module_2 asked nicely and was given DNS_NAME three.evilcorp.com",
-                "module_2 used brute force to obtain DNS_NAME four.evilcorp.com",
-            ]
-        ]
-    )
+    final_path = [
+        f"Scan {scan.name} seeded with DNS_NAME: evilcorp.com",
+        "module_1 invoked forbidden magick to discover DNS_NAME one.evilcorp.com",
+        "module_1 pledged its allegiance to cthulu and was awarded DNS_NAME two.evilcorp.com",
+        "module_2 asked nicely and was given DNS_NAME three.evilcorp.com",
+        "module_2 used brute force to obtain DNS_NAME four.evilcorp.com",
+    ]
+    final_event = [
+        e
+        for e in events
+        if e.type == "DNS_NAME"
+        and e.data == "four.evilcorp.com"
+        and e.discovery_context == "module_2 used brute force to obtain DNS_NAME four.evilcorp.com"
+        and e.discovery_path == final_path
+    ]
+    assert 1 == len(final_event)
+    j = final_event[0].json()
+    assert j["discovery_path"] == final_path
