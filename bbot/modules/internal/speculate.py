@@ -40,7 +40,7 @@ class speculate(BaseInternalModule):
     scope_distance_modifier = 1
     _priority = 4
 
-    default_discovery_context = "{module} speculated {event.type}: {event.data}"
+    default_discovery_context = "speculated {event.type}: {event.data}"
 
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
@@ -81,13 +81,21 @@ class speculate(BaseInternalModule):
             ips = list(net)
             random.shuffle(ips)
             for ip in ips:
-                await self.emit_event(ip, "IP_ADDRESS", parent=event, internal=True)
+                await self.emit_event(
+                    ip,
+                    "IP_ADDRESS",
+                    parent=event,
+                    internal=True,
+                    context=f"speculate converted range into indivudal IP_ADDRESS: {ip}",
+                )
 
         # parent domains
         if event.type.startswith("DNS_NAME"):
             parent = self.helpers.parent_domain(event.data)
             if parent != event.data:
-                await self.emit_event(parent, "DNS_NAME", parent=event)
+                await self.emit_event(
+                    parent, "DNS_NAME", parent=event, context=f"speculated parent {{event.type}}: {{event.data}}"
+                )
 
         # we speculate on distance-1 stuff too, because distance-1 open ports are needed by certain modules like sslcert
         event_in_scope_distance = event.scope_distance <= (self.scan.scope_search_distance + 1)
@@ -103,6 +111,7 @@ class speculate(BaseInternalModule):
                     parent=event,
                     internal=True,
                     quick=(event.type == "URL"),
+                    context=f"speculated {{event.type}} from {event.type}: {{event.data}}",
                 )
 
         # speculate sub-directory URLS from URLS
@@ -114,7 +123,7 @@ class speculate(BaseInternalModule):
                     # inherit web spider distance from parent (don't increment)
                     parent_web_spider_distance = getattr(event, "web_spider_distance", 0)
                     url_event.web_spider_distance = parent_web_spider_distance
-                    await self.emit_event(url_event)
+                    await self.emit_event(url_event, context="speculated web sub-directory {event.type}: {event.data}")
 
         # speculate URL_UNVERIFIED from URL or any event with "url" attribute
         event_is_url = event.type == "URL"
@@ -128,9 +137,11 @@ class speculate(BaseInternalModule):
                 tags = None
                 if self.helpers.is_spider_danger(event.parent, url):
                     tags = ["spider-danger"]
-                await self.emit_event(url, "URL_UNVERIFIED", tags=tags, parent=event)
+                await self.emit_event(
+                    url, "URL_UNVERIFIED", tags=tags, parent=event, context="speculated {event.type}: {event.data}"
+                )
 
-        # from hosts
+        # IP_ADDRESS / DNS_NAME --> OPEN_TCP_PORT
         if speculate_open_ports:
             # don't act on unresolved DNS_NAMEs
             usable_dns = False
@@ -146,6 +157,7 @@ class speculate(BaseInternalModule):
                         parent=event,
                         internal=True,
                         quick=True,
+                        context="speculated {event.type}: {event.data}",
                     )
 
         # ORG_STUB from TLD, SOCIAL, AZURE_TENANT
@@ -174,7 +186,7 @@ class speculate(BaseInternalModule):
                 if stub_event:
                     if event.scope_distance > 0:
                         stub_event.scope_distance = event.scope_distance
-                    await self.emit_event(stub_event)
+                    await self.emit_event(stub_event, context="speculated {event.type}: {event.data}")
 
         # USERNAME --> EMAIL
         if event.type == "USERNAME":
@@ -183,4 +195,4 @@ class speculate(BaseInternalModule):
                 email_event = self.make_event(email, "EMAIL_ADDRESS", parent=event, tags=["affiliate"])
                 if email_event:
                     email_event.scope_distance = event.scope_distance
-                    await self.emit_event(email_event)
+                    await self.emit_event(email_event, context="detected {event.type}: {event.data}")

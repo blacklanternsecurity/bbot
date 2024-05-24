@@ -180,7 +180,7 @@ class DNS(InterceptModule):
                 "DNS_NAME",
                 module=self.host_module,
                 parent=event,
-                context="{event.parent.type} has host {event.type} {event.host}",
+                context="{event.parent.type} has host {event.type}: {event.host}",
             )
             # only emit the event if it's not already in the parent chain
             if parent_event is not None and (parent_event.always_emit or parent_event not in event.get_parents()):
@@ -199,6 +199,9 @@ class DNS(InterceptModule):
                     for record in records:
                         try:
                             child_event = self.scan.make_event(record, "DNS_NAME", module=module, parent=parent_event)
+                            child_event.discovery_context = (
+                                f"{rdtype} record for {event.host} contains {child_event.type}: {child_event.host}"
+                            )
                             # if it's a hostname and it's only one hop away, mark it as affiliate
                             if child_event.type == "DNS_NAME" and child_event.scope_distance == 1:
                                 child_event.add_tag("affiliate")
