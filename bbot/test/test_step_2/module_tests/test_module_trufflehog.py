@@ -860,7 +860,7 @@ class TestTrufflehog(ModuleTestBase):
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-        filesystem_events = [e.source for e in vuln_events if "bbot" in e.data["description"]]
+        filesystem_events = [e.parent for e in vuln_events if "bbot" in e.data["description"]]
         assert len(filesystem_events) == 3
         assert all([e.type == "FILESYSTEM" for e in filesystem_events])
         assert 1 == len(
@@ -907,7 +907,7 @@ class TestTrufflehog_NonVerified(TestTrufflehog):
         with open(folder / "keys.txt") as f:
             content = f.read()
             assert content == self.file_content, "File content doesn't match"
-        filesystem_events = [e.source for e in finding_events if "bbot" in e.data["description"]]
+        filesystem_events = [e.parent for e in finding_events if "bbot" in e.data["description"]]
         assert len(filesystem_events) == 3
         assert all([e.type == "FILESYSTEM" for e in filesystem_events])
         assert 1 == len(
