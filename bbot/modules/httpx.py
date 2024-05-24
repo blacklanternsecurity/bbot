@@ -184,7 +184,7 @@ class httpx(BaseModule):
                 if url_event != parent_event:
                     await self.emit_event(url_event)
                 # HTTP response
-                content_type = j.get("header", {}).get("content_type", "unspecified")
+                content_type = j.get("header", {}).get("content_type", "unspecified").split(";")[0]
                 content_length = j.get("content_length", 0)
                 content_length = self.helpers.bytes_to_human(content_length)
                 await self.emit_event(
@@ -192,7 +192,7 @@ class httpx(BaseModule):
                     "HTTP_RESPONSE",
                     url_event,
                     tags=url_event.tags,
-                    context=f"HTTP_RESPONSE was {content_length} with content type {content_type}",
+                    context=f"HTTP_RESPONSE was {content_length} with {content_type} content type",
                 )
 
         for tempdir in Path(tempfile.gettempdir()).iterdir():

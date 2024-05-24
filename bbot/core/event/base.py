@@ -1342,7 +1342,7 @@ def make_event(
         if parent is not None:
             data.parent = parent
         if context is not None:
-            data.context = context
+            data.discovery_context = context
         if internal == True:
             data.internal = True
         if tags:

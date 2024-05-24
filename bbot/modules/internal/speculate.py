@@ -36,6 +36,8 @@ class speculate(BaseInternalModule):
     scope_distance_modifier = 1
     _priority = 4
 
+    default_discovery_context = "{module} speculated {event.type}: {event.data}"
+
     async def setup(self):
         scan_modules = [m for m in self.scan.modules.values() if m._type == "scan"]
         self.open_port_consumers = any(["OPEN_TCP_PORT" in m.watched_events for m in scan_modules])
