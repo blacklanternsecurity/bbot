@@ -48,4 +48,10 @@ class robots(BaseModule):
                         tags = []
                         if self.helpers.is_spider_danger(event, unverified_url):
                             tags.append("spider-danger")
-                        await self.emit_event(unverified_url, "URL_UNVERIFIED", parent=event, tags=tags)
+                        await self.emit_event(
+                            unverified_url,
+                            "URL_UNVERIFIED",
+                            parent=event,
+                            tags=tags,
+                            context=f"{{module}} found robots.txt at {url} and extracted {{event.type}}: {{event.data}}",
+                        )

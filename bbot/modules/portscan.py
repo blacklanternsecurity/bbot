@@ -83,8 +83,12 @@ class portscan(BaseModule):
             new_targets = []
             async for alive_host, _ in self.masscan(targets, ping=True):
                 source_event = self.scanned_tracker.search(alive_host)
-                if source_event.type != "DNS_NAME":
-                    await self.emit_event(alive_host, "IP_ADDRESS", source=source_event)
+                await self.emit_event(
+                    alive_host,
+                    "DNS_NAME",
+                    source=source_event,
+                    context=f"{{module}} pinged {source_event.data} and got a response: {{event.type}}: {{event.data}}",
+                )
                 new_targets.append(ipaddress.ip_network(alive_host, strict=False))
             targets = new_targets
 
@@ -95,7 +99,12 @@ class portscan(BaseModule):
                 if source_event.type == "DNS_NAME":
                     host = source_event.host
                 netloc = self.helpers.make_netloc(host, port)
-                await self.emit_event(netloc, "OPEN_TCP_PORT", source=source_event)
+                await self.emit_event(
+                    netloc,
+                    "OPEN_TCP_PORT",
+                    source=source_event,
+                    context=f"{{module}} executed a TCP SYN scan against {source_event.data} and found: {{event.type}}: {{event.data}}",
+                )
         else:
             self.verbose("Only ping sweep was requested, skipping TCP SYN scan")
 

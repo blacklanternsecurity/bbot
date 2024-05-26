@@ -26,8 +26,13 @@ class pgp(subdomain_enum):
         results = await self.query(query)
         if results:
             for email, keyserver in results:
-                await self.emit_event(email, "EMAIL_ADDRESS", event, abort_if=self.abort_if,
-                context=f'{{module}} queried PGP keyserver {keyserver} for "{query}" and found {{event.type}}: {{event.data}}')
+                await self.emit_event(
+                    email,
+                    "EMAIL_ADDRESS",
+                    event,
+                    abort_if=self.abort_if,
+                    context=f'{{module}} queried PGP keyserver {keyserver} for "{query}" and found {{event.type}}: {{event.data}}',
+                )
 
     async def query(self, query):
         results = set()

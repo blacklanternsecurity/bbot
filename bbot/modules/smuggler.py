@@ -43,4 +43,5 @@ class smuggler(BaseModule):
                         {"host": str(event.host), "url": event.data, "description": description},
                         "FINDING",
                         parent=event,
+                        context=f"{{module}} scanned {event.data} and found HTTP smuggling ({{event.type}}): {text}",
                     )
