@@ -636,7 +636,8 @@ class BaseModule:
                         else:
                             self.debug(f"Not accepting {event} because {reason}")
             except asyncio.CancelledError:
-                self.log.trace("Worker cancelled")
+                # this trace was used for debugging leaked CancelledErrors from inside httpx
+                # self.log.trace("Worker cancelled")
                 raise
         self.log.trace(f"Worker stopped")
 
@@ -1476,7 +1477,8 @@ class InterceptModule(BaseModule):
                     await self.forward_event(event, kwargs)
 
             except asyncio.CancelledError:
-                self.log.trace("Worker cancelled")
+                # this trace was used for debugging leaked CancelledErrors from inside httpx
+                # self.log.trace("Worker cancelled")
                 raise
             except BaseException as e:
                 self.critical(f"Critical failure in intercept module {self.name}: {e}")
